@@ -35,15 +35,15 @@ object KanbanView {
         val graph = {
           val g = state.graph()
           val pageChildren = page.parentIds.flatMap(g.descendants)
-          g.filter(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(g.authorIds))
+          g.filterIds(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(g.authorIds))
         }
 
-        val forest = graph.filter { nid =>
+        val forest = graph.filterIds { nid =>
           val isContent = graph.nodesById(nid).isInstanceOf[Node.Content]
           val notIsolated = graph.hasChildren(nid) || !graph.parents(nid).forall(page.parentIdSet) || graph.isStaticParentIn(nid, page.parentIds)
           val noPage = !page.parentIdSet.contains(nid)
           isContent && notIsolated && noPage
-        }.redundantForestIncludingCycleLeafs
+        }.lookup.redundantForestIncludingCycleLeafs
         val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
 
         VDomModifier(

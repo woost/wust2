@@ -39,8 +39,8 @@ class GlobalState(
     Rx {
       val graph = internalGraph()
       val u = user()
-      val newGraph =
-        if(graph.nodeIds(u.channelNodeId)) graph
+    val newGraph =
+      if (graph.lookup.contains(u.channelNodeId)) graph
         else {
           graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
@@ -51,8 +51,8 @@ class GlobalState(
           )
         }
 
-      newGraph.consistent
-    }
+    newGraph
+  }
   }
 
   val channelTree: Rx[Tree] = Rx {
@@ -120,7 +120,7 @@ class GlobalState(
 
   val nodeAncestorsHierarchy: Rx[Map[Int, Seq[Node]]] =
     pageAncestorsIds.map(
-      _.map(node => (graph().parentDepth(node), graph().nodesById(node)))
+      _.map(node => (graph().lookup.parentDepth(node), graph().nodesById(node)))
         .groupBy(_._1)
         .mapValues(_.map {
           case (depth, node) => node

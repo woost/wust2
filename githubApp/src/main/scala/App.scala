@@ -549,7 +549,7 @@ object WustReceiver {
       val redirectCommentsToAdd: collection.Set[Node] =
         githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
           !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
-            currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
+            currGraph.lookup.inDescendantAncestorRelation(post.id, Constants.issueTagId)
         })
 
       val createIssuesCall = issuesToAdd
@@ -567,7 +567,7 @@ object WustReceiver {
       val createCommentsCall = commentsToAdd
         .flatMap { p =>
           val issueNumber = currGraph
-            .getParents(p.id)
+            .parents(p.id)
             .find(pid => currGraph.inChildParentRelation(pid, Constants.issueTagId))
             .flatMap(pid => Try(pid.toString.toInt).toOption)
 
@@ -585,7 +585,7 @@ object WustReceiver {
 
       val redirectCreateCommentsCall = redirectCommentsToAdd
         .flatMap { p =>
-          val commentParents = currGraph.getParents(p.id) // TODO: Not working
+          val commentParents = currGraph.parents(p.id) // TODO: Not working
           val findIssue =
             commentParents.find(pid => currGraph.inChildParentRelation(pid, Constants.issueTagId))
           val issueNumber = findIssue.flatMap(pid => Try(pid.toString.toInt).toOption)

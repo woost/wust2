@@ -173,9 +173,10 @@ object PostHeuristic {
   case object NodeDegree extends GraphHeuristic {
     def graphHeuristic(graph: Graph, num: Option[Int] = Some(2)): List[Node.Content] = {
       def _nodeDegree(graph: Graph) =
-        graph.connectionDegree.toList.sortBy(_._2).map(p => graph.nodesById(p._1)).collect {
-          case p: Node.Content => p
-        }
+        ???
+//        graph.connectionDegree.toList.sortBy(_._2).map(p => graph.nodesById(p._1)).collect {
+//          case p: Node.Content => p
+//        }
 
       wrapGraphHeuristic(_nodeDegree, graph, num)
     }

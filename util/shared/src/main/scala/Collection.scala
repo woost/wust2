@@ -2,6 +2,7 @@ package wust.util
 
 import scala.collection.generic.{CanBuildFrom, CanCombineFrom}
 import scala.collection.{IterableLike, breakOut, mutable}
+import scala.reflect.ClassTag
 
 package object collection {
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
@@ -24,7 +25,7 @@ package object collection {
       }
     }
 
-    def topologicalSortBy(next: T => Iterable[T]) = algorithm.topologicalSort(col, next)
+    def topologicalSortBy(next: T => Iterable[T]) = algorithm.topologicalSortSlow(col, next)
 
     def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
 
@@ -32,6 +33,21 @@ package object collection {
       leftPadWithBuilder(len, elem, col)
     }
   }
+
+  implicit class RichArray[T <: AnyRef:ClassTag](array:Array[T]) {
+    @inline def filterIdx(p: Int => Boolean):Array[T] = {
+      val builder = new mutable.ArrayBuilder.ofRef[T]
+      builder.sizeHint(array.length)
+      var i = 0
+      while(i < array.length) {
+        if(p(i))
+          builder += array(i)
+        i += 1
+      }
+      builder.result()
+    }
+  }
+
 
   implicit class RichString(val s: String) extends AnyVal {
     def leftPadTo(len: Int, elem: Char): String = {

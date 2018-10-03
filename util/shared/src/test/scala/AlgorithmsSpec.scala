@@ -93,32 +93,33 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
   }
 
   "depth first search" - {
-    "one vertex" - {
-      val dfs = depthFirstSearch[Int](0, _ => Seq.empty).toList
+    "one vertex" in {
+      val edges = NestedArrayInt(Array(Array[Int]()))
+      val dfs = depthFirstSearch(0, edges).toList
       assert(dfs == List(0))
     }
 
-    "directed cycle" - {
-      val edges = Map(
-        0 -> Seq(1, 2),
-        1 -> Seq(3),
-        2 -> Seq(1),
-        3 -> Seq(0, 2)
-      )
+    "directed cycle" in {
+      val edges = NestedArrayInt(Array(
+        Array(1, 2),
+        Array(3),
+        Array(1),
+        Array(0, 2)
+      ))
 
-      val dfs = depthFirstSearch[Int](0, edges).toList
+      val dfs = depthFirstSearch(0, edges).toList
       assert(dfs == List(0, 2, 1, 3))
     }
 
-    "undirected cycle" - {
-      val edges = Map(
-        0 -> Seq(1, 2),
-        1 -> Seq(3),
-        2 -> Seq.empty,
-        3 -> Seq(2)
-      )
+    "undirected cycle (diamond)" in {
+      val edges = NestedArrayInt(Array(
+        Array(1, 2),
+        Array(3),
+        Array[Int](),
+        Array(2)
+      ))
 
-      val dfs = depthFirstSearch[Int](0, edges).toList
+      val dfs = depthFirstSearch(0, edges).toList
       assert(dfs == List(0, 2, 1, 3))
     }
   }
@@ -150,22 +151,164 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
   }
 
   "topological sort" - {
+    def test(vertices: Array[Int], edges:NestedArrayInt):Unit = {
+      val result = topologicalSort(vertices, edges)
+      vertices.foreach(v => assert(result contains v))
+      edges.zipWithIndex.foreach{ case (successors,v) if result.indexOf(v) != -1 =>
+        successors.foreach{ s => 
+          assert(result.indexOf(s) != -1)
+          println(s"$v < $s")
+          assert(result.indexOf(v) < result.indexOf(s), s": $v was not before $s : ${result.toList}")
+        }
+      }
+    }
+
     "empty" in {
-      val list = topologicalSort[Int, Seq](Seq.empty, _ => Seq.empty)
+      val list = topologicalSort(Array[Int](), NestedArrayInt(Array[Array[Int]]()))
+      assert(list.toList == List())
+    }
+
+    "one vertex" in {
+      val list = topologicalSort(Array(0), NestedArrayInt(Array[Array[Int]](Array())))
+      assert(list.toList == List(0))
+    }
+
+    "with successor" in {
+      val list = topologicalSort(Array(0, 1), NestedArrayInt(Array(Array(1), Array(1)))).toList
+      assert(list.toList == List(0, 1))
+    }
+
+    "tolerate directed cycle" in {
+      // 0 -> 1 -> 2 -> 3
+      //      ^    |
+      //      |    |
+      //      +----+
+      val edges = NestedArrayInt(Array(
+        Array(1),
+        Array(2),
+        Array(1, 3),
+        Array[Int]()
+      ))
+
+      val list = topologicalSort(Array(0, 1, 2, 3), edges).toList
+      assert(list == List(0, 2, 1, 3) || list == List(0, 1, 2, 3))
+    }
+
+   "stable" - {
+
+      "test 0" in {
+        // 7<--1-->2-->3<--0
+        // 5 -> 6
+        //
+        // 0 -> 3
+        // 1 -> 2,7 -> 3
+        // 5 -> 6
+        // 4,7
+        val vertices = Array(3, 0, 2, 1, 6, 4, 5, 7)
+        val edges = NestedArrayInt(Array(
+          /* 0 */ Array(3),
+          /* 1 */ Array(2),
+          /* 2 */ Array(3, 7),
+          /* 3 */ Array[Int](),
+          /* 4 */ Array[Int](),
+          /* 5 */ Array(6),
+          /* 6 */ Array[Int](),
+          /* 7 */ Array[Int](),
+        ))
+
+        test(vertices, edges)
+        val result = topologicalSort(vertices, edges)
+        assert(result.toList == List(0, 1, 2, 3, 4, 5, 6, 7))
+      }
+
+      "test 1" in {
+        // ... 1 -> 2 -> 3 ...
+        val edges = NestedArrayInt(Array(
+          Array[Int](),
+          Array(2),
+          Array(3),
+          Array[Int](),
+          Array[Int](),
+        ))
+
+        val list = topologicalSort(Array(0, 3, 1, 2, 4), edges).toList
+        assert(list == List(0, 1, 2, 3, 4))
+      }
+
+      "test 2" in {
+        val edges = NestedArrayInt(Array(
+          Array[Int](), 
+          Array(2),
+          Array(3),
+          Array[Int](), 
+          Array[Int](), 
+        ))
+
+        val list = topologicalSort(Array(0, 3, 1, 2, 4), edges).toList
+        assert(list == List(0, 1, 2, 3, 4))
+      }
+
+      "test 3" in {
+        val edges = NestedArrayInt(Array(
+          Array(1),
+          Array[Int](), 
+          Array[Int](), 
+          Array(1, 2),
+          Array[Int](), 
+        ))
+
+        val list = topologicalSort(Array(0, 2, 3, 1, 4), edges).toList
+        assert(list == List(0, 3, 2, 1, 4))
+      }
+
+      "test 4" in {
+        val edges = NestedArrayInt(Array(
+          Array(1),
+          Array[Int](), 
+          Array(1, 3),
+          Array[Int](), 
+          Array[Int](), 
+        ))
+
+        val list = topologicalSort(Array(0, 2, 3, 4, 1), edges).toList
+        assert(list == List(0, 2, 3, 4, 1))
+      }
+
+      "test 5" in {
+        val edges = NestedArrayInt(Array(
+          Array(2),
+          Array[Int](), 
+          Array(1),
+          Array[Int](), 
+          Array[Int](), 
+        ))
+
+        val list = topologicalSort(Array(0, 3, 2, 1, 4), edges).toList
+        assert(list == List(0, 3, 2, 1, 4))
+      }
+    }
+  }
+  "topological sort (old)" - {
+    "empty" in {
+      val list = topologicalSortSlow[Int, Seq](Seq.empty, _ => Seq.empty)
       assert(list == List())
     }
 
     "one vertex" in {
-      val list = topologicalSort[Int, Seq](Seq(0), _ => Seq.empty)
+      val list = topologicalSortSlow[Int, Seq](Seq(0), _ => Seq.empty)
       assert(list == List(0))
     }
 
     "with successor" in {
-      val list = topologicalSort[Int, Seq](Seq(0, 1), _ => Seq(1)).toList
+      val list = topologicalSortSlow[Int, Seq](Seq(0, 1), _ => Seq(1)).toList
       assert(list == List(0, 1))
     }
 
     "tolerate directed cycle" in {
+      // 0 -> 1 -> 2 -> 3
+      //      ^    |
+      //      |    |
+      //      +----+
       val edges = Map(
         0 -> Seq(1),
         1 -> Seq(2),
@@ -173,8 +316,8 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
         3 -> Seq.empty
       )
 
-      val list = topologicalSort[Int, Seq](Seq(0, 1, 2, 3), edges).toList
-      assert(list == List(0, 2, 1, 3))
+      val list = topologicalSortSlow[Int, Seq](Seq(0, 1, 2, 3), edges).toList
+      assert(list == List(0, 2, 1, 3) || list == List(0, 1, 2, 3))
     }
 
    "stable" - {
@@ -183,12 +326,12 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
         val edges = Map(
           0 -> Seq(3),
           1 -> Seq(2),
-          2 -> Seq(3, 99),
+          2 -> Seq(3, 7),
           5 -> Seq(6)
           ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(3, 0, 2, 1, 3, 6, 4, 5, 99), edges).toList
-        assert(list == List(0, 1, 2, 3, 4, 5, 6, 99))
+        val list = topologicalSortSlow[Int, Seq](Seq(3, 0, 2, 1, 3, 6, 4, 5, 7), edges).toList
+        assert(list == List(0, 1, 2, 3, 4, 5, 6, 7))
       }
 
       "test 1" in {
@@ -197,7 +340,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           -23 -> Seq(11231312)
         ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
+        val list = topologicalSortSlow[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
         assert(list == List(0, 125755, -23, 11231312, 12))
       }
 
@@ -207,7 +350,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           -23 -> Seq(11231312)
         ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
+        val list = topologicalSortSlow[Int, Seq](Seq(0, 11231312, 125755, -23, 12), edges).toList
         assert(list == List(0, 125755, -23, 11231312, 12))
       }
 
@@ -217,7 +360,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           12 -> Seq(-1000, 7),
         ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(-18, 7, 12, -1000, 4), edges).toList
+        val list = topologicalSortSlow[Int, Seq](Seq(-18, 7, 12, -1000, 4), edges).toList
         assert(list == List(-18, 12, 7, -1000, 4))
       }
 
@@ -227,7 +370,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           300033 -> Seq(-1, -133)
         ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(1234, 300033, -133, 19, -1), edges).toList
+        val list = topologicalSortSlow[Int, Seq](Seq(1234, 300033, -133, 19, -1), edges).toList
         assert(list == List(1234, 300033, -133, 19, -1))
       }
 
@@ -237,7 +380,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           99281 -> Seq(-1)
         ).withDefaultValue(Seq.empty)
 
-        val list = topologicalSort[Int, Seq](Seq(-1334, 3321312, 99281, -1, 4), edges).toList
+        val list = topologicalSortSlow[Int, Seq](Seq(-1334, 3321312, 99281, -1, 4), edges).toList
         assert(list == List(-1334, 3321312, 99281, -1, 4))
       }
     }

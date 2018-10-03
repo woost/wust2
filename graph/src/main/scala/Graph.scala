@@ -1,12 +1,12 @@
 package wust.graph
 
 import wust.ids._
-import wust.util.Memo
+import wust.util.{Memo, NestedArrayInt, SliceInt, algorithm}
 import wust.util.algorithm._
 import wust.util.collection._
+import wust.util.time.time
 
-import collection.mutable
-import collection.breakOut
+import collection.{breakOut, mutable}
 
 object Graph {
   val empty = new Graph(Set.empty, Set.empty)
@@ -17,6 +17,7 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
+  lazy val lookup = GraphLookup(this, nodes.toArray, edges.toArray)
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -27,7 +28,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     def nodeStr(node: Node) =
       s"${node.data.tpe}(${node.data.str}:${node.id.toBase58.takeRight(3)})"
     s"Graph(${nodes.map(nodeStr).mkString(" ")}, " +
-      s"${connectionsByType.values.flatten
+      s"${edges
         .map(c => s"${c.sourceId.toBase58.takeRight(3)}-${c.data}->${c.targetId.toBase58.takeRight(3)}")
         .mkString(", ")})"
   }
@@ -36,165 +37,275 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     s"Graph(nodes: ${nodes.size}, ${edges.size})"
   }
 
-  lazy val (
-    nodeIds:              collection.Set[NodeId],
-    nodesById:            collection.Map[NodeId, Node],
-    labeledEdges:         collection.Set[Edge.Label],
-    containments:         collection.Set[Edge.Parent],
-    children:             collection.Map[NodeId, collection.Set[NodeId]],
-    parents:              collection.Map[NodeId, collection.Set[NodeId]],
-    deletedParents:       collection.Map[NodeId, collection.Set[NodeId]],
-    deletedChildren:      collection.Map[NodeId, collection.Set[NodeId]],
-    staticParentIn:       collection.Map[NodeId, collection.Set[NodeId]],
-    expandedNodes:       collection.Map[UserId, collection.Set[NodeId]],
-    authorshipsByNodeId:  collection.Map[NodeId, List[Edge.Author]],
-    membershipsByNodeId:  collection.Map[NodeId, List[Edge.Member]],
-    allAuthorIds:         collection.Set[UserId], //TODO: List?
-    allUserIds:           collection.Set[UserId], //TODO: List?
-    userIdByName:         collection.Map[String, UserId],
-    channelNodeIds:       collection.Set[NodeId], //TODO: List?
-    allChannelIds:        collection.Set[NodeId], //TODO: List?
-    nodeCreated:          collection.Map[NodeId, EpochMilli],
-    nodeModified:         collection.Map[NodeId, EpochMilli]
-  ) = {
-    // mutable sets/maps are ~5x faster than immutable ones
-    // http://www.lihaoyi.com/post/BenchmarkingScalaCollections.html
-    val nodeIds = mutable.HashSet[NodeId]()
-    nodeIds.sizeHint(nodes.size)
+  lazy val withoutChannels: Graph = this.filterNotIds(lookup.allChannelIds ++ lookup.channelNodeIds)
+  lazy val onlyAuthors: Graph =
+    this.filterNotIds((lookup.allUserIds -- lookup.allAuthorIds).map(id => UserId.raw(id)))
 
-    val nodesById = mutable.HashMap[NodeId, Node]()
-    nodesById.sizeHint(nodes.size)
+  def pageContentWithAuthors(page: Page): Graph = {
+    val pageChildren = page.parentIds.flatMap(lookup.descendantsWithDeleted)
+    this.filterIds(pageChildren.toSet ++ pageChildren.flatMap(lookup.authorIds) ++ page.parentIds)
+  }
 
-    val labeledEdges = mutable.HashSet[Edge.Label]()
-    val containments = mutable.HashSet[Edge.Parent]()
+  def pageContent(page: Page): Graph = {
+    val pageChildren = page.parentIds.flatMap(lookup.descendants _)
+    this.filterIds(pageChildren.toSet)
+  }
 
-    val children = mutable
-      .HashMap[NodeId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
-    val parents = mutable
-      .HashMap[NodeId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
-    val deletedParents = mutable
-      .HashMap[NodeId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
-    val deletedChildren = mutable
-      .HashMap[NodeId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
-    val staticParentIn = mutable
-      .HashMap[NodeId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
-    val expandedNodes = mutable
-      .HashMap[UserId, collection.Set[NodeId]]()
-      .withDefaultValue(mutable.HashSet.empty[NodeId])
+  def -(nodeId: NodeId): Graph = removeNodes(nodeId :: Nil)
+  def -(edge: Edge): Graph = copy(edges = edges - edge)
 
-    val authorshipsByNodeId = mutable.HashMap[NodeId, List[Edge.Author]]().withDefaultValue(Nil)
-    val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
-    val allAuthorIds = mutable.HashSet[UserId]()
-    val userIdByName = mutable.HashMap[String, UserId]()
-    val allUserIds = mutable.HashSet[UserId]()
+  def filterIds(p: NodeId => Boolean): Graph = filter(node => p(node.id))
+  def filter(p: Node => Boolean): Graph = {
+    // we only want to call p once for each node
+    // and not trigger the pre-caching machinery of nodeIds
+    val filteredNodes = nodes.filter(p)
 
-    val channelNodeIds = mutable.HashSet[NodeId]()
-    val channelIds = mutable.HashSet[NodeId]()
+    @inline def nothingFiltered = filteredNodes.size == nodes.size
 
-    val remorseTime = remorseTimeForDeletedParents
-    // loop over edges once
-    edges.foreach {
-      case e @ Edge.Author(authorId, _, nodeId) =>
-        authorshipsByNodeId(nodeId) ::= e
-        allAuthorIds += authorId
-      case e @ Edge.Member(authorId, _, nodeId) =>
-        membershipsByNodeId(nodeId) ::= e
-      case e @ Edge.Parent(childId, data, parentId) =>
-        data.deletedAt match {
-          case None =>
-          children(parentId) += childId
-          parents(childId) += parentId
-          containments += e
-          case Some(deletedAt) =>
-            //TODO should already be filtered in backend
-            if (deletedAt > remorseTime) {
-              deletedParents(childId) += parentId
-              deletedChildren(parentId) += childId
-            }
-        }
-      case e @ Edge.StaticParentIn(childId, parentId) =>
-        staticParentIn(childId) += parentId
-      case e: Edge.Label =>
-        labeledEdges += e
-      case Edge.Expanded(userId, nodeId) =>
-        expandedNodes(userId) += nodeId
-      case _ =>
+    if(nothingFiltered) this
+    else {
+      val filteredNodeIds: Set[NodeId] = filteredNodes.map(_.id)
+      copy(
+        nodes = filteredNodes,
+        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
+      )
     }
+  }
 
-    // loop over nodes once
-    nodes.foreach { node =>
-      val nodeId = node.id
-      nodeIds += nodeId
-      nodesById(nodeId) = node
+  def filterNotIds(p: NodeId => Boolean): Graph = filterIds(id => !p(id))
+  def filterNot(p: Node => Boolean): Graph = filter(node => !p(node))
 
-      node match {
-        case Node.User(id, data, _) =>
-          allUserIds += id
-          userIdByName += data.name -> id
-          channelNodeIds += data.channelNodeId
-          channelIds ++= children(data.channelNodeId)
-        case _ =>
-      }
-    }
+  def removeNodes(nids: Iterable[NodeId]): Graph = filterNotIds(nids.toSet)
+  def removeConnections(es: Iterable[Edge]): Graph = copy(edges = edges -- es)
+  def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
+  def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
 
-    require(nodeIds.size == nodes.size, "nodes are not distinct by id")
+  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
+  def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
+  def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
+  def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)
 
-    val nodeCreated = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
-    val nodeModified = mutable.HashMap[NodeId, EpochMilli]().withDefaultValue(EpochMilli.min)
-    authorshipsByNodeId.foreach {
-      case (nodeId, authorEdges) =>
-        val sortedAuthorEdges = authorEdges.sortBy(_.data.timestamp)
-        authorshipsByNodeId(nodeId) = sortedAuthorEdges
-        nodeCreated(nodeId) = sortedAuthorEdges.headOption.fold(EpochMilli.min)(_.data.timestamp)
-        nodeModified(nodeId) = sortedAuthorEdges.lastOption.fold(EpochMilli.min)(_.data.timestamp) //TODO: lastOption O(n)
-    }
-
-    (
-      nodeIds,
-      nodesById,
-      labeledEdges,
-      containments,
-      children,
-      parents,
-      deletedParents,
-      deletedChildren,
-      staticParentIn,
-      expandedNodes,
-      authorshipsByNodeId,
-      membershipsByNodeId,
-      allAuthorIds,
-      allUserIds,
-      userIdByName,
-      channelNodeIds,
-      channelIds,
-      nodeCreated,
-      nodeModified
+  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty): Graph = {
+    val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
+    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))(breakOut)
+    copy(
+      nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ addNodes,
+      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges
     )
   }
 
-  private lazy val connectionsByType: Map[EdgeData.Type, Set[Edge]] =
-    edges.groupBy(_.data.tpe).map { case (tpe, conns) => tpe -> conns }
-  private lazy val connectionsByTypeF: EdgeData.Type => Set[Edge] =
-    connectionsByType.withDefaultValue(Set.empty)
+  @deprecated("", "") @inline def nodeIds = lookup.nodeIds
+  @deprecated("", "") @inline def nodesById = lookup.nodesById
+  @deprecated("", "") @inline def userIdByName = lookup.userIdByName
+  @deprecated("", "") @inline def membershipsByNodeId = lookup.membershipsByNodeId
+  @deprecated("", "") @inline def nodeModified(nodeId:NodeId) = lookup.nodeModified(lookup.idToIdx(nodeId))
+  @deprecated("", "") @inline def nodeCreated(nodeId:NodeId) = lookup.nodeCreated(lookup.idToIdx(nodeId))
+  @deprecated("", "") @inline def expandedNodes = lookup.expandedNodes
+  @deprecated("", "")
+  @inline def authorshipsByNodeId(nodeId: NodeId): Seq[Edge.Author] = lookup.authorshipEdgeIdx(lookup.idToIdx(nodeId)).map(idx => lookup.edges(idx).asInstanceOf[Edge.Author])
+  @deprecated("", "")
+  @inline def isChildOfAny(n: NodeId, parentIds: Iterable[NodeId]) = lookup.isChildOfAny(n, parentIds)
+  @deprecated("", "")
+  @inline def isDeletedNow(node: NodeId, parentIds: Set[NodeId]) = lookup.isDeletedNow(node, parentIds)
+  @deprecated("", "")
+  @inline def isDeletedChildOfAny(n: NodeId, parentIds: Iterable[NodeId]) = lookup.isDeletedChildOfAny(n, parentIds)
+  @deprecated("", "") @inline def authorIds = lookup.authorIds
+  @deprecated("", "") @inline def incidentChildContainments = lookup.incidentChildContainments
+  @deprecated("", "") @inline def incidentParentContainments = lookup.incidentParentContainments
+  @deprecated("", "") @inline def successorsWithoutParent = lookup.successorsWithoutParent
+  @deprecated("", "") @inline def predecessorsWithoutParent = lookup.predecessorsWithoutParent
+  @deprecated("", "") @inline def neighboursWithoutParent = lookup.neighboursWithoutParent
+  @deprecated("", "")
+  @deprecated("", "") @inline def children(n: NodeId) = lookup.children(n)
+  @deprecated("", "") @inline def deletedChildren(n: NodeId) = lookup.deletedChildren(n)
+  @deprecated("", "") @inline def members(n: NodeId) = lookup.members(n)
+  @deprecated("", "") @inline def authors(n: NodeId) = lookup.authors(n)
+  @deprecated("", "") @inline def authorsIn(n: NodeId) = lookup.authorsIn(n)
+  @deprecated("", "") @inline def hasChildren(n: NodeId) = lookup.hasChildren(n)
+  @deprecated("", "") @inline def hasDeletedChildren(n: NodeId) = lookup.hasDeletedChildren(n)
+  @deprecated("", "") @inline def parents(n: NodeId) = lookup.parents(n)
+  @deprecated("", "") @inline def parentDepths(n: NodeId) = lookup.parentDepths(n)
+  @deprecated("", "") @inline def childDepth(n: NodeId) = lookup.childDepth(n)
+  @deprecated("", "") @inline def deletedParents(n: NodeId) = lookup.deletedParents(n)
+  @deprecated("", "") @inline def hasParents(n: NodeId) = lookup.hasParents(n)
+  @deprecated("", "") @inline def labeledEdges = lookup.labeledEdges
+  @deprecated("", "") @inline def containments = lookup.containments
+  @deprecated("", "") @inline def containmentNeighbours = lookup.containmentNeighbours
+  @deprecated("", "") @inline def rootNodes = lookup.rootNodes
+  @deprecated("", "") @inline def contentNodes = lookup.contentNodes
+  @deprecated("", "")
+  @inline def redundantTree(root: Node, excludeCycleLeafs: Boolean) = lookup.redundantTree(lookup.idToIdx(root.id), excludeCycleLeafs)
+  @deprecated("", "") @inline def channelTree(channelNode: Node): Tree = lookup.channelTree(channelNode)
+  @deprecated("", "")
+  @inline def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = lookup.can_access_node(userId, nodeId)
+  @deprecated("", "") @inline def descendants(nodeId: NodeId) = lookup.descendants(nodeId)
+  @deprecated("", "") @inline def ancestors(nodeId: NodeId) = lookup.ancestors(nodeId)
+  @deprecated("", "") @inline def involvedInContainmentCycle(id: NodeId) = lookup.involvedInContainmentCycle(id)
+  @deprecated("", "")
+  @inline def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = inChildParentRelation(child, possibleParent)
+  @deprecated("", "")
+  @inline def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = isStaticParentIn(id, parentIds)
 
-  def children(node: Node): collection.Set[NodeId] = children(node.id)
-  def parents(node: Node): collection.Set[NodeId] = parents(node.id)
+}
 
-  val authorIds: NodeId => List[UserId] = Memo.mutableHashMapMemo { nodeId =>
-    authorshipsByNodeId(nodeId).map(_.userId)
+final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
+
+  @inline private def n = nodes.length
+  @inline private def m = edges.length
+
+  private var i = 0
+
+  private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
+  _idToIdx.sizeHint(n)
+  val _nodesById = mutable.HashMap[NodeId, Node]()
+  _nodesById.sizeHint(nodes.size)
+  private val _nodeIdSet = mutable.HashSet.empty[NodeId]
+  val nodeIds = new Array[NodeId](n)
+
+  val allUserIds = mutable.HashSet[UserId]()
+
+  val channelNodeIds = mutable.HashSet[NodeId]()
+  val allChannelIds = mutable.HashSet[NodeId]()
+  val userIdByName = mutable.HashMap[String, UserId]()
+
+  i = 0
+  while(i < n) {
+    val node = nodes(i)
+    val nodeId = node.id
+    _idToIdx(node.id) = i
+    nodeIds(i) = nodeId
+    _nodeIdSet += nodeId
+    _nodesById(nodeId) = node
+    node match {
+      case Node.User(id, data, _) =>
+        allUserIds += id
+        userIdByName(data.name) = id
+        channelNodeIds += data.channelNodeId
+      case _                      =>
+    }
+    i += 1
   }
-  def authorIds(node: Node): List[UserId] = authorIds(node.id)
-  val authors: NodeId => List[Node.User] = Memo.mutableHashMapMemo { nodeId =>
-    authorshipsByNodeId(nodeId).map(a => nodesById(a.userId).asInstanceOf[Node.User])
+
+  require(nodesById.size == nodes.size, "nodes are not distinct by id")
+
+  @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx
+  @inline def nodeIdSet: collection.Set[NodeId] = _nodeIdSet
+  @inline def nodesById: collection.Map[NodeId, Node] = _nodesById
+
+  def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
+
+
+  private val parentLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val childLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val notifyByUserLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  val labeledEdges = mutable.HashSet[Edge.Label]()
+  val containments = mutable.HashSet[Edge.Parent]()
+
+  val deletedParents = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  val deletedChildren = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  val staticParentIn = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  val expandedNodes = mutable.HashMap[UserId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+
+  val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
+
+  val allAuthorIds = mutable.HashSet[UserId]()
+
+  private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
+
+  i = 0
+  while(i < edges.length) {
+    val edge = edges(i)
+    val sourceIdx = idToIdx.getOrElse(edge.sourceId, -1)
+    if(sourceIdx != -1) {
+      val targetIdx = idToIdx.getOrElse(edge.targetId, -1)
+      if(targetIdx != -1) {
+        edge match {
+          case e@Edge.Author(authorId, _, nodeId)       =>
+            authorshipEdgeLookupBuilder(targetIdx) += i
+            authorLookupBuilder(targetIdx) += sourceIdx
+            allAuthorIds += authorId
+          case e@Edge.Member(authorId, _, nodeId)       =>
+            membershipsByNodeId(nodeId) ::= e
+          case e@Edge.Parent(childId, data, parentId)   =>
+            data.deletedAt match {
+              case None            =>
+                parentLookupBuilder(sourceIdx) += targetIdx
+                childLookupBuilder(targetIdx) += sourceIdx
+                containments += e
+              case Some(deletedAt) =>
+                //TODO should already be filtered in backend
+                if(deletedAt > remorseTimeForDeletedParents) {
+                  deletedParents(childId) += parentId
+                  deletedChildren(parentId) += childId
+                }
+            }
+          case _:Edge.StaticParentIn =>
+            staticParentIn(edge.sourceId) += edge.targetId
+          case e: Edge.Label                            =>
+            labeledEdges += e
+          case _:Edge.Expanded            =>
+            expandedNodes(edge.sourceId.asInstanceOf[UserId]) += edge.targetId
+          case _:Edge.Notify =>
+            notifyByUserLookupBuilder(targetIdx) += sourceIdx
+          case _                                        =>
+        }
+      }
+    }
+    i += 1
   }
-  def authors(node: Node): List[Node.User] = authors(node.id)
-  def nodeCreated(node: Node): EpochMilli = nodeCreated(node.id)
-  def nodeModified(node: Node): EpochMilli = nodeModified(node.id)
+
+  val parentsIdx = NestedArrayInt(parentLookupBuilder)
+  val childrenIdx = NestedArrayInt(childLookupBuilder)
+  val authorshipEdgeIdx = NestedArrayInt(authorshipEdgeLookupBuilder)
+  val notifyByUserIdx = NestedArrayInt(notifyByUserLookupBuilder)
+  val authorsIdx = NestedArrayInt(authorLookupBuilder)
+
+  val parents: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
+    val idx = idToIdx.getOrElse(id, -1)
+    if(idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
+  }
+  val children: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
+    val idx = idToIdx.getOrElse(id, -1)
+    if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
+  }
+
+
+  i = 0
+  while(i < n) {
+    val node = nodes(i)
+    node match {
+      case Node.User(_, data, _) =>
+        allChannelIds ++= children(data.channelNodeId)
+      case _                     =>
+    }
+    i += 1
+  }
+
+
+  lazy val (nodeCreated: Array[Long], nodeModified: Array[Long]) = {
+    val nodeCreated = Array.fill(n)(EpochMilli.min: Long)
+    val nodeModified = Array.fill(n)(EpochMilli.min: Long)
+    var nodeIdx = 0
+    while(nodeIdx < n) {
+      val authorEdgeIndices: SliceInt = authorshipEdgeIdx(nodeIdx)
+      if(authorEdgeIndices.nonEmpty) {
+        val sortedAuthorEdges = authorEdgeIndices.sortBy(idx => edges(idx).asInstanceOf[Edge.Author].data.timestamp)
+        nodeCreated(nodeIdx) = edges(sortedAuthorEdges(0)).asInstanceOf[Edge.Author].data.timestamp
+        nodeModified(nodeIdx) = edges(sortedAuthorEdges(sortedAuthorEdges.length - 1)).asInstanceOf[Edge.Author].data.timestamp
+      }
+      nodeIdx += 1
+    }
+    (nodeCreated, nodeModified)
+  }
+
+  val authorIds: NodeId => IndexedSeq[UserId] = Memo.mutableHashMapMemo { nodeId =>
+    authorsIdx(idToIdx(nodeId)).map(idx => nodeIds(idx).asInstanceOf[UserId])
+  }
+  val authors: NodeId => IndexedSeq[Node.User] = Memo.mutableHashMapMemo { nodeId =>
+    authorsIdx(idToIdx(nodeId)).map(idx => nodes(idx).asInstanceOf[Node.User])
+  }
 
   val authorsIn: NodeId => List[Node.User] = Memo.mutableHashMapMemo { parentId =>
     (parentId :: descendantsWithDeleted(parentId).toList).flatMap(authors)
@@ -211,185 +322,211 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     deletedParentIds.nonEmpty && (
       if(parentIds subsetOf deletedParentIds) true
       else parents(nodeId).isEmpty
-    )
+      )
   }
 
-  lazy val withoutChannels: Graph = this.filterNot(allChannelIds ++ channelNodeIds)
-  lazy val onlyAuthors: Graph =
-    this.filterNot((allUserIds -- allAuthorIds).map(id => UserId.raw(id)))
+  val directNodeTags: ((NodeId, Set[NodeId])) => Array[Node] = Memo.mutableHashMapMemo {
+    {(nodeId: NodeId, parentIds: Set[NodeId]) =>
+//      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
 
-  private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
-  def pageContentWithAuthors(page: Page): Graph = {
-    val pageChildren = page.parentIds.flatMap(descendantsWithDeleted)
-    this.filter(pageChildren.toSet ++ pageChildren.flatMap(authorIds) ++ page.parentIds)
-  }
+      val idx = idToIdx(nodeId)
+      val markedAsTag = new Array[Int](n)
 
-  def pageContent(page: Page): Graph = {
-    val pageChildren = page.parentIds.flatMap(descendants)
-    this.filter(pageChildren.toSet)
-  }
+      parentsIdx(idx).foreach{i => markedAsTag(i) = 1}
+      parentIds.foreach{ parentId =>
+        val parentIdx = idToIdx(parentId)
+        if(parentIdx != idx)
+          markedAsTag(parentIdx) = 0
+      }
 
-  val directNodeTags: ((NodeId, Set[NodeId])) => Set[Node] = Memo.mutableHashMapMemo {
-    ( ( nodeId: NodeId, parentIds: Set[NodeId] ) =>
-          (parents(nodeId).toSet -- (parentIds - nodeId)) // "- nodeId" reveals self-loops with page-parent
-            .map(nodesById)
-      ).tupled
-  }
+      val tagBuilder = new mutable.ArrayBuilder.ofRef[Node]
+      var i = 0
+      while(i < n) {
+        if(markedAsTag(i) == 1)
+          tagBuilder += nodes(i)
+        i += 1
+      }
 
-  val transitiveNodeTags: ((NodeId, Set[NodeId])) => Set[Node] = Memo.mutableHashMapMemo {
-    // TODO: sort by depth
-    { ( nodeId: NodeId, parentIds: Set[NodeId] ) =>
-      val transitivePageParents = parentIds.flatMap(ancestors)
-      (ancestors(nodeId).toSet -- parentIds -- transitivePageParents -- parents(nodeId))
-        .map(nodesById)
+      tagBuilder.result()
     }.tupled
   }
 
-  lazy val chronologicalNodesAscending: IndexedSeq[Node] =
-    nodes.toIndexedSeq.sortBy(n => nodeCreated(n))
+  val transitiveNodeTags: ((NodeId, Set[NodeId])) => Array[Node] = Memo.mutableHashMapMemo {
+    { (nodeId: NodeId, parentIds: Set[NodeId]) =>
+//      val transitivePageParents = parentIds.flatMap(ancestors)
+//      (ancestors(nodeId).toSet -- parentIds -- transitivePageParents -- parents(nodeId))
+//        .map(nodesById)
+      val idx = idToIdx(nodeId)
+      val markedAsTag = new Array[Int](n)
+
+      ancestorsIdx(idx).foreach(i => markedAsTag(i) = 1)
+      parentIds.foreach{ parentId =>
+        val parentIdx = idToIdx(parentId)
+        markedAsTag(parentIdx) = 0
+        ancestorsIdx(parentIdx).foreach{i => markedAsTag(i) = 0}
+      }
+      parentsIdx(idx).foreach{i => markedAsTag(i) = 0}
+
+      val tagBuilder = new mutable.ArrayBuilder.ofRef[Node]
+      var i = 0
+      while(i < n) {
+        if(markedAsTag(i) == 1)
+          tagBuilder += nodes(i)
+        i += 1
+      }
+
+      tagBuilder.result()
+    }.tupled
+  }
+
+  lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
+     Array.tabulate(n)(i => i).sortBy(nodeCreated).map(nodes)
+  }
 
   lazy val contentNodes: Iterable[Node.Content] = nodes.collect { case p: Node.Content => p }
-  lazy val nodeIdsTopologicalSortedByChildren: Iterable[NodeId] =
-    nodeIds.topologicalSortBy(children)
-  lazy val nodeIdsTopologicalSortedByParents: Iterable[NodeId] = nodeIds.topologicalSortBy(parents)
+
   lazy val allParentIds: collection.Set[NodeId] = containments.map(_.targetId)
   lazy val allSourceIds: collection.Set[NodeId] = containments.map(_.sourceId)
-  lazy val toplevelNodeIds: Set[NodeId] = nodeIds.toSet -- allSourceIds
   lazy val allParentIdsTopologicallySortedByChildren: Iterable[NodeId] =
     allParentIds.topologicalSortBy(children)
 
   private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] =
     defaultNeighbourhood(nodeIds, Set.empty[NodeId])
   lazy val successorsWithoutParent
-    : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
+  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
     NodeId,
     Edge,
     NodeId
-  ](labeledEdges, _.sourceId, _.targetId)
+    ](labeledEdges, _.sourceId, _.targetId)
   lazy val predecessorsWithoutParent
-    : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
+  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
     NodeId,
     Edge,
     NodeId
-  ](labeledEdges, _.targetId, _.sourceId)
+    ](labeledEdges, _.targetId, _.sourceId)
   lazy val neighboursWithoutParent
-    : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
+  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
     NodeId,
     Edge
-  ](labeledEdges, _.targetId, _.sourceId)
+    ](labeledEdges, _.targetId, _.sourceId)
 
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean =
-    getParents(child).contains(possibleParent)
+    parents(child).contains(possibleParent)
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
     ancestors(descendent).contains(possibleAncestor)
 
   def isStaticParentIn(id: NodeId, parentId: NodeId): Boolean = staticParentIn(id).contains(parentId)
   def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val staticInParents = staticParentIn(id)
-      parentIds.exists(parentId => staticInParents.contains(parentId))
+    parentIds.exists(parentId => staticInParents.contains(parentId))
   }
 
-  // There are cases where the key is not present and cases where the set is empty
-  //TODO these maps have default values? can we remove these hasChildren and just use children(node).nonEmpty?
-  def hasChildren(node: NodeId): Boolean = children.contains(node) && children(node).nonEmpty
-  def hasDeletedChildren(node: NodeId): Boolean = deletedChildren.contains(node) && deletedChildren(node).nonEmpty
-  def hasParents(node: NodeId): Boolean = parents.contains(node) && parents(node).nonEmpty
-  def getChildren(nodeId: NodeId): collection.Set[NodeId] =
-    if (children.contains(nodeId)) children(nodeId) else Set.empty[NodeId]
-  def getParents(nodeId: NodeId): collection.Set[NodeId] =
-    if (parents.contains(nodeId)) parents(nodeId) else Set.empty[NodeId]
-  def getChildrenOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
-    if (hasChildren(nodeId)) Some(children(nodeId)) else None
-  def getParentsOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
-    if (hasParents(nodeId)) Some(parents(nodeId)) else None
+  def hasChildren(nodeId: NodeId): Boolean = {
+    val idx = idToIdx.getOrElse(nodeId, -1)
+    if(idx == -1)
+      false
+    else
+      hasChildrenIdx(idx)
+  }
 
-  def isChildOf(childId:NodeId, parentId: NodeId): Boolean = parents(childId) contains parentId
-  def isChildOfAny(childId:NodeId, parentIds: Iterable[NodeId]): Boolean = {
+  def hasParents(nodeId: NodeId): Boolean = {
+    val idx = idToIdx.getOrElse(nodeId, -1)
+    if(idx == -1)
+      false
+    else
+      hasParentsIdx(idx)
+  }
+
+  @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
+  @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)
+
+  def hasDeletedChildren(node: NodeId): Boolean = deletedChildren.contains(node) && deletedChildren(node).nonEmpty
+  def getChildrenOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
+    if(hasChildren(nodeId)) Some(children(nodeId)) else None
+  def getParentsOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
+    if(hasParents(nodeId)) Some(parents(nodeId)) else None
+
+  def isChildOf(childId: NodeId, parentId: NodeId): Boolean = parents(childId) contains parentId
+  def isChildOfAny(childId: NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val p = parents(childId)
     parentIds.exists(p.contains)
   }
-  def isDeletedChildOfAny(childId:NodeId, parentIds: Iterable[NodeId]): Boolean = {
+  def isDeletedChildOfAny(childId: NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val p = deletedParents(childId)
     parentIds.exists(p.contains)
   }
 
   private lazy val connectionDefaultNeighbourhood: collection.Map[NodeId, collection.Set[Edge]] =
     defaultNeighbourhood(nodeIds, Set.empty[Edge])
-  lazy val incomingEdges
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](edges, _.targetId)
   lazy val outgoingEdges
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
+  : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
     directedIncidenceList[NodeId, Edge](edges, _.sourceId)
-  lazy val incidentEdges
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[
-    NodeId,
-    Edge
-  ](edges, _.sourceId, _.targetId)
 
   lazy val incidentParentContainments
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[
+  : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[
     NodeId,
     Edge
-  ](containments, _.sourceId)
+    ](containments, _.sourceId)
   lazy val incidentChildContainments
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[
+  : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ directedIncidenceList[
     NodeId,
     Edge
-  ](containments, _.targetId)
+    ](containments, _.targetId)
   lazy val incidentContainments
-    : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[
+  : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++ incidenceList[
     NodeId,
     Edge
-  ](containments, _.targetId, _.sourceId)
+    ](containments, _.targetId, _.sourceId)
 
-  private lazy val nodeDefaultDegree = defaultNeighbourhood(nodeIds, 0)
-  lazy val connectionDegree: collection.Map[NodeId, Int] = nodeDefaultDegree ++
-    degreeSequence[NodeId, Edge](labeledEdges, _.targetId, _.sourceId)
-  lazy val containmentDegree: collection.Map[NodeId, Int] = nodeDefaultDegree ++
-    degreeSequence[NodeId, Edge](containments, _.targetId, _.sourceId)
-
-  def fullDegree(nodeId: NodeId): Int = connectionDegree(nodeId) + containmentDegree(nodeId)
-
-  def involvedInContainmentCycle(id: NodeId): Boolean = {
-    children.get(id).exists(_.exists(child => depthFirstSearch(child, children).exists(_ == id)))
+  def involvedInContainmentCycleIdx(idx: Int): Boolean = {
+    // TODO: maybe fast involved-in-cycle-algorithm?
+    // breadth-first-search starting at successors and another one starting at predecessors in different direction.
+    // When both queues contain the same elements, we can stop, because we found a cycle
+    // Even better:
+    // lazy val involvedInContainmentCycle:Set[NodeId] = all nodes involved in a cycle
+    childrenIdx(idx).exists(child => depthFirstSearchExists(child, childrenIdx, idx))
   }
-  // TODO: maybe fast involved-in-cycle-algorithm?
-  // breadth-first-search starting at successors and another one starting at predecessors in different direction.
-  // When both queues contain the same elements, we can stop, because we found a cycle
-  // Even better:
-  // lazy val involvedInContainmentCycle:Set[NodeId] = all nodes involved in a cycle
+  def involvedInContainmentCycle(id: NodeId): Boolean = {
+    val idx = idToIdx.getOrElse(id, -1)
+    if(idx == -1) return false
+    else involvedInContainmentCycleIdx(idx)
+  }
 
+  def descendantsIdx(nodeIdx: Int) = _descendantsIdx(nodeIdx)
+  private val _descendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
+    depthFirstSearchWithoutStart(nodeIdx, childrenIdx)
+  }
   def descendants(nodeId: NodeId) = _descendants(nodeId)
-  private val _descendants: NodeId => Iterable[NodeId] = Memo.mutableHashMapMemo { nodeId =>
-    nodesById.isDefinedAt(nodeId) match {
-      case true =>
-        val cs = depthFirstSearch(nodeId, children)
-        if (cs.startInvolvedInCycle) cs else cs.drop(1)
-      case false => Seq.empty
+  private val _descendants: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
+    val nodeIdx = idToIdx.getOrElse(nodeId, -1)
+    if(nodeIdx == -1) {
+      Seq.empty[NodeId]
+    } else {
+      descendantsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
     }
   }
 
   def descendantsWithDeleted(nodeId: NodeId) = _descendantsWithDeleted(nodeId)
   private val _descendantsWithDeleted: NodeId => Iterable[NodeId] = Memo.mutableHashMapMemo { nodeId =>
     nodesById.isDefinedAt(nodeId) match {
-      case true =>
-        val cs = depthFirstSearch(nodeId, (id:NodeId) => children(id) ++ deletedChildren(id))
-        if (cs.startInvolvedInCycle) cs else cs.drop(1)
+      case true  =>
+        val cs = depthFirstSearchWithStartInCycleDetection(nodeId, (id: NodeId) => children(id) ++ deletedChildren(id))
+        if(cs.startInvolvedInCycle) cs else cs.drop(1)
       case false => Seq.empty
     }
   }
 
-  //TODO: rename to transitiveParentIds:Iterable[NodeId]
+  def ancestorsIdx(nodeIdx: Int) = _ancestorsIdx(nodeIdx)
+  private val _ancestorsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx =>
+    depthFirstSearchWithoutStart(nodeIdx, parentsIdx)
+  }
   def ancestors(nodeId: NodeId) = _ancestors(nodeId)
   private val _ancestors: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
-    if (nodesById.keySet.contains(nodeId)) {
-      val p = depthFirstSearch(nodeId, parents)
-      // ancestors in a DAG are usually without the start-element --> DFS.drop(1)
-      // if the start element is involved in a cycle, we keep it, since it is an ancestor of itself
-      if (p.startInvolvedInCycle) p.toSeq else p.drop(1).toSeq
+    val nodeIdx = idToIdx.getOrElse(nodeId, -1)
+    if(nodeIdx == -1) {
+      Seq.empty[NodeId]
     } else {
-      Seq.empty
+      ancestorsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
     }
   }
 
@@ -398,18 +535,18 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   // when changing things, make sure to change them for the stored procedure as well.
   def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = {
     def can_access_node_recursive(
-        userId: NodeId,
-        nodeId: NodeId,
-        visited: Set[NodeId] = Set.empty
+      userId: NodeId,
+      nodeId: NodeId,
+      visited: Set[NodeId] = Set.empty
     ): Boolean = {
-      if (visited(nodeId)) return false // prevent inheritance cycles
+      if(visited(nodeId)) return false // prevent inheritance cycles
 
       // is there a membership?
       val levelFromMembership = membershipsByNodeId(nodeId).collectFirst {
         case Edge.Member(`userId`, EdgeData.Member(level), _) => level
       }
       levelFromMembership match {
-        case None => // if no member edge exists
+        case None        => // if no member edge exists
           // read access level directly from node
           nodesById(nodeId).meta.accessLevel match {
             case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
@@ -425,65 +562,18 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     }
 
     // everybody has full access to non-existent nodes
-    if (!(nodeIds contains nodeId)) return true
+    if(!(nodeIds contains nodeId)) return true
     can_access_node_recursive(userId, nodeId)
   }
 
   lazy val containmentNeighbours
-    : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
+  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
     NodeId,
     Edge
-  ](containments, _.targetId, _.sourceId)
+    ](containments, _.targetId, _.sourceId)
   // Get connected components by only considering containment edges
   lazy val connectedContainmentComponents: List[Set[NodeId]] = {
     connectedComponents(nodeIds, containmentNeighbours)
-  }
-
-  def -(nodeId: NodeId): Graph = removeNodes(nodeId :: Nil)
-  def -(edge: Edge): Graph = copy(edges = edges - edge)
-
-  def filter(p: NodeId => Boolean): Graph = {
-    // we only want to call p once for each node
-    // and not trigger the pre-caching machinery of nodeIds
-    val filteredNodes = nodes.filter(n => p(n.id))
-    if(filteredNodes.size == nodes.size) this
-    else {
-      val filteredNodeIds = filteredNodes.map(_.id)
-      copy(
-        nodes = filteredNodes,
-        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
-      )
-    }
-  }
-
-  def filterNot(p: NodeId => Boolean): Graph = filter(id => !p(id))
-
-  def removeNodes(nids: Iterable[NodeId]): Graph = filterNot(nids.toSet)
-  def removeConnections(es: Iterable[Edge]): Graph = copy(edges = edges -- es)
-  def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
-  def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet) //TODO: rename to addEdges
-
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
-  def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
-  def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
-  def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)
-
-  private def changeGraphInternal(addNodes: Set[Node], addEdges: Set[Edge], deleteEdges: Set[Edge] = Set.empty): Graph = {
-    val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
-    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.map(e => (e.sourceId, e.data.tpe, e.targetId))(breakOut)
-    copy(
-      nodes = nodes.filterNot(n => addNodeIds(n.id)) ++ addNodes,
-      edges = edges.filterNot(e => addEdgeIds((e.sourceId, e.data.tpe, e.targetId))) ++ addEdges -- deleteEdges
-    )
-  }
-
-  lazy val consistent: Graph = {
-    val filteredEdges = edges.filter(e => nodeIds(e.sourceId) && nodeIds(e.targetId))
-
-    if (edges.size != filteredEdges.size)
-      copy(edges = filteredEdges)
-    else
-      this
   }
 
   lazy val childDepth: collection.Map[NodeId, Int] = depth(children)
@@ -494,94 +584,138 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     val visited = mutable.HashSet[NodeId]() // to handle cycles
     def getDepth(id: NodeId): Int = {
       tmpDepths.getOrElse(id, {
-        if (!visited(id)) {
+        if(!visited(id)) {
           visited += id
 
           val c = next(id)
-          val d = if (c.isEmpty) 0 else c.map(getDepth).max + 1
+          val d = if(c.isEmpty) 0 else c.map(getDepth).max + 1
           tmpDepths(id) = d
           d
         } else 0 // cycle
       })
     }
 
-    for (id <- nodeIds if !tmpDepths.isDefinedAt(id)) {
+    for(id <- nodeIds if !tmpDepths.isDefinedAt(id)) {
       getDepth(id)
     }
     tmpDepths
   }
 
-  lazy val rootNodes:collection.Set[Node] = {
-    val candidates = nodes.filter(n => !hasParents(n.id) || involvedInContainmentCycle(n.id))
-    val coveredChildren: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))
-    candidates.filterNot(n => coveredChildren(n.id))
+  lazy val rootNodes: Array[Int] = {
+    // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)
+    val coveredChildren = {
+      val a = new Array[Int](n)
+      var i = 0
+      var j = 0
+      while(i < n) {
+        if(!hasParentsIdx(i)) {
+          val descendants = descendantsIdx(i)
+          j = 0
+          while(j < descendants.size) {
+            a(descendants(j)) = 1
+            j += 1
+          }
+        }
+        i += 1
+      }
+      a
+    }
+
+    // val rootNodes = nodes.filter(n => coveredChildren(idToIdx(n.id)) == 0 && (!hasParents(n.id) || involvedInContainmentCycle(n.id))).toSet
+    val rootNodesIdx = new mutable.ArrayBuilder.ofInt
+    rootNodesIdx.sizeHint(n)
+    var i = 0
+    while(i < n) {
+      assert(coveredChildren(i) == coveredChildren(idToIdx(nodes(i).id)))
+      if(coveredChildren(i) == 0 && (!hasParentsIdx(i) || involvedInContainmentCycleIdx(i)))
+        rootNodesIdx += i
+      i += 1
+    }
+    rootNodesIdx.result()
   }
 
-  def redundantTree(root:Node, visited:Set[Node] = Set.empty, excludeCycleLeafs:Boolean):Tree = {
-    if(!visited(root) && hasChildren(root.id)) {
+  def redundantTree(root: Int, excludeCycleLeafs: Boolean, visited: Array[Int] = new Array[Int](n)): Tree = {
+    if(visited(root) == 0 && hasChildrenIdx(root)) {
+      visited(root) = 1
       if(excludeCycleLeafs) {
-        val nonCycleChildren = children(root).map(nodesById).filterNot(visited)
-        if(nonCycleChildren.nonEmpty)
-          Tree.Parent(root, nonCycleChildren.map(n => redundantTree(n, visited + root, excludeCycleLeafs))(breakOut))
+        val nonCycleChildren = childrenIdx(root).filter(idx => visited(idx) == 0)
+        if(nonCycleChildren.nonEmpty) {
+          Tree.Parent(nodes(root), nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut))
+        }
         else
-          Tree.Leaf(root)
-      } else
-      Tree.Parent(root, children(root).map(n => redundantTree(nodesById(n), visited + root, excludeCycleLeafs))(breakOut))
+          Tree.Leaf(nodes(root))
+      } else {
+        Tree.Parent(nodes(root), childrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut))
+      }
     }
     else
-      Tree.Leaf(root)
+      Tree.Leaf(nodes(root))
   }
 
-  lazy val redundantForestExcludingCycleLeafs:List[Tree] = {
-    rootNodes.map(n => redundantTree(n, excludeCycleLeafs = true))(breakOut)
+  lazy val redundantForestExcludingCycleLeafs: List[Tree] = {
+    rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = true))(breakOut)
   }
-  lazy val redundantForestIncludingCycleLeafs:List[Tree] = {
-    rootNodes.map(n => redundantTree(n, excludeCycleLeafs = false))(breakOut)
+  lazy val redundantForestIncludingCycleLeafs: List[Tree] = {
+    rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut)
   }
 
-  def channelTree(channelNode:Node):Tree = {
+  def channelTree(channelNode: Node): Tree = {
+    val channelNodeIdx = idToIdx(channelNode.id) // crashes if channelNode not in graph
+    val channelIndices = childrenIdx(channelNodeIdx)
+    val isChannel = new Array[Int](n)
+    channelIndices.foreach { isChannel(_) = 1 }
+
     //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
-    val channelIds = children(channelNode.id)
-    val channels = channelIds.flatMap(nodesById.get)
-    val graphWithoutChannelNode = removeNodes(channelNode.id :: Nil)
-    def reachable(childId:NodeId, parentId:NodeId) = {
-      // child --> ... --> parent
-      depthFirstSearch[NodeId](childId, nid => graphWithoutChannelNode.parents(nid).filterNot(channelIds - parentId)).exists(_ == parentId)
+    def reachable(childChannelIdx: Int, parentChannelIdx: Int): Boolean = {
+      // child --> ...no other channel... --> parent
+      // if child channel is trasitive child of parent channel,
+      // without traversing over other channels
+      val excludedChannels = new Array[Int](n)
+      channelIndices.foreach { channelIdx =>
+        excludedChannels(channelIdx) = 1
+      }
+      excludedChannels(parentChannelIdx) = 0
+      excludedChannels(channelNodeIdx) = 1
+      depthFirstSearchExcludeExists(childChannelIdx, parentsIdx, exclude = excludedChannels, search = parentChannelIdx)
     }
 
-    val topologicalParents = for{
-      child <- channels
-      parent <- channels
+    val topologicalParents = for {
+      child <- channelIndices
+      parent <- ancestorsIdx(child)
       if child != parent
-      if reachable(child.id, parent.id)
-    } yield Edge.Parent(child.id, parent.id)
+      if isChannel(parent) == 1
+      if reachable(child, parent)
+    } yield Edge.Parent(nodes(child).id, nodes(parent).id)
 
-    val topologicalMinor = Graph(channels, topologicalParents)
+    val topologicalMinor = Graph(channelIndices.map(nodes), topologicalParents)
     Tree.Parent(
       channelNode,
-      topologicalMinor.redundantForestExcludingCycleLeafs.toSet
+      topologicalMinor.lookup.redundantForestExcludingCycleLeafs
     )
   }
 
-  trait Grouping
-  case class Cycle(node : NodeId) extends Grouping
-  case class NoCycle(node : NodeId) extends Grouping
-  def parentDepths(node : NodeId) // : Map[NodeId, Int] 
-    = {
+  def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]]
+  = {
+    trait Grouping
+    case class Cycle(node: NodeId) extends Grouping
+    case class NoCycle(node: NodeId) extends Grouping
+
     import wust.util.algorithm.{dijkstra}
-    type ResultMap = Map[ Distance, Map[ GroupIdx, Seq [ NodeId ] ] ]
-    def ResultMap() = Map[ Distance, Map[ GroupIdx, Seq [ NodeId ] ] ]()
+    type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
+
+    def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
+
     // NodeId -> distance
-    val (distanceMap : Map[NodeId, Int], predecessorMap) = dijkstra(parents, node)
+    val (distanceMap: Map[NodeId, Int], predecessorMap) = dijkstra[NodeId](parents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle(_))
-    val groupedByCycle = nodesInCycles.groupBy{ node => depthFirstSearch(node, parents).toSet }
+    val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, parents).toSet }
     type GroupIdx = Int
     type Distance = Int
-    val distanceMapForCycles : Map[NodeId, (GroupIdx, Distance)] =
+    val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =
       groupedByCycle.zipWithIndex.map { case ((group, cycledNodes), groupIdx) =>
-      val smallestDistToGroup : Int = group.map(distanceMap).min
-      cycledNodes.zip(Stream.continually { (groupIdx, smallestDistToGroup) })
-    }.flatten.toMap
+        val smallestDistToGroup: Int = group.map(distanceMap).min
+        cycledNodes.zip(Stream.continually { (groupIdx, smallestDistToGroup) })
+      }.flatten.toMap
 
     // we want: distance -> (nocycle : Seq[NodeId], cycle1 : Seq[NodeId],...)
     (distanceMap.keys.toSet ++ distanceMapForCycles.keys.toSet).foldLeft(
@@ -589,31 +723,31 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
       // in case that the nodeid is inside distanceMapForCycles, it is contained
       // inside a cycle, so we use the smallest distance of the cycle
       val (gId, dist) = if(distanceMapForCycles.contains(nodeid))
-                   distanceMapForCycles(nodeid)
-                 else
-                   (-1, distanceMap(nodeid))
+                          distanceMapForCycles(nodeid)
+                        else
+                          (-1, distanceMap(nodeid))
 
       import monocle.function.At._
-      (monocle.Iso.id[ ResultMap ] composeLens at(dist)).modify { optInnerMap =>
+      (monocle.Iso.id[ResultMap] composeLens at(dist)).modify { optInnerMap =>
         val innerMap = optInnerMap.getOrElse(Map.empty)
-        Some(((monocle.Iso.id [ Map [ GroupIdx, Seq [ NodeId ]] ] composeLens at(gId)) modify { optInnerSeq =>
-                val innerSeq = optInnerSeq.getOrElse(Seq.empty)
-                Some(innerSeq ++ Seq(nodeid))
-        })(innerMap))
+        Some(((monocle.Iso.id[Map[GroupIdx, Seq[NodeId]]] composeLens at(gId)) modify { optInnerSeq =>
+          val innerSeq = optInnerSeq.getOrElse(Seq.empty)
+          Some(innerSeq ++ Seq(nodeid))
+        }) (innerMap))
       }(result)
     }
   }
 }
 
 sealed trait Tree {
-  def node:Node
-  def flatten:List[Node]
+  def node: Node
+  def flatten: List[Node]
 }
 object Tree {
-  case class Parent(node:Node, children:Set[Tree]) extends Tree {
-    override def flatten = node :: (children.flatMap(_.flatten)(breakOut):List[Node])
+  case class Parent(node: Node, children: List[Tree]) extends Tree {
+    override def flatten = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
   }
-  case class Leaf(node:Node) extends Tree {
+  case class Leaf(node: Node) extends Tree {
     override def flatten = node :: Nil
   }
 }

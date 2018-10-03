@@ -236,7 +236,7 @@ object SelectedPostMenu {
         state.eventProcessor.enriched.changes
           .onNext(
             GraphChanges
-              .delete(p.id, state.graph.now.parents(p).toSet intersect state.page.now.parentIdSet)
+              .delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentIdSet)
           )
       }
     ),

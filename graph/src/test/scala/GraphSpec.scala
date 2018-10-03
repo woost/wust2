@@ -12,7 +12,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Edge] = connections.map(tupleIsConnection)
 
   implicit def stringToCuid(id:String):Cuid = Cuid.fromBase58("5Q4is6Gc5NbA7T7W7PvAUw".dropRight(id.length) + id)
-  def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0, 0), NodeMeta.User)
+  val channelNode:Node = 0
+  def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0, channelNode.id), NodeMeta.User)
 
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
@@ -57,32 +58,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.descendants(3).toSet mustEqual Set[NodeId](3, 2, 1)
     }
 
-    "consistent on consistent graph" in {
-      val graph = Graph(List(1, 2, 3), List[Edge](1 -> 2, 2 -> 3, 3 -> 1) ++ List[Edge](1 cont 2, 2 cont 3, 3 cont 1))
-      graph.consistent mustEqual graph
-    }
-
-    "consistent on inconsistent graph" in {
-      val connections: List[Edge] = List(1 -> 2, 2 -> 3)
-      val newConnection = Connection(2, 1)
-      val containments: List[Edge] = List(1 cont 2, 2 cont 3)
-      val graph = Graph(
-        List(1, 2, 3),
-        connections ++ containments :+ newConnection :+ Containment(3, 5)
-      )
-      graph.consistent mustEqual Graph(List(1, 2, 3), connections ++ containments :+ newConnection)
-    }
-
-    "consistent on inconsistent graph (reverse)" in {
-      val connections: List[Edge] = List(1 -> 2, 2 -> 3)
-      val containments: List[Edge] = List(1 cont 2, 2 cont 3)
-      val graph = Graph(
-        List(1, 2, 3),
-        connections ++ Seq(Connection(4, 1), Connection(1, 100)) ++ containments :+ Containment(3, 5)
-      )
-      graph.consistent mustEqual Graph(List(1, 2, 3), connections ++ containments)
-    }
-
     "add post" in {
       val posts: List[Node] = List(1, 2, 3)
       val newPost: Node = 99
@@ -116,8 +91,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val connections: List[Edge] = List(1 -> 2, 2 -> 3)
       val containments: List[Edge] = List(1 cont 2, 2 cont 3)
       val graph = Graph(List(1, 2, 3), connections ++ containments)
-      (graph filter Set[NodeId](1)) mustEqual Graph(List(1))
-      (graph filter Set[NodeId](1, 2)) mustEqual Graph(List(1, 2), List(Connection(1, 2)) ++ List(Containment(1, 2)))
+      (graph filterIds Set[NodeId](1)) mustEqual Graph(List(1))
+      (graph filterIds Set[NodeId](1, 2)) mustEqual Graph(List(1, 2), List(Connection(1, 2)) ++ List(Containment(1, 2)))
     }
 
     "remove post" in {
@@ -216,8 +191,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       graph.children(1:NodeId) mustEqual Set[NodeId](11, 12)
       graph.children(12:NodeId) mustEqual Set.empty
-      graph.children(1:Node) mustEqual Set[NodeId](11, 12)
-      graph.children(12:Node) mustEqual Set.empty
     }
 
     "parents of post" in {
@@ -228,8 +201,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       graph.parents(1:NodeId) mustEqual Set.empty
       graph.parents(12:NodeId) mustEqual Set[NodeId](1, 13)
-      graph.parents(1:Node) mustEqual Set.empty
-      graph.parents(12:Node) mustEqual Set[NodeId](1, 13)
     }
 
     "containment neighbours of post" in {
@@ -256,21 +227,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "simple" - {
         "1" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted))),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted))),
             edges = Set(member("A", Restricted, "B"))
           )
           assert(access(g, "A", "B") == false)
         }
         "2" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite))),
             edges = Set(member("A", Restricted, "B"))
           )
           assert(access(g, "A", "B") == false)
         }
         "3" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Inherited)),
             edges = Set(member("A", Restricted, "B"))
           )
           assert(access(g, "A", "B") == false)
@@ -279,21 +250,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
         "4" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted))),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted))),
             edges = Set(member("A", ReadWrite, "B"))
           )
           assert(access(g, "A", "B") == true)
         }
         "5" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite))),
             edges = Set(member("A", ReadWrite, "B"))
           )
           assert(access(g, "A", "B") == true)
         }
         "6" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Inherited)),
             edges = Set(member("A", ReadWrite, "B"))
           )
           assert(access(g, "A", "B") == true)
@@ -302,14 +273,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
         "7" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted))),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted))),
             edges = Set()
           )
           assert(access(g, "A", "B") == false)
         }
         "8" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite))),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite))),
             edges = Set()
           )
           assert(access(g, "A", "B") == true)
@@ -319,21 +290,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "simple inheritance" - {
         "1" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted)), node("C", Inherited)),
             edges = Set(member("A", Restricted, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == false)
         }
         "2" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite)), node("C", Inherited)),
             edges = Set(member("A", Restricted, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == false)
         }
         "3" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Inherited), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Inherited), node("C", Inherited)),
             edges = Set(member("A", Restricted, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == false)
@@ -342,21 +313,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
         "4" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted)), node("C", Inherited)),
             edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == true)
         }
         "5" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite)), node("C", Inherited)),
             edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == true)
         }
         "6" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Inherited), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Inherited), node("C", Inherited)),
             edges = Set(member("A", ReadWrite, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == true)
@@ -365,14 +336,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
         "7" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(Restricted)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(Restricted)), node("C", Inherited)),
             edges = Set(parent("C", "B"))
           )
           assert(access(g, "A", "C") == false)
         }
         "8" in {
           val g = Graph(
-            nodes = Set(user("A"), node("B", Level(ReadWrite)), node("C", Inherited)),
+            nodes = Set(user("A"), channelNode, node("B", Level(ReadWrite)), node("C", Inherited)),
             edges = Set(parent("C", "B"))
           )
           assert(access(g, "A", "C") == true)
@@ -382,7 +353,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "multiple inheritance: max wins" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Level(Restricted)),
             node("C", Level(ReadWrite)),
             node("D", Inherited)
@@ -398,7 +369,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "long inheritance chain: readwrite" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Level(ReadWrite)),
             node("C", Inherited),
             node("D", Inherited)
@@ -414,7 +385,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "long inheritance chain: restricted" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Level(Restricted)),
             node("C", Inherited),
             node("D", Inherited)
@@ -430,7 +401,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "inheritance cycle: readwrite" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Level(ReadWrite)),
             node("C", Inherited),
             node("D", Inherited)
@@ -448,7 +419,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "inheritance cycle: restricted" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Level(Restricted)),
             node("C", Inherited),
             node("D", Inherited)
@@ -466,7 +437,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "non-existing nodes" in {
         val g = Graph(
           nodes = Set(
-            user("A")
+            user("A"), channelNode,
           ),
           edges = Set(
           )
@@ -477,7 +448,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "inherit without any parent" in {
         val g = Graph(
           nodes = Set(
-            user("A"),
+            user("A"), channelNode,
             node("B", Inherited)
           ),
           edges = Set(
@@ -507,14 +478,14 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       "empty" in {
         val g = Graph.empty
-        assert(g.rootNodes == Set.empty)
+        assert(g.rootNodes.toSet == Set.empty)
       }
 
       "single node" in {
         val g = Graph(
           nodes = Set[Node]("A"),
         )
-        assert(g.rootNodes == Set[Node]("A"))
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A"))
       }
 
       "parent and child" in {
@@ -522,7 +493,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.rootNodes == Set[Node]("A"))
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A"))
       }
 
       "parent and child cycle" in {
@@ -530,7 +501,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("B", "C"))
         )
-        assert(g.rootNodes == Set[Node]("A"))
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A"))
       }
 
       "parents involved in cycle with child" in {
@@ -538,7 +509,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("A", "B"), parent("C", "B"))
         )
-        assert(g.rootNodes == Set[Node]("A", "B"))
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A", "B"))
       }
 
       "parent with child cycle with child" in {
@@ -546,7 +517,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C", "D"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("B", "C"), parent("D", "C"))
         )
-        assert(g.rootNodes == Set[Node]("A"))
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A"))
       }
     }
 
@@ -567,7 +538,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Leaf("B"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Leaf("B"))))
       }
 
       "two children" in {
@@ -575,7 +546,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Leaf("B"), Leaf("C"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Leaf("B"), Leaf("C"))))
       }
 
       "diamond" in {
@@ -583,7 +554,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Parent("B", Set(Leaf("C"))), Leaf("C"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
       }
 
       "cycle" in {
@@ -591,7 +562,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("A"))))))))
+        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Parent("B", List(Parent("C", List(Leaf("A"))))))))
       }
     }
 
@@ -612,7 +583,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Leaf("B"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Leaf("B"))))
       }
 
       "two children" in {
@@ -620,7 +591,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Leaf("B"), Leaf("C"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Leaf("B"), Leaf("C"))))
       }
 
       "diamond" in {
@@ -628,7 +599,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Parent("B", Set(Leaf("C"))), Leaf("C"))))
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
       }
 
       "cycle" in {
@@ -636,7 +607,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Parent("B", List(Leaf("C"))))))
       }
     }
 
@@ -649,7 +620,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         val g = Graph(
           nodes = Set[Node]("A"),
         )
-        assert(g.channelTree("A") == Parent("A", Set.empty))
+        assert(g.channelTree("A") == Parent("A", List.empty))
       }
 
       "single child" in {
@@ -657,7 +628,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Leaf("B"))))
+        assert(g.channelTree("A") == Parent("A", List(Leaf("B"))))
       }
 
       "two children" in {
@@ -665,7 +636,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Leaf("B"), Leaf("C"))))
+        assert(g.channelTree("A") == Parent("A", List(Leaf("B"), Leaf("C"))))
       }
 
       "diamond on root level" in {
@@ -673,7 +644,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))))))
       }
 
       "diamond on deeper level" in {
@@ -684,7 +655,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             parent("D", "B"), parent("D", "C"), parent("C","B")
           )
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("D"))), Leaf("D"))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("D"), Parent("C", List(Leaf("D"))))))))
       }
 
       "cycle involving root" in {
@@ -692,7 +663,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("A", "C"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))))))
       }
 
       "cycle" in {
@@ -700,7 +671,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("B", "C"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("C"))), Parent("C", Set(Leaf("B"))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))), Parent("C", List(Leaf("B"))))))
       }
 
       "topological Minor" in {
@@ -708,7 +679,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C", "D"),
           edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("D","A"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Leaf("D"))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("D"))))))
       }
 
       "topological Minor - skip redundant edges" in {
@@ -716,7 +687,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C", "D"),
           edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("C","A"), parent("D","A"))
         )
-        assert(g.channelTree("A") == Parent("A", Set(Parent("B", Set(Parent("C", Set(Leaf("D"))))))))
+        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Parent("C", List(Leaf("D"))))))))
       }
     }
   }

@@ -71,13 +71,14 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
         case Success(response) =>
           response match {
             case graph: Graph => // graph is always grouped and logged as table
-              val rows = (graph.outgoingEdges.map {
+              val lookup = graph.lookup
+              val rows = (lookup.outgoingEdges.map {
                 case (nodeId, edges) =>
-                  val node = graph.nodesById(nodeId)
+                  val node = lookup.nodesById(nodeId)
                   val es = edges.map(
                     edge =>
                       s"${edge.data.tpe.take(1)} ${edge.targetId.toBase58
-                        .takeRight(3)} ${graph.nodesById(edge.targetId).data.str}"
+                        .takeRight(3)} ${lookup.nodesById(edge.targetId).data.str}"
                   )(breakOut): List[String]
                   val id = node.id.toBase58.takeRight(3)
                   val tpe = node.data.tpe.take(1)

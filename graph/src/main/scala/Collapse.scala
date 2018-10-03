@@ -11,7 +11,7 @@ object Collapse {
   def apply(collapsing: Selector[NodeId])(displayGraph: CollapsedGraph): CollapsedGraph = {
     import displayGraph.graph
 
-    val collapsingPosts: collection.Set[NodeId] = graph.nodeIds.filter(collapsing)
+    val collapsingPosts: collection.Set[NodeId] = graph.nodeIds.filter(collapsing).toSet
     val hiddenPosts: collection.Set[NodeId] = getHiddenNodes(graph, collapsingPosts)
     val alternativePosts: collection.Map[NodeId, Set[NodeId]] =
       getAlternativePosts(graph, hiddenPosts, collapsingPosts)
@@ -69,7 +69,7 @@ object Collapse {
       alternativePosts: collection.Map[NodeId, Set[NodeId]]
   ): Set[LocalConnection] = {
     (alternativePosts.keys.flatMap { post =>
-      graph.incidentEdges(post).flatMap { c =>
+      graph.lookup.incidentContainments(post).flatMap { c =>
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId))
           yield {
@@ -90,15 +90,15 @@ object Collapse {
       hiddenContainments: collection.Set[Edge],
       collapsingPosts: collection.Set[NodeId]
   ): collection.Set[LocalConnection] = {
-    collapsingPosts.flatMap { parent =>
+    collapsingPosts.flatMap { parentId =>
       // children remain visible when:
       // - also contained in other uncollapsed post
       // - involved in containment cycle
-      val visibleChildren = graph.descendants(parent).filterNot { child =>
+      val visibleChildren = graph.descendants(parentId).filterNot { child =>
         hiddenPosts(child) ||
-        (!(graph.children(parent) contains child) && graph.involvedInContainmentCycle(child))
+        (!(graph.children(parentId) contains child) && graph.involvedInContainmentCycle(child))
       }
-      visibleChildren.map(LocalConnection(_, EdgeData.Parent, parent))
+      visibleChildren.map(LocalConnection(_, EdgeData.Parent, parentId))
     }
   }
 
@@ -135,7 +135,7 @@ object Collapse {
       collapsing: collection.Set[NodeId]
   ): Boolean = {
     val space = graph removeNodes (collapsing - sourceId)
-    depthFirstSearch(sourceId, space.parents).iterator contains targetId
+    depthFirstSearchWithStartInCycleDetection[NodeId](sourceId, space.parents).iterator contains targetId
   }
 
   def highestParents(graph: Graph, child: NodeId, predicate: NodeId => Boolean): Set[NodeId] = {

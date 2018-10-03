@@ -474,7 +474,7 @@ object PageHeader {
         val graph = state.graph()
         val user = state.user()
         val permissionState = state.permissionState()
-        val hasNotifyEdge = graph.incomingEdges(user.id).exists(e => e.data == EdgeData.Notify && e.sourceId == channel.id)
+        val hasNotifyEdge = graph.lookup.notifyByUserIdx(graph.lookup.idToIdx(user.id)).contains(graph.lookup.idToIdx(channel.id))
         if(hasNotifyEdge) decorateIcon(permissionState)(
           freeSolid.faBell,
           action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,

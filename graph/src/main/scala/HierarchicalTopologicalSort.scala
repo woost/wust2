@@ -12,7 +12,7 @@ object HierarchicalTopologicalSort {
       successors: V => Iterable[V],
       children: V => Iterable[V]
   ): List[V] = {
-    val connectionSort = topologicalSort[V, COLL](vertices, successors)
-    topologicalSort[V, List](connectionSort, children)
+    val connectionSort = topologicalSortSlow[V, COLL](vertices, successors)
+    topologicalSortSlow[V, List](connectionSort, children)
   }
 }

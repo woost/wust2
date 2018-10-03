@@ -25,7 +25,7 @@ object ChatView {
     val nodeIds: Rx[Seq[NodeId]] = Rx {
       val page = state.page()
       val graph = state.graphContent()
-      graph.chronologicalNodesAscending.collect {
+      graph.lookup.chronologicalNodesAscending.collect {
         case n: Node.Content if !(page.parentIdSet contains n.id) => n.id
       }
     }
@@ -84,7 +84,7 @@ object ChatView {
         keyed(nodeId),
         chatMessageLine(meta, nodeId, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
-            val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
+            val isDeleted = graph.lookup.isDeletedNow(nodeId, directParentIds)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
             div(
               cls := "nodecard",

@@ -110,8 +110,8 @@ sealed trait RestructuringTask {
       source: NodeId,
       target: NodeId
   ): collection.Set[Edge] = {
-    val sourceChildren = graph.getChildren(source)
-    val sourceParents = graph.getParents(source)
+    val sourceChildren = graph.children(source)
+    val sourceParents = graph.parents(source)
     val childrenConnections = sourceChildren.map(child => Edge.Parent(child, target))
     val parentConnections = sourceParents.map(parent => Edge.Parent(target, parent))
 
