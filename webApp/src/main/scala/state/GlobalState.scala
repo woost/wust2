@@ -117,9 +117,6 @@ class GlobalState(
     PageStyle(view(), page())
   }
 
-  // specifies which nodes are collapsed
-  val perspective: Var[Perspective] = Var(Perspective())
-
   val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead { selectedNodeIds =>
     selectedNodeIds().filter(graph().nodesById.isDefinedAt)
   }
