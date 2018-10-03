@@ -185,29 +185,33 @@ package object outwatchHelpers {
     else keyModifier
   }
 
-    def requestSingleAnimationFrame(code: => Unit): () => Unit = {
-      var lastAnimationFrameRequest = -1
-      () => {
-        if(lastAnimationFrameRequest != -1) {
-          dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
-        }
-        lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
-          code
-        }
+  def requestSingleAnimationFrame(): ( => Unit) => Unit = {
+    var lastAnimationFrameRequest = -1
+    f => {
+      if(lastAnimationFrameRequest != -1) {
+        dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
+      }
+      lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
+        f
       }
     }
+  }
 
-    def requestSingleAnimationFrame[T](): ( => Unit) => Unit = {
-      var lastAnimationFrameRequest = -1
-      f => {
-        if(lastAnimationFrameRequest != -1) {
-          dom.window.cancelAnimationFrame(lastAnimationFrameRequest)
-        }
-        lastAnimationFrameRequest = dom.window.requestAnimationFrame { _ =>
-          f
-        }
-      }
+  def requestSingleAnimationFrame(code: => Unit): () => Unit = {
+    val requester = requestSingleAnimationFrame()
+    () => requester(code)
+  }
+
+
+  def inAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
+    private val requester = requestSingleAnimationFrame()
+    override def onNext(elem: T): Ack = {
+      requester(next(elem))
+      Ack.Continue
     }
+    override def onError(ex: Throwable): Unit = throw ex
+    override def onComplete(): Unit = ()
+  }
 }
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {

@@ -323,7 +323,7 @@ object Components {
           onClick.stopPropagation handleWith {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
-      onDomUpdate.asHtml handleWith { node => 
+      onDomUpdate.asHtml --> inAnimationFrame { node =>
         if(editable.now) node.focus()
       },
     )

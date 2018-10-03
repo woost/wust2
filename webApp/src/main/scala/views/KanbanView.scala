@@ -95,7 +95,7 @@ object KanbanView {
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onDomMount.asHtml handleWith { elem => elem.focus() },
+              onDomMount.asHtml --> inAnimationFrame(_.focus()),
               onBlur.value handleWith { v => if(v.isEmpty) fieldActive() = false }
             )
           )
@@ -254,7 +254,7 @@ object KanbanView {
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)
               },
-              onDomMount.asHtml handleWith { elem => elem.focus() },
+              onDomMount.asHtml --> inAnimationFrame(_.focus),
               onBlur.value handleWith { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }
             )
           )
