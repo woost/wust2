@@ -148,10 +148,11 @@ package object outwatchHelpers {
   ).startWith(false :: Nil)
 
   private def abstractTreeToVNode(tree: AbstractElement): VNode = {
-    import outwatch.dom.dsl.{attr, tag}
-    tag(tree.tag)(
-      //TODO return js array in facade?
-      tree.attributes.map { case (name, value) => attr(name) := value }.toJSArray,
+    // fontawesome uses svg for icons and span for layered icons.
+    // we need to handle layers as an html tag instead of svg.
+    val tag = if (tree.tag == "span") dsl.htmlTag(tree.tag) else dsl.svgTag(tree.tag)
+    tag(
+      tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
       tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
     )
   }
