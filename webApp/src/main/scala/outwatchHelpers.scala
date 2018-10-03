@@ -84,16 +84,9 @@ package object outwatchHelpers {
     }
   }
 
-  // convert to observer for emitter --> var
   implicit object VarAsObserver extends AsObserver[Var] {
     override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
   }
-  // the following make vars get emitter results synchronuously without any monix:
-  // implicit class RichEmitterBuilder[O,R](val builder: EmitterBuilder[O,R]) extends AnyVal {
-  //   def -->(v: Var[O]) = {
-  //     builder handleWith { v() = _ }
-  //   }
-  // }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
     def toObserver: Observer[T] = new VarObserver(rxVar)

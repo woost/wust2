@@ -757,7 +757,6 @@ object ThreadView {
           submittedNewMessage.onNext(Unit)
         },
         // else, these events would bubble up to global event handlers and produce a lag
-        // TODO: sideEffect still has the overhead of triggering the monix scheduler, since it is implemented as an observer
         onKeyPress.stopPropagation handleWith {},
         onKeyUp.stopPropagation handleWith {},
         focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> inAnimationFrame(_.focus())),
