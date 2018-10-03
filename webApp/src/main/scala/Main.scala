@@ -7,9 +7,7 @@ import outwatch.dom._
 import rx._
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalStateFactory
-import wust.webApp.views.Elements._
 import wust.webApp.views.{MainView, Rendered}
 
 import scala.scalajs.{LinkingInfo, js}
@@ -50,14 +48,5 @@ object Main {
 
     Rendered.init()
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
-
-
-    // warming up fastparse parser for faster initial user input
-
-    dom.window.setTimeout({ () =>
-      wust.util.time.time("parser warmup") {
-        NodeDataParser.addNode("x", Nil, Set.empty)
-      }
-    }, timeout = 10000)
   }
 }

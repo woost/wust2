@@ -2,29 +2,24 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fontAwesome._
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
+import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
 import wust.sdk.NodeColor._
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import org.scalajs.dom.raw.HTMLElement
-import rx.opmacros.Utils.Id
-import wust.webApp.Icons
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -565,7 +560,7 @@ object ThreadView {
       label()
     )
 
-    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes, newTagParentIds = directParentIds)(ctx)(
+    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes)(ctx)(
       Styles.flex,
       flexDirection.row,
       alignItems := "flex-end", //TODO SDT update
@@ -575,9 +570,7 @@ object ThreadView {
       Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
 
       Rx {
-        val icon: VNode = if(isSynced()) freeSolid.faCheck
-                          else freeRegular.faClock
-
+        val icon: VNode = if(isSynced()) freeSolid.faCheck else freeRegular.faClock
         icon(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
       },
 
@@ -748,9 +741,7 @@ object ThreadView {
           val selectedNodeIds = state.selectedNodeIds.now
           val changes = {
             val newNode = Node.Content.empty
-            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes, directParentIds ++ selectedNodeIds, baseNode = newNode)
-            val newNodeParentships = GraphChanges.connect(Edge.Parent)(newNode.id, directParentIds)
-            nodeChanges merge newNodeParentships
+            GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
           }
 
           state.eventProcessor.changes.onNext(changes)

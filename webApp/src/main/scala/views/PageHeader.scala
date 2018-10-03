@@ -43,7 +43,7 @@ object PageHeader {
   }
 
   private def channelRow(state: GlobalState, channel: Node, channelNodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes, newTagParentIds = Set(channelNodeId))(ctx)(
+    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
       cls := "pageheader-channeltitle",
       onClick handleWith { Analytics.sendEvent("pageheader", "editchanneltitle") }
     )

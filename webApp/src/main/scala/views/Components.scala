@@ -11,16 +11,13 @@ import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import marked.{Marked, MarkedOptions}
-import org.scalajs.dom.raw.HTMLElement
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import emojijs.EmojiConvertor
 import monix.execution.Cancelable
-import sanitizer.SanitizeState
 
 import scala.scalajs.js
 
@@ -137,8 +134,8 @@ object Components {
     renderNodeTag(state, tag, contentString)
   }
 
-  def editableNodeTag(state: GlobalState, tag: Node, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20), newTagParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, newTagParentIds, maxLength))
+  def editableNodeTag(state: GlobalState, tag: Node, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20))(implicit ctx: Ctx.Owner): VNode = {
+    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, maxLength))
   }
 
   def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, graph: Graph): VNode = {
@@ -182,10 +179,10 @@ object Components {
       injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
     )
   }
-  def nodeCardEditable(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditable(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       state, node,
-      injected = VDomModifier(editableNode(state, node, editable, submit, newTagParentIds, maxLength), injected)
+      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
     )
   }
 
@@ -259,11 +256,11 @@ object Components {
     )
   }
 
-  def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId])(
+  def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges])(
     implicit ctx: Ctx.Owner
   ): VNode = {
     val editable = Var(false)
-    editableNode(state, node, editable, submit, newTagParentIds)(ctx)(
+    editableNode(state, node, editable, submit)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation handleWith {
         if(!editable.now) {
           editable() = true
@@ -273,16 +270,16 @@ object Components {
   }
 
 
-  def editableNode(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId], maxLength: Option[Int] = None)(
+  def editableNode(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     node match {
-      case contentNode: Node.Content => editableNodeContent(state, contentNode, editable, submit, newTagParentIds, maxLength)
+      case contentNode: Node.Content => editableNodeContent(state, contentNode, editable, submit, maxLength)
       case _                         => renderNodeData(node.data, maxLength)
     }
   }
 
-  def editableNodeContent(state: GlobalState, node: Node.Content, editable: Var[Boolean], submit: Observer[GraphChanges], newTagParentIds: Iterable[NodeId], maxLength: Option[Int])(
+  def editableNodeContent(state: GlobalState, node: Node.Content, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int])(
     implicit ctx: Ctx.Owner
   ): VNode = {
 
@@ -291,7 +288,7 @@ object Components {
     def save(text: String): Unit = {
       if(editable.now) {
         val graph = state.graphContent.now
-        val changes = NodeDataParser.addNode(text, contextNodes = graph.nodes, newTagParentIds, baseNode = node)
+        val changes = GraphChanges.addNode(Node.Content(NodeData.Markdown(text)))
         submit.onNext(changes)
 
         initialRender() = renderNodeData(changes.addNodes.head.data)

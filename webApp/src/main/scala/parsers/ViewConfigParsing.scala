@@ -17,7 +17,6 @@ private object ViewConfigConstants {
 import wust.webApp.parsers.ViewConfigConstants._
 
 object ViewConfigParser {
-  import ParserElements._
   import fastparse.all._
 
   private def optionSeq[A](list: NonEmptyList[Option[A]]): Option[NonEmptyList[A]] =
@@ -25,6 +24,8 @@ object ViewConfigParser {
       case true  => Some(list.map(_.get))
       case false => None
     }
+
+  val url = P((("http://" | "https://") ~/ CharsWhile(_ != ' ')).!)
 
   private val wordPart = (c: Char) => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)
 
