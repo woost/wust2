@@ -737,8 +737,6 @@ object ThreadView {
       }
     }
 
-    val focusInAnimationFrame = requestSingleAnimationFrame[dom.Element]()
-
     div(
       cls := "ui form",
       keyed(directParentIds),
@@ -762,7 +760,7 @@ object ThreadView {
         // TODO: sideEffect still has the overhead of triggering the monix scheduler, since it is implemented as an observer
         onKeyPress.stopPropagation handleWith {},
         onKeyUp.stopPropagation handleWith {},
-        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml handleWith { e => focusInAnimationFrame(e.focus()) }),
+        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> inAnimationFrame(_.focus())),
         onBlur.value handleWith { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
