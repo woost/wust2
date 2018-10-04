@@ -115,9 +115,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       (dragging, oldContainer, newContainer) match {
         case (Some(dragging), Some(oldContainer), Some(newContainer)) =>
-          println(s"Sorting: $oldContainer -> $dragging -> $newContainer${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-          sortableActions.applyOrElse((e, dragging, oldContainer, newContainer, ctrl, shift), (other:(SortableEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean)) => println(s"sort combination not handled."))
-        case other => println(s"incomplete drag action: $other")
+          scribe.debug(s"Sorting: $oldContainer -> $dragging -> $newContainer${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+          sortableActions.applyOrElse((e, dragging, oldContainer, newContainer, ctrl, shift), (other:(SortableEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean)) => scribe.warn(s"sort combination not handled."))
+        case other => scribe.warn(s"incomplete drag action: $other")
       }
     }
   }
