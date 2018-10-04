@@ -133,10 +133,10 @@ function self() {
         ;;
     pgrestorefromprod)
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ssh -C woost.space docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         export $env_slack_postgres
         postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ssh -C woost.space docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
         export $env_postgres_secret $env_postgres_local
