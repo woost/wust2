@@ -18,6 +18,7 @@ import scala.util.{Failure, Success}
 // an html view for the authentication. That is login and signup.
 object AuthView {
   private val defaultUsername = Var("")
+  private val defaultPassword = Var("")
 
   def apply(state: GlobalState)(
       header: String,
@@ -34,6 +35,7 @@ object AuthView {
         submitAction(username, password).onComplete {
           case Success(None)        =>
             defaultUsername() = ""
+            defaultPassword() = ""
             state.viewConfig() = state.viewConfig.now.redirect
           case Success(Some(vnode)) =>
             errorMessageHandler.onNext(vnode)
@@ -42,8 +44,16 @@ object AuthView {
         }
     }: ((String, String)) => Unit
     val username = Handler.created[String](defaultUsername.now)
-    val password = Handler.created[String]
+    val password = Handler.created[String](defaultPassword.now)
     val nameAndPassword = username.combineLatest(password)
+
+    username.foreach { u =>
+      scribe.info(s"User: $u")
+    }
+    password.foreach { p =>
+      scribe.info(s"PW: $p")
+    }
+
     div(
       padding := "10px",
       maxWidth := "400px",
@@ -68,6 +78,7 @@ object AuthView {
           cls := "ui fluid input",
           input(
             placeholder := "Password",
+            value <-- defaultPassword,
             tpe := "password",
             attr("autocomplete") := autoCompletePassword,
             display.block,
@@ -105,7 +116,8 @@ object AuthView {
           )
         },
         onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
-        managed(IO { username.subscribe(defaultUsername) })
+        managed(IO { username.subscribe(defaultUsername) }),
+        managed(IO { password.subscribe(defaultPassword) })
       )
     )
   }
