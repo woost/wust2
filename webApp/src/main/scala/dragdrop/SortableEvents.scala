@@ -45,11 +45,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         } else GraphChanges.empty
 
-        val alreadyInParent = into.parentIds.exists(parentId => graph.children(parentId).contains(dragging.nodeId))
-        if (alreadyInParent) {
-          //          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
-          defer(removeDomElement(e.dragEvent.originalSource))
-        }
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
 
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
@@ -59,11 +54,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         } else GraphChanges.empty
 
-        val alreadyInParent = graph.children(into.nodeId).contains(dragging.nodeId)
-        if (alreadyInParent) {
-//          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
-          defer(removeDomElement(e.dragEvent.originalSource))
-        }
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
@@ -71,19 +61,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         // always make new columns static
         val moveStaticInParents = GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
-        val alreadyInParent = into.parentIds.exists(parentId => graph.children(parentId).contains(dragging.nodeId))
-        if (alreadyInParent || dragging.isInstanceOf[DragItem.Kanban.Card]) { // remove card, as it will be replaced by a column via graph events
-//          console.log("already in parent! removing dom element:", e.dragEvent.originalSource)
-          defer(removeDomElement(e.dragEvent.originalSource))
-        }
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes, false, false) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val removeStatic = GraphChanges.disconnect(Edge.StaticParentIn)(dragging.nodeId, from.parentIds)
-        // will be reintroduced by change event, so we delete the original node:
         state.eventProcessor.enriched.changes.onNext(move merge removeStatic)
-        defer(removeDomElement(e.dragEvent.originalSource))
     }
   }
 

@@ -95,10 +95,6 @@ object Elements {
     elem.asInstanceOf[js.Dynamic].updateDynamic(propName)((() => value).asInstanceOf[js.Any])
   }
 
-  def removeDomElement(elem: dom.Element): Unit = {
-    elem.parentNode.removeChild(elem)
-  }
-
   def defer(code: => Unit): Unit = {
 //    dom.window.setTimeout(() => code, timeout = 0)
     immediate.immediate(() => code)
