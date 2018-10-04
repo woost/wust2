@@ -34,7 +34,7 @@ package object collection {
     }
   }
 
-  implicit class RichArray[T <: AnyRef:ClassTag](array:Array[T]) {
+  implicit final class RichArray[T <: AnyRef:ClassTag](array:Array[T]) {
     @inline def filterIdx(p: Int => Boolean):Array[T] = {
       val builder = new mutable.ArrayBuilder.ofRef[T]
       var i = 0
@@ -47,7 +47,7 @@ package object collection {
     }
   }
 
-  implicit class RichIntArray(array:Array[Int]) {
+  implicit final class RichIntArray(val array:Array[Int]) extends AnyVal {
     @inline def filterIdx(p: Int => Boolean): Array[Int] = {
       val builder = new mutable.ArrayBuilder.ofInt
       var i = 0
@@ -57,6 +57,22 @@ package object collection {
         i += 1
       }
       builder.result()
+    }
+
+    @inline def whileIdx(f: Int => Unit): Unit = {
+      val n = array.length
+      var i = 0
+
+      while(i < n ) {
+        f(i)
+        i += 1
+      }
+    }
+
+    @inline def markerArray(n:Int) = {
+      val marked = new Array[Int](n)
+      array.whileIdx {i => marked(array(i)) = 1}
+      marked
     }
   }
 

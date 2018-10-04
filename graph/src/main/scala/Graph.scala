@@ -17,7 +17,7 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-  lazy val lookup = GraphLookup(this, nodes.toArray, edges.toArray)
+  lazy val lookup = time(s"graph lookup [${nodes.size}]") { GraphLookup(this, nodes.toArray, edges.toArray) }
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -153,21 +153,29 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
-  lazy val nodeIndices = Array.tabulate(n)(i => i)
+  val nodeIndices: Array[Int] = Array.tabulate(n)(i => i)
 
   private var i = 0
 
+  @deprecated("","")
   private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
   _idToIdx.sizeHint(n)
+  @deprecated("","")
   val _nodesById = mutable.HashMap[NodeId, Node]()
-  _nodesById.sizeHint(nodes.size)
+  _nodesById.sizeHint(n)
+  @deprecated("","")
   private val _nodeIdSet = mutable.HashSet.empty[NodeId]
+  _nodeIdSet.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
 
+  @deprecated("","")
   val allUserIds = mutable.HashSet[UserId]()
 
+  @deprecated("","")
   val channelNodeIds = mutable.HashSet[NodeId]()
+  @deprecated("","")
   val allChannelIds = mutable.HashSet[NodeId]()
+  @deprecated("","")
   val userIdByName = mutable.HashMap[String, UserId]()
 
   i = 0
@@ -202,16 +210,24 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val notifyByUserLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  @deprecated("","")
   val labeledEdges = mutable.HashSet[Edge.Label]()
+  @deprecated("","")
   val containments = mutable.HashSet[Edge.Parent]()
 
+  @deprecated("","")
   val deletedParents = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  @deprecated("","")
   val deletedChildren = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  @deprecated("","")
   val staticParentIn = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
+  @deprecated("","")
   val expandedNodes = mutable.HashMap[UserId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
 
+  @deprecated("","")
   val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
 
+  @deprecated("","")
   val allAuthorIds = mutable.HashSet[UserId]()
 
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
@@ -400,7 +416,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
-     Array.tabulate(n)(i => i).sortBy(nodeCreated).map(nodes)
+     nodeIndices.sortBy(nodeCreated).map(nodes)
   }
 
   lazy val contentNodes: Iterable[Node.Content] = nodes.collect { case p: Node.Content => p }
