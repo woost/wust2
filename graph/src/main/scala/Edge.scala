@@ -15,7 +15,6 @@ sealed trait Edge {
 }
 
 object Edge {
-  sealed trait Content extends Edge
 
   case class Member(userId: UserId, data: EdgeData.Member, channelId: NodeId) extends Edge {
     def sourceId = userId
@@ -26,7 +25,7 @@ object Edge {
     def targetId = nodeId
   }
 
-  case class Parent(childId: NodeId, data: EdgeData.Parent, parentId: NodeId) extends Content {
+  case class Parent(childId: NodeId, data: EdgeData.Parent, parentId: NodeId) extends Edge {
     def sourceId = childId
     def targetId = parentId
   }
@@ -35,26 +34,26 @@ object Edge {
     def apply(childId: NodeId, parentId: NodeId): Parent = Parent(childId, EdgeData.Parent, parentId)
   }
 
-  case class StaticParentIn(childId: NodeId, parentId: NodeId) extends Content {
+  case class StaticParentIn(childId: NodeId, parentId: NodeId) extends Edge {
     def sourceId = childId
     def targetId = parentId
     def data = EdgeData.StaticParentIn
   }
 
-  case class Expanded(userId: UserId, nodeId: NodeId) extends Content {
+  case class Expanded(userId: UserId, nodeId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = nodeId
     def data = EdgeData.Expanded
   }
 
   case class Notify(nodeId: NodeId, userId: UserId)
-      extends Content {
+      extends Edge {
     def sourceId = nodeId
     def targetId = userId
     def data = EdgeData.Notify
   }
 
-  case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Content
+  case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Edge
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
