@@ -47,13 +47,6 @@ object AuthView {
     val password = Handler.created[String](defaultPassword.now)
     val nameAndPassword = username.combineLatest(password)
 
-    username.foreach { u =>
-      scribe.info(s"User: $u")
-    }
-    password.foreach { p =>
-      scribe.info(s"PW: $p")
-    }
-
     div(
       padding := "10px",
       maxWidth := "400px",
