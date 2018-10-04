@@ -142,9 +142,9 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   @deprecated("", "") @inline def ancestors(nodeId: NodeId) = lookup.ancestors(nodeId)
   @deprecated("", "") @inline def involvedInContainmentCycle(id: NodeId) = lookup.involvedInContainmentCycle(id)
   @deprecated("", "")
-  @inline def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = inChildParentRelation(child, possibleParent)
+  @inline def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = lookup.inChildParentRelation(child, possibleParent)
   @deprecated("", "")
-  @inline def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = isStaticParentIn(id, parentIds)
+  @inline def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = lookup.isStaticParentIn(id, parentIds)
 
 }
 
