@@ -419,7 +419,8 @@ lazy val webApp = project
         Deps.monocle.value ::
         Deps.vectory.value ::
         Deps.d3v4.value ::
-        Deps.fastparse.value ::
+        Deps.kantanRegex.core.value ::
+        Deps.kantanRegex.generic.value ::
         Deps.fontawesome.value ::
         Nil,
     npmDependencies in Compile ++=

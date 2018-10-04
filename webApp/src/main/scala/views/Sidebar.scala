@@ -113,23 +113,6 @@ object Sidebar {
       )
     }
 
-    def invitations(selected: Boolean, pageStyle: PageStyle) = div(
-      cls := "channel-line",
-
-      invitationsIcon(selected)(ctx)(
-        marginRight := "5px",
-        borderRadius := "2px",
-      ),
-      "Invitations",
-      selected.ifTrueSeq(
-        Seq(
-          color := pageStyle.sidebarBgColor,
-          backgroundColor := pageStyle.sidebarBgHighlightColor
-        )
-      ),
-      onChannelClick(ChannelAction.Page(PageMode.Orphans))(state)
-    )
-
     div(
       cls := "channels",
       Rx {
@@ -143,18 +126,10 @@ object Sidebar {
               children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
             case Tree.Leaf(_)             => VDomModifier.empty
           }
-          // invitations(state.page().mode == PageMode.Orphans, pageStyle),
         )
       }
     )
   }
-
-  def invitationsIcon(selected: Boolean)(implicit ctx: Ctx.Owner) = div(
-    cls := "customChannelIcon",
-    margin := "0px",
-    freeSolid.faUsers,
-    selected.ifTrue[VDomModifier](backgroundColor := "white")
-  )
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
     div(
@@ -201,7 +176,6 @@ object Sidebar {
   sealed trait ChannelAction extends Any
   object ChannelAction {
     case class Node(id: NodeId) extends AnyVal with ChannelAction
-    case class Page(mode: PageMode) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
     onClick.map { e =>
@@ -217,9 +191,6 @@ object Sidebar {
               else Seq(id)
             page.copy(parentIds = parentIds)
           } else Page(Seq(id))
-        case ChannelAction.Page(mode) =>
-          val newMode = if(page.mode != mode) mode else PageMode.Default
-          if(e.ctrlKey) page.copy(mode = newMode) else Page(Seq.empty, mode = newMode)
       }
     } handleWith { page =>
       val contentView = if(state.view.now.isContent) state.view.now else View.default

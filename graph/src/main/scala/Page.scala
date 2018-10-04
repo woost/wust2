@@ -2,37 +2,29 @@ package wust.graph
 
 import wust.ids._
 
-sealed trait PageMode { val name = toString.toLowerCase }
-object PageMode {
-  case object Default extends PageMode
-  case object Orphans extends PageMode
-}
 sealed trait Page {
   def parentIds: Seq[NodeId]
   def childrenIds: Seq[NodeId]
-  def mode: PageMode
 
-  def copy(parentIds: Seq[NodeId] = parentIds, childrenIds: Seq[NodeId] = childrenIds, mode: PageMode = mode): Page.Selection = {
-    Page.Selection(parentIds, childrenIds, mode)
+  def copy(parentIds: Seq[NodeId] = parentIds, childrenIds: Seq[NodeId] = childrenIds): Page.Selection = {
+    Page.Selection(parentIds, childrenIds)
   }
 
   lazy val parentIdSet = parentIds.toSet
 }
 object Page {
-  case class Selection(parentIds: Seq[NodeId], childrenIds: Seq[NodeId], mode: PageMode) extends Page
+  case class Selection(parentIds: Seq[NodeId], childrenIds: Seq[NodeId]) extends Page
   case class NewChannel(nodeId: NodeId) extends Page {
     override def parentIds = nodeId :: Nil
     override def childrenIds = Nil
-    override def mode = PageMode.Default
   }
 
   def apply(
     parentIds: Seq[NodeId],
     childrenIds: Seq[NodeId] = Nil,
-    mode: PageMode = PageMode.Default
-  ): Page = Selection(parentIds, childrenIds, mode)
+  ): Page = Selection(parentIds, childrenIds)
 
-  def unapply(page: Page): Option[(Seq[NodeId], Seq[NodeId], PageMode)] = Some((page.parentIds, page.childrenIds, page.mode))
+  def unapply(page: Page): Option[(Seq[NodeId], Seq[NodeId])] = Some((page.parentIds, page.childrenIds))
 
   val empty: Page = Page(Seq.empty)
   def ofUser(user: UserInfo): Page = apply(Seq(user.channelNodeId))

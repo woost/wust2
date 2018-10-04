@@ -22,9 +22,7 @@ import scala.scalajs.js.Date
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val sidebarOpen = Client.storage.sidebarOpen
-    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(
-      x => Option(ViewConfig.toUrlHash(x))
-    )
+    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
 
     val additionalManualEvents = PublishSubject[ApiEvent]()
     val eventProcessor = EventProcessor(
@@ -89,7 +87,7 @@ object GlobalStateFactory {
     userAndPage.toObservable
       .switchMap { case ((prevPage, page), user) =>
         val observable = if (prevPage != page) page match {
-          case Page.Selection(parentIds, childrenIds, mode) =>
+          case Page.Selection(parentIds, childrenIds) =>
             Observable.fromFuture(Client.api.getGraph(page))
           case Page.NewChannel(nodeId) =>
             val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)

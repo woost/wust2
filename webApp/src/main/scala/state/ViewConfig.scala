@@ -1,6 +1,5 @@
 package wust.webApp.state
 
-import fastparse.core.Parsed
 import wust.graph._
 import wust.webApp.parsers.{ViewConfigParser, ViewConfigWriter}
 
@@ -20,10 +19,10 @@ object ViewConfig {
   val default = ViewConfig(View.default, Page.empty, None, None)
 
   def fromUrlHash(hash: String): ViewConfig = {
-    ViewConfigParser.viewConfig.parse(hash) match {
-      case Parsed.Success(url, _) => url
-      case failure: Parsed.Failure[_, _] =>
-        val errMsg = s"Failed to parse url from hash '$hash' at ${failure.msg}"
+    ViewConfigParser.parse(hash) match {
+      case Right(config) => config
+      case Left(failure) =>
+        val errMsg = s"Failed to parse url from hash '$hash' at $failure"
         ViewConfig(View.Error(errMsg), Page.empty, None, None)
     }
   }

@@ -1,100 +1,132 @@
 package wust.webApp.parsers
 
 import cats.data.NonEmptyList
-import wust.graph.{Page, PageMode}
+import wust.graph.Page
 import wust.ids.{Cuid, NodeId}
 import wust.webApp.state.{ShareOptions, View, ViewConfig, ViewOperator}
+import kantan.regex._
+import kantan.regex.implicits._
+import kantan.regex.generic._
 
-private object ViewConfigConstants {
-  val pageSeparator = ":"
-  val idSeparator = ","
-  val urlSeparator = "&"
-  val viewKey = "view="
-  val pageKey = "page="
-  val redirectToKey = "redirectTo="
-  val shareKey = "share?"
-}
-import wust.webApp.parsers.ViewConfigConstants._
-
-object ViewConfigParser {
-  import fastparse.all._
-
-  private def optionSeq[A](list: NonEmptyList[Option[A]]): Option[NonEmptyList[A]] =
-    list.forall(_.isDefined) match {
-      case true  => Some(list.map(_.get))
-      case false => None
+private object ParsingHelpers {
+  def decodeSeq[A](list: Seq[DecodeResult[A]]): DecodeResult[Seq[A]] =
+    list.forall(_.isRight) match {
+      case true  => Right(list.map(_.right.get))
+      case false => Left(DecodeError.TypeError("Multiple errors occurred: " + list.collect { case Left(v) => v }.mkString(",")))
     }
 
-  val url = P((("http://" | "https://") ~/ CharsWhile(_ != ' ')).!)
-
-  private val wordPart = (c: Char) => CharPredicates.isLetter(c) || CharPredicates.isDigit(c)
-
-  //TODO: support nested views with different operators and brackets.
-  def viewWithOps(operator: ViewOperator): P[View] =
-    P(CharsWhile(wordPart).!.rep(min = 1, sep = operator.separator) ~ (urlSeparator | End))
-      .map(_.toList)
-      .flatMap {
-        case Nil => ??? // cannot happen, because min of repetition is 1
-        case view :: Nil =>
-          View.map.get(view).fold[Parser[View]](Fail)(v => Pass.map(_ => v))
-        case view :: views =>
-          optionSeq(NonEmptyList(view, views).map(View.map.get))
-            .fold[Parser[View]](Fail)(v => Pass.map(_ => View.Tiled(operator, v)))
-      }
-
-  val view: P[View] = P(
-    viewWithOps(ViewOperator.Row) |
-      viewWithOps(ViewOperator.Column) |
-      viewWithOps(ViewOperator.Auto) |
-      viewWithOps(ViewOperator.Optional))
-
-  val nodeIdList: Parser[Seq[NodeId]] =
-    P(CharsWhile(wordPart).!.rep(min = 1, sep = idSeparator)).map(_.map(cuid => NodeId(Cuid.fromBase58(cuid))))
-  val pageMode: Parser[PageMode] =
-    P((PageMode.Default.name | PageMode.Orphans.name).!)
-      .map {
-        case PageMode.Default.name => PageMode.Default
-        case PageMode.Orphans.name => PageMode.Orphans
-      }
-  val page: P[Page] = P(
-    pageMode ~/ (pageSeparator ~/ nodeIdList ~ (pageSeparator ~ nodeIdList).?).? ~/ (urlSeparator | End)
-  ).map {
-    case (mode, None) => Page(parentIds = Nil, mode = mode)
-    case (mode, Some((parentIds, None))) =>
-      Page(parentIds = parentIds, mode = mode)
-    case (mode, Some((parentIds, Some(childrenIds)))) =>
-      Page(parentIds = parentIds, childrenIds = childrenIds, mode = mode)
+  def parseSingle[A](r: Regex[DecodeResult[A]], text: String): DecodeResult[A] = {
+    val results = r.eval(text).toList
+    if (results.size == 1) results.head
+    else if (results.isEmpty) Left(DecodeError.TypeError("No results, but one expected"))
+    else Left(DecodeError.TypeError("Multiple results, but only one expected: " + results.mkString(",")))
   }
+}
+import ParsingHelpers._
 
-  val shareOptions: P[ShareOptions] = P( "title=" ~/ CharsWhile(wordPart, min = 0).! ~/ urlSeparator ~/ "text=" ~/ CharsWhile(wordPart, min = 0).! ~/ urlSeparator ~/ "url=" ~/ (url.!).? ~/ (urlSeparator | End) )
-      .map { case (title, text, url) =>
-          ShareOptions(title, text, url.getOrElse(""))
-      }
+private sealed trait UrlOption {
+  def update(config: ViewConfig, text: String): DecodeResult[ViewConfig]
+}
+private object UrlOption {
+  object view extends UrlOption {
+    val key = "view"
 
-  // TODO: marke order of values flexible
-  val viewConfig: P[ViewConfig] =
-    P(viewKey ~/ view ~/ pageKey ~/ page ~/ (redirectToKey ~/ view).? ~/ (shareKey ~/ shareOptions).?)
-      .map {
-        case (view, page, redirectTo, shareOptions) =>
-          ViewConfig(view, page, redirectTo, shareOptions)
+    private def decodeView(s: String): DecodeResult[View] =
+      View.map.get(s).fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
+
+    val regex = Regex[(String, Option[String])](rx"^(\w+)((\||,|\?|/)\w+)*?$$")
+      .map(_.flatMap { case (view, opsViews) =>
+        opsViews.fold(decodeView(view)) { opsViews =>
+          val opString = opsViews.head.toString
+          val views = opsViews.split("\\||,|\\?|/").filter(_.nonEmpty)
+          ViewOperator.fromString.lift(opString) match {
+            case Some(op) =>
+              decodeView(view).flatMap { view =>
+                decodeSeq(views.map(decodeView)).map { views =>
+                  View.Tiled(op, NonEmptyList(view, views.toList))
+                }
+              }
+            case None => Left(DecodeError.TypeError(s"Unknown operator '$opString'"))
+          }
+        }
+      })
+
+    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+      parseSingle(regex, text).map { view =>
+        config.copy(view = view)
       }
+  }
+  object page extends UrlOption {
+    val key = "page"
+
+    val regex = Regex[(String, Option[String])](rx"^(\w+(,\w+)*)(:\w+(,\w)*)?$$")
+      .map(_.map { case (parentIds, childrenIdsOpt) =>
+          val childrenIds = childrenIdsOpt.fold("")(_.tail)
+          Page(parentIds.split(",").map(s => NodeId(Cuid.fromBase58(s))), childrenIds.split(",").map(s => NodeId(Cuid.fromBase58(s))))
+      })
+
+    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+      parseSingle(regex, text).map { page =>
+        config.copy(page = page)
+      }
+  }
+  object redirectTo extends UrlOption {
+    val key = "redirectTo"
+
+    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+      parseSingle(view.regex, text).map { view =>
+        config.copy(redirectTo = Some(view))
+      }
+  }
+  object share extends UrlOption {
+    val key = "share"
+
+    val regex = Regex[ShareOptions](rx"^title:([^,]*),text:([^:]*),url:(.*)$$")
+
+    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+      parseSingle(regex, text).map { shareOptions =>
+        config.copy(shareOptions = Some(shareOptions))
+      }
+  }
+}
+
+object ViewConfigParser {
+
+  private val allOptionsRegex = Regex[(String,String)](rx"([^&=]+)=([^&]*)&?")
+  private val allOptionsMap = Map(
+    UrlOption.view.key -> UrlOption.view,
+    UrlOption.page.key -> UrlOption.page,
+    UrlOption.redirectTo.key -> UrlOption.redirectTo,
+    UrlOption.share.key -> UrlOption.share,
+  )
+
+  def parse(text: String): DecodeResult[ViewConfig] = wust.util.time.time("parse url") {
+    val matched = decodeSeq(allOptionsRegex.eval(text).toList)
+    matched.flatMap(_.foldLeft[DecodeResult[ViewConfig]](Right(ViewConfig.default)) {
+      case (Right(cfg), (key, value)) =>
+        allOptionsMap.get(key) match {
+          case Some(option) => option.update(cfg, value)
+          case None =>
+            scribe.warn(s"Unknown key '$key' in url. Will be ignored.")
+            Right(cfg)
+        }
+      case (Left(err), _) => Left(err)
+    })
+  }
 }
 
 object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
-    val viewString = viewKey + cfg.view.viewKey
-    val pageString = pageKey + (cfg.page match {
-      case Page(parentIds, childrenIds, mode) if parentIds.isEmpty && childrenIds.isEmpty =>
-        s"${mode.name}"
-      case Page(parentIds, childrenIds, mode) if childrenIds.isEmpty =>
-        s"${mode.name}${pageSeparator}${parentIds.map(_.toBase58).mkString(idSeparator)}"
-      case Page(parentIds, childrenIds, mode) =>
-        s"${mode.name}${pageSeparator}${parentIds
-          .map(_.toBase58)
-          .mkString(idSeparator)}${pageSeparator}${childrenIds.map(_.toBase58).mkString(idSeparator)}"
-    })
+    val viewString = UrlOption.view.key + "=" + cfg.view.viewKey
+    val pageString = cfg.page match {
+      case Page(parentIds, childrenIds) if parentIds.isEmpty && childrenIds.isEmpty => ""
+      case Page(parentIds, childrenIds) if childrenIds.isEmpty =>
+        "&" + UrlOption.page.key + "=" + s"${parentIds.map(_.toBase58).mkString(",")}"
+      case Page(parentIds, childrenIds) =>
+        "&" + UrlOption.page.key + "=" + s"${parentIds.map(_.toBase58).mkString(",")}:${childrenIds.map(_.toBase58).mkString(",")}"
+    }
     val redirectToStringWithSep =
-      cfg.redirectTo.fold("")(v => urlSeparator + redirectToKey + v.viewKey)
-    s"$viewString$urlSeparator$pageString$redirectToStringWithSep"
+      cfg.redirectTo.fold("")(v => "&" + UrlOption.redirectTo.key + "=" + v.viewKey)
+    s"$viewString$pageString$redirectToStringWithSep"
   }
 }

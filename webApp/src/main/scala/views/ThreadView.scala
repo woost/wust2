@@ -719,8 +719,7 @@ object ThreadView {
   def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.created[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
       val graphNotLoaded = (state.graph().lookup.nodeIdSet intersect state.page().parentIdSet).isEmpty
-      val pageModeOrphans = state.page().mode == PageMode.Orphans
-      graphNotLoaded || pageModeOrphans
+      graphNotLoaded
     }
 
     val initialValue = Rx {
