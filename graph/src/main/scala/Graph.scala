@@ -153,6 +153,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
+  lazy val nodeIndices = Array.tabulate(n)(i => i)
+
   private var i = 0
 
   private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
@@ -298,6 +300,24 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       nodeIdx += 1
     }
     (nodeCreated, nodeModified)
+  }
+
+  def filterIdx(p: Int => Boolean): Graph = {
+    // we only want to call p once for each node
+    // and not trigger the pre-caching machinery of nodeIds
+    val filteredNodesIndices = nodeIndices.filterIdx(p)
+
+    @inline def nothingFiltered = filteredNodesIndices.length == nodes.length
+
+    if(nothingFiltered) graph
+    else {
+      val filteredNodeIds: Set[NodeId] = filteredNodesIndices.map(nodeIds)(breakOut)
+      val filteredNodes: Set[Node] = filteredNodesIndices.map(nodes)(breakOut)
+      Graph(
+        nodes = filteredNodes,
+        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
+      )
+    }
   }
 
   val authorIds: NodeId => IndexedSeq[UserId] = Memo.mutableHashMapMemo { nodeId =>

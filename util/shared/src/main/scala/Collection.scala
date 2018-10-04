@@ -37,7 +37,6 @@ package object collection {
   implicit class RichArray[T <: AnyRef:ClassTag](array:Array[T]) {
     @inline def filterIdx(p: Int => Boolean):Array[T] = {
       val builder = new mutable.ArrayBuilder.ofRef[T]
-      builder.sizeHint(array.length)
       var i = 0
       while(i < array.length) {
         if(p(i))
@@ -48,6 +47,18 @@ package object collection {
     }
   }
 
+  implicit class RichIntArray(array:Array[Int]) {
+    @inline def filterIdx(p: Int => Boolean): Array[Int] = {
+      val builder = new mutable.ArrayBuilder.ofInt
+      var i = 0
+      while(i < array.length) {
+        if(p(i))
+          builder += array(i)
+        i += 1
+      }
+      builder.result()
+    }
+  }
 
   implicit class RichString(val s: String) extends AnyVal {
     def leftPadTo(len: Int, elem: Char): String = {
