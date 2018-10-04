@@ -72,8 +72,8 @@ object BreadCrumbs {
                    ))
               }
             }
-            intersperse(elements.toList.flatten, span("/", cls := "divider"))
-          }.flatten
+            div(intersperse(elements.toList.flatten, span("/", cls := "divider")))
+          }
         }
       },
       registerDraggableContainer(state),

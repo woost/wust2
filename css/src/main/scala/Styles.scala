@@ -127,7 +127,6 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- breadcrumb --
   ".breadcrumbs" - (
     padding(1 px, 3 px),
-    Styles.flex,
     alignItems.center,
     overflowX.auto,
     fontSize(12 px),
