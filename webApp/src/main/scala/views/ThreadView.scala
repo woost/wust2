@@ -241,13 +241,13 @@ object ThreadView {
     }
 
     div(
-      managed(IO { submittedNewMessage.foreach(_ => scrollToBottomInAnimationFrame()) }),
       // this wrapping of chat history is currently needed,
       // to allow dragging the scrollbar without triggering a drag event.
       // see https://github.com/Shopify/draggable/issues/262
       div(
         cls := "chat-history",
         padding := "50px 0 20px 20px", // large padding-top to have space for selectedNodes bar
+        keyed,
         Rx {
           val page = state.page()
           val graph = state.graphContent()
@@ -263,11 +263,9 @@ object ThreadView {
                   MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
-
               draggableAs(state, DragItem.DisableDrag),
               cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
               dragTarget(DragItem.Chat.Page(page.parentIds)),
-              keyed
             )
         },
         onDomPreUpdate handleWith {
@@ -279,14 +277,16 @@ object ThreadView {
         onDomUpdate handleWith {
           if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
         },
-        managed(IO {
-          // on page change, always scroll down
-          state.page.foreach { _ =>
-            isScrolledToBottom() = true
-            scrollToBottomInAnimationFrame()
-          }
-        }),
-
+        managed(
+          IO {
+            // on page change, always scroll down
+            state.page.foreach { _ =>
+              isScrolledToBottom() = true
+              scrollToBottomInAnimationFrame()
+            }
+          },
+          IO { submittedNewMessage.foreach(_ => scrollToBottomInAnimationFrame()) }
+        ),
       ),
       overflow.auto,
       onDomMount.asHtml handleWith { elem =>
