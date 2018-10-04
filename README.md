@@ -99,6 +99,16 @@ Build all docker images in project:
 $ sbt docker
 ```
 
+# Access/debug devserver from android
+`build.sbt`:
+```scala
+webpackDevServerExtraArgs := Seq("--public")
+```
+and open firewall port in ```configuration.nix```:
+```
+networking.firewall.allowedTCPPorts = [ 12345 ];
+```
+
 The images are automatically published to docker.woost.space once a day from `master`.
 
 # Deployment
