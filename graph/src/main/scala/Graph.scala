@@ -102,8 +102,6 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   @deprecated("", "")
   @inline def isChildOfAny(n: NodeId, parentIds: Iterable[NodeId]) = lookup.isChildOfAny(n, parentIds)
   @deprecated("", "")
-  @inline def isDeletedNow(node: NodeId, parentIds: Set[NodeId]) = lookup.isDeletedNow(node, parentIds)
-  @deprecated("", "")
   @inline def isDeletedChildOfAny(n: NodeId, parentIds: Iterable[NodeId]) = lookup.isDeletedChildOfAny(n, parentIds)
   @deprecated("", "") @inline def authorIds = lookup.authorIds
   @deprecated("", "") @inline def incidentChildContainments = lookup.incidentChildContainments
@@ -149,7 +147,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
-  def createMarker(ids:Set[NodeId]): ArraySet = {
+  def createArraySet(ids:Set[NodeId]): ArraySet = {
     val marker = ArraySet.create(n)
     ids.foreach{id =>
       val idx = idToIdx.getOrElse(id,-1)
@@ -374,12 +372,15 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     membershipEdgeIdx(nodeIdx).map(edgeIdx => nodesById(edges(edgeIdx).asInstanceOf[Edge.Member].userId).asInstanceOf[Node.User])
   }
 
-  def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]): Boolean = {
-    val deletedParentIds = deletedParents(nodeId)
-    deletedParentIds.nonEmpty && (
-      if(parentIds subsetOf deletedParentIds) true
-      else parents(nodeId).isEmpty
-      )
+  def isDeletedNow(nodeIdx: Int, parentIndices: immutable.BitSet): Boolean = {
+
+    val deletedParentSet = ArraySet.create(n)
+    deletedParentsIdx.foreachElement(nodeIdx)(deletedParentSet.add)
+
+    deletedParentsIdx.sliceNonEmpty(nodeIdx) && (
+      if(parentIndices.forall(deletedParentSet.contains)) true
+      else parentsIdx.sliceIsEmpty(nodeIdx)
+    )
   }
 
   def directNodeTags(nodeIdx: Int, parentIndices: immutable.BitSet): Array[Node] = {

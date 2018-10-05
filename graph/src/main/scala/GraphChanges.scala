@@ -131,7 +131,7 @@ object GraphChanges {
   def delete(nodeId: NodeId, graph: Graph): GraphChanges = delete(nodeId :: Nil, graph)
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(nodeId: NodeId, parentIds: Set[NodeId]): GraphChanges = GraphChanges(
+  def delete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
       parentId => Edge.Parent.delete(nodeId, parentId)
     )(breakOut)

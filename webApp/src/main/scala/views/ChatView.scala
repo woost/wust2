@@ -64,6 +64,7 @@ object ChatView {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state // else import conflict
+      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
           replyButton.apply(onTap handleWith { currentReply() = Set(nodeId) }),
@@ -86,7 +87,7 @@ object ChatView {
         keyed(nodeId),
         chatMessageLine(meta, nodeIdx, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
-            val isDeleted = graph.lookup.isDeletedNow(nodeId, directParentIds)
+            val isDeleted = graph.lookup.isDeletedNow(nodeIdx, directParentIndices)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
             div(
               cls := "nodecard",

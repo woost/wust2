@@ -72,9 +72,9 @@ object ThreadView {
   case class MessageMeta(
     state: GlobalState,
     graph: Graph,
-    alreadyVisualizedParentIds: immutable.BitSet,
+    alreadyVisualizedParentIndices: immutable.BitSet,
     path: List[NodeId],
-    directParentIds: Set[NodeId],
+    directParentIndices: immutable.BitSet,
     currentUserId: UserId,
     renderMessage: (Int, MessageMeta) => VDomModifier,
   )
@@ -124,6 +124,7 @@ object ThreadView {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state
+      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
         replyButton.apply(onTap handleWith {
@@ -268,7 +269,7 @@ object ThreadView {
               groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIndices,
-                  MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
+                  MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, graph.lookup.createBitSet(page.parentIdSet), user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
               draggableAs(state, DragItem.DisableDrag),
@@ -411,8 +412,8 @@ object ThreadView {
     import meta._
     @deprecated("","")
     val nodeId = graph.lookup.nodeIds(nodeIdx)
-    val inCycle = alreadyVisualizedParentIds.contains(nodeIdx)
-    val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
+    val inCycle = alreadyVisualizedParentIndices.contains(nodeIdx)
+    val isThread = !graph.lookup.isDeletedNow(nodeIdx, directParentIndices) && (graph.lookup.hasChildrenIdx(nodeIdx) || graph.lookup.hasDeletedChildrenIdx(nodeIdx)) && !inCycle
 
     val replyFieldActive = Rx { activeReplyFields() contains (nodeId :: path) }
     val threadVisibility = Rx {
@@ -444,14 +445,14 @@ object ThreadView {
                 .map(kind => renderGroupedMessages(
                   kind.nodeIndices,
                   meta.copy(
-                    alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeIdx,
+                    alreadyVisualizedParentIndices = alreadyVisualizedParentIndices + nodeIdx,
                     path = nodeId :: path,
-                    directParentIds = Set(nodeId),
+                    directParentIndices = immutable.BitSet(nodeIdx),
                   ),
                   avatarSizeThread,
                 )),
 
-              replyField(state, nodeId, directParentIds, path, activeReplyFields),
+              replyField(state, nodeId, path, activeReplyFields),
 
               draggableAs(state, DragItem.DisableDrag),
               dragTarget(DragItem.Chat.Thread(nodeId)),
@@ -475,7 +476,7 @@ object ThreadView {
     }
   }
 
-  def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
+  def replyField(state: GlobalState, nodeId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
     val fullPath = nodeId :: path
     val active = Rx { activeReplyFields() contains fullPath }
 
@@ -545,7 +546,7 @@ object ThreadView {
     @deprecated("","")
     val nodeId = graph.lookup.nodeIds(nodeIdx)
 
-    val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
+    val isDeleted = graph.lookup.isDeletedNow(nodeIdx, directParentIndices)
     val isSelected = state.selectedNodeIds.map(_ contains nodeId)
     val node = graph.nodesById(nodeId)
 
@@ -644,7 +645,7 @@ object ThreadView {
         (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)),
         transformMessageCard(messageCard.apply(keyed(nodeId))),
         expandCollapseButton(meta, nodeId, threadVisibility),
-        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeIdx, alreadyVisualizedParentIds)),
+        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeIdx, alreadyVisualizedParentIndices)),
         (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic))
       )
     )
@@ -663,7 +664,7 @@ object ThreadView {
       cursor.pointer,
     )
 
-  def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
+  def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.delete),
       onTap handleWith {
@@ -673,7 +674,7 @@ object ThreadView {
       cursor.pointer,
     )
 
-  def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])(implicit ctx: Ctx.Owner): VNode =
+  def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.undelete),
       onTap(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
