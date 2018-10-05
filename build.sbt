@@ -9,9 +9,12 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 
 import Def.{setting => dep}
 
+// -- common setting --
+scalaVersion in ThisBuild := "2.12.7"
+// 2.11 is needed for android app
+crossScalaVersions in ThisBuild := Seq("2.11.12", scalaVersion.value)
+
 lazy val commonSettings = Seq(
-  scalaVersion := "2.12.7",
-  crossScalaVersions := Seq("2.11.12", scalaVersion.value), // 2.11 is needed for android app
 
 //  exportJars := true, // for android app
   resolvers ++=
@@ -538,3 +541,7 @@ lazy val systemTest = project
   )
 
 lazy val dbMigration = project
+
+// this does not work, since different projects use different scala versions
+ensimeScalaVersion in ThisBuild := "2.12.7"
+ensimeIgnoreScalaMismatch in ThisBuild := true
