@@ -288,7 +288,7 @@ object Components {
     def save(text: String): Unit = {
       if(editable.now) {
         val graph = state.graphContent.now
-        val changes = GraphChanges.addNode(Node.Content(NodeData.Markdown(text)))
+        val changes = GraphChanges.addNode(Node.Content(node.id, NodeData.Markdown(text)))
         submit.onNext(changes)
 
         initialRender() = renderNodeData(changes.addNodes.head.data)
