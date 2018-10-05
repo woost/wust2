@@ -7,6 +7,7 @@ import wust.util.collection._
 import wust.util.time.time
 
 import collection.{breakOut, mutable}
+import scala.collection.immutable
 
 object Graph {
   val empty = new Graph(Set.empty, Set.empty)
@@ -153,7 +154,25 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
-  val nodeIndices: Array[Int] = Array.tabulate(n)(i => i)
+  def createMarker(ids:Set[NodeId]): ArraySet = {
+    val marker = ArraySet.create(n)
+    ids.foreach{id =>
+      val idx = idToIdx.getOrElse(id,-1)
+      if(idx != -1)
+        marker.add(idx)
+    }
+    marker
+  }
+
+  def createBitSet(ids:Set[NodeId]): immutable.BitSet = {
+    val builder = immutable.BitSet.newBuilder
+    ids.foreach{id =>
+      val idx = idToIdx.getOrElse(id,-1)
+      if(idx != -1)
+        builder += idx
+    }
+    builder.result()
+  }
 
   private var i = 0
 
@@ -198,15 +217,21 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   require(nodesById.size == nodes.size, "nodes are not distinct by id")
 
+  @deprecated("","")
   @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx
+  @deprecated("","")
   @inline def nodeIdSet: collection.Set[NodeId] = _nodeIdSet
+  @deprecated("","")
   @inline def nodesById: collection.Map[NodeId, Node] = _nodesById
 
+  @deprecated("","")
   def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
 
 
   private val parentLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val childLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val deletedParentLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val deletedChildLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val notifyByUserLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
@@ -257,6 +282,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                 if(deletedAt > remorseTimeForDeletedParents) {
                   deletedParents(childId) += parentId
                   deletedChildren(parentId) += childId
+                  deletedParentLookupBuilder(sourceIdx) += targetIdx
+                  deletedChildLookupBuilder(targetIdx) += sourceIdx
                 }
             }
           case _:Edge.StaticParentIn =>
@@ -276,6 +303,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   val parentsIdx = NestedArrayInt(parentLookupBuilder)
   val childrenIdx = NestedArrayInt(childLookupBuilder)
+  val deletedChildrenIdx = NestedArrayInt(deletedChildLookupBuilder)
+  val deletedParentsIdx = NestedArrayInt(deletedParentLookupBuilder)
   val authorshipEdgeIdx = NestedArrayInt(authorshipEdgeLookupBuilder)
   val notifyByUserIdx = NestedArrayInt(notifyByUserLookupBuilder)
   val authorsIdx = NestedArrayInt(authorLookupBuilder)
@@ -321,7 +350,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def filterIdx(p: Int => Boolean): Graph = {
     // we only want to call p once for each node
     // and not trigger the pre-caching machinery of nodeIds
-    val filteredNodesIndices = nodeIndices.filterIdx(p)
+    val filteredNodesIndices = nodes.indices.filter(p)
 
     @inline def nothingFiltered = filteredNodesIndices.length == nodes.length
 
@@ -361,62 +390,37 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       )
   }
 
-  val directNodeTags: ((NodeId, Set[NodeId])) => Array[Node] = Memo.mutableHashMapMemo {
-    {(nodeId: NodeId, parentIds: Set[NodeId]) =>
-//      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
+  def directNodeTags(nodeIdx: Int, parentIndices: immutable.BitSet): Array[Node] = {
+    //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
 
-      val idx = idToIdx(nodeId)
-      val markedAsTag = new Array[Int](n)
+    val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
-      parentsIdx(idx).foreach{i => markedAsTag(i) = 1}
-      parentIds.foreach{ parentId =>
-        val parentIdx = idToIdx(parentId)
-        if(parentIdx != idx)
-          markedAsTag(parentIdx) = 0
-      }
+    parentsIdx.foreachElement(nodeIdx){ i =>
+      if(!parentIndices.contains(i) || i == nodeIdx)
+        tagSet += nodes(i)
+    }
 
-      val tagBuilder = new mutable.ArrayBuilder.ofRef[Node]
-      var i = 0
-      while(i < n) {
-        if(markedAsTag(i) == 1)
-          tagBuilder += nodes(i)
-        i += 1
-      }
-
-      tagBuilder.result()
-    }.tupled
+    tagSet.result()
   }
 
-  val transitiveNodeTags: ((NodeId, Set[NodeId])) => Array[Node] = Memo.mutableHashMapMemo {
-    { (nodeId: NodeId, parentIds: Set[NodeId]) =>
-//      val transitivePageParents = parentIds.flatMap(ancestors)
-//      (ancestors(nodeId).toSet -- parentIds -- transitivePageParents -- parents(nodeId))
-//        .map(nodesById)
-      val idx = idToIdx(nodeId)
-      val markedAsTag = new Array[Int](n)
+  def transitiveNodeTags(nodeIdx:Int, parentIndices: immutable.BitSet):Array[Node] = {
+    //      val transitivePageParents = parentIds.flatMap(ancestors)
+    //      (ancestors(nodeId).toSet -- parentIds -- transitivePageParents -- parents(nodeId))
+    //        .map(nodesById)
+    val tagSet = ArraySet.create(n)
 
-      ancestorsIdx(idx).foreach(i => markedAsTag(i) = 1)
-      parentIds.foreach{ parentId =>
-        val parentIdx = idToIdx(parentId)
-        markedAsTag(parentIdx) = 0
-        ancestorsIdx(parentIdx).foreach{i => markedAsTag(i) = 0}
-      }
-      parentsIdx(idx).foreach{i => markedAsTag(i) = 0}
+    ancestorsIdx(nodeIdx).foreachElement(tagSet.add)
+    parentIndices.foreach{ parentIdx =>
+      tagSet.remove(parentIdx)
+      ancestorsIdx(parentIdx).foreachElement(tagSet.remove)
+    }
+    parentsIdx.foreachElement(nodeIdx)(tagSet.remove)
 
-      val tagBuilder = new mutable.ArrayBuilder.ofRef[Node]
-      var i = 0
-      while(i < n) {
-        if(markedAsTag(i) == 1)
-          tagBuilder += nodes(i)
-        i += 1
-      }
-
-      tagBuilder.result()
-    }.tupled
+    tagSet.map(nodes)
   }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
-     nodeIndices.sortBy(nodeCreated).map(nodes)
+     nodes.indices.sortBy(nodeCreated).map(nodes)
   }
 
   lazy val contentNodes: Iterable[Node.Content] = nodes.collect { case p: Node.Content => p }

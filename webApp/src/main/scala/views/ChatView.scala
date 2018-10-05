@@ -22,11 +22,11 @@ object ChatView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val nodeIds: Rx[Seq[NodeId]] = Rx {
+    val nodeIds: Rx[Seq[Int]] = Rx {
       val page = state.page()
       val graph = state.graphContent()
       graph.lookup.chronologicalNodesAscending.collect {
-        case n: Node.Content if !(page.parentIdSet contains n.id) => n.id
+        case n: Node.Content if !(page.parentIdSet contains n.id) => graph.lookup.idToIdx(n.id)
       }
     }
 
@@ -35,10 +35,10 @@ object ChatView {
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[List[NodeId]])
 
-    def shouldGroup(graph:Graph, nodes: Seq[NodeId]):Boolean = {
+    def shouldGroup(graph:Graph, nodes: Seq[Int]):Boolean = {
       grouping && // grouping enabled
-        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.authorIds(node).head == authorId)
+        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
         }
     }
 
@@ -76,13 +76,15 @@ object ChatView {
       )
     }
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VNode = {
+    def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VNode = {
       import meta._
+      @deprecated("","")
+      val nodeId = graph.lookup.nodeIds(nodeIdx)
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
       div(
         keyed(nodeId),
-        chatMessageLine(meta, nodeId, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
+        chatMessageLine(meta, nodeIdx, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
             val isDeleted = graph.lookup.isDeletedNow(nodeId, directParentIds)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
@@ -112,7 +114,7 @@ object ChatView {
       padding := "1px",
       borderTopLeftRadius := "2px",
       borderTopRightRadius := "2px",
-      chatMessageHeader(false, parent.id, graph, AvatarSize.Small, showDate = false).apply(
+      chatMessageHeader(false, graph.lookup.idToIdx(parent.id), graph, AvatarSize.Small, showDate = false).apply(
         padding := "2px"
       ),
       nodeCard(state, parent).apply(

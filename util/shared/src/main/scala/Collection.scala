@@ -3,6 +3,7 @@ package wust.util
 import scala.collection.generic.{CanBuildFrom, CanCombineFrom}
 import scala.collection.{IterableLike, breakOut, mutable}
 import scala.reflect.ClassTag
+import supertagged._
 
 package object collection {
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
@@ -34,9 +35,53 @@ package object collection {
     }
   }
 
-  implicit final class RichArray[T <: AnyRef:ClassTag](array:Array[T]) {
-    @inline def filterIdx(p: Int => Boolean):Array[T] = {
-      val builder = new mutable.ArrayBuilder.ofRef[T]
+
+  implicit final class RichIndexedSeq[T](val self:IndexedSeq[T]) extends AnyVal {
+    //    @inline def filterIdx(p: Int => Boolean)(implicit ev: ClassTag[T]):Array[T] = {
+    //      val builder = new mutable.ArrayBuilder.ofRef[T]
+    //      var i = 0
+    //      while(i < array.length) {
+    //        if(p(i))
+    //          builder += array(i)
+    //        i += 1
+    //      }
+    //      builder.result()
+    //    }
+
+    @inline def foreachIndex(f: Int => Unit): Unit = {
+      val n = self.length
+      var i = 0
+
+      while(i < n ) {
+        f(i)
+        i += 1
+      }
+    }
+
+    @inline def foreachElement(f: T => Unit): Unit = {
+      val n = self.length
+      var i = 0
+
+      while(i < n ) {
+        f(self(i))
+        i += 1
+      }
+    }
+
+    @inline def foreachIndexAndElement(f: (Int,T) => Unit): Unit = {
+      val n = self.length
+      var i = 0
+
+      while(i < n ) {
+        f(i, self(i))
+        i += 1
+      }
+    }
+  }
+
+  implicit final class RichArray[T](val array:Array[T]) extends AnyVal {
+    @inline def filterIdx(p: Int => Boolean)(implicit ev: ClassTag[T]):Array[T] = {
+      val builder = mutable.ArrayBuilder.make[T]
       var i = 0
       while(i < array.length) {
         if(p(i))
@@ -45,10 +90,40 @@ package object collection {
       }
       builder.result()
     }
+
+    @inline def foreachIndex(f: Int => Unit): Unit = {
+      val n = array.length
+      var i = 0
+
+      while(i < n ) {
+        f(i)
+        i += 1
+      }
+    }
+
+    @inline def foreachElement(f: T => Unit): Unit = {
+      val n = array.length
+      var i = 0
+
+      while(i < n ) {
+        f(array(i))
+        i += 1
+      }
+    }
+
+    @inline def foreachIndexAndElement(f: (Int,T) => Unit): Unit = {
+      val n = array.length
+      var i = 0
+
+      while(i < n ) {
+        f(i, array(i))
+        i += 1
+      }
+    }
   }
 
   implicit final class RichIntArray(val array:Array[Int]) extends AnyVal {
-    @inline def filterIdx(p: Int => Boolean): Array[Int] = {
+    @inline def filterIndex(p: Int => Boolean): Array[Int] = {
       val builder = new mutable.ArrayBuilder.ofInt
       var i = 0
       while(i < array.length) {
@@ -59,20 +134,60 @@ package object collection {
       builder.result()
     }
 
-    @inline def whileIdx(f: Int => Unit): Unit = {
-      val n = array.length
-      var i = 0
+    @inline def markerArray(n:Int):ArraySet = {
+      val marked = ArraySet.create(n)
+      marked.add(array)
+      marked
+    }
+  }
 
-      while(i < n ) {
-        f(i)
-        i += 1
+  object InterleavedArray extends TaggedType[Array[Int]] {
+    @inline def create(n:Int): InterleavedArray = apply(new Array[Int](n*2))
+  }
+  type InterleavedArray = InterleavedArray.Type
+
+  object ArraySet extends TaggedType[Array[Int]] {
+    @inline def create(n:Int): ArraySet = apply(new Array[Int](n))
+  }
+  type ArraySet = ArraySet.Type
+
+  implicit final class RichInterleavedArray(val interleaved:InterleavedArray) extends AnyVal {
+    @inline def a(i:Int): Int = interleaved(i*2)
+    @inline def b(i:Int): Int = interleaved(i*2+1)
+    @inline def updatea(i:Int, value:Int): Unit = interleaved(i*2) = value
+    @inline def updateb(i:Int, value:Int): Unit = interleaved(i*2+1) = value
+    @inline def elementCount:Int = interleaved.length / 2
+  }
+
+  implicit final class RichMarkerArray(val marked:ArraySet) extends AnyVal {
+    @inline def add(indices:IndexedSeq[Int]): Unit = {
+      indices.foreachElement{ index =>
+        marked(index) = 1
+      }
+    }
+    @inline def remove(indices:IndexedSeq[Int]): Unit = {
+      indices.foreachElement{ index =>
+        marked(index) = 0
       }
     }
 
-    @inline def markerArray(n:Int) = {
-      val marked = new Array[Int](n)
-      array.whileIdx {i => marked(array(i)) = 1}
-      marked
+    @inline def add(i:Int):Unit = marked(i) = 1
+    @inline def remove(i:Int):Unit = marked(i) = 0
+    @inline def contains(i:Int):Boolean = marked(i) == 1
+    @inline def containsNot(i:Int):Boolean = marked(i) == 0
+
+    @inline def foreachAdded(f:Int => Unit):Unit = {
+      marked.foreachIndex{ i =>
+        if(contains(i)) f(i)
+      }
+    }
+
+    @inline def map[T](f:Int => T)(implicit classTag:ClassTag[T]):Array[T] = {
+      val builder = mutable.ArrayBuilder.make[T]
+      foreachAdded{ i =>
+        builder += f(i)
+      }
+      builder.result()
     }
   }
 

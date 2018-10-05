@@ -246,8 +246,12 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
+      Deps.taggedTypes.value ::
       Nil
   )
+lazy val utilJS = util.js
+lazy val utilJVM = util.jvm
+
 
 lazy val bench = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
@@ -273,9 +277,6 @@ lazy val serviceUtil = project
       Deps.circe.genericExtras.value ::
       Nil
   )
-
-lazy val utilJS = util.js
-lazy val utilJVM = util.jvm
 
 lazy val sdk = crossProject(JSPlatform, JVMPlatform)
   .dependsOn(api, util)

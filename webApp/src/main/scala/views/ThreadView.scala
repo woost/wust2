@@ -21,7 +21,7 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, immutable, mutable}
 import scala.scalajs.js
 
 object ThreadView {
@@ -55,11 +55,11 @@ object ThreadView {
   }
 
   sealed trait ChatKind {
-    def nodeIds: Seq[NodeId]
+    def nodeIndices: Seq[Int]
   }
   object ChatKind {
-    case class Single(nodeId: NodeId) extends ChatKind {def nodeIds = nodeId :: Nil }
-    case class Group(nodeIds: Seq[NodeId]) extends ChatKind
+    case class Single(nodeIdx: Int) extends ChatKind {def nodeIndices = nodeIdx :: Nil }
+    case class Group(nodeIndices: Seq[Int]) extends ChatKind
   }
 
   sealed trait ThreadVisibility
@@ -72,11 +72,11 @@ object ThreadView {
   case class MessageMeta(
     state: GlobalState,
     graph: Graph,
-    alreadyVisualizedParentIds: Set[NodeId],
+    alreadyVisualizedParentIds: immutable.BitSet,
     path: List[NodeId],
     directParentIds: Set[NodeId],
     currentUserId: UserId,
-    renderMessage: (NodeId, MessageMeta) => VDomModifier,
+    renderMessage: (Int, MessageMeta) => VDomModifier,
   )
 
   type MsgControls = (NodeId, MessageMeta, Boolean, Var[Boolean]) => Seq[VNode]
@@ -101,13 +101,21 @@ object ThreadView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val nodeIds: Rx[Seq[NodeId]] = Rx {
+    val nodeIds: Rx[Seq[Int]] = Rx {
       val page = state.page()
       val fullGraph = state.graph()
       val graph = state.graphContent()
-      graph.nodes.collect {
-        case n: Node.Content if fullGraph.isChildOfAny(n.id, page.parentIds) || fullGraph.isDeletedChildOfAny(n.id, page.parentIds) => n.id
-      }.toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
+      val nodeIndices = new mutable.ArrayBuilder.ofInt
+      graph.lookup.nodes.foreachIndexAndElement{ (i,node) =>
+        val isContent = node match {
+          case _:Node.Content => true
+          case _ => false
+        }
+        // Be careful not to put graph lookup indices into fullGraph lookup tables!
+        if(isContent && (fullGraph.isChildOfAny(node.id, page.parentIds) || fullGraph.isDeletedChildOfAny(node.id, page.parentIds)))
+          nodeIndices += i
+      }
+      nodeIndices.result().sortBy(i => graph.lookup.nodeCreated(i))
     }
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
@@ -133,7 +141,7 @@ object ThreadView {
       )
     }
 
-    def shouldGroup(graph: Graph, nodes: Seq[NodeId]): Boolean = {
+    def shouldGroup(graph: Graph, nodes: Seq[Int]): Boolean = {
       grouping && // grouping enabled
         // && (nodes
         //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
@@ -141,14 +149,14 @@ object ThreadView {
         //   .size == 1) // tags must match
         // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
         // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.authorIds(node).head == authorId)
+        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
         }
       // TODO: within a specific timespan && nodes.last.
     }
 
 
-    def renderMessage(nodeId: NodeId, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeId, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
+    def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeIdx, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
 
     val submittedNewMessage = Handler.created[Unit]
 
@@ -224,10 +232,10 @@ object ThreadView {
 
   def chatHistory(
     state: GlobalState,
-    nodeIds: Rx[Seq[NodeId]],
+    nodeIds: Rx[Seq[Int]],
     submittedNewMessage: Handler[Unit],
-    renderMessage: Ctx.Owner => (NodeId, MessageMeta) => VDomModifier,
-    shouldGroup: (Graph, Seq[NodeId]) => Boolean,
+    renderMessage: Ctx.Owner => (Int, MessageMeta) => VDomModifier,
+    shouldGroup: (Graph, Seq[Int]) => Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val isScrolledToBottom = Var(true)
@@ -259,8 +267,8 @@ object ThreadView {
             VDomModifier(
               groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
                 .map(kind => renderGroupedMessages(
-                  kind.nodeIds,
-                  MessageMeta(state, graph, page.parentIdSet, Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
+                  kind.nodeIndices,
+                  MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, page.parentIdSet, user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
               draggableAs(state, DragItem.DisableDrag),
@@ -305,10 +313,10 @@ object ThreadView {
   /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatKind.Group */
   def groupNodes(
     graph: Graph,
-    nodes: Seq[NodeId],
+    nodes: Seq[Int],
     state: GlobalState,
     currentUserId: UserId,
-    shouldGroup: (Graph, Seq[NodeId]) => Boolean
+    shouldGroup: (Graph, Seq[Int]) => Boolean
   ): Seq[ChatKind] = {
     nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
       kinds.lastOption match {
@@ -320,7 +328,7 @@ object ThreadView {
 
         case Some(ChatKind.Group(lastNodes)) =>
           if(shouldGroup(graph, lastNodes.last :: node :: Nil))
-            kinds.dropRight(1) :+ ChatKind.Group(nodeIds = lastNodes :+ node)
+            kinds.dropRight(1) :+ ChatKind.Group(nodeIndices = lastNodes :+ node)
           else
             kinds :+ ChatKind.Single(node)
 
@@ -374,7 +382,7 @@ object ThreadView {
   }
 
   private def renderGroupedMessages(
-    nodeIds: Seq[NodeId],
+    nodeIds: Seq[Int],
     meta: MessageMeta,
     avatarSize: AvatarSize,
   )(
@@ -384,12 +392,12 @@ object ThreadView {
 
     val currNode = nodeIds.last
     val headNode = nodeIds.head
-    val isMine = graph.authors(currNode).contains(currentUserId)
+    val isMine = graph.lookup.authorsIdx(currNode).contains(currentUserId)
 
     div(
       cls := "chatmsg-group-outer-frame",
       keyed(headNode), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorIds(headNode).headOption, avatarSize)(marginRight := "5px")),
+      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.lookup.authorsIdx(headNode).headOption.map(i => graph.lookup.nodeIds(i).asInstanceOf[UserId]), avatarSize)(marginRight := "5px")),
       div(
         keyed,
         cls := "chatmsg-group-inner-frame",
@@ -399,9 +407,11 @@ object ThreadView {
     )
   }
 
-  private def renderThread(nodeId: NodeId, meta: MessageMeta, shouldGroup: (Graph, Seq[NodeId]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderThread(nodeIdx: Int, meta: MessageMeta, shouldGroup: (Graph, Seq[Int]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
-    val inCycle = alreadyVisualizedParentIds.contains(nodeId)
+    @deprecated("","")
+    val nodeId = graph.lookup.nodeIds(nodeIdx)
+    val inCycle = alreadyVisualizedParentIds.contains(nodeIdx)
     val isThread = !graph.isDeletedNow(nodeId, directParentIds) && (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId)) && !inCycle
 
     val replyFieldActive = Rx { activeReplyFields() contains (nodeId :: path) }
@@ -417,13 +427,13 @@ object ThreadView {
     Rx {
       threadVisibility() match {
         case ThreadVisibility.Collapsed =>
-          chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Collapsed)
+          chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Collapsed)
         case ThreadVisibility.Expanded  =>
-          val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId)).toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
+          val children = (graph.lookup.childrenIdx(nodeIdx) ++ graph.lookup.deletedChildrenIdx(nodeIdx)).sortBy(idx => graph.lookup.nodeCreated(idx): Long)
           div(
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
             keyed(nodeId),
-            chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Expanded, transformMessageCard = _ (
+            chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Expanded, transformMessageCard = _ (
               boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
             )),
             div(
@@ -432,9 +442,9 @@ object ThreadView {
 
               groupNodes(graph, children, state, currentUserId, shouldGroup)
                 .map(kind => renderGroupedMessages(
-                  kind.nodeIds,
+                  kind.nodeIndices,
                   meta.copy(
-                    alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeId,
+                    alreadyVisualizedParentIds = alreadyVisualizedParentIds + nodeIdx,
                     path = nodeId :: path,
                     directParentIds = Set(nodeId),
                   ),
@@ -451,7 +461,7 @@ object ThreadView {
           )
         case ThreadVisibility.Plain     =>
           if(inCycle)
-            chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
+            chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
               Styles.flex,
               alignItems.center,
               freeSolid.faSyncAlt,
@@ -460,7 +470,7 @@ object ThreadView {
               color := "#666",
               boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
             ))
-          else chatMessageLine(meta, nodeId, msgControls, currentlyEditing, ThreadVisibility.Plain)
+          else chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Plain)
       }
     }
   }
@@ -508,11 +518,13 @@ object ThreadView {
   /// @return a vnode containing a chat header with optional name, date and avatar
   def chatMessageHeader(
     isMine: Boolean,
-    nodeId: NodeId,
+    nodeIdx: Int,
     graph: Graph,
     avatarSize: AvatarSize,
     showDate: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
+    @deprecated("","")
+    val nodeId = graph.lookup.nodeIds(nodeIdx)
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
       cls := "chatmsg-header",
@@ -525,10 +537,13 @@ object ThreadView {
 
   /// @return the actual body of a chat message
   /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeId: NodeId, msgControls: MsgControls, currentlyEditable: Var[Option[List[NodeId]]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
+  def chatMessageLine(meta: MessageMeta, nodeIdx: Int, msgControls: MsgControls, currentlyEditable: Var[Option[List[NodeId]]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     import meta._
+
+    @deprecated("","")
+    val nodeId = graph.lookup.nodeIds(nodeIdx)
 
     val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
     val isSelected = state.selectedNodeIds.map(_ contains nodeId)
@@ -629,7 +644,7 @@ object ThreadView {
         (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)),
         transformMessageCard(messageCard.apply(keyed(nodeId))),
         expandCollapseButton(meta, nodeId, threadVisibility),
-        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeId, alreadyVisualizedParentIds)),
+        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeIdx, alreadyVisualizedParentIds)),
         (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic))
       )
     )
@@ -688,9 +703,12 @@ object ThreadView {
       cursor.pointer,
     )
 
-  private def messageTags(state: GlobalState, graph: Graph, nodeId: NodeId, alreadyVisualizedParentIds: Set[NodeId])(implicit ctx: Ctx.Owner) = {
-    val directNodeTags = graph.lookup.directNodeTags((nodeId, alreadyVisualizedParentIds))
-    val transitiveNodeTags = graph.lookup.transitiveNodeTags((nodeId, alreadyVisualizedParentIds))
+  private def messageTags(state: GlobalState, graph: Graph, nodeIdx: Int, alreadyVisualizedParentIds: immutable.BitSet)(implicit ctx: Ctx.Owner) = {
+
+    @deprecated("","")
+    val nodeId = graph.lookup.nodeIds(nodeIdx)
+    val directNodeTags:Array[Node] = graph.lookup.directNodeTags(nodeIdx, alreadyVisualizedParentIds)
+    val transitiveNodeTags:Array[Node] = graph.lookup.transitiveNodeTags(nodeIdx, alreadyVisualizedParentIds)
 
     state.screenSize.now match {
       case ScreenSize.Small =>
