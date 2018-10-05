@@ -242,7 +242,6 @@ object ThreadView {
     val isScrolledToBottom = Var(true)
     val scrollableHistoryElem = Var(None: Option[HTMLElement])
 
-    var lastAnimationFrameRequest = -1
     val scrollToBottomInAnimationFrame = requestSingleAnimationFrame {
       scrollableHistoryElem.now.foreach { elem =>
         scrollToBottom(elem)
