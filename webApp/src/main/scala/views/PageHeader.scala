@@ -376,7 +376,8 @@ object PageHeader {
             marginLeft := "10px",
             Rx {
               val graph = state.graph()
-              graph.membershipsByNodeId(node.id).map { membership =>
+              graph.lookup.membershipEdgeIdx(graph.lookup.idToIdx(node.id)).map { membershipIdx =>
+                val membership = graph.lookup.edges(membershipIdx).asInstanceOf[Edge.Member]
                 val user = graph.nodesById(membership.userId).asInstanceOf[User]
                 div(
                   marginTop := "10px",

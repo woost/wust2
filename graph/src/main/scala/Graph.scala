@@ -38,10 +38,6 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
     s"Graph(nodes: ${nodes.size}, ${edges.size})"
   }
 
-  lazy val withoutChannels: Graph = this.filterNotIds(lookup.allChannelIds ++ lookup.channelNodeIds)
-  lazy val onlyAuthors: Graph =
-    this.filterNotIds((lookup.allUserIds -- lookup.allAuthorIds).map(id => UserId.raw(id)))
-
   def pageContentWithAuthors(page: Page): Graph = {
     val pageChildren = page.parentIds.flatMap(lookup.descendantsWithDeleted)
     this.filterIds(pageChildren.toSet ++ pageChildren.flatMap(lookup.authorIds) ++ page.parentIds)
@@ -98,7 +94,6 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   @deprecated("", "") @inline def nodeIds = lookup.nodeIds
   @deprecated("", "") @inline def nodesById = lookup.nodesById
   @deprecated("", "") @inline def userIdByName = lookup.userIdByName
-  @deprecated("", "") @inline def membershipsByNodeId = lookup.membershipsByNodeId
   @deprecated("", "") @inline def nodeModified(nodeId:NodeId) = lookup.nodeModified(lookup.idToIdx(nodeId))
   @deprecated("", "") @inline def nodeCreated(nodeId:NodeId) = lookup.nodeCreated(lookup.idToIdx(nodeId))
   @deprecated("", "") @inline def expandedNodes = lookup.expandedNodes
@@ -234,26 +229,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val deletedChildLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val notifyByUserLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val membershipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   @deprecated("","")
   val labeledEdges = mutable.HashSet[Edge.Label]()
-  @deprecated("","")
-  val containments = mutable.HashSet[Edge.Parent]()
+  val containmentsBuilder = mutable.ArrayBuilder.make[Edge.Parent]
 
-  @deprecated("","")
-  val deletedParents = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
-  @deprecated("","")
-  val deletedChildren = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
   @deprecated("","")
   val staticParentIn = mutable.HashMap[NodeId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
   @deprecated("","")
   val expandedNodes = mutable.HashMap[UserId, collection.Set[NodeId]]().withDefaultValue(mutable.HashSet.empty[NodeId])
-
-  @deprecated("","")
-  val membershipsByNodeId = mutable.HashMap[NodeId, List[Edge.Member]]().withDefaultValue(Nil)
-
-  @deprecated("","")
-  val allAuthorIds = mutable.HashSet[UserId]()
 
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
 
@@ -268,20 +253,17 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case e@Edge.Author(authorId, _, nodeId)       =>
             authorshipEdgeLookupBuilder(targetIdx) += i
             authorLookupBuilder(targetIdx) += sourceIdx
-            allAuthorIds += authorId
           case e@Edge.Member(authorId, _, nodeId)       =>
-            membershipsByNodeId(nodeId) ::= e
+            membershipEdgeLookupBuilder(targetIdx) += i
           case e@Edge.Parent(childId, data, parentId)   =>
             data.deletedAt match {
               case None            =>
                 parentLookupBuilder(sourceIdx) += targetIdx
                 childLookupBuilder(targetIdx) += sourceIdx
-                containments += e
+                containmentsBuilder += e
               case Some(deletedAt) =>
                 //TODO should already be filtered in backend
                 if(deletedAt > remorseTimeForDeletedParents) {
-                  deletedParents(childId) += parentId
-                  deletedChildren(parentId) += childId
                   deletedParentLookupBuilder(sourceIdx) += targetIdx
                   deletedChildLookupBuilder(targetIdx) += sourceIdx
                 }
@@ -306,8 +288,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val deletedChildrenIdx = NestedArrayInt(deletedChildLookupBuilder)
   val deletedParentsIdx = NestedArrayInt(deletedParentLookupBuilder)
   val authorshipEdgeIdx = NestedArrayInt(authorshipEdgeLookupBuilder)
+  val membershipEdgeIdx = NestedArrayInt(membershipEdgeLookupBuilder)
   val notifyByUserIdx = NestedArrayInt(notifyByUserLookupBuilder)
   val authorsIdx = NestedArrayInt(authorLookupBuilder)
+
+  val containments = containmentsBuilder.result()
 
   val parents: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
     val idx = idToIdx.getOrElse(id, -1)
@@ -316,6 +301,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val children: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
     val idx = idToIdx.getOrElse(id, -1)
     if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
+  }
+  val deletedParents: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
+    val idx = idToIdx.getOrElse(id, -1)
+    if(idx != -1) deletedParentsIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
+  }
+  val deletedChildren: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
+    val idx = idToIdx.getOrElse(id, -1)
+    if(idx != -1) deletedChildrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
 
 
@@ -376,12 +369,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     (parentId :: descendantsWithDeleted(parentId).toList).flatMap(authors)
   }
 
-  def members(node: Node): List[Node.User] = members(node.id)
-  val members: NodeId => List[Node.User] = Memo.mutableHashMapMemo { nodeId =>
-    membershipsByNodeId(nodeId).map(a => nodesById(a.userId).asInstanceOf[Node.User])
+  val members: NodeId => IndexedSeq[Node.User] = Memo.mutableHashMapMemo { nodeId =>
+    val nodeIdx = idToIdx(nodeId)
+    membershipEdgeIdx(nodeIdx).map(edgeIdx => nodesById(edges(edgeIdx).asInstanceOf[Edge.Member].userId).asInstanceOf[Node.User])
   }
 
-  def isDeletedNow(node: Node, parentIds: Set[NodeId]): Boolean = isDeletedNow(node.id, parentIds)
   def isDeletedNow(nodeId: NodeId, parentIds: Set[NodeId]): Boolean = {
     val deletedParentIds = deletedParents(nodeId)
     deletedParentIds.nonEmpty && (
@@ -425,8 +417,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   lazy val contentNodes: Iterable[Node.Content] = nodes.collect { case p: Node.Content => p }
 
-  lazy val allParentIds: collection.Set[NodeId] = containments.map(_.targetId)
-  lazy val allSourceIds: collection.Set[NodeId] = containments.map(_.sourceId)
+  lazy val allParentIds: IndexedSeq[NodeId] = containments.map(_.targetId)
   lazy val allParentIdsTopologicallySortedByChildren: Iterable[NodeId] =
     allParentIds.topologicalSortBy(children)
 
@@ -461,32 +452,24 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentIds.exists(parentId => staticInParents.contains(parentId))
   }
 
-  def hasChildren(nodeId: NodeId): Boolean = {
-    val idx = idToIdx.getOrElse(nodeId, -1)
-    if(idx == -1)
-      false
-    else
-      hasChildrenIdx(idx)
-  }
-
-  def hasParents(nodeId: NodeId): Boolean = {
-    val idx = idToIdx.getOrElse(nodeId, -1)
-    if(idx == -1)
-      false
-    else
-      hasParentsIdx(idx)
-  }
 
   @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)
+  @inline def hasDeletedChildrenIdx(nodeIdx: Int): Boolean = deletedChildrenIdx.sliceNonEmpty(nodeIdx)
+  @inline def hasDeletedParentsIdx(nodeIdx: Int): Boolean = deletedParentsIdx.sliceNonEmpty(nodeIdx)
 
-  def hasDeletedChildren(node: NodeId): Boolean = deletedChildren.contains(node) && deletedChildren(node).nonEmpty
-  def getChildrenOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
-    if(hasChildren(nodeId)) Some(children(nodeId)) else None
-  def getParentsOpt(nodeId: NodeId): Option[collection.Set[NodeId]] =
-    if(hasParents(nodeId)) Some(parents(nodeId)) else None
+  @inline private def hasSomethingById(nodeId:NodeId, lookup: Int => Boolean) = {
+    val idx = idToIdx.getOrElse(nodeId, -1)
+    if(idx == -1)
+      false
+    else
+      lookup(idx)
+  }
+  def hasChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasChildrenIdx)
+  def hasParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasParentsIdx)
+  def hasDeletedChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasDeletedChildrenIdx)
+  def hasDeletedParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasDeletedParentsIdx)
 
-  def isChildOf(childId: NodeId, parentId: NodeId): Boolean = parents(childId) contains parentId
   def isChildOfAny(childId: NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val p = parents(childId)
     parentIds.exists(p.contains)
@@ -582,7 +565,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       if(visited(nodeId)) return false // prevent inheritance cycles
 
       // is there a membership?
-      val levelFromMembership = membershipsByNodeId(nodeId).collectFirst {
+      val levelFromMembership = membershipEdgeIdx(idToIdx(nodeId)).map(edges).collectFirst {
         case Edge.Member(`userId`, EdgeData.Member(level), _) => level
       }
       levelFromMembership match {
