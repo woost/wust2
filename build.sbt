@@ -541,7 +541,3 @@ lazy val systemTest = project
   )
 
 lazy val dbMigration = project
-
-// this does not work, since different projects use different scala versions
-ensimeScalaVersion in ThisBuild := "2.12.7"
-ensimeIgnoreScalaMismatch in ThisBuild := true
