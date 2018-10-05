@@ -14,7 +14,6 @@ import wust.util.collection._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.parsers.NodeDataParser
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
@@ -129,7 +128,7 @@ object WorkflowView {
           val fullGraph = state.graph()
           val graph = state.graphContent()
           val user = state.user()
-          val nodes = graph.chronologicalNodesAscending.collect {
+          val nodes = graph.lookup.chronologicalNodesAscending.collect {
             case n: Node.Content if (fullGraph.isChildOfAny(n.id, page.parentIds)
                                        || fullGraph.isDeletedChildOfAny(n.id, page.parentIds)) =>
               n.id
@@ -351,17 +350,16 @@ object WorkflowView {
     )
 
     val msgControls = div(
-      cls := "chatmsg-controls",
+      //cls := "chatmsg-controls",
       if(isDeleted) undeleteButton(state, nodeId, directParentIds)
       else VDomModifier(
         editButton(state, editable),
         components.deleteButton(state, Set(nodeId), directParentIds, wrapper=div())
-      ),
-      zoomButton(state, nodeId)
+      )
     )
 
-
-    val messageCard = workflowEntryEditable(state, node, editable = editable, state.eventProcessor.changes,
+    val messageCard = workflowEntryEditable(state, node, editable = editable,
+                                            state.eventProcessor.changes,
                                             newTagParentIds = directParentIds)(ctx)(
       isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
       cls := "drag-feedback",
@@ -371,37 +369,13 @@ object WorkflowView {
 
 
     li(
-      keyed(nodeId),
       isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
       div( // this nesting is needed to get a :hover effect on the selected background
         cls := "chatmsg-line",
         Styles.flex,
         onClick.stopPropagation(!editable.now) --> editable,
-        // onClick --> sideEffect { lastActiveEditable.update(Some(nodeId)) },
         onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
 
-        editable.map { editable =>
-          if(editable) {
-            lastActiveEditable.update(Some(nodeId))
-            draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
-          }
-          else {
-            //lastActiveEditable.update(None)
-            val payload = () => {
-              val selection = state.selectedNodeIds.now
-              if(selection contains nodeId)
-                DragItem.Chat.Messages(selection.toSeq)
-              else
-                DragItem.Chat.Message(nodeId)
-            }
-            // payload is call by name, so it's always the current selectedNodeIds
-            draggableAs(state, payload())
-          }
-        },
-
-        dragTarget(DragItem.Chat.Message(nodeId)),
-
-        // checkbox(Styles.flexStatic),
         messageCard,
         Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
       )
@@ -441,9 +415,8 @@ object WorkflowView {
   private def inputField(state: GlobalState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())
                         (implicit ctx: Ctx.Owner): VNode = {
     val disableUserInput = Rx {
-      val graphNotLoaded = (state.graph().nodeIds intersect state.page().parentIds.toSet).isEmpty
-      val pageModeOrphans = state.page().mode == PageMode.Orphans
-      graphNotLoaded || pageModeOrphans
+      val graphNotLoaded = (state.graph().lookup.nodeIdSet intersect state.page().parentIdSet).isEmpty
+      graphNotLoaded
     }
 
     val initialValue = Rx {
@@ -459,18 +432,16 @@ object WorkflowView {
       textArea(
         keyed,
         cls := "field",
-        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) --> sideEffect { str =>
+        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
           val graph = state.graphContent.now
           val selectedNodeIds = state.selectedNodeIds.now
           val changes = {
             val newNode = Node.Content.empty
-            val nodeChanges = NodeDataParser.addNode(str, contextNodes = graph.nodes,
-                                                     directParentIds ++ selectedNodeIds, baseNode = newNode)
-            val newNodeParentships = GraphChanges.connect(Edge.Parent)(newNode.id, directParentIds)
-            nodeChanges merge newNodeParentships
+            GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
           }
 
           state.eventProcessor.changes.onNext(changes)
+          //submittedNewMessage.onNext(Unit)
         },
         onInsert.asHtml --> sideEffect { e => e.focus() },
         onBlur.value --> sideEffect { value => blurAction(value) },

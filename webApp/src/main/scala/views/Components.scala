@@ -198,7 +198,7 @@ object Components {
     maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner) = {
     renderWorkflowEntry(
       state, node,
-      injected = VDomModifier(editableNode(state, node, editable, submit, newTagParentIds, maxLength), injected)
+      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
     )
   }
 
@@ -305,6 +305,7 @@ object Components {
       if(editable.now) {
         val graph = state.graphContent.now
         val changes = GraphChanges.addNode(Node.Content(node.id, NodeData.Markdown(text)))
+        println(s"Saving ${node.id}")
         submit.onNext(changes)
 
         initialRender() = renderNodeData(changes.addNodes.head.data)
@@ -314,12 +315,15 @@ object Components {
 
     def discardChanges(): Unit = {
       if(editable.now) {
+        println(s"Discarding changes to ${node.id}")
         editable() = false
       }
     }
 
     def deleteNode(graph : Graph): Unit = {
-      state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, graph))
+      discardChanges()
+      println(s"Deleting ${node.id}")
+      submit.onNext(GraphChanges.delete(node.id, graph))
     }
 
     object KeyCode {
@@ -352,11 +356,14 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          deletionEvents --> sideEffect { deleteNode(graph) },
-          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) handleWith { text => save(text) },
-          onBlur handleWith { discardChanges() },
-          onFocus handleWith { e => document.execCommand("selectAll", false, null) },
-          onClick.stopPropagation handleWith {} // prevent e.g. selecting node, but only when editing
+          deletionEvents handleWith { println("deletionEvents"); deleteNode(graph) },
+          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) handleWith {
+            println("onEnter"); text => save(text) },
+          onBlur handleWith { println("onBlur"); discardChanges() },
+          onFocus handleWith { e => println("onFocus"); document.execCommand("selectAll", false, null) },
+          onClick.stopPropagation handleWith {
+            println("onClick");
+          } // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
       onDomUpdate.asHtml --> inAnimationFrame { node =>
