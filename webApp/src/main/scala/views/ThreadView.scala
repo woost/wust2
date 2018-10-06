@@ -393,18 +393,19 @@ object ThreadView {
     val currNode = nodeIds.last
     val headNode = nodeIds.head
     val isMine = graph.lookup.authorsIdx(currNode).contains(currentUserId)
+    val nodeId = graph.lookup.nodeIds(headNode)
 
     div(
       cls := "chatmsg-group-outer-frame",
-      keyed(headNode), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
+      keyed(nodeId), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
       (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.lookup.authorsIdx(headNode).headOption.map(i => graph.lookup.nodeIds(i).asInstanceOf[UserId]), avatarSize)(marginRight := "5px")),
       div(
         keyed,
-        cls := "chatmsg-group-inner-frame",
-        chatMessageHeader(isMine, headNode, graph, avatarSize),
-        nodeIds.map(nid => renderMessage(nid, meta)),
+          cls := "chatmsg-group-inner-frame",
+          chatMessageHeader(isMine, headNode, graph, avatarSize),
+          nodeIds.map(nid => renderMessage(nid, meta)),
       ),
-    )
+        )
   }
 
   private def renderThread(nodeIdx: Int, meta: MessageMeta, shouldGroup: (Graph, Seq[Int]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
