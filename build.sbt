@@ -410,12 +410,11 @@ lazy val core = project
     javaOptions in reStart += "-Xmx50m"
   )
 
-lazy val webApp = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(sdkJS, cssJS)
-  .settings(commonSettings, commonWebSettings, webSettings)
+
+lazy val webUtil = project
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings, commonWebSettings)
   .settings(
-//    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
         Deps.scalarx.value ::
@@ -426,7 +425,17 @@ lazy val webApp = project
         Deps.kantanRegex.core.value ::
         Deps.kantanRegex.generic.value ::
         Deps.fontawesome.value ::
-        Nil,
+        Nil
+  )
+
+lazy val webApp = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(sdkJS, cssJS, webUtil)
+  .settings(commonSettings, commonWebSettings, webSettings)
+  .settings(
+//    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
+    libraryDependencies ++=
+      Nil,
     npmDependencies in Compile ++=
       Deps.npm.defaultPassiveEvents ::
       Deps.npm.immediate ::

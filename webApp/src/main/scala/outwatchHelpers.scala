@@ -10,12 +10,13 @@ import org.scalajs.dom.document
 import outwatch.dom.{AsObserver, AsValueObservable, Handler, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
 import rx._
 import wust.util.Empty
+import wust.webUtil.macros.KeyHash
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 //TODO nicer name
-package object outwatchHelpers {
+package object outwatchHelpers extends KeyHash {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
 //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
@@ -168,15 +169,6 @@ package object outwatchHelpers {
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
     def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
-  }
-
-  def keyed(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = keyed(Nil)
-  def keyed(keys: Any*)(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = {
-    val parts = s"${file.value}:${line.value}:${column.value}" +: keys
-    val keyNumber = parts.hashCode
-    val keyModifier = dsl.key := keyNumber
-    if (DevOnly.isTrue) VDomModifier(keyModifier, dsl.data.key := keyNumber)
-    else keyModifier
   }
 
   def requestSingleAnimationFrame(): ( => Unit) => Unit = {
