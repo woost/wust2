@@ -43,7 +43,7 @@ object BreadCrumbs {
         val parentIds = page.parentIds
         parentIds.map { (parentId : NodeId) =>
           val parentDepths = graph.parentDepths(parentId)
-          val distanceToNodes = parentDepths.toSeq.sortBy(_._1).reverse
+          val distanceToNodes = parentDepths.toSeq.sortBy { case (depth, _) => -depth }
           val elements = distanceToNodes.map { case (distance, gIdToNodeIds) =>
             // when distance is 0, we are either showing ourselves (i.e. id) or
             // a cycle that contains ourselves. The latter case we want to draw, the prior not.
