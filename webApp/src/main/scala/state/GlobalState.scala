@@ -12,6 +12,7 @@ import rx._
 import wust.api._
 import wust.graph._
 import wust.ids._
+import wust.sdk.IncStore.Store
 import wust.sdk._
 import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
@@ -33,26 +34,25 @@ class GlobalState(
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
-  val graph: Rx[Graph] = {
-    val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
-
-    Rx {
-      val graph = internalGraph()
-      val u = user()
-      val newGraph =
-        if (graph.lookup.contains(u.id)) graph
-        else {
+  val incGraph: Store[Graph, ApiEvent.GraphContent] = eventProcessor.graph.mapState { graph =>
+    println("mapping " + graph.nodes.size)
+      val u = user.now
+//      val x = if(graph.lookup.contains(u.id)) graph
+//      else {
           graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-            user().toNode ::
-            Nil
+            Node.Content(NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
+            u.toNode ::
+              Nil
           )
-        }
+//      }
 
-      newGraph
-    }
+//    x
   }
+  println("INITIAL " + incGraph.initialState)
+  val graph: Rx[Graph] = incGraph.state.unsafeToRx(incGraph.initialState) // initial?
+  graph.debug("state mapped graph")
 
   val channelForest: Rx[Seq[Tree]] = Rx {
     // time("bench: channelTree") {

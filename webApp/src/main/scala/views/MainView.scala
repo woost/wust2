@@ -1,5 +1,8 @@
 package wust.webApp.views
 
+import monix.execution.CancelableFuture
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -9,9 +12,13 @@ import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 
+import scala.collection.mutable
+import scala.scalajs.js
+
 object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+
     div(
       cls := "mainview",
       Styles.flex,

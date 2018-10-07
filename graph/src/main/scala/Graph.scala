@@ -301,9 +301,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     if(idx != -1) deletedChildrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
 
-  lazy val (nodeCreated: Array[Long], nodeModified: Array[Long]) = {
-    val nodeCreated = Array.fill(n)(EpochMilli.min: Long)
-    val nodeModified = Array.fill(n)(EpochMilli.min: Long)
+
+
+  lazy val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli]) = {
+    val nodeCreated = Array.fill(n)(EpochMilli.min)
+    val nodeModified = Array.fill(n)(EpochMilli.min)
     var nodeIdx = 0
     while(nodeIdx < n) {
       val authorEdgeIndices: SliceInt = authorshipEdgeIdx(nodeIdx)
@@ -394,7 +396,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val chronologicalNodesAscendingIdx: Array[Int] = {
      nodes.indices.toArray.sortBy(nodeCreated)
   }
-
   lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
      chronologicalNodesAscendingIdx.map(nodes)
   }

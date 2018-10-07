@@ -220,6 +220,8 @@ object Topbar {
         Seq(
           MkInput(currentView, pageStyle, View.Chat),
           MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
+          MkInput(currentView, pageStyle, View.IncChat),
+          MkLabel(currentView, pageStyle, View.IncChat, freeRegular.faComments),
           MkInput(currentView, pageStyle, View.Thread),
           MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
           MkInput(currentView, pageStyle, View.Kanban),

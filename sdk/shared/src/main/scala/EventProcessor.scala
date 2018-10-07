@@ -17,7 +17,9 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack
 import monix.reactive.observers.BufferedSubscriber
+import rx.Ctx
 import wust.ids.EdgeData
+import wust.sdk.IncStore.Store
 
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
@@ -39,7 +41,7 @@ object EventProcessor {
       enrichChanges: (GraphChanges, Graph) => GraphChanges,
       sendChange: List[GraphChanges] => Future[Boolean],
       initialAuth: Authentication
-  )(implicit scheduler: Scheduler): EventProcessor = {
+  )(implicit scheduler: Scheduler, owner: Ctx.Owner): EventProcessor = {
     val s = eventStream.share
     val graphEvents = s
       .map(_.collect { case e: ApiEvent.GraphContent => e })
@@ -65,7 +67,7 @@ class EventProcessor private (
     enrichChanges: (GraphChanges, Graph) => GraphChanges,
     sendChange: List[GraphChanges] => Future[Boolean],
     val initialAuth: Authentication
-)(implicit scheduler: Scheduler) {
+)(implicit scheduler: Scheduler, owner: Ctx.Owner) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
@@ -84,7 +86,7 @@ class EventProcessor private (
   }
 
   // public reader
-  val (localChanges, graph): (Observable[GraphChanges], Observable[Graph]) = {
+  val (localChanges, graph): (Observable[GraphChanges], Store[Graph, ApiEvent.GraphContent]) = {
     // events  withLatestFrom
     // --------O----------------> localchanges
     //         ^          |
@@ -117,21 +119,12 @@ class EventProcessor private (
     val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
     val graphEvents = Observable.merge(eventStream, localEvents)
 
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
-    }
+    val incGraph = IncStore[Graph, ApiEvent.GraphContent](Graph.empty, EventUpdate.applyEventOnGraph)
+    graphEvents.foreach(events => events.foreach(incGraph.inAction.onNext))
 
-    graphWithChanges subscribe rawGraph
+    incGraph.state.foreach(rawGraph.onNext)
 
-    (localChanges, sharedRawGraph)
-  }
-
-  def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
-    //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
-    //TODO should by sync
-    val obs = graph.headL
-    this.changes.onNext(changes)
-    obs.runAsync
+    (localChanges, incGraph)
   }
 
   private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)

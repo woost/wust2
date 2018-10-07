@@ -391,7 +391,7 @@ object ThreadView {
 
     val currNode = nodeIds.last
     val headNode = nodeIds.head
-    val isMine = graph.lookup.authorsIdx(currNode).contains(currentUserId)
+    val isMine = graph.lookup.authorsIdx(currNode).contains(graph.lookup.idToIdx(currentUserId))
     val nodeId = graph.lookup.nodeIds(headNode)
 
     div(
