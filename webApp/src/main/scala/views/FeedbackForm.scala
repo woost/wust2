@@ -49,7 +49,7 @@ object FeedbackForm {
           value <-- clear,
           width := "220px",
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-          style("resize") := "none", //TODO: add resize style to scala-dom-types
+          resize := "none",
           placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
         )
       ),

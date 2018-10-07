@@ -3,6 +3,7 @@ package wust.webApp.views
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import rx._
 import wust.graph.Node
 import wust.ids._
@@ -27,7 +28,7 @@ object BreadCrumbs {
     //"\u21ba"
     img(
       cls := "cycle-indicator",
-      rotate.ifTrue[VDomModifier](style("transform") := "rotate(180deg)"),
+      rotate.ifTrue[VDomModifier](transform := "rotate(180deg)"),
       src:="halfCircle.svg",
     )
   }

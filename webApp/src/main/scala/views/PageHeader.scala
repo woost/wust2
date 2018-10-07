@@ -8,6 +8,7 @@ import org.scalajs.dom.console
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import rx._
 import semanticUi.{DimmerOptions, ModalOptions}
 import wust.api.AuthUser
@@ -393,8 +394,8 @@ object PageHeader {
                   div(
                     fontSize := "15px",
                     user.name,
-                    wordWrap := "break-word",
-                    style("word-break") := "break-word",
+                    wordWrap.breakWord,
+                    wordBreak.breakWord,
                   ),
                   button(
                     cls := "ui tiny compact negative basic button",

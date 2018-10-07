@@ -7,6 +7,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import rx._
 import wust.api.AuthUser
 import wust.css.Styles
@@ -20,7 +21,7 @@ import scala.scalajs.js
 
 object Topbar {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    style("user-select") := "none",
+    style("user-select") := "none", //TODO: add to scala-dom-types?
     paddingRight := "5px",
     height := "35px",
     backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
@@ -69,7 +70,7 @@ object Topbar {
     borderRadius := "3px",
     padding := "0px 5px",
     fontWeight.bold,
-    style("transform") := "rotate(-7deg)",
+    transform := "rotate(-7deg)",
 
     marginRight := "5px"
   )
@@ -245,8 +246,8 @@ object Topbar {
           span(
             user.name,
             padding := "0 5px",
-            wordWrap := "break-word",
-            style("word-break") := "break-word",
+            wordWrap.breakWord,
+            wordBreak.breakWord,
           ),
           cursor.pointer,
           onClick[View](View.UserSettings) --> state.view,

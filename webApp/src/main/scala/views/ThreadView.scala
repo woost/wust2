@@ -772,7 +772,7 @@ object ThreadView {
         onBlur.value handleWith { value => blurAction(value) },
         disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-        style("resize") := "none", //TODO: add resize style to scala-dom-types
+        resize := "none",
         placeholder := "Write a message and press Enter to submit.",
       )
     )
