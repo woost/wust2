@@ -118,7 +118,7 @@ object Deps {
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
     val highlight = "highlight.js" -> "9.12.0"
     val dateFns = "date-fns" -> "v2.0.0-alpha.16"
-    val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
+    val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
     val fomanticUi = "fomantic-ui-css" -> "2.4.4"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
