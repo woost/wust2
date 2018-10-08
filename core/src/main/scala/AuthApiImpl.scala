@@ -24,12 +24,12 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
   def register(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = state.auth.map(_.user) match {
-      case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
+      case Some(AuthUser.Implicit(prevUserId, _, _)) =>
         //TODO: propagate name change to the respective groups
         db.user.activateImplicitUser(prevUserId, name, digest)
-      case Some(AuthUser.Assumed(userId, channelNodeId)) =>
-        db.user.create(userId, name, digest, channelNodeId)
-      case _ => db.user.create(UserId.fresh, name, digest, NodeId.fresh)
+      case Some(AuthUser.Assumed(userId)) =>
+        db.user.create(userId, name, digest)
+      case _ => db.user.create(UserId.fresh, name, digest)
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
@@ -41,7 +41,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
-          case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
+          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
             //TODO propagate new groups into state?
             //TODO: propagate name change to the respective groups and the connected clients
             db.user
@@ -88,7 +88,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def createImplicitUserForApp(): ApiFunction[Option[Authentication.Verified]] = Action { _ =>
     val userId = UserId.fresh
-    val implUser = db.user.createImplicitUser(userId, userId.toBase58, NodeId.fresh)
+    val implUser = db.user.createImplicitUser(userId, userId.toBase58)
     implUser.map {
       case Some(auth) => Some(jwt.generateAuthentication(auth))
       case None => None

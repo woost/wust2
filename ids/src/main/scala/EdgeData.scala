@@ -36,6 +36,7 @@ object EdgeData {
   object Label extends Named
 
   case object StaticParentIn extends Named with EdgeData
+  case object Pinned extends Named with EdgeData
 
   case object Expanded extends Named with EdgeData
 

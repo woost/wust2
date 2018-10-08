@@ -39,31 +39,29 @@ class GlobalState(
     Rx {
       val graph = internalGraph()
       val u = user()
-    val newGraph =
-      if (graph.lookup.contains(u.channelNodeId)) graph
+      val newGraph =
+        if (graph.lookup.contains(u.id)) graph
         else {
           graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-            Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-              user().toNode ::
-              Nil
+            user().toNode ::
+            Nil
           )
         }
 
-    newGraph
-  }
+      newGraph
+    }
   }
 
-  val channelTree: Rx[Tree] = Rx {
-    val channelNode = graph().nodesById(user().channelNodeId)
+  val channelForest: Rx[Seq[Tree]] = Rx {
     // time("bench: channelTree") {
-      graph().channelTree(channelNode)
+      graph().channelTree(user().id)
     // }
   }
 
   val channels: Rx[Seq[Node]] = Rx {
-    channelTree().flatten.distinct
+    channelForest().flatMap(_.flatten).distinct
   }
 
   val addNodesInTransit = eventProcessor.changesInTransit
@@ -82,9 +80,14 @@ class GlobalState(
   }
 
   val pageIsBookmarked: Rx[Boolean] = Rx {
-    page().parentIds.forall(
-      graph().children(user().channelNodeId).contains
-    )
+    val g = graph()
+    if (page().isInstanceOf[Page.NewChannel]) true
+    else page().parentIds.forall { parentId =>
+      val userIdx = g.lookup.idToIdx(user().id)
+      val parentIdx = g.lookup.idToIdx.getOrElse(parentId, -1)
+      if (parentIdx == -1) true
+      else g.lookup.pinnedNodeIdx(userIdx).contains(parentIdx) //TODO faster? better?
+    }
   }
 
 

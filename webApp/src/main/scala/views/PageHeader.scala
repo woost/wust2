@@ -38,12 +38,12 @@ object PageHeader {
     import state._
     div(
       Rx {
-        pageParentNodes().map { channel => channelRow(state, channel, state.user().channelNodeId) }
+        pageParentNodes().map { channel => channelRow(state, channel) }
       }
     )
   }
 
-  private def channelRow(state: GlobalState, channel: Node, channelNodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
       cls := "pageheader-channeltitle",
       onClick handleWith { Analytics.sendEvent("pageheader", "editchanneltitle") }
@@ -66,12 +66,12 @@ object PageHeader {
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    val isSpecialNode = Rx{ channel.id == state.user().id || channel.id == state.user().channelNodeId }
+    val isSpecialNode = Rx{ channel.id == state.user().id }
     val isBookmarked = Rx {
-      state
-        .graph()
-        .children(state.user().channelNodeId)
-        .contains(channel.id)
+      val g = state.graph()
+      val channelIdx = g.lookup.idToIdx(channel.id)
+      val userIdx = g.lookup.idToIdx(state.user().id)
+      state.graph().lookup.pinnedNodeIdx(userIdx).contains(channelIdx)
     }
 
     val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
@@ -217,7 +217,7 @@ object PageHeader {
         val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
         renderSearchResult(query, channelDescendants, false)
       case SearchInput.Global(query) if query.nonEmpty =>
-        Observable.fromFuture(Client.api.getGraph(Page(state.user.now.channelNodeId))).map { graph =>
+        Observable.fromFuture(Client.api.getGraph(Page.empty)).map { graph => //TODO? get whole graph? does that make sense?
           renderSearchResult(query, graph.contentNodes.toList, true)
         }
       case _ => VDomModifier.empty
@@ -494,8 +494,8 @@ object PageHeader {
     button(
       cls := "ui compact primary button",
       "Add to Channels",
-      onClick(GraphChanges.connect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes,
-      onClick handleWith { Analytics.sendEvent("pageheader", "join") }
+      onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
+      onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
     )
 
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
@@ -539,7 +539,7 @@ object PageHeader {
           marginRight := "5px",
         ),
         span(cls := "text", "Leave Channel", cursor.pointer),
-        onClick(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) --> state.eventProcessor.changes
+        onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
     val deleteItem:Option[VNode] =
@@ -554,7 +554,7 @@ object PageHeader {
         onClick handleWith {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
-              .merge(GraphChanges.disconnect(Edge.Parent)(channel.id, state.user.now.channelNodeId)) 
+              .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
           state.viewConfig() = ViewConfig.default
         }

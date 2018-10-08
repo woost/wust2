@@ -38,7 +38,7 @@ import wust.slack.Data._
 
 object Constants {
   //TODO
-  val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"), NodeId.fromBase58String("5R1xejdFpxQiauAZtMVqpT"))
+  val wustUser = AuthUser.Assumed(UserId.fromBase58String("5R1xejdFpxQiauAZtMVqpS"))
 //  val globalSlackNode = Node.Content(NodeId.fromBase58String("5R28qFeQj1Ny6tM9b7BXis"), NodeData.Markdown("wust-slack"), NodeMeta(NodeAccess.Restricted))
 }
 
@@ -172,7 +172,7 @@ object AppServer {
         true <- wustReceiver.client.api.addMember(workspaceNodeId, authData.wustAuthData.user.id, AccessLevel.ReadWrite)
         true <- wustReceiver.push(
           List(
-            GraphChanges.connect(Edge.Parent)(workspaceNodeId, authData.wustAuthData.user.channelNodeId)
+            GraphChanges.connect(Edge.Pinned)(authData.wustAuthData.user.id, workspaceNodeId)
           ),
           Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
         ).map(_.isRight)

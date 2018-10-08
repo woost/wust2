@@ -116,15 +116,16 @@ object Sidebar {
     div(
       cls := "channels",
       Rx {
-        val channelTree: Tree = state.channelTree()
-        val pageParentIds = state.page().parentIdSet
+        val channelForest = state.channelForest()
+        val page = state.page()
+        val pageParentIds = page.parentIdSet
         val pageStyle = state.pageStyle()
+        val user = state.user()
+
         VDomModifier(
-          channelLine(state.user().toNode, pageParentIds, pageStyle),
-          channelTree match {
-            case Tree.Parent(_, children) =>
-              children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
-            case Tree.Leaf(_)             => VDomModifier.empty
+          channelLine(user.toNode, pageParentIds, pageStyle),
+          channelForest.map { channelTree =>
+            channelList(channelTree, pageParentIds, pageStyle, depth = 0)
           }
         )
       }

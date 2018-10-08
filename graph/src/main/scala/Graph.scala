@@ -18,7 +18,7 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-  lazy val lookup = time(s"graph lookup [${nodes.size}]") { GraphLookup(this, nodes.toArray, edges.toArray) }
+  lazy val lookup = time(s"graph lookup [${nodes.size}, ${edges.size}]") { GraphLookup(this, nodes.toArray, edges.toArray) }
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -129,7 +129,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   @deprecated("", "") @inline def contentNodes = lookup.contentNodes
   @deprecated("", "")
   @inline def redundantTree(root: Node, excludeCycleLeafs: Boolean) = lookup.redundantTree(lookup.idToIdx(root.id), excludeCycleLeafs)
-  @deprecated("", "") @inline def channelTree(channelNode: Node): Tree = lookup.channelTree(channelNode)
+  @deprecated("", "") @inline def channelTree(user: UserId): Seq[Tree] = lookup.channelTree(user)
   @deprecated("", "")
   @inline def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = lookup.can_access_node(userId, nodeId)
   @deprecated("", "") @inline def descendants(nodeId: NodeId) = lookup.descendants(nodeId)
@@ -182,11 +182,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @deprecated("","")
   val allUserIds = mutable.HashSet[UserId]()
-
-  @deprecated("","")
-  val channelNodeIds = mutable.HashSet[NodeId]()
-  @deprecated("","")
-  val allChannelIds = mutable.HashSet[NodeId]()
   @deprecated("","")
   val userIdByName = mutable.HashMap[String, UserId]()
 
@@ -202,7 +197,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case Node.User(id, data, _) =>
         allUserIds += id
         userIdByName(data.name) = id
-        channelNodeIds += data.channelNodeId
       case _                      =>
     }
     i += 1
@@ -229,6 +223,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val membershipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  private val pinnedNodeIdxLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
   @deprecated("","")
   val labeledEdges = mutable.HashSet[Edge.Label]()
   val containmentsBuilder = mutable.ArrayBuilder.make[Edge.Parent]
@@ -274,6 +269,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             expandedNodes(edge.sourceId.asInstanceOf[UserId]) += edge.targetId
           case _:Edge.Notify =>
             notifyByUserLookupBuilder(targetIdx) += sourceIdx
+          case _:Edge.Pinned =>
+            pinnedNodeIdxLookupBuilder(sourceIdx) += targetIdx
           case _                                        =>
         }
       }
@@ -289,6 +286,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val membershipEdgeIdx = NestedArrayInt(membershipEdgeLookupBuilder)
   val notifyByUserIdx = NestedArrayInt(notifyByUserLookupBuilder)
   val authorsIdx = NestedArrayInt(authorLookupBuilder)
+  val pinnedNodeIdx = NestedArrayInt(pinnedNodeIdxLookupBuilder)
 
   val containments = containmentsBuilder.result()
 
@@ -308,19 +306,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val idx = idToIdx.getOrElse(id, -1)
     if(idx != -1) deletedChildrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
-
-
-  i = 0
-  while(i < n) {
-    val node = nodes(i)
-    node match {
-      case Node.User(_, data, _) =>
-        allChannelIds ++= children(data.channelNodeId)
-      case _                     =>
-    }
-    i += 1
-  }
-
 
   lazy val (nodeCreated: Array[Long], nodeModified: Array[Long]) = {
     val nodeCreated = Array.fill(n)(EpochMilli.min: Long)
@@ -683,9 +668,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut)
   }
 
-  def channelTree(channelNode: Node): Tree = {
-    val channelNodeIdx = idToIdx(channelNode.id) // crashes if channelNode not in graph
-    val channelIndices = childrenIdx(channelNodeIdx)
+  def channelTree(user: UserId): Seq[Tree] = {
+    val channelIndices = pinnedNodeIdx(idToIdx(user))
     val isChannel = new Array[Int](n)
     channelIndices.foreach { isChannel(_) = 1 }
 
@@ -699,7 +683,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         excludedChannels(channelIdx) = 1
       }
       excludedChannels(parentChannelIdx) = 0
-      excludedChannels(channelNodeIdx) = 1
       depthFirstSearchExcludeExists(childChannelIdx, parentsIdx, exclude = excludedChannels, search = parentChannelIdx)
     }
 
@@ -712,10 +695,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } yield Edge.Parent(nodes(child).id, nodes(parent).id)
 
     val topologicalMinor = Graph(channelIndices.map(nodes), topologicalParents)
-    Tree.Parent(
-      channelNode,
-      topologicalMinor.lookup.redundantForestExcludingCycleLeafs
-    )
+    topologicalMinor.lookup.redundantForestExcludingCycleLeafs
   }
 
   def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]]

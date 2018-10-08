@@ -54,7 +54,7 @@ object Constants {
   val wustRepo = "bug"
 
 //  val wustUser = Post.User(UserId.fresh, PostData.User("wust", true, 0, ChannelNodeId.fresh), PostMeta.User) // TODO get rid of this static user assumption
-  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
+  val wustUser = AuthUser.Assumed(UserId.fresh)
 
 }
 

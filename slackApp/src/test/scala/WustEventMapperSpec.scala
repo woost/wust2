@@ -318,7 +318,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addNodes = Set(
         Node.User(
           UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf"),
-          NodeData.User("j",false,0,NodeId.fromBase58String("5RBLjXF3CLH6vX1GJ1AS8g")),
+          NodeData.User("j",false,0),
           NodeMeta(NodeAccess.Restricted)
         )
       ),

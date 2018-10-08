@@ -65,28 +65,27 @@ object AuthResult {
 sealed trait AuthUser {
   def id: UserId
   def name: String
-  def channelNodeId: NodeId
   def toNode: Node.User
 }
 object AuthUser {
   sealed trait Persisted extends AuthUser
-  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+  case class Real(id: UserId, name: String, revision: Int)
       extends Persisted {
     def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = false, revision, channelNodeId), NodeMeta.User)
+      Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
   }
-  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+  case class Implicit(id: UserId, name: String, revision: Int)
       extends Persisted {
     def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
+      Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
   }
-  case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
+  case class Assumed(id: UserId) extends AuthUser {
     def name = s"unregistered-user-${id.toCuidString.takeRight(4)}"
-    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0, channelNodeId = channelNodeId), NodeMeta.User)
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0), NodeMeta.User)
   }
 
   implicit def AsUserInfo(user: AuthUser): UserInfo =
-    UserInfo(user.id, user.name, user.channelNodeId)
+    UserInfo(user.id, user.name)
 }
 
 sealed trait Authentication {
@@ -98,7 +97,7 @@ object Authentication {
 
   case class Assumed(user: AuthUser.Assumed) extends Authentication
   object Assumed {
-    def fresh = Assumed(AuthUser.Assumed(UserId.fresh, NodeId.fresh))
+    def fresh = Assumed(AuthUser.Assumed(UserId.fresh))
   }
   case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"

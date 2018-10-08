@@ -25,15 +25,15 @@ object DbConversions {
     new Node.User(node.id, node.data, nodeMeta(node))
   implicit def forClientAuth(node: Data.User): AuthUser.Persisted = node.data.isImplicit match {
     case false =>
-      new AuthUser.Real(node.id, node.data.name, node.data.revision, node.data.channelNodeId)
+      new AuthUser.Real(node.id, node.data.name, node.data.revision)
     case true =>
-      new AuthUser.Implicit(node.id, node.data.name, node.data.revision, node.data.channelNodeId)
+      new AuthUser.Implicit(node.id, node.data.name, node.data.revision)
   }
   implicit def forDbAuth(user: AuthUser.Persisted): Data.SimpleUser = user match {
-    case AuthUser.Real(id, name, revision, channelNodeId) =>
-      new Data.SimpleUser(id, new NodeData.User(name, isImplicit = false, revision, channelNodeId))
-    case AuthUser.Implicit(id, name, revision, channelNodeId) =>
-      new Data.SimpleUser(id, new NodeData.User(name, isImplicit = true, revision, channelNodeId))
+    case AuthUser.Real(id, name, revision) =>
+      new Data.SimpleUser(id, new NodeData.User(name, isImplicit = false, revision))
+    case AuthUser.Implicit(id, name, revision) =>
+      new Data.SimpleUser(id, new NodeData.User(name, isImplicit = true, revision))
   }
 
   implicit def forClient(c: Data.MemberEdge): Edge = Edge.Member(c.sourceId, c.data, c.targetId)

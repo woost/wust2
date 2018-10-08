@@ -90,8 +90,8 @@ object GlobalStateFactory {
           case Page.Selection(parentIds, childrenIds) =>
             Observable.fromFuture(Client.api.getGraph(page))
           case Page.NewChannel(nodeId) =>
-            val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.channelNodeId)
-            eventProcessor.enriched.changes.onNext(changes)
+            val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.id)
+            eventProcessor.changes.onNext(changes)
             Observable.empty
         } else Observable.fromFuture(Client.api.getGraph(page))
 

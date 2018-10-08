@@ -83,7 +83,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       }
     }
 
-    val topologicalChannelParents = filterParents(channelId, state.channelTree.now) - state.user.now.channelNodeId
+    val topologicalChannelParents = state.channelForest.now.flatMap(filterParents(channelId, _))
     val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
     val connect:GraphChanges = GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
     submit(disconnect merge connect)

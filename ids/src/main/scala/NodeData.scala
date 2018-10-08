@@ -33,9 +33,7 @@ object NodeData {
   object Link extends Named
 
   object User extends Named
-  case class User(name: String, isImplicit: Boolean, revision: Int, channelNodeId: NodeId)
-      extends Named
-      with NodeData {
+  case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
   }
 

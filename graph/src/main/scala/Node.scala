@@ -48,5 +48,5 @@ object Node {
   }
 
   implicit def AsUserInfo(user: User): UserInfo =
-    UserInfo(user.id, user.data.name, user.data.channelNodeId)
+    UserInfo(user.id, user.data.name)
 }

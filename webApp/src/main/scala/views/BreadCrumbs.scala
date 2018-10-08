@@ -40,7 +40,7 @@ object BreadCrumbs {
         time("bench: breadcrumbs") {
         val page = state.page()
         val user = state.user()
-        val graph =  state.graph().filter{case _:Node.User => false; case n if n.id == user.channelNodeId => false; case _ => true}
+        val graph =  state.graph().filter{case _:Node.User => false; case _ => true}
         val parentIds = page.parentIds
         parentIds.map { (parentId : NodeId) =>
           val parentDepths = graph.parentDepths(parentId)

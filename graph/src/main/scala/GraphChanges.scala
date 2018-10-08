@@ -109,13 +109,13 @@ object GraphChanges {
     }(breakOut)
   )
 
-  def newChannel(nodeId: NodeId, title: String, channelNodeId: NodeId): GraphChanges = {
+  def newChannel(nodeId: NodeId, title: String, userId: UserId): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),
       NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
-    GraphChanges.addNodeWithParent(post, channelNodeId)
+    GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId)))
   }
 
   def undelete(nodeIds: Iterable[NodeId], parentIds: Iterable[NodeId]): GraphChanges = connect(Edge.Parent)(nodeIds, parentIds)

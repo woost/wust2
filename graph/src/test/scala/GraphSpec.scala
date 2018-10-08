@@ -13,7 +13,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
   implicit def stringToCuid(id:String):Cuid = Cuid.fromBase58("5Q4is6Gc5NbA7T7W7PvAUw".dropRight(id.length) + id)
   val channelNode:Node = 0
-  def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0, channelNode.id), NodeMeta.User)
+  def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0), NodeMeta.User)
 
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
@@ -614,80 +614,67 @@ class GraphSpec extends FreeSpec with MustMatchers {
     "channel tree" - {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      def user(id:String):Node = Node.User(UserId(NodeId(stringToCuid(id))), NodeData.User("hans", false, 0), NodeMeta.User)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def pinned(userId:Cuid, nodeId:Cuid) = Edge.Pinned(UserId(NodeId(userId)), NodeId(nodeId))
 
-      "root only" in {
+      "empty" in {
         val g = Graph(
-          nodes = Set[Node]("A"),
+          nodes = Set[Node](user("User")),
+          edges = Set[Edge]()
         )
-        assert(g.channelTree("A") == Parent("A", List.empty))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == Nil)
       }
 
-      "single child" in {
+      "single channel" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B"),
-          edges = Set(parent("B", "A"))
+          nodes = Set[Node]("B", user("User")),
+          edges = Set(pinned("User", "B"))
         )
-        assert(g.channelTree("A") == Parent("A", List(Leaf("B"))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == Leaf("B") :: Nil)
       }
 
       "two children" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B", "C"),
-          edges = Set(parent("B", "A"), parent("C", "A"))
+          nodes = Set[Node]("B", "C", user("User")),
+          edges = Set(pinned("User", "B"), pinned("User", "C"))
         )
-        assert(g.channelTree("A") == Parent("A", List(Leaf("B"), Leaf("C"))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Leaf("B"), Leaf("C")))
       }
 
-      "diamond on root level" in {
+      "diamond" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B", "C"),
-          edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
-        )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))))))
-      }
-
-      "diamond on deeper level" in {
-        val g = Graph(
-          nodes = Set[Node]("A", "B", "C", "D"),
+          nodes = Set[Node]("B", "C", "D", user("User")),
           edges = Set(
-            parent("B", "A"), parent("C", "A"), parent("D", "A"),
-            parent("D", "B"), parent("D", "C"), parent("C","B")
+            parent("D", "B"), parent("D", "C"), parent("C","B"),
+            pinned("User", "B"), pinned("User", "C"), pinned("User", "D")
           )
         )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("D"), Parent("C", List(Leaf("D"))))))))
-      }
-
-      "cycle involving root" in {
-        val g = Graph(
-          nodes = Set[Node]("A", "B", "C"),
-          edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("A", "C"))
-        )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("D"), Parent("C", List(Leaf("D")))))))
       }
 
       "cycle" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B", "C"),
-          edges = Set(parent("B", "A"), parent("C", "A"), parent("C", "B"), parent("B", "C"))
+          nodes = Set[Node]("B", "C", user("User")),
+          edges = Set(parent("C", "B"), parent("B", "C"), pinned("User", "B"), pinned("User", "C"))
         )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("C"))), Parent("C", List(Leaf("B"))))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C"))), Parent("C", List(Leaf("B")))))
       }
 
       "topological Minor" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B", "C", "D"),
-          edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("D","A"))
+          nodes = Set[Node]("B", "C", "D", user("User")),
+          edges = Set(parent("C","B"), parent("D", "C"), pinned("User", "B"), pinned("User", "D"))
         )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Leaf("D"))))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("D")))))
       }
 
-      "topological Minor - skip redundant edges" in {
+      "topological Minor -- only channels" in {
         val g = Graph(
-          nodes = Set[Node]("A", "B", "C", "D"),
-          edges = Set(parent("B", "A"), parent("C","B"), parent("D", "C"), parent("C","A"), parent("D","A"))
+          nodes = Set[Node]("B", "C", "D", user("User")),
+          edges = Set(parent("C","B"), parent("D", "C"), pinned("User", "B"), pinned("User", "C"), pinned("User", "D"))
         )
-        assert(g.channelTree("A") == Parent("A", List(Parent("B", List(Parent("C", List(Leaf("D"))))))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D")))))))
       }
     }
   }

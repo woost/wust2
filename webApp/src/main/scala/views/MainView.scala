@@ -28,11 +28,10 @@ object MainView {
             // don't show non-bookmarked border for:
             val isNewChannelPage = state.page().isInstanceOf[Page.NewChannel]
             val bookmarked = state.pageIsBookmarked()
-            val viewingChannelNode = state.page().parentIdSet.contains(state.user().channelNodeId)
             val noContent = !state.view().isContent
             val isOwnUser = state.page().parentIds == Seq(state.user().id)
 
-            (isNewChannelPage || bookmarked || viewingChannelNode || noContent || isOwnUser).ifFalseOption(
+            (isNewChannelPage || bookmarked || noContent || isOwnUser).ifFalseOption(
               cls := "non-bookmarked-page-frame"
             )
           },

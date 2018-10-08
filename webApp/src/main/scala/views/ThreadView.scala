@@ -405,7 +405,7 @@ object ThreadView {
           chatMessageHeader(isMine, headNode, graph, avatarSize),
           nodeIds.map(nid => renderMessage(nid, meta)),
       ),
-        )
+    )
   }
 
   private def renderThread(nodeIdx: Int, meta: MessageMeta, shouldGroup: (Graph, Seq[Int]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {

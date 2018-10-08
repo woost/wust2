@@ -264,37 +264,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     // TODO share code with createimplicit?
-    def create(userId: UserId, name: String, digest: Array[Byte], channelNodeId: NodeId)(
+    def create(userId: UserId, name: String, digest: Array[Byte])(
         implicit ec: ExecutionContext
     ): Future[Option[User]] = {
-      val channelNode = Node(
-        channelNodeId,
-        NodeData.defaultChannelsData,
-        NodeAccess.Level(AccessLevel.Restricted)
-      )
-      val userData =
-        NodeData.User(name = name, isImplicit = false, revision = 0, channelNodeId = channelNode.id)
-      val user =
-        User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
+      val userData = NodeData.User(name = name, isImplicit = false, revision = 0)
+      val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift(
-          channelNode.id
-        )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
-             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(
-          user.data
-        )}, ${lift(user.accessLevel)})),
-             ins_m_cp as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
-          membership
-        )}, ${lift(channelNodeId)})),
-             ins_m_up as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(
-          membership
-        )}, ${lift(userId)}))
-                          insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(
-          digest
-        )})
+        with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
+             insert_user_member as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
+             insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(digest)})
       """.as[Insert[Node]]
       }
 
@@ -304,34 +285,17 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         .recoverValue(None)
     }
 
-    def createImplicitUser(userId: UserId, name: String, channelNodeId: NodeId)(
+    def createImplicitUser(userId: UserId, name: String)(
         implicit ec: ExecutionContext
     ): Future[Option[User]] = {
-      val channelNode = Node(
-        channelNodeId,
-        NodeData.defaultChannelsData,
-        NodeAccess.Level(AccessLevel.Restricted)
-      )
-      val userData =
-        NodeData.User(name = name, isImplicit = true, revision = 0, channelNodeId = channelNode.id)
-      val user =
-        User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
+      val userData = NodeData.User(name = name, isImplicit = true, revision = 0)
+      val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
 
       val q = quote {
         infix"""
-        with insert_channelnode as (insert into node (id,data,accesslevel) values (${lift(
-          channelNode.id
-        )}, ${lift(channelNode.data)}, ${lift(channelNode.accessLevel)})),
-             insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(
-          user.data
-        )}, ${lift(user.accessLevel)})),
-              ins_m_cp as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
-          membership
-        )}, ${lift(channelNodeId)}))
-                          insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(
-          membership
-        )}, ${lift(userId)})
+        with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}))
+             insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
      """.as[Insert[Node]]
       }
       ctx
