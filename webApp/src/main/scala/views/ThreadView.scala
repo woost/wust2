@@ -736,11 +736,6 @@ object ThreadView {
   }
 
   def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.created[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
-    val disableUserInput = Rx {
-      val graphNotLoaded = (state.graph().lookup.nodeIdSet intersect state.page().parentIdSet).isEmpty
-      graphNotLoaded
-    }
-
     val initialValue = Rx {
       state.viewConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
@@ -770,7 +765,6 @@ object ThreadView {
         onKeyUp.stopPropagation handleWith {},
         focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> inAnimationFrame(_.focus())),
         onBlur.value handleWith { value => blurAction(value) },
-        disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         resize := "none",
         placeholder := "Write a message and press Enter to submit.",

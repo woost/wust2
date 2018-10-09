@@ -48,24 +48,34 @@ object NestedArrayInt {
   }
 
   def apply(nested:Array[mutable.ArrayBuilder.ofInt]): NestedArrayInt = {
+    // ArrayBuilders can also be null to represent an empty builder 
     var currentStart = 0
     val sliceArray = InterleavedArray.create(nested.length)
     val builtSlices = new Array[Array[Int]](nested.length)
 
     nested.foreachIndexAndElement{(i, sliceBuilder) =>
-      val slice = sliceBuilder.result()
-      builtSlices(i) = slice
-      sliceArray.updatea(i,currentStart)
-      sliceArray.updateb(i,slice.length)
+      if(sliceBuilder != null) {
+        val slice = sliceBuilder.result()
+        builtSlices(i) = slice
+        sliceArray.updatea(i,currentStart)
+        sliceArray.updateb(i,slice.length)
 
-      currentStart += slice.length
+        currentStart += slice.length
+      } else {
+        // empty builder => empty slice
+        builtSlices(i) = null
+        sliceArray.updatea(i,currentStart)
+        sliceArray.updateb(i,0)
+      }
     }
 
     val array = new Array[Int](currentStart)
     currentStart = 0
     builtSlices.foreachIndexAndElement{ (i, slice) =>
-      slice.copyToArray(array, currentStart)
-      currentStart += slice.length
+      if(slice != null) {
+        slice.copyToArray(array, currentStart)
+        currentStart += slice.length
+      }
     }
 
     new NestedArrayInt(array, sliceArray)

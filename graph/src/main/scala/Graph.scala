@@ -167,47 +167,29 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     builder.result()
   }
 
-  private var i = 0
-
   @deprecated("","")
   private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
   _idToIdx.sizeHint(n)
   @deprecated("","")
   val _nodesById = mutable.HashMap[NodeId, Node]()
   _nodesById.sizeHint(n)
-  @deprecated("","")
-  private val _nodeIdSet = mutable.HashSet.empty[NodeId]
-  _nodeIdSet.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
 
-  @deprecated("","")
-  val allUserIds = mutable.HashSet[UserId]()
-  @deprecated("","")
-  val userIdByName = mutable.HashMap[String, UserId]()
+  lazy val userIdByName:Map[String,UserId] = nodes.collect{case u:Node.User => u.name -> u.id}(breakOut)
 
-  i = 0
-  while(i < n) {
-    val node = nodes(i)
-    val nodeId = node.id
-    _idToIdx(node.id) = i
-    nodeIds(i) = nodeId
-    _nodeIdSet += nodeId
-    _nodesById(nodeId) = node
-    node match {
-      case Node.User(id, data, _) =>
-        allUserIds += id
-        userIdByName(data.name) = id
-      case _                      =>
+  time("graph lookup: node loop") {
+    nodes.foreachIndexAndElement { (i, node) =>
+      val nodeId = node.id
+      _idToIdx(nodeId) = i
+      _nodesById(nodeId) = node
+      nodeIds(i) = nodeId
     }
-    i += 1
   }
 
-  require(nodesById.size == nodes.size, "nodes are not distinct by id")
+  assert(nodesById.size == nodes.size, "nodes are not distinct by id")
 
   @deprecated("","")
   @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx
-  @deprecated("","")
-  @inline def nodeIdSet: collection.Set[NodeId] = _nodeIdSet
   @deprecated("","")
   @inline def nodesById: collection.Map[NodeId, Node] = _nodesById
 
@@ -215,15 +197,25 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
 
 
-  private val parentLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val childLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val deletedParentLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val deletedChildLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val notifyByUserLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val authorshipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val membershipEdgeLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val authorLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
-  private val pinnedNodeIdxLookupBuilder = Array.fill(n)(new mutable.ArrayBuilder.ofInt)
+  // we initialize alll builders with null to prevent many useless allocations
+  private val parentLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val childLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val deletedParentLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val deletedChildLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val notifyByUserLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val authorshipEdgeLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val membershipEdgeLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val authorLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+  private val pinnedNodeIdxLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
+
+  // since builders can be null, we create them lazily
+  @inline private def addToNestedBuilder(builderArray: Array[mutable.ArrayBuilder.ofInt], idx:Int, value:Int):Unit = {
+    if(builderArray(idx) == null)
+      builderArray(idx) = new mutable.ArrayBuilder.ofInt
+    builderArray(idx) += value
+  }
+
+
   @deprecated("","")
   val labeledEdges = mutable.HashSet[Edge.Label]()
   val containmentsBuilder = mutable.ArrayBuilder.make[Edge.Parent]
@@ -235,47 +227,46 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
 
-  i = 0
-  while(i < edges.length) {
-    val edge = edges(i)
-    val sourceIdx = idToIdx.getOrElse(edge.sourceId, -1)
-    if(sourceIdx != -1) {
-      val targetIdx = idToIdx.getOrElse(edge.targetId, -1)
-      if(targetIdx != -1) {
-        edge match {
-          case e@Edge.Author(authorId, _, nodeId)       =>
-            authorshipEdgeLookupBuilder(targetIdx) += i
-            authorLookupBuilder(targetIdx) += sourceIdx
-          case e@Edge.Member(authorId, _, nodeId)       =>
-            membershipEdgeLookupBuilder(targetIdx) += i
-          case e@Edge.Parent(childId, data, parentId)   =>
-            data.deletedAt match {
-              case None            =>
-                parentLookupBuilder(sourceIdx) += targetIdx
-                childLookupBuilder(targetIdx) += sourceIdx
-                containmentsBuilder += e
-              case Some(deletedAt) =>
-                //TODO should already be filtered in backend
-                if(deletedAt > remorseTimeForDeletedParents) {
-                  deletedParentLookupBuilder(sourceIdx) += targetIdx
-                  deletedChildLookupBuilder(targetIdx) += sourceIdx
-                }
-            }
-          case _:Edge.StaticParentIn =>
-            staticParentIn(edge.sourceId) += edge.targetId
-          case e: Edge.Label                            =>
-            labeledEdges += e
-          case _:Edge.Expanded            =>
-            expandedNodes(edge.sourceId.asInstanceOf[UserId]) += edge.targetId
-          case _:Edge.Notify =>
-            notifyByUserLookupBuilder(targetIdx) += sourceIdx
-          case _:Edge.Pinned =>
-            pinnedNodeIdxLookupBuilder(sourceIdx) += targetIdx
-          case _                                        =>
+  time("graph lookup: edge loop") {
+    edges.foreachIndexAndElement { (i, edge) =>
+      val sourceIdx = idToIdx.getOrElse(edge.sourceId, -1)
+      if(sourceIdx != -1) {
+        val targetIdx = idToIdx.getOrElse(edge.targetId, -1)
+        if(targetIdx != -1) {
+          edge match {
+            case e@Edge.Author(authorId, _, nodeId)     =>
+              addToNestedBuilder(authorshipEdgeLookupBuilder, targetIdx, i)
+              addToNestedBuilder(authorLookupBuilder, targetIdx, sourceIdx)
+            case e@Edge.Member(authorId, _, nodeId)     =>
+              addToNestedBuilder(membershipEdgeLookupBuilder, targetIdx, i)
+            case e@Edge.Parent(childId, data, parentId) =>
+              data.deletedAt match {
+                case None            =>
+                  addToNestedBuilder(parentLookupBuilder, sourceIdx, targetIdx)
+                  addToNestedBuilder(childLookupBuilder, targetIdx, sourceIdx)
+                  containmentsBuilder += e
+                case Some(deletedAt) =>
+                  //TODO should already be filtered in backend
+                  if(deletedAt > remorseTimeForDeletedParents) {
+                    addToNestedBuilder(deletedParentLookupBuilder, sourceIdx, targetIdx)
+                    addToNestedBuilder(deletedChildLookupBuilder, targetIdx, sourceIdx)
+                  }
+              }
+            case _: Edge.StaticParentIn                 =>
+              staticParentIn(edge.sourceId) += edge.targetId
+            case e: Edge.Label =>
+              labeledEdges += e
+            case _: Edge.Expanded =>
+              expandedNodes(edge.sourceId.asInstanceOf[UserId]) += edge.targetId
+            case _: Edge.Notify =>
+              addToNestedBuilder(notifyByUserLookupBuilder, targetIdx, sourceIdx)
+            case _: Edge.Pinned =>
+              addToNestedBuilder(pinnedNodeIdxLookupBuilder, sourceIdx, targetIdx)
+            case _              =>
+          }
         }
       }
     }
-    i += 1
   }
 
   val parentsIdx = NestedArrayInt(parentLookupBuilder)
