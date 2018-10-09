@@ -650,7 +650,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             pinned("User", "B"), pinned("User", "C"), pinned("User", "D")
           )
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("D"), Parent("C", List(Leaf("D")))))))
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D"))), Leaf("D")))))
       }
 
       "cycle" in {
