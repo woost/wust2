@@ -136,7 +136,7 @@ object Sidebar {
     div(
       cls := "channelIcons",
       Rx {
-        val allChannels = state.channels().drop(1)
+        val allChannels = state.channels()
         val page = state.page()
         VDomModifier(
           allChannels.map { node =>
