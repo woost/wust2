@@ -6,19 +6,26 @@ import java.nio.ByteBuffer
 import wust.util.collection._
 import org.sazabi.base58.Base58
 
-case class Cuid(left: Long, right: Long) {
+@inline
+final case class Cuid(left: Long, right: Long) {
   import wust.ids.Cuid._
   // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
-  require(
+  assert(
     left >= 0 && left <= maxLong,
     s"left part of Cuid needs to be positive and less or equal than $maxLong, value is: $left."
   )
-  require(
+  assert(
     right >= 0 && right <= maxLong,
     s"right part of Cuid needs to be positive and less or equal than $maxLong, value is: $right."
   )
 
   def toUuid: UUID = new UUID(left, right)
+
+  @inline override def hashCode: Int = (left ^ (right >> 32)).toInt
+  @inline override def equals(that: Any): Boolean = that match {
+    case that: Cuid => left == that.left && right == that.right
+    case _              => false
+  }
 
   def toCuidString: String = {
     val base = 36
