@@ -77,5 +77,5 @@ object Cuid {
     fromByteArray(Base58.toByteArray(Base58.fromString(str).get).get)
   }
 
-  private def maxLong = 4738381338321616895L
+  @inline private def maxLong = 4738381338321616895L
 }
