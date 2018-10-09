@@ -1,6 +1,7 @@
 package wust.backend
 
 import monix.reactive.Observable
+import scribe.writer.file.LogPath
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
@@ -259,7 +260,7 @@ object ApiLogger {
   val client: Logger = {
    val loggerName = "client-log"
    val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-   val writer = FileWriter.flat(prefix = loggerName, maxLogs = Some(3), maxBytes = Some(100 * 1024 * 1024))
+   val writer = FileWriter().path(LogPath.daily(prefix = loggerName)).maxLogs(max = 3).maxSize(maxSizeInBytes = 100 * 1024 * 1024)
    Logger(loggerName)
      .clearHandlers()
      .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = writer)

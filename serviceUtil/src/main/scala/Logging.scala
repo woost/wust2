@@ -1,14 +1,15 @@
 package wust.serviceUtil
 
-import java.nio.file.Paths
 import java.net.InetAddress
+import java.nio.file.Paths
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import monix.execution.{Cancelable, Scheduler}
-import scribe._
+import monix.execution.Scheduler
+import scribe.{writer, _}
 import scribe.format._
 import scribe.writer._
+import scribe.writer.file.LogPath
 
 object Logging {
   val shortThreadName = threadName.map(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
@@ -26,8 +27,9 @@ object Logging {
       .withHandler(
         formatter = detailFormatter,
         minimumLevel = Some(Level.Info),
-        writer = FileWriter.date(prefix = cfg.id, directory = Paths.get("logs"))
+        writer = FileWriter().path(LogPath.daily(prefix = cfg.id, directory = Paths.get("logs")))
       )
+
 
     val configuredSetup = cfg.logstash.fold(rootSetup) { logstashCfg =>
       import Scheduler.Implicits.global

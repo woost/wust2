@@ -80,7 +80,7 @@ class QueuedLogstashWriter(
       fileName = record.fileName,
       className = record.className,
       methodName = record.methodName,
-      lineNumber = record.lineNumber,
+      lineNumber = record.line,
       thread = record.thread.getName,
       `@timestamp` = timestamp,
       mdc = MDC.map
