@@ -26,12 +26,6 @@ object NodeData {
   }
   object PlainText extends Named
 
-  case class Link(url: String) extends Named with Content {
-    //TODO: require url format?
-    def str = url
-  }
-  object Link extends Named
-
   object User extends Named
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name

@@ -38,7 +38,6 @@ object Rendered {
       val wrap = window.document.createElement("div")
       wrap.appendChild(text)
       wrap.innerHTML
-    case NodeData.Link(url)          => s"<a href=$url>" //TODO
     case user: NodeData.User         => s"User: ${ user.name }"
   }
 
@@ -82,7 +81,6 @@ object Rendered {
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => mdHtml(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
-    case c: NodeData.Link            => MediaViewer.embed(c)
     case user: NodeData.User         => div(if(user.isImplicit) implicitUserName else user.name)
   }
 
