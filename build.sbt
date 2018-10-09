@@ -132,9 +132,7 @@ lazy val webSettings = Seq(
   version in installJsdom := "11.12.0", // TODO: update jsdom to v12 when resolved in scala-js: https://github.com/scala-js/scala-js/issues/3432
   scalaJSUseMainModuleInitializer := true,
   //TODO ?: scalaJSStage in Test := FullOptStage,
-  scalaJSLinkerConfig in (Compile, fastOptJS) ~= {
-    _.withSourceMap(withSourceMaps).withOptimizer(!withSourceMaps)
-  }, // disable optimizations for better debugging experience
+  scalaJSLinkerConfig in (Compile, fastOptJS) ~= { _.withSourceMap(withSourceMaps) },
   scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(withSourceMaps) },
   npmDevDependencies in Compile ++= Deps.npm.webpackDependencies,
   version in webpack := Deps.webpackVersion,
