@@ -106,7 +106,6 @@ lazy val commonWebSettings = Seq(
   yarnExtraArgs in Compile := Seq("--ignore-engines"), // ignoring, since javascript people seem to be too stupid to compare node versions. When version 9 is available and >= 8 is required, it fails. Affected: @gfx/node-zopfli
   scalacOptions += "-P:scalajs:sjsDefinedByDefault",
   scalacOptions in fullOptJS ++= Seq("-Xelide-below", "5000"), // remove assertions from production code
-  scalacOptions in fullOptJS ++= Seq("-opt:l:method", "-opt:l:inline", "-opt-inline-from"), // remove assertions from production code
   scalacOptions ++= {
     if (isDevRun.?.value.getOrElse(false)) {
       // To enable dev source map support,
