@@ -16,7 +16,10 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.ThreadView._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
+import wust.util.algorithm._
+
+import scala.util.Sorting
 
 object ChatView {
 
@@ -24,9 +27,20 @@ object ChatView {
 
     val nodeIds: Rx[Seq[Int]] = Rx {
       val page = state.page()
-      val graph = state.graphContent()
-      graph.lookup.chronologicalNodesAscending.collect {
-        case n: Node.Content if !(page.parentIdSet contains n.id) => graph.lookup.idToIdx(n.id)
+      val graph = state.graph()
+      val builder = new mutable.ArrayBuilder.ofInt
+      builder.sizeHint(page.parentIds.size)
+      page.parentIds.foreach { parentId =>
+        val idx = graph.lookup.idToIdx.getOrElse(parentId, -1)
+        if (idx != -1) {
+          builder += idx
+        }
+      }
+
+      val pageChildren = depthFirstSearchWithoutStarts(builder.result(), graph.lookup.childrenIdx)
+      Sorting.quickSort[Int](pageChildren)(Ordering[Long] on (graph.lookup.nodeCreated(_)))
+      pageChildren.collect {
+        case idx if graph.lookup.nodes(idx).isInstanceOf[Node.Content] => idx
       }
     }
 

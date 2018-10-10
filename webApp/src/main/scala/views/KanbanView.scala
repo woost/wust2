@@ -248,7 +248,7 @@ object KanbanView {
               rows := 2,
               placeholder := "Press Enter to add.",
               valueWithEnter handleWith { str =>
-                val graph = state.graphContent.now
+                val graph = state.graph.now
                 val selectedNodeIds = state.selectedNodeIds.now
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)

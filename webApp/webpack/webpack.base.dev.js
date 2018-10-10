@@ -29,7 +29,7 @@ const loaderJsFile = appName + '-loader.js';
 // module.exports.entry[appName].push('./' + baseJsFile);
 // module.exports.entry[appName].push('./' + loaderJsFile);
 module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
-const extraAssets = [ loaderJsFile, baseJsFile ].concat(staticIncludeAssets).concat(cssFiles.map(function(f) { return Path.basename(f); }));
+const extraAssets = staticIncludeAssets.concat([ loaderJsFile, baseJsFile ]).concat(cssFiles.map(function(f) { return Path.basename(f); }));
 
 ////////////////////////////////////////
 // html template generate index.html

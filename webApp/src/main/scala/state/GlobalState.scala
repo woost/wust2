@@ -103,8 +103,6 @@ class GlobalState(
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 
-  val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
-
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
     if(!view().isContent || page().parentIds.nonEmpty)
       view()

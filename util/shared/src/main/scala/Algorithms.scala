@@ -2,6 +2,7 @@ package wust.util
 
 object algorithm {
   import scala.collection.{IterableLike, breakOut, mutable}
+  import wust.util.collection._
   import math.Ordering
 
   def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V, T] = {
@@ -205,6 +206,44 @@ object algorithm {
     false
   }
 
+  def depthFirstSearchWithoutStarts(start: Array[Int], successors: NestedArrayInt):Array[Int] = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val result = new mutable.ArrayBuilder.ofInt
+
+    // start is intentionally left out.
+    // it is still possible that start is visited later. (in a cycle)
+    // result += start
+    // visited(start) = 1
+
+    var i = 0
+    start.foreachElement { start =>
+      val startSuccessorCount = successors(start).length
+      while(i < startSuccessorCount) {
+        stack.push(successors(start, i))
+        i += 1
+      }
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(visited(current) != 1) {
+        result += current
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+
+
+    result.result()
+  }
 
   def depthFirstSearchWithoutStart(start: Int, successors: NestedArrayInt):Array[Int] = {
     val stack = new ArrayStackInt(capacity = successors.size)

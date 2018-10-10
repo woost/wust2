@@ -36,7 +36,7 @@ object SelectedPostMenu {
     }
 
     val rxTags: Rx[Seq[Node]] = Rx {
-      val g = state.graphContent()
+      val g = state.graph()
       g.parents(nodeId).map(g.nodesById)(breakOut)
     }
 
@@ -90,7 +90,7 @@ object SelectedPostMenu {
         addNodes = Set(newPost),
         addEdges = Set(
           Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
-        ) ++ state.graphContent.now
+        ) ++ state.graph.now
           .parents(rxPost.now.id)
           .map(parentId => Edge.Parent(newPost.id, parentId))
       )

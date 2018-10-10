@@ -103,8 +103,7 @@ object ThreadView {
 
     val nodeIds: Rx[Seq[Int]] = Rx {
       val page = state.page()
-      val fullGraph = state.graph()
-      val graph = state.graphContent()
+      val graph = state.graph()
       val nodeIndices = new mutable.ArrayBuilder.ofInt
       graph.lookup.nodes.foreachIndexAndElement{ (i,node) =>
         val isContent = node match {
@@ -112,7 +111,7 @@ object ThreadView {
           case _ => false
         }
         // Be careful not to put graph lookup indices into fullGraph lookup tables!
-        if(isContent && (fullGraph.isChildOfAny(node.id, page.parentIds) || fullGraph.isDeletedChildOfAny(node.id, page.parentIds)))
+        if(isContent && (graph.isChildOfAny(node.id, page.parentIds) || graph.isDeletedChildOfAny(node.id, page.parentIds)))
           nodeIndices += i
       }
       nodeIndices.result().sortBy(i => graph.lookup.nodeCreated(i))
@@ -190,8 +189,8 @@ object ThreadView {
       state.selectedNodeIds() = Set.empty[NodeId]
     }
 
-    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.lookup.contains(nodeId)) {
-      val path = reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)
+    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graph.now.lookup.contains(nodeId)) {
+      val path = reversePath(nodeId, state.page.now.parentIdSet, state.graph.now)
       List(
         editButton.apply(
           onTap handleWith {
@@ -258,7 +257,7 @@ object ThreadView {
         keyed,
         Rx {
           val page = state.page()
-          val graph = state.graphContent()
+          val graph = state.graph()
           val user = state.user()
           val avatarSizeToplevel: AvatarSize = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
 
@@ -750,7 +749,7 @@ object ThreadView {
         keyed,
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
-          val graph = state.graphContent.now
+          val graph = state.graph.now
           val selectedNodeIds = state.selectedNodeIds.now
           val changes = {
             val newNode = Node.Content.empty
