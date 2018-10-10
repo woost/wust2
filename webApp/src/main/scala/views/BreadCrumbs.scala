@@ -62,7 +62,7 @@ object BreadCrumbs {
                          cls := "breadcrumb",
                          if (gId != -1) cycleIndicator(false) else "",
                          sortedNodes.map{ (n : NodeId) =>
-                           graph.nodesById.get(n) match {
+                           graph.lookup.nodesByIdGet(n) match {
                              case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
                              case _ => span()
                            }

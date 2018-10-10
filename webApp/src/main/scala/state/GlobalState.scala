@@ -113,7 +113,7 @@ class GlobalState(
   }
 
   val pageParentNodes: Rx[Seq[Node]] = Rx {
-    page().parentIds.flatMap(id => graph().nodesById.get(id))
+    page().parentIds.flatMap(id => graph().lookup.nodesByIdGet(id))
   }
 
   val pageStyle = Rx {
@@ -121,7 +121,7 @@ class GlobalState(
   }
 
   val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead { selectedNodeIds =>
-    selectedNodeIds().filter(graph().nodesById.isDefinedAt)
+    selectedNodeIds().filter(graph().lookup.idToIdx.isDefinedAt)
   }
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)

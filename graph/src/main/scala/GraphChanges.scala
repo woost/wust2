@@ -65,7 +65,7 @@ object GraphChanges {
     def id(nid: NodeId): String = {
       val str = (for {
         g <- graph
-        node <- (g.nodesById ++ addNodeLookup).get(nid)
+        node = addNodeLookup.getOrElse(nid, g.lookup.nodesById(nid))
       } yield node.str).fold("")(str => s"${"\""}$str${"\""}")
       s"$str[${ nid.toBase58.takeRight(3) }]"
     }

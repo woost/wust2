@@ -30,8 +30,7 @@ object SelectedPostMenu {
       val graph = state.graph()
       //TODO: getOrElse necessary? Handle post removal.
       //TODO: we are filtering out non-content posts, what about editing them?
-      graph.nodesById
-        .get(nodeId)
+      graph.lookup.nodesByIdGet(nodeId)
         .collect { case p: Node.Content => p }
         .getOrElse(Node.Content(NodeData.PlainText("")))
     }

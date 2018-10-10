@@ -92,7 +92,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   }
 
   @deprecated("", "") @inline def nodeIds = lookup.nodeIds
-  @deprecated("", "") @inline def nodesById = lookup.nodesById
+  @deprecated("", "") @inline def nodesById(nodeId:NodeId) = lookup.nodesById(nodeId)
   @deprecated("", "") @inline def userIdByName = lookup.userIdByName
   @deprecated("", "") @inline def nodeModified(nodeId:NodeId) = lookup.nodeModified(lookup.idToIdx(nodeId))
   @deprecated("", "") @inline def nodeCreated(nodeId:NodeId) = lookup.nodeCreated(lookup.idToIdx(nodeId))
@@ -170,9 +170,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @deprecated("","")
   private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
   _idToIdx.sizeHint(n)
-  @deprecated("","")
-  val _nodesById = mutable.HashMap[NodeId, Node]()
-  _nodesById.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
 
   lazy val userIdByName:Map[String,UserId] = nodes.collect{case u:Node.User => u.name -> u.id}(breakOut)
@@ -181,20 +178,24 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     nodes.foreachIndexAndElement { (i, node) =>
       val nodeId = node.id
       _idToIdx(nodeId) = i
-      _nodesById(nodeId) = node
       nodeIds(i) = nodeId
     }
   }
 
-  assert(nodesById.size == nodes.size, "nodes are not distinct by id")
-
   @deprecated("","")
   @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx
   @deprecated("","")
-  @inline def nodesById: collection.Map[NodeId, Node] = _nodesById
+  @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
+  @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
+    val idx = idToIdx.getOrElse(nodeId,-1)
+    if(idx == -1) None
+    else Some(nodes(idx))
+  }
 
   @deprecated("","")
-  def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
+  @inline def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
+
+  assert(idToIdx.size == nodes.length, "nodes are not distinct by id")
 
 
   // we initialize alll builders with null to prevent many useless allocations
@@ -508,7 +509,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def descendantsWithDeleted(nodeId: NodeId) = _descendantsWithDeleted(nodeId)
   private val _descendantsWithDeleted: NodeId => Iterable[NodeId] = Memo.mutableHashMapMemo { nodeId =>
-    nodesById.isDefinedAt(nodeId) match {
+    idToIdx.isDefinedAt(nodeId) match {
       case true  =>
         val cs = depthFirstSearchWithStartInCycleDetection(nodeId, (id: NodeId) => children(id) ++ deletedChildren(id))
         if(cs.startInvolvedInCycle) cs else cs.drop(1)

@@ -190,7 +190,7 @@ object ThreadView {
       state.selectedNodeIds() = Set.empty[NodeId]
     }
 
-    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.nodesById.isDefinedAt(nodeId)) {
+    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graphContent.now.lookup.contains(nodeId)) {
       val path = reversePath(nodeId, state.page.now.parentIdSet, state.graphContent.now)
       List(
         editButton.apply(
