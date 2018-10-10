@@ -23,12 +23,12 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
   "graph" - {
     "empty is empty" in {
-      Graph.empty.nodesById mustBe empty
+      Graph.empty.lookup.idToIdx mustBe empty
       Graph.empty.labeledEdges mustBe empty
 
       Graph.empty.nodes mustBe empty
 
-      Graph().nodesById mustBe empty
+      Graph().lookup.idToIdx mustBe empty
       Graph().labeledEdges mustBe empty
 
       Graph().nodes mustBe empty
