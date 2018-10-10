@@ -18,7 +18,7 @@ object Graph {
 }
 
 final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
-  lazy val lookup = time(s"graph lookup [${nodes.size}, ${edges.size}]") { GraphLookup(this, nodes.toArray, edges.toArray) }
+  lazy val lookup = GraphLookup(this, nodes.toArray, edges.toArray)
 
   def isEmpty: Boolean = nodes.isEmpty
   def nonEmpty: Boolean = !isEmpty
@@ -150,7 +150,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def createArraySet(ids:Set[NodeId]): ArraySet = {
     val marker = ArraySet.create(n)
     ids.foreach{id =>
-      val idx = idToIdx.getOrElse(id,-1)
+      val idx = idToIdx(id)
       if(idx != -1)
         marker.add(idx)
     }
@@ -160,7 +160,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def createBitSet(ids:Set[NodeId]): immutable.BitSet = {
     val builder = immutable.BitSet.newBuilder
     ids.foreach{id =>
-      val idx = idToIdx.getOrElse(id,-1)
+      val idx = idToIdx(id)
       if(idx != -1)
         builder += idx
     }
@@ -174,20 +174,19 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   lazy val userIdByName:Map[String,UserId] = nodes.collect{case u:Node.User => u.name -> u.id}(breakOut)
 
-  time("graph lookup: node loop") {
     nodes.foreachIndexAndElement { (i, node) =>
       val nodeId = node.id
       _idToIdx(nodeId) = i
       nodeIds(i) = nodeId
     }
-  }
+
 
   @deprecated("","")
-  @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx
+  @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
   @deprecated("","")
   @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
   @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
-    val idx = idToIdx.getOrElse(nodeId,-1)
+    val idx = idToIdx(nodeId)
     if(idx == -1) None
     else Some(nodes(idx))
   }
@@ -228,11 +227,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
 
-  time("graph lookup: edge loop") {
     edges.foreachIndexAndElement { (i, edge) =>
-      val sourceIdx = idToIdx.getOrElse(edge.sourceId, -1)
+      val sourceIdx = idToIdx(edge.sourceId)
       if(sourceIdx != -1) {
-        val targetIdx = idToIdx.getOrElse(edge.targetId, -1)
+        val targetIdx = idToIdx(edge.targetId)
         if(targetIdx != -1) {
           edge match {
             case e@Edge.Author(authorId, _, nodeId)     =>
@@ -268,7 +266,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         }
       }
     }
-  }
 
   val parentsIdx = NestedArrayInt(parentLookupBuilder)
   val childrenIdx = NestedArrayInt(childLookupBuilder)
@@ -283,19 +280,19 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val containments = containmentsBuilder.result()
 
   val parents: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
-    val idx = idToIdx.getOrElse(id, -1)
+    val idx = idToIdx(id)
     if(idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
   val children: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
-    val idx = idToIdx.getOrElse(id, -1)
+    val idx = idToIdx(id)
     if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
   val deletedParents: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
-    val idx = idToIdx.getOrElse(id, -1)
+    val idx = idToIdx(id)
     if(idx != -1) deletedParentsIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
   val deletedChildren: NodeId => collection.Set[NodeId] = Memo.mutableHashMapMemo { id =>
-    val idx = idToIdx.getOrElse(id, -1)
+    val idx = idToIdx(id)
     if(idx != -1) deletedChildrenIdx(idx).map(i => nodes(i).id)(breakOut) else Set.empty[NodeId]
   }
 
@@ -437,7 +434,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def hasDeletedParentsIdx(nodeIdx: Int): Boolean = deletedParentsIdx.sliceNonEmpty(nodeIdx)
 
   @inline private def hasSomethingById(nodeId:NodeId, lookup: Int => Boolean) = {
-    val idx = idToIdx.getOrElse(nodeId, -1)
+    val idx = idToIdx(nodeId)
     if(idx == -1)
       false
     else
@@ -488,7 +485,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     childrenIdx(idx).exists(child => depthFirstSearchExists(child, childrenIdx, idx))
   }
   def involvedInContainmentCycle(id: NodeId): Boolean = {
-    val idx = idToIdx.getOrElse(id, -1)
+    val idx = idToIdx(id)
     if(idx == -1) return false
     else involvedInContainmentCycleIdx(idx)
   }
@@ -499,7 +496,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   def descendants(nodeId: NodeId) = _descendants(nodeId)
   private val _descendants: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
-    val nodeIdx = idToIdx.getOrElse(nodeId, -1)
+    val nodeIdx = idToIdx(nodeId)
     if(nodeIdx == -1) {
       Seq.empty[NodeId]
     } else {
@@ -523,7 +520,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   def ancestors(nodeId: NodeId) = _ancestors(nodeId)
   private val _ancestors: NodeId => Seq[NodeId] = Memo.mutableHashMapMemo { nodeId =>
-    val nodeIdx = idToIdx.getOrElse(nodeId, -1)
+    val nodeIdx = idToIdx(nodeId)
     if(nodeIdx == -1) {
       Seq.empty[NodeId]
     } else {
