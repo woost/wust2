@@ -196,6 +196,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   assert(idToIdx.size == nodes.length, "nodes are not distinct by id")
 
+  // TODO: to avoid all the arraybuilder allocations, iterate over edges first and sum up only node degrees per
+  // node per edge type. In a second iteration fill a NestedArray per edge type.
+  // TODO: have one big triple nested array for all edge lookups?
 
   // we initialize alll builders with null to prevent many useless allocations
   private val parentLookupBuilder = Array.fill[mutable.ArrayBuilder.ofInt](n)(null)
