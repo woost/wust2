@@ -6,7 +6,7 @@ object EventUpdate {
   import ApiEvent._
 
   def applyEventOnGraph(graph: Graph, event: ApiEvent.GraphContent): Graph = event match {
-    case NewGraphChanges(_, changes) => graph applyChanges changes
+    case NewGraphChanges(user, changes) => graph.applyChanges(user, changes)
 
     case ReplaceGraph(newGraph) => newGraph
   }

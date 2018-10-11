@@ -65,7 +65,7 @@ class GlobalState(
   }
 
   val addNodesInTransit = eventProcessor.changesInTransit
-    .map(changes => changes.flatMap(_.involvedNodeIds)(breakOut): Set[NodeId])
+    .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
     .unsafeToRx(Set.empty)
 
   val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)

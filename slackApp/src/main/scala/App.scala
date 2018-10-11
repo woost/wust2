@@ -361,7 +361,7 @@ object WustReceiver {
       graphChangeSeq.foreach { gc =>
 
         scribe.info(s"Received GraphChanges: ${gc.changes}")
-        wustEventMapper.computeMapping(gc.user, gc.changes)
+        wustEventMapper.computeMapping(gc.user.id, gc.changes)
       }
     }
 

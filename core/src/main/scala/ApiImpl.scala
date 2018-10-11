@@ -70,7 +70,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
     // TODO: task instead of this function
     val checkAllChanges: () => Future[Boolean] = () => {
-      val usedIdsFromDb = changes.flatMap(_.involvedNodeIdsWithEdges) diff changes.flatMap(
+      val usedIdsFromDb = changes.flatMap(_.involvedNodeIds) diff changes.flatMap(
         _.addNodes
           .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
       )
@@ -115,10 +115,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
       result.map { success =>
         if (success) {
-          // TODO: always add the user to graphchange events, in case other users have never seen this user.
-          val additionalChanges = GraphChanges(addNodes = Set(user.toNode))
-          val compactChanges = changes.foldLeft(additionalChanges)(_ merge _)
-          Returns(true, Seq(NewGraphChanges(user.id, compactChanges)))
+          val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _).consistent
+          Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
         } else Returns(false)
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
@@ -141,10 +139,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
             if (added)
               Seq(
                 NewGraphChanges(
-                  user.id,
+                  user,
                   GraphChanges(
                     addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)),
-                    addNodes = Set(user)
                   )
                 )
               )

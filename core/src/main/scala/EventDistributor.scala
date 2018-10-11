@@ -38,14 +38,13 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   ): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    val (checkedNodeIdsList, uncheckedNodeIdsList) = events.map {
-      case ApiEvent.NewGraphChanges(_, changes) =>
-        val userData: Set[(UserId, String)] = changes.addNodes.collect { case c: Node.User => c.id -> c.name }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
-        (changes.involvedNodeIds.toSet -- userData.map(_._1), userData)
-      case _ => (Set.empty[NodeId], Set.empty[(UserId, String)])
+    val (checkedNodeIdsList, authorsList) = events.map {
+      case ApiEvent.NewGraphChanges(user, changes) =>
+        (changes.involvedNodeIds.toSet -- Set(user.id), Set(user)) // expose author node
+      case _ => (Set.empty, Set.empty)
     }.unzip
     val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
-    val uncheckedNodeIds: Set[(UserId, String)] = uncheckedNodeIdsList.toSet.flatten
+    val authors: Set[Node.User] = authorsList.toSet.flatten
 
     subscribers.foreach { client =>
       if (origin.fold(true)(_ != client))
@@ -53,14 +52,14 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
           stateFut.flatMap { state =>
             state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
               db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds)
-                .map(permittedNodeIds => events.map(eventFilter(uncheckedNodeIds.map(_._1).toSet ++ permittedNodeIds)))
+                .map(permittedNodeIds => events.flatMap(eventFilter(authors.map(_.id) ++ permittedNodeIds)(_)))
             }
           }
         )
     }
 
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds, uncheckedNodeIds.map(_._2).headOption.getOrElse(""))
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds, authors.map(_.name).mkString(","))
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
@@ -133,8 +132,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
   }
 
-  private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => ApiEvent = {
-    case ApiEvent.NewGraphChanges(user, changes) => ApiEvent.NewGraphChanges(user, changes.filter(allowedNodeIds))
-    case other => other
+  private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => Option[ApiEvent] = {
+    case ApiEvent.NewGraphChanges(user, changes) =>
+      val allowedChanges = changes.filter(allowedNodeIds)
+      if (allowedChanges.isEmpty) None
+      else Some(ApiEvent.NewGraphChanges(user, allowedChanges))
+    case other => Some(other)
   }
 }

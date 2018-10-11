@@ -77,7 +77,7 @@ final case class Graph(nodes: Set[Node], edges: Set[Edge]) {
   def addNodes(ns: Iterable[Node]): Graph = changeGraphInternal(addNodes = ns.toSet, addEdges = Set.empty)
   def addConnections(es: Iterable[Edge]): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = es.toSet)
 
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes.toSet, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
+  def applyChanges(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(addNodes = Set(user) ++ c.addNodes, addEdges = c.addEdges.toSet, deleteEdges = c.delEdges.toSet)
   def +(node: Node): Graph = changeGraphInternal(addNodes = Set(node), addEdges = Set.empty)
   def +(edge: Edge): Graph = changeGraphInternal(addNodes = Set.empty, addEdges = Set(edge))
   def +(that: Graph): Graph = changeGraphInternal(addNodes = that.nodes, addEdges = that.edges)

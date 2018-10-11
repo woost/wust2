@@ -4,6 +4,7 @@ import sloth.PathName
 import wust.graph._
 import wust.ids.{EdgeData, _}
 import cats.data.NonEmptyList
+import wust.graph.Node.User
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
@@ -122,18 +123,18 @@ object ApiEvent {
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
-    val user: UserId
+    val user: User
   }
   object NewGraphChanges {
-    def unapply(event: ApiEvent): Option[(UserId, GraphChanges)] = event match {
+    def unapply(event: ApiEvent): Option[(User, GraphChanges)] = event match {
       case gc: NewGraphChanges => Some(gc.user -> gc.changes)
       case _                   => None
     }
 
-    def apply(user: UserId, changes: GraphChanges) = ForPublic(user, changes)
-    case class ForPublic(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public
-    case class ForPrivate(user: UserId, changes: GraphChanges) extends NewGraphChanges with Private
-    case class ForAll(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public with Private
+    def apply(user: User, changes: GraphChanges) = ForPublic(user, changes)
+    case class ForPublic(user: User, changes: GraphChanges) extends NewGraphChanges with Public
+    case class ForPrivate(user: User, changes: GraphChanges) extends NewGraphChanges with Private
+    case class ForAll(user: User, changes: GraphChanges) extends NewGraphChanges with Public with Private
   }
 
   case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {

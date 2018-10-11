@@ -27,27 +27,16 @@ case class GraphChanges(
   }
 
   def filter(p: NodeId => Boolean): GraphChanges =
-    copy(
-      addNodes = addNodes.filter(n => p(n.id))
-    ).consistent
-
-  private val swapDeletedParent: Edge => Edge = {
-    case Edge.Parent(source, EdgeData.Parent(None), target)    => Edge.Parent.delete(source, target)
-    case Edge.Parent(source, EdgeData.Parent(Some(_)), target) => Edge.Parent(source, target)
-    case other                                                 => other
-  }
-
-  def revert = GraphChanges(
-    addEdges = consistent.delEdges.map(swapDeletedParent),
-    delEdges = consistent.addEdges.map(swapDeletedParent)
-  )
+    GraphChanges(
+      addNodes = addNodes.filter(n => p(n.id)),
+      addEdges = addEdges.filter(e => p(e.sourceId) && p(e.targetId)),
+      delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
+    )
 
   lazy val consistent: GraphChanges = copy(addEdges = addEdges -- delEdges)
 
-  def involvedNodeIds: collection.Set[NodeId] = addNodes.map(_.id)
-
-  def involvedNodeIdsWithEdges: collection.Set[NodeId] =
-    involvedNodeIds ++
+  def involvedNodeIds: collection.Set[NodeId] =
+    addNodes.map(_.id) ++
       addEdges.flatMap(e => e.sourceId :: e.targetId :: Nil) ++
       delEdges.flatMap(e => e.sourceId :: e.targetId :: Nil)
 
