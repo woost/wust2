@@ -329,7 +329,6 @@ lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
 lazy val css = crossProject(JSPlatform, JVMPlatform)
-  .crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(

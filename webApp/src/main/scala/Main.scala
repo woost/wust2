@@ -40,11 +40,13 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
-    // TODO: DevOnly {
-    val styleTag = document.createElement("style")
-    document.head.appendChild(styleTag)
-    styleTag.innerHTML = wust.css.StyleRendering.renderAll
-    // }
+    // in production a css file is generated.
+    // TODO: do not depend on css subproject in production?
+    DevOnly {
+      val styleTag = document.createElement("style")
+      document.head.appendChild(styleTag)
+      styleTag.innerHTML = wust.css.StyleRendering.renderAll
+    }
 
     Rendered.init()
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()

@@ -998,17 +998,4 @@ object CommonStyles extends StyleSheet.Standalone {
 
 object StyleRendering {
   def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String]
-
-  //    final def render[Out](implicit r: Renderer[Out], env: Env): Out =
-  // cssRegister.render
-
-  // import java.io.{File, PrintWriter}
-
-  // /** Generates css files from scalacss styles */
-  // def Build() = {
-  //   // val w = new PrintWriter(new File("../webApp/src/css/generated.css"))
-  //   val w = new PrintWriter(new File("../webApp/src/css/style.css"))
-  //   w.write(renderAll)
-  //   w.close()
-  // }
 }

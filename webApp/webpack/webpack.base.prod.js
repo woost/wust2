@@ -10,6 +10,16 @@ const HtmlPlugin = require("html-webpack-plugin");
 const HtmlIncludeAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+
+// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
+// this file will automatically be picked up by webpack from that folder.
+const { execSync } = require('child_process');
+// stderr is sent to stdout of parent process
+// you can set options.stdio if you want it to go elsewhere
+const rootFolder = Path.resolve(__dirname, '../../../../..');
+execSync('cd ' + rootFolder + '; sbt cssJVM/run');
+
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
@@ -100,7 +110,18 @@ cssFiles.forEach(function (file) {
 const extractSass = new ExtractTextPlugin({
     filename: filenamePattern + '.css'
 });
+
 module.exports.plugins.push(extractSass);
+module.exports.plugins.push(
+    new OptimizeCssAssetsPlugin({
+      assetNameRegExp: /\.css$/g,
+      cssProcessor: require('cssnano'),
+      cssProcessorPluginOptions: {
+        preset: ['default', { discardComments: { removeAll: true } }],
+      },
+      canPrint: true
+    })
+);
 // module.exports.module.rules.push({
 //     test: /style\.scss$/,
 //     use: extractSass.extract({

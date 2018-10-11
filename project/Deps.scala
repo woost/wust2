@@ -143,6 +143,8 @@ object Deps {
         "webpack-merge" -> "4.1.4" ::
         "copy-webpack-plugin" -> "4.5.2" ::
         "workbox-webpack-plugin" -> "3.4.1" ::
+        "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
+        "cssnano" -> "4.1.4" ::
         Nil
   }
 
