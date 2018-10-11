@@ -2,16 +2,15 @@ package wust.webApp
 
 import scala.scalajs.LinkingInfo
 object DevOnly {
-  var enabled = true
-  def apply[T](code: => T): Option[T] = {
+  @inline def apply[T](code: => T): Option[T] = {
     if (isTrue) Option(code) else None
   }
 
-  def isTrue = LinkingInfo.developmentMode && enabled
+  @inline def isTrue = LinkingInfo.developmentMode
 }
 
 object DevPrintln {
-  def apply(code: => Any): Unit = {
+  @inline def apply(code: => Any): Unit = {
     DevOnly { println(code) }
   }
 }
