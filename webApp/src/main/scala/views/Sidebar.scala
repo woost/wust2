@@ -179,10 +179,10 @@ object Sidebar {
     case class Node(id: NodeId) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    onClick.map { e =>
+    onClick handleWith { e =>
       val page = state.page.now
       //TODO if (e.shiftKey) {
-      action match {
+      val newPage = action match {
         case ChannelAction.Node(id)   =>
           if(e.ctrlKey) {
             val filtered = page.parentIds.filterNot(_ == id)
@@ -193,8 +193,7 @@ object Sidebar {
             page.copy(parentIds = parentIds)
           } else Page(Seq(id))
       }
-    } handleWith { page =>
       val contentView = if(state.view.now.isContent) state.view.now else View.default
-      state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
+      state.viewConfig() = state.viewConfig.now.copy(page = newPage, view = contentView, redirectTo = None)
     }
 }
