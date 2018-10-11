@@ -247,6 +247,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                 case Some(deletedAt) =>
                   //TODO should already be filtered in backend
                   if(deletedAt > remorseTimeForDeletedParents) {
+                    addToNestedBuilder(parentLookupBuilder, sourceIdx, targetIdx)
+                    addToNestedBuilder(childLookupBuilder, targetIdx, sourceIdx)
                     addToNestedBuilder(deletedParentLookupBuilder, sourceIdx, targetIdx)
                     addToNestedBuilder(deletedChildLookupBuilder, targetIdx, sourceIdx)
                   }
