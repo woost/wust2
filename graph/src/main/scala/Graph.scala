@@ -391,8 +391,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     tagSet.map(nodes)
   }
 
+  lazy val chronologicalNodesAscendingIdx: Array[Int] = {
+     nodes.indices.toArray.sortBy(nodeCreated)
+  }
+
   lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
-     nodes.indices.sortBy(nodeCreated).map(nodes)
+     chronologicalNodesAscendingIdx.map(nodes)
   }
 
   lazy val contentNodes: Iterable[Node.Content] = nodes.collect { case p: Node.Content => p }
