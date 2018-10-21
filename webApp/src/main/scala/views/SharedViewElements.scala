@@ -113,7 +113,7 @@ object SharedViewElements {
           },
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
-          placeholder := "Write a message and press Enter to submit.",
+          placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
           onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] }
         )
       ),

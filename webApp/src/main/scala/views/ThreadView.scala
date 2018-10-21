@@ -13,6 +13,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -195,7 +196,7 @@ object ThreadView {
           },
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
-          placeholder := "Write a message and press Enter to submit.",
+          placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
           onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
           //TODO: outwatch: Emitterbuilder.timeOut
           onBlur.value --> sideEffect {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
