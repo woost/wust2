@@ -371,4 +371,15 @@ object SharedViewElements {
     groupsBuilder += currentGroupBuilder.result()
     groupsBuilder.result()
   }
+
+  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
+    val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
+    List(
+      zoomButton(onClick handleWith {
+        state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
+        selectedNodes() = Set.empty[T]
+      }),
+      SelectedNodes.deleteAllButton[T](state, nodeIdSet, selectedNodes),
+    )
+  }
 }

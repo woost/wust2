@@ -17,6 +17,7 @@ import wust.webApp.views.Elements._
 import wust.webApp.state.ScreenSize
 
 object SelectedNodes {
+  //TODO T <: SelectedNodeBase, remove getNodeId when ChatOld/ThreadOld
   def apply[T](state: GlobalState, getNodeId: T => NodeId, nodeActions:List[T] => List[VNode] = (_:List[T]) => Nil, singleNodeActions:T => List[VNode] = (_:List[T]) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodes: Var[Set[T]] = selected.mapRead { selectedNodes =>

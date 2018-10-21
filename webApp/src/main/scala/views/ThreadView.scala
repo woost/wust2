@@ -24,6 +24,7 @@ import scala.scalajs.js
 
 object ThreadView {
   import SharedViewElements._
+  //TODO undelete in selected nodes
   //TODO: show less on small screen sizes, word-break
   //TODO: reply submit button on mobile
   //TODO: smaller input field placeholder on small screens / mobile. Enter cannot be pressed on mobile
@@ -61,7 +62,7 @@ object ThreadView {
         outerDragOptions,
 
         // clicking on background deselects
-        onClick handleWith {clearSelectedNodes(selectedNodes)},
+        onClick handleWith { selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
 
       ),
@@ -300,36 +301,21 @@ object ThreadView {
     nodes
   }
 
-  def clearSelectedNodes(selectedNodes:Var[Set[SelectedNode]]): Unit = {
-    selectedNodes() = Set.empty[SelectedNode]
-  }
-
-  def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
+  //TODO share code with threadview?
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
     List(
       editButton(
         onClick handleWith {
           selectedNodes.now.head.editMode() = true
-          clearSelectedNodes(selectedNodes)
+          selectedNodes() = Set.empty[SelectedNode]
         }
       ),
       replyButton(
         onClick handleWith {
           selectedNodes.now.head.showReplyField() = true
-          clearSelectedNodes(selectedNodes)
+          selectedNodes() = Set.empty[SelectedNode]
         }
       ) //TODO: scroll to focused field?
     )
   } else Nil
-
-  def selectedNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): List[SelectedNode] => List[VNode] = selected => {
-    val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
-    List(
-      zoomButton(onClick handleWith {
-        state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
-        clearSelectedNodes(selectedNodes)
-      }),
-      SelectedNodes.deleteAllButton[SelectedNode](state, nodeIdSet, selectedNodes),
-    )
-  }
-
 }

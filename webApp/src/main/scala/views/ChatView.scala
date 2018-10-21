@@ -28,6 +28,8 @@ object ChatView {
   private final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
+
     val outerDragOptions = VDomModifier(
       draggableAs(state, DragItem.DisableDrag), // chat history is not draggable, only its elements
       Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
@@ -43,12 +45,17 @@ object ChatView {
       keyed,
       Styles.flex,
       flexDirection.column,
-      position.relative,
+      position.relative, // for absolute positioning of selectednodes
+      //TODO: maybe we want to reply to multiple nodes as well in chat?
+      SelectedNodes[SelectedNode](state, _.nodeId, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes, currentReply), selectedNodes).apply(
+        position.absolute,
+        width := "100%"
+      ),
       div(
         cls := "chat-history",
         overflow.auto,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, currentReply),
+        chatHistory(state, currentReply, selectedNodes),
         outerDragOptions,
         scrollHandler.scrollOptions(state)
       ),
@@ -180,7 +187,7 @@ object ChatView {
       )
     }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
 
@@ -200,8 +207,6 @@ object ChatView {
               graph.lookup.isDeletedNow(nodeId, state.page.now.parentIds)
             }
 
-            val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
-
             val editMode = Var(false)
 
             renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, currentReply = currentReply)
@@ -211,7 +216,7 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): Rx[Array[VNode]] = {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[VNode]] = {
     Rx {
       val page = state.page()
       val graph = state.graph()
@@ -222,7 +227,7 @@ object ChatView {
         val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
         val key = nodeIds.head.toString
 
-        div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, currentReply))
+        div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, currentReply, selectedNodes))
       }
     }
   }
@@ -244,4 +249,22 @@ object ChatView {
     sortByCreated(nodes, graph)
     nodes
   }
+
+  //TODO share code with threadview?
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
+    List(
+      editButton(
+        onClick handleWith {
+          selectedNodes.now.head.editMode() = true
+          selectedNodes() = Set.empty[SelectedNode]
+        }
+      ),
+      replyButton(
+        onClick handleWith {
+          currentReply() = selectedNodes.now.map(_.nodeId)
+          selectedNodes() = Set.empty[SelectedNode]
+        }
+      ) //TODO: scroll to focused field?
+    )
+  } else Nil
 }
