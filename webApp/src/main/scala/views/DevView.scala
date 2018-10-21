@@ -13,8 +13,24 @@ import wust.webApp.state.GlobalState
 
 import scala.collection.mutable
 import scala.concurrent.duration.{span => _}
+import wust.util.time.{StopWatch, time}
 
 object DevView {
+
+  def benchGraphLookup(state:GlobalState, n:Int) = {
+    var i = 0
+    var g = state.graph.now
+    val stopWatch = new StopWatch
+    stopWatch.measure {
+      while(i < n) {
+        g = g.copy(g.nodes, g.edges)
+        g.lookup
+        i += 1
+      }
+    }
+    stopWatch.totalPassedTime /= n
+    println("Graph lookup: " + (stopWatch.readMicros/1000.0) + "ms")
+  }
 
   def button =
     outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
@@ -187,7 +203,7 @@ object DevView {
             button("100", onClick handleWith { disconnect(100) })
           )
         },
-        additions
+        additions,
         //        div(
         //          "Random Events:",
         //          br(),
@@ -274,6 +290,12 @@ object DevView {
 //          case None => span()
 //        }).render
 //      }
+      div(
+        "Benchmark Graph lookup:",
+        Rx{s"Graph(${state.graph().nodes.size}, ${state.graph().edges.size})"},
+        List(1,10,100, 1000, 10000, 100000).map(n => button(s"${n}x", onClick.handleWith{benchGraphLookup(state, n)}))
+      )
+
     )
   }
 }
