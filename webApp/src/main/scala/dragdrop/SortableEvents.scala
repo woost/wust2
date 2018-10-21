@@ -81,15 +81,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     if(oldOrderedNodes.size != oldContChilds.length) {
 //      console.log("Kanban elements by sortable: ", oldContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, oldOrderedNodes)}")
-      scribe.warn("oldOrderedNodes.size != oldContChilds.length => Kanban item dropped at an edge of a container")
+      scribe.warn(s"oldOrderedNodes.size(${oldOrderedNodes.size}) != oldContChilds.length(${oldContChilds.length}) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
     }
 
     val oldIndex = oldOrderedNodes.indexOf(g.idToIdx(sortedNodeId))
 
     // Kanban data and node data diverge
-    if(oldIndex == oldSortIndex){
-      scribe.error("index of reconstruction and sort must match")
+    if(oldIndex != oldSortIndex){
+      scribe.error(s"index of reconstruction and sort must match, oldIndex($oldIndex) != oldSortIndex($oldSortIndex)")
       return GraphChanges.empty
     }
 
@@ -117,7 +117,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     if(newOrderedNodes.nonEmpty && newOrderedNodes.size + 1 < newContChilds.length) {
 //      console.log("Kanban elements by sortable: ", newContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, newOrderedNodes)}")
-      scribe.warn("newOrderedNodes.size != newContChilds.length => Kanban item dropped at an edge of a container")
+      scribe.warn(s"newOrderedNodes.size(${newOrderedNodes.size}) != newContChilds.length(${newContChilds.length}) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
     }
 
@@ -140,7 +140,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       val (newBefore, newAfter) = (newSortIndex+beforeIndexShift+downCorrection, newSortIndex+afterIndexShift+upCorrection)
 
-      if(newBefore != oldSortIndex && newAfter != oldSortIndex) {
+      // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
+      if(newBefore == oldSortIndex || newAfter == oldSortIndex) {
         scribe.error(s"Index conflict: old $oldSortIndex, before: $newBefore, after: $newAfter")
         return GraphChanges.empty
       }
@@ -164,7 +165,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       }
     )).toSet
 
-    scribe.info("SORTING\n" +
+    scribe.debug("SORTING\n" +
       s"dragged node: ${g.nodesById(sortedNodeId).str}\n\t" +
       s"from ${from.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, oldOrderedNodes)}\n\t" +
       s"from index $oldIndex\n\t" +
