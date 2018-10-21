@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
 import outwatch.dom._
@@ -25,9 +26,6 @@ import scala.scalajs.js
 
 object ThreadView {
   import SharedViewElements._
-  //TODO: show less on small screen sizes, word-break
-  //TODO: reply submit button on mobile
-  //TODO: smaller input field placeholder on small screens / mobile. Enter cannot be pressed on mobile
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
@@ -179,6 +177,15 @@ object ThreadView {
   }
 
   private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean]): VNode = {
+
+    def handleInput(str: String): Unit = if (str.nonEmpty) {
+      val changes = {
+        GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil)
+      }
+      state.eventProcessor.changes.onNext(changes)
+    }
+
+    var currentTextArea: dom.html.TextArea = null
     div(
       Styles.flex,
       alignItems.center,
@@ -187,22 +194,34 @@ object ThreadView {
         cls := "ui form",
         textArea(
           cls := "field",
-          valueWithEnter handleWith { str =>
-            val changes = {
-              GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil)
-            }
-
-            state.eventProcessor.changes.onNext(changes)
+          BrowserDetect.isMobile.ifFalse {
+            valueWithEnter handleWith handleInput _
           },
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
           placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
           onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
+          onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           //TODO: outwatch: Emitterbuilder.timeOut
           onBlur.value --> sideEffect {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
         ),
         padding := "3px",
         width := "100%"
+      ),
+      BrowserDetect.isMobile.ifTrue[VDomModifier](
+        button(
+          Styles.flexStatic,
+          cls := "ui circular icon button",
+          onClick handleWith {
+            val str = currentTextArea.value
+            handleInput(str)
+            currentTextArea.value = ""
+          },
+          marginLeft := "3.5px",
+          backgroundColor := "steelblue",
+          color := "white",
+          freeRegular.faPaperPlane
+        )
       ),
       closeButton(
         onClick handleWith { showReplyField() = false },
