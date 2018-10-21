@@ -21,11 +21,11 @@ final case class Cuid(left: Long, right: Long) {
 
   def toUuid: UUID = new UUID(left, right)
 
-  @inline override def hashCode: Int = (left ^ (right >> 32)).toInt
-  @inline override def equals(that: Any): Boolean = that match {
-    case that: Cuid => left == that.left && right == that.right
-    case _              => false
-  }
+   @inline override def hashCode: Int = (left ^ (left >> 32)).toInt ^ (right ^ (right >> 32)).toInt
+   @inline override def equals(that: Any): Boolean = that match {
+     case that: Cuid => isEqual(that)
+     case _              => false
+   }
 
   def toCuidString: String = {
     val base = 36
@@ -45,7 +45,17 @@ final case class Cuid(left: Long, right: Long) {
     Base58(toByteArray).str
   }
 
-  override def toString = toBase58
+  def toHex:String = s"${left.toHexString}|${right.toHexString}"
+
+  @inline def isEqual(that: Cuid): Boolean = left == that.left && right == that.right
+  @inline def <(that: Cuid): Boolean = left < that.left || (left == that.left && right < that.right)
+  def compare(that: Cuid): Int = {
+    if (this < that) -1
+    else if (this isEqual that) 0
+    else 1
+  }
+
+  override def toString: String = toHex
 }
 object Cuid {
   def fromUuid(uuid: UUID): Cuid =

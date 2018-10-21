@@ -6,6 +6,7 @@ import rx._
 import wust.css.Styles
 import wust.graph.Page
 import wust.util._
+import wust.webApp.DevOnly
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 
@@ -15,15 +16,16 @@ object MainView {
     div(
       cls := "mainview",
       Styles.flex,
-      Topbar(state)(ctx)(width := "100%", Styles.flexStatic),
+//      DevOnly { DevView(state) },
+      Topbar(state)(width := "100%", Styles.flexStatic),
       div(
         Styles.flex,
         Styles.growFull,
-        Sidebar(state)(ctx),
+        position.relative,
+        Sidebar(state),
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           width := "100%",
-          overflow.auto, // nobody knows why we need this here, but else overflow in the content does not work
           Rx {
             // don't show non-bookmarked border for:
             val isNewChannelPage = state.page().isInstanceOf[Page.NewChannel]
@@ -31,7 +33,7 @@ object MainView {
             val noContent = !state.view().isContent
             val isOwnUser = state.page().parentIds == Seq(state.user().id)
 
-            (isNewChannelPage || bookmarked || noContent || isOwnUser).ifFalseOption(
+            (isNewChannelPage || bookmarked || noContent || isOwnUser).ifFalse[VDomModifier](
               cls := "non-bookmarked-page-frame"
             )
           },
@@ -39,12 +41,11 @@ object MainView {
             Styles.flex,
             Styles.growFull,
             flexDirection.column,
-            position.relative,
             Rx {
               val view = state.view()
               view.isContent
                 .ifTrueSeq(Seq(
-                  (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(ctx)(Styles.flexStatic)),
+                  (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic)),
                   PageHeader(state).apply(Styles.flexStatic)
                 ))
             },
@@ -55,7 +56,7 @@ object MainView {
             },
           )
         )
-      ),
+      )
     )
   }
 }

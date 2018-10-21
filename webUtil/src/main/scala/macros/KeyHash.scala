@@ -19,7 +19,17 @@ object KeyHashMacro {
     val pos = c.enclosingPosition
     val hash = List(pos.source.path, pos.line, pos.column).hashCode()
 
-    c.Expr[Int](q"${values.toList}.foldLeft($hash)((acc,v) => _root_.scala.runtime.Statics.mix(acc, v.hashCode))")
+    c.Expr[Int](
+      q"""{
+          var i = 0
+          var hash = $hash
+          val values = ${values.toList}
+          while (i < values.length) {
+            hash = _root_.scala.runtime.Statics.mix(hash, values(i).hashCode)
+            i += 1
+          }
+          hash
+       }""")
   }
   def key(c: Context): c.Expr[Key] = {
     import c.universe._
@@ -35,7 +45,17 @@ object KeyHashMacro {
     val pos = c.enclosingPosition
     val hash = List(pos.source.path, pos.line, pos.column).hashCode()
 
-    c.Expr[Key](q"_root_.outwatch.dom.dsl.key := ${values.toList}.foldLeft($hash)((acc,v) => _root_.scala.runtime.Statics.mix(acc, v.hashCode))")
+    c.Expr[Key](
+      q"""{
+          var i = 0
+          var hash = $hash
+          val values = ${values.toList}
+          while (i < values.length) {
+            hash = _root_.scala.runtime.Statics.mix(hash, values(i).hashCode)
+            i += 1
+          }
+          _root_.outwatch.dom.dsl.key := hash
+       }""")
   }
 }
 

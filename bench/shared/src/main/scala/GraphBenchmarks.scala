@@ -53,7 +53,7 @@ object GraphBenchmarks {
       val graph = randomGraph(size, d)
       val userNode = Node.User(UserId.fresh, NodeData.User("harals", true, 1), NodeMeta.User)
       val edges = graph.nodes.map(n => Edge.Pinned(userNode.id, n.id))
-      (graph + userNode addConnections edges, userNode)
+      (graph addEdges edges, userNode)
     }
 
     Seq(

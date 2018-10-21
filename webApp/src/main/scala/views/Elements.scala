@@ -6,12 +6,15 @@ import fontAwesome.freeSolid
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
+import org.scalajs.dom.{KeyboardEvent, MouseEvent}
+import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.ext.KeyCode
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
 import wust.css.Styles
 import wust.webApp.outwatchHelpers._
+import wust.webApp.BrowserDetect
 
 import scala.scalajs.js
 
@@ -37,17 +40,65 @@ object Elements {
       .filter(_.keyCode == KeyCode.Escape)
       .preventDefault
 
-  val onGlobalEscape =
+  val onGlobalEscape: CustomEmitterBuilder[KeyboardEvent, VDomModifier] =
     EmitterBuilder.ofModifier { (sink: dom.KeyboardEvent => Unit) =>
-      VDomModifier(
-        managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).foreach(sink)))
-      )
+      if (BrowserDetect.isMobile) VDomModifier.empty
+      else managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).foreach(sink)))
     }
 
-  val onGlobalClick =
+  val onGlobalClick: CustomEmitterBuilder[MouseEvent, VDomModifier] =
     EmitterBuilder.ofModifier { (sink: dom.MouseEvent => Unit) =>
+      managed(IO(events.document.onClick.foreach(sink)))
+    }
+
+  val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
+    EmitterBuilder.ofModifier { (sink: Boolean => Unit) =>
+      // https://stackoverflow.com/a/27413909
+      val duration = 251
+
+      var longpress = false
+      var presstimer = -1
+
+      def cancel(): Unit = {
+        if (presstimer != -1) {
+          clearTimeout(presstimer)
+          presstimer = -1
+        }
+      }
+
+      def click(e:dom.MouseEvent): Unit = {
+        if (presstimer != -1) {
+          clearTimeout(presstimer);
+          presstimer = -1
+        }
+
+        if (!longpress) {
+          sink(false) // click
+        }
+      }
+
+      def start(e:dom.MouseEvent): Unit = {
+        if (e.`type` === "click" && e.button != 0) {
+        } else {
+
+          longpress = false
+
+          presstimer = setTimeout({ () =>
+            sink(true) // long click
+            longpress = true
+          }, duration)
+        }
+      }
+
       VDomModifier(
-        managed(IO(events.document.onClick.foreach(sink)))
+        //TODO: SDT: add touch handlers
+        onMouseDown.stopPropagation handleWith { start _ },
+        eventProp("touchstart") handleWith { start _ },
+        onClick.stopPropagation handleWith { click _ },
+        onMouseOut handleWith {cancel()},
+        eventProp("touchend") handleWith {cancel()},
+        eventProp("touchleave") handleWith {cancel()},
+        eventProp("touchcancel") handleWith {cancel()},
       )
     }
 
@@ -95,7 +146,7 @@ object Elements {
     elem.asInstanceOf[js.Dynamic].updateDynamic(propName)((() => value).asInstanceOf[js.Any])
   }
 
-  def defer(code: => Unit): Unit = {
+  @inline def defer(code: => Unit): Unit = {
 //    dom.window.setTimeout(() => code, timeout = 0)
     immediate.immediate(() => code)
   }
@@ -106,13 +157,13 @@ object Elements {
     (sink: String => Unit) =>
       val userInput = Handler.created[String]
       val writeValue = Observable.merge(userInput.map(_ => ""), overrideValue)
-      Seq(
+      VDomModifier(
           value <-- writeValue,
         //TODO WTF WHY DOES THAT NOT WORK?
         //          onEnter.value.filter(_.nonEmpty) --> userInput,
         onEnter.stopPropagation.map(_.currentTarget.asInstanceOf[dom.html.Input].value).filter(_.nonEmpty) --> userInput,
-          managed(IO(userInput.distinctUntilChanged.foreach(sink))) // distinct, because Enter can be pressed multiple times before writeValue clears the field
-        )
+        managed(IO(userInput.foreach(sink)))
+      )
     }
 
   def closeButton: VNode = div(

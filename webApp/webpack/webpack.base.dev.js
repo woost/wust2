@@ -10,7 +10,7 @@ const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 const cssFolder = commons.woost.cssFolder;
-const cssFiles = commons.woost.cssFiles;
+const cssFiles = commons.woost.cssFiles.filter(x => !x.endsWith('scalacss.css')); //filter out generated css file...
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;

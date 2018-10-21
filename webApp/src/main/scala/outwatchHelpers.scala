@@ -7,7 +7,8 @@ import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import outwatch.dom.{AsObserver, AsValueObservable, Handler, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.AsVDomModifier
+import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import rx._
 import wust.util.Empty
 import wust.webUtil.macros.KeyHash
@@ -74,6 +75,13 @@ package object outwatchHelpers extends KeyHash {
     def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
   }
 
+
+  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Nothing]((_,_) => ???, None))
+
+  def managedOwner(implicit ctx: Ctx.Owner): VDomModifier = {
+    dsl.onDomUnmount handleWith { ctx.contextualRx.kill() }
+  }
+
   implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
   }
@@ -85,6 +93,10 @@ package object outwatchHelpers extends KeyHash {
     }
   }
 
+  //TODO: add to outwatch
+  implicit def arrayModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Array[T]] =
+    (value: Array[T]) => CompositeModifier(value.map(v => vm.asVDomModifier(v)).toJSArray)
+
   implicit object VarAsObserver extends AsObserver[Var] {
     override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
   }
@@ -93,7 +105,16 @@ package object outwatchHelpers extends KeyHash {
     def toObserver: Observer[T] = new VarObserver(rxVar)
   }
 
-  implicit class RichVNode(val vNode: VNode) {
+  implicit class RichVNode(val vNode: BasicVNode) {
+    def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = vNode.conditional(key)(false)(renderFn)
+    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = static(key) {
+      val owner = createManualOwner()
+      VDomModifier(renderFn(owner), managedOwner(owner))
+    }
+    def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args) {
+      val owner = createManualOwner()
+      VDomModifier(renderFn(owner), managedOwner(owner))
+    }
     def render: org.scalajs.dom.Element = {
       val elem = document.createElement("div")
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()
@@ -137,22 +158,28 @@ package object outwatchHelpers extends KeyHash {
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
   def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
-    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
-  ).startWith(false :: Nil)
+   outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+   outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
+ ).startWith(false :: Nil)
 
+  // fontawesome uses svg for icons and span for layered icons.
+  // we need to handle layers as an html tag instead of svg.
+  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
+  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
+    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
+    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
+  )
   private def abstractTreeToVNode(tree: AbstractElement): VNode = {
-    // fontawesome uses svg for icons and span for layered icons.
-    // we need to handle layers as an html tag instead of svg.
-    val tag = if (tree.tag == "span") dsl.htmlTag(tree.tag) else dsl.svgTag(tree.tag)
-    tag(
-      tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
-      tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
-    )
+    val tag = stringToTag(tree.tag)
+    tag(treeToModifiers(tree))
+  }
+  private def abstractTreeToVNodeRoot(name: String, tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag.static(keyValue(name))(treeToModifiers(tree))
   }
 
   implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
-    abstractTreeToVNode(fontawesome.icon(icon).`abstract`(0))
+    abstractTreeToVNodeRoot(icon.iconName, fontawesome.icon(icon).`abstract`(0))
   }
 
   implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
@@ -162,8 +189,8 @@ package object outwatchHelpers extends KeyHash {
   import scalacss.defaults.Exports.StyleA
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-  implicit object VDomModifierEmpty extends Empty[VDomModifier] {
-    def empty: VDomModifier = VDomModifier.empty
+  implicit object EmptyVDomModifier extends Empty[VDomModifier] {
+    @inline def empty: VDomModifier = VDomModifier.empty
   }
 
   //TODO: add to fontawesome
@@ -189,7 +216,7 @@ package object outwatchHelpers extends KeyHash {
   }
 
 
-  def inAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
+  def inNextAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
     private val requester = requestSingleAnimationFrame()
     override def onNext(elem: T): Ack = {
       requester(next(elem))

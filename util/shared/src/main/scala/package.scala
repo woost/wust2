@@ -47,14 +47,14 @@ package object util {
   }
 
   implicit class RichBoolean(val b: Boolean) extends AnyVal {
-    final def ifTrueSeq[A](a: => Seq[A]): Seq[A] = ifTrue(a)
-    final def ifFalseSeq[A](a: => Seq[A]): Seq[A] = ifFalse(a)
-    final def ifTrueSet[A](a: => Set[A]): Set[A] = ifTrue(a)
-    final def ifFalseSet[A](a: => Set[A]): Set[A] = ifFalse(a)
-    final def ifTrueOption[A](a: => A): Option[A] = ifTrue(Option(a))
-    final def ifFalseOption[A](a: => A): Option[A] = ifFalse(Option(a))
+    @inline final def ifTrueSeq[A](a: => Seq[A]): Seq[A] = ifTrue(a)
+    @inline final def ifFalseSeq[A](a: => Seq[A]): Seq[A] = ifFalse(a)
+    @inline final def ifTrueSet[A](a: => Set[A]): Set[A] = ifTrue(a)
+    @inline final def ifFalseSet[A](a: => Set[A]): Set[A] = ifFalse(a)
+    @inline final def ifTrueOption[A](a: => A): Option[A] = ifTrue(Option(a))
+    @inline final def ifFalseOption[A](a: => A): Option[A] = ifFalse(Option(a))
 
-    final def ifTrue[A](a: => A)(implicit e: Empty[A]): A = if (b) a else e.empty
-    final def ifFalse[A](a: => A)(implicit e: Empty[A]): A = if (!b) a else e.empty
+    @inline final def ifTrue[A](a: => A)(implicit e: Empty[A]): A = if (b) a else e.empty
+    @inline final def ifFalse[A](a: => A)(implicit e: Empty[A]): A = if (!b) a else e.empty
   }
 }

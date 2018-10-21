@@ -30,13 +30,15 @@ import wust.webApp.state.{GlobalState, ScreenSize, ViewConfig}
 import wust.webApp.views.Components._
 
 import scala.concurrent.Future
+import scala.collection.breakOut
+import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 
 object PageHeader {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState): VNode = {
     import state._
-    div(
+    div.staticRx(keyValue)(implicit ctx =>
       Rx {
         pageParentNodes().map { channel => channelRow(state, channel) }
       }
@@ -59,33 +61,46 @@ object PageHeader {
 
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
       channelTitle(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
-      Rx {(state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](channelMembers(state, channel)(ctx)(Styles.flexStatic, marginRight := "10px"))},
-      menu(state, channel).apply(marginLeft.auto),
+      Rx {
+        val hasBigScreen = state.screenSize() != ScreenSize.Small
+        hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px"))
+      },
+      menu(state, channel)
     )
   }
 
-  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): ThunkVNode = {
+    div.thunk(keyValue(channel))(channel.id) {
+      val isSpecialNode = Rx{
+        //TODO we should use the permission system here and have readonly permission for e.g. feedback
+        channel.id == state.user().id
+      }
+      val isBookmarked = Rx {
+        val g = state.graph()
+        val channelIdx = g.lookup.idToIdx(channel.id)
+        val userIdx = g.lookup.idToIdx(state.user().id)
+        state.graph().lookup.pinnedNodeIdx(userIdx).contains(channelIdx)
+      }
 
-    val isSpecialNode = Rx{ channel.id == state.user().id }
-    val isBookmarked = Rx {
-      val g = state.graph()
-      val channelIdx = g.lookup.idToIdx(channel.id)
-      val userIdx = g.lookup.idToIdx(state.user().id)
-      state.graph().lookup.pinnedNodeIdx(userIdx).contains(channelIdx)
+      val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
+
+      VDomModifier(
+        Styles.flex,
+        alignItems.center,
+        flexWrap.wrap,
+        marginLeft.auto,
+        minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
+        style("user-select") := "none",
+        Rx {
+          val showChannelsButton = isSpecialNode() || isBookmarked()
+          showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
+        },
+        notifyControl(state, channel).apply(buttonStyle),
+        Rx {
+          settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
+        },
+      )
     }
-
-    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
-
-    div(
-      Styles.flex,
-      alignItems.center,
-      flexWrap.wrap,
-      minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-      style("user-select") := "none",
-      Rx {(isSpecialNode() || isBookmarked()).ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))},
-      notifyControl(state, channel).apply(buttonStyle),
-      Rx {settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)},
-    )
   }
 
   private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
@@ -94,11 +109,9 @@ object PageHeader {
       flexWrap.wrap,
       Rx {
         val graph = state.graph()
-        val members = graph.members(channel.id)
-        val authors = graph.authorsIn(channel.id)
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = (members ++ authors).distinct.take(7)
+        val users = graph.lookup.usersInNode(channel.id, max = 7)
 
         users.map(user => Avatar.user(user.id)(
           tag("title")(user.name), //TODO: add svg title tag to scala-dom-types
@@ -107,7 +120,7 @@ object PageHeader {
           height := "22px",
           cls := "avatar",
           marginBottom := "2px",
-        ))
+        ))(breakOut) : js.Array[VNode]
       }
     )
   }
@@ -178,7 +191,7 @@ object PageHeader {
           cursor.pointer,
           fontFamily := "Roboto Slab",
           paddingTop := "3px",
-          Components.nodeCard(state, nodeRes._1, maxLength = Some(60)),
+          Components.nodeCard(nodeRes._1, maxLength = Some(60)),
           onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
           onClick(searchModal) handleWith { elem =>
             import semanticUi.JQuery._
@@ -211,14 +224,14 @@ object PageHeader {
     val searchResult: Observable[VDomModifier] = searches.map {
       case SearchInput.Local(query) if query.nonEmpty =>
         val graph = state.graph.now
-        val nodes = graph.contentNodes.toList
+        val nodes = graph.nodes.toList
         val descendants = graph.descendants(node.id)
 
         val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
         renderSearchResult(query, channelDescendants, false)
       case SearchInput.Global(query) if query.nonEmpty =>
         Observable.fromFuture(Client.api.getGraph(Page.empty)).map { graph => //TODO? get whole graph? does that make sense?
-          renderSearchResult(query, graph.contentNodes.toList, true)
+          renderSearchResult(query, graph.nodes.toList, true)
         }
       case _ => VDomModifier.empty
     }
@@ -300,11 +313,7 @@ object PageHeader {
     val userNameInputProcess = PublishSubject[String]
 
     def handleAddMember(name: String) = {
-      val graphUser = state.graph.now.userIdByName.get(name) match {
-        case u @ Some(userId) => Future.successful(u)
-        case _ => Client.api.getUserId(name)
-      }
-
+      val graphUser = Client.api.getUserId(name)
       graphUser.flatMap {
         case Some(u) => Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
         case _       => Future.successful(false)
@@ -434,44 +443,43 @@ object PageHeader {
     )
   }
 
-  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-
-    def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
-      fontawesome.icon(icon),
-      fontawesome.icon(
-        indicator,
-        new Params {
-          transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
-          styles = scalajs.js.Dictionary[String]("color" -> color)
-        }
-      )
+  private def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
+    fontawesome.icon(icon),
+    fontawesome.icon(
+      indicator,
+      new Params {
+        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
+        styles = scalajs.js.Dictionary[String]("color" -> color)
+      }
     )
+  )
 
-    def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String): VDomModifier = {
-      val default = "default".asInstanceOf[PermissionState]
-      div(
-        permissionState match {
-          case PermissionState.granted => VDomModifier(
-            (icon: VNode) (cls := "fa-fw"),
-            title := description,
-            action
-          )
-          case PermissionState.prompt | `default`  => VDomModifier(
-            iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
-            title := "Notifications are currently disabled. Click to enable.",
-            onClick handleWith { Notifications.requestPermissionsAndSubscribe() },
-            action
-          )
-          case PermissionState.denied  => VDomModifier(
-            iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
-            title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-            action
-          )
-        }
-      )
-    }
-
+  private def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val default = "default".asInstanceOf[PermissionState]
     div(
+      permissionState match {
+        case PermissionState.granted => VDomModifier(
+          (icon: VNode) (cls := "fa-fw"),
+          title := description,
+          action
+        )
+        case PermissionState.prompt | `default`  => VDomModifier(
+          iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
+          title := "Notifications are currently disabled. Click to enable.",
+          onClick handleWith { Notifications.requestPermissionsAndSubscribe() },
+          action
+        )
+        case PermissionState.denied  => VDomModifier(
+          iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
+          title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
+          action
+        )
+      }
+    )
+  }
+
+  private def notifyControl(state: GlobalState, channel: Node): VNode = {
+    div.thunkRx(keyValue)(channel.id) { implicit ctx =>
       Rx {
         val graph = state.graph()
         val user = state.user()
@@ -487,7 +495,7 @@ object PageHeader {
           description = "You are not watching this node. Click to start watching."
         )
       }
-    )
+    }
   }
 
   private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
@@ -498,10 +506,13 @@ object PageHeader {
       onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
     )
 
+  //TODO make this reactive by itself and never rerender, because the modal stuff is quite expensive.
+  //TODO move menu to own file, makes up for a lot of code in this file
+  //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazy?
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    val permissionItem:Option[VNode] = channel match {
+    val permissionItem:VDomModifier = channel match {
         case channel: Node.Content =>
-          Some(div(
+          div(
             cls := "item",
             i(
               cls := "icon fa-fw",
@@ -526,12 +537,12 @@ object PageHeader {
                 )
               }
             )
-          ))
-        case _ => None
+          )
+        case _ => VDomModifier.empty
       }
 
-    val leaveItem:Option[VNode] =
-      (bookmarked && !isOwnUser).ifTrueOption(div(
+    val leaveItem:VDomModifier =
+      (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
         cls := "item",
         i(
           cls := "icon fa-fw",
@@ -542,8 +553,8 @@ object PageHeader {
         onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
-    val deleteItem:Option[VNode] =
-      (bookmarked && !isOwnUser).ifTrueOption(div(
+    val deleteItem =
+      (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
         cls := "item",
         i(
           cls := "icon fa-fw",
@@ -560,28 +571,24 @@ object PageHeader {
         }
       ))
 
-    val items:List[VNode] = List(Some(searchButton(state, channel)), Some(addMemberButton(state, channel)), Some(shareButton(channel)), permissionItem, leaveItem, deleteItem).flatten
+    val items:List[VDomModifier] = List(searchButton(state, channel), addMemberButton(state, channel), shareButton(channel), permissionItem, leaveItem, deleteItem)
 
-
-    if(items.nonEmpty)
+    div(
+      // https://semantic-ui.com/modules/dropdown.html#pointing
+      cls := "ui icon top left labeled pointing dropdown",
+      freeSolid.faCog,
       div(
-        // https://semantic-ui.com/modules/dropdown.html#pointing
-        cls := "ui icon top left labeled pointing dropdown",
-        freeSolid.faCog,
-        div(
-          cls := "menu",
-          div(cls := "header", "Settings", cursor.default),
-          items
-        ),
-        // https://semantic-ui.com/modules/dropdown.html#/usage
-        onDomMount.asHtml handleWith { elem =>
-          import semanticUi.JQuery._
-          $(elem).dropdown()
-        },
-        keyed(channel.id)
-      )
-    else
-      div()
+        cls := "menu",
+        div(cls := "header", "Settings", cursor.default),
+        items
+      ),
+      // https://semantic-ui.com/modules/dropdown.html#/usage
+      onDomMount.asHtml handleWith { elem =>
+        import semanticUi.JQuery._
+        $(elem).dropdown()
+      },
+      keyed(channel.id)
+    )
   }
 }
 

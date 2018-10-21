@@ -1,6 +1,5 @@
 package wust.util
 
-import cats.Eval
 import scala.collection.mutable
 import scala.collection.immutable
 import reflect.ClassTag
@@ -29,14 +28,21 @@ object Memo {
 
   private class ArrayMemo[V >: Null: ClassTag](n: Int) extends Memo[Int, V] {
     override def apply(f: (Int) => V) = {
-      val a = Eval.later(new Array[V](n))
+      var _array: Array[V] = null
+      @inline def getArray = {
+        if (_array == null) {
+          _array = new Array[V](n)
+        }
+        _array
+      }
       k =>
         if (k < 0 || k >= n) f(k)
         else {
-          val t = a.value(k)
+          val a = getArray
+          val t = a(k)
           if (t == null) {
             val v = f(k)
-            a.value(k) = v
+            a(k) = v
             v
           } else t
         }
@@ -45,20 +51,44 @@ object Memo {
 
   private class DoubleArrayMemo(n: Int, sentinel: Double) extends Memo[Int, Double] {
     override def apply(f: (Int) => Double) = {
-      val a = Eval.later {
-        if (sentinel == 0d) {
-          new Array[Double](n)
-        } else {
-          Array.fill(n)(sentinel)
+      var _array: Array[Double] = null
+      @inline def getArray = {
+        if (_array == null) {
+          _array = if (sentinel == 0d) new Array[Double](n) else Array.fill(n)(sentinel)
         }
+        _array
       }
       k =>
         if (k < 0 || k >= n) f(k)
         else {
-          val t = a.value(k)
+          val a = getArray
+          val t = a(k)
           if (t == sentinel || (sentinel.isNaN && t.isNaN)) {
             val v = f(k)
-            a.value(k) = v
+            a(k) = v
+            v
+          } else t
+        }
+    }
+  }
+
+  private class IntArrayMemo(n: Int, sentinel: Int) extends Memo[Int, Int] {
+    override def apply(f: (Int) => Int) = {
+      var _array: Array[Int] = null
+      @inline def getArray = {
+        if (_array == null) {
+          _array = if (sentinel == 0) new Array[Int](n) else Array.fill(n)(sentinel)
+        }
+        _array
+      }
+      k =>
+        if (k < 0 || k >= n) f(k)
+        else {
+          val a = getArray
+          val t = a(k)
+          if (t == sentinel || (sentinel.isNaN && t.isNaN)) {
+            val v = f(k)
+            a(k) = v
             v
           } else t
         }
@@ -73,6 +103,9 @@ object Memo {
     */
   def doubleArrayMemo(n: Int, sentinel: Double = 0d): Memo[Int, Double] =
     new DoubleArrayMemo(n, sentinel)
+
+  def intArrayMemo(n: Int, sentinel: Int = 0): Memo[Int, Int] =
+    new IntArrayMemo(n, sentinel)
 
   private def mutableMapMemo[K, V](a: mutable.Map[K, V]): Memo[K, V] =
     memo[K, V](f => k => a.getOrElseUpdate(k, f(k)))

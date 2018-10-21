@@ -20,34 +20,38 @@ import wust.webApp.state._
 import scala.scalajs.js
 
 object Topbar {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    style("user-select") := "none", //TODO: add to scala-dom-types?
-    paddingRight := "5px",
-    height := "35px",
-    backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
-    color := "white",
-    transition := "background-color 0.5s", // fades on page change
-    cls := "topbar",
-    Styles.flex,
-    flexDirection.row,
-    justifyContent.spaceBetween,
-    alignItems.center,
+  def apply(state: GlobalState): VNode = {
+    div.staticRx(keyValue) { implicit ctx =>
+      VDomModifier(
+        style("user-select") := "none", //TODO: add to scala-dom-types?
+        paddingRight := "5px",
+        height := "35px",
+        backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+        color := "white",
+        transition := "background-color 0.5s", // fades on page change
+        cls := "topbar",
+        Styles.flex,
+        flexDirection.row,
+        justifyContent.spaceBetween,
+        alignItems.center,
 
-    header(state).apply(marginRight := "10px"),
-    appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
-    beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
-    Rx {
-      state.view().isContent.ifTrue[VDomModifier](
-        viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
-      )
-    },
-    FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
-    Rx {
-      (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
-        authentication(state)
+        header(state).apply(marginRight := "10px"),
+        appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
+        beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
+        Rx {
+          state.view().isContent.ifTrue[VDomModifier](
+            viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
+          )
+        },
+        FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
+        Rx {
+          (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+            authentication(state)
+          )
+        }
       )
     }
-  )
+  }
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "5px 5px",
@@ -149,9 +153,7 @@ object Topbar {
       }
     }
 
-    div(
-      syncStatusIcon
-    )
+    div(syncStatusIcon)
   }
 
   def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =

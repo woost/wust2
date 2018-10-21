@@ -1,211 +1,247 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.sdk.NodeColor._
-import wust.util._
 import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
+import wust.util._
+import wust.util.collection._
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.views.ThreadView._
 
-import scala.collection.{breakOut, mutable}
-import wust.util.algorithm._
+import scala.collection.breakOut
+import scala.scalajs.js
 
-import scala.util.Sorting
 
 object ChatView {
+  import SharedViewElements._
+
+  private final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val outerDragOptions = VDomModifier(
+      draggableAs(state, DragItem.DisableDrag), // chat history is not draggable, only its elements
+      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
+      registerDraggableContainer(state),
+      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
+    )
 
-    val nodeIds: Rx[Seq[Int]] = Rx {
-      val page = state.page()
-      val graph = state.graph()
-      val builder = new mutable.ArrayBuilder.ofInt
-      builder.sizeHint(page.parentIds.size)
-      page.parentIds.foreach { parentId =>
-        val idx = graph.lookup.idToIdx.getOrElse(parentId, -1)
-        if (idx != -1) {
-          builder += idx
-        }
-      }
-
-      val pageChildren = depthFirstSearchWithoutStarts(builder.result(), graph.lookup.childrenIdx)
-      Sorting.quickSort[Int](pageChildren)(Ordering[Long] on (graph.lookup.nodeCreated(_)))
-      pageChildren.collect {
-        case idx if graph.lookup.nodes(idx).isInstanceOf[Node.Content] => idx
-      }
-    }
-
-    val submittedNewMessage = Handler.created[Unit]
+    val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
 
     val currentReply = Var(Set.empty[NodeId])
-    val currentlyEditable = Var(Option.empty[List[NodeId]])
 
-    def shouldGroup(graph:Graph, nodes: Seq[Int]):Boolean = {
-      grouping && // grouping enabled
-        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
-        }
-    }
-
-    def clearSelectedNodeIds(): Unit = state.selectedNodeIds() = Set.empty[NodeId]
-
-    val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
-      editButton.apply(
-        onTap handleWith {
-          currentlyEditable() = Some(nodeId :: Nil)
-          state.selectedNodeIds() = Set.empty[NodeId]
-        }
-      ),
-    )
-
-    val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      replyButton.apply(onTap handleWith { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
-      zoomButton(state, nodeIds).apply(onTap handleWith{clearSelectedNodeIds()}),
-      SelectedNodes.deleteAllButton(state, nodeIds),
-    )
-
-
-
-    def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
-      import meta._
-      val state = meta.state // else import conflict
-      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
-        if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
-        else List(
-          replyButton.apply(onTap handleWith { currentReply() = Set(nodeId) }),
-          editButton.apply(onTap handleWith {
-            editable() = true
-            state.selectedNodeIds() = Set.empty[NodeId]
-          }),
-        deleteButton(state, nodeId, meta.graph.parents(nodeId).toSet),
-        zoomButton(state, nodeId :: Nil)
-      )
-    }
-
-    def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VNode = {
-      import meta._
-      @deprecated("","")
-      val nodeId = graph.lookup.nodeIds(nodeIdx)
-      val state = meta.state // else import conflict
-      val parents = graph.parents(nodeId) ++ graph.deletedParents(nodeId) -- meta.state.page.now.parentIds
+    div(
+      keyed,
+      Styles.flex,
+      flexDirection.column,
+      position.relative,
       div(
-        keyed(nodeId),
-        chatMessageLine(meta, nodeIdx, msgControls, currentlyEditable, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
-          if(parents.nonEmpty) {
-            val isDeleted = graph.lookup.isDeletedNow(nodeIdx, directParentIndices)
-            val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
+        cls := "chat-history",
+        overflow.auto,
+        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        chatHistory(state, currentReply),
+        outerDragOptions,
+        scrollHandler.scrollOptions(state)
+      ),
+      managed(IO { state.page.foreach { _ => currentReply() = Set.empty[NodeId] } }),
+      onGlobalEscape(Set.empty[NodeId]) --> currentReply,
+      Rx {
+        val graph = state.graph()
+        div(
+          Styles.flexStatic,
+
+          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+          Styles.flex,
+          alignItems.flexStart,
+          currentReply().map { replyNodeId =>
+            val isDeleted = graph.lookup.isDeletedNow(replyNodeId, state.page.now.parentIds)
+            val node = graph.nodesById(replyNodeId)
             div(
-              cls := "nodecard",
-              backgroundColor := (if(isDeleted) bgColor + "88" else bgColor), //TODO: rgba hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
+              padding := "5px",
+              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
               div(
-                keyed(nodeId),
                 Styles.flex,
                 alignItems.flexStart,
-                parents.map { parentId =>
-                  val parent = graph.nodesById(parentId)
-                  parentMessage(meta.state, graph, parent).apply(
-                    margin := "3px",
-                    isDeleted.ifTrue[VDomModifier](opacity := 0.5),
-                  )
-                }(breakOut): Seq[VNode],
-              ),
-              messageCard(boxShadow := "none", backgroundColor := bgColor)
+                parentMessage(state, node, isDeleted, currentReply).apply(alignSelf.center),
+                closeButton(
+                  marginLeft.auto,
+                  onTap handleWith { currentReply.update(_ - replyNodeId) }
+                ),
+              )
             )
-          } else messageCard
-        }),
-      )
+          }(breakOut):Seq[VDomModifier]
+        )
+      },
+      {
+        def replyNodes: Set[NodeId] = {
+          if(currentReply.now.nonEmpty) currentReply.now
+          else state.page.now.parentIdSet
+        }
+        inputField(state, replyNodes)(ctx)(Styles.flexStatic)
+      }
+    )
+  }
+
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+
+    val isSelected = Rx {
+      selectedNodes().exists(_.nodeId == nodeId)
     }
 
-    def parentMessage(state: GlobalState, graph:Graph, parent: Node) = div(
-      padding := "1px",
-      borderTopLeftRadius := "2px",
-      borderTopRightRadius := "2px",
-      chatMessageHeader(false, graph.lookup.idToIdx(parent.id), graph, AvatarSize.Small, showDate = false).apply(
-        padding := "2px"
-      ),
-      nodeCard(state, parent).apply(
-        fontSize.xSmall,
-        backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
-        boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-         cursor.pointer,
-         onTap handleWith {currentReply.update(_ + parent.id)},
-      )
-    )
-
-    val replyPreview = Rx {
+    val parentNodes: Rx[Seq[Node]] = Rx {
       val graph = state.graph()
-      div(
-        Styles.flexStatic,
+      (graph.parents(nodeId) -- state.page.now.parentIds)
+        .map(id => graph.nodes(graph.lookup.idToIdx(id)))(breakOut)
+    }
 
-        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        Styles.flex,
-        alignItems.flexStart,
-        currentReply().map { replyNodeId =>
-          val node = graph.nodesById(replyNodeId)
-          div(
-            padding := "5px",
-            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
-            div(
-              Styles.flex,
-              alignItems.flexStart,
-              parentMessage(state, graph, node).apply(alignSelf.center),
-              closeButton(
-                marginLeft.auto,
-                onTap handleWith { currentReply.update(_ - replyNodeId) }
-              ),
-            )
-          )
-        }(breakOut):Seq[VDomModifier]
-      )
+    val renderedMessage = renderMessage(state, nodeId, isDeleted = isDeleted, editMode = editMode)
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode), isSelected = isSelected)
+    val selectByClickingOnRow = {
+      onClickOrLongPress handleWith { longPressed =>
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode))
+        else {
+          // stopPropagation prevents deselecting by clicking on background
+          val selectionModeActive = selectedNodes.now.nonEmpty
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode)))
+        }
+      }
     }
 
     div(
+      cls := "chat-row",
       Styles.flex,
-      flexDirection.column,
-      alignItems.stretch,
-      alignContent.stretch,
-      height := "100%",
 
-      // clear on page change
-      managed(IO { state.page.foreach {_ => currentReply() = Set.empty[NodeId]} }),
-      managed(IO { submittedNewMessage.foreach {_ => currentReply() = Set.empty[NodeId]} }),
+      isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
+      selectByClickingOnRow,
+      checkbox,
+      Rx {
+        val messageCard = renderedMessage()
+        val parents = parentNodes()
+        if(parents.nonEmpty) {
+          val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents.map(_.id)).get).toHex
+          div(
+            cls := "nodecard",
+            backgroundColor := (if(isDeleted()) bgColor + "88" else bgColor), //TODO: rgbia hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
+            div(
+              Styles.flex,
+              alignItems.flexStart,
+              parents.map { parent =>
+                parentMessage(state, parent, isDeleted(), currentReply)
+              }
+            ),
+            messageCard.map(_(boxShadow := "none", backgroundColor := bgColor))
+          )
+        } else messageCard: VDomModifier
+      },
+      controls,
+      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
+    )
+  }
+
+    def parentMessage(state: GlobalState, parent: Node, isDeleted: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+      val authorAndCreated = Rx {
+        val graph = state.graph()
+        val idx = graph.lookup.idToIdx(parent.id)
+        val authors = graph.authors(parent.id)
+        val creationEpochMillis = if (idx == -1) None else Some(graph.lookup.nodeCreated(idx))
+        (authors.headOption, creationEpochMillis)
+      }
 
       div(
-        Styles.flex,
-        flexDirection.row,
-        height := "100%",
-        position.relative,
-        SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a,b) => renderMessage(a,b)(c), shouldGroup = shouldGroup).apply(
-          height := "100%",
-          width := "100%",
-          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        padding := "1px",
+        borderTopLeftRadius := "2px",
+        borderTopRightRadius := "2px",
+        Rx {
+          val tuple = authorAndCreated()
+          val (author, creationEpochMillis) = tuple
+          chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
+            padding := "2px",
+          )
+        },
+        nodeCard(parent)(
+          fontSize.xSmall,
+          backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
+          boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
+          cursor.pointer,
+          onTap handleWith {currentReply.update(_ ++ Set(parent.id))},
         ),
-      ),
-      onGlobalEscape(Set.empty[NodeId]) --> currentReply,
-      replyPreview,
-      Rx {
-        val replyNodes: Set[NodeId] = {
-          if(currentReply().nonEmpty) currentReply()
-          else state.page().parentIdSet
+        margin := "3px",
+        isDeleted.ifTrue[VDomModifier](opacity := 0.5)
+      )
+    }
+
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
+    val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+
+    VDomModifier(
+      cls := "chat-group-outer-frame",
+      author.map(bigAuthorAvatar),
+      div(
+        cls := "chat-group-inner-frame",
+        div(cls := "chatmsg-header", Styles.flex, author.map(authorName), creationDate(creationEpochMillis)),
+
+        group.map { groupIdx =>
+          val nodeId = groupGraph.lookup.nodeIds(groupIdx)
+          div.staticRx(keyValue(nodeId)) { implicit ctx =>
+
+            val isDeleted = Rx {
+              val graph = state.graph()
+              graph.lookup.isDeletedNow(nodeId, state.page.now.parentIds)
+            }
+
+            val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
+
+            val editMode = Var(false)
+
+            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, currentReply = currentReply)
+          }
         }
-        val focusOnInsert = state.screenSize.now != ScreenSize.Small
-        inputField(state, replyNodes, submittedNewMessage, focusOnInsert = focusOnInsert).apply(
-          Styles.flexStatic,
-          padding := "3px",
-          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodes).get).toHex,
-        )
-      },
-      registerDraggableContainer(state),
+      )
     )
+  }
+
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): Rx[Array[VNode]] = {
+    Rx {
+      val page = state.page()
+      val graph = state.graph()
+      val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
+
+      groups.map { group =>
+        // because of equals check in thunk, we implicitly generate a wrapped array
+        val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+        val key = nodeIds.head.toString
+
+        div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, currentReply))
+      }
+    }
+  }
+
+  private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+    val nodeSet = ArraySet.create(graph.nodes.length)
+    parentIds.foreach { parentId =>
+      val parentIdx = graph.lookup.idToIdx(parentId)
+      if(parentIdx != -1) {
+        graph.lookup.descendantsIdx(parentIdx).foreachElement { childIdx =>
+          val childNode = graph.lookup.nodes(childIdx)
+          if(childNode.isInstanceOf[Node.Content])
+            nodeSet.add(childIdx)
+        }
+      }
+    }
+    val nodes = js.Array[Int]()
+    nodeSet.foreachAdded(nodes += _)
+    sortByCreated(nodes, graph)
+    nodes
   }
 }

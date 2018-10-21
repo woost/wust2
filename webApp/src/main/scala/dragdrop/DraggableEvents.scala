@@ -1,9 +1,12 @@
 package wust.webApp.dragdrop
 
+import wust.webApp.BrowserDetect
 import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.console
+import scala.scalajs.js
 import draggable._
 import wust.graph.{Edge, GraphChanges, Tree}
 import wust.ids.NodeId
@@ -11,6 +14,7 @@ import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
+import wust.webApp.DevOnly
 
 
 sealed trait DragStatus
@@ -40,7 +44,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   }
 
 
-  val status: Observable[DragStatus] = Observable.merge(filteredDragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
+//  val status: Observable[DragStatus] = Observable.merge(filteredDragStartEvent.map(_ => DragStatus.Dragging), dragStopEvent.map(_ => DragStatus.None))
 
 
   draggable.on[DragStartEvent]("drag:start", dragStartEvent.onNext _)
@@ -59,18 +63,15 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagId))
-    state.selectedNodeIds() = Set.empty[NodeId]
   }
   private def addTag(nodeIds:Seq[NodeId], tagIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagIds))
-    state.selectedNodeIds() = Set.empty[NodeId]
   }
 
   private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId :: Nil)
   private def moveInto(nodeId:NodeId, parentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, parentIds)
   private def moveInto(nodeIds:Iterable[NodeId], parentIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentIds))
-    state.selectedNodeIds() = Set.empty[NodeId]
   }
   private def moveChannel(channelId:NodeId, targetChannelId:NodeId):Unit = {
 
@@ -87,7 +88,6 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
     val connect:GraphChanges = GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
     submit(disconnect merge connect)
-    state.selectedNodeIds() = Set.empty[NodeId]
   }
 
 
@@ -103,7 +103,6 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: SelectedNode, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, SelectedNodesBar, false, false) => // do nothing, since already selected
-      case (dragging: AnyNodes, SelectedNodesBar, false, false) => state.selectedNodeIds.update(_ ++ dragging.nodeIds)
 
       case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, target.nodeId)
       case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)
@@ -121,18 +120,20 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 
   dragOverEvent.map(_.over).map { over =>
     val target = readDragTarget(over)
-    // target.foreach{target => scribe.debug(s"Dragging over: $target")}
+    DevOnly {
+      target.foreach{target => scribe.info(s"Dragging over: $target")}
+    }
     target
   }.subscribe(lastDragTarget)
 
   dragOutEvent.map(_ => None).subscribe(lastDragTarget)
 
-  val ctrlDown = keyDown(KeyCode.Ctrl)
+  val ctrlDown = if(BrowserDetect.isMobile) Observable.now(false) else keyDown(KeyCode.Ctrl)
 //  ctrlDown.foreach(down => println(s"ctrl down: $down"))
 
   //TODO: keyup-event for Shift does not work in chrome. It reports Capslock.
-  val shiftDown = Observable(false)
-//  val shiftDown = keyDown(KeyCode.Shift)
+  val shiftDown = Observable.now(false)
+//  val shiftDown = if(BrowserDetect.isMobile) Observable.now(false) else keyDown(KeyCode.Shift)
 //  shiftDown.foreach(down => println(s"shift down: $down"))
 
   dragStopEvent.map { e =>

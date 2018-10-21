@@ -10,13 +10,14 @@ object Logging {
   val logFormatter: Formatter =
     formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
 
+  //TODO setup api-logging as logwriter
   def setup(): Unit = {
     if (LinkingInfo.developmentMode)
       Logger.root
         .clearHandlers()
+        .withMinimumLevel(Level.Debug)
         .withHandler(
           formatter = logFormatter,
-          minimumLevel = Some(Level.Debug),
           writer = ConsoleWriter
         )
         .replace()

@@ -82,7 +82,7 @@ object DevView {
   //    )
   //  }
 
-  def apply(state: GlobalState, additions: Seq[VDomModifier])(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     span(
       div(
         Styles.flex,
@@ -173,7 +173,7 @@ object DevView {
           )
         },
         Rx {
-          val connections = scala.util.Random.shuffle(state.graph().labeledEdges.toSeq)
+          val connections = scala.util.Random.shuffle(state.graph().edges.toSeq)
 
           def disconnect(count: Int): Unit = {
             state.eventProcessor.changes

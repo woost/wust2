@@ -95,7 +95,8 @@ lazy val commonSettings = Seq(
 
   // Scalaxy/Streams makes your Scala collections code faster
   // Fuses collection streams down to while loops
-  scalacOptions += "-Xplugin-require:scalaxy-streams",
+  // Only use it in production
+  scalacOptions += {if (isDevRun.?.value.getOrElse(false)) "-Xplugin-disable:scalaxy-streams" else "-Xplugin-require:scalaxy-streams"},
   scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
   scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
   addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
@@ -145,7 +146,7 @@ lazy val webSettings = Seq(
   webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.dev.js"),
   webpackBundlingMode in fastOptJS := BundlingMode
     .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-  webpackDevServerExtraArgs := Seq("--progress", "--color"),
+  webpackDevServerExtraArgs := Seq("--progress", "--color", "--public"),
   // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
   // a folder which is served and watched by the webpack devserver.
   // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
@@ -447,6 +448,7 @@ lazy val webApp = project
       Deps.npm.emojiData ::
       Deps.npm.hammerjs ::
       Deps.npm.propagatingHammerjs ::
+      Deps.npm.mobileDetect ::
       Nil
   )
 

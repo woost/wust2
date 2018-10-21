@@ -1,8 +1,8 @@
 package wust.webApp.views
 
-import cats.effect.IO
 import fontAwesome._
 import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -13,761 +13,323 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
-import scala.collection.{breakOut, immutable, mutable}
+import scala.collection.breakOut
 import scala.scalajs.js
 
 object ThreadView {
-  /** hide size behind a semantic */
-  sealed trait AvatarSize {
-    def width: String
-    def padding: String
-  }
-  object AvatarSize {
-    case object Small extends AvatarSize {
-      def width = "15px"
-      def padding = "2px"
-    }
-    case object Normal extends AvatarSize {
-      def width = "20px"
-      def padding = "3px"
-    }
-    case object Large extends AvatarSize {
-      def width = "40px"
-      def padding = "3px"
-    }
-  }
+  import SharedViewElements._
+  //TODO: show less on small screen sizes, word-break
+  //TODO: reply submit button on mobile
+  //TODO: smaller input field placeholder on small screens / mobile. Enter cannot be pressed on mobile
+  //TODO: deselect after dragging
+  //TODO: fix "remove tag" in cycles
 
-  /** when to show something */
-  sealed trait ShowOpts
-  object ShowOpts {
-    case object Never extends ShowOpts
-    case object OtherOnly extends ShowOpts
-    case object OwnOnly extends ShowOpts
-    case object Always extends ShowOpts
-  }
-
-  sealed trait ChatKind {
-    def nodeIndices: Seq[Int]
-  }
-  object ChatKind {
-    case class Single(nodeIdx: Int) extends ChatKind {def nodeIndices = nodeIdx :: Nil }
-    case class Group(nodeIndices: Seq[Int]) extends ChatKind
-  }
-
-  sealed trait ThreadVisibility
-  object ThreadVisibility {
-    case object Expanded extends ThreadVisibility
-    case object Collapsed extends ThreadVisibility
-    case object Plain extends ThreadVisibility
-  }
-
-  case class MessageMeta(
-    state: GlobalState,
-    graph: Graph,
-    alreadyVisualizedParentIndices: immutable.BitSet,
-    path: List[NodeId],
-    directParentIndices: immutable.BitSet,
-    currentUserId: UserId,
-    renderMessage: (Int, MessageMeta) => VDomModifier,
-  )
-
-  type MsgControls = (NodeId, MessageMeta, Boolean, Var[Boolean]) => Seq[VNode]
-
-
-  // -- display options --
-  val showAvatar: ShowOpts = ShowOpts.OtherOnly
-  val showAuthor: ShowOpts = ShowOpts.OtherOnly
-  val showDate: ShowOpts = ShowOpts.Always
-  val grouping = true
-  val avatarSizeThread = AvatarSize.Small
-  val avatarBorder = true
-  val chatMessageDateFormat = "yyyy-MM-dd HH:mm"
-
-  def localEditableVar(currentlyEditable: Var[Option[List[NodeId]]], path: List[NodeId])(implicit ctx: Ctx.Owner): Var[Boolean] = {
-    currentlyEditable.zoom(_.fold(false)(_ == path)) {
-      case (_, true)               => Some(path)
-      case (Some(`path`), false) => None
-      case (current, false)        => current // should never happen
-    }
-  }
+  final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
-    val nodeIds: Rx[Seq[Int]] = Rx {
-      val page = state.page()
-      val graph = state.graph()
-      val nodeIndices = new mutable.ArrayBuilder.ofInt
-      graph.lookup.nodes.foreachIndexAndElement{ (i,node) =>
-        val isContent = node match {
-          case _:Node.Content => true
-          case _ => false
-        }
-        // Be careful not to put graph lookup indices into fullGraph lookup tables!
-        if(isContent && (graph.isChildOfAny(node.id, page.parentIds) || graph.isDeletedChildOfAny(node.id, page.parentIds)))
-          nodeIndices += i
-      }
-      nodeIndices.result().sortBy(i => graph.lookup.nodeCreated(i))
-    }
+    val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
 
-    val activeReplyFields = Var(Set.empty[List[NodeId]])
-    val currentlyEditable = Var(Option.empty[List[NodeId]])
-
-    def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
-      import meta._
-      val state = meta.state
-      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
-      if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
-      else List(
-        replyButton.apply(onTap handleWith {
-          activeReplyFields.update(_ + (nodeId :: meta.path))
-          // we also set an Expand-edge, so that after an reply and its update the thread does not close again
-          state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
-          ()
-        }),
-        editButton.apply(onTap handleWith {
-          editable() = true
-          state.selectedNodeIds() = Set.empty[NodeId]
-        }),
-        deleteButton(state, nodeId, directParentIds),
-        zoomButton(state, nodeId :: Nil)
-      )
-    }
-
-    def shouldGroup(graph: Graph, nodes: Seq[Int]): Boolean = {
-      grouping && // grouping enabled
-        // && (nodes
-        //   .map(getNodeTags(graph, _, state.page.now)) // getNodeTags returns a sequence
-        //   .distinct
-        //   .size == 1) // tags must match
-        // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
-        // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
-        }
-      // TODO: within a specific timespan && nodes.last.
-    }
-
-
-    def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeIdx, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable)
-
-    val submittedNewMessage = Handler.created[Unit]
-
-    var lastSelectedPath: List[NodeId] = Nil // TODO: set by clicking on a message
-    def reversePath(nodeId: NodeId, pageParents: Set[NodeId], graph: Graph): List[NodeId] = {
-      // this only works, because all nodes in the graph are descendants
-      // of the pageParents.
-      val isTopLevelNode = pageParents.exists(pageParentId => graph.children(pageParentId) contains nodeId)
-      if(isTopLevelNode) nodeId :: Nil
-      else {
-        val nextParent = {
-          val parents = graph.parents(nodeId)
-          assert(parents.nonEmpty)
-          val lastSelectedParents = parents intersect lastSelectedPath.toSet
-          if(lastSelectedParents.nonEmpty)
-            lastSelectedParents.head
-          else {
-            // // when only taking youngest parents first, the pageParents would always be last.
-            // // So we check if the node is a toplevel node
-            // val topLevelParentpageParents.find(pageParentId => graph.children(pageParentId).contains(nodeId)))
-            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid): Long)
-          }
-
-        }
-        nodeId :: reversePath(nextParent, pageParents, graph)
-      }
-    }
-
-    def clearSelectedNodeIds(): Unit = {
-      state.selectedNodeIds() = Set.empty[NodeId]
-    }
-
-    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graph.now.lookup.contains(nodeId)) {
-      val path = reversePath(nodeId, state.page.now.parentIdSet, state.graph.now)
-      List(
-        editButton.apply(
-          onTap handleWith {
-            currentlyEditable() = Some(path)
-            state.selectedNodeIds() = Set.empty[NodeId]
-          }
-        ),
-        replyButton.apply(onTap handleWith { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
-      )
-    } else Nil
-    val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
-      zoomButton(state, nodeIds).apply(onTap handleWith { state.selectedNodeIds.update(_ -- nodeIds) }),
-      SelectedNodes.deleteAllButton(state, nodeIds),
+    val outerDragOptions = VDomModifier(
+      draggableAs(state, DragItem.DisableDrag), // chat history is not draggable, only its elements
+      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
+      registerDraggableContainer(state),
+      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
 
     div(
+      keyed,
       Styles.flex,
       flexDirection.column,
-      alignItems.stretch,
-      alignContent.stretch,
-      height := "100%",
-      div(
-        Styles.flex,
-        flexDirection.column,
-        height := "100%",
-        position.relative,
-        SelectedNodes(state, nodeActions = selectedNodeActions, singleNodeActions = selectedSingleNodeActions).apply(Styles.flexStatic, position.absolute, width := "100%"),
-        chatHistory(state, nodeIds, submittedNewMessage, renderMessage = c => (a, b) => renderMessage(a, b)(c), shouldGroup = shouldGroup _).apply(
-          height := "100%",
-          width := "100%",
-          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        ),
-        //        TagsList(state).apply(Styles.flexStatic)
+      position.relative, // for absolute positioning of selectednodes
+      SelectedNodes[SelectedNode](state, _.nodeId, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+        position.absolute,
+        width := "100%"
       ),
-      Rx { inputField(state, state.page().parentIdSet, submittedNewMessage, focusOnInsert = state.screenSize.now != ScreenSize.Small).apply(Styles.flexStatic, padding := "3px") },
-      registerDraggableContainer(state),
-    )
-  }
-
-  def chatHistory(
-    state: GlobalState,
-    nodeIds: Rx[Seq[Int]],
-    submittedNewMessage: Handler[Unit],
-    renderMessage: Ctx.Owner => (Int, MessageMeta) => VDomModifier,
-    shouldGroup: (Graph, Seq[Int]) => Boolean,
-  )(implicit ctx: Ctx.Owner): VNode = {
-
-    val isScrolledToBottom = Var(true)
-    val scrollableHistoryElem = Var(None: Option[HTMLElement])
-
-    val scrollToBottomInAnimationFrame = requestSingleAnimationFrame {
-      scrollableHistoryElem.now.foreach { elem =>
-        scrollToBottom(elem)
-      }
-    }
-
-    div(
-      // this wrapping of chat history is currently needed,
-      // to allow dragging the scrollbar without triggering a drag event.
-      // see https://github.com/Shopify/draggable/issues/262
       div(
         cls := "chat-history",
-        padding := "50px 0 20px 20px", // large padding-top to have space for selectedNodes bar
-        keyed,
-        Rx {
-          val page = state.page()
-          val graph = state.graph()
-          val user = state.user()
-          val avatarSizeToplevel: AvatarSize = if(state.screenSize() == ScreenSize.Small) AvatarSize.Small else AvatarSize.Large
+        overflow.auto,
+        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        chatHistory(state, selectedNodes),
+        outerDragOptions,
 
-          if(nodeIds().isEmpty) VDomModifier(emptyChatNotice)
-          else
-            VDomModifier(
-              groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
-                .map(kind => renderGroupedMessages(
-                  kind.nodeIndices,
-                  MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, graph.lookup.createBitSet(page.parentIdSet), user.id, renderMessage(implicitly)), avatarSizeToplevel)
-                ),
+        // clicking on background deselects
+        onClick handleWith {clearSelectedNodes(selectedNodes)},
+        scrollHandler.scrollOptions(state)
 
-              draggableAs(state, DragItem.DisableDrag),
-              cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
-              dragTarget(DragItem.Chat.Page(page.parentIds)),
-            )
-        },
-        onDomPreUpdate handleWith {
-          scrollableHistoryElem.now.foreach { prev =>
-            val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
-            isScrolledToBottom() = wasScrolledToBottom
-          }
-        },
-        onDomUpdate handleWith {
-          if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
-        },
-        managed(
-          IO {
-            // on page change, always scroll down
-            state.page.foreach { _ =>
-              isScrolledToBottom() = true
-              scrollToBottomInAnimationFrame()
-            }
-          },
-          IO { submittedNewMessage.foreach(_ => scrollToBottomInAnimationFrame()) }
-        ),
       ),
-      overflow.auto,
-      onDomMount.asHtml handleWith { elem =>
-        scrollableHistoryElem() = Some(elem)
-        scrollToBottomInAnimationFrame()
-      },
-
-      // tapping on background deselects
-      onTap handleWith { state.selectedNodeIds() = Set.empty[NodeId] }
+      inputField(state, state.page.now.parentIds)(ctx)(Styles.flexStatic)
     )
   }
 
-  private def emptyChatNotice: VNode =
-    h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
-
-  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatKind.Group */
-  def groupNodes(
-    graph: Graph,
-    nodes: Seq[Int],
-    state: GlobalState,
-    currentUserId: UserId,
-    shouldGroup: (Graph, Seq[Int]) => Boolean
-  ): Seq[ChatKind] = {
-    nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
-      kinds.lastOption match {
-        case Some(ChatKind.Single(lastNode)) =>
-          if(shouldGroup(graph, lastNode :: node :: Nil))
-            kinds.dropRight(1) :+ ChatKind.Group(Seq(lastNode, node))
-          else
-            kinds :+ ChatKind.Single(node)
-
-        case Some(ChatKind.Group(lastNodes)) =>
-          if(shouldGroup(graph, lastNodes.last :: node :: Nil))
-            kinds.dropRight(1) :+ ChatKind.Group(nodeIndices = lastNodes :+ node)
-          else
-            kinds :+ ChatKind.Single(node)
-
-        case None => kinds :+ ChatKind.Single(node)
-      }
-    }
-  }
-
-
-  /// @return an avatar vnode or empty depending on the showAvatar setting
-  def avatarDiv(isOwn: Boolean, user: Option[UserId], avatarSize: AvatarSize): VNode = {
-    if(showAvatar == ShowOpts.Always
-      || (showAvatar == ShowOpts.OtherOnly && !isOwn)
-      || (showAvatar == ShowOpts.OwnOnly && isOwn)) {
-      user.fold(div())(
-        user =>
-          div(
-            Avatar.user(user)(
-              cls := "avatar",
-              padding := avatarSize.padding,
-              width := avatarSize.width,
-            ),
-          )
-      )
-    } else div()
-  }
-
-  /// @return a date vnode or empty based on showDate setting
-  private def optDateDiv(isOwn: Boolean, nodeId: NodeId, graph: Graph) = {
-    if(showDate == ShowOpts.Always
-      || (showDate == ShowOpts.OtherOnly && !isOwn)
-      || (showDate == ShowOpts.OwnOnly && isOwn))
-      div(
-        dateFns.formatDistance(new js.Date(graph.nodeCreated(nodeId)), new js.Date), " ago",
-        cls := "chatmsg-date"
-      )
-    else
-      div()
-  }
-
-  /// @return an author vnode or empty based on showAuthor setting
-  private def optAuthorDiv(isOwn: Boolean, nodeId: NodeId, graph: Graph) = {
-    if(showAuthor == ShowOpts.Always
-      || (showAuthor == ShowOpts.OtherOnly && !isOwn)
-      || (showAuthor == ShowOpts.OwnOnly && isOwn))
-      graph
-        .authors(nodeId)
-        .headOption
-        .fold(div())(author => div(if(author.data.isImplicit) Rendered.implicitUserName else author.name, cls := "chatmsg-author"))
-    else div()
-  }
-
-  private def renderGroupedMessages(
-    nodeIds: Seq[Int],
-    meta: MessageMeta,
-    avatarSize: AvatarSize,
-  )(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-    import meta._
-
-    val currNode = nodeIds.last
-    val headNode = nodeIds.head
-    val isMine = graph.lookup.authorsIdx(currNode).contains(currentUserId)
-    val nodeId = graph.lookup.nodeIds(headNode)
-
-    div(
-      cls := "chatmsg-group-outer-frame",
-      keyed(nodeId), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.lookup.authorsIdx(headNode).headOption.map(i => graph.lookup.nodeIds(i).asInstanceOf[UserId]), avatarSize)(marginRight := "5px")),
-      div(
-        keyed,
-          cls := "chatmsg-group-inner-frame",
-          chatMessageHeader(isMine, headNode, graph, avatarSize),
-          nodeIds.map(nid => renderMessage(nid, meta)),
-      ),
-    )
-  }
-
-  private def renderThread(nodeIdx: Int, meta: MessageMeta, shouldGroup: (Graph, Seq[Int]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    import meta._
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
-    val inCycle = alreadyVisualizedParentIndices.contains(nodeIdx)
-    val isThread = !graph.lookup.isDeletedNow(nodeIdx, directParentIndices) && (graph.lookup.hasChildrenIdx(nodeIdx) || graph.lookup.hasDeletedChildrenIdx(nodeIdx)) && !inCycle
-
-    val replyFieldActive = Rx { activeReplyFields() contains (nodeId :: path) }
-    val threadVisibility = Rx {
-      // this is a separate Rx, to prevent rerendering of the whole thread, when only replyFieldActive changes.
-      val userExpandedNodes = graph.expandedNodes(state.user().id)
-      if(replyFieldActive()) ThreadVisibility.Expanded
-      else if(isThread && !userExpandedNodes(nodeId)) ThreadVisibility.Collapsed
-      else if(isThread) ThreadVisibility.Expanded
-      else ThreadVisibility.Plain
-    }
-
+  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[ThunkVNode]] = {
     Rx {
-      threadVisibility() match {
-        case ThreadVisibility.Collapsed =>
-          chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Collapsed)
-        case ThreadVisibility.Expanded  =>
-          val children = (graph.lookup.childrenIdx(nodeIdx) ++ graph.lookup.deletedChildrenIdx(nodeIdx)).sortBy(idx => graph.lookup.nodeCreated(idx): Long)
-          div(
-            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
-            keyed(nodeId),
-            chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Expanded, transformMessageCard = _ (
-              boxShadow := s"0px 1px 0px 1px ${ tagColor(nodeId).toHex }",
-            )),
-            div(
-              cls := "chat-thread",
-              borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
+      val page = state.page()
+      renderThreadGroups(state, directParentIds = page.parentIds, transitiveParentIds = page.parentIdSet, selectedNodes, isTopLevel = true)
+    }
+  }
 
-              groupNodes(graph, children, state, currentUserId, shouldGroup)
-                .map(kind => renderGroupedMessages(
-                  kind.nodeIndices,
-                  meta.copy(
-                    alreadyVisualizedParentIndices = alreadyVisualizedParentIndices + nodeIdx,
-                    path = nodeId :: path,
-                    directParentIndices = immutable.BitSet(nodeIdx),
-                  ),
-                  avatarSizeThread,
-                )),
+  private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): Array[ThunkVNode] = {
+    val graph = state.graph()
+    val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
+    groups.map { group =>
+      // because of equals check in thunk, we implicitly generate a wrapped array
+      val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+      val key = nodeIds.head.toString
 
-              replyField(state, nodeId, path, activeReplyFields),
+      div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
+    }
+  }
 
-              draggableAs(state, DragItem.DisableDrag),
-              dragTarget(DragItem.Chat.Thread(nodeId)),
-              cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-              keyed(nodeId)
-            )
-          )
-        case ThreadVisibility.Plain     =>
-          if(inCycle)
-            chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Plain, transformMessageCard = _ (
-              Styles.flex,
-              alignItems.center,
-              freeSolid.faSyncAlt,
-              paddingRight := "3px",
-              backgroundColor := "#CCC",
-              color := "#666",
-              boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-            ))
-          else chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, ThreadVisibility.Plain)
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean) = {
+    val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
+    val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+
+    VDomModifier(
+      cls := "chat-group-outer-frame",
+      isTopLevel.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      div(
+        cls := "chat-group-inner-frame",
+        chatMessageHeader(author, creationEpochMillis, isTopLevel.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
+        group.map { groupIdx =>
+          val nodeId = groupGraph.lookup.nodeIds(groupIdx)
+
+          div.staticRx(keyValue(nodeId)) { implicit ctx =>
+            val nodeIdList = nodeId :: Nil
+
+            val showReplyField = Var(false)
+
+            val isDeleted = Rx {
+              val graph = state.graph()
+              graph.lookup.isDeletedNow(nodeId, directParentIds)
+            }
+
+            val editMode = Var(false)
+
+            val inCycle = transitiveParentIds.contains(nodeId)
+
+            if(inCycle)
+              renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+            else {
+              val isExpanded = Rx {
+                // we need to get the newest node content from the graph
+                val graph = state.graph()
+                val user = state.user()
+                graph.lookup.expandedNodes(user.id).contains(nodeId)
+              }
+
+              val showExpandedThread = Rx {
+                !isDeleted() && (isExpanded() || showReplyField())
+              }
+
+              VDomModifier(
+                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, isExpanded = isExpanded, showReplyField = showReplyField),
+                Rx {
+                  showExpandedThread().ifTrue[VDomModifier] {
+                    renderExpandedThread(state, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
+                  }
+                },
+              )
+            }
+          }
+        }
+      )
+    )
+  }
+
+  private def renderExpandedThread(state: GlobalState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[NodeId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+    val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
+    VDomModifier(
+      cls := "chat-expanded-thread",
+      backgroundColor := bgColor,
+
+      draggableAs(state, DragItem.DisableDrag),
+      cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
+      dragTarget(DragItem.Chat.Thread(nodeId)),
+
+      div(
+        cls := "chat-thread-messages",
+        borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
+        Rx { renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes) },
+        Rx {
+          if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
+          else threadReplyButton(state, nodeId, showReplyField)
+        }
+      )
+    )
+  }
+
+  private def threadReplyButton(state: GlobalState, nodeId:NodeId, showReplyField: Var[Boolean]) = {
+    div(
+      cls := "chat-replybutton",
+      freeSolid.faReply,
+      " reply",
+      marginTop := "3px",
+      marginLeft := "8px",
+      onClick.stopPropagation handleWith { showReplyField() = true }
+    )
+  }
+
+  private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean]): VNode = {
+    div(
+      Styles.flex,
+      alignItems.center,
+
+      div(
+        cls := "ui form",
+        textArea(
+          cls := "field",
+          valueWithEnter handleWith { str =>
+            val changes = {
+              GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil)
+            }
+
+            state.eventProcessor.changes.onNext(changes)
+          },
+          rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
+          resize := "none",
+          placeholder := "Write a message and press Enter to submit.",
+          onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
+          //TODO: outwatch: Emitterbuilder.timeOut
+          onBlur.value --> sideEffect {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
+        ),
+        padding := "3px",
+        width := "100%"
+      ),
+      closeButton(
+        onClick handleWith { showReplyField() = false },
+      ),
+    )
+  }
+
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+
+    val isSelected = Rx {
+      selectedNodes().exists(_.nodeId == nodeId)
+    }
+
+    val renderedMessage = renderMessage(state, nodeId, isDeleted = isDeleted, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
+      Styles.flex,
+      alignItems.center,
+      freeSolid.faSyncAlt,
+      paddingRight := "3px",
+      backgroundColor := "#CCC",
+      color := "#666",
+      boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+    )))
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, showReplyField), isSelected = isSelected)
+    val selectByClickingOnRow = {
+      onClickOrLongPress handleWith { longPressed =>
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, showReplyField))
+        else {
+          // stopPropagation prevents deselecting by clicking on background
+          val selectionModeActive = selectedNodes.now.nonEmpty
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, showReplyField)))
+        }
+      }
+    }
+    val expandCollapsButton = Rx{ (isDeleted() || inCycle).ifFalse[VDomModifier](renderExpandCollapseButton(state, nodeId, isExpanded)) }
+
+    div(
+      cls := "chat-row",
+      Styles.flex,
+
+      isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
+      selectByClickingOnRow,
+      checkbox,
+      renderedMessage,
+      expandCollapsButton,
+      messageTags(state, nodeId, directParentIds),
+      controls,
+      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
+    )
+  }
+
+  private def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+    val childrenSize = Rx {
+      val graph = state.graph()
+      graph.children(nodeId).size
+    }
+    Rx {
+      if(isExpanded()) {
+        div(
+          cls := "collapsebutton ui mini blue label",
+          "-",
+          marginLeft := "10px",
+          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
+          cursor.pointer)
+      } else {
+        if(childrenSize() == 0) VDomModifier.empty
+        else div(
+          cls := "collapsebutton ui mini blue label",
+          "+" + childrenSize(),
+          marginLeft := "10px",
+          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
+          cursor.pointer
+        )
       }
     }
   }
 
-  def replyField(state: GlobalState, nodeId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
-    val fullPath = nodeId :: path
-    val active = Rx { activeReplyFields() contains fullPath }
+  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+    // most nodes don't have any children, so we skip the expensive accumulation
+    if(parentIds.size == 1 && !graph.lookup.hasChildren(parentIds.head)) return js.Array[Int]()
 
-    div(
-      keyed(nodeId),
-      Rx {
-        if(active())
-          div(
-            keyed(nodeId),
-            Styles.flex,
-            alignItems.center,
-            inputField(state, directParentIds = Set(nodeId),
-              focusOnInsert = true, blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - fullPath) }
-            )(ctx)(
-              keyed(nodeId),
-              padding := "3px",
-              width := "100%"
-            ),
-            closeButton(
-              keyed,
-              onTap handleWith { activeReplyFields.update(_ - fullPath) },
-            ),
-          )
-        else
-          div(
-            cls := "chat-replybutton",
-            freeSolid.faReply,
-            " reply",
-            marginTop := "3px",
-            marginLeft := "8px",
-            // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
-            // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
-            // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
-            onMouseDown.stopPropagation handleWith { defer { activeReplyFields.update(_ + fullPath) } }
-          )
+    val nodeSet = ArraySet.create(graph.nodes.length)
+    parentIds.foreach { parentId =>
+      val parentIdx = graph.lookup.idToIdx(parentId)
+      if(parentIdx != -1) {
+        graph.lookup.childrenIdx.foreachElement(parentIdx) { childIdx =>
+          val childNode = graph.lookup.nodes(childIdx)
+          if(childNode.isInstanceOf[Node.Content])
+            nodeSet.add(childIdx)
+        }
       }
-    )
-  }
-
-  /// @return a vnode containing a chat header with optional name, date and avatar
-  def chatMessageHeader(
-    isMine: Boolean,
-    nodeIdx: Int,
-    graph: Graph,
-    avatarSize: AvatarSize,
-    showDate: Boolean = true,
-  )(implicit ctx: Ctx.Owner): VNode = {
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
-    val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
-    div(
-      cls := "chatmsg-header",
-      keyed(nodeId),
-      (avatarSize == AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, authorIdOpt, avatarSize)(marginRight := "3px")),
-      optAuthorDiv(isMine, nodeId, graph),
-      showDate.ifTrue[VDomModifier](optDateDiv(isMine, nodeId, graph)),
-    )
-  }
-
-  /// @return the actual body of a chat message
-  /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  def chatMessageLine(meta: MessageMeta, nodeIdx: Int, msgControls: MsgControls, currentlyEditable: Var[Option[List[NodeId]]], threadVisibility: ThreadVisibility, showTags: Boolean = true, transformMessageCard: VNode => VDomModifier = identity)(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-    import meta._
-
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
-
-    val isDeleted = graph.lookup.isDeletedNow(nodeIdx, directParentIndices)
-    val isSelected = state.selectedNodeIds.map(_ contains nodeId)
-    val node = graph.nodesById(nodeId)
-
-    // needs to be a var, so that it can be set from the selectedNodes bar
-    val editable: Var[Boolean] = localEditableVar(currentlyEditable, nodeId :: path)
-
-    val isSynced: Rx[Boolean] = {
-      // when a node is not in transit, avoid rx subscription
-      val nodeInTransit = state.addNodesInTransit.now contains nodeId
-      if(nodeInTransit) state.addNodesInTransit.map(nodeIds => !nodeIds(nodeId))
-      else Rx(true)
     }
+    val nodes = js.Array[Int]()
+    nodeSet.foreachAdded(nodes += _)
+    sortByCreated(nodes, graph)
+    nodes
+  }
 
-    val checkbox = div(
-      cls := "ui checkbox fitted",
-      marginLeft := "5px",
-      marginRight := "3px",
-      isSelected.map(_.ifTrueOption(visibility.visible)),
-      input(
-        tpe := "checkbox",
-        checked <-- isSelected,
-        onChange.checked handleWith { checked =>
-          if(checked) state.selectedNodeIds.update(_ + nodeId)
-          else state.selectedNodeIds.update(_ - nodeId)
+  def clearSelectedNodes(selectedNodes:Var[Set[SelectedNode]]): Unit = {
+    selectedNodes() = Set.empty[SelectedNode]
+  }
+
+  def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
+    List(
+      editButton(
+        onClick handleWith {
+          selectedNodes.now.head.editMode() = true
+          clearSelectedNodes(selectedNodes)
         }
       ),
-      label()
+      replyButton(
+        onClick handleWith {
+          selectedNodes.now.head.showReplyField() = true
+          clearSelectedNodes(selectedNodes)
+        }
+      ) //TODO: scroll to focused field?
     )
+  } else Nil
 
-    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes)(ctx)(
-      Styles.flex,
-      flexDirection.row,
-      alignItems := "flex-end", //TODO SDT update
-      isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-      cls := "drag-feedback",
-
-      Rx { editable().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
-
-      Rx {
-        val icon: VNode = if(isSynced()) freeSolid.faCheck else freeRegular.faClock
-        icon(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
-      },
-
-      div(
-        cls := "draghandle",
-        paddingLeft := "8px",
-        paddingRight := "8px",
-        freeSolid.faGripVertical,
-        color := "#b3bfca",
-        alignSelf.center,
-        marginLeft.auto,
-      )
-    )
-
-    val controls = div(
-      cls := "chatmsg-controls",
-      msgControls(nodeId, meta, isDeleted, editable)
-    )
-
-    div(
-      keyed(nodeId),
-      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
-      div( // this nesting is needed to get a :hover effect on the selected background
-        cls := "chatmsg-line",
-        keyed(nodeId),
-        Styles.flex,
-
-        onPress handleWith {
-          state.selectedNodeIds.update(_ + nodeId)
-        },
-        onTap handleWith {
-          val selectionModeActive = state.selectedNodeIds.now.nonEmpty
-          if(selectionModeActive) state.selectedNodeIds.update(_.toggle(nodeId))
-        },
-
-        // The whole line is draggable, so that it can also be a drag-target.
-        // This is currently a limit in the draggable library
-        cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
-        editable.map { editable =>
-          if(editable)
-            draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
-          else {
-            val payload = () => {
-              val selection = state.selectedNodeIds.now
-              if(selection contains nodeId)
-                DragItem.Chat.Messages(selection.toSeq)
-              else
-                DragItem.Chat.Message(nodeId)
-            }
-            // payload is call by name, so it's always the current selectedNodeIds
-            draggableAs(state, payload())
-          }
-        },
-        dragTarget(DragItem.Chat.Message(nodeId)),
-
-        (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](checkbox(Styles.flexStatic)),
-        transformMessageCard(messageCard.apply(keyed(nodeId))),
-        expandCollapseButton(meta, nodeId, threadVisibility),
-        showTags.ifTrue[VDomModifier](messageTags(state, graph, nodeIdx, alreadyVisualizedParentIndices)),
-        (state.screenSize.now != ScreenSize.Small).ifTrue[VDomModifier](controls(Styles.flexStatic))
-      )
+  def selectedNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): List[SelectedNode] => List[VNode] = selected => {
+    val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
+    List(
+      zoomButton(onClick handleWith {
+        state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
+        clearSelectedNodes(selectedNodes)
+      }),
+      SelectedNodes.deleteAllButton[SelectedNode](state, nodeIdSet, selectedNodes),
     )
   }
 
-  def replyButton(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      div(cls := "fa-fw", freeSolid.faReply),
-      cursor.pointer,
-    )
-  }
-
-  def editButton(implicit ctx: Ctx.Owner): VNode =
-    div(
-      div(cls := "fa-fw", Icons.edit),
-      cursor.pointer,
-    )
-
-  def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode =
-    div(
-      div(cls := "fa-fw", Icons.delete),
-      onTap handleWith {
-        state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-        state.selectedNodeIds.update(_ - nodeId)
-      },
-      cursor.pointer,
-    )
-
-  def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode =
-    div(
-      div(cls := "fa-fw", Icons.undelete),
-      onTap(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-      cursor.pointer,
-    )
-
-  def expandCollapseButton(meta: MessageMeta, nodeId: NodeId, threadVisibility: ThreadVisibility)(implicit ctx: Ctx.Owner): VNode = threadVisibility match {
-    case ThreadVisibility.Expanded  =>
-      div(
-        cls := "collapsebutton",
-        cls := "ui mini blue label", "-", marginLeft := "10px",
-        onTap(GraphChanges.disconnect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
-        cursor.pointer)
-    case ThreadVisibility.Collapsed =>
-      div(
-        cls := "collapsebutton",
-        cls := "ui mini blue label", "+" + meta.graph.children(nodeId).size, marginLeft := "10px",
-        onTap(GraphChanges.connect(Edge.Expanded)(meta.currentUserId, nodeId)) --> meta.state.eventProcessor.changes,
-        cursor.pointer)
-    case ThreadVisibility.Plain     => div()
-  }
-
-  def zoomButton(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode =
-    div(
-      div(cls := "fa-fw", Icons.zoom),
-      onTap(state.viewConfig.now.copy(page = Page(nodeIds))) --> state.viewConfig,
-      cursor.pointer,
-    )
-
-  private def messageTags(state: GlobalState, graph: Graph, nodeIdx: Int, alreadyVisualizedParentIds: immutable.BitSet)(implicit ctx: Ctx.Owner) = {
-
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
-    val directNodeTags:Array[Node] = graph.lookup.directNodeTags(nodeIdx, alreadyVisualizedParentIds)
-    val transitiveNodeTags:Array[Node] = graph.lookup.transitiveNodeTags(nodeIdx, alreadyVisualizedParentIds)
-
-    state.screenSize.now match {
-      case ScreenSize.Small =>
-        div(
-          cls := "tags",
-          directNodeTags.map { tag =>
-            nodeTagDot(state, tag)(Styles.flexStatic)
-          }(breakOut): Seq[VDomModifier],
-          transitiveNodeTags.map { tag =>
-            nodeTagDot(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
-          }(breakOut): Seq[VDomModifier]
-        )
-      case _                =>
-        div(
-          cls := "tags",
-          directNodeTags.map { tag =>
-            removableNodeTag(state, tag, nodeId, graph)(Styles.flexStatic)
-          }(breakOut): Seq[VDomModifier],
-          transitiveNodeTags.map { tag =>
-            nodeTag(state, tag)(Styles.flexStatic, cls := "transitivetag", opacity := 0.4)
-          }(breakOut): Seq[VDomModifier]
-        )
-    }
-  }
-
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.created[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
-    val initialValue = Rx {
-      state.viewConfig().shareOptions.map { share =>
-        val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
-        elements.mkString(" - ")
-      }
-    }
-
-    div(
-      cls := "ui form",
-      keyed(directParentIds),
-      textArea(
-        keyed,
-        cls := "field",
-        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
-          val graph = state.graph.now
-          val selectedNodeIds = state.selectedNodeIds.now
-          val changes = {
-            val newNode = Node.Content.empty
-            GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
-          }
-
-          state.eventProcessor.changes.onNext(changes)
-          submittedNewMessage.onNext(Unit)
-        },
-        // else, these events would bubble up to global event handlers and produce a lag
-        onKeyPress.stopPropagation handleWith {},
-        onKeyUp.stopPropagation handleWith {},
-        focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> inAnimationFrame(_.focus())),
-        onBlur.value handleWith { value => blurAction(value) },
-        rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-        resize := "none",
-        placeholder := "Write a message and press Enter to submit.",
-      )
-    )
-  }
 }

@@ -50,9 +50,9 @@ object Deps {
   val fontawesome = dep("com.github.fdietze" % "scala-js-fontawesome" % "599552b")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
-  val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "e64d5d7")
+  val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "a15d3ae")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.cornerman" % "outwatch" % "767d62d")
+  val outwatch = dep("com.github.cornerman" % "outwatch" % "1f77381")
 
   // utility
   val scribe = new {
@@ -125,6 +125,7 @@ object Deps {
     val hammerjs = "hammerjs" -> "2.0.8"
     val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
     val immediate = "immediate" -> "3.2.3"
+    val mobileDetect = "mobile-detect" -> "1.4.3"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47

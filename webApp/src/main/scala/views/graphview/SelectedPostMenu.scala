@@ -55,7 +55,7 @@ object SelectedPostMenu {
       div(
         marginBottom := "5px",
         tags.map { tag =>
-          removableNodeTag(state, tag, taggedNodeId = rxPost.now.id, state.graph.now)
+          removableNodeTag(state, tag, taggedNodeId = rxPost.now.id)
         }
       )
     }

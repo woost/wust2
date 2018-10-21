@@ -1,6 +1,7 @@
 package views.graphview
 
 import d3v4._
+import wust.webApp.BrowserDetect
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
@@ -75,7 +76,9 @@ class ForceSimulation(
   private val canvasLayerElement = Promise[dom.html.Canvas]
 
   var isCtrlPressed = false
-  keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
+  
+  if (!BrowserDetect.isMobile)
+    keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
   val component: VNode = {
     import outwatch.dom.dsl._

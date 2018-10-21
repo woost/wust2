@@ -1,22 +1,22 @@
 package wust.util
 
 trait Empty[+T] {
-  def empty: T
+  @inline def empty: T
 }
 
 object Empty {
-  def apply[T](implicit e: Empty[T]): T = e.empty
+  @inline def apply[T](implicit e: Empty[T]): T = e.empty
 
   implicit object StringEmpty extends Empty[String] {
-    def empty = ""
+    @inline def empty = ""
   }
   implicit object OptionEmpty extends Empty[Option[Nothing]] {
-    def empty = Option.empty
+    @inline def empty = Option.empty
   }
   implicit object SeqEmpty extends Empty[Seq[Nothing]] {
-    def empty = Seq.empty
+    @inline def empty = Seq.empty
   }
   implicit def SetEmpty[T] = new Empty[Set[T]] {
-    def empty = Set.empty
+    @inline def empty = Set.empty
   }
 }

@@ -16,6 +16,8 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
   @inline override def length: Int = sliceArray.elementCount
   @inline override def apply(idx: Int): SliceInt = new SliceInt(data, sliceStart(idx), sliceLength(idx))
   @inline def apply(idx1: Int, idx2:Int): Int = data(sliceStart(idx1)+idx2)
+  @inline def get(idx1: Int, idx2:Int): Option[Int] = if(idx1 < length && idx2 < sliceLength(idx1)) Some(apply(idx1,idx2)) else None
+  @inline def update(idx1: Int, idx2:Int, newValue:Int): Unit = data(sliceStart(idx1)+idx2) = newValue
   @inline def foreachElement(idx: Int)(f:Int => Unit):Unit = {
     var i = 0
     val n = sliceLength(idx)
@@ -23,6 +25,19 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
       f(apply(idx,i))
       i += 1
     }
+  }
+}
+
+final class NestedArrayIntBuilder(nestedArray: NestedArrayInt){
+  var filled = new Array[Int](nestedArray.length)
+  def add(idx:Int, value:Int):Unit = {
+    nestedArray.update(idx, filled(idx), value)
+    filled(idx) += 1
+  }
+
+  def result():NestedArrayInt = {
+    filled = null
+    nestedArray
   }
 }
 
@@ -45,6 +60,22 @@ object NestedArrayInt {
     }
 
     new NestedArrayInt(data, sliceArray)
+  }
+
+  def apply(sliceLengths:Array[Int]):NestedArrayInt = {
+    val sliceArray = InterleavedArray.create(sliceLengths.length)
+    var currentStart = 0
+    sliceLengths.foreachIndexAndElement{ (i,sliceLength) =>
+      sliceArray.updatea(i, currentStart)
+      sliceArray.updateb(i, sliceLength)
+      currentStart += sliceLength
+    }
+    val array = new Array[Int](currentStart)
+    new NestedArrayInt(array, sliceArray)
+  }
+
+  def builder(sliceLengths:Array[Int]):NestedArrayIntBuilder = {
+    new NestedArrayIntBuilder(apply(sliceLengths))//, sliceLengths)
   }
 
   def apply(nested:Array[mutable.ArrayBuilder.ofInt]): NestedArrayInt = {

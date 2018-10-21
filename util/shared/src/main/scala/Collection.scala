@@ -6,7 +6,9 @@ import scala.reflect.ClassTag
 import supertagged._
 
 package object collection {
+
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
+
     def by[X](lens: T => X): scala.collection.Map[X, T] = {
       val map = mutable.HashMap[X, T]()
       map.sizeHint(col.size)
@@ -37,6 +39,23 @@ package object collection {
 
 
   implicit final class RichIndexedSeq[T](val self:IndexedSeq[T]) extends AnyVal {
+    @inline def minMax(smallerThan: (T, T) => Boolean): (T, T) = {
+      if (self.isEmpty) throw new UnsupportedOperationException("minMax on empty sequence")
+
+      var min: T = self(0)
+      var max: T = min
+
+      var i = 1
+      while (i < self.length) {
+        val value = self(i)
+        if (smallerThan(value, min)) min = value
+        if (smallerThan(max, value)) max = value
+        i += 1
+      }
+
+      (min, max)
+    }
+
     //    @inline def filterIdx(p: Int => Boolean)(implicit ev: ClassTag[T]):Array[T] = {
     //      val builder = new mutable.ArrayBuilder.ofRef[T]
     //      var i = 0
@@ -157,9 +176,28 @@ package object collection {
     @inline def updatea(i:Int, value:Int): Unit = interleaved(i*2) = value
     @inline def updateb(i:Int, value:Int): Unit = interleaved(i*2+1) = value
     @inline def elementCount:Int = interleaved.length / 2
+
+    @inline def foreachTwoElements(f: (Int,Int) => Unit): Unit = {
+      val n = elementCount
+      var i = 0
+
+      while(i < n ) {
+        f(a(i), b(i))
+        i += 1
+      }
+    }
+    @inline def foreachIndexAndTwoElements(f: (Int,Int,Int) => Unit): Unit = {
+      val n = elementCount
+      var i = 0
+
+      while(i < n ) {
+        f(i, a(i), b(i))
+        i += 1
+      }
+    }
   }
 
-  implicit final class RichMarkerArray(val marked:ArraySet) extends AnyVal {
+  implicit final class RichArraySet(val marked:ArraySet) extends AnyVal {
     @inline def add(indices:IndexedSeq[Int]): Unit = {
       indices.foreachElement{ index =>
         marked(index) = 1
@@ -186,6 +224,14 @@ package object collection {
       val builder = mutable.ArrayBuilder.make[T]
       foreachAdded{ i =>
         builder += f(i)
+      }
+      builder.result()
+    }
+
+    @inline def allElements:Array[Int] = {
+      val builder = new mutable.ArrayBuilder.ofInt
+      foreachAdded{ i =>
+        builder += i
       }
       builder.result()
     }

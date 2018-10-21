@@ -118,10 +118,6 @@ class GlobalState(
     PageStyle(view(), page())
   }
 
-  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead { selectedNodeIds =>
-    selectedNodeIds().filter(graph().lookup.idToIdx.isDefinedAt)
-  }
-
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
 
   val screenSize: Rx[ScreenSize] = events.window.onResize

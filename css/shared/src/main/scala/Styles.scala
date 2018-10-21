@@ -338,21 +338,22 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- chatview --
 
   ".chat-history" - (
-    height(100 %%)
+    height(100 %%),
+    padding(50 px, 0 px, 20 px, 20 px),// large padding-top to have space for selectedNodes bar
   )
 
-  ".chatmsg-group-outer-frame" - (
+  ".chat-group-outer-frame" - (
     paddingTop(10 px),
       minWidth(0 px),
       minHeight(0 px),
       Styles.flex,
   )
 
-  ".chat-thread .chatmsg-group-outer-frame" - (
+  ".chat-thread-messages .chat-group-outer-frame" - (
     paddingTop(5 px)
   )
 
-  ".chatmsg-group-inner-frame" - (
+  ".chat-group-inner-frame" - (
     width(100 %%), // expands selection highlight to the whole line
   )
 
@@ -380,26 +381,26 @@ object CommonStyles extends StyleSheet.Standalone {
     color.grey
   )
 
-  ".chatmsg-line" - (
+  ".chat-row" - (
     alignItems.center,
     padding(2 px, 20 px, 2 px, 0 px)
   )
 
-  ".chatmsg-line .checkbox" - (
+  ".chat-row .checkbox" - (
     visibility.hidden
   )
 
   val chatmsgIndent = marginLeft(3 px)
-  ".chatmsg-line > .tag" - (
+  ".chat-row > .tag" - (
     chatmsgIndent, // when a tag is displayed at message position
     whiteSpace.normal, // displaying tags as content should behave like normal nodes
   )
 
-  ".chatmsg-line > .nodecard" - (
+  ".chat-row > .nodecard" - (
     chatmsgIndent,
   )
 
-  ".chatmsg-line > .tag *" - (
+  ".chat-row > .tag *" - (
     wordWrap.breakWord,
     wordBreak :=! "break-word",
   )
@@ -426,22 +427,22 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  // -- controls on hover --
-  ".chatmsg-line:hover" - (
+  //   -- controls on hover --
+  ".chat-row:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chatmsg-line:hover .chatmsg-controls,"+
-  ".chatmsg-line:hover .checkbox,"+
-  ".chatmsg-line:hover .transitivetag,"+
-  ".chatmsg-line:focus .chatmsg-controls,"+
-  ".chatmsg-line:focus .checkbox,"+
-  ".chatmsg-line:focus .transitivetag" - (
+  ".chat-row:hover .chatmsg-controls,"+
+  ".chat-row:hover .checkbox,"+
+  ".chat-row:hover .transitivetag,"+
+  ".chat-row:focus .chatmsg-controls,"+
+  ".chat-row:focus .checkbox,"+
+  ".chat-row:focus .transitivetag" - (
     visibility.visible
   )
 
-  ".chat-thread" - (
+  ".chat-thread-messages" - (
     marginLeft(5 px),
     paddingLeft(5 px),
     paddingBottom(5 px),
@@ -843,9 +844,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable node
   ".draggable-container .node.draggable--over," +
-  ".chat-thread.draggable--over," +
+  ".chat-expanded-thread.draggable--over," +
   ".chat-history.draggable--over," +
-  ".chatmsg-line.draggable--over .nodecard" - (
+  ".chat-row.draggable--over .nodecard" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
@@ -860,30 +861,30 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable nodecard
   ".nodecard.draggable--over," +
-  ".chatmsg-line.draggable--over .nodecard" - (
+  ".chat-row.draggable--over .nodecard" - (
     borderTop(1 px, solid, transparent).important,
     (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
   )
 
-  ".chatmsg-line .nodecard.draggable-mirror" - (
+  ".chat-row .nodecard.draggable-mirror" - (
     backgroundColor(nodeCardBackgroundColor).important,
     nodeCardShadow.important,
     color.inherit.important
   )
 
-  ".chatmsg-line.draggable-mirror .tag," +
-  ".chatmsg-line.draggable-mirror .tagdot," +
-  ".chatmsg-line.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
-  ".chatmsg-line.draggable-mirror .collapsebutton" - (
+  ".chat-row.draggable-mirror .tag," +
+  ".chat-row.draggable-mirror .tagdot," +
+  ".chat-row.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
+  ".chat-row.draggable-mirror .collapsebutton" - (
     visibility.hidden.important
   )
 
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
   ".nodecard.draggable--over.draggable-source--is-dragging," +
-  ".chatmsg-line.draggable-source--is-dragging .nodecard,"+
-  ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecard,"+
-  ".chatmsg-line.draggable--over .nodecard.draggable-source--is-dragging" - (
+  ".chat-row.draggable-source--is-dragging .nodecard,"+
+  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard,"+
+  ".chat-row.draggable--over .nodecard.draggable-source--is-dragging" - (
     backgroundColor(white).important,
     (boxShadow := none).important,
     border(1 px, dashed, onDragNodeCardColor).important,
@@ -929,7 +930,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
-  ".chatmsg-line.draggable-source--is-dragging .transitivetag" - (
+  ".chat-row.draggable-source--is-dragging .transitivetag" - (
     visibility.visible
     )
 

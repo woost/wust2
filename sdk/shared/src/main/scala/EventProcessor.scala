@@ -99,26 +99,27 @@ class EventProcessor private (
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable.merge(enrichedChanges, changes)
 
-    val localChanges: Observable[GraphChanges] =
-      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
-        case (changes, user, graph) if changes.nonEmpty =>
-          val changesCandidate = changes.consistent.withAuthor(user.id)
-
-          // Workaround - quick fix: This prevents that changing a nodes content breaks ordering
-          val authorEdgesToRemove = for {
-            changedNode <- changesCandidate.addNodes.collect{case Node.Content(id, _, _) if graph.nodeIds.contains(id) => id}
-            authorEdge <- changesCandidate.addEdges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
-            graphAuthorEdge <- graph.edges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
-          } yield (authorEdge, graphAuthorEdge)
-
-          changesCandidate.copy(addEdges = changesCandidate.addEdges -- authorEdgesToRemove.map(_._1) ++ authorEdgesToRemove.map(_._2))
-      }.share
+    val localChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
+      case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
+    }.share
 
     val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
     val graphEvents = Observable.merge(eventStream, localEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+      var lastChanges: GraphChanges = null
+      var lastGraph = graph
+      events.foreach {
+        case ApiEvent.NewGraphChanges(user, changes) =>
+          val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
+          if (lastChanges == null) lastChanges = completeChanges.consistent
+          else lastChanges = lastChanges.merge(completeChanges).consistent
+        case ApiEvent.ReplaceGraph(graph) =>
+          lastChanges = null
+          lastGraph = graph
+      }
+      if (lastChanges == null) lastGraph
+      else lastGraph.applyChanges(lastChanges)
     }
 
     graphWithChanges subscribe rawGraph
@@ -140,7 +141,7 @@ class EventProcessor private (
     val localChangesIndexedBusy = new BusyBufferObservable(localChangesIndexed, maxCount = 10)
       .map(list => (list.map(_._1), list.last._2))
 
-    Observable.tailRecM(localChangesIndexedBusy) { changes =>
+    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(200 millis)) { changes =>
       changes.flatMap {
         case (c, idx) =>
           Observable.fromFuture(sendChanges(c)).map {

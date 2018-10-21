@@ -17,7 +17,7 @@ object Collapse {
     val redirectedConnections: Set[LocalConnection] =
       getRedirectedConnections(graph, alternativePosts)
     val hiddenContainments: collection.Set[Edge] =
-      collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
+      collapsingPosts.flatMap(graph.lookup.incidentChildContainments) //(breakOut)
     val collapsedLocalContainments: collection.Set[LocalConnection] =
       getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
@@ -29,7 +29,7 @@ object Collapse {
     // println("collapsedLocalContainments: " + collapsedLocalContainments)
 
     displayGraph.copy(
-      graph = graph removeNodes hiddenPosts removeConnections hiddenContainments,
+      graph = graph removeNodes hiddenPosts removeEdges hiddenContainments,
       redirectedConnections = redirectedConnections,
       collapsedContainments = collapsedLocalContainments
     )
@@ -53,7 +53,7 @@ object Collapse {
       collapsingPosts: collection.Set[NodeId]
   ): Map[NodeId, Set[NodeId]] = {
     hiddenPosts
-      .flatMap(graph.incidentParentContainments)
+      .flatMap(graph.lookup.incidentParentContainments)
       .groupBy(_.sourceId)
       .mapValues(_.flatMap { c =>
         if (hiddenPosts(c.targetId))

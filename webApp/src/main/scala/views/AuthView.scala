@@ -64,7 +64,7 @@ object AuthView {
             display.block,
             margin := "auto",
             onInput.value --> username,
-            onDomMount.asHtml --> inAnimationFrame { e => if(defaultUsername.now.isEmpty) e.focus() }
+            onDomMount.asHtml --> inNextAnimationFrame { e => if(defaultUsername.now.isEmpty) e.focus() }
           )
         ),
         div(
@@ -78,7 +78,7 @@ object AuthView {
             margin := "auto",
             onInput.value --> password,
             onEnter(nameAndPassword) handleWith actionSink,
-            onDomMount.asHtml --> inAnimationFrame { e => if(defaultUsername.now.nonEmpty) e.focus() }
+            onDomMount.asHtml --> inNextAnimationFrame { e => if(defaultUsername.now.nonEmpty) e.focus() }
           )
         ),
         button(

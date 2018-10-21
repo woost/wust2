@@ -101,6 +101,69 @@ object algorithm {
     map
   }
 
+  @inline def depthFirstSearchWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    if (!append(start)) return
+
+    visited(start) = 1
+    var i = 0
+    val startSuccessorCount = successors(start).length
+    while(i < startSuccessorCount) {
+      stack.push(successors(start, i))
+      i += 1
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(visited(current) != 1) {
+        if (!append(current)) return
+
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+  }
+
+  def depthFirstSearchExistsWithoutStart(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
+
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    var i = 0
+    val startSuccessorCount = successors(start).length
+    while(i < startSuccessorCount) {
+      stack.push(successors(start, i))
+      i += 1
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(current == search) return true
+      if(visited(current) != 1) {
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+
+    false
+  }
+
   def depthFirstSearch(start: Int, successors: NestedArrayInt):Array[Int] = {
     val stack = new ArrayStackInt(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet

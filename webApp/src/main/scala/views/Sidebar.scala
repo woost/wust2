@@ -20,53 +20,82 @@ import collection.breakOut
 object Sidebar {
   import MainViewParts._, Rendered._, Components._
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState): VNode = {
+    val smallIconSize = 40
 
-    div(
+    def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      style("user-select") := "none",
+      height := "100%",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+      minWidth := s"${ smallIconSize }px",
+      channelIcons(state, smallIconSize),
+      newChannelButton(state, "+").apply(
+        cls := "newChannelButton-small " + buttonStyles,
+        onClick handleWith { Analytics.sendEvent("sidebar_closed", "newchannel") }
+      )
+    )
+
+    def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
+      cls := "sidebar",
+      backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+      height := "100%",
+      channels(state),
+      newChannelButton(state).apply(
+        cls := "newChannelButton-large " + buttonStyles,
+        onClick handleWith { Analytics.sendEvent("sidebar_open", "newchannel") }
+      ),
+    )
+
+    def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
+      height := "100%",
+      width := "100%",
+      background := "rgba(0,0,0,0.3)",
+      zIndex := ZIndex.overlay,
+      onClick(false) --> state.sidebarOpen,
+      position.absolute,
+      left := "0px",
+      top := "0px",
+      div(
+        openSidebar,
+        div(Topbar.authentication(state))(
+          alignSelf.center,
+          marginTop := "30px",
+          marginBottom := "10px",
+        ),
+        width := "90%",
+      )
+    )
+
+    def sidebarWithOverlay(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+      div(closedSidebar),
       Rx {
         state.sidebarOpen() match {
-          case true  => VDomModifier( // sidebar open
-            channels(state)(ctx),
-            newChannelButton(state)(ctx)(
-              cls := "newChannelButton-large " + buttonStyles,
-              onClick handleWith { Analytics.sendEvent("sidebar_open", "newchannel") }
-            ),
-            Rx {
-              if(state.screenSize() == ScreenSize.Small) VDomModifier(
-                div(Topbar.authentication(state))(
-                  alignSelf.center,
-                  marginTop := "30px",
-                  marginBottom := "10px",
-                ),
-                width := "100%",
-                height := "100%",
-                zIndex := ZIndex.overlay,
-                onClick(false) --> state.sidebarOpen
-              ) else VDomModifier(
-                maxWidth := "200px",
-              )
-            },
-          )
-          case false =>
-            val iconSize = 40
-            VDomModifier( // sidebar closed
-              minWidth := s"${ iconSize }px",
-              channelIcons(state, iconSize)(ctx),
-              newChannelButton(state, "+")(ctx)(
-                cls := "newChannelButton-small " + buttonStyles,
-                onClick handleWith { Analytics.sendEvent("sidebar_closed", "newchannel") }
-              )
-            )
+          case true  => div(overlayOpenSidebar)
+          case false => VDomModifier.empty
         }
-      },
-      registerDraggableContainer(state)
+      }
     )
+
+    def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
+      state.sidebarOpen() match {
+        case true  => div(openSidebar, maxWidth := "200px")
+        case false => div(closedSidebar)
+      }
+    }
+
+    div.staticRx(keyValue) { implicit ctx =>
+      VDomModifier(
+        style("user-select") := "none",
+        Rx {
+          if (state.screenSize() == ScreenSize.Small) sidebarWithOverlay
+          else sidebarWithExpand
+        },
+        registerDraggableContainer(state)
+      )
+    }
   }
 
-  val buttonStyles = Seq("tiny", "compact", "inverted", "grey").mkString(" ")
+  val buttonStyles = "tiny compact inverted grey"
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
