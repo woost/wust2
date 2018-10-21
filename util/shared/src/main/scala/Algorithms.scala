@@ -406,8 +406,8 @@ object algorithm {
   }
 
   def topologicalSort(
-      vertices: Array[Int], // indices of vertices in successors
-      successors: NestedArrayInt
+    vertices: Array[Int], // indices of vertices in successors
+    successors: NestedArrayInt
   ): Array[Int] = {
     // assert(vertices.length <= successors.length)
     // assert(vertices.length == vertices.toSet.size, "no duplicates allowed")
@@ -460,10 +460,48 @@ object algorithm {
     sorted
   }
 
+  def topologicalSortForward(
+      vertices: Array[Int], // indices of vertices in successors
+      successors: NestedArrayInt
+  ): Array[Int] = {
+
+    val n = successors.length // the number of total vertices in the graph
+    val vertexCount = vertices.length // the number of vertices to sort
+
+    var sorted = new Array[Int](vertexCount) // the result
+    var sortCount = 0 // count to fill the result array from back to front
+    val visited = new Array[Int](vertexCount)
+
+    @inline def add(vertex:Int):Unit = {
+      sorted(sortCount) = vertex
+      sortCount += 1
+    }
+
+    def visit(idx: Int): Unit = {
+      val vertex = vertices(idx)
+      visited(idx) = 1
+      for (nextIdx <- successors(vertex)) {
+        val revIdx = vertices(nextIdx)
+        if (revIdx != -1 && visited(revIdx) == 0) {
+          visit(revIdx)
+        }
+      }
+      add(vertex)
+    }
+
+    var i = 0
+    while (i < vertexCount) {
+      if(visited(i) == 0) visit(i)
+      i += 1
+    }
+
+    sorted
+  }
+
   @deprecated("This is the old, slow version of topologicalSort", "")
   def topologicalSortSlow[V, COLL[V]](
-      vertices: IterableLike[V, COLL[V]],
-      successors: V => Iterable[V]
+    vertices: IterableLike[V, COLL[V]],
+    successors: V => Iterable[V]
   ): List[V] = {
     var sorted: List[V] = Nil
     val unmarked = mutable.LinkedHashSet.empty[V] ++ vertices.toList.reverse // for stable algorithm
@@ -480,4 +518,45 @@ object algorithm {
 
     sorted
   }
+
+  def topologicalSortWithHeuristic[V, COLL[V]](
+    vertices: IterableLike[V, COLL[V]],
+    predecessors: V => Iterable[V],
+    successors: V => Iterable[V],
+    heuristic: (V, V) => Boolean,
+  ): List[V] = {
+    var sorted: List[V] = Nil
+    val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
+
+    def requeue(v: V): Unit = {
+      unmarked.dequeueFirst(e => e == v)
+      unmarked.enqueue(v)
+    }
+
+    def visit(n: V): Unit = {
+
+      if(sorted.contains(n)) return
+
+      val succs = successors(n)
+      if(succs.nonEmpty) {
+        for(s <- successors(n) if unmarked.contains(s)) {
+          requeue(n)
+          return
+        }
+      }
+
+      sorted ::= n
+      for (m <- predecessors(n).toIndexedSeq.sortWith(heuristic)) {
+        unmarked.dequeueFirst(v => v == m)
+        visit(m)
+      }
+    }
+
+    while (unmarked.nonEmpty) {
+      visit(unmarked.dequeue())
+    }
+
+    sorted
+  }
+
 }

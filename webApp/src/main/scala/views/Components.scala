@@ -262,6 +262,15 @@ object Components {
     )
   }
 
+  def withOrder(state: GlobalState, page: Page): VDomModifier = {
+    val parents = page.parentIds
+
+    state.graph.now.lookup.beforeIdx
+
+
+    div()
+  }
+
   def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges])(
     implicit ctx: Ctx.Owner
   ): VNode = {

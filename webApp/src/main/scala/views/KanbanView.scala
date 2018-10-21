@@ -39,12 +39,24 @@ object KanbanView {
           g.filterIds(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(id => g.authors(id).map(_.id)))
         }
 
-        val forest = graph.filterIds { nid =>
-          val isContent = graph.nodesById(nid).isInstanceOf[Node.Content]
-          val notIsolated = graph.hasChildren(nid) || !graph.parents(nid).forall(page.parentIdSet) || graph.isStaticParentIn(nid, page.parentIds)
-          val noPage = !page.parentIdSet.contains(nid)
+        val unsortedForest = graph.lookup.filterIdx { nodeIdx =>
+          val node = graph.lookup.nodes(nodeIdx)
+          val isContent = node.isInstanceOf[Node.Content]
+          val notIsolated = graph.lookup.hasChildrenIdx(nodeIdx) || !graph.lookup.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
+          val noPage = !page.parentIdSet.contains(node.id)
           isContent && notIsolated && noPage
         }.lookup.redundantForestIncludingCycleLeafs
+
+//        scribe.info(s"SORTING FOREST: $unsortedForest")
+        val sortedForest = graph.lookup.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
+//        scribe.info(s"SORTED FOREST: $sortedForest")
+
+//        scribe.info(s"\tNodeCreatedIdx: ${graph.lookup.nodeCreated.indices.mkString(",")}")
+//        scribe.info(s"\tNodeCreated: ${graph.lookup.nodeCreated.mkString(",")}")
+//
+//        scribe.info(s"chronological nodes idx: ${graph.lookup.chronologicalNodesAscendingIdx.mkString(",")}")
+//        scribe.info(s"chronological nodes: ${graph.lookup.chronologicalNodesAscending}")
+
         val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
 
         VDomModifier(
@@ -58,7 +70,7 @@ object KanbanView {
             alignItems.flexStart,
             overflowX.auto,
             overflowY.hidden,
-            forest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
             newColumnArea(state, page, newColumnFieldActive)
           ),
           renderIsolatedNodes(state, state.page(), isolatedNodes, selectedNodeIds)(ctx)(Styles.flexStatic)
@@ -92,6 +104,7 @@ object KanbanView {
                   val newColumnNode = Node.Content(NodeData.Markdown(str))
                   val add = GraphChanges.addNode(newColumnNode)
                   val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
+//                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.lookup.graph. page.parentIds))
                   add merge makeStatic
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
@@ -117,7 +130,11 @@ object KanbanView {
 
   private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
-      case Tree.Parent(node, children) => renderColumn(state, node, children.toSeq, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
+      case Tree.Parent(node, children) =>
+        val sortedChildren = state.graph.now.lookup.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
+//        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
+//        scribe.info(s"\tNodeCreated: ${state.graph.now.lookup.nodeCreated}")
+        renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isStaticParentIn(node.id, parentIds))

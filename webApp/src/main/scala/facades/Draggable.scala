@@ -146,7 +146,7 @@ class SortableStopEvent(data: js.Object) extends SortableEvent(data) {
 @JSImport("@shopify/draggable", "SortableSortEvent")
 class SortableSortEvent(data: js.Object) extends SortableEvent(data) {
   def currentIndex:Int = js.native
-  def over:Int = js.native
+  def over:html.Element = js.native
   def overContainer:html.Element = js.native
 }
 

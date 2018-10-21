@@ -8,7 +8,11 @@ in
     buildInputs = with pkgs; [
       git zsh
       scala sbt
-      docker docker_compose
+      docker
+      docker_compose
+      # python36Packages.docker_compose
+      # python27Packages.docker_compose
+      # python27Packages.backports_ssl_match_hostname
       ngrok # github app -> webhooks to localhost
       nodejs-10_x yarn
       phantomjs

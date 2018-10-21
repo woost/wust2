@@ -139,6 +139,7 @@ package object collection {
         i += 1
       }
     }
+
   }
 
   implicit final class RichIntArray(val array:Array[Int]) extends AnyVal {

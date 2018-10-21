@@ -596,5 +596,252 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D")))))))
       }
     }
+
+    "topological" - {
+      val milliDay = 86400000l
+      val milliMinute = 60000l
+//      def before(beforeId: Cuid, nodeId: Cuid) = Edge.Before(NodeId(beforeId), NodeId(nodeId))
+//      def after(nodeId: Cuid, afterId: Cuid) = Edge.Before(NodeId(nodeId), NodeId(afterId))
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+
+      def cnode(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeMeta(nodeAccess))
+      def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def parentNode(childId:NodeId, parentId: NodeId) = Edge.Parent(childId, parentId)
+
+      val pNode: Node = "parent"
+
+      def before(nodeId: Cuid, afterId: Cuid) = Edge.Before(NodeId(nodeId), NodeId(afterId), pNode.id)
+      def author(userId: UserId, ts: Long, nodeId: NodeId) = Edge.Author(userId, EdgeData.Author(EpochMilli(ts * milliMinute)), nodeId)
+
+      val u = user("U")
+      val ul = List[Node]("1", "6", "7", "A", "X", "5")
+      val p = ul.map(n => parentNode(n.id, pNode.id))
+      val l = ul.sortBy(_.str)
+      val a = ul.zipWithIndex.map(n => author(u.id, n._2, n._1.id))
+
+
+      "chronologic ordering" in {
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a,
+        )
+
+        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id)
+
+        assert("1" == sorted(0).str && "1" == l(0).str)
+        assert("6" == sorted(1).str && "6" == l(2).str)
+        assert("7" == sorted(2).str && "7" == l(3).str)
+        assert("A" == sorted(3).str && "A" == l(4).str)
+        assert("X" == sorted(4).str && "X" == l(5).str)
+        assert("5" == sorted(5).str && "5" == l(1).str)
+
+      }
+
+      def heuristic(g: Graph)(n1: Node, n2: Node) = {
+        val look = g.lookup
+//        def a = look.beforeEdgeIdx(look.idToIdx(n1.id))
+////          .sortBy(idx => edges(idx).asInstanceOf[Edge.Before].data.timestamp)
+//        def b = look.beforeEdgeIdx(look.idToIdx(n2.id))
+//
+//        val b1 = look.beforeOrdering(n1.id).map(tid => {
+//          val targetNode = look.nodes(tid)
+//
+//        })
+        val b1 = look.beforeOrdering(n1.id)
+        val b2 = look.beforeOrdering(n2.id)
+
+        if(b1.isEmpty && b2.nonEmpty) false
+        else if (b2.isEmpty && b1.nonEmpty) true
+        else n1.str < n2.str
+      }
+
+      "topological before ordering forward edge" in {
+
+        val be = before("X", "7")
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a :+ be,
+        )
+
+//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "X", "7", "A", "5")
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g)) // ("1", "6", "X", "7", "A", "5")
+
+//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "1")
+        assert(sorted(1).str == "6")
+        assert(sorted(2).str == "X")
+        assert(sorted(3).str == "7")
+        assert(sorted(4).str == "A")
+        assert(sorted(5).str == "5")
+      }
+
+      "topological before ordering backward edge" in {
+
+        val be = before("7", "X")
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a :+ be,
+        )
+
+//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "A", "7", "X", "5")
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "1")
+        assert(sorted(1).str == "6")
+        assert(sorted(2).str == "A")
+        assert(sorted(3).str == "7")
+        assert(sorted(4).str == "X")
+        assert(sorted(5).str == "5")
+      }
+
+      "topological before ordering two edges" in {
+
+        val be = before("A", "7")
+        val be2 = before("6", "X")
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a :+ be :+ be2,
+        )
+
+//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "A", "7", "6", "X", "5")
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "1")
+        assert(sorted(1).str == "A")
+        assert(sorted(2).str == "7")
+        assert(sorted(3).str == "6")
+        assert(sorted(4).str == "X")
+        assert(sorted(5).str == "5")
+      }
+
+      "topological before ordering successive edges" in {
+
+        val be = before("A", "7")
+        val be2 = before("7", "5")
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a :+ be :+ be2,
+        )
+
+        //        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "A", "7", "5", "X")
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "1")
+        assert(sorted(1).str == "6")
+        assert(sorted(2).str == "X")
+        assert(sorted(3).str == "A")
+        assert(sorted(4).str == "7")
+        assert(sorted(5).str == "5")
+      }
+
+      "topological before ordering full chain 1" in {
+
+        //        ("1", "6", "7", "A", "X", "5")
+        val bes = Set[Edge](
+          before("X", "6"),
+          before("6", "5"),
+          before("5", "1"),
+          before("1", "7"),
+          before("7", "A"),
+        )
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a ++ bes,
+        )
+
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "X")
+        assert(sorted(1).str == "6")
+        assert(sorted(2).str == "5")
+        assert(sorted(3).str == "1")
+        assert(sorted(4).str == "7")
+        assert(sorted(5).str == "A")
+      }
+
+      "topological before ordering full chain 2" in {
+
+//        ("1", "6", "7", "A", "X", "5")
+        val bes = Set[Edge](
+          before("1", "5"),
+          before("5", "A"),
+          before("A", "7"),
+          before("7", "X"),
+          before("X", "6"),
+        )
+
+        val g = Graph(
+          nodes = l :+ u,
+          edges = p ++ a ++ bes,
+        )
+
+        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+        // scribe.info(s"TEST: graph:\n${g.toPrettyString}")
+        // scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+        // scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
+
+        assert(sorted(0).str == "1")
+        assert(sorted(1).str == "5")
+        assert(sorted(2).str == "A")
+        assert(sorted(3).str == "7")
+        assert(sorted(4).str == "X")
+        assert(sorted(5).str == "6")
+      }
+
+      "topological before ordering full chain permutations" in {
+
+        //        ("1", "6", "7", "A", "X", "5")
+        val rawNodes = Seq[Node]("1", "6", "7", "A", "X", "5")
+        val perms = rawNodes.permutations
+
+        for(perm <- perms){
+          val bes: Set[Edge] = perm.sliding(2).toList.map(l => before(l.head.id, l.last.id)).toSet
+
+          val g = Graph(
+            nodes = l :+ u,
+            edges = p ++ a ++ bes,
+          )
+
+          val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+
+          assert(sorted(0).str == perm(0).str)
+          assert(sorted(1).str == perm(1).str)
+          assert(sorted(2).str == perm(2).str)
+          assert(sorted(3).str == perm(3).str)
+          assert(sorted(4).str == perm(4).str)
+          assert(sorted(5).str == perm(5).str)
+        }
+
+      }
+
+    }
+
   }
 }

@@ -117,7 +117,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${lift(userId)}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${nodeId})
-          ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE set data = EXCLUDED.data
+          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.targetId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_)))
@@ -195,33 +195,44 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
   object edge {
 
-    private val insert = quote { c: Edge =>
+    private val upsert = quote { c: Edge =>
       val q = query[Edge].insert(c)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
     def create(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = create(List(edge))
     def create(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-      val (authorEdges, otherEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Author])
+//      val (unconstraintEdges, uniqueEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before])
+//      val unconstraintEdges = edges.filter(e => !(e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before]))
+//      val uniqueEdges = edges.filter(e => e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before])
 
       ctx.transaction( implicit ec =>
         for {
-          numAuthors <- if(authorEdges.nonEmpty) {
+          //          numUnconstraint <- if(unconstraintEdges.nonEmpty) {
+          //            ctx.run {
+          //              liftQuery(unconstraintEdges.toList).foreach(
+          //                query[Edge].insert(_)
+          //              )
+          //            }
+          //          } else Future.successful(Nil)
+          //          numUnique <- if(uniqueEdges.nonEmpty) {
+          //            ctx.run {
+          //              liftQuery(uniqueEdges.toList).foreach(
+          //                upsert(_)
+          //              )
+          //            }
+          //          } else Future.successful(Nil)
+          //        } yield numUnconstraint.forall(_ <= 1) && numUnique.forall(_ <= 1)
+          edges <- if(edges.nonEmpty) {
             ctx.run {
-              liftQuery(authorEdges.toList).foreach( e =>
-                query[Edge].insert(e)
-                  .onConflictIgnore
+              liftQuery(edges.toList).foreach(
+                upsert(_)
               )
             }
           } else Future.successful(Nil)
-          numOthers <- if(otherEdges.nonEmpty) {
-            ctx.run {
-                liftQuery(otherEdges.toList).foreach(insert(_))
-            }
-          } else Future.successful(Nil)
-        } yield numAuthors.forall(_ <= 1) && numOthers.forall(_ <= 1)
+        } yield edges.forall(_ <= 1)
       ).recoverValue(false)
     }
 

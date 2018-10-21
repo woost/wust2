@@ -34,7 +34,7 @@ object GraphBenchmarks {
         }, {
         case ((vertices,successors), iterations) =>
           loop(iterations) {
-            algorithm.topologicalSort(vertices, successors)
+            algorithm.topologicalSortForward(vertices, successors)
           }
         }
       ),
