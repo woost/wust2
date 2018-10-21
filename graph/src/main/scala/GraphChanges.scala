@@ -110,11 +110,17 @@ object GraphChanges {
   def undelete(nodeIds: Iterable[NodeId], parentIds: Iterable[NodeId]): GraphChanges = connect(Edge.Parent)(nodeIds, parentIds)
   def undelete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = undelete(nodeId :: Nil, parentIds)
 
+  def undelete(nodeIds: Iterable[NodeId], graph: Graph): GraphChanges = {
+    if(nodeIds.isEmpty) empty
+    else nodeIds.foldLeft(GraphChanges.empty) { (changes, id) =>
+      changes merge undelete(id, graph.parents(id))
+    }
+  }
+
   def delete(nodeIds: Iterable[NodeId], graph: Graph): GraphChanges = {
     if(nodeIds.isEmpty) empty
-    else {
-      val parentIds = graph.parents(nodeIds.head).toSet
-      delete(nodeIds, parentIds)
+    else nodeIds.foldLeft(GraphChanges.empty) { (changes, id) =>
+      changes merge delete(id, graph.parents(id))
     }
   }
   def delete(nodeId: NodeId, graph: Graph): GraphChanges = delete(nodeId :: Nil, graph)

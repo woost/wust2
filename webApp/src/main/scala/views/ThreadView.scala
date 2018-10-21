@@ -24,7 +24,6 @@ import scala.scalajs.js
 
 object ThreadView {
   import SharedViewElements._
-  //TODO undelete in selected nodes
   //TODO: show less on small screen sizes, word-break
   //TODO: reply submit button on mobile
   //TODO: smaller input field placeholder on small screens / mobile. Enter cannot be pressed on mobile
