@@ -604,9 +604,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
 //      def after(nodeId: Cuid, afterId: Cuid) = Edge.Before(NodeId(nodeId), NodeId(afterId))
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
 
-      def cnode(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeMeta(nodeAccess))
-      def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
-      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
       def parentNode(childId:NodeId, parentId: NodeId) = Edge.Parent(childId, parentId)
 
       val pNode: Node = "parent"
@@ -624,9 +621,11 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "chronologic ordering" in {
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a,
         )
+
+        println(g.toPrettyString)
 
         val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id)
 
@@ -662,7 +661,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         val be = before("X", "7")
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a :+ be,
         )
 
@@ -686,7 +685,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         val be = before("7", "X")
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a :+ be,
         )
 
@@ -711,7 +710,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         val be2 = before("6", "X")
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a :+ be :+ be2,
         )
 
@@ -736,7 +735,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         val be2 = before("7", "5")
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a :+ be :+ be2,
         )
 
@@ -767,7 +766,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         )
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a ++ bes,
         )
 
@@ -797,7 +796,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         )
 
         val g = Graph(
-          nodes = l :+ u,
+          nodes = (l :+ u) :+ pNode,
           edges = p ++ a ++ bes,
         )
 
@@ -825,7 +824,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           val bes: Set[Edge] = perm.sliding(2).toList.map(l => before(l.head.id, l.last.id)).toSet
 
           val g = Graph(
-            nodes = l :+ u,
+            nodes = (l :+ u) :+ pNode,
             edges = p ++ a ++ bes,
           )
 
