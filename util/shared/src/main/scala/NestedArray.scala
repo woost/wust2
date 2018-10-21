@@ -31,6 +31,8 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
 final class NestedArrayIntBuilder(nestedArray: NestedArrayInt){
   var filled = new Array[Int](nestedArray.length)
   def add(idx:Int, value:Int):Unit = {
+    // assert(idx < nestedArray.length)
+    // assert(filled(idx) < nestedArray.sliceLength(idx), idx)
     nestedArray.update(idx, filled(idx), value)
     filled(idx) += 1
   }

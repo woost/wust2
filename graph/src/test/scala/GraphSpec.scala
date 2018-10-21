@@ -618,7 +618,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val ul = List[Node]("1", "6", "7", "A", "X", "5")
       val p = ul.map(n => parentNode(n.id, pNode.id))
       val l = ul.sortBy(_.str)
-      val a = ul.zipWithIndex.map(n => author(u.id, n._2, n._1.id))
+      val a = ul.zipWithIndex.map(n => author(u.id, n._2, n._1.id)) // index -> time
 
 
       "chronologic ordering" in {

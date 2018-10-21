@@ -210,6 +210,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   assert(idToIdx.size == nodes.length, "nodes are not distinct by id")
 
   private val emptyNodeIdSet = Set.empty[NodeId]
+  private val consistentEdges = ArraySet.create(edges.length)
   private val edgesIdx = InterleavedArray.create(edges.length)
 
 
@@ -237,6 +238,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       if(sourceIdx != -1) {
         val targetIdx = idToIdx(edge.targetId)
         if(targetIdx != -1) {
+        consistentEdges.add(edgeIdx)
         edgesIdx.updatea(edgeIdx, sourceIdx)
         edgesIdx.updateb(edgeIdx, targetIdx)
           edge match {
@@ -287,7 +289,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val staticParentInIdxBuilder = NestedArrayInt.builder(staticParentInDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
 
-  edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+  consistentEdges.foreachAdded { edgeIdx =>
+    val sourceIdx = edgesIdx.a(edgeIdx)
+    val targetIdx = edgesIdx.b(edgeIdx)
     val edge = edges(edgeIdx)
     edge match {
       case _: Edge.Author         =>
