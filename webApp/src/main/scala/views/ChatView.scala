@@ -25,7 +25,7 @@ import scala.scalajs.js
 object ChatView {
   import SharedViewElements._
 
-  private final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean]) extends SelectedNodeBase
+  private final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
@@ -112,14 +112,14 @@ object ChatView {
 
     val renderedMessage = renderMessage(state, nodeId, isDeleted = isDeleted, editMode = editMode)
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode), isSelected = isSelected)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress handleWith { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode))
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
           val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode)))
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, directParentIds)))
         }
       }
     }

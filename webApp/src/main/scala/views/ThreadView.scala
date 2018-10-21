@@ -31,7 +31,7 @@ object ThreadView {
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
-  final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
@@ -226,14 +226,14 @@ object ThreadView {
       boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
     )))
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, showReplyField), isSelected = isSelected)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, showReplyField, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress handleWith { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, showReplyField))
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, showReplyField, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
           val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, showReplyField)))
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, showReplyField, directParentIds)))
         }
       }
     }

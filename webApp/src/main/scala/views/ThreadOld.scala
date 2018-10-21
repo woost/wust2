@@ -205,7 +205,8 @@ object ThreadOld {
     } else Nil
     val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
       zoomButton(state, nodeIds).apply(onTap handleWith { selectedNodeIds.update(_ -- nodeIds) }),
-      SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
+      // SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
+      ???
     )
 
     div(

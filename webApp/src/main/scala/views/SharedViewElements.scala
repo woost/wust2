@@ -33,6 +33,7 @@ object SharedViewElements {
 
   trait SelectedNodeBase {
     def nodeId: NodeId
+    def directParentIds: Iterable[NodeId]
   }
 
   final case class ScrollHandler(scrollableHistoryElem: Var[Option[HTMLElement]], isScrolledToBottom: Var[Boolean]) {
@@ -379,7 +380,7 @@ object SharedViewElements {
         state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
         selectedNodes() = Set.empty[T]
       }),
-      SelectedNodes.deleteAllButton[T](state, nodeIdSet, selectedNodes),
+      SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, _.nodeId, _.directParentIds),
     )
   }
 }

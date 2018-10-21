@@ -161,7 +161,7 @@ object KanbanView {
           isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation handleWith {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, state.graph.now))
+              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
@@ -226,7 +226,7 @@ object KanbanView {
           div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation handleWith {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, state.graph.now))
+              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"

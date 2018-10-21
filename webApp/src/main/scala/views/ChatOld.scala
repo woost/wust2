@@ -72,7 +72,8 @@ object ChatOld {
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
       replyButton.apply(onTap handleWith { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
       zoomButton(state, nodeIds),
-      SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
+      // SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
+      ???
     )
 
 

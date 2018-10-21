@@ -89,10 +89,10 @@ object SelectedNodes {
     )
   }
 
-  def deleteAllButton[T](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
+  def deleteAllButton[T](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, getDirectParentIds: T => Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
-      selectedNodeIds.forall(id => graph.lookup.isDeletedNow(id, graph.parents(id)))
+      selectedNodesList.forall(t => graph.lookup.isDeletedNow(getNodeId(t), getDirectParentIds(t)))
     }
     div(
       div(
@@ -106,8 +106,11 @@ object SelectedNodes {
 
       onClick handleWith{_ =>
         val changes =
-          if (allSelectedNodesAreDeleted.now) GraphChanges.undelete(selectedNodeIds, state.graph.now)
-          else GraphChanges.delete(selectedNodeIds, state.graph.now)
+          if (allSelectedNodesAreDeleted.now)
+            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(getNodeId(t), getDirectParentIds(t)))
+          else
+            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(getNodeId(t), getDirectParentIds(t)))
+
         state.eventProcessor.changes.onNext(changes)
         selectedNodes() = Set.empty[T]
       }

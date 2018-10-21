@@ -110,20 +110,6 @@ object GraphChanges {
   def undelete(nodeIds: Iterable[NodeId], parentIds: Iterable[NodeId]): GraphChanges = connect(Edge.Parent)(nodeIds, parentIds)
   def undelete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = undelete(nodeId :: Nil, parentIds)
 
-  def undelete(nodeIds: Iterable[NodeId], graph: Graph): GraphChanges = {
-    if(nodeIds.isEmpty) empty
-    else nodeIds.foldLeft(GraphChanges.empty) { (changes, id) =>
-      changes merge undelete(id, graph.parents(id))
-    }
-  }
-
-  def delete(nodeIds: Iterable[NodeId], graph: Graph): GraphChanges = {
-    if(nodeIds.isEmpty) empty
-    else nodeIds.foldLeft(GraphChanges.empty) { (changes, id) =>
-      changes merge delete(id, graph.parents(id))
-    }
-  }
-  def delete(nodeId: NodeId, graph: Graph): GraphChanges = delete(nodeId :: Nil, graph)
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
