@@ -76,7 +76,7 @@ object SelectedNodes {
   private def nodeList[T](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       cls := "nodelist drag-feedback",
-      draggableAs(state, DragItem.SelectedNodes(selectedNodeIds)),
+      draggableAs(DragItem.SelectedNodes(selectedNodeIds)),
       dragTarget(DragItem.SelectedNodesBar),
 
       Styles.flex,
@@ -141,7 +141,7 @@ object SelectedNodes {
     ),
       maxLength = Some(20)
     )(
-      draggableAs(state, DragItem.SelectedNode(node.id)),
+      draggableAs(DragItem.SelectedNode(node.id)),
       dragTarget(DragItem.SelectedNode(node.id)),
       cls := "draggable drag-feedback"
     )

@@ -275,7 +275,7 @@ object ThreadOld {
                   MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, graph.lookup.createBitSet(page.parentIdSet), user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
-              draggableAs(state, DragItem.DisableDrag),
+              draggableAs(DragItem.DisableDrag),
               cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
               dragTarget(DragItem.Chat.Page(page.parentIds)),
             )
@@ -458,7 +458,7 @@ object ThreadOld {
 
               replyField(state, nodeId, path, activeReplyFields),
 
-              draggableAs(state, DragItem.DisableDrag),
+              draggableAs(DragItem.DisableDrag),
               dragTarget(DragItem.Chat.Thread(nodeId)),
               cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
               keyed(nodeId)
@@ -630,7 +630,7 @@ object ThreadOld {
         cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
         editable.map { editable =>
           if(editable)
-            draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
+            draggableAs(DragItem.DisableDrag) // prevents dragging when selecting text
           else {
             val payload = () => {
               val selection = selectedNodeIds.now
@@ -640,7 +640,7 @@ object ThreadOld {
                 DragItem.Chat.Message(nodeId)
             }
             // payload is call by name, so it's always the current selectedNodeIds
-            draggableAs(state, payload())
+            draggableAs(payload())
           }
         },
         dragTarget(DragItem.Chat.Message(nodeId)),

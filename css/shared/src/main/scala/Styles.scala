@@ -343,17 +343,21 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-group-outer-frame" - (
-    paddingTop(10 px),
-      minWidth(0 px),
-      minHeight(0 px),
-      Styles.flex,
+    minWidth(0 px),
+    minHeight(0 px),
+    Styles.flex,
   )
 
-  ".chat-thread-messages .chat-group-outer-frame" - (
+  ".chat-group-outer-frame > div:first-child" - ( // contains avatar
+    paddingTop(8 px),
+  )
+
+  ".chat-thread-messages .chat-group-inner-frame" - (
     paddingTop(5 px)
   )
 
   ".chat-group-inner-frame" - (
+    paddingTop(10 px),
     width(100 %%), // expands selection highlight to the whole line
   )
 
@@ -844,8 +848,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable node
   ".draggable-container .node.draggable--over," +
-  ".chat-expanded-thread.draggable--over," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," +
   ".chat-history.draggable--over," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
   ".chat-row.draggable--over .nodecard" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
@@ -853,7 +858,9 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
-  ".chat-row.draggable--over .nodecard *" - (
+  ".chat-row.draggable--over .nodecard *," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *" - ( // first message in a group
     color.white.important,
   )
 
@@ -885,9 +892,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
-  ".nodecard.draggable--over.draggable-source--is-dragging," +
+  ".nodecard.draggable-source--is-dragging.draggable--over," +
   ".chat-row.draggable-source--is-dragging .nodecard,"+
-  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard" - (
+  ".chat-row.draggable-source--is-dragging.draggable--over .nodecard," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard" - (
     backgroundColor(white).important,
     color(onDragNodeCardColor).important,
     (boxShadow := none).important,
@@ -896,7 +904,8 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".chat-row.draggable-source--is-dragging .nodecard *,"+
-  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard *" - (
+  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard *," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard *" - (
     backgroundColor(white).important,
     color(onDragNodeCardColor).important,
   )

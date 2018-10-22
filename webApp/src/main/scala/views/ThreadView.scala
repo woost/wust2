@@ -28,6 +28,7 @@ object ThreadView {
   import SharedViewElements._
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
+  //TODO: smaller top-level avatar on small screen size
 
   final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
@@ -37,7 +38,7 @@ object ThreadView {
     val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
 
     val outerDragOptions = VDomModifier(
-      draggableAs(state, DragItem.DisableDrag), // chat history is not draggable, only its elements
+      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
       Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
       registerDraggableContainer(state),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
@@ -90,12 +91,19 @@ object ThreadView {
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean) = {
     val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+    val firstNodeId = groupGraph.nodeIds(group(0))
 
     VDomModifier(
       cls := "chat-group-outer-frame",
       isTopLevel.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+
       div(
         cls := "chat-group-inner-frame",
+
+        draggableAs(DragItem.DisableDrag),
+        cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
+        dragTarget(DragItem.Chat.Message(firstNodeId)),
+
         chatMessageHeader(author, creationEpochMillis, isTopLevel.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
         group.map { groupIdx =>
           val nodeId = groupGraph.lookup.nodeIds(groupIdx)
@@ -129,7 +137,7 @@ object ThreadView {
               }
 
               VDomModifier(
-                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, isExpanded = isExpanded, showReplyField = showReplyField),
+                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
                     renderExpandedThread(state, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
@@ -149,7 +157,7 @@ object ThreadView {
       cls := "chat-expanded-thread",
       backgroundColor := bgColor,
 
-      draggableAs(state, DragItem.DisableDrag),
+      draggableAs(DragItem.DisableDrag),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
       dragTarget(DragItem.Chat.Thread(nodeId)),
 
@@ -233,7 +241,7 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -273,7 +281,7 @@ object ThreadView {
       expandCollapsButton,
       messageTags(state, nodeId, directParentIds),
       controls,
-      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
+      messageRowDragOptions(nodeId, selectedNodes, editMode)
     )
   }
 

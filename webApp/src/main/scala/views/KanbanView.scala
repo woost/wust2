@@ -178,10 +178,10 @@ object KanbanView {
       isTopLevel.ifFalse[VDomModifier](cls := "kanbansubcolumn"),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
-        draggableAs(state, DragItem.Kanban.ToplevelColumn(node.id)),
+        draggableAs(DragItem.Kanban.ToplevelColumn(node.id)),
         dragTarget(DragItem.Kanban.ToplevelColumn(node.id)),
       ) else VDomModifier(
-        draggableAs(state, DragItem.Kanban.SubColumn(node.id)),
+        draggableAs(DragItem.Kanban.SubColumn(node.id)),
         dragTarget(DragItem.Kanban.SubColumn(node.id))
       ),
       div(
@@ -238,7 +238,7 @@ object KanbanView {
 
     rendered(
       // sortable: draggable needs to be direct child of container
-      editable.map(editable => if(editable) draggableAs(state, DragItem.DisableDrag) else draggableAs(state, DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
+      editable.map(editable => if(editable) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
       keyed(node.id, parentIds),
       cls := "draghandle",

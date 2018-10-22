@@ -256,12 +256,12 @@ object SharedViewElements {
     creationDate(creationEpochMillis)
   )
 
-  def messageRowDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editable: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageRowDragOptions[T <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[T]], editable: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
     // The whole line is draggable, so that it can also be a drag-target.
     // This is currently a limit in the draggable library
     editable.map { editable =>
       if(editable)
-        draggableAs(state, DragItem.DisableDrag) // prevents dragging when selecting text
+        draggableAs(DragItem.DisableDrag) // prevents dragging when selecting text
       else {
         def payload = {
           val selection = selectedNodes.now
@@ -271,7 +271,7 @@ object SharedViewElements {
             DragItem.Chat.Message(nodeId)
         }
         // payload is call by name, so it's always the current selectedNodeIds
-        draggableAs(state, payload)
+        draggableAs(payload)
       }
     },
     dragTarget(DragItem.Chat.Message(nodeId)),
@@ -331,7 +331,7 @@ object SharedViewElements {
       )
     }
 
-  def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner) = {
+  def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
     val directNodeTags:Rx[Seq[Node]] = Rx {
       val graph = state.graph()
       graph.lookup.directNodeTags(graph.lookup.idToIdx(nodeId), graph.lookup.createBitSet(directParentIds))

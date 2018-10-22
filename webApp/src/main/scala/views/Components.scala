@@ -107,7 +107,7 @@ object Components {
       onClick handleWith { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      draggableAs(state, DragItem.Tag(tag.id)),
+      draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
     )
@@ -121,7 +121,7 @@ object Components {
       onClick handleWith { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
-      draggableAs(state, DragItem.Tag(tag.id)),
+      draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
     )
@@ -208,7 +208,7 @@ object Components {
     writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
   }
 
-  def draggableAs(state: GlobalState, payload: => DragPayload): VDomModifier = {
+  def draggableAs(payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
       onDomMount.asHtml handleWith{ elem =>

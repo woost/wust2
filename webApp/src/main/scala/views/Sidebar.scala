@@ -122,10 +122,9 @@ object Sidebar {
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick handleWith { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
-        draggableAs(state, DragItem.Channel(node.id)),
+        draggableAs(DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
-      )
-      ,
+      ),
     }
 
     def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -172,7 +171,7 @@ object Sidebar {
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick handleWith { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              draggableAs(state, DragItem.Channel(node.id)),
+              draggableAs(DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
             )

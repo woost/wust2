@@ -12,7 +12,6 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
@@ -144,7 +143,7 @@ object ChatView {
         } else messageCard: VDomModifier
       },
       controls,
-      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
+      messageRowDragOptions(nodeId, selectedNodes, editMode)
     )
   }
 
