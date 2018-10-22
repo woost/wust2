@@ -853,6 +853,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
+  ".chat-row.draggable--over .nodecard *" - (
+    color.white.important,
+  )
+
   ".draggable-mirror" - (
     opacity(1).important,
     zIndex(ZIndex.dragging).important, // needs to overlap everything else
@@ -883,11 +887,17 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard.draggable-source--is-dragging," +
   ".nodecard.draggable--over.draggable-source--is-dragging," +
   ".chat-row.draggable-source--is-dragging .nodecard,"+
-  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard,"+
-  ".chat-row.draggable--over .nodecard.draggable-source--is-dragging" - (
+  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard" - (
     backgroundColor(white).important,
+    color(onDragNodeCardColor).important,
     (boxShadow := none).important,
     border(1 px, dashed, onDragNodeCardColor).important,
+  )
+
+
+  ".chat-row.draggable-source--is-dragging .nodecard *,"+
+  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard *" - (
+    backgroundColor(white).important,
     color(onDragNodeCardColor).important,
   )
 
