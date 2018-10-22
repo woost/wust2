@@ -148,6 +148,7 @@ object SharedViewElements {
     color := "#b3bfca",
     alignSelf.center,
     marginLeft.auto,
+    onMouseDown.stopPropagation handleWith {},
   )
 
   val replyButton: VNode = {
