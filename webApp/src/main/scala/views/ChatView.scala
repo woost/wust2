@@ -30,13 +30,6 @@ object ChatView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
 
-    val outerDragOptions = VDomModifier(
-      draggableAs(state, DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
-      registerDraggableContainer(state),
-      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
-    )
-
     val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
 
     val currentReply = Var(Set.empty[NodeId])
@@ -56,7 +49,7 @@ object ChatView {
         overflow.auto,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         chatHistory(state, currentReply, selectedNodes),
-        outerDragOptions,
+        registerDraggableContainer(state),
         scrollHandler.scrollOptions(state)
       ),
       managed(IO { state.page.foreach { _ => currentReply() = Set.empty[NodeId] } }),
