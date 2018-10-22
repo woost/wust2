@@ -209,18 +209,22 @@ object ThreadView {
         width := "100%"
       ),
       BrowserDetect.isMobile.ifTrue[VDomModifier](
-        button(
-          Styles.flexStatic,
-          cls := "ui circular icon button",
+        div( // clickable box around circular button
+          padding := "3px",
+          button(
+            margin := "0px",
+            Styles.flexStatic,
+            cls := "ui circular icon button",
+            freeRegular.faPaperPlane,
+            fontSize := "1.1rem",
+            backgroundColor := "steelblue",
+            color := "white",
+          ),
           onClick handleWith {
             val str = currentTextArea.value
             handleInput(str)
             currentTextArea.value = ""
           },
-          marginLeft := "3.5px",
-          backgroundColor := "steelblue",
-          color := "white",
-          freeRegular.faPaperPlane
         )
       ),
       closeButton(
