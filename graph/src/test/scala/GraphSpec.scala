@@ -625,7 +625,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a,
         )
 
-        println(g.toPrettyString)
+        // println(g.toPrettyString)
 
         val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id)
 
