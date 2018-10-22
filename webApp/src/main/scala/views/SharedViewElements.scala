@@ -75,7 +75,8 @@ object SharedViewElements {
     nodes.sort { (a, b) =>
       val createdA = graph.lookup.nodeCreated(a)
       val createdB = graph.lookup.nodeCreated(b)
-      if(createdA != createdB) (createdA - createdB).toInt
+      if(createdA < createdB) -1
+      else if(createdA > createdB) 1
       else {
         graph.lookup.nodeIds(a) compare graph.lookup.nodeIds(b)
       }
