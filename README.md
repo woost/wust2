@@ -131,6 +131,11 @@ The compose stack `docker/compose-prod.yml` is an example how to run wust in doc
 ```
 $ docker-compose --file <project>/compose-prod.yml up
 ```
+# Deploy-Script
+```bash
+DOCKER_USERNAME=woost DOCKER_PASSWORD=xxx DOCKER_REGISTRY=docker.woost.space STAGING_URL=https://xxx ./manual-deploy
+```
+This will build all docker images and push them to `:latest`.
 
 # App and Favicons
 * https://realfavicongenerator.net
