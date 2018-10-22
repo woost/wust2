@@ -55,9 +55,14 @@ object Elements {
     EmitterBuilder.ofModifier { (sink: Boolean => Unit) =>
       // https://stackoverflow.com/a/27413909
       val duration = 251
+      val distanceToleranceSq = 5*5
 
       var longpress = false
       var presstimer = -1
+      var startx:Double = -1
+      var starty:Double = -1
+      var currentx:Double = -1
+      var currenty:Double = -1
 
       def cancel(): Unit = {
         if (presstimer != -1) {
@@ -82,16 +87,26 @@ object Elements {
         } else {
 
           longpress = false
+          startx = e.clientX
+          starty = e.clientY
+          currentx = startx
+          currenty = starty
 
           presstimer = setTimeout({ () =>
-            sink(true) // long click
-            longpress = true
+            val dx = currentx - startx
+            val dy = currenty - starty
+            val distanceSq = dx*dx + dy*dy
+            if(distanceSq <= distanceToleranceSq) {
+              sink(true) // long click
+            }
+            longpress = true // prevents click
           }, duration)
         }
       }
 
       VDomModifier(
         //TODO: SDT: add touch handlers
+        onMouseMove handleWith {e => currentx = e.clientX; currenty = e.clientY},
         onMouseDown.stopPropagation handleWith { start _ },
         eventProp("touchstart") handleWith { start _ },
         onClick.stopPropagation handleWith { click _ },
