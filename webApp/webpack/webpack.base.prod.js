@@ -18,6 +18,7 @@ const { execSync } = require('child_process');
 // stderr is sent to stdout of parent process
 // you can set options.stdio if you want it to go elsewhere
 const rootFolder = Path.resolve(__dirname, '../../../../..');
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx500M";
 execSync('cd ' + rootFolder + '; sbt cssJVM/run');
 
 
