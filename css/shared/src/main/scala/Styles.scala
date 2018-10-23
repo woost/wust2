@@ -359,7 +359,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chat-history" - (
     height(100 %%),
-    padding(50 px, 0 px, 20 px, 20 px),// large padding-top to have space for selectedNodes bar
+    padding(50 px, 0 px, 5 px, 20 px),// large padding-top to have space for selectedNodes bar
   )
 
   ".chat-group-outer-frame" - (

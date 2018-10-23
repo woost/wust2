@@ -28,7 +28,6 @@ object ThreadView {
   import SharedViewElements._
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
-  //TODO: scroll-to bottom on mobile
   //TODO: close feedback by clicking on chat-row
 
   final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
@@ -36,7 +35,7 @@ object ThreadView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
-    val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
+    val scrollHandler = ScrollHandler(scrollableHistoryElem = Var(None: Option[HTMLElement]), isScrolledToBottom = Var(true))
 
     val outerDragOptions = VDomModifier(
       draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
@@ -66,7 +65,7 @@ object ThreadView {
         scrollHandler.scrollOptions(state)
 
       ),
-      inputField(state, state.page.now.parentIds)(ctx)(Styles.flexStatic)
+      inputField(state, state.page.now.parentIds, scrollHandler)(ctx)(Styles.flexStatic)
     )
   }
 

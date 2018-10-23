@@ -85,7 +85,7 @@ object ChatView {
           if(currentReply.now.nonEmpty) currentReply.now
           else state.page.now.parentIdSet
         }
-        inputField(state, replyNodes)(ctx)(Styles.flexStatic)
+        inputField(state, replyNodes, scrollHandler)(ctx)(Styles.flexStatic)
       }
     )
   }

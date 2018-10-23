@@ -44,12 +44,13 @@ object SharedViewElements {
       }
     }
 
+    def isScrolledToBottomNow = scrollableHistoryElem.now.fold(true){ elem =>
+      elem.scrollHeight - elem.clientHeight <= elem.scrollTop + 11
+    } // at bottom + 10 px tolerance
+
     def scrollOptions(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier(
       onDomPreUpdate handleWith {
-        scrollableHistoryElem.now.foreach { prev =>
-          val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
-          isScrolledToBottom() = wasScrolledToBottom
-        }
+        isScrolledToBottom() = isScrolledToBottomNow
       },
       onDomUpdate handleWith {
         if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
@@ -81,7 +82,7 @@ object SharedViewElements {
     }
   }
 
-  def inputField(state: GlobalState, parentIds: => Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, parentIds: => Iterable[NodeId], scrollHandler:ScrollHandler)(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = Rx {
       state.viewConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
@@ -94,7 +95,13 @@ object SharedViewElements {
       val changes = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentIds)
 
       state.eventProcessor.changes.onNext(changes)
-      currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
+      if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
+    }
+
+    if(BrowserDetect.isMobile) {
+      state.page.triggerLater {
+        if(currentTextArea != null) currentTextArea.focus() // re-gain focus on page-change
+      }
     }
 
     div(
@@ -116,7 +123,36 @@ object SharedViewElements {
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
           placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
-          onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] }
+          onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
+          BrowserDetect.isMobile.ifFalse(onDomMount.asHtml --> inNextAnimationFrame(_.focus())), // immediately focus
+          BrowserDetect.isMobile.ifTrue(onFocus handleWith {
+            // when mobile keyboard opens, it may scroll up.
+            // so we scroll down again.
+            if(scrollHandler.isScrolledToBottomNow) {
+              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 500)
+              // again for slower phones...
+              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 2000)
+              ()
+            }
+          }),
+          BrowserDetect.isMobile.ifTrue(eventProp("touchstart") handleWith {
+          // if field is already focused, but keyboard is closed:
+          // we do not know if the keyboard is opened right now,
+          // but we can detect if it was opened: by screen-height changes
+          if(scrollHandler.isScrolledToBottomNow) {
+            val screenHeight = window.screen.availHeight
+            window.setTimeout({() =>
+              val keyboardWasOpened = screenHeight > window.screen.availHeight
+              if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+            }, 500)
+            // and again for slower phones...
+            window.setTimeout({() =>
+              val keyboardWasOpened = screenHeight > window.screen.availHeight
+              if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+            }, 2000)
+            ()
+          }
+        })
         )
       ),
       BrowserDetect.isMobile.ifTrue[VDomModifier](
