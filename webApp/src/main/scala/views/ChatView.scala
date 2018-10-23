@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -212,19 +213,20 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[VDomModifier]] = {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
-      val graph = state.graph()
-      val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
+      state.graphWithLoading { graph =>
+        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
 
-      groups.map { group =>
-        // because of equals check in thunk, we implicitly generate a wrapped array
-        val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
-        val key = nodeIds.head.toString
+        groups.map { group =>
+          // because of equals check in thunk, we implicitly generate a wrapped array
+          val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+          val key = nodeIds.head.toString
 
-        div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+          div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+        }
       }
     }
   }

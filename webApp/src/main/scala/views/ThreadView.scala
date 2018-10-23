@@ -68,7 +68,7 @@ object ThreadView {
     )
   }
 
-  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[ThunkVNode]] = {
+  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
@@ -76,15 +76,16 @@ object ThreadView {
     }
   }
 
-  private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): Array[ThunkVNode] = {
-    val graph = state.graph()
-    val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
-    groups.map { group =>
-      // because of equals check in thunk, we implicitly generate a wrapped array
-      val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
-      val key = nodeIds.head.toString
+  private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
+    state.graphWithLoading { graph =>
+      val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
+      groups.map { group =>
+        // because of equals check in thunk, we implicitly generate a wrapped array
+        val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+        val key = nodeIds.head.toString
 
       div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
+      }
     }
   }
 
@@ -165,7 +166,7 @@ object ThreadView {
       div(
         cls := "chat-thread-messages",
         borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
-        Rx { renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes) },
+        renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes),
         Rx {
           if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
           else threadReplyButton(state, nodeId, showReplyField)

@@ -7,6 +7,7 @@ import monocle.macros.GenLens
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
+import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api._
@@ -17,6 +18,8 @@ import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components
+import wust.css.Styles
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -27,7 +30,8 @@ class GlobalState(
   val eventProcessor: EventProcessor,
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val viewConfig: Var[ViewConfig],
-  val isOnline: Rx[Boolean]
+  val isOnline: Rx[Boolean],
+  val isLoading: Rx[Boolean]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
@@ -51,6 +55,13 @@ class GlobalState(
         }
 
       newGraph
+    }
+  }
+
+  def graphWithLoading(renderFn: Graph => VDomModifier): VDomModifier = {
+    Rx {
+      if (isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation)
+      else renderFn(graph())
     }
   }
 

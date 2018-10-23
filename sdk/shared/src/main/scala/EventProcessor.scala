@@ -105,20 +105,22 @@ class EventProcessor private (
     val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
     val graphEvents = Observable.merge(eventStream, localEvents.map(Seq(_)), localChangesAsEvents)
 
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      var lastChanges: GraphChanges = null
-      var lastGraph = graph
-      events.foreach {
-        case ApiEvent.NewGraphChanges(user, changes) =>
-          val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
-          if (lastChanges == null) lastChanges = completeChanges.consistent
-          else lastChanges = lastChanges.merge(completeChanges).consistent
-        case ApiEvent.ReplaceGraph(graph) =>
-          lastChanges = null
-          lastGraph = graph
+    val graphWithChanges: Observable[Graph] = {
+      var lastGraph = Graph.empty
+      graphEvents.map { events =>
+        var lastChanges: GraphChanges = null
+        events.foreach {
+          case ApiEvent.NewGraphChanges(user, changes) =>
+            val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
+            if (lastChanges == null) lastChanges = completeChanges.consistent
+            else lastChanges = lastChanges.merge(completeChanges).consistent
+          case ApiEvent.ReplaceGraph(graph) =>
+            lastChanges = null
+            lastGraph = graph
+        }
+        if (lastChanges != null) lastGraph = lastGraph.applyChanges(lastChanges)
+        lastGraph
       }
-      if (lastChanges == null) lastGraph
-      else lastGraph.applyChanges(lastChanges)
     }
 
     graphWithChanges subscribe rawGraph

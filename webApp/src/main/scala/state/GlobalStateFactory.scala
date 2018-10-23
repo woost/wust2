@@ -36,7 +36,9 @@ object GlobalStateFactory {
       Client.observable.closed.map(_ => false)
     ).unsafeToRx(true)
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline)
+    val isLoading = Var(false)
+
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading)
     import state._
 
     //TODO: better in rx/obs operations
@@ -87,15 +89,21 @@ object GlobalStateFactory {
       .switchMap { case ((prevPage, page), user) =>
         val observable = if (prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds) =>
+            isLoading() = true
             Observable.fromFuture(Client.api.getGraph(page))
           case Page.NewChannel(nodeId) =>
             val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.id)
             eventProcessor.changes.onNext(changes)
             Observable.empty
-        } else Observable.fromFuture(Client.api.getGraph(page))
+        } else {
+          isLoading() = true
+          Observable.fromFuture(Client.api.getGraph(page))
+        }
 
         observable.map(ReplaceGraph.apply)
-      }.subscribe(eventProcessor.localEvents)
+      }
+        .doOnNext(_ => isLoading() = false)
+        .subscribe(eventProcessor.localEvents)
 
 
     val pageObservable = page.toObservable
