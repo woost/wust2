@@ -515,7 +515,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalSort(chronologicalNodesAscendingIdx, beforeIdx)
   }
 
-  def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => T): Seq[T] = {
+  def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
     if(seq.isEmpty || nodes.isEmpty) return seq
 
     @inline def idSeq: Seq[Int] = seq.map(extractIdx)
@@ -533,11 +533,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     def c = chronological.map(nodes).toSeq
     val topological: Array[Int] = topologicalSortHeuristic(c, heuristic).map(n => idToIdx(n.id)).toArray
 
-    val res = topological.map(liftIdx).toSeq
+    val res = topological.map(liftIdx).toSeq.flatten
     res
   }
   def topologicalSortBy[T](seq: Seq[T], extract: T => NodeId): Seq[T] = {
-    topologicalSortByIdx[T](seq, idToIdx compose extract, (i: Int) => seq.filter(t => extract(t) == nodeIds(i)).head)
+    if(seq.nonEmpty) topologicalSortByIdx[T](seq, idToIdx compose extract, (i: Int) => seq.find(t => extract(t) == nodeIds(i)))
+    else seq
   }
 
   def topologicalSortHeuristic(seq: Seq[Node], heuristic: (Node, Node) => Boolean): Seq[Node] = {

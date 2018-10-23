@@ -529,7 +529,7 @@ object algorithm {
     val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
 
     def requeue(v: V): Unit = {
-      unmarked.dequeueFirst(e => e == v)
+      if(unmarked.nonEmpty) unmarked.dequeueFirst(e => e == v)
       unmarked.enqueue(v)
     }
 
@@ -547,7 +547,7 @@ object algorithm {
 
       sorted ::= n
       for (m <- predecessors(n).toIndexedSeq.sortWith(heuristic)) {
-        unmarked.dequeueFirst(v => v == m)
+        if(unmarked.nonEmpty) unmarked.dequeueFirst(v => v == m)
         visit(m)
       }
     }

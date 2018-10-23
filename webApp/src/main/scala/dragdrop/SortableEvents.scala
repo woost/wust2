@@ -74,7 +74,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // Reconstruct ordering
     def oldOrderingNodes = from.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
-    val oldOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](oldOrderingNodes, identity, identity) // rebuild ordering in container
+    val oldOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](oldOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
 
     // Kanban item dropped at an edge of a container
@@ -111,7 +111,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) into.parentIds.map(nid => Some(Edge.Before(previousBefore.get, previousAfter.get, nid))).toSet else Set.empty[Option[Edge]]
 
     def newOrderingNodes = into.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
-    val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, identity) // rebuild ordering in container
+    val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
     if(newOrderedNodes.nonEmpty) return GraphChanges.empty
 
