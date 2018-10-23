@@ -113,8 +113,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     def newOrderingNodes = into.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
     val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, identity) // rebuild ordering in container
 
+    if(newOrderedNodes.nonEmpty) return GraphChanges.empty
+
     // Kanban item dropped at an edge of a container
-    if(newOrderedNodes.nonEmpty && newOrderedNodes.size + 1 < newContChilds.length) {
+    if(newOrderedNodes.size + 1 < newContChilds.length) {
 //      console.log("Kanban elements by sortable: ", newContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, newOrderedNodes)}")
       scribe.warn(s"newOrderedNodes.size(${newOrderedNodes.size}) != newContChilds.length(${newContChilds.length}) => Kanban item dropped at an edge of a container")
