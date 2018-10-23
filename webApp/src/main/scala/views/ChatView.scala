@@ -208,7 +208,7 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[VNode]] = {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[VDomModifier]] = {
     Rx {
       val page = state.page()
       val graph = state.graph()
