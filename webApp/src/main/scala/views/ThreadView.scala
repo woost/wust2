@@ -186,14 +186,15 @@ object ThreadView {
 
   private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean]): VNode = {
 
+    var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
       val changes = {
         GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil)
       }
       state.eventProcessor.changes.onNext(changes)
+      currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
     }
 
-    var currentTextArea: dom.html.TextArea = null
     div(
       Styles.flex,
       alignItems.center,
