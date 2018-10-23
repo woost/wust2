@@ -94,6 +94,14 @@ object Styles extends StyleSheet.Inline {
     (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(133,213,255,0)")
   )
 
+  val loadingAnimationDashOffsetKf = keyframes(
+    (100 %%) -> style(svgStrokeDashOffset := "100")
+  )
+
+  val loadingAnimationDashArrayKf = keyframes(
+    (0 %%) -> style(svgStrokeDashArray := "30 3.33333"),
+    (100 %%) -> style(svgStrokeDashArray := "16.11111 17.22222")
+  )
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -180,6 +188,12 @@ object CommonStyles extends StyleSheet.Standalone {
     borderRadius(2 px),
     padding(2 px),
     Styles.flexStatic,
+  )
+
+
+  "#woost-loading-animation" - (
+    svgStrokeDashOffset := "0",
+    animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
   )
 
   ".sidebar" - (
