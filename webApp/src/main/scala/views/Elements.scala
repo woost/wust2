@@ -82,35 +82,34 @@ object Elements {
         }
       }
 
-      def start(e:dom.MouseEvent): Unit = {
-        if (e.`type` === "click" && e.button != 0) {
-        } else {
+      def start(e:dom.TouchEvent): Unit = {
+        longpress = false
+        startx = e.touches(0).clientX
+        starty = e.touches(0).clientY
+        currentx = startx
+        currenty = starty
 
-          longpress = false
-          startx = e.clientX
-          starty = e.clientY
-          currentx = startx
-          currenty = starty
+        presstimer = setTimeout({ () =>
+          val dx = currentx - startx
+          val dy = currenty - starty
+          val distanceSq = dx*dx + dy*dy
+          if(distanceSq <= distanceToleranceSq) {
+            sink(true) // long click
+          }
+          longpress = true // prevents click
+        }, duration)
+      }
 
-          presstimer = setTimeout({ () =>
-            val dx = currentx - startx
-            val dy = currenty - starty
-            val distanceSq = dx*dx + dy*dy
-            if(distanceSq <= distanceToleranceSq) {
-              sink(true) // long click
-            }
-            longpress = true // prevents click
-          }, duration)
-        }
+      @inline def updateCurrentPosition(e:dom.TouchEvent): Unit = {
+        currentx = e.touches(0).clientX
+        currenty = e.touches(0).clientY
       }
 
       VDomModifier(
         //TODO: SDT: add touch handlers
-        onMouseMove handleWith {e => currentx = e.clientX; currenty = e.clientY},
-        onMouseDown.stopPropagation handleWith { start _ },
-        eventProp("touchstart") handleWith { start _ },
         onClick.stopPropagation handleWith { click _ },
-        onMouseOut handleWith {cancel()},
+        eventProp("touchmove") handleWith { updateCurrentPosition _ },
+        eventProp("touchstart") handleWith { start _ },
         eventProp("touchend") handleWith {cancel()},
         eventProp("touchleave") handleWith {cancel()},
         eventProp("touchcancel") handleWith {cancel()},
