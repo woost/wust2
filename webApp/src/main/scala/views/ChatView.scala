@@ -49,6 +49,9 @@ object ChatView {
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         chatHistory(state, currentReply, selectedNodes),
         registerDraggableContainer(state),
+
+        // clicking on background deselects
+        onClick handleWith { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
       ),
       managed(IO { state.page.foreach { _ => currentReply() = Set.empty[NodeId] } }),

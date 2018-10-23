@@ -107,7 +107,7 @@ object Elements {
 
       VDomModifier(
         //TODO: SDT: add touch handlers
-        onClick.stopPropagation handleWith { click _ },
+        onClick handleWith { click _ },
         eventProp("touchmove") handleWith { updateCurrentPosition _ },
         eventProp("touchstart") handleWith { start _ },
         eventProp("touchend") handleWith {cancel()},

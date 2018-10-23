@@ -28,7 +28,6 @@ object ThreadView {
   import SharedViewElements._
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
-  //TODO: close feedback by clicking on chat-row
 
   final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
@@ -61,7 +60,7 @@ object ThreadView {
         outerDragOptions,
 
         // clicking on background deselects
-        onClick handleWith { selectedNodes() = Set.empty[SelectedNode] },
+        onClick handleWith { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
 
       ),
