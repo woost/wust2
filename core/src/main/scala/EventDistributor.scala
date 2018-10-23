@@ -76,7 +76,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val expiredSubscriptions = parallelSubscriptions.map { s =>
       db.notifications.notifiedNodesForUser(s.userId, nodeIds).transformWith {
         case Success(permittedNodeIds) =>
-          val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet))
+          val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet)).flatten
           val payload: Future[Seq[PushData]] = Future.sequence(filteredEvents.collect {
             case ApiEvent.NewGraphChanges(_, changes) if changes.addNodes.nonEmpty =>
               changes.addNodes.map{ n =>
