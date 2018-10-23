@@ -40,7 +40,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
     val (checkedNodeIdsList, authorsList) = events.map {
       case ApiEvent.NewGraphChanges(user, changes) =>
-        (changes.involvedNodeIds.toSet -- Set(user.id), Set(user)) // expose author node
+        (changes.addNodes.map(_.id) -- Set(user.id) , Set(user)) // expose author node
       case _ => (Set.empty, Set.empty)
     }.unzip
     val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
