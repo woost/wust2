@@ -11,7 +11,8 @@ import scala.concurrent.duration._
 object ZIndex {
   val controls = 10
   val draggable = 100
-  val overlay = 1000
+  val overlayLow = 1000
+  val overlay = 2000
   val dragging = 10000
 }
 
@@ -805,7 +806,7 @@ object CommonStyles extends StyleSheet.Standalone {
     userSelect := none,
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
-    zIndex(ZIndex.overlay),
+    zIndex(ZIndex.overlayLow),
   )
 
   ".selectednodes > .nodelist" - (
