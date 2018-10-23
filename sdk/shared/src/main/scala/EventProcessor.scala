@@ -74,14 +74,13 @@ class EventProcessor private (
   }.share
   val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
-  // changes that are only applied to the graph but are never sent
-  val nonSendingChanges = PublishSubject[GraphChanges] // TODO: merge with manualUnsafeEvents?
-
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   object enriched {
     val changes = PublishSubject[GraphChanges]
   }
+
+  val localEvents = PublishSubject[ApiEvent.GraphContent]
 
   // public reader
   val (localChanges, graph): (Observable[GraphChanges], Observable[Graph]) = {
@@ -103,8 +102,8 @@ class EventProcessor private (
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
 
-    val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
-    val graphEvents = Observable.merge(eventStream, localEvents)
+    val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
+    val graphEvents = Observable.merge(eventStream, localEvents.map(Seq(_)), localChangesAsEvents)
 
     val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
       var lastChanges: GraphChanges = null
