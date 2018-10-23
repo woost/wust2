@@ -161,7 +161,12 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold
   )
 
+  ".pageheader" - (
+    userSelect := "none",
+  )
+
   ".pageheader-channeltitle" - (
+    userSelect := "text",
     fontSize(20 px),
     wordWrap.breakWord,
     wordBreak :=! "break-word",
@@ -178,6 +183,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".sidebar" - (
+    userSelect := "none",
     color.white,
     transition := "background-color 0.5s",
     Styles.flexStatic,
@@ -386,6 +392,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-row" - (
+    userSelect := "none",
     alignItems.center,
     padding(2 px, 20 px, 2 px, 0 px)
   )
@@ -474,6 +481,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content > *" - (
     padding(2 px, 4 px), // when editing, clicking on the padding does not unfocus
+    userSelect := "text",
   )
 
   ".nodecard-content" - (
@@ -971,6 +979,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".topbar" - (
+    userSelect := "none",
     //borderBottom(solid, 1 px, c"#FFFFFF")
   )
 

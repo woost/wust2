@@ -39,9 +39,12 @@ object PageHeader {
   def apply(state: GlobalState): VNode = {
     import state._
     div.staticRx(keyValue)(implicit ctx =>
-      Rx {
-        pageParentNodes().map { channel => channelRow(state, channel) }
-      }
+      VDomModifier(
+        cls := "pageheader",
+        Rx {
+          pageParentNodes().map { channel => channelRow(state, channel) }
+        }
+      )
     )
   }
 
