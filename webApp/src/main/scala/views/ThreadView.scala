@@ -17,7 +17,7 @@ import wust.util.collection._
 import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -28,7 +28,6 @@ object ThreadView {
   import SharedViewElements._
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
-  //TODO: smaller top-level avatar on small screen size
   //TODO: scroll-to bottom on mobile
   //TODO: close feedback by clicking on chat-row
 
@@ -73,6 +72,7 @@ object ThreadView {
 
   private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[ThunkVNode]] = {
     Rx {
+      state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
       renderThreadGroups(state, directParentIds = page.parentIds, transitiveParentIds = page.parentIdSet, selectedNodes, isTopLevel = true)
     }
@@ -86,7 +86,7 @@ object ThreadView {
       val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
       val key = nodeIds.head.toString
 
-      div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
+      div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
     }
   }
 
@@ -94,10 +94,11 @@ object ThreadView {
     val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
     val firstNodeId = groupGraph.nodeIds(group(0))
+    val topLevelAndLargeScreen = isTopLevel && (state.screenSize.now == ScreenSize.Large)
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      isTopLevel.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
 
       div(
         cls := "chat-group-inner-frame",
@@ -106,11 +107,11 @@ object ThreadView {
         cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
         dragTarget(DragItem.Chat.Message(firstNodeId)),
 
-        chatMessageHeader(author, creationEpochMillis, isTopLevel.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
+        chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
         group.map { groupIdx =>
           val nodeId = groupGraph.lookup.nodeIds(groupIdx)
 
-          div.staticRx(keyValue(nodeId)) { implicit ctx =>
+          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
             val nodeIdList = nodeId :: Nil
 
             val showReplyField = Var(false)

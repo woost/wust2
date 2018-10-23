@@ -13,7 +13,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -182,17 +182,18 @@ object ChatView {
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+    val isLargeScreen = state.screenSize.now == ScreenSize.Large
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      author.map(bigAuthorAvatar),
+      isLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
       div(
         cls := "chat-group-inner-frame",
-        div(cls := "chatmsg-header", Styles.flex, author.map(authorName), creationDate(creationEpochMillis)),
+        chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
 
         group.map { groupIdx =>
           val nodeId = groupGraph.lookup.nodeIds(groupIdx)
-          div.staticRx(keyValue(nodeId)) { implicit ctx =>
+          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
             val isDeleted = Rx {
               val graph = state.graph()
@@ -210,6 +211,7 @@ object ChatView {
 
   private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[Array[VDomModifier]] = {
     Rx {
+      state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
       val graph = state.graph()
       val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
@@ -219,7 +221,7 @@ object ChatView {
         val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
         val key = nodeIds.head.toString
 
-        div.thunk(key)(nodeIds)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+        div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
       }
     }
   }

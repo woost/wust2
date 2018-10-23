@@ -279,58 +279,56 @@ object SharedViewElements {
     cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
   )
 
-  def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner) = 
-    Rx {
-      (state.screenSize() == ScreenSize.Small).ifFalse[VDomModifier] {
-        div(
-          cls := "ui checkbox fitted",
-          marginLeft := "5px",
-          marginRight := "3px",
-          isSelected.map(_.ifTrueOption(visibility.visible)),
-          input(
-            tpe := "checkbox",
-            checked <-- isSelected,
-            onChange.checked handleWith { checked =>
-              if(checked) selectedNodes.update(_ + newSelectedNode(nodeId))
-              else selectedNodes.update(_.filterNot(_.nodeId == nodeId))
-            }
-            ),
-          label()
-        )
-      }
+  def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner) =
+    (state.screenSize.now == ScreenSize.Small).ifFalse[VDomModifier] {
+      div(
+        cls := "ui checkbox fitted",
+        marginLeft := "5px",
+        marginRight := "3px",
+        isSelected.map(_.ifTrueOption(visibility.visible)),
+        input(
+          tpe := "checkbox",
+          checked <-- isSelected,
+          onChange.checked handleWith { checked =>
+            if(checked) selectedNodes.update(_ + newSelectedNode(nodeId))
+            else selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+          }
+        ),
+        label()
+      )
     }
 
   def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeleted:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner) =
-    Rx {
       div(
         Styles.flexStatic,
         cls := "chatmsg-controls",
-        (state.screenSize() == ScreenSize.Small).ifFalse[VDomModifier] {
-          if(isDeleted()) {
-            undeleteButton(
-              onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+        (state.screenSize.now == ScreenSize.Small).ifFalse[VDomModifier] {
+          Rx {
+            if(isDeleted()) {
+              undeleteButton(
+                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+              )
+            }
+            else VDomModifier(
+              replyButton(
+                onClick handleWith { replyAction }
+              ),
+              editButton(
+                onClick.mapTo(!editMode.now) --> editMode
+              ),
+              deleteButton(
+                onClick handleWith {
+                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+                  selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+                },
+              ),
+              zoomButton(
+                onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+              )
             )
           }
-          else VDomModifier(
-            replyButton(
-              onClick handleWith { replyAction }
-            ) ,
-            editButton(
-              onClick.mapTo(!editMode.now) --> editMode
-            ) ,
-            deleteButton(
-              onClick handleWith {
-                state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-                selectedNodes.update(_.filterNot(_.nodeId == nodeId))
-              },
-            ) ,
-            zoomButton(
-              onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
-            )
-          )
         }
       )
-    }
 
   def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
     val directNodeTags:Rx[Seq[Node]] = Rx {
@@ -339,7 +337,7 @@ object SharedViewElements {
     }
 
     Rx {
-      state.screenSize() match {
+      state.screenSize.now match {
         case ScreenSize.Small =>
           div(
             cls := "tags",
