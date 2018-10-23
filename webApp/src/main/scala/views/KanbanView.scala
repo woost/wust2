@@ -44,7 +44,8 @@ object KanbanView {
           val isContent = node.isInstanceOf[Node.Content]
           val notIsolated = graph.lookup.hasChildrenIdx(nodeIdx) || !graph.lookup.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
           val noPage = !page.parentIdSet.contains(node.id)
-          isContent && notIsolated && noPage
+          val notDeleted = graph.lookup.deletedParentsIdx(nodeIdx).isEmpty
+          isContent && notIsolated && noPage && notDeleted
         }.lookup.redundantForestIncludingCycleLeafs
 
 //        scribe.info(s"SORTING FOREST: $unsortedForest")
