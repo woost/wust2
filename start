@@ -10,9 +10,11 @@ script_dir="$(dirname $0)"
 sql_checksum_file="$script_dir/.sql_checksum"
 sql_checksum_dir="$script_dir/dbMigration/core/sql"
 
+git_branch=$(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD) # branch, or fall back to commit hash
+
 function assure_db_migration() {
     if [ -z "$CI" ]; then
-        new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | { cat; git symbolic-ref --short HEAD; } | md5sum)"
+        new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | { cat; echo $git_branch; } | md5sum)"
         old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
         if [ "$old_checksum" != "$new_checksum" ]; then
             echo "New db migration available, building db-migration image"
@@ -72,7 +74,7 @@ function sbt() {
 }
 
 FALLBACKVERSION="dirty" # When git is not available
-[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
+[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=$git_branch || VERSION=$FALLBACKVERSION
 [ "$VERSION" == "master" ] && VERSION="latest"
 
 
@@ -81,7 +83,7 @@ env_wust_version="WUST_VERSION=$VERSION"
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust WUST_PUSH_SUBJECT=push.dev@woost.space WUST_PUSH_PUBLIC_KEY=BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0 WUST_PUSH_PRIVATE_KEY=or76yI5iDE+S9gWkVU2g0JuHyq4OD/AtwHTHefkoo3k"
 env_wust_local="WUST_HOSTNAME=localhost DOCKER_RESTART_POLICY=no"
 env_postgres_secret="POSTGRES_PASSWORD=test"
-env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5433"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5432"
 
 env_github_redis="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6379"
 env_github_app="WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} "
