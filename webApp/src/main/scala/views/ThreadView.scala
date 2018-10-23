@@ -30,6 +30,7 @@ object ThreadView {
   //TODO: fix "remove tag" in cycles
   //TODO: smaller top-level avatar on small screen size
   //TODO: scroll-to bottom on mobile
+  //TODO: close feedback by clicking on chat-row
 
   final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
