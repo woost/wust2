@@ -23,7 +23,6 @@ object Topbar {
   def apply(state: GlobalState): VNode = {
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
-        style("user-select") := "none", //TODO: add to scala-dom-types?
         paddingRight := "5px",
         height := "35px",
         backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),

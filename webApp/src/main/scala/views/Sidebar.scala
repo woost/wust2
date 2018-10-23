@@ -85,7 +85,6 @@ object Sidebar {
 
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
-        style("user-select") := "none",
         Rx {
           if (state.screenSize() == ScreenSize.Small) sidebarWithOverlay
           else sidebarWithExpand

@@ -25,7 +25,6 @@ object SelectedNodes {
     }
 
     div(
-      style("user-select") := "none",
       Rx {
         val graph = state.graph()
         val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(getNodeId(data)): Long)

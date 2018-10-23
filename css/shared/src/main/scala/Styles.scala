@@ -802,6 +802,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val selectedNodesBgColor = c"#85D5FF"
   ".selectednodes" - (
+    userSelect := none,
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
     zIndex(ZIndex.overlay),

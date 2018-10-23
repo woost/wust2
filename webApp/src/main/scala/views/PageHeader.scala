@@ -93,7 +93,6 @@ object PageHeader {
         flexWrap.wrap,
         marginLeft.auto,
         minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-        style("user-select") := "none",
         Rx {
           val showChannelsButton = isSpecialNode() || isBookmarked()
           showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
