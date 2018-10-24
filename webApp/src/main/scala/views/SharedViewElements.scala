@@ -337,7 +337,7 @@ object SharedViewElements {
       div(
         Styles.flexStatic,
         cls := "chatmsg-controls",
-        (state.screenSize.now == ScreenSize.Small).ifFalse[VDomModifier] {
+        BrowserDetect.isMobile.ifFalse[VDomModifier] {
           Rx {
             if(isDeleted()) {
               undeleteButton(
