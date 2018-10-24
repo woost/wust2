@@ -35,7 +35,6 @@ package object outwatchHelpers extends KeyHash {
     }
   }
 
-  //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
