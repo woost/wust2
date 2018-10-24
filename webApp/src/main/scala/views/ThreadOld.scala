@@ -579,7 +579,7 @@ object ThreadOld {
       label()
     )
 
-    val messageCard = nodeCardEditable(state, node, editable = editable, state.eventProcessor.changes)(ctx)(
+    val messageCard = nodeCardEditable(state, node, editMode = editable, state.eventProcessor.changes)(ctx)(
       Styles.flex,
       flexDirection.row,
       alignItems := "flex-end", //TODO SDT update

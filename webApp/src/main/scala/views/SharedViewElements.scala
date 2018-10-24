@@ -265,7 +265,7 @@ object SharedViewElements {
     }
 
     def render(node: Node)(implicit ctx: Ctx.Owner) =
-      nodeCardEditable(state, node, editable = editMode, state.eventProcessor.changes).apply(
+      nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
         Styles.flex,
         alignItems.flexEnd,
         Rx{
@@ -273,7 +273,6 @@ object SharedViewElements {
           isDeleted().ifTrue[VDomModifier](cls := "node-deleted")
         },
         cls := "drag-feedback",
-        Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
 
         syncedIcon,
         dragHandle,
@@ -293,11 +292,11 @@ object SharedViewElements {
     creationDate(creationEpochMillis)
   )
 
-  def messageRowDragOptions[T <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[T]], editable: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageRowDragOptions[T <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
     // The whole line is draggable, so that it can also be a drag-target.
     // This is currently a limit in the draggable library
-    editable.map { editable =>
-      if(editable)
+    editMode.map { editMode =>
+      if(editMode)
         draggableAs(DragItem.DisableDrag) // prevents dragging when selecting text
       else {
         def payload = {

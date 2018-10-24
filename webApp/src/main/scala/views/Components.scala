@@ -18,6 +18,7 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Rendered._
 import emojijs.EmojiConvertor
 import monix.execution.Cancelable
+import wust.util._
 
 import scala.scalajs.js
 
@@ -152,8 +153,8 @@ object Components {
     renderNodeTag(state, tag, contentString)
   }
 
-  def editableNodeTag(state: GlobalState, tag: Node, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20))(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeTag(state, tag, editableNode(state, tag, editable, submit, maxLength))
+  def editableNodeTag(state: GlobalState, tag: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20))(implicit ctx: Ctx.Owner): VNode = {
+    renderNodeTag(state, tag, editableNode(state, tag, editMode, submit, maxLength))
   }
 
   def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId): VNode = {
@@ -197,10 +198,15 @@ object Components {
       injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
     )
   }
-  def nodeCardEditable(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       node,
-      injected = VDomModifier(editableNode(state, node, editable, submit, maxLength), injected)
+      injected = VDomModifier(
+        editableNode(state, node, editMode, submit, maxLength),
+        injected
+      )
+    ).apply(
+      Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
     )
   }
 
@@ -294,45 +300,45 @@ object Components {
   def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges])(
     implicit ctx: Ctx.Owner
   ): VNode = {
-    val editable = Var(false)
-    editableNode(state, node, editable, submit)(ctx)(
+    val editMode = Var(false)
+    editableNode(state, node, editMode, submit)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation handleWith {
-        if(!editable.now) {
-          editable() = true
+        if(!editMode.now) {
+          editMode() = true
         }
       }
     )
   }
 
 
-  def editableNode(state: GlobalState, node: Node, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
+  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     node match {
-      case contentNode: Node.Content => editableNodeContent(state, contentNode, editable, submit, maxLength)
+      case contentNode: Node.Content => editableNodeContent(state, contentNode, editMode, submit, maxLength)
       case _                         => renderNodeData(node.data, maxLength)
     }
   }
 
-  def editableNodeContent(state: GlobalState, node: Node.Content, editable: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int])(
+  def editableNodeContent(state: GlobalState, node: Node.Content, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int])(
     implicit ctx: Ctx.Owner
   ): VNode = {
 
     val initialRender: Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
 
     def save(text: String): Unit = {
-      if(editable.now) {
+      if(editMode.now) {
         val changes = GraphChanges.addNode(Node.Content(node.id, NodeData.Markdown(text)))
         submit.onNext(changes)
 
         initialRender() = renderNodeData(changes.addNodes.head.data)
-        editable() = false
+        editMode() = false
       }
     }
 
     def discardChanges(): Unit = {
-      if(editable.now) {
-        editable() = false
+      if(editMode.now) {
+        editMode() = false
       }
     }
 
@@ -340,7 +346,7 @@ object Components {
       outline := "none", // hides contenteditable outline
       keyed, // when updates come in, don't disturb current editing session
       Rx {
-        if(editable()) VDomModifier(
+        if(editMode()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
           whiteSpace.preWrap, // preserve white space in Markdown code
@@ -355,7 +361,7 @@ object Components {
         ) else initialRender()
       },
       onDomUpdate.asHtml --> inNextAnimationFrame { node =>
-        if(editable.now) node.focus()
+        if(editMode.now) node.focus()
       },
     )
   }
