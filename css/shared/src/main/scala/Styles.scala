@@ -585,6 +585,10 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(kanbanPageSpacing),
   )
 
+  ".kanbanview .nodecard-content > *:not([contenteditable=true])" - (
+    (userSelect := none).important, // overwrites nodecard-content userSelect
+    )
+
   ".kanbancolumnarea" - (
     height(100 %%),
     paddingBottom(5 px)
