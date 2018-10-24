@@ -110,7 +110,7 @@ object SharedViewElements {
       justifyContent.stretch,
       div(
         margin := "3px",
-        marginRight := "0",
+        BrowserDetect.isMobile.ifTrue[VDomModifier](marginRight := "0"),
         width := "100%",
         cls := "ui form",
         textArea(
