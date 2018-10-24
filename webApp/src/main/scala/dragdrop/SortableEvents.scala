@@ -61,16 +61,18 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val movedDownwards = oldSortIndex < newSortIndex
 
     // Kanban item dropped on the previous / same place
-    if(!containerChanged && oldSortIndex == newSortIndex)
+    if(!containerChanged && oldSortIndex == newSortIndex) {
+      scribe.info("item dropped on same place (no movement)")
       return GraphChanges.empty
+    }
 
    // Node id of sorted node
     val sortedNodeId = sortNode.nodeId
 
 //    scribe.info("SORTING PREBUILDS\n" +
 //      s"dragged node: ${g.nodesById(sortNode.nodeId).str}\n\t" +
-//      s"from index ${oldSortIndex} of ${oldContChilds.length} nodes\n\t" +
-//      s"to index ${newSortIndex} of ${newContChilds.length} nodes")
+//      s"from index $oldSortIndex / ${oldContChilds.length - 1}\n\t" +
+//      s"to index $newSortIndex / ${newContChilds.length - 1}")
 
     // Reconstruct ordering
     def oldOrderingNodes = from.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
@@ -79,7 +81,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // Kanban item dropped at an edge of a container
     if(oldOrderedNodes.size != oldContChilds.length) {
-//      console.log("Kanban elements by sortable: ", oldContChilds)
+      // console.log("Kanban elements by sortable: ", oldContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, oldOrderedNodes)}")
       scribe.warn(s"oldOrderedNodes.size(${oldOrderedNodes.size}) != oldContChilds.length(${oldContChilds.length}) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
@@ -113,11 +115,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     def newOrderingNodes = into.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
     val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
-    if(newOrderedNodes.nonEmpty) return GraphChanges.empty
+    if(newOrderedNodes.isEmpty){
+      scribe.info(s"Dropped on empty place")
+      return GraphChanges.empty
+    }
 
     // Kanban item dropped at an edge of a container
     if(newOrderedNodes.size + 1 < newContChilds.length) {
-//      console.log("Kanban elements by sortable: ", newContChilds)
+      // console.log("Kanban elements by sortable: ", newContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, newOrderedNodes)}")
       scribe.warn(s"newOrderedNodes.size(${newOrderedNodes.size}) != newContChilds.length(${newContChilds.length}) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
@@ -147,7 +152,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         scribe.error(s"Index conflict: old $oldSortIndex, before: $newBefore, after: $newAfter")
         return GraphChanges.empty
       }
-      
+
       val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None // Moved to very beginning
       val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None // Moved to very end
 
@@ -170,16 +175,17 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     scribe.debug("SORTING\n" +
       s"dragged node: ${g.nodesById(sortedNodeId).str}\n\t" +
       s"from ${from.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, oldOrderedNodes)}\n\t" +
-      s"from index $oldIndex\n\t" +
+      s"from index $oldIndex / ${oldOrderedNodes.length - 1}\n\t" +
       s"into ${into.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, newOrderedNodes)}\n\t" +
-      s"to index $newSortIndex")
+      s"to index $newSortIndex / ${newOrderedNodes.length - 1}")
 
-    @inline def gc = GraphChanges(
+    val gc = GraphChanges(
       addEdges = (newBeforeEdges ++ relinkEdges).flatten,
       delEdges = (previousEdges ++ cleanupBeforeEdges).flatten
     ).consistent
 
-//    GraphChanges.log(gc, Some(state.graph.now))
+    // GraphChanges.log(gc, Some(state.graph.now))
+
     gc
   }
 
@@ -190,15 +196,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     {
       case (e, dragging: DragItem.Kanban.ToplevelColumn, from: Kanban.ColumnArea, into: Kanban.ColumnArea, false, false) =>
-        // console.log("reordering columns")
-//        scribe.info(s"dragging ToplevelColumn = ${dragging.nodeId}, from ColumnArea = ${from.parentIds}, into ColumnArea = ${into.parentIds}")
-//        scribe.info(s"new Index: ${e.newIndex}, old: ${e.oldIndex}")
         val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubColumn, from: Kanban.Column, into: Kanban.ColumnArea, false, false) =>
-//        scribe.info(s"dragging SubColumn = ${dragging.nodeId}, from Column = ${from.parentIds}, into ColumnArea = ${into.parentIds}")
-//        scribe.info(s"new Index: ${e.newIndex}, old: ${e.oldIndex}")
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
@@ -221,8 +222,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
-//        scribe.info(s"dragging SubItem = ${dragging.nodeId}, from Area = ${from.parentIds}, into NewColumnArea = ${into.parentIds}")
-//        scribe.info(s"new Index: ${e.newIndex}, old: ${e.oldIndex}")
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         // always make new columns static
@@ -232,8 +231,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes, false, false) =>
-//        scribe.info(s"dragging SubItem = ${dragging.nodeId}, from Area = ${from.parentIds}, into IsolatedNodes = ${into.parentIds}")
-//        scribe.info(s"new Index: ${e.newIndex}, old: ${e.oldIndex}")
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val removeStatic = GraphChanges.disconnect(Edge.StaticParentIn)(dragging.nodeId, from.parentIds)
@@ -282,15 +279,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
 
   sortableStopEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
-//    scribe.info(s"SortStopEvent index: old = ${e.oldIndex}, new = ${e.newIndex}")
-//    if(e.newContainer != e.oldContainer) {
       val dragging = readDragPayload(e.dragEvent.source)
       val oldContainer = readDragContainer(e.oldContainer)
       val newContainer = if(e.newContainer != e.oldContainer) readDragContainer(e.newContainer) else oldContainer
 
       (dragging, oldContainer, newContainer) match {
         case (Some(dragging), Some(oldContainer), Some(newContainer)) =>
-//          scribe.debug(s"Sorting: $oldContainer -> $dragging -> $newContainer${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
           sortableActions.applyOrElse((e, dragging, oldContainer, newContainer, ctrl, shift), (other:(SortableEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean)) => scribe.warn(s"sort combination not handled."))
         case other => scribe.warn(s"incomplete drag action: $other")
       }
