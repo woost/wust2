@@ -13,6 +13,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
@@ -34,6 +35,13 @@ object ChatView {
 
     val currentReply = Var(Set.empty[NodeId])
 
+    val outerDragOptions = VDomModifier(
+      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
+      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
+      registerDraggableContainer(state),
+      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
+    )
+
     div(
       keyed,
       Styles.flex,
@@ -49,7 +57,7 @@ object ChatView {
         overflow.auto,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         chatHistory(state, currentReply, selectedNodes),
-        registerDraggableContainer(state),
+        outerDragOptions,
 
         // clicking on background deselects
         onClick handleWith { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
