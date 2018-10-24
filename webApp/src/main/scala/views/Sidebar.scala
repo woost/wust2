@@ -67,7 +67,7 @@ object Sidebar {
     )
 
     def sidebarWithOverlay(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-      div(closedSidebar),
+      closedSidebar,
       Rx {
         state.sidebarOpen() match {
           case true  => div(overlayOpenSidebar)
@@ -78,8 +78,8 @@ object Sidebar {
 
     def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
       state.sidebarOpen() match {
-        case true  => div(openSidebar, maxWidth := "200px")
-        case false => div(closedSidebar)
+        case true  => VDomModifier(openSidebar, maxWidth := "200px")
+        case false => VDomModifier(closedSidebar)
       }
     }
 
