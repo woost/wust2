@@ -98,7 +98,7 @@ object SharedViewElements {
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
     }
 
-    if(BrowserDetect.isMobile) {
+    if(!BrowserDetect.isMobile) {
       state.page.triggerLater {
         if(currentTextArea != null) currentTextArea.focus() // re-gain focus on page-change
       }
