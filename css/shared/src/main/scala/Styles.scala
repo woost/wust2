@@ -108,6 +108,11 @@ object Styles extends StyleSheet.Inline {
     (0 %%) -> style(svgStrokeDashArray := "30 3.33333"),
     (100 %%) -> style(svgStrokeDashArray := "16.11111 17.22222")
   )
+
+  val fadeInKf = keyframes(
+    (0 %%) -> style(opacity(0)),
+    (100 %%) -> style(opacity(1))
+  )
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -197,8 +202,14 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   "#woost-loading-animation" - (
+    opacity(0),
+    animationName(Styles.fadeInKf),
+    animationDuration(1.5 seconds),
+    animationDelay(100 milliseconds)
+  )
+  "#woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
-    animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
+    animation := s"${Styles.fadeInKf.name.value} 1s, ${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
   )
 
   ".sidebar" - (
