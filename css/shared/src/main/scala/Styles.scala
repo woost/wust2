@@ -655,6 +655,7 @@ object CommonStyles extends StyleSheet.Standalone {
     wordWrap.breakWord,
     wordBreak :=! "break-word",
     minHeight(2 em), // if title is empty
+    letterSpacing(0.5 px),
   )
 
   ".kanbancolumnheader .buttonbar" - (
