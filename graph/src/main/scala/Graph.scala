@@ -92,10 +92,13 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     // edgesBuilder.sizeHint(edges.length + addEdges.size)
 
     val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
-    val updatedEdgeIds: Set[(NodeId, String, NodeId)] = (addEdges ++ deleteEdges).collect {
-      // we filter out edges without a unique constraint: this needs to correspond how it is defined in the database.
+    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.collect {
+      // we filter out edges without a unique constraint.
+      // this needs to correspond how it is defined in the database.
       case e if !e.isInstanceOf[Edge.Author] && !e.isInstanceOf[Edge.Before] => (e.sourceId, e.data.tpe, e.targetId)
     }(breakOut)
+    val deleteEdgeIds: Set[(NodeId, String, NodeId)] = deleteEdges.map { e => (e.sourceId, e.data.tpe, e.targetId) }(breakOut)
+    val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
 
     nodes.foreach { node =>
       if (!addNodeIds(node.id)) nodesBuilder += node
