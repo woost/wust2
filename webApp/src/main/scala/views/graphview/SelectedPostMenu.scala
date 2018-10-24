@@ -110,7 +110,7 @@ object SelectedPostMenu {
             rxPost.map(_.data.str),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
-            wordWrap.breakWord,
+            Styles.wordWrap,
             display.block,
             margin := "10px",
             onClick(true) --> editMode

@@ -247,8 +247,7 @@ object Topbar {
           span(
             user.name,
             padding := "0 5px",
-            wordWrap.breakWord,
-            wordBreak.breakWord,
+            Styles.wordWrap
           ),
           cursor.pointer,
           onClick[View](View.UserSettings) --> state.view,

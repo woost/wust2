@@ -83,6 +83,11 @@ object Styles extends StyleSheet.Inline {
     flexShrink(0)
   )
 
+  val wordWrap = style(
+    overflowWrap := "break-word",
+    minWidth(0 px),
+  )
+
   val gridOpts = style(
     display.grid,
     gridGap(0 px),
@@ -177,8 +182,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pageheader-channeltitle" - (
     userSelect := "text",
     fontSize(20 px),
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
@@ -249,8 +253,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channel-name," +
   ".channel-name *" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap
   )
 
   ".channelIcons" - (
@@ -343,7 +346,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".graphnode" - (
-    wordWrap.breakWord,
+    Styles.wordWrap,
     textRendering := "optimizeLegibility",
     position.absolute,
     padding(3 px, 5 px),
@@ -380,6 +383,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chat-group-inner-frame" - (
     paddingTop(10 px),
     width(100 %%), // expands selection highlight to the whole line
+    minWidth(0 px), // fixes word-wrapping in nested flexbox
   )
 
   ".chatmsg-header" - (
@@ -424,11 +428,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chat-row > .nodecard" - (
     chatmsgIndent,
-  )
-
-  ".chat-row > .tag *" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
   )
 
   ".chatmsg-controls" - (
@@ -500,8 +499,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard-content" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     /* display.inlineBlock, */
     border(1 px, solid, transparent), /* placeholder for the dashed border when dragging */
     minHeight(2 em), // height when card is empty
@@ -622,7 +620,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbannewcolumnarea > .nodecard" - ( // when dragging card over, to create new column
     width(kanbanColumnWidth),
     height(100 px),
-    margin(0 px).important
+    margin(0 px).important,
   )
 
   ".kanbannewcolumnarea .kanbancolumn" - (
@@ -652,10 +650,9 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumntitle" - (
     maxWidth(kanbanCardWidth),
     // TODO: separate style for word-breaking in nodes
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     minHeight(2 em), // if title is empty
-    letterSpacing(0.5 px),
+    letterSpacing(0.5 px), // more aesthetic
   )
 
   ".kanbancolumnheader .buttonbar" - (

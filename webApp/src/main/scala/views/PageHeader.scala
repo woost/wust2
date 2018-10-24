@@ -93,6 +93,7 @@ object PageHeader {
         flexWrap.wrap,
         marginLeft.auto,
         minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
+        justifyContent.center, // horizontal centering when wrapped
         Rx {
           val showChannelsButton = isSpecialNode() || isBookmarked()
           showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
@@ -403,10 +404,9 @@ object PageHeader {
                     marginRight := "5px",
                   ),
                   div(
-                    fontSize := "15px",
                     user.name,
-                    wordWrap.breakWord,
-                    wordBreak.breakWord,
+                    fontSize := "15px",
+                    Styles.wordWrap,
                   ),
                   button(
                     cls := "ui tiny compact negative basic button",

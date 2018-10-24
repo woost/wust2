@@ -26,6 +26,7 @@ object MainView {
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           width := "100%",
+          minWidth := "0", // necessary for "overflow-wrap: word-break" in node-content to play nice with nested flexbox (https://jsfiddle.net/j3yc28km/).
           Rx {
             // don't show non-bookmarked border for:
             val isNewChannelPage = state.page().isInstanceOf[Page.NewChannel]
