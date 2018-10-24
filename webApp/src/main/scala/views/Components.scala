@@ -107,11 +107,15 @@ object Components {
 
   val woostLoadingAnimation:VNode = {
     import svg._
-    svg(width := "100px", height := "100px", viewBox := "0 0 10 10",
-      g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
-        path(id := "woost-loading-animation", d := woostPathCurve, fill := "none", stroke := "#6636b7", strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
+    div(
+      svg(
+        width := "100px", height := "100px", viewBox := "0 0 10 10",
+        g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
+          path(id := "woost-loading-animation", d := woostPathCurve, fill := "none", stroke := "#6636b7", strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
         )
-      )
+      ),
+      p("Loading", dsl.color := "rgba(0,0,0,0.4)", textAlign.center)
+    )
   }
 
 
