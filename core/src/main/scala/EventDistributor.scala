@@ -1,7 +1,7 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{GraphChanges, Node}
+import wust.graph.Node
 import wust.db.{Data, Db}
 import wust.ids._
 import covenant.ws.api.EventDistributor
@@ -38,12 +38,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   ): Unit = if (events.nonEmpty) {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    val (checkedNodeIdsList, authorsList) = events.map {
+    val (checkedNodeIdsList, involvedCheckedNodeIdsList, authorsList) = events.map {
       case ApiEvent.NewGraphChanges(user, changes) =>
-        (changes.addNodes.map(_.id) -- Set(user.id) , Set(user)) // expose author node
-      case _ => (Set.empty, Set.empty)
-    }.unzip
-    val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
+        (changes.addNodes.map(_.id) -- Set(user.id), changes.involvedNodeIds -- Set(user.id), Set(user)) // expose author node
+      case _ => (Set.empty[NodeId], Set.empty[NodeId], Set.empty[Node.User])
+    }.unzip3
     val authors: Set[Node.User] = authorsList.toSet.flatten
 
     subscribers.foreach { client =>
@@ -51,7 +50,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
         client.notify(stateFut =>
           stateFut.flatMap { state =>
             state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
-              db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds)
+              db.notifications.updateNodesForConnectedUser(auth.user.id, involvedCheckedNodeIdsList.toSet.flatten)
                 .map(permittedNodeIds => events.flatMap(eventFilter(authors.map(_.id) ++ permittedNodeIds)(_)))
             }
           }
@@ -59,7 +58,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
 
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds, authors.map(_.name).mkString(","))
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIdsList.toSet.flatten, authors.map(_.name).mkString(","))
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
