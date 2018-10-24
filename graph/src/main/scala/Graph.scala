@@ -483,7 +483,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
     parentsIdx.foreachElement(nodeIdx) { i =>
-      if(!parentIndices.contains(i) || i == nodeIdx)
+      //TODO: more efficient deletedNowIdx for one parent?
+      if(!isDeletedNowIdx(nodeIdx, immutable.BitSet(i)) && (!parentIndices.contains(i) || i == nodeIdx))
         tagSet += nodes(i)
     }
 
