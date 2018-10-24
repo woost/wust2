@@ -185,7 +185,7 @@ self.addEventListener('push', e => {
                     let nodeId = data.nodeId;
                     let targetId = data.parentId ? data.parentId : nodeId;
                     let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
-                    let user = data.username;
+                    let user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
                     let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
                     let options = {
