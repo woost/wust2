@@ -100,7 +100,7 @@ object KanbanView {
               fontWeight.bold,
               rows := 2,
               placeholder := "Press Enter to add.",
-              valueWithEnter handleWith { str =>
+              valueWithEnter foreach { str =>
                 val change = {
                   val newColumnNode = Node.Content(NodeData.Markdown(str))
                   val add = GraphChanges.addNode(newColumnNode)
@@ -111,7 +111,7 @@ object KanbanView {
                 state.eventProcessor.enriched.changes.onNext(change)
               },
               onDomMount.asHtml --> inNextAnimationFrame(_.focus()),
-              onBlur.value handleWith { v => if(v.isEmpty) fieldActive() = false }
+              onBlur.value foreach { v => if(v.isEmpty) fieldActive() = false }
             )
           )
         }
@@ -161,7 +161,7 @@ object KanbanView {
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
           div(div(cls := "fa-fw", Icons.delete),
-            onClick.stopPropagation handleWith {
+            onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
               selectedNodeIds.update(_ - node.id)
             },
@@ -226,7 +226,7 @@ object KanbanView {
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
           div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
           div(div(cls := "fa-fw", Icons.delete),
-            onClick.stopPropagation handleWith {
+            onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
               selectedNodeIds.update(_ - node.id)
             },
@@ -266,12 +266,12 @@ object KanbanView {
               cls := "field fluid",
               rows := 2,
               placeholder := "Press Enter to add.",
-              valueWithEnter handleWith { str =>
+              valueWithEnter foreach { str =>
                 val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)
               },
               onDomMount.asHtml --> inNextAnimationFrame(_.focus),
-              onBlur.value handleWith { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }
+              onBlur.value foreach { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }
             )
           )
         else
@@ -281,7 +281,7 @@ object KanbanView {
             // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
             // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
             // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
-            onMouseDown handleWith { defer{ activeReplyFields.update(_ + fullPath) } }
+            onMouseDown foreach { defer{ activeReplyFields.update(_ + fullPath) } }
           )
       }
     )

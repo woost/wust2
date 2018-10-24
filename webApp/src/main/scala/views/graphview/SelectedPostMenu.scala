@@ -60,9 +60,9 @@ object SelectedPostMenu {
       )
     }
 
-    val editMode = Handler.created[Boolean](false)
+    val editMode = Handler.unsafe[Boolean](false)
 
-    val updatePostHandler = Handler.created[String]
+    val updatePostHandler = Handler.unsafe[String]
     updatePostHandler.foreach { newContent =>
       val changes =
         GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
@@ -71,7 +71,7 @@ object SelectedPostMenu {
       editMode.onNext(false)
     }
 
-    val insertPostHandler = Handler.created[String]
+    val insertPostHandler = Handler.unsafe[String]
     insertPostHandler.foreach { content =>
       val newPost = Node.Content(NodeData.Markdown(content))
 
@@ -82,7 +82,7 @@ object SelectedPostMenu {
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
-    val connectPostHandler = Handler.created[String]
+    val connectPostHandler = Handler.unsafe[String]
     connectPostHandler.foreach { content =>
       val newPost = Node.Content(NodeId.fresh, NodeData.Markdown(content))
 
@@ -103,7 +103,7 @@ object SelectedPostMenu {
           textArea(
             valueWithEnter --> updatePostHandler,
             rxPost.now.data.str,
-            onDomMount.map(_.asInstanceOf[TextArea]) handleWith(textArea => textArea.select())
+            onDomMount.map(_.asInstanceOf[TextArea]) foreach(textArea => textArea.select())
           )
         } else {
           div(
@@ -122,7 +122,7 @@ object SelectedPostMenu {
     //TODO: wrap in one observable
     div(
       position.absolute,
-      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
+      onClick foreach(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
       transform <-- transformStyle,
       div(
@@ -191,7 +191,7 @@ object SelectedPostMenu {
           flexGrow := 1,
           alignItems.center,
           span(action.name),
-          onClick handleWith { event =>
+          onClick foreach { event =>
             event.stopPropagation()
 
             println(s"\nMenu ${action.name}: [${post.id}]${post.data}")

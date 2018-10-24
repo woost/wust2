@@ -29,7 +29,7 @@ object AuthView {
       alternativeText: String,
       autoCompletePassword: String
   )(implicit ctx: Ctx.Owner): VNode = {
-    val errorMessageHandler = Handler.created[String]
+    val errorMessageHandler = Handler.unsafe[String]
     val actionSink = {
       case (username, password) =>
         submitAction(username, password).onComplete {
@@ -43,8 +43,8 @@ object AuthView {
             errorMessageHandler.onNext(s"Unexpected error: $t")
         }
     }: ((String, String)) => Unit
-    val username = Handler.created[String](defaultUsername.now)
-    val password = Handler.created[String](defaultPassword.now)
+    val username = Handler.unsafe[String](defaultUsername.now)
+    val password = Handler.unsafe[String](defaultPassword.now)
     val nameAndPassword = username.combineLatest(password)
 
     div(
@@ -77,7 +77,7 @@ object AuthView {
             display.block,
             margin := "auto",
             onInput.value --> password,
-            onEnter(nameAndPassword) handleWith actionSink,
+            onEnter(nameAndPassword) foreach actionSink,
             onDomMount.asHtml --> inNextAnimationFrame { e => if(defaultUsername.now.nonEmpty) e.focus() }
           )
         ),
@@ -87,7 +87,7 @@ object AuthView {
           display.block,
           margin := "auto",
           marginTop := "5px",
-          onClick(nameAndPassword) handleWith actionSink
+          onClick(nameAndPassword) foreach actionSink
         ),
         errorMessageHandler.map { errorMessage =>
           div(

@@ -60,7 +60,7 @@ object Topbar {
     color := "white",
     textDecoration := "none",
     onClick(ViewConfig.default) --> state.viewConfig,
-    onClick handleWith {
+    onClick foreach {
       Analytics.sendEvent("logo", "clicked")
     },
     cursor.pointer
@@ -104,7 +104,7 @@ object Topbar {
       faBars,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-      onClick handleWith { ev =>
+      onClick foreach { ev =>
         Analytics.sendEvent("hamburger", if(sidebarOpen.now) "close" else "open")
         sidebarOpen() = !sidebarOpen.now;
         ev.stopPropagation()
@@ -157,7 +157,7 @@ object Topbar {
 
   def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(state.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary button", "Update App", onClick handleWith {
+      button(cls := "tiny ui primary button", "Update App", onClick foreach {
         window.location.reload(flag = false)
       })
     })
@@ -178,7 +178,7 @@ object Topbar {
     div(
       Rx {
         beforeInstallPromptEvents().map { e =>
-          button(cls := "tiny ui primary button", "Install as App", onClick handleWith {
+          button(cls := "tiny ui primary button", "Install as App", onClick foreach {
             e.asInstanceOf[js.Dynamic].prompt();
             ()
           })
@@ -202,7 +202,7 @@ object Topbar {
     def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
       input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
-          onInput handleWith {
+          onInput foreach {
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         }
       )
@@ -251,7 +251,7 @@ object Topbar {
           ),
           cursor.pointer,
           onClick[View](View.UserSettings) --> state.view,
-          onClick handleWith { Analytics.sendEvent("topbar", "avatar") },
+          onClick foreach { Analytics.sendEvent("topbar", "avatar") },
         ),
         logout(state))
     }
@@ -262,7 +262,7 @@ object Topbar {
         cls := "tiny compact ui inverted button",
         "Signup",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
-        onClick handleWith {
+        onClick foreach {
           Analytics.sendEvent("topbar", "signup")
         },
       ),
@@ -270,7 +270,7 @@ object Topbar {
         cls := "tiny compact ui inverted button",
         "Login",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Login)) --> state.viewConfig,
-        onClick handleWith {
+        onClick foreach {
           Analytics.sendEvent("topbar", "login")
         },
       )
@@ -280,7 +280,7 @@ object Topbar {
     button(
       cls := "tiny compact ui inverted grey button",
       "Logout",
-      onClick handleWith {
+      onClick foreach {
         Client.auth.logout().foreach { _ =>
           state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).showViewWithRedirect(View.Login)
         }

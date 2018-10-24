@@ -26,7 +26,7 @@ object PostCreationMenu {
       s"translate(${x}px, ${y}px)"
     }
 
-    val inputHandler = Handler.created[String]
+    val inputHandler = Handler.unsafe[String]
     var ySimPostOffset: Double = 50
     inputHandler.foreach { content =>
       val author = state.user.now
@@ -50,7 +50,7 @@ object PostCreationMenu {
     div(
       position.absolute,
       //TODO: prevent drag events to bubble to background
-      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background
+      onClick foreach(_.stopPropagation()), // prevent click from bubbling to background
       transform <-- transformStyle,
       width := "300px",
       div(
@@ -59,7 +59,7 @@ object PostCreationMenu {
           cls := "fluid field",
           valueWithEnter --> inputHandler,
           Placeholders.newNode,
-          onDomMount.asHtml handleWith(_.focus()),
+          onDomMount.asHtml foreach(_.focus()),
           style("resize") := "none", //TODO: outwatch resize?
           margin := "0px",
           rows := 2,

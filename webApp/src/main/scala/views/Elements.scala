@@ -107,12 +107,12 @@ object Elements {
 
       VDomModifier(
         //TODO: SDT: add touch handlers
-        onClick handleWith { click _ },
-        eventProp("touchmove") handleWith { updateCurrentPosition _ },
-        eventProp("touchstart") handleWith { start _ },
-        eventProp("touchend") handleWith {cancel()},
-        eventProp("touchleave") handleWith {cancel()},
-        eventProp("touchcancel") handleWith {cancel()},
+        onClick foreach { click _ },
+        eventProp("touchmove") foreach { updateCurrentPosition _ },
+        eventProp("touchstart") foreach { start _ },
+        eventProp("touchend") foreach {cancel()},
+        eventProp("touchleave") foreach {cancel()},
+        eventProp("touchcancel") foreach {cancel()},
       )
     }
 
@@ -169,7 +169,7 @@ object Elements {
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnterWithInitial(Observable.empty)
   def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier {
     (sink: String => Unit) =>
-      val userInput = Handler.created[String]
+      val userInput = Handler.unsafe[String]
       val writeValue = Observable.merge(userInput.map(_ => ""), overrideValue)
       VDomModifier(
           value <-- writeValue,

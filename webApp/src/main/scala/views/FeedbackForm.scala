@@ -24,7 +24,7 @@ object FeedbackForm {
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
     val feedbackText = Var("")
-    val clear = Handler.created[Unit].mapObservable(_ => "")
+    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
     val initialStatus = "(Press Enter to submit)"
     val statusText = Var(initialStatus)
@@ -44,7 +44,7 @@ object FeedbackForm {
         cls := "ui form",
         textArea(
           cls := "field",
-          valueWithEnter handleWith { submit() },
+          valueWithEnter foreach { submit() },
           onInput.value --> feedbackText,
           value <-- clear,
           width := "220px",
@@ -61,7 +61,7 @@ object FeedbackForm {
         "Feedback ",
         freeSolid.faCaretDown,
         cls := "ui positive tiny compact button",
-        onClick.stopPropagation handleWith{
+        onClick.stopPropagation foreach{
           Analytics.sendEvent("feedback", if(show.now) "close" else "open")
           show.update(!_)
         },
@@ -91,7 +91,7 @@ object FeedbackForm {
             cls := "ui tiny compact button",
             "Show all Feedback",
             (Icons.zoom:VNode)(marginLeft := "5px"),
-            onClick handleWith {
+            onClick foreach {
               val nextPage = Page(feedbackNodeId)
               if (state.view.now.isContent) state.page() = nextPage
               else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
@@ -104,11 +104,11 @@ object FeedbackForm {
             tpe := "button",
             cls := "ui tiny compact primary button",
             "Submit",
-            onClick handleWith { submit(); clear.onNext(Unit); () },
+            onClick foreach { submit(); clear.onNext(Unit); () },
             onClick(false) --> show,
           ),
         ),
-        onClick.stopPropagation handleWith{}, // prevents closing feedback form by global click
+        onClick.stopPropagation foreach{}, // prevents closing feedback form by global click
       )
     )
   }

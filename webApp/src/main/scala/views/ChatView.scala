@@ -60,7 +60,7 @@ object ChatView {
         outerDragOptions,
 
         // clicking on background deselects
-        onClick handleWith { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+        onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
       ),
       managed(IO { state.page.foreach { _ => currentReply() = Set.empty[NodeId] } }),
@@ -85,7 +85,7 @@ object ChatView {
                 parentMessage(state, node, isDeleted, currentReply).apply(alignSelf.center),
                 closeButton(
                   marginLeft.auto,
-                  onTap handleWith { currentReply.update(_ - replyNodeId) }
+                  onTap foreach { currentReply.update(_ - replyNodeId) }
                 ),
               )
             )
@@ -118,7 +118,7 @@ object ChatView {
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
-      onClickOrLongPress handleWith { longPressed =>
+      onClickOrLongPress foreach { longPressed =>
         if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
@@ -184,7 +184,7 @@ object ChatView {
           backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
           boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
           cursor.pointer,
-          onTap handleWith {currentReply.update(_ ++ Set(parent.id))},
+          onTap foreach {currentReply.update(_ ++ Set(parent.id))},
         ),
         margin := "3px",
         isDeleted.ifTrue[VDomModifier](opacity := 0.5)
@@ -261,13 +261,13 @@ object ChatView {
   private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
     List(
       editButton(
-        onClick handleWith {
+        onClick foreach {
           selectedNodes.now.head.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
       ),
       replyButton(
-        onClick handleWith {
+        onClick foreach {
           currentReply() = selectedNodes.now.map(_.nodeId)
           selectedNodes() = Set.empty[SelectedNode]
         }

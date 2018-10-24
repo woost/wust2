@@ -128,13 +128,13 @@ object ThreadOld {
       val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
-        replyButton.apply(onTap handleWith {
+        replyButton.apply(onTap foreach {
           activeReplyFields.update(_ + (nodeId :: meta.path))
           // we also set an Expand-edge, so that after an reply and its update the thread does not close again
           state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Expanded)(currentUserId, nodeId))
           ()
         }),
-        editButton.apply(onTap handleWith {
+        editButton.apply(onTap foreach {
           editable() = true
           selectedNodeIds() = Set.empty[NodeId]
         }),
@@ -160,7 +160,7 @@ object ThreadOld {
 
     def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VDomModifier = renderThread(nodeIdx, meta, shouldGroup, msgControls, activeReplyFields, currentlyEditable, selectedNodeIds)
 
-    val submittedNewMessage = Handler.created[Unit]
+    val submittedNewMessage = Handler.unsafe[Unit]
 
     var lastSelectedPath: List[NodeId] = Nil // TODO: set by clicking on a message
     def reversePath(nodeId: NodeId, pageParents: Set[NodeId], graph: Graph): List[NodeId] = {
@@ -195,16 +195,16 @@ object ThreadOld {
       val path = reversePath(nodeId, state.page.now.parentIdSet, state.graph.now)
       List(
         editButton.apply(
-          onTap handleWith {
+          onTap foreach {
             currentlyEditable() = Some(path)
             selectedNodeIds() = Set.empty[NodeId]
           }
         ),
-        replyButton.apply(onTap handleWith { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
+        replyButton.apply(onTap foreach { activeReplyFields.update(_ + path); clearSelectedNodeIds() }) //TODO: scroll to focused field?
       )
     } else Nil
     val selectedNodeActions: List[NodeId] => List[VNode] = nodeIds => List(
-      zoomButton(state, nodeIds).apply(onTap handleWith { selectedNodeIds.update(_ -- nodeIds) }),
+      zoomButton(state, nodeIds).apply(onTap foreach { selectedNodeIds.update(_ -- nodeIds) }),
       // SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
       ???
     )
@@ -280,13 +280,13 @@ object ThreadOld {
               dragTarget(DragItem.Chat.Page(page.parentIds)),
             )
         },
-        onDomPreUpdate handleWith {
+        onDomPreUpdate foreach {
           scrollableHistoryElem.now.foreach { prev =>
             val wasScrolledToBottom = prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11 // at bottom + 10 px tolerance
             isScrolledToBottom() = wasScrolledToBottom
           }
         },
-        onDomUpdate handleWith {
+        onDomUpdate foreach {
           if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
         },
         managed(
@@ -300,14 +300,14 @@ object ThreadOld {
           IO { submittedNewMessage.foreach(_ => scrollToBottomInAnimationFrame()) }
         ),
       ),
-      onDomMount.asHtml handleWith { elem =>
+      onDomMount.asHtml foreach { elem =>
         scrollableHistoryElem() = Some(elem)
         scrollToBottomInAnimationFrame()
       },
       overflow.auto,
 
       // tapping on background deselects
-      onTap handleWith { selectedNodeIds() = Set.empty[NodeId] }
+      onTap foreach { selectedNodeIds() = Set.empty[NodeId] }
     )
   }
 
@@ -500,7 +500,7 @@ object ThreadOld {
             ),
             closeButton(
               keyed,
-              onTap handleWith { activeReplyFields.update(_ - fullPath) },
+              onTap foreach { activeReplyFields.update(_ - fullPath) },
             ),
           )
         else
@@ -513,7 +513,7 @@ object ThreadOld {
             // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
             // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
             // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
-            onMouseDown.stopPropagation handleWith { defer { activeReplyFields.update(_ + fullPath) } }
+            onMouseDown.stopPropagation foreach { defer { activeReplyFields.update(_ + fullPath) } }
           )
       }
     )
@@ -571,7 +571,7 @@ object ThreadOld {
       input(
         tpe := "checkbox",
         checked <-- isSelected,
-        onChange.checked handleWith { checked =>
+        onChange.checked foreach { checked =>
           if(checked) selectedNodeIds.update(_ + nodeId)
           else selectedNodeIds.update(_ - nodeId)
         }
@@ -617,10 +617,10 @@ object ThreadOld {
         keyed(nodeId),
         Styles.flex,
 
-        onPress handleWith {
+        onPress foreach {
           selectedNodeIds.update(_ + nodeId)
         },
-        onTap handleWith {
+        onTap foreach {
           val selectionModeActive = selectedNodeIds.now.nonEmpty
           if(selectionModeActive) selectedNodeIds.update(_.toggle(nodeId))
         },
@@ -670,7 +670,7 @@ object ThreadOld {
   def deleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodeIds: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode =
     div(
       div(cls := "fa-fw", Icons.delete),
-      onTap handleWith {
+      onTap foreach {
         state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
         selectedNodeIds.update(_ - nodeId)
       },
@@ -738,7 +738,7 @@ object ThreadOld {
     }
   }
 
-  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.created[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, directParentIds: Set[NodeId], submittedNewMessage: Handler[Unit] = Handler.unsafe[Unit], focusOnInsert: Boolean = false, blurAction: String => Unit = _ => ())(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = Rx {
       state.viewConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
@@ -752,7 +752,7 @@ object ThreadOld {
       textArea(
         keyed,
         cls := "field",
-        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
+        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) foreach { str =>
           val changes = {
             GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
           }
@@ -761,10 +761,10 @@ object ThreadOld {
           submittedNewMessage.onNext(Unit)
         },
         // else, these events would bubble up to global event handlers and produce a lag
-        onKeyPress.stopPropagation handleWith {},
-        onKeyUp.stopPropagation handleWith {},
+        onKeyPress.stopPropagation foreach {},
+        onKeyUp.stopPropagation foreach {},
         focusOnInsert.ifTrue[VDomModifier](onDomMount.asHtml --> inNextAnimationFrame(_.focus())),
-        onBlur.value handleWith { value => blurAction(value) },
+        onBlur.value foreach { value => blurAction(value) },
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         resize := "none",
         placeholder := "Write a message and press Enter to submit.",

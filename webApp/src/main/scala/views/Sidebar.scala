@@ -31,7 +31,7 @@ object Sidebar {
       channelIcons(state, smallIconSize),
       newChannelButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
-        onClick handleWith { Analytics.sendEvent("sidebar_closed", "newchannel") }
+        onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
       )
     )
 
@@ -42,7 +42,7 @@ object Sidebar {
       channels(state),
       newChannelButton(state).apply(
         cls := "newChannelButton-large " + buttonStyles,
-        onClick handleWith { Analytics.sendEvent("sidebar_open", "newchannel") }
+        onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
       ),
     )
 
@@ -119,7 +119,7 @@ object Sidebar {
           paddingRight := "3px",
         ),
         onChannelClick(ChannelAction.Node(node.id))(state),
-        onClick handleWith { Analytics.sendEvent("sidebar_open", "clickchannel") },
+        onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
         draggableAs(DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
@@ -169,7 +169,7 @@ object Sidebar {
           allChannels.map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
-              onClick handleWith { Analytics.sendEvent("sidebar_closed", "clickchannel") },
+              onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
@@ -206,7 +206,7 @@ object Sidebar {
     case class Node(id: NodeId) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    onClick handleWith { e =>
+    onClick foreach { e =>
       val page = state.page.now
       //TODO if (e.shiftKey) {
       val newPage = action match {

@@ -49,13 +49,13 @@ object SharedViewElements {
     } // at bottom + 10 px tolerance
 
     def scrollOptions(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier(
-      onDomPreUpdate handleWith {
+      onDomPreUpdate foreach {
         isScrolledToBottom() = isScrolledToBottomNow
       },
-      onDomUpdate handleWith {
+      onDomUpdate foreach {
         if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
       },
-      onDomMount.asHtml handleWith { elem =>
+      onDomMount.asHtml foreach { elem =>
         scrollableHistoryElem() = Some(elem)
         scrollToBottomInAnimationFrame()
       },
@@ -118,14 +118,14 @@ object SharedViewElements {
           if (BrowserDetect.isMobile) {
             value <-- initialValue
           } else {
-            valueWithEnterWithInitial(initialValue) handleWith handleInput _
+            valueWithEnterWithInitial(initialValue) foreach handleInput _
           },
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
           placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
-          onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
+          onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           BrowserDetect.isMobile.ifFalse(onDomMount.asHtml --> inNextAnimationFrame(_.focus())), // immediately focus
-          BrowserDetect.isMobile.ifTrue(onFocus handleWith {
+          BrowserDetect.isMobile.ifTrue(onFocus foreach {
             // when mobile keyboard opens, it may scroll up.
             // so we scroll down again.
             if(scrollHandler.isScrolledToBottomNow) {
@@ -135,7 +135,7 @@ object SharedViewElements {
               ()
             }
           }),
-          BrowserDetect.isMobile.ifTrue(eventProp("touchstart") handleWith {
+          BrowserDetect.isMobile.ifTrue(eventProp("touchstart") foreach {
           // if field is already focused, but keyboard is closed:
           // we do not know if the keyboard is opened right now,
           // but we can detect if it was opened: by screen-height changes
@@ -167,7 +167,7 @@ object SharedViewElements {
             backgroundColor := "steelblue",
             color := "white",
           ),
-          onClick handleWith {
+          onClick foreach {
             val str = currentTextArea.value
             handleInput(str)
             currentTextArea.value = ""
@@ -185,7 +185,7 @@ object SharedViewElements {
     color := "#b3bfca",
     alignSelf.center,
     marginLeft.auto,
-    onMouseDown.stopPropagation handleWith {},
+    onMouseDown.stopPropagation foreach {},
   )
 
   val replyButton: VNode = {
@@ -324,7 +324,7 @@ object SharedViewElements {
         input(
           tpe := "checkbox",
           checked <-- isSelected,
-          onChange.checked handleWith { checked =>
+          onChange.checked foreach { checked =>
             if(checked) selectedNodes.update(_ + newSelectedNode(nodeId))
             else selectedNodes.update(_.filterNot(_.nodeId == nodeId))
           }
@@ -346,13 +346,13 @@ object SharedViewElements {
             }
             else VDomModifier(
               replyButton(
-                onClick handleWith { replyAction }
+                onClick foreach { replyAction }
               ),
               editButton(
                 onClick.mapTo(!editMode.now) --> editMode
               ),
               deleteButton(
-                onClick handleWith {
+                onClick foreach {
                   state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
                   selectedNodes.update(_.filterNot(_.nodeId == nodeId))
                 },
@@ -415,7 +415,7 @@ object SharedViewElements {
   def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     List(
-      zoomButton(onClick handleWith {
+      zoomButton(onClick foreach {
         state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
         selectedNodes() = Set.empty[T]
       }),

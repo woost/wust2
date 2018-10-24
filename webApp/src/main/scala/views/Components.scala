@@ -125,7 +125,7 @@ object Components {
       cls := "node tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
-      onClick handleWith { e =>
+      onClick foreach { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(DragItem.Tag(tag.id)),
@@ -139,7 +139,7 @@ object Components {
       cls := "node tagdot",
       backgroundColor := tagColor(tag.id).toHex,
       title := tag.data.str,
-      onClick handleWith { e =>
+      onClick foreach { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
       },
       draggableAs(DragItem.Tag(tag.id)),
@@ -162,7 +162,7 @@ object Components {
       span(
         "×",
         cls := "actionbutton",
-        onClick.stopPropagation handleWith {
+        onClick.stopPropagation foreach {
           // when removing last parent, fall one level lower into the still existing grandparents
           //TODO: move to GraphChange factory
           // val removingLastParent = graph.parents(taggedNodeId).size == 1
@@ -237,11 +237,11 @@ object Components {
   def draggableAs(payload: => DragPayload): VDomModifier = {
     Seq(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomMount.asHtml handleWith{ elem =>
+      onDomMount.asHtml foreach{ elem =>
         writeDragPayload(elem, payload)
       },
       //TODO: onDomUpdate should not be necessary here. This is a workaround until outwatch executes onDomMount when triggered in an Rx
-      onDomUpdate.asHtml handleWith{ elem =>
+      onDomUpdate.asHtml foreach{ elem =>
         writeDragPayload(elem, payload)
       },
     )
@@ -249,11 +249,11 @@ object Components {
 
   def dragTarget(dragTarget: DragTarget): VDomModifier = {
     VDomModifier(
-      onDomMount.asHtml handleWith{ elem =>
+      onDomMount.asHtml foreach{ elem =>
         writeDragTarget(elem, dragTarget)
       },
       //TODO: onDomUpdate should not be necessary here. This is a workaround until outwatch executes onDomMount when triggered in an Rx
-      onDomUpdate.asHtml handleWith{ elem =>
+      onDomUpdate.asHtml foreach{ elem =>
         writeDragTarget(elem, dragTarget)
       }
     )
@@ -302,7 +302,7 @@ object Components {
   ): VNode = {
     val editMode = Var(false)
     editableNode(state, node, editMode, submit)(ctx)(
-      onClick.stopPropagation.stopImmediatePropagation handleWith {
+      onClick.stopPropagation.stopImmediatePropagation foreach {
         if(!editMode.now) {
           editMode() = true
         }
@@ -354,10 +354,10 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) handleWith { text => save(text) },
-          onBlur handleWith { discardChanges() },
-          onFocus handleWith { e => document.execCommand("selectAll", false, null) },
-          onClick.stopPropagation handleWith {} // prevent e.g. selecting node, but only when editing
+          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) foreach { text => save(text) },
+          onBlur foreach { discardChanges() },
+          onFocus foreach { e => document.execCommand("selectAll", false, null) },
+          onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
       onDomUpdate.asHtml --> inNextAnimationFrame { node =>

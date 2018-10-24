@@ -60,7 +60,7 @@ object ThreadView {
         outerDragOptions,
 
         // clicking on background deselects
-        onClick handleWith { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+        onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
 
       ),
@@ -182,7 +182,7 @@ object ThreadView {
       " reply",
       marginTop := "3px",
       marginLeft := "8px",
-      onClick.stopPropagation handleWith { showReplyField() = true }
+      onClick.stopPropagation foreach { showReplyField() = true }
     )
   }
 
@@ -206,13 +206,13 @@ object ThreadView {
         textArea(
           cls := "field",
           BrowserDetect.isMobile.ifFalse {
-            valueWithEnter handleWith handleInput _
+            valueWithEnter foreach handleInput _
           },
           rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
           placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
           onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
-          onDomMount handleWith { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
+          onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           //TODO: outwatch: Emitterbuilder.timeOut
           onBlur.value --> sideEffect {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
         ),
@@ -231,7 +231,7 @@ object ThreadView {
             backgroundColor := "steelblue",
             color := "white",
           ),
-          onClick handleWith {
+          onClick foreach {
             val str = currentTextArea.value
             handleInput(str)
             currentTextArea.value = ""
@@ -239,7 +239,7 @@ object ThreadView {
         )
       ),
       closeButton(
-        onClick handleWith { showReplyField() = false },
+        onClick foreach { showReplyField() = false },
       ),
     )
   }
@@ -262,7 +262,7 @@ object ThreadView {
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, showReplyField, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
-      onClickOrLongPress handleWith { longPressed =>
+      onClickOrLongPress foreach { longPressed =>
         if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, showReplyField, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
@@ -339,13 +339,13 @@ object ThreadView {
   private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
     List(
       editButton(
-        onClick handleWith {
+        onClick foreach {
           selectedNodes.now.head.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
       ),
       replyButton(
-        onClick handleWith {
+        onClick foreach {
           selectedNodes.now.head.showReplyField() = true
           selectedNodes() = Set.empty[SelectedNode]
         }

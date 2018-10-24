@@ -35,13 +35,6 @@ package object outwatchHelpers extends KeyHash {
     }
   }
 
-
-  implicit class RichHandlerFactory(val v: Handler.type) extends AnyVal {
-    def created[T]:Handler[T] = ReplaySubject.createLimited(1)
-
-    def created[T](seed:T):Handler[T] = BehaviorSubject[T](seed)
-  }
-
   //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
@@ -79,7 +72,7 @@ package object outwatchHelpers extends KeyHash {
   def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Nothing]((_,_) => ???, None))
 
   def managedOwner(implicit ctx: Ctx.Owner): VDomModifier = {
-    dsl.onDomUnmount handleWith { ctx.contextualRx.kill() }
+    dsl.onDomUnmount foreach { ctx.contextualRx.kill() }
   }
 
   implicit def obsToCancelable(obs: Obs): Cancelable = {

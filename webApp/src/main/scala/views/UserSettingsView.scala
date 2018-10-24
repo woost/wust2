@@ -42,8 +42,8 @@ object UserSettingsView {
   )
 
   private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = {
-    val password = Handler.created[String]
-    val successHandler = Handler.created(true)
+    val password = Handler.unsafe[String]
+    val successHandler = Handler.unsafe(true)
     val clearHandler = successHandler.collect { case true => "" }
     val actionSink = { password: String =>
       if (password.nonEmpty) Client.auth.changePassword(password).foreach(successHandler.onNext)
@@ -57,7 +57,7 @@ object UserSettingsView {
           tpe := "password",
           value <-- clearHandler,
           onChange.value --> password,
-          onEnter.value handleWith actionSink)
+          onEnter.value foreach actionSink)
       ),
       successHandler.map {
         case true => VDomModifier.empty
@@ -70,7 +70,7 @@ object UserSettingsView {
         "Change Password",
         cls := "ui fluid primary button",
         display.block,
-        onClick(password) handleWith actionSink
+        onClick(password) foreach actionSink
       )
     )
   }
@@ -103,14 +103,14 @@ object UserSettingsView {
       List(
         cls := "ui button green",
         div(s"Synchronized with $platformName"),
-        onClick handleWith(linkWithSlack()),
-//        onClick handleWith(showPluginAuth()),
+        onClick foreach(linkWithSlack()),
+//        onClick foreach(showPluginAuth()),
       )
     } else {
       List(
         cls := "ui button",
         div(s"Sync with $platformName now"),
-        onClick handleWith(linkWithSlack()),
+        onClick foreach(linkWithSlack()),
       )
     }
 
@@ -186,18 +186,18 @@ object UserSettingsView {
 
         button(
           "Link with GitHub",
-          onClick handleWith(linkWithGithub())),
+          onClick foreach(linkWithGithub())),
         br(),
 
         button(
           "Link with Gitter",
-          onClick handleWith(linkWithGitter())
+          onClick foreach(linkWithGitter())
         ),
         br(),
 
         button(
           "Link with Slack",
-          onClick handleWith(linkWithSlack())
+          onClick foreach(linkWithSlack())
         ),
 
       )

@@ -45,7 +45,7 @@ object ChatOld {
       }
     }
 
-    val submittedNewMessage = Handler.created[Unit]
+    val submittedNewMessage = Handler.unsafe[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
     val currentlyEditable = Var(Option.empty[List[NodeId]])
@@ -62,7 +62,7 @@ object ChatOld {
 
     val selectedSingleNodeActions:NodeId => List[VNode] = nodeId => List(
       editButton.apply(
-        onTap handleWith {
+        onTap foreach {
           currentlyEditable() = Some(nodeId :: Nil)
           selectedNodeIds() = Set.empty[NodeId]
         }
@@ -70,7 +70,7 @@ object ChatOld {
     )
 
     val selectedNodeActions:List[NodeId] => List[VNode] =  nodeIds => List(
-      replyButton.apply(onTap handleWith { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
+      replyButton.apply(onTap foreach { currentReply() = nodeIds.toSet; clearSelectedNodeIds() }),
       zoomButton(state, nodeIds),
       // SelectedNodes.deleteAllButton(state, nodeIds, selectedNodeIds),
       ???
@@ -84,8 +84,8 @@ object ChatOld {
       val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
-          replyButton.apply(onTap handleWith { currentReply() = Set(nodeId) }),
-          editButton.apply(onTap handleWith {
+          replyButton.apply(onTap foreach { currentReply() = Set(nodeId) }),
+          editButton.apply(onTap foreach {
             editable() = true
             selectedNodeIds() = Set.empty[NodeId]
           }),
@@ -140,7 +140,7 @@ object ChatOld {
         backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
         boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
          cursor.pointer,
-         onTap handleWith {currentReply.update(_ + parent.id)},
+         onTap foreach {currentReply.update(_ + parent.id)},
       )
     )
 
@@ -163,7 +163,7 @@ object ChatOld {
               parentMessage(state, graph, node).apply(alignSelf.center),
               closeButton(
                 marginLeft.auto,
-                onTap handleWith { currentReply.update(_ - replyNodeId) }
+                onTap foreach { currentReply.update(_ - replyNodeId) }
               ),
             )
           )

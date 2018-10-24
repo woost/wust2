@@ -103,7 +103,7 @@ object SelectedNodes {
       ),
       cls := "actionbutton",
 
-      onClick handleWith{_ =>
+      onClick foreach{_ =>
         val changes =
           if (allSelectedNodesAreDeleted.now)
             selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(getNodeId(t), getDirectParentIds(t)))
@@ -119,7 +119,7 @@ object SelectedNodes {
   private def clearSelectionButton[T](selectedNodes: Var[Set[T]]) = {
     closeButton(
       cls := "actionbutton",
-      onClick handleWith {
+      onClick foreach {
         selectedNodes() = Set.empty[T]
       }
     )
@@ -133,7 +133,7 @@ object SelectedNodes {
         "×",
         cls := "actionbutton",
         margin := "0",
-        onClick.stopPropagation handleWith {
+        onClick.stopPropagation foreach {
           selectedNodes.update(_.filterNot(data => getNodeId(data) == node.id))
         }
       ),

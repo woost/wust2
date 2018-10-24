@@ -18,7 +18,7 @@ object MainViewParts {
     button(
       cls := "ui button",
       label,
-      onClick handleWith { ev =>
+      onClick foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         val user = state.user.now
 
@@ -42,7 +42,7 @@ object MainViewParts {
   }
 
   def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
-    val urlImporter = Handler.created[String]
+    val urlImporter = Handler.unsafe[String]
 
     def importGithubUrl(url: String): Unit = Client.githubApi.importContent(url)
     def importGitterUrl(url: String): Unit = Client.gitterApi.importContent(url)
@@ -63,18 +63,18 @@ object MainViewParts {
       fontSize := "20px",
       marginBottom := "10px",
       "Constant synchronization",
-      button("Connect to GitHub", width := "100%", onClick handleWith(connectToGithub())),
+      button("Connect to GitHub", width := "100%", onClick foreach(connectToGithub())),
       "One time import",
       input(tpe := "text", width := "100%", onInput.value --> urlImporter),
       button(
         "GitHub",
         width := "100%",
-        onClick(urlImporter) handleWith((url: String) => importGithubUrl(url))
+        onClick(urlImporter) foreach((url: String) => importGithubUrl(url))
       ),
       button(
         "Gitter",
         width := "100%",
-        onClick(urlImporter) handleWith((url: String) => importGitterUrl(url))
+        onClick(urlImporter) foreach((url: String) => importGitterUrl(url))
       ),
     )
   }

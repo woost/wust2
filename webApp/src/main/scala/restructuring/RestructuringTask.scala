@@ -202,13 +202,13 @@ sealed trait YesNoTask extends RestructuringTask {
           "Yes",
           onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-          onClick handleWith(scribe.info(s"$title($postChoice) = YES")),
+          onClick foreach(scribe.info(s"$title($postChoice) = YES")),
         ),
         button(
           "No",
           onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging
         ),
-        onClick handleWith(scribe.info(s"$title($postChoice) = NO")),
+        onClick foreach(scribe.info(s"$title($postChoice) = NO")),
         width := "100%",
       )
     )
@@ -242,7 +242,7 @@ sealed trait AddTagTask extends RestructuringTask {
   def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Observer[String]): VNode = {
 
     def textAreaWithEnterAndLog(actionSink: Observer[String]) = {
-      val userInput = Handler.created[String]
+      val userInput = Handler.unsafe[String]
       val clearHandler = userInput.map(_ => "")
       userInput.foreach(txt => scribe.info(s"$title($sourcePosts -> $targetPosts) $txt"))
 
@@ -795,7 +795,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.created[List[Posts]](List(splitPost))
+    val postPreview = Handler.unsafe[List[Posts]](List(splitPost))
 
     div(
       div(
@@ -941,7 +941,7 @@ object RestructuringTaskGenerator {
   )
 
   val taskDisplayWithLogging: Handler[TaskFeedback] =
-    Handler.created[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty))
+    Handler.unsafe[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty))
 
   def renderButton(activateTasks: Boolean): VNode = {
     val buttonType = if (activateTasks) {

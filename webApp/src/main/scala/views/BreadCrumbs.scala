@@ -76,7 +76,7 @@ object BreadCrumbs {
           }
         },
         registerDraggableContainer(state),
-        onClick handleWith { Analytics.sendEvent("breadcrumbs", "click") },
+        onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
       )
     }
   }
