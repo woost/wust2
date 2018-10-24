@@ -211,7 +211,7 @@ object KanbanView {
       state, node,
       maxLength = Some(maxLength),
       editable = editable,
-      submit = state.eventProcessor.enriched.changes
+      submit = state.eventProcessor.changes
     )
 
 
