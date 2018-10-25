@@ -199,21 +199,12 @@ package object collection {
   }
 
   implicit final class RichArraySet(val marked:ArraySet) extends AnyVal {
-    @inline def add(indices:IndexedSeq[Int]): Unit = {
-      indices.foreachElement{ index =>
-        marked(index) = 1
-      }
-    }
-    @inline def remove(indices:IndexedSeq[Int]): Unit = {
-      indices.foreachElement{ index =>
-        marked(index) = 0
-      }
-    }
-
-    @inline def add(i:Int):Unit = marked(i) = 1
-    @inline def remove(i:Int):Unit = marked(i) = 0
-    @inline def contains(i:Int):Boolean = marked(i) == 1
-    @inline def containsNot(i:Int):Boolean = marked(i) == 0
+    @inline def add(elem:Int):Unit = marked(elem) = 1
+    @inline def add(elems:IndexedSeq[Int]): Unit = elems.foreachElement(add)
+    @inline def remove(elem:Int):Unit = marked(elem) = 0
+    @inline def remove(elems:IndexedSeq[Int]): Unit =  elems.foreachElement(remove)
+    @inline def contains(elem:Int):Boolean = marked(elem) == 1
+    @inline def containsNot(elem:Int):Boolean = marked(elem) == 0
 
     @inline def foreachAdded(f:Int => Unit):Unit = {
       marked.foreachIndex{ i =>
@@ -221,20 +212,32 @@ package object collection {
       }
     }
 
-    @inline def map[T](f:Int => T)(implicit classTag:ClassTag[T]):Array[T] = {
-      val builder = mutable.ArrayBuilder.make[T]
-      foreachAdded{ i =>
-        builder += f(i)
+    @inline def calculateSize: Int = {
+      var size = 0
+      marked.foreachIndex{ i =>
+        if(contains(i)) size += 1
       }
-      builder.result()
+      size
+    }
+
+    @inline def map[T](f:Int => T)(implicit classTag:ClassTag[T]):Array[T] = {
+      val array = new Array[T](calculateSize)
+      var pos = 0
+      foreachAdded{ i =>
+        array(pos) = f(i)
+        pos += 1
+      }
+      array
     }
 
     @inline def allElements:Array[Int] = {
-      val builder = new mutable.ArrayBuilder.ofInt
+      val array = new Array[Int](calculateSize)
+      var pos = 0
       foreachAdded{ i =>
-        builder += i
+        array(pos) = i
+        pos += 1
       }
-      builder.result()
+      array
     }
   }
 

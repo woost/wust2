@@ -196,6 +196,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   // than using one loop with arraybuilders. (A lot less allocations)
   private val parentsDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
+  private val notDeletedParentsDegree = new Array[Int](n)
+  private val notDeletedChildrenDegree = new Array[Int](n)
   private val deletedParentsDegree = new Array[Int](n)
   private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
@@ -231,10 +233,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               case None            =>
                 parentsDegree(sourceIdx) += 1
                 childrenDegree(targetIdx) += 1
+                notDeletedParentsDegree(sourceIdx) += 1
+                notDeletedChildrenDegree(targetIdx) += 1
               case Some(deletedAt) =>
                 if(deletedAt isAfter now) {
                   parentsDegree(sourceIdx) += 1
                   childrenDegree(targetIdx) += 1
+                  notDeletedParentsDegree(sourceIdx) += 1
+                  notDeletedChildrenDegree(targetIdx) += 1
                   futureDeletedParentsDegree(sourceIdx) += 1
                 } else if(deletedAt isAfter remorseTimeForDeletedParents) {
                   parentsDegree(sourceIdx) += 1
@@ -258,6 +264,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
+  private val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
+  private val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
   private val deletedParentsIdxBuilder = NestedArrayInt.builder(deletedParentsDegree)
   private val futureDeletedParentsIdxBuilder = NestedArrayInt.builder(futureDeletedParentsDegree)
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
@@ -288,10 +296,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case None            =>
             parentsIdxBuilder.add(sourceIdx, targetIdx)
             childrenIdxBuilder.add(targetIdx, sourceIdx)
+            notDeletedParentsIdxBuilder.add(sourceIdx, targetIdx)
+            notDeletedChildrenIdxBuilder.add(targetIdx, sourceIdx)
           case Some(deletedAt) =>
             if(deletedAt isAfter now) {
               parentsIdxBuilder.add(sourceIdx, targetIdx)
               childrenIdxBuilder.add(targetIdx, sourceIdx)
+              notDeletedParentsIdxBuilder.add(sourceIdx, targetIdx)
+              notDeletedChildrenIdxBuilder.add(targetIdx, sourceIdx)
               futureDeletedParentsIdxBuilder.add(sourceIdx, targetIdx)
             } else if(deletedAt isAfter remorseTimeForDeletedParents) {
               parentsIdxBuilder.add(sourceIdx, targetIdx)
@@ -313,6 +325,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
+  val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
+  val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
   val deletedParentsIdx: NestedArrayInt = deletedParentsIdxBuilder.result()
   val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
@@ -587,6 +601,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)
 
+  @inline def hasNotDeletedChildrenIdx(nodeIdx: Int): Boolean = notDeletedChildrenIdx.sliceNonEmpty(nodeIdx)
+  @inline def hasNotDeletedParentsIdx(nodeIdx: Int): Boolean = notDeletedParentsIdx.sliceNonEmpty(nodeIdx)
+
   @inline private def hasSomethingById(nodeId: NodeId, lookup: Int => Boolean) = {
     val idx = idToIdx(nodeId)
     if(idx == -1)
@@ -615,6 +632,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def involvedInContainmentCycleIdx(idx: Int): Boolean = {
     depthFirstSearchExistsWithoutStart(idx, childrenIdx, idx)
   }
+  def involvedInNotDeletedContainmentCycleIdx(idx: Int): Boolean = {
+    depthFirstSearchExistsWithoutStart(idx, notDeletedChildrenIdx, idx)
+  }
   def involvedInContainmentCycle(id: NodeId): Boolean = {
     val idx = idToIdx(id)
     if(idx == -1) false
@@ -629,6 +649,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val _descendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
     if(nodeIdx == -1) Nil
     else descendantsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
+  }
+
+  def notDeletedDescendantsIdx(nodeIdx: Int) = _notDeletedDescendantsIdx(nodeIdx)
+  private val _notDeletedDescendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
+    depthFirstSearchWithoutStart(nodeIdx, notDeletedChildrenIdx)
+  }
+  def notDeletedDescendants(nodeId: NodeId) = _notDeletedDescendants(idToIdx(nodeId))
+  private val _notDeletedDescendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
+    if(nodeIdx == -1) Nil
+    else notDeletedDescendantsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
   }
 
   def ancestorsIdx(nodeIdx: Int) = _ancestorsIdx(nodeIdx)
@@ -715,19 +745,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val rootNodes: Array[Int] = {
     // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)
     val coveredChildren = {
-      val a = new Array[Int](n)
-      var i = 0
-      var j = 0
-      while(i < n) {
-        if(!hasParentsIdx(i)) {
-          val descendants = descendantsIdx(i)
-          j = 0
-          while(j < descendants.length) {
-            a(descendants(j)) = 1
-            j += 1
-          }
+      val a = ArraySet.create(n)
+      nodes.foreachIndex{i =>
+        if(!hasNotDeletedParentsIdx(i)) {
+          a.add(notDeletedDescendantsIdx(i))
         }
-        i += 1
       }
       a
     }
@@ -735,28 +757,26 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     // val rootNodes = nodes.filter(n => coveredChildren(idToIdx(n.id)) == 0 && (!hasParents(n.id) || involvedInContainmentCycle(n.id))).toSet
     val rootNodesIdx = new mutable.ArrayBuilder.ofInt
     rootNodesIdx.sizeHint(n)
-    var i = 0
-    while(i < n) {
+    nodes.foreachIndex {i =>
       //assert(coveredChildren(i) == coveredChildren(idToIdx(nodes(i).id)))
-      if(coveredChildren(i) == 0 && (!hasParentsIdx(i) || involvedInContainmentCycleIdx(i)))
+      if(coveredChildren.containsNot(i) && (!hasNotDeletedParentsIdx(i) || involvedInNotDeletedContainmentCycleIdx(i)))
         rootNodesIdx += i
-      i += 1
     }
     rootNodesIdx.result()
   }
 
   def redundantTree(root: Int, excludeCycleLeafs: Boolean, visited: ArraySet = ArraySet.create(n)): Tree = {
-    if(visited.containsNot(root) && hasChildrenIdx(root)) {
+    if(visited.containsNot(root) && hasNotDeletedChildrenIdx(root)) {
       visited.add(root)
       if(excludeCycleLeafs) {
-        val nonCycleChildren = childrenIdx(root).filterNot(visited.contains)
+        val nonCycleChildren = notDeletedChildrenIdx(root).filterNot(visited.contains)
         if(nonCycleChildren.nonEmpty) {
           Tree.Parent(nodes(root), nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut))
         }
         else
           Tree.Leaf(nodes(root))
       } else {
-        Tree.Parent(nodes(root), childrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut))
+        Tree.Parent(nodes(root), notDeletedChildrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut))
       }
     }
     else
@@ -771,9 +791,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def channelTree(user: UserId): Seq[Tree] = {
-    val channelIndices = pinnedNodeIdx(idToIdx(user))
+    val userIdx = idToIdx(user)
+    val channelIndices = pinnedNodeIdx(userIdx)
     val isChannel = new Array[Int](n)
-    channelIndices.foreach { isChannel(_) = 1 }
+    pinnedNodeIdx.foreachElement(userIdx){ isChannel(_) = 1 }
 
     //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
     def reachable(childChannelIdx: Int, parentChannelIdx: Int): Boolean = {
@@ -781,11 +802,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       // if child channel is trasitive child of parent channel,
       // without traversing over other channels
       val excludedChannels = new Array[Int](n)
-      channelIndices.foreach { channelIdx =>
+      pinnedNodeIdx.foreachElement(userIdx) { channelIdx =>
         excludedChannels(channelIdx) = 1
       }
       excludedChannels(parentChannelIdx) = 0
-      depthFirstSearchExcludeExists(childChannelIdx, parentsIdx, exclude = excludedChannels, search = parentChannelIdx)
+      depthFirstSearchExcludeExists(childChannelIdx, notDeletedParentsIdx, exclude = excludedChannels, search = parentChannelIdx)
     }
 
     val topologicalParents = for {

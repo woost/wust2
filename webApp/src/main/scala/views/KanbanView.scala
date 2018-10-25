@@ -32,18 +32,17 @@ object KanbanView {
         val page = state.page()
         val graph = {
           val g = state.graph()
-          val pageChildren = page.parentIds.flatMap(g.descendants)
-          g.filterIds(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(id => g.authors(id).map(_.id)))
+          val transitivePageChildren = page.parentIds.flatMap(g.notDeletedDescendants)
+          g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
         }
 
         val unsortedForest = graph.filterIdx { nodeIdx =>
           val node = graph.nodes(nodeIdx)
           val isContent = node.isInstanceOf[Node.Content]
           val isTask = node.role.isInstanceOf[NodeRole.Task.type]
-          val notIsolated = graph.hasChildrenIdx(nodeIdx) || !graph.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
+          val notIsolated = graph.hasNotDeletedChildrenIdx(nodeIdx) || !graph.notDeletedParentsIdx(nodeIdx).forall(idx => page.parentIdSet(graph.nodeIds(idx))) || graph.isStaticParentIn(node.id, page.parentIds)
           val noPage = !page.parentIdSet.contains(node.id)
-          val notDeleted = graph.deletedParentsIdx(nodeIdx).isEmpty
-          isContent && isTask && notIsolated && noPage && notDeleted
+          isContent && isTask && notIsolated && noPage
         }.redundantForestIncludingCycleLeafs
 
 //        scribe.info(s"SORTING FOREST: $unsortedForest")

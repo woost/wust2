@@ -6,7 +6,7 @@ import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))
-  implicit def idToPost(id: Int): Node = Node.Content(id = id, data = NodeData.PlainText("content"))
+  implicit def idToPost(id: Int): Node = Node.Content(id = id, data = NodeData.PlainText("content"), NodeRole.default)
   implicit def postListToMap(posts: List[Int]): List[Node] = posts.map(idToPost)
   implicit def tupleIsConnection(t: (Int, Int)): Edge = Connection(t._1, t._2)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Edge] = connections.map(tupleIsConnection)
@@ -138,7 +138,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       // when changing things, make sure to change them for the stored procedure as well.
       import wust.ids.NodeAccess.{Level, Inherited}
       import wust.ids.AccessLevel._
-      def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeMeta(nodeAccess))
+      def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeRole.default, NodeMeta(nodeAccess))
       def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
       def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
       def access(g:Graph, user:Cuid, node:Cuid):Boolean = g.can_access_node(UserId(NodeId(user)), NodeId(node))
@@ -391,7 +391,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
     }
 
     "root nodes" - {
-      implicit def node(id: String): Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      implicit def node(id: String): Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
 
       def parent(childId: Cuid, parentId: Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
 
@@ -442,14 +442,15 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
     "redundant tree - including cycle leafs" - {
       import Tree._
-      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = false)
 
       "root only" in {
         val g = Graph(
           nodes = Set[Node]("A"),
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Leaf("A"))
+        assert(redundantTree(g, "A") == Leaf("A"))
       }
 
       "single child" in {
@@ -457,7 +458,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Leaf("B"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Leaf("B"))))
       }
 
       "two children" in {
@@ -465,7 +466,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Leaf("B"), Leaf("C"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Leaf("B"), Leaf("C"))))
       }
 
       "diamond" in {
@@ -473,7 +474,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
       }
 
       "cycle" in {
@@ -481,20 +482,21 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = false) == Parent("A", List(Parent("B", List(Parent("C", List(Leaf("A"))))))))
+        assert(redundantTree(g, "A") == Parent("A", List(Parent("B", List(Parent("C", List(Leaf("A"))))))))
       }
     }
 
     "redundant tree - excluding cycle leafs" - {
       import Tree._
-      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = true)
 
       "root only" in {
         val g = Graph(
           nodes = Set[Node]("A"),
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Leaf("A"))
+        assert(redundantTree(g, "A") == Leaf("A"))
       }
 
       "single child" in {
@@ -502,7 +504,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B"),
           edges = Set(parent("B", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Leaf("B"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Leaf("B"))))
       }
 
       "two children" in {
@@ -510,7 +512,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Leaf("B"), Leaf("C"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Leaf("B"), Leaf("C"))))
       }
 
       "diamond" in {
@@ -518,7 +520,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
+        assert(redundantTree(g, "A") == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
       }
 
       "cycle" in {
@@ -526,13 +528,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("A", "B", "C"),
           edges = Set(parent("B", "A"), parent("C", "B"), parent("A", "C"))
         )
-        assert(g.redundantTree("A", excludeCycleLeafs = true) == Parent("A", List(Parent("B", List(Leaf("C"))))))
+        assert(redundantTree(g, "A") == Parent("A", List(Parent("B", List(Leaf("C"))))))
       }
     }
 
     "channel tree" - {
       import Tree._
-      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def user(id:String):Node = Node.User(UserId(NodeId(stringToCuid(id))), NodeData.User("hans", false, 0), NodeMeta.User)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
       def pinned(userId:Cuid, nodeId:Cuid) = Edge.Pinned(UserId(NodeId(userId)), NodeId(nodeId))
@@ -559,6 +561,16 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = Set(pinned("User", "B"), pinned("User", "C"))
         )
         assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Leaf("B"), Leaf("C")))
+      }
+
+      "one transitive child" in {
+        val g = Graph(
+          nodes = Set[Node]("B", "C", user("User")),
+          edges = Set(
+            parent("C", "B"),
+            pinned("User", "B"), pinned("User", "C"))
+        )
+        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C")))))
       }
 
       "diamond" in {
@@ -602,7 +614,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val milliMinute = 60000l
 //      def before(beforeId: Cuid, nodeId: Cuid) = Edge.Before(NodeId(beforeId), NodeId(nodeId))
 //      def after(nodeId: Cuid, afterId: Cuid) = Edge.Before(NodeId(nodeId), NodeId(afterId))
-      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString))
+      implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
 
       def parentNode(childId:NodeId, parentId: NodeId) = Edge.Parent(childId, parentId)
 
