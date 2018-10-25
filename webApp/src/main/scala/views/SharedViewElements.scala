@@ -31,6 +31,8 @@ import scala.scalajs.js
 
 object SharedViewElements {
 
+  @inline def noiseFutureDeleteDate = EpochMilli(EpochMilli.now + EpochMilli.week)
+
   trait SelectedNodeBase {
     def nodeId: NodeId
     def directParentIds: Iterable[NodeId]
@@ -92,7 +94,8 @@ object SharedViewElements {
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
-      val changes = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentIds)
+      // we treat new chat messages as noise per default, so we set a future deletion date
+      val changes = GraphChanges.addNodeWithDeletedParent(Node.Content(NodeData.Markdown(str)), parentIds, deletedAt = noiseFutureDeleteDate)
 
       state.eventProcessor.changes.onNext(changes)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
@@ -188,6 +191,20 @@ object SharedViewElements {
     onMouseDown.stopPropagation foreach {},
   )
 
+  val activeStarButton: VNode = {
+    div(
+      div(cls := "fa-fw", freeSolid.faStar, color := "#fbbd08"),
+      cursor.pointer,
+    )
+  }
+
+  val inactiveStarButton: VNode = {
+    div(
+      div(cls := "fa-fw", freeRegular.faStar, color := "#fbbd08"),
+      cursor.pointer,
+    )
+  }
+
   val replyButton: VNode = {
     div(
       div(cls := "fa-fw", freeSolid.faReply),
@@ -244,7 +261,7 @@ object SharedViewElements {
     )
   }
 
-  def renderMessage(state: GlobalState, nodeId: NodeId, isDeleted: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VNode]] = {
+  def renderMessage(state: GlobalState, nodeId: NodeId, isDeletedNow: Rx[Boolean], isDeletedInFuture: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VNode]] = {
 
     val node = Rx {
       // we need to get the latest node content from the graph
@@ -264,20 +281,24 @@ object SharedViewElements {
       icon(width := "10px", marginBottom := "5px", marginRight := "5px", color := "#9c9c9c")
     }
 
-    def render(node: Node)(implicit ctx: Ctx.Owner) =
+
+    def render(node: Node)(implicit ctx: Ctx.Owner) = {
+      val importanceIndicator = Rx { (!editMode() && !isDeletedNow() && !isDeletedInFuture()).ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08")) }
       nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
         Styles.flex,
         alignItems.flexEnd,
-        Rx{
+        Rx {
           // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
-          isDeleted().ifTrue[VDomModifier](cls := "node-deleted")
+          isDeletedNow().ifTrue[VDomModifier](cls := "node-deleted")
         },
+        importanceIndicator,
         cls := "drag-feedback",
 
         syncedIcon,
         dragHandle,
         renderedMessageModifier
       )
+    }
 
     Rx {
       node().map(render)
@@ -333,37 +354,50 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeleted:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner) =
-      div(
-        Styles.flexStatic,
-        cls := "chatmsg-controls",
-        BrowserDetect.isMobile.ifFalse[VDomModifier] {
-          Rx {
-            if(isDeleted()) {
-              undeleteButton(
-                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-              )
-            }
-            else VDomModifier(
-              replyButton(
-                onClick foreach { replyAction }
-              ),
-              editButton(
-                onClick.mapTo(!editMode.now) --> editMode
-              ),
-              deleteButton(
-                onClick foreach {
-                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-                  selectedNodes.update(_.filterNot(_.nodeId == nodeId))
-                },
-              ),
-              zoomButton(
-                onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
-              )
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner) = {
+    div(
+      Styles.flexStatic,
+      cls := "chatmsg-controls",
+      BrowserDetect.isMobile.ifFalse[VDomModifier] {
+        Rx {
+          if(isDeletedNow()) {
+            undeleteButton(
+              onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
             )
           }
+          else VDomModifier(
+            if(isDeletedInFuture()) {
+              inactiveStarButton(
+                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+              )
+            } else {
+              activeStarButton(
+                onClick foreach {
+                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
+                  ()
+                }
+              )
+            },
+            replyButton(
+              onClick foreach { replyAction }
+            ),
+            editButton(
+              onClick.mapTo(!editMode.now) --> editMode
+            ),
+            deleteButton(
+              onClick foreach {
+                state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+                selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+              },
+            ),
+            zoomButton(
+              onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+            )
+          )
         }
-      )
+      }
+    )
+  }
 
   def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
     val directNodeTags:Rx[Seq[Node]] = Rx {
@@ -412,14 +446,56 @@ object SharedViewElements {
     groupsBuilder.result()
   }
 
+  def starActionButton[T <: SelectedNodeBase](state: GlobalState, selected: List[T], anySelectedNodeIsDeleted: Rx[Boolean], anySelectedNodeIsDeletedInFuture: Rx[Boolean])(implicit ctx:Ctx.Owner): BasicVNode = {
+    div(
+      Rx {
+        if(anySelectedNodeIsDeleted() || anySelectedNodeIsDeletedInFuture())
+          VDomModifier(
+            div(cls := "fa-fw", freeRegular.faStar, color := "#fbbd08"),
+            onClick foreach {
+              val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(t.nodeId, t.directParentIds))
+              state.eventProcessor.changes.onNext(changes)
+              ()
+            }
+          )
+        else
+          VDomModifier(
+            div(cls := "fa-fw", freeSolid.faStar, color := "#fbbd08"),
+            onClick foreach {
+              val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(t.nodeId, t.directParentIds, noiseFutureDeleteDate))
+              state.eventProcessor.changes.onNext(changes)
+              ()
+            }
+          )
+      },
+      cursor.pointer,
+    )
+  }
+
   def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
+    val allSelectedNodesAreDeleted = Rx {
+      val graph = state.graph()
+      selected.forall(t => graph.lookup.isDeletedNow(t.nodeId, t.directParentIds))
+    }
+
+    val anySelectedNodeIsDeleted = Rx {
+      val graph = state.graph()
+      selected.forall(t => graph.lookup.isDeletedNow(t.nodeId, t.directParentIds))
+    }
+
+    val anySelectedNodeIsDeletedInFuture = Rx {
+      val graph = state.graph()
+      selected.exists(t => graph.lookup.isDeletedInFuture(t.nodeId, t.directParentIds))
+    }
+
     List(
+      starActionButton(state, selected, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
       zoomButton(onClick foreach {
         state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
         selectedNodes() = Set.empty[T]
       }),
-      SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, _.nodeId, _.directParentIds),
+      SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, _.nodeId, _.directParentIds, allSelectedNodesAreDeleted),
     )
   }
 }

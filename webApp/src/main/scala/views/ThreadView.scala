@@ -29,7 +29,7 @@ object ThreadView {
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
-  final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val showReplyField:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[NodeId])(val editMode:Var[Boolean], val showReplyField:Var[Boolean]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
@@ -115,7 +115,7 @@ object ThreadView {
 
             val showReplyField = Var(false)
 
-            val isDeleted = Rx {
+            val isDeletedNow = Rx {
               val graph = state.graph()
               graph.lookup.isDeletedNow(nodeId, directParentIds)
             }
@@ -125,7 +125,7 @@ object ThreadView {
             val inCycle = transitiveParentIds.contains(nodeId)
 
             if(inCycle)
-              renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+              renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
             else {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
@@ -135,11 +135,11 @@ object ThreadView {
               }
 
               val showExpandedThread = Rx {
-                !isDeleted() && (isExpanded() || showReplyField())
+                !isDeletedNow() && (isExpanded() || showReplyField())
               }
 
               VDomModifier(
-                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
+                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
                     renderExpandedThread(state, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
@@ -190,9 +190,8 @@ object ThreadView {
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
-      val changes = {
-        GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil)
-      }
+      // we treat new chat messages as noise per default, so we set a future deletion date
+      val changes = GraphChanges.addNodeWithDeletedParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
       state.eventProcessor.changes.onNext(changes)
       currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
     }
@@ -244,13 +243,18 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
-      selectedNodes().exists(_.nodeId == nodeId)
+      selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, isDeleted = isDeleted, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
+    val isDeletedInFuture = Rx {
+      val graph = state.graph()
+      graph.lookup.isDeletedInFuture(nodeId, directParentIds)
+    }
+
+    val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
       Styles.flex,
       alignItems.center,
       freeSolid.faSyncAlt,
@@ -259,19 +263,19 @@ object ThreadView {
       color := "#666",
       boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
     )))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, showReplyField, directParentIds), isSelected = isSelected)
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(editMode, showReplyField), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, showReplyField, directParentIds))
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId, directParentIds)(editMode, showReplyField))
         else {
           // stopPropagation prevents deselecting by clicking on background
           val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, showReplyField, directParentIds)))
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId, directParentIds)(editMode, showReplyField)))
         }
       }
     }
-    val expandCollapsButton = Rx{ (isDeleted() || inCycle).ifFalse[VDomModifier](renderExpandCollapseButton(state, nodeId, isExpanded)) }
+    val expandCollapsButton = Rx{ (isDeletedNow() || inCycle).ifFalse[VDomModifier](renderExpandCollapseButton(state, nodeId, isExpanded)) }
 
     div(
       cls := "chat-row",

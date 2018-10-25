@@ -165,13 +165,13 @@ package object outwatchHelpers extends KeyHash {
     val tag = stringToTag(tree.tag)
     tag(treeToModifiers(tree))
   }
-  private def abstractTreeToVNodeRoot(name: String, tree: AbstractElement): VNode = {
+  private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
     val tag = stringToTag(tree.tag)
-    tag.static(keyValue(name))(treeToModifiers(tree))
+    tag.static(keyValue(key))(treeToModifiers(tree))
   }
 
   implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
-    abstractTreeToVNodeRoot(icon.iconName, fontawesome.icon(icon).`abstract`(0))
+    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
   }
 
   implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {

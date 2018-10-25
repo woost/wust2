@@ -74,7 +74,7 @@ object ChatView {
           Styles.flex,
           alignItems.flexStart,
           currentReply().map { replyNodeId =>
-            val isDeleted = graph.lookup.isDeletedNow(replyNodeId, state.page.now.parentIds)
+            val isDeletedNow = graph.lookup.isDeletedNow(replyNodeId, state.page.now.parentIds)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -82,7 +82,7 @@ object ChatView {
               div(
                 Styles.flex,
                 alignItems.flexStart,
-                parentMessage(state, node, isDeleted, currentReply).apply(alignSelf.center),
+                parentMessage(state, node, isDeletedNow, currentReply).apply(alignSelf.center),
                 closeButton(
                   marginLeft.auto,
                   onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -102,10 +102,15 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeleted: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
+    }
+
+    val isDeletedInFuture = Rx {
+      val graph = state.graph()
+      graph.lookup.isDeletedInFuture(nodeId, directParentIds)
     }
 
     val parentNodes: Rx[Seq[Node]] = Rx {
@@ -114,8 +119,8 @@ object ChatView {
         .map(id => graph.nodes(graph.lookup.idToIdx(id)))(breakOut)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, isDeleted = isDeleted, editMode = editMode)
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeleted = isDeleted, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
+    val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
@@ -139,18 +144,20 @@ object ChatView {
         val messageCard = renderedMessage()
         val parents = parentNodes()
         if(parents.nonEmpty) {
+          val importanceIndicator = Rx { (!editMode() && !isDeletedNow() && !isDeletedInFuture()).ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08")) }
           val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents.map(_.id)).get).toHex
           div(
             cls := "nodecard",
-            backgroundColor := (if(isDeleted()) bgColor + "88" else bgColor), //TODO: rgbia hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
+            backgroundColor := (if(isDeletedNow()) bgColor + "88" else bgColor), //TODO: rgbia hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
             div(
               Styles.flex,
               alignItems.flexStart,
               parents.map { parent =>
-                parentMessage(state, parent, isDeleted(), currentReply)
+                parentMessage(state, parent, isDeletedNow(), currentReply)
               }
             ),
-            messageCard.map(_(boxShadow := "none", backgroundColor := bgColor))
+            messageCard.map(_(boxShadow := "none", backgroundColor := bgColor)),
+            importanceIndicator,
           )
         } else messageCard: VDomModifier
       },
@@ -159,7 +166,7 @@ object ChatView {
     )
   }
 
-    def parentMessage(state: GlobalState, parent: Node, isDeleted: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+    def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
       val authorAndCreated = Rx {
         val graph = state.graph()
         val idx = graph.lookup.idToIdx(parent.id)
@@ -187,7 +194,7 @@ object ChatView {
           onTap foreach {currentReply.update(_ ++ Set(parent.id))},
         ),
         margin := "3px",
-        isDeleted.ifTrue[VDomModifier](opacity := 0.5)
+        isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
       )
     }
 
@@ -207,14 +214,14 @@ object ChatView {
           val nodeId = groupGraph.lookup.nodeIds(groupIdx)
           div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
-            val isDeleted = Rx {
+            val isDeletedNow = Rx {
               val graph = state.graph()
               graph.lookup.isDeletedNow(nodeId, state.page.now.parentIds)
             }
 
             val editMode = Var(false)
 
-            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeleted = isDeleted, currentReply = currentReply)
+            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
           }
         }
       )

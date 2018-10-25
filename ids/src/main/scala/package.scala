@@ -28,6 +28,11 @@ package object ids {
       import java.time.Instant
       EpochMilli(Instant.parse(time).toEpochMilli)
     }
+    @inline def second: Long = 1000L
+    @inline def minute: Long = 60L * second
+    @inline def hour: Long = 60L * minute
+    @inline def day: Long = 24L * hour
+    @inline def week: Long = 7L * day
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli) = t < that
       @inline def >(that: EpochMilli) = t > that

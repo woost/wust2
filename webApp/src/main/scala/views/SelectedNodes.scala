@@ -88,11 +88,7 @@ object SelectedNodes {
     )
   }
 
-  def deleteAllButton[T](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, getDirectParentIds: T => Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
-    val allSelectedNodesAreDeleted = Rx {
-      val graph = state.graph()
-      selectedNodesList.forall(t => graph.lookup.isDeletedNow(getNodeId(t), getDirectParentIds(t)))
-    }
+  def deleteAllButton[T](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, getDirectParentIds: T => Iterable[NodeId], allSelectedNodesAreDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(
         cls := "fa-fw",
@@ -101,7 +97,6 @@ object SelectedNodes {
           else Icons.delete : VNode
         }
       ),
-      cls := "actionbutton",
 
       onClick foreach{_ =>
         val changes =

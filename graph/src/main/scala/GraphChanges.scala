@@ -85,6 +85,8 @@ object GraphChanges {
     GraphChanges(addNodes = Set(node), addEdges = Set(Edge.Parent(node.id, parentId)))
   def addNodeWithParent(node: Node, parentIds: Iterable[NodeId]) =
     GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, parentId))(breakOut))
+  def addNodeWithDeletedParent(node: Node, parentIds: Iterable[NodeId],deletedAt:EpochMilli) =
+    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, EdgeData.Parent(Some(deletedAt)), parentId))(breakOut))
 
   def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId) = GraphChanges(
     addEdges = nodeIds.map { channelId =>
@@ -112,9 +114,9 @@ object GraphChanges {
 
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
+  def delete(nodeId: NodeId, parentIds: Iterable[NodeId], deletedAt:EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
-      parentId => Edge.Parent.delete(nodeId, parentId)
+      parentId => Edge.Parent.delete(nodeId, parentId, deletedAt)
     )(breakOut)
   )
 

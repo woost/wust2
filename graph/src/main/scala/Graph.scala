@@ -228,6 +228,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val parentsDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
   private val deletedParentsDegree = new Array[Int](n)
+  private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
   private val membershipDegree = new Array[Int](n)
   private val beforeDegree = new Array[Int](n)
@@ -237,54 +238,59 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val staticParentInDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
 
-  private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(EpochMilli.now - (24 * 3600 * 1000))
+  private val now = EpochMilli.now
+  private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(now - (24 * 3600 * 1000))
 
   edges.foreachIndexAndElement { (edgeIdx, edge) =>
-      val sourceIdx = idToIdx(edge.sourceId)
-      if(sourceIdx != -1) {
-        val targetIdx = idToIdx(edge.targetId)
-        if(targetIdx != -1) {
+    val sourceIdx = idToIdx(edge.sourceId)
+    if(sourceIdx != -1) {
+      val targetIdx = idToIdx(edge.targetId)
+      if(targetIdx != -1) {
         consistentEdges.add(edgeIdx)
         edgesIdx.updatea(edgeIdx, sourceIdx)
         edgesIdx.updateb(edgeIdx, targetIdx)
-          edge match {
+        edge match {
           case _: Edge.Author         =>
             authorshipDegree(targetIdx) += 1
           case _: Edge.Member         =>
             membershipDegree(targetIdx) += 1
           case _: Edge.Before       =>
-			beforeDegree(sourceIdx) += 1
-			afterDegree(targetIdx) += 1
+            beforeDegree(sourceIdx) += 1
+            afterDegree(targetIdx) += 1
           case e: Edge.Parent         =>
             e.data.deletedAt match {
-                case None            =>
+              case None            =>
                 parentsDegree(sourceIdx) += 1
                 childrenDegree(targetIdx) += 1
-                case Some(deletedAt) =>
-                  //TODO should already be filtered in backend
-                  if(deletedAt > remorseTimeForDeletedParents) {
+              case Some(deletedAt) =>
+                if(deletedAt isAfter now) {
+                  parentsDegree(sourceIdx) += 1
+                  childrenDegree(targetIdx) += 1
+                  futureDeletedParentsDegree(sourceIdx) += 1
+                } else if(deletedAt isAfter remorseTimeForDeletedParents) {
                   parentsDegree(sourceIdx) += 1
                   childrenDegree(targetIdx) += 1
                   deletedParentsDegree(sourceIdx) += 1
-                  }
-              }
-            case _: Edge.StaticParentIn                 =>
+                } //TODO everything deleted further in the past should already be filtered in backend
+            }
+          case _: Edge.StaticParentIn                 =>
             staticParentInDegree(sourceIdx) += 1
-            case _: Edge.Expanded =>
+          case _: Edge.Expanded =>
             expandedNodesDegree(sourceIdx) += 1
-            case _: Edge.Notify =>
+          case _: Edge.Notify =>
             notifyByUserDegree(targetIdx) += 1
-            case _: Edge.Pinned =>
+          case _: Edge.Pinned =>
             pinnedNodeDegree(sourceIdx) += 1
-            case _              =>
-        }
+          case _              =>
         }
       }
+    }
   }
 
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val deletedParentsIdxBuilder = NestedArrayInt.builder(deletedParentsDegree)
+  private val futureDeletedParentsIdxBuilder = NestedArrayInt.builder(futureDeletedParentsDegree)
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val membershipEdgeIdxBuilder = NestedArrayInt.builder(membershipDegree)
@@ -306,20 +312,23 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case _: Edge.Member         =>
         membershipEdgeIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.Before       =>
-            beforeIdxBuilder.add(sourceIdx, targetIdx)
-            afterIdxBuilder.add(targetIdx, sourceIdx)
+        beforeIdxBuilder.add(sourceIdx, targetIdx)
+        afterIdxBuilder.add(targetIdx, sourceIdx)
       case e: Edge.Parent         =>
         e.data.deletedAt match {
           case None            =>
             parentsIdxBuilder.add(sourceIdx, targetIdx)
             childrenIdxBuilder.add(targetIdx, sourceIdx)
           case Some(deletedAt) =>
-            //TODO should already be filtered in backend
-            if(deletedAt > remorseTimeForDeletedParents) {
+            if(deletedAt isAfter now) {
+              parentsIdxBuilder.add(sourceIdx, targetIdx)
+              childrenIdxBuilder.add(targetIdx, sourceIdx)
+              futureDeletedParentsIdxBuilder.add(sourceIdx, targetIdx)
+            } else if(deletedAt isAfter remorseTimeForDeletedParents) {
               parentsIdxBuilder.add(sourceIdx, targetIdx)
               childrenIdxBuilder.add(targetIdx, sourceIdx)
               deletedParentsIdxBuilder.add(sourceIdx, targetIdx)
-            }
+            } //TODO everything deleted further in the past should already be filtered in backend
         }
       case _: Edge.StaticParentIn =>
         staticParentInIdxBuilder.add(sourceIdx, targetIdx)
@@ -336,6 +345,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
   val deletedParentsIdx: NestedArrayInt = deletedParentsIdxBuilder.result()
+  val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
   val membershipEdgeIdx: NestedArrayInt = membershipEdgeIdxBuilder.result()
   val beforeIdx: NestedArrayInt = beforeIdxBuilder.result()
@@ -453,6 +463,25 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     @inline def deletedParentSet = {
       val set = ArraySet.create(n)
       deletedParentsIdx.foreachElement(nodeIdx)(set.add)
+      set
+    }
+    @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => deletedParentSet.contains(idToIdx(parent)))
+    @inline def hasNoParents = parentsIdx.sliceIsEmpty(nodeIdx)
+
+    if(nodeIsDeletedInAtLeastOneParent) {
+      if(deletedInAllSpecifiedParentIndices) true
+      else hasNoParents
+    } else false // node is nowhere deleted
+  }
+
+  def isDeletedInFuture(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
+    val nodeIdx = idToIdx(nodeId)
+    if (nodeIdx == -1) return false
+
+    @inline def nodeIsDeletedInAtLeastOneParent = futureDeletedParentsIdx.sliceNonEmpty(nodeIdx)
+    @inline def deletedParentSet = {
+      val set = ArraySet.create(n)
+      futureDeletedParentsIdx.foreachElement(nodeIdx)(set.add)
       set
     }
     @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => deletedParentSet.contains(idToIdx(parent)))
