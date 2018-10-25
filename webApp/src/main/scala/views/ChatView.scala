@@ -74,7 +74,7 @@ object ChatView {
           Styles.flex,
           alignItems.flexStart,
           currentReply().map { replyNodeId =>
-            val isDeletedNow = graph.lookup.isDeletedNow(replyNodeId, state.page.now.parentIds)
+            val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page.now.parentIds)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -110,13 +110,13 @@ object ChatView {
 
     val isDeletedInFuture = Rx {
       val graph = state.graph()
-      graph.lookup.isDeletedInFuture(nodeId, directParentIds)
+      graph.isDeletedInFuture(nodeId, directParentIds)
     }
 
     val parentNodes: Rx[Seq[Node]] = Rx {
       val graph = state.graph()
       (graph.parents(nodeId) -- state.page.now.parentIds)
-        .map(id => graph.nodes(graph.lookup.idToIdx(id)))(breakOut)
+        .map(id => graph.nodes(graph.idToIdx(id)))(breakOut)
     }
 
     val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
@@ -169,9 +169,9 @@ object ChatView {
     def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
       val authorAndCreated = Rx {
         val graph = state.graph()
-        val idx = graph.lookup.idToIdx(parent.id)
+        val idx = graph.idToIdx(parent.id)
         val authors = graph.authors(parent.id)
-        val creationEpochMillis = if (idx == -1) None else Some(graph.lookup.nodeCreated(idx))
+        val creationEpochMillis = if (idx == -1) None else Some(graph.nodeCreated(idx))
         (authors.headOption, creationEpochMillis)
       }
 
@@ -199,8 +199,8 @@ object ChatView {
     }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
-    val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+    val author:Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
+    val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val isLargeScreen = state.screenSize.now == ScreenSize.Large
 
     VDomModifier(
@@ -211,12 +211,12 @@ object ChatView {
         chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
 
         group.map { groupIdx =>
-          val nodeId = groupGraph.lookup.nodeIds(groupIdx)
+          val nodeId = groupGraph.nodeIds(groupIdx)
           div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
             val isDeletedNow = Rx {
               val graph = state.graph()
-              graph.lookup.isDeletedNow(nodeId, state.page.now.parentIds)
+              graph.isDeletedNow(nodeId, state.page.now.parentIds)
             }
 
             val editMode = Var(false)
@@ -237,7 +237,7 @@ object ChatView {
 
         groups.map { group =>
           // because of equals check in thunk, we implicitly generate a wrapped array
-          val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+          val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
           val key = nodeIds.head.toString
 
           div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
@@ -249,10 +249,10 @@ object ChatView {
   private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     val nodeSet = ArraySet.create(graph.nodes.length)
     parentIds.foreach { parentId =>
-      val parentIdx = graph.lookup.idToIdx(parentId)
+      val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
-        graph.lookup.descendantsIdx(parentIdx).foreachElement { childIdx =>
-          val childNode = graph.lookup.nodes(childIdx)
+        graph.descendantsIdx(parentIdx).foreachElement { childIdx =>
+          val childNode = graph.nodes(childIdx)
           if(childNode.isInstanceOf[Node.Content])
             nodeSet.add(childIdx)
         }
@@ -265,7 +265,7 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
       editButton(
         onClick foreach {

@@ -32,16 +32,16 @@ object ChatOld {
       val builder = new mutable.ArrayBuilder.ofInt
       builder.sizeHint(page.parentIds.size)
       page.parentIds.foreach { parentId =>
-        val idx = graph.lookup.idToIdx.getOrElse(parentId, -1)
+        val idx = graph.idToIdx.getOrElse(parentId, -1)
         if (idx != -1) {
           builder += idx
         }
       }
 
-      val pageChildren = depthFirstSearchWithoutStarts(builder.result(), graph.lookup.childrenIdx)
-      Sorting.quickSort[Int](pageChildren)(Ordering[Long] on (graph.lookup.nodeCreated(_)))
+      val pageChildren = depthFirstSearchWithoutStarts(builder.result(), graph.childrenIdx)
+      Sorting.quickSort[Int](pageChildren)(Ordering[Long] on (graph.nodeCreated(_)))
       pageChildren.collect {
-        case idx if graph.lookup.nodes(idx).isInstanceOf[Node.Content] => idx
+        case idx if graph.nodes(idx).isInstanceOf[Node.Content] => idx
       }
     }
 
@@ -52,8 +52,8 @@ object ChatOld {
 
     def shouldGroup(graph:Graph, nodes: Seq[Int]):Boolean = {
       grouping && // grouping enabled
-        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
+        graph.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorsIdx(node).head == authorId)
         }
     }
 
@@ -81,7 +81,7 @@ object ChatOld {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state // else import conflict
-      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
+      val directParentIds:Array[NodeId] = directParentIndices.map(graph.nodeIds)(breakOut)
         if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
         else List(
           replyButton.apply(onTap foreach { currentReply() = Set(nodeId) }),
@@ -96,15 +96,14 @@ object ChatOld {
 
     def renderMessage(nodeIdx: Int, meta: MessageMeta)(implicit ctx: Ctx.Owner): VNode = {
       import meta._
-      @deprecated("","")
-      val nodeId = graph.lookup.nodeIds(nodeIdx)
+      val nodeId = graph.nodeIds(nodeIdx)
       val state = meta.state // else import conflict
       val parents = graph.parents(nodeId) -- meta.state.page.now.parentIds
       div(
         keyed(nodeId),
         chatMessageLine(meta, nodeIdx, msgControls, currentlyEditable, selectedNodeIds, ThreadVisibility.Plain, showTags = false, transformMessageCard = { messageCard =>
           if(parents.nonEmpty) {
-            val isDeleted = graph.lookup.isDeletedNowIdx(nodeIdx, directParentIndices)
+            val isDeleted = graph.isDeletedNowIdx(nodeIdx, directParentIndices)
             val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents).get).toHex
             div(
               cls := "nodecard",
@@ -132,7 +131,7 @@ object ChatOld {
       padding := "1px",
       borderTopLeftRadius := "2px",
       borderTopRightRadius := "2px",
-      chatMessageHeader(false, graph.lookup.idToIdx(parent.id), graph, AvatarSize.Small, showDate = false).apply(
+      chatMessageHeader(false, graph.idToIdx(parent.id), graph, AvatarSize.Small, showDate = false).apply(
         padding := "2px"
       ),
       nodeCard(parent).apply(

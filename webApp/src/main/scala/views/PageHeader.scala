@@ -80,9 +80,9 @@ object PageHeader {
       }
       val isBookmarked = Rx {
         val g = state.graph()
-        val channelIdx = g.lookup.idToIdx(channel.id)
-        val userIdx = g.lookup.idToIdx(state.user().id)
-        state.graph().lookup.pinnedNodeIdx(userIdx).contains(channelIdx)
+        val channelIdx = g.idToIdx(channel.id)
+        val userIdx = g.idToIdx(state.user().id)
+        state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
       }
 
       val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
@@ -114,10 +114,10 @@ object PageHeader {
         val graph = state.graph()
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = graph.lookup.usersInNode(channel.id, max = 7)
+        val users = graph.usersInNode(channel.id, max = 7)
 
         users.map(user => Avatar.user(user.id)(
-          tag("title")(user.name), //TODO: add svg title tag to scala-dom-types
+          htmlTag("title")(user.name), //TODO: add svg title tag to scala-dom-types
           marginLeft := "2px",
           width := "22px",
           height := "22px",
@@ -389,8 +389,8 @@ object PageHeader {
             marginLeft := "10px",
             Rx {
               val graph = state.graph()
-              graph.lookup.membershipEdgeIdx(graph.lookup.idToIdx(node.id)).map { membershipIdx =>
-                val membership = graph.lookup.edges(membershipIdx).asInstanceOf[Edge.Member]
+              graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
+                val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
                 val user = graph.nodesById(membership.userId).asInstanceOf[User]
                 div(
                   marginTop := "10px",
@@ -486,7 +486,7 @@ object PageHeader {
         val graph = state.graph()
         val user = state.user()
         val permissionState = state.permissionState()
-        val hasNotifyEdge = graph.lookup.notifyByUserIdx(graph.lookup.idToIdx(user.id)).contains(graph.lookup.idToIdx(channel.id))
+        val hasNotifyEdge = graph.notifyByUserIdx(graph.idToIdx(user.id)).contains(graph.idToIdx(channel.id))
         if(hasNotifyEdge) decorateIcon(permissionState)(
           freeSolid.faBell,
           action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,

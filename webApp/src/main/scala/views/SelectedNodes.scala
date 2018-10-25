@@ -27,7 +27,7 @@ object SelectedNodes {
     div(
       Rx {
         val graph = state.graph()
-        val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(getNodeId(data)): Long)
+        val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(graph.idToIdx(getNodeId(data))): Long)
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty

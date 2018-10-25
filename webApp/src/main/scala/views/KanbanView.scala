@@ -36,25 +36,25 @@ object KanbanView {
           g.filterIds(page.parentIdSet ++ pageChildren.toSet ++ pageChildren.flatMap(id => g.authors(id).map(_.id)))
         }
 
-        val unsortedForest = graph.lookup.filterIdx { nodeIdx =>
-          val node = graph.lookup.nodes(nodeIdx)
+        val unsortedForest = graph.filterIdx { nodeIdx =>
+          val node = graph.nodes(nodeIdx)
           val isContent = node.isInstanceOf[Node.Content]
           val isTask = node.role.isInstanceOf[NodeRole.Task.type]
-          val notIsolated = graph.lookup.hasChildrenIdx(nodeIdx) || !graph.lookup.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
+          val notIsolated = graph.hasChildrenIdx(nodeIdx) || !graph.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
           val noPage = !page.parentIdSet.contains(node.id)
-          val notDeleted = graph.lookup.deletedParentsIdx(nodeIdx).isEmpty
+          val notDeleted = graph.deletedParentsIdx(nodeIdx).isEmpty
           isContent && isTask && notIsolated && noPage && notDeleted
-        }.lookup.redundantForestIncludingCycleLeafs
+        }.redundantForestIncludingCycleLeafs
 
 //        scribe.info(s"SORTING FOREST: $unsortedForest")
-        val sortedForest = graph.lookup.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
+        val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
 //        scribe.info(s"SORTED FOREST: $sortedForest")
 
-//        scribe.info(s"\tNodeCreatedIdx: ${graph.lookup.nodeCreated.indices.mkString(",")}")
-//        scribe.info(s"\tNodeCreated: ${graph.lookup.nodeCreated.mkString(",")}")
+//        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
+//        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
 //
-//        scribe.info(s"chronological nodes idx: ${graph.lookup.chronologicalNodesAscendingIdx.mkString(",")}")
-//        scribe.info(s"chronological nodes: ${graph.lookup.chronologicalNodesAscending}")
+//        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
+//        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
 
         VDomModifier(
           cls := s"kanbancolumnarea",
@@ -98,7 +98,7 @@ object KanbanView {
                   val newColumnNode = Node.MarkdownTask(str)
                   val add = GraphChanges.addNode(newColumnNode)
                   val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
-//                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.lookup.graph. page.parentIds))
+//                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
                   add merge makeStatic
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
@@ -126,9 +126,9 @@ object KanbanView {
   private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
-        val sortedChildren = state.graph.now.lookup.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
+        val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
 //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
-//        scribe.info(s"\tNodeCreated: ${state.graph.now.lookup.nodeCreated}")
+//        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
         renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
       case Tree.Leaf(node)             =>
         Rx {

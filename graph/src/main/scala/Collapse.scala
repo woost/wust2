@@ -17,7 +17,7 @@ object Collapse {
     val redirectedConnections: Set[LocalConnection] =
       getRedirectedConnections(graph, alternativePosts)
     val hiddenContainments: collection.Set[Edge] =
-      collapsingPosts.flatMap(graph.lookup.incidentChildContainments) //(breakOut)
+      collapsingPosts.flatMap(graph.incidentChildContainments) //(breakOut)
     val collapsedLocalContainments: collection.Set[LocalConnection] =
       getLocalContainments(graph, hiddenPosts, hiddenContainments, collapsingPosts)
 
@@ -53,7 +53,7 @@ object Collapse {
       collapsingPosts: collection.Set[NodeId]
   ): Map[NodeId, Set[NodeId]] = {
     hiddenPosts
-      .flatMap(graph.lookup.incidentParentContainments)
+      .flatMap(graph.incidentParentContainments)
       .groupBy(_.sourceId)
       .mapValues(_.flatMap { c =>
         if (hiddenPosts(c.targetId))
@@ -68,7 +68,7 @@ object Collapse {
       alternativePosts: collection.Map[NodeId, Set[NodeId]]
   ): Set[LocalConnection] = {
     (alternativePosts.keys.flatMap { post =>
-      graph.lookup.incidentContainments(post).flatMap { c =>
+      graph.incidentContainments(post).flatMap { c =>
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId))
           yield {

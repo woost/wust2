@@ -15,6 +15,8 @@ object Graph {
   def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
     new Graph(nodes.toArray, edges.toArray)
   }
+
+  @inline implicit def graphToGraphLookup(graph:Graph):GraphLookup = graph.lookup
 }
 
 //TODO: this is only a case class because julius is too  lazy to write a custom encoder/decoder for boopickle and circe
@@ -52,22 +54,25 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     ")"
   }
 
-  def toSummaryString = {
-    s"Graph(nodes: ${ nodes.size }, ${ edges.size })"
+  def toSummaryString: String = {
+    s"Graph(nodes: ${ nodes.length }, ${ edges.length })"
   }
 
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def pageContent(page: Page): Graph = {
-    val pageChildren = page.parentIds.flatMap(lookup.descendants _)
+    val pageChildren = page.parentIds.flatMap(lookup.descendants)
     this.filterIds(pageChildren.toSet)
   }
 
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def filterIds(p: NodeId => Boolean): Graph = filter(node => p(node.id))
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def filter(p: Node => Boolean): Graph = {
     // we only want to call p once for each node
     // and not trigger the pre-caching machinery of nodeIds
     val filteredNodes = nodes.filter(p)
 
-    @inline def nothingFiltered = filteredNodes.size == nodes.size
+    @inline def nothingFiltered = filteredNodes.length == nodes.length
 
     if(nothingFiltered) this
     else {
@@ -79,7 +84,9 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     }
   }
 
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def filterNotIds(p: NodeId => Boolean): Graph = filterIds(id => !p(id))
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def filterNot(p: Node => Boolean): Graph = filter(node => !p(node))
 
   def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes ++ Set(user), addEdges = c.addEdges, deleteEdges = c.delEdges)
@@ -119,48 +126,14 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     )
   }
 
-  @deprecated("", "")
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def removeNodes(nids: Iterable[NodeId]): Graph = filterNotIds(nids.toSet)
 
-  @deprecated("", "")
+  @deprecated("Be aware that you are constructing a new graph here.", "")
   def removeEdges(es: Iterable[Edge]): Graph = new Graph(nodes = nodes, edges = edges.filterNot(es.toSet))
 
-  @deprecated("","")
+  @deprecated("Be aware that you are constructing a new graph here.","")
   def addNodes(newNodes: Iterable[Node]): Graph = new Graph(nodes = nodes ++ newNodes, edges = edges)
-
-  @deprecated("", "") @inline def nodeIds = lookup.nodeIds
-  @deprecated("", "") @inline def nodesById(nodeId: NodeId) = lookup.nodesById(nodeId)
-  @deprecated("", "") @inline def nodeModified(nodeId: NodeId) = lookup.nodeModified(lookup.idToIdx(nodeId))
-  @deprecated("", "") @inline def nodeCreated(nodeId: NodeId) = lookup.nodeCreated(lookup.idToIdx(nodeId))
-  @deprecated("", "") @inline def expandedNodes(userId: UserId) = lookup.expandedNodes(userId)
-  @deprecated("", "")
-  @inline def isChildOfAny(n: NodeId, parentIds: Iterable[NodeId]) = lookup.isChildOfAny(n, parentIds)
-  @deprecated("", "") @inline def successorsWithoutParent = lookup.successorsWithoutParent
-  @deprecated("", "") @inline def predecessorsWithoutParent = lookup.predecessorsWithoutParent
-  @deprecated("", "") @inline def neighboursWithoutParent = lookup.neighboursWithoutParent
-  @deprecated("", "") @inline def children(n: NodeId) = lookup.children(n)
-  @deprecated("", "") @inline def members(n: NodeId) = lookup.members(n)
-  @deprecated("", "") @inline def authors(n: NodeId) = lookup.authors(n)
-  @deprecated("", "") @inline def authorsIn(n: NodeId) = lookup.authorsIn(n)
-  @deprecated("", "") @inline def hasChildren(n: NodeId) = lookup.hasChildren(n)
-  @deprecated("", "") @inline def parents(n: NodeId) = lookup.parents(n)
-  @deprecated("", "") @inline def parentDepths(n: NodeId) = lookup.parentDepths(n)
-  @deprecated("", "") @inline def childDepth(n: NodeId) = lookup.childDepth(n)
-  @deprecated("", "") @inline def hasParents(n: NodeId) = lookup.hasParents(n)
-  @deprecated("", "") @inline def rootNodes = lookup.rootNodes
-  @deprecated("", "")
-  @inline def redundantTree(root: Node, excludeCycleLeafs: Boolean) = lookup.redundantTree(lookup.idToIdx(root.id), excludeCycleLeafs)
-  @deprecated("", "") @inline def channelTree(user: UserId): Seq[Tree] = lookup.channelTree(user)
-  @deprecated("", "")
-  @inline def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = lookup.can_access_node(userId, nodeId)
-  @deprecated("", "") @inline def descendants(nodeId: NodeId) = lookup.descendants(nodeId)
-  @deprecated("", "") @inline def ancestors(nodeId: NodeId) = lookup.ancestors(nodeId)
-  @deprecated("", "") @inline def involvedInContainmentCycle(id: NodeId) = lookup.involvedInContainmentCycle(id)
-  @deprecated("", "")
-  @inline def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = lookup.inChildParentRelation(child, possibleParent)
-  @deprecated("", "")
-  @inline def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = lookup.isStaticParentIn(id, parentIds)
-
 }
 
 final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
@@ -188,7 +161,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     builder.result()
   }
 
-  @deprecated("", "")
   private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
   _idToIdx.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
@@ -200,9 +172,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
 
-  @deprecated("", "")
   @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
-  @deprecated("", "")
   @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
   @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
     val idx = idToIdx(nodeId)
@@ -210,8 +180,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     else Some(nodes(idx))
   }
 
-  @deprecated("", "")
-  @inline def contains(nodeId: NodeId) = idToIdx.isDefinedAt(nodeId)
+  @inline def contains(nodeId: NodeId): Boolean = idToIdx.isDefinedAt(nodeId)
 
   assert(idToIdx.size == nodes.length, "nodes are not distinct by id")
 
@@ -373,9 +342,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
 
-  @deprecated("","")
   def beforeOrdering(nodeId: NodeId): Seq[NodeId] = beforeIdx(idToIdx(nodeId)).map(nodes).map(_.id)
-  @deprecated("","")
   def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
@@ -751,7 +718,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         if(!hasParentsIdx(i)) {
           val descendants = descendantsIdx(i)
           j = 0
-          while(j < descendants.size) {
+          while(j < descendants.length) {
             a(descendants(j)) = 1
             j += 1
           }
@@ -834,14 +801,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     case class Cycle(node: NodeId) extends Grouping
     case class NoCycle(node: NodeId) extends Grouping
 
-    import wust.util.algorithm.{dijkstra}
+    import wust.util.algorithm.dijkstra
     type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
 
     def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
 
     // NodeId -> distance
-    val (distanceMap: Map[NodeId, Int], predecessorMap) = dijkstra[NodeId](parents, node)
-    val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle(_))
+    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
+    val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
     val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, parents).toSet }
     type GroupIdx = Int
     type Distance = Int
@@ -879,9 +846,9 @@ sealed trait Tree {
 }
 object Tree {
   case class Parent(node: Node, children: List[Tree]) extends Tree {
-    override def flatten = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
+    override def flatten: List[Node] = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
   }
   case class Leaf(node: Node) extends Tree {
-    override def flatten = node :: Nil
+    override def flatten: List[Node] = node :: Nil
   }
 }

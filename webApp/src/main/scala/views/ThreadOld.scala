@@ -106,7 +106,7 @@ object ThreadOld {
       val page = state.page()
       val graph = state.graph()
       val nodeIndices = new mutable.ArrayBuilder.ofInt
-      graph.lookup.nodes.foreachIndexAndElement{ (i,node) =>
+      graph.nodes.foreachIndexAndElement{ (i,node) =>
         val isContent = node match {
           case _:Node.Content => true
           case _ => false
@@ -115,7 +115,7 @@ object ThreadOld {
         if(isContent && (graph.isChildOfAny(node.id, page.parentIds)))
           nodeIndices += i
       }
-      nodeIndices.result().sortBy(i => graph.lookup.nodeCreated(i) : Long)
+      nodeIndices.result().sortBy(i => graph.nodeCreated(i) : Long)
     }
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
@@ -125,7 +125,7 @@ object ThreadOld {
     def msgControls(nodeId: NodeId, meta: MessageMeta, isDeleted: Boolean, editable: Var[Boolean]): Seq[VNode] = {
       import meta._
       val state = meta.state
-      val directParentIds:Array[NodeId] = directParentIndices.map(graph.lookup.nodeIds)(breakOut)
+      val directParentIds:Array[NodeId] = directParentIndices.map(graph.nodeIds)(breakOut)
       if(isDeleted) List(undeleteButton(state, nodeId, directParentIds))
       else List(
         replyButton.apply(onTap foreach {
@@ -151,8 +151,8 @@ object ThreadOld {
         //   .size == 1) // tags must match
         // (nodes.forall(node => graph.authorIds(node).contains(currentUserId)) || // all nodes either mine or not mine
         // nodes.forall(node => !graph.authorIds(node).contains(currentUserId)))
-        graph.lookup.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.lookup.authorsIdx(node).head == authorId)
+        graph.authorsIdx(nodes.head).headOption.fold(false) { authorId =>
+          nodes.forall(node => graph.authorsIdx(node).head == authorId)
         }
       // TODO: within a specific timespan && nodes.last.
     }
@@ -179,7 +179,7 @@ object ThreadOld {
             // // when only taking youngest parents first, the pageParents would always be last.
             // // So we check if the node is a toplevel node
             // val topLevelParentpageParents.find(pageParentId => graph.children(pageParentId).contains(nodeId)))
-            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(nid): Long)
+            graph.parents(nodeId).maxBy(nid => graph.nodeCreated(graph.idToIdx(nid)): Long)
           }
 
         }
@@ -191,7 +191,7 @@ object ThreadOld {
       selectedNodeIds() = Set.empty[NodeId]
     }
 
-    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graph.now.lookup.contains(nodeId)) {
+    val selectedSingleNodeActions: NodeId => List[VNode] = nodeId => if(state.graph.now.contains(nodeId)) {
       val path = reversePath(nodeId, state.page.now.parentIdSet, state.graph.now)
       List(
         editButton.apply(
@@ -272,7 +272,7 @@ object ThreadOld {
               groupNodes(graph, nodeIds(), state, user.id, shouldGroup)
                 .map(kind => renderGroupedMessages(
                   kind.nodeIndices,
-                  MessageMeta(state, graph, graph.lookup.createBitSet(page.parentIdSet), Nil, graph.lookup.createBitSet(page.parentIdSet), user.id, renderMessage(implicitly)), avatarSizeToplevel)
+                  MessageMeta(state, graph, graph.createBitSet(page.parentIdSet), Nil, graph.createBitSet(page.parentIdSet), user.id, renderMessage(implicitly)), avatarSizeToplevel)
                 ),
 
               draggableAs(DragItem.DisableDrag),
@@ -366,7 +366,7 @@ object ThreadOld {
       || (showDate == ShowOpts.OtherOnly && !isOwn)
       || (showDate == ShowOpts.OwnOnly && isOwn))
       div(
-        dateFns.formatDistance(new js.Date(graph.nodeCreated(nodeId)), new js.Date), " ago",
+        dateFns.formatDistance(new js.Date(graph.nodeCreated(graph.idToIdx(nodeId))), new js.Date), " ago",
         cls := "chatmsg-date"
       )
     else
@@ -396,13 +396,13 @@ object ThreadOld {
 
     val currNode = nodeIds.last
     val headNode = nodeIds.head
-    val isMine = graph.lookup.authorsIdx(currNode).contains(graph.lookup.idToIdx(currentUserId))
-    val nodeId = graph.lookup.nodeIds(headNode)
+    val isMine = graph.authorsIdx(currNode).contains(graph.idToIdx(currentUserId))
+    val nodeId = graph.nodeIds(headNode)
 
     div(
       cls := "chat-group-outer-frame",
       keyed(nodeId), // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.lookup.authorsIdx(headNode).headOption.map(i => graph.lookup.nodeIds(i).asInstanceOf[UserId]), avatarSize)(marginRight := "5px")),
+      (avatarSize != AvatarSize.Small).ifTrue[VDomModifier](avatarDiv(isMine, graph.authorsIdx(headNode).headOption.map(i => graph.nodeIds(i).asInstanceOf[UserId]), avatarSize)(marginRight := "5px")),
       div(
         keyed,
           cls := "chat-group-inner-frame",
@@ -414,10 +414,9 @@ object ThreadOld {
 
   private def renderThread(nodeIdx: Int, meta: MessageMeta, shouldGroup: (Graph, Seq[Int]) => Boolean, msgControls: MsgControls, activeReplyFields: Var[Set[List[NodeId]]], currentlyEditing: Var[Option[List[NodeId]]], selectedNodeIds: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VDomModifier = {
     import meta._
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
+    val nodeId = graph.nodeIds(nodeIdx)
     val inCycle = alreadyVisualizedParentIndices.contains(nodeIdx)
-    val isThread = !graph.lookup.isDeletedNowIdx(nodeIdx, directParentIndices) && (graph.lookup.hasChildrenIdx(nodeIdx)) && !inCycle
+    val isThread = !graph.isDeletedNowIdx(nodeIdx, directParentIndices) && (graph.hasChildrenIdx(nodeIdx)) && !inCycle
 
     val replyFieldActive = Rx { activeReplyFields() contains (nodeId :: path) }
     val threadVisibility = Rx {
@@ -434,7 +433,7 @@ object ThreadOld {
         case ThreadVisibility.Collapsed =>
           chatMessageLine(meta, nodeIdx, msgControls, currentlyEditing, selectedNodeIds, ThreadVisibility.Collapsed)
         case ThreadVisibility.Expanded  =>
-          val children = (graph.lookup.childrenIdx(nodeIdx)).sortBy(idx => graph.lookup.nodeCreated(idx): Long)
+          val children = (graph.childrenIdx(nodeIdx)).sortBy(idx => graph.nodeCreated(idx): Long)
           div(
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
             keyed(nodeId),
@@ -527,8 +526,7 @@ object ThreadOld {
     avatarSize: AvatarSize,
     showDate: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
+    val nodeId = graph.nodeIds(nodeIdx)
     val authorIdOpt = graph.authors(nodeId).headOption.map(_.id)
     div(
       cls := "chatmsg-header",
@@ -546,10 +544,9 @@ object ThreadOld {
   ): VNode = {
     import meta._
 
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
+    val nodeId = graph.nodeIds(nodeIdx)
 
-    val isDeleted = graph.lookup.isDeletedNowIdx(nodeIdx, directParentIndices)
+    val isDeleted = graph.isDeletedNowIdx(nodeIdx, directParentIndices)
     val isSelected = selectedNodeIds.map(_ contains nodeId)
     val node = graph.nodesById(nodeId)
 
@@ -709,10 +706,9 @@ object ThreadOld {
 
   private def messageTags(state: GlobalState, graph: Graph, nodeIdx: Int, alreadyVisualizedParentIds: immutable.BitSet)(implicit ctx: Ctx.Owner) = {
 
-    @deprecated("","")
-    val nodeId = graph.lookup.nodeIds(nodeIdx)
-    val directNodeTags:Array[Node] = graph.lookup.directNodeTags(nodeIdx, alreadyVisualizedParentIds)
-    val transitiveNodeTags:Array[Node] = graph.lookup.transitiveNodeTags(nodeIdx, alreadyVisualizedParentIds)
+    val nodeId = graph.nodeIds(nodeIdx)
+    val directNodeTags:Array[Node] = graph.directNodeTags(nodeIdx, alreadyVisualizedParentIds)
+    val transitiveNodeTags:Array[Node] = graph.transitiveNodeTags(nodeIdx, alreadyVisualizedParentIds)
 
     state.screenSize.now match {
       case ScreenSize.Small =>

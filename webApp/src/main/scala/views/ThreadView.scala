@@ -81,7 +81,7 @@ object ThreadView {
       val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
       groups.map { group =>
         // because of equals check in thunk, we implicitly generate a wrapped array
-        val nodeIds: Seq[NodeId] = group.map(graph.lookup.nodeIds)
+        val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
         val key = nodeIds.head.toString
 
       div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
@@ -90,8 +90,8 @@ object ThreadView {
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean) = {
-    val author:Option[Node.User] = groupGraph.lookup.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.lookup.nodes(authorIdx).asInstanceOf[Node.User])
-    val creationEpochMillis = groupGraph.lookup.nodeCreated(group(0))
+    val author:Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
+    val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val firstNodeId = groupGraph.nodeIds(group(0))
     val topLevelAndLargeScreen = isTopLevel && (state.screenSize.now == ScreenSize.Large)
 
@@ -108,7 +108,7 @@ object ThreadView {
 
         chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
         group.map { groupIdx =>
-          val nodeId = groupGraph.lookup.nodeIds(groupIdx)
+          val nodeId = groupGraph.nodeIds(groupIdx)
 
           div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
             val nodeIdList = nodeId :: Nil
@@ -117,7 +117,7 @@ object ThreadView {
 
             val isDeletedNow = Rx {
               val graph = state.graph()
-              graph.lookup.isDeletedNow(nodeId, directParentIds)
+              graph.isDeletedNow(nodeId, directParentIds)
             }
 
             val editMode = Var(false)
@@ -131,7 +131,7 @@ object ThreadView {
                 // we need to get the newest node content from the graph
                 val graph = state.graph()
                 val user = state.user()
-                graph.lookup.expandedNodes(user.id).contains(nodeId)
+                graph.expandedNodes(user.id).contains(nodeId)
               }
 
               val showExpandedThread = Rx {
@@ -251,7 +251,7 @@ object ThreadView {
 
     val isDeletedInFuture = Rx {
       val graph = state.graph()
-      graph.lookup.isDeletedInFuture(nodeId, directParentIds)
+      graph.isDeletedInFuture(nodeId, directParentIds)
     }
 
     val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
@@ -320,14 +320,14 @@ object ThreadView {
 
   def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     // most nodes don't have any children, so we skip the expensive accumulation
-    if(parentIds.size == 1 && !graph.lookup.hasChildren(parentIds.head)) return js.Array[Int]()
+    if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
 
     val nodeSet = ArraySet.create(graph.nodes.length)
     parentIds.foreach { parentId =>
-      val parentIdx = graph.lookup.idToIdx(parentId)
+      val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
-        graph.lookup.childrenIdx.foreachElement(parentIdx) { childIdx =>
-          val childNode = graph.lookup.nodes(childIdx)
+        graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
+          val childNode = graph.nodes(childIdx)
           if(childNode.isInstanceOf[Node.Content])
             nodeSet.add(childIdx)
         }
@@ -340,7 +340,7 @@ object ThreadView {
   }
 
   //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.lookup.contains(selectedNode.nodeId)) {
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
       editButton(
         onClick foreach {

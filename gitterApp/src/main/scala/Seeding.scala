@@ -25,10 +25,10 @@ object GitterImporter {
 
     // Ensure gitter post
     // TODO: author: tempUserId
-    val _gitter = Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"))
+    val _gitter = Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"), NodeRole.Message)
 
     // TODO: author: tempUserId
-    val discussion = Node.Content(NodeData.PlainText(_uri))
+    val discussion = Node.Content(NodeData.PlainText(_uri), NodeRole.Message)
     val discussionTag = Edge.Parent(discussion.id, _gitter.id)
     val postsAndConnection = for {
       roomId <- Future { client.getRoomIdByUri(_uri).id }
@@ -37,7 +37,7 @@ object GitterImporter {
       roomMessages.map { message =>
         //TODO what about this userid?
         //TODO: author: tempUserId
-        val post: Node = Node.Content(NodeId.fresh, NodeData.Markdown(message.text))
+        val post: Node = Node.Content(NodeData.Markdown(message.text), NodeRole.Message)
         val conn: Edge = Edge.Parent(post.id, discussion.id)
         (Set(post), Set(conn))
       }.toSet

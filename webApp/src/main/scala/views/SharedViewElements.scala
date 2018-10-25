@@ -76,10 +76,10 @@ object SharedViewElements {
 
   @inline def sortByCreated(nodes: js.Array[Int], graph: Graph): Unit = {
     nodes.sort { (a, b) =>
-      val createdA = graph.lookup.nodeCreated(a)
-      val createdB = graph.lookup.nodeCreated(b)
+      val createdA = graph.nodeCreated(a)
+      val createdB = graph.nodeCreated(b)
       val result = createdA.compare(createdB)
-      if(result == 0) graph.lookup.nodeIds(a) compare graph.lookup.nodeIds(b)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
       else result
     }
   }
@@ -266,7 +266,7 @@ object SharedViewElements {
     val node = Rx {
       // we need to get the latest node content from the graph
       val graph = state.graph()
-      graph.lookup.nodesByIdGet(nodeId)
+      graph.nodesByIdGet(nodeId)
     }
 
     val isSynced: Rx[Boolean] = {
@@ -402,7 +402,7 @@ object SharedViewElements {
   def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
     val directNodeTags:Rx[Seq[Node]] = Rx {
       val graph = state.graph()
-      graph.lookup.directNodeTags(graph.lookup.idToIdx(nodeId), graph.lookup.createBitSet(directParentIds))
+      graph.directNodeTags(graph.idToIdx(nodeId), graph.createBitSet(directParentIds))
     }
 
     Rx {
@@ -432,7 +432,7 @@ object SharedViewElements {
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
     var lastAuthor: Int = -1
     messages.foreach { message =>
-      val author: Int = graph.lookup.authorsIdx(message, 0)
+      val author: Int = graph.authorsIdx(message, 0)
 
       if(author != lastAuthor && lastAuthor != -1) {
         groupsBuilder += currentGroupBuilder.result()
@@ -476,17 +476,17 @@ object SharedViewElements {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
-      selected.forall(t => graph.lookup.isDeletedNow(t.nodeId, t.directParentIds))
+      selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
     }
 
     val anySelectedNodeIsDeleted = Rx {
       val graph = state.graph()
-      selected.forall(t => graph.lookup.isDeletedNow(t.nodeId, t.directParentIds))
+      selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
     }
 
     val anySelectedNodeIsDeletedInFuture = Rx {
       val graph = state.graph()
-      selected.exists(t => graph.lookup.isDeletedInFuture(t.nodeId, t.directParentIds))
+      selected.exists(t => graph.isDeletedInFuture(t.nodeId, t.directParentIds))
     }
 
     List(

@@ -213,7 +213,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     {
       case (e, dragging: DragItem.Kanban.ToplevelColumn, from: Kanban.ColumnArea, into: Kanban.ColumnArea, false, false) =>
-        val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubColumn, from: Kanban.Column, into: Kanban.ColumnArea, false, false) =>
@@ -224,7 +224,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         } else GraphChanges.empty
 
-        val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
@@ -235,7 +235,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         } else GraphChanges.empty
 
-        val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
@@ -244,7 +244,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         // always make new columns static
         val moveStaticInParents = GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
-        val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes, false, false) =>
@@ -252,7 +252,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val removeStatic = GraphChanges.disconnect(Edge.StaticParentIn)(dragging.nodeId, from.parentIds)
 
-        val beforeEdges = beforeChanges(graph.lookup, e, dragging, from, into)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge removeStatic merge beforeEdges)
 
     }

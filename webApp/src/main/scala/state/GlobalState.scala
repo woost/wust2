@@ -44,7 +44,7 @@ class GlobalState(
       val graph = internalGraph()
       val u = user()
       val newGraph =
-        if (graph.lookup.contains(u.id)) graph
+        if (graph.contains(u.id)) graph
         else {
           graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.

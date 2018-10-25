@@ -56,12 +56,12 @@ object BreadCrumbs {
                   sortedByGroupId.map { case (gId, nodes) =>
                     // sort nodes within a group by their length towards the root node
                     // this ensures that e.g. „Channels“ comes first
-                    val sortedNodes = nodes.sortBy(graph.lookup.parentDepth(_))
+                    val sortedNodes = nodes.sortBy(graph.parentDepth(_))
                     span(
                       cls := "breadcrumb",
                       if(gId != -1) cycleIndicator(false) else "",
                       sortedNodes.map { (n: NodeId) =>
-                        graph.lookup.nodesByIdGet(n) match {
+                        graph.nodesByIdGet(n) match {
                           case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
                           case _                                        => VDomModifier.empty
                         }

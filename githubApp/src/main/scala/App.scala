@@ -549,7 +549,7 @@ object WustReceiver {
       val redirectCommentsToAdd: collection.Set[Node] =
         githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
           !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
-            currGraph.lookup.inDescendantAncestorRelation(post.id, Constants.issueTagId)
+            currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
         })
 
       val createIssuesCall = issuesToAdd
