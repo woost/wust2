@@ -48,7 +48,7 @@ object ThreadView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](state, _.nodeId, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
         position.absolute,
         width := "100%"
       ),

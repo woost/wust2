@@ -17,17 +17,18 @@ import wust.webApp.views.Elements._
 import wust.webApp.state.ScreenSize
 
 object SelectedNodes {
-  //TODO T <: SelectedNodeBase, remove getNodeId when ChatOld/ThreadOld
-  def apply[T](state: GlobalState, getNodeId: T => NodeId, nodeActions:List[T] => List[VNode] = (_:List[T]) => Nil, singleNodeActions:T => List[VNode] = (_:List[T]) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
+  import SharedViewElements.SelectedNodeBase
+
+  def apply[T <: SelectedNodeBase](state: GlobalState, nodeActions:List[T] => List[VNode] = (_:List[T]) => Nil, singleNodeActions:T => List[VNode] = (_:List[T]) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodes: Var[Set[T]] = selected.mapRead { selectedNodes =>
-      selectedNodes().filter(data => state.graph().lookup.contains(getNodeId(data)))
+      selectedNodes().filter(data => state.graph().lookup.contains(data.nodeId))
     }
 
     div(
       Rx {
         val graph = state.graph()
-        val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(graph.idToIdx(getNodeId(data))): Long)
+        val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(graph.idToIdx(data.nodeId)): Long)
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty
@@ -56,7 +57,7 @@ object SelectedNodes {
               div(nonEmptyNodeIds.size,cls := "ui large blue label", marginLeft := "10px"),
 
               Rx {
-                (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds.map(getNodeId), selectedNodes, getNodeId, state.graph()))
+                (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds.map(_.nodeId), selectedNodes, state.graph()))
               }, // grow, so it can be grabbed
 
               div(marginLeft.auto),
@@ -72,7 +73,7 @@ object SelectedNodes {
     )
   }
 
-  private def nodeList[T](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, graph:Graph)(implicit ctx: Ctx.Owner) = {
+  private def nodeList[T <: SelectedNodeBase](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       cls := "nodelist drag-feedback",
       draggableAs(DragItem.SelectedNodes(selectedNodeIds)),
@@ -83,12 +84,12 @@ object SelectedNodes {
       flexWrap.wrap,
       selectedNodeIds.map { nodeId =>
           val node = graph.nodesById(nodeId)
-          selectedNodeCard(state, selectedNodes, getNodeId, node)
+          selectedNodeCard(state, selectedNodes, node)
         }
     )
   }
 
-  def deleteAllButton[T](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], getNodeId: T => NodeId, getDirectParentIds: T => Iterable[NodeId], allSelectedNodesAreDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+  def deleteAllButton[T <: SelectedNodeBase](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], allSelectedNodesAreDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(
         cls := "fa-fw",
@@ -101,9 +102,9 @@ object SelectedNodes {
       onClick foreach{_ =>
         val changes =
           if (allSelectedNodesAreDeleted.now)
-            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(getNodeId(t), getDirectParentIds(t)))
+            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(t.nodeId, t.directParentIds))
           else
-            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(getNodeId(t), getDirectParentIds(t)))
+            selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(t.nodeId, t.directParentIds))
 
         state.eventProcessor.changes.onNext(changes)
         selectedNodes() = Set.empty[T]
@@ -120,7 +121,7 @@ object SelectedNodes {
     )
   }
 
-  private def selectedNodeCard[T](state:GlobalState, selectedNodes: Var[Set[T]], getNodeId: T => NodeId, node: Node)(implicit ctx: Ctx.Owner) = {
+  private def selectedNodeCard[T <: SelectedNodeBase](state:GlobalState, selectedNodes: Var[Set[T]], node: Node)(implicit ctx: Ctx.Owner) = {
     nodeCard(node,injected = Seq[VDomModifier](
       Styles.flex,
       alignItems.center,
@@ -129,7 +130,7 @@ object SelectedNodes {
         cls := "actionbutton",
         margin := "0",
         onClick.stopPropagation foreach {
-          selectedNodes.update(_.filterNot(data => getNodeId(data) == node.id))
+          selectedNodes.update(_.filterNot(data => data.nodeId == node.id))
         }
       ),
     ),

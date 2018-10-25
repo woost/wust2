@@ -48,7 +48,7 @@ object ChatView {
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
       //TODO: maybe we want to reply to multiple nodes as well in chat?
-      SelectedNodes[SelectedNode](state, _.nodeId, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes, currentReply), selectedNodes).apply(
+      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes, currentReply), selectedNodes).apply(
         position.absolute,
         width := "100%"
       ),
