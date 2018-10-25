@@ -191,7 +191,7 @@ object ThreadView {
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
       // we treat new chat messages as noise per default, so we set a future deletion date
-      val changes = GraphChanges.addNodeWithDeletedParent(Node.Content(NodeData.Markdown(str)), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
+      val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
       state.eventProcessor.changes.onNext(changes)
       currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
     }
@@ -213,7 +213,7 @@ object ThreadView {
           onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           //TODO: outwatch: Emitterbuilder.timeOut
-          onBlur.value --> sideEffect {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
+          onBlur.value foreach  {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
         ),
         padding := "3px",
         width := "100%"

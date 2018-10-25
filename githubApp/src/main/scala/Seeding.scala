@@ -134,10 +134,10 @@ object GitHubImporter {
 //        val _comment = Post(Constants.commentTagId, PostData.Text("wust-github-comment"), tempUserId)
 //        val _github_issue = Connection(_issue.id, ConnectionData.Parent, _github.id)
 //        val _github_comment = Connection(_comment.id, ConnectionData.Parent, _github.id)
-        val _github = Node.Content(Constants.githubId, NodeData.PlainText("wust-github"))
-        val _issue = Node.Content(Constants.issueTagId, NodeData.PlainText("wust-github-issue"))
+        val _github = Node.Content(Constants.githubId, NodeData.PlainText("wust-github"), NodeRole.Message)
+        val _issue = Node.Content(Constants.issueTagId, NodeData.PlainText("wust-github-issue"), NodeRole.Task)
         val _comment =
-          Node.Content(Constants.commentTagId, NodeData.PlainText("wust-github-comment"))
+          Node.Content(Constants.commentTagId, NodeData.PlainText("wust-github-comment"), NodeRole.Message)
         val _github_issue = Edge.Parent(_issue.id, _github.id)
         val _github_comment = Edge.Parent(_comment.id, _github.id)
 
@@ -153,14 +153,14 @@ object GitHubImporter {
         val issueId
           : NodeId = ??? //NodeId("1" + augmentString("0")*issueIdZeros + issue.number.toString)
         val issueTitle =
-          Node.Content(issueId, NodeData.PlainText(s"#${issue.number} ${issue.title}"))
+          Node.Content(issueId, NodeData.PlainText(s"#${issue.number} ${issue.title}"), NodeRole.Task)
 
         val titleIssueTag = Edge.Parent(issueTitle.id, _issue.id)
 
         val desc = if (issue.body.nonEmpty) {
 //          val issueDesc = Post(NodeId(issue.id.toString), PostData.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
           val issueId: NodeId = ??? //NodeId(issue.id.toString)
-          val issueDesc = Node.Content(issueId, NodeData.Markdown(issue.body))
+          val issueDesc = Node.Content(issueId, NodeData.Markdown(issue.body), NodeRole.Message)
           val conn = Edge.Label(issueDesc.id, EdgeData.Label("describes"), issueTitle.id)
           val cont = Edge.Parent(issueDesc.id, issueTitle.id)
           val comm = Edge.Parent(issueDesc.id, _comment.id)
@@ -176,7 +176,7 @@ object GitHubImporter {
         val comments: List[(Node.Content, Set[Edge.Parent])] = commentsList.map(comment => {
 //          val cpost = Post(NodeId(comment.id.toString), PostData.Markdown(comment.body), tempUserId, comment.created_at, comment.updated_at)
           val commentId: NodeId = ??? //NodeId(commend.id.toString)
-          val cpost = Node.Content(commentId, NodeData.Markdown(comment.body))
+          val cpost = Node.Content(commentId, NodeData.Markdown(comment.body), NodeRole.Message)
           val cconn = Set(Edge.Parent(cpost.id, issueTitle.id), Edge.Parent(cpost.id, _comment.id))
           (cpost, cconn)
         })

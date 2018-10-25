@@ -505,7 +505,7 @@ object PageHeader {
       cls := "ui compact primary button",
       "Add to Channels",
       onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
-      onClick --> sideEffect { Analytics.sendEvent("pageheader", "join") }
+      onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
 
   //TODO make this reactive by itself and never rerender, because the modal stuff is quite expensive.

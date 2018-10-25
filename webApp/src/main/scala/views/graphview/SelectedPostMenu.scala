@@ -32,7 +32,7 @@ object SelectedPostMenu {
       //TODO: we are filtering out non-content posts, what about editing them?
       graph.lookup.nodesByIdGet(nodeId)
         .collect { case p: Node.Content => p }
-        .getOrElse(Node.Content(NodeData.PlainText("")))
+        .getOrElse(Node.MarkdownMessage(""))
     }
 
     val rxTags: Rx[Seq[Node]] = Rx {
@@ -73,26 +73,26 @@ object SelectedPostMenu {
 
     val insertPostHandler = Handler.unsafe[String]
     insertPostHandler.foreach { content =>
-      val newPost = Node.Content(NodeData.Markdown(content))
+      val newNode = Node.MarkdownMessage(content)
 
       val changes = GraphChanges(
-        addNodes = Set(newPost),
-        addEdges = Set(Edge.Parent(newPost.id, rxPost.now.id))
+        addNodes = Set(newNode),
+        addEdges = Set(Edge.Parent(newNode.id, rxPost.now.id))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
     val connectPostHandler = Handler.unsafe[String]
     connectPostHandler.foreach { content =>
-      val newPost = Node.Content(NodeId.fresh, NodeData.Markdown(content))
+      val newNode = Node.MarkdownMessage(content)
 
       val changes = GraphChanges(
-        addNodes = Set(newPost),
+        addNodes = Set(newNode),
         addEdges = Set(
-          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
+          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newNode.id)
         ) ++ state.graph.now
           .parents(rxPost.now.id)
-          .map(parentId => Edge.Parent(newPost.id, parentId))
+          .map(parentId => Edge.Parent(newNode.id, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }

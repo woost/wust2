@@ -59,7 +59,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           case Edge.Author(_, _, postId) => postId
         }
         changes.addNodes.forall {
-          case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
+          case node:Node.Content => allPostsWithAuthor.contains(node.id)
           case _                      => false
         }
       }

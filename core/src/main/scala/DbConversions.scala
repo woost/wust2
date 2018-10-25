@@ -17,7 +17,7 @@ object DbConversions {
     WebPushSubscription(s.endpointUrl, s.p256dh, s.auth)
   implicit def forClient(node: Data.Node): Node = {
     node.data match {
-      case data: NodeData.Content => new Node.Content(node.id, data, nodeMeta(node))
+      case data: NodeData.Content => new Node.Content(node.id, data, node.role, nodeMeta(node))
       case data: NodeData.User    => new Node.User(UserId(node.id), data, nodeMeta(node))
     }
   }
@@ -47,6 +47,7 @@ object DbConversions {
     new Data.Node(
       id = id,
       data = data,
+      role = role,
       accessLevel = meta.accessLevel
     )
   }

@@ -79,7 +79,10 @@ object GraphChanges {
       delEdges.toSet
     )
 
-  def addNode(content: NodeData.Content) = GraphChanges(addNodes = Set(Node.Content(content)))
+  def addMarkdownMessage(string: String): GraphChanges = addNode(Node.MarkdownMessage(string))
+  def addMarkdownTask(string: String): GraphChanges = addNode(Node.MarkdownTask(string))
+
+  def addNode(content: NodeData.Content, role: NodeRole) = GraphChanges(addNodes = Set(Node.Content(content, role)))
   def addNode(node: Node) = GraphChanges(addNodes = Set(node))
   def addNodeWithParent(node: Node, parentId: NodeId) =
     GraphChanges(addNodes = Set(node), addEdges = Set(Edge.Parent(node.id, parentId)))
@@ -104,6 +107,7 @@ object GraphChanges {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),
+      NodeRole.Message, //TODO: something different?
       NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
     GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId)))

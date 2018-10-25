@@ -30,6 +30,4 @@ object NodeData {
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
   }
-
-  def defaultChannelsData = PlainText("Channels")
 }

@@ -40,9 +40,9 @@ import wust.api.Authentication.Token
 
 object Constants {
   //TODO
-  val githubNode = Node.Content(NodeData.PlainText("wust-github"))
-  val issuesNode = Node.Content(NodeData.PlainText("wust-github-issue"))
-  val commentsNode = Node.Content(NodeData.PlainText("wust-github-comment"))
+  val githubNode = Node.Content(NodeData.PlainText("wust-github"), NodeRole.Message)
+  val issuesNode = Node.Content(NodeData.PlainText("wust-github-issue"), NodeRole.Task)
+  val commentsNode = Node.Content(NodeData.PlainText("wust-github-comment"), NodeRole.Message)
 
   val githubId: NodeId = githubNode.id //NodeId("wust-github")
   val issueTagId: NodeId = issuesNode.id //NodeId("wust-github-issue")
@@ -103,8 +103,8 @@ object AppServer {
 //    val issuePost = Post(NodeId.fresh, PostData.PlainText(issue.body), Constants.wustUser.id, issue.created_at, issue.updated_at)
 //    val issueDesc = Post(NodeId.fresh, PostData.PlainText(issue.title), Constants.wustUser.id, issue.created_at, issue.updated_at)
     // TODO: author + date
-    val issuePost: Node = Node.Content(NodeData.PlainText(issue.body))
-    val issueDesc: Node = Node.Content(NodeData.PlainText(issue.title))
+    val issuePost: Node = Node.Content(NodeData.PlainText(issue.body), NodeRole.Task)
+    val issueDesc: Node = Node.Content(NodeData.PlainText(issue.title), NodeRole.Message)
     val issuePosts = Set(issuePost, issueDesc)
 
     val edges = Set(

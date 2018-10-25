@@ -30,7 +30,7 @@ object PostCreationMenu {
     var ySimPostOffset: Double = 50
     inputHandler.foreach { content =>
       val author = state.user.now
-      val changes = GraphChanges.addNode(NodeData.Markdown(content))
+      val changes = GraphChanges.addMarkdownMessage(content)
       state.eventProcessor.enriched.changes.onNext(changes)
 
     // TODO: move created post below menu (not working yet)

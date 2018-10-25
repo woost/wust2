@@ -10,9 +10,10 @@ object Data {
   val DEFAULT = 0L
 
   case class Node(
-      id: NodeId,
-      data: NodeData,
-      accessLevel: NodeAccess
+    id: NodeId,
+    data: NodeData,
+    role: NodeRole,
+    accessLevel: NodeAccess
   )
 
   case class User(
@@ -49,11 +50,12 @@ object Data {
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
   case class GraphRow(
-      nodeId: NodeId,
-      data: NodeData,
-      accessLevel: NodeAccess,
-      targetIds: List[NodeId],
-      edgeData: List[EdgeData]
+    nodeId: NodeId,
+    data: NodeData,
+    role: NodeRole,
+    accessLevel: NodeAccess,
+    targetIds: List[NodeId],
+    edgeData: List[EdgeData]
   ) {
     require(targetIds.length == edgeData.length, "targetIds and connectionData need to have same arity")
   }
@@ -65,7 +67,7 @@ object Data {
       nodes.sizeHint(rows.length)
 
       rows.foreach { row =>
-        nodes += Node(row.nodeId, row.data, row.accessLevel)
+        nodes += Node(row.nodeId, row.data, row.role, row.accessLevel)
 
         (row.targetIds zip row.edgeData).foreach { case (targetId, edgeData) =>
           edges += Edge(row.nodeId, edgeData, targetId)

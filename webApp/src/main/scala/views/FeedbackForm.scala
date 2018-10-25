@@ -31,7 +31,7 @@ object FeedbackForm {
 
     var timeout:Option[Int] = None
     def submit():Unit = {
-      val newNode = Node.Content(new ids.NodeData.Markdown(feedbackText.now))
+      val newNode = Node.MarkdownMessage(feedbackText.now)
       state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, feedbackNodeId))
       statusText() = "Thank you!"
       timeout.foreach(clearTimeout)

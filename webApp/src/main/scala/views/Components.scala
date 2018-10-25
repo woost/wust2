@@ -333,7 +333,7 @@ object Components {
 
     def save(text: String): Unit = {
       if(editMode.now) {
-        val changes = GraphChanges.addNode(Node.Content(node.id, NodeData.Markdown(text)))
+        val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(text)))
         submit.onNext(changes)
 
         initialRender() = renderNodeData(changes.addNodes.head.data)

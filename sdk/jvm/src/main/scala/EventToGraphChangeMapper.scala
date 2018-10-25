@@ -32,18 +32,18 @@ object EventToGraphChangeMapper {
 
   def editNodeContentInWust(nodeId: NodeId, nodeContent: NodeData.Content): GraphChanges = {
     GraphChanges(
-      addNodes = Set(Node.Content(nodeId, nodeContent))
+      addNodes = Set(Node.Content(nodeId, nodeContent, NodeRole.Message))
     )
   }
 
   def createMessageInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[(UserId, AccessLevel)] = Set.empty): CreationResult = {
-    val node = Node.Content(nodeData)
+    val node = Node.Content(nodeData, NodeRole.Message)
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + channel, additionalMembers)
     CreationResult(node.id, message)
   }
 
   def editMessageInWust(nodeId: NodeId, nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, channel: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[(UserId, AccessLevel)] = Set.empty): GraphChanges = {
-    val node = Node.Content(nodeId, nodeData)
+    val node = Node.Content(nodeId, nodeData, NodeRole.Message)
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + channel, additionalMembers)
     message
   }
@@ -67,13 +67,13 @@ object EventToGraphChangeMapper {
   }
 
   def createChannelInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, teamNodeId: NodeId, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[(UserId, AccessLevel)] = Set.empty): CreationResult = {
-    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Inherited))
+    val node = Node.Content(nodeData, NodeRole.Message, NodeMeta(NodeAccess.Inherited))
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents + teamNodeId, additionalMembers)
     CreationResult(node.id, message)
   }
 
   def createWorkspaceInWust(nodeData: NodeData.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, additionalParents: Set[NodeId] = Set.empty, additionalMembers: Set[(UserId, AccessLevel)] = Set.empty): CreationResult = {
-    val node = Node.Content(nodeData, NodeMeta(NodeAccess.Restricted))
+    val node = Node.Content(nodeData, NodeRole.Message, NodeMeta(NodeAccess.Restricted))
     val message = createNodeInWust(node, wustAuthorUserId, timestamp, additionalParents, additionalMembers)
     CreationResult(node.id, message)
   }

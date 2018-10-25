@@ -729,10 +729,10 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
       |Wenn Sie mit dem Unterteilen des Posts fertig sind, können Sie dies mit dem "Confirm" Button bestätigen.
     """.stripMargin
 
-  def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Node.Content] = {
+  def stringToNode(str: String, condition: Boolean, state: GlobalState): Option[Node.Content] = {
     if (!condition) return None
     // TODO: author = state.user.now.id
-    Some(Node.Content(NodeId.fresh, NodeData.Markdown(str.trim)))
+    Some(Node.Content(NodeId.fresh, NodeData.Markdown(str.trim), NodeRole.Message))
   }
 
   def splittedPostPreview(
@@ -751,9 +751,9 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
     val currSelText = elementText.substring(selectionOffsets._1, selectionOffsets._2).trim
 
     val before =
-      stringToPost(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
-    val middle = stringToPost(currSelText, currSelText.nonEmpty, state)
-    val after = stringToPost(
+      stringToNode(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
+    val middle = stringToNode(currSelText, currSelText.nonEmpty, state)
+    val after = stringToNode(
       elementText.substring(selectionOffsets._2),
       selectionOffsets._2 != elementText.length,
       state
@@ -898,7 +898,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
       val tagPostWithParents: GraphChanges = graph.nodes.find(_.data.str == tag) match {
         case None =>
           //TODO: author = state.user.now.id
-          val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag))
+          val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag), NodeRole.Message)
           val newParent = state.page.now.parentIds
           val postTag = post.map(p => Edge.Parent(p.id, newTag.id))
           GraphChanges(

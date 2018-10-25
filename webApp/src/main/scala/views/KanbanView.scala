@@ -6,7 +6,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId}
+import wust.ids.{NodeData, NodeRole, NodeId}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -42,10 +42,11 @@ object KanbanView {
         val unsortedForest = graph.lookup.filterIdx { nodeIdx =>
           val node = graph.lookup.nodes(nodeIdx)
           val isContent = node.isInstanceOf[Node.Content]
+          val isTask = node.role.isInstanceOf[NodeRole.Task.type]
           val notIsolated = graph.lookup.hasChildrenIdx(nodeIdx) || !graph.lookup.parents(node.id).forall(page.parentIdSet) || graph.isStaticParentIn(node.id, page.parentIds)
           val noPage = !page.parentIdSet.contains(node.id)
           val notDeleted = graph.lookup.deletedParentsIdx(nodeIdx).isEmpty
-          isContent && notIsolated && noPage && notDeleted
+          isContent && isTask && notIsolated && noPage && notDeleted
         }.lookup.redundantForestIncludingCycleLeafs
 
 //        scribe.info(s"SORTING FOREST: $unsortedForest")
@@ -58,7 +59,7 @@ object KanbanView {
 //        scribe.info(s"chronological nodes idx: ${graph.lookup.chronologicalNodesAscendingIdx.mkString(",")}")
 //        scribe.info(s"chronological nodes: ${graph.lookup.chronologicalNodesAscending}")
 
-        val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
+        // val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
 
         VDomModifier(
           Styles.flex,
@@ -74,7 +75,7 @@ object KanbanView {
             sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
             newColumnArea(state, page, newColumnFieldActive)
           ),
-          renderIsolatedNodes(state, state.page(), isolatedNodes, selectedNodeIds)(ctx)(Styles.flexStatic)
+          // renderIsolatedNodes(state, state.page(), isolatedNodes, selectedNodeIds)(ctx)(Styles.flexStatic)
         )
       }
     )
@@ -102,7 +103,7 @@ object KanbanView {
               placeholder := "Press Enter to add.",
               valueWithEnter foreach { str =>
                 val change = {
-                  val newColumnNode = Node.Content(NodeData.Markdown(str))
+                  val newColumnNode = Node.MarkdownTask(str)
                   val add = GraphChanges.addNode(newColumnNode)
                   val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
 //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.lookup.graph. page.parentIds))
@@ -267,7 +268,7 @@ object KanbanView {
               rows := 2,
               placeholder := "Press Enter to add.",
               valueWithEnter foreach { str =>
-                val change = GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), parentId)
+                val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
                 state.eventProcessor.enriched.changes.onNext(change)
               },
               onDomMount.asHtml --> inNextAnimationFrame(_.focus),

@@ -754,7 +754,7 @@ object ThreadOld {
         cls := "field",
         valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) foreach { str =>
           val changes = {
-            GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
+            GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), directParentIds)
           }
 
           state.eventProcessor.changes.onNext(changes)

@@ -40,27 +40,17 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val decodingEdgeData: MappedEncoding[String, EdgeData] =
     MappedEncoding(decodeJson[EdgeData])
 
-  implicit val encodingNodeDataType: MappedEncoding[NodeData.Type, String] =
-    MappedEncoding(identity)
-  implicit val decodingNodeDataType: MappedEncoding[String, NodeData.Type] =
-    MappedEncoding(NodeData.Type(_))
-  implicit def encodingNodeData[Data <: NodeData]: MappedEncoding[Data, String] =
-    MappedEncoding(encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
-  implicit val decodingNodData: MappedEncoding[String, NodeData] =
-    MappedEncoding(decodeJson[NodeData])
-  implicit val decodingNodeDataUser: MappedEncoding[String, NodeData.User] =
-    MappedEncoding(
-      decodeJson[NodeData.User]
-    ) // explicitly provided for query[User] where data has type PostData.User
+  implicit val encodingNodeDataType: MappedEncoding[NodeData.Type, String] = MappedEncoding(identity)
+  implicit val decodingNodeDataType: MappedEncoding[String, NodeData.Type] = MappedEncoding(NodeData.Type(_))
+  implicit def encodingNodeData[Data <: NodeData]: MappedEncoding[Data, String] = MappedEncoding(encodeJson[NodeData]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
+  implicit val decodingNodeData: MappedEncoding[String, NodeData] = MappedEncoding(decodeJson[NodeData])
+  implicit val decodingNodeDataUser: MappedEncoding[String, NodeData.User] = MappedEncoding(decodeJson[NodeData.User]) // explicitly provided for query[User] where data has type PostData.User
 
-  implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] =
-    MappedEncoding { d =>
-      new Date(d)
-    }
-  implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] =
-    MappedEncoding { d =>
-      EpochMilli(d.toInstant.toEpochMilli)
-    }
+  implicit val encodingNodeRole: MappedEncoding[NodeRole, String] = MappedEncoding(encodeJson[NodeRole]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
+  implicit val decodingNodeRole: MappedEncoding[String, NodeRole] = MappedEncoding(decodeJson[NodeRole])
+
+  implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] = MappedEncoding { d => new Date(d) }
+  implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] = MappedEncoding { d => EpochMilli(d.toInstant.toEpochMilli) }
 
   implicit val encodingNodeAccessLevel: MappedEncoding[NodeAccess, Option[String]] =
     MappedEncoding {

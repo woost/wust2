@@ -6,7 +6,7 @@ import slack.api.SlackApiClient
 import slack.models.MessageSubtypes.ChannelNameMessage
 import wust.api.Authentication
 import wust.graph.{GraphChanges, Node, NodeMeta}
-import wust.ids.{EpochMilli, NodeAccess, NodeData, NodeId}
+import wust.ids._
 import wust.sdk.EventToGraphChangeMapper
 import wust.sdk.EventToGraphChangeMapper.CreationResult
 import wust.slack.Data._
@@ -70,7 +70,7 @@ object EventComposer {
 
         val channelName = slackClient.getChannelInfo(channel).map(ci => ci.name)
         val newChannelNode = channelName.map(name =>
-          Node.Content(NodeId.fresh, NodeData.PlainText(name), NodeMeta(NodeAccess.ReadWrite))
+          Node.Content(NodeId.fresh, NodeData.PlainText(name), NodeRole.Message, NodeMeta(NodeAccess.ReadWrite))
         )
 
         newChannelNode.onComplete {
