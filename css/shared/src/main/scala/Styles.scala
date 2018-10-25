@@ -584,23 +584,19 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanColumnPaddingPx = 7
   val kanbanColumnPadding = (kanbanColumnPaddingPx px)
   val kanbanRowSpacing = (8 px)
-  val kanbanPageSpacing = (5 px)
+  val kanbanPageSpacing = (10 px)
   val kanbanCardWidthPx = 250
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
   val kanbanColumnBorderRadius = (3 px)
 
-  ".kanbanview" - (
-    padding(kanbanPageSpacing),
-  )
-
-  ".kanbanview .nodecard-content > *:not([contenteditable=true])" - (
+  ".kanbancolumnarea .nodecard-content > *:not([contenteditable=true])" - (
     (userSelect := none).important, // overwrites nodecard-content userSelect
     )
 
   ".kanbancolumnarea" - (
+    padding(kanbanPageSpacing),
     height(100 %%),
-    paddingBottom(5 px)
   )
 
   ".kanbannewcolumnarea" - (
@@ -628,7 +624,7 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgba(0, 0, 0, 0.62)"),
   )
 
-  ".kanbannewcolumnarea > .nodecard" - ( // when dragging card over, to create new column
+  ".kanbannewcolumnarea > .nodecard" - ( // this constellation appears, when dragging card over NewColumnArea to create a new column
     width(kanbanColumnWidth),
     height(100 px),
     margin(0 px).important,
@@ -644,7 +640,6 @@ object CommonStyles extends StyleSheet.Standalone {
     marginTop(0 px),
     marginLeft(0 px),
     marginRight(10 px),
-    marginBottom(20 px),
   )
 
   ".kanbantoplevelcolumn" - (

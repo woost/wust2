@@ -28,9 +28,6 @@ object KanbanView {
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
-      cls := "kanbanview",
-      Styles.growFull,
-
       Rx {
         val page = state.page()
         val graph = {
@@ -59,29 +56,24 @@ object KanbanView {
 //        scribe.info(s"chronological nodes idx: ${graph.lookup.chronologicalNodesAscendingIdx.mkString(",")}")
 //        scribe.info(s"chronological nodes: ${graph.lookup.chronologicalNodesAscending}")
 
-        // val isolatedNodes = graph.nodes.toSeq.filter(n => graph.parents(n.id).exists(page.parentIdSet) && !page.parentIdSet.contains(n.id) && !graph.hasChildren(n.id) && !graph.isStaticParentIn(n.id, page.parentIds) && n.isInstanceOf[Node.Content])
-
         VDomModifier(
-          Styles.flex,
-          flexDirection.column,
-          div(
-            cls := s"kanbancolumnarea",
-            keyed,
-            registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-            Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
-            alignItems.flexStart,
-            overflowX.auto,
-            overflowY.hidden,
-            sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
-            newColumnArea(state, page, newColumnFieldActive)
-          ),
-          // renderIsolatedNodes(state, state.page(), isolatedNodes, selectedNodeIds)(ctx)(Styles.flexStatic)
+          cls := s"kanbancolumnarea",
+          keyed,
+          Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
+          alignItems.flexStart,
+          overflow.auto,
+
+          sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+          newColumnArea(state, page, newColumnFieldActive),
+
+          registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
         )
       }
     )
   }
 
   private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+    val marginRightHack = div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
     div(
       cls := s"kanbannewcolumnarea",
       keyed,
@@ -126,7 +118,8 @@ object KanbanView {
             cls := "kanbannewcolumnareacontent",
             "+ Add Column"
           )
-      }
+      },
+      marginRightHack
     )
   }
 
