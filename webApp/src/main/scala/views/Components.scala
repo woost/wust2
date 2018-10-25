@@ -387,8 +387,9 @@ object Components {
               }
             },
             new IntersectionObserverOptions {
-              // rootMargin = "200px" //TODO meh?
-              threshold = js.Array[Double](0, 1)
+              root = elem.parentElement
+              rootMargin = "100px 0px 0px 0px"
+              threshold = 0
             }
           )
 
@@ -412,7 +413,7 @@ object Components {
       VDomModifier(
         overflow.auto,
         div(
-          div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation),
+          div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimation),
           onIntersectionWithViewport(ignoreInitial = false).foreach { isIntersecting =>
             if (isIntersecting) {
               numSteps += 1
