@@ -201,13 +201,13 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  "#woost-loading-animation" - (
+  ".animated-fadein" - (
     opacity(0),
     animationName(Styles.fadeInKf),
     animationDuration(1.5 seconds),
     animationDelay(100 milliseconds)
   )
-  "#woost-loading-animation-logo" - (
+  ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
     animation := s"${Styles.fadeInKf.name.value} 1s, ${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
   )
