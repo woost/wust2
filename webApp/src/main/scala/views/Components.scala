@@ -4,6 +4,7 @@ import highlight._
 import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.{console, document, window}
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -19,8 +20,11 @@ import wust.webApp.views.Rendered._
 import emojijs.EmojiConvertor
 import monix.execution.Cancelable
 import wust.util._
+import wust.css.Styles
+import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 
 import scala.scalajs.js
+import scala.util.control.NonFatal
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -367,4 +371,66 @@ object Components {
     )
   }
 
+  val onIntersectionWithViewport: EmitterBuilder[Boolean, VDomModifier] = onIntersectionWithViewport(ignoreInitial = false)
+  def onIntersectionWithViewport(ignoreInitial: Boolean): EmitterBuilder[Boolean, VDomModifier] =
+    EmitterBuilder.ofModifier { (sink: Boolean => Unit) =>
+      var prevIsIntersecting = ignoreInitial
+
+      VDomModifier(
+        managedElement.asHtml { elem =>
+          // TODO: does it make sense to only have one intersection observer?
+          val observer = new IntersectionObserver(
+            { (entry, obs) =>
+              val isIntersecting = entry.head.isIntersecting
+              if (isIntersecting != prevIsIntersecting) {
+                sink(isIntersecting)
+                prevIsIntersecting = isIntersecting
+              }
+            },
+            new IntersectionObserverOptions {
+              // rootMargin = "200px" //TODO meh?
+              threshold = js.Array(0, 1)
+            }
+          )
+
+          observer.observe(elem)
+
+          Cancelable { () =>
+            observer.unobserve(elem)
+            observer.disconnect()
+          }
+        }
+      )
+    }
+
+  val onInfiniteScrollUp: EmitterBuilder[Int, VDomModifier] =
+    EmitterBuilder.ofModifier { (sink: Int => Unit) =>
+
+      var lastHeight = 0.0
+      var lastScrollTop = 0.0
+      var numSteps = 0
+
+      VDomModifier(
+        overflow.auto,
+        div(
+          div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation),
+          onIntersectionWithViewport(ignoreInitial = false).foreach { isIntersecting =>
+            if (isIntersecting) {
+              numSteps += 1
+              sink(numSteps)
+            }
+          }
+        ),
+        onDomPreUpdate.asHtml.foreach { elem =>
+          lastScrollTop = elem.scrollTop
+        },
+        onDomUpdate.asHtml.foreach { elem =>
+          if (elem.scrollHeight > lastHeight) {
+            val diff = elem.scrollHeight - lastHeight
+            lastHeight = elem.scrollHeight
+            elem.scrollTop = diff + lastScrollTop
+          }
+        }
+      )
+    }
 }
