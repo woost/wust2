@@ -124,7 +124,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       return GraphChanges.empty
     }
 
-    val gc = if(newSortIndex == newOrderedNodes.size) {
+    val gc = if(newOrderedNodes.nonEmpty && newSortIndex == newOrderedNodes.size) {
       // very end !!! special case of before semantic !!!
 
 //      scribe.debug("!!!handling special case of before semantic!!!")
