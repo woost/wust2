@@ -389,7 +389,7 @@ object Components {
             },
             new IntersectionObserverOptions {
               // rootMargin = "200px" //TODO meh?
-              threshold = js.Array(0, 1)
+              threshold = js.Array[Double](0, 1)
             }
           )
 
