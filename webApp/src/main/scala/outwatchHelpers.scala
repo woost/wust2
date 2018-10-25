@@ -68,7 +68,7 @@ package object outwatchHelpers extends KeyHash {
   }
 
 
-  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Nothing]((_,_) => ???, None))
+  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
 
   def managedOwner(implicit ctx: Ctx.Owner): VDomModifier = {
     dsl.onDomUnmount foreach { ctx.contextualRx.kill() }
