@@ -28,6 +28,8 @@ object KanbanView {
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
+      minWidth := "0",
+      minHeight := "0",
       Rx {
         val page = state.page()
         val graph = {
@@ -55,7 +57,7 @@ object KanbanView {
 //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
 //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
 
-        VDomModifier(
+        div(
           cls := s"kanbancolumnarea",
           keyed,
           Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
