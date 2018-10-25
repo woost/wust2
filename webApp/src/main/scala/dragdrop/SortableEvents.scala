@@ -57,7 +57,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea") )
     val newSortIndex = newContChilds.indexOf(sourceElem)
 
-    val containerChanged = from.parentIds != into.parentIds
+//    val containerChanged = from.parentIds != into.parentIds
+    val containerChanged = from != into
     val movedDownwards = oldSortIndex < newSortIndex
 
     // Kanban item dropped on the previous / same place
@@ -91,7 +92,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // Kanban data and node data diverge
     if(oldIndex != oldSortIndex){
-      scribe.error(s"index of reconstruction and sort must match, oldIndex($oldIndex) != oldSortIndex($oldSortIndex)")
+      scribe.error(s"index of reconstruction and sort must match, oldPosition(${oldIndex+1}) != oldSortPosition(${oldSortIndex+1})")
       return GraphChanges.empty
     }
 
@@ -130,14 +131,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     val (nowBefore, nowAfter) = if(containerChanged) {
 
-      if(newOrderedNodes.nonEmpty) {
         val (newBefore, newAfter) = (newSortIndex-1, newSortIndex)
 
-        val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None // Moved to very beginning
-        val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None // Moved to very end
+      val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None
+      val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None
 
         (b, a)
-      } else (None, None)
     } else {
 
       val downCorrection = if(movedDownwards) 1 else 0 // before correction
@@ -149,12 +148,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
       if(newBefore == oldSortIndex || newAfter == oldSortIndex) {
-        scribe.error(s"Index conflict: old $oldSortIndex, before: $newBefore, after: $newAfter")
+        scribe.error(s"Index conflict: old position ${oldSortIndex+1}, before: ${newBefore+1}, after: ${newAfter+1}")
         return GraphChanges.empty
       }
 
-      val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None // Moved to very beginning
-      val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None // Moved to very end
+      val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None
+      val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None
 
       (b, a)
     }
@@ -175,9 +174,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     scribe.debug("SORTING\n" +
       s"dragged node: ${g.nodesById(sortedNodeId).str}\n\t" +
       s"from ${from.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, oldOrderedNodes)}\n\t" +
-      s"from index $oldIndex / ${oldOrderedNodes.length - 1}\n\t" +
+      s"from position ${oldIndex+1} / ${oldOrderedNodes.length}\n\t" +
       s"into ${into.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, newOrderedNodes)}\n\t" +
-      s"to index $newSortIndex / ${newOrderedNodes.length - 1}")
+      s"to position ${newSortIndex+1} / ${newOrderedNodes.length}")
 
     val gc = GraphChanges(
       addEdges = (newBeforeEdges ++ relinkEdges).flatten,

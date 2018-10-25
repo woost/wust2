@@ -558,16 +558,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     @inline def idArray: Array[Int] = idSeq.toArray
     val chronological: Array[Int] = idArray.sortBy(nodeCreated)
 
-    def heuristic(n1: Node, n2: Node) = {
-      val b1 = beforeOrdering(n1.id)
-      val b2 = beforeOrdering(n2.id)
-
-      if(b1.isEmpty && b2.nonEmpty) false
-      else if (b2.isEmpty && b1.nonEmpty) true
-      else n1.str < n2.str
-    }
     def c = chronological.map(nodes).toSeq
-    val topological: Array[Int] = topologicalSortHeuristic(c, heuristic).map(n => idToIdx(n.id)).toArray
+    val topological: Array[Int] = topologicalLassoSort(c).map(n => idToIdx(n.id)).toArray
 
     val res = topological.map(liftIdx).toSeq.flatten
     res
@@ -577,12 +569,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     else seq
   }
 
-  def topologicalSortHeuristic(seq: Seq[Node], heuristic: (Node, Node) => Boolean): Seq[Node] = {
-    topologicalSortWithHeuristic[Node,Seq](
+  def topologicalLassoSort(seq: Seq[Node]): Seq[Node] = {
+    algorithm.topologicalLassoSort[Node,Seq](
       seq.map(n => idToIdx(n.id)).toArray.sortBy(nodeCreated).map(nodes),
       (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
       (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
-      heuristic
     )
   }
 

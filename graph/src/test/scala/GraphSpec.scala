@@ -609,6 +609,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       val pNode: Node = "parent"
 
       def before(nodeId: Cuid, afterId: Cuid) = Edge.Before(NodeId(nodeId), NodeId(afterId), pNode.id)
+
       def author(userId: UserId, ts: Long, nodeId: NodeId) = Edge.Author(userId, EdgeData.Author(EpochMilli(ts * milliMinute)), nodeId)
 
       val u = user("U")
@@ -625,8 +626,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a,
         )
 
-        // println(g.toPrettyString)
-
         val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id)
 
         assert("1" == sorted(0).str && "1" == l(0).str)
@@ -638,25 +637,51 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
       }
 
-      def heuristic(g: Graph)(n1: Node, n2: Node) = {
-        val look = g.lookup
-//        def a = look.beforeEdgeIdx(look.idToIdx(n1.id))
-////          .sortBy(idx => edges(idx).asInstanceOf[Edge.Before].data.timestamp)
-//        def b = look.beforeEdgeIdx(look.idToIdx(n2.id))
-//
-//        val b1 = look.beforeOrdering(n1.id).map(tid => {
-//          val targetNode = look.nodes(tid)
-//
-//        })
-        val b1 = look.beforeOrdering(n1.id)
-        val b2 = look.beforeOrdering(n2.id)
+      "before ordering empty list" in {
 
-        if(b1.isEmpty && b2.nonEmpty) false
-        else if (b2.isEmpty && b1.nonEmpty) true
-        else n1.str < n2.str
+        val g = Graph(
+          nodes = Set(pNode),
+          edges = p,
+        )
+
+        val sorted = g.lookup.topologicalLassoSort(List.empty[Node]) // ("1", "6", "X", "7", "A", "5")
+
+        assert(sorted.isEmpty)
       }
 
-      "topological before ordering forward edge" in {
+      "before ordering 1,2 nodes 1 edge" in {
+
+        val list2 = List[Node]("1", "2")
+        val a = list2.zipWithIndex.map(n => author(u.id, n._2, n._1.id))
+
+        val g = Graph(
+          nodes = list2 :+ u,
+          edges = a :+ before("2", "1"),
+        )
+
+        val sorted = g.lookup.topologicalLassoSort(list2) // ("1", "6", "X", "7", "A", "5")
+
+        assert(sorted(0).str == "2")
+        assert(sorted(1).str == "1")
+      }
+
+      "before ordering 2,1 nodes 1 edge" in {
+
+        val list2 = List[Node]("2", "1")
+        val a = list2.zipWithIndex.map(n => author(u.id, n._2, n._1.id))
+
+        val g = Graph(
+          nodes = list2 :+ u,
+          edges = a :+ before("2", "1"),
+        )
+
+        val sorted = g.lookup.topologicalLassoSort(list2) // ("1", "6", "X", "7", "A", "5")
+
+        assert(sorted(0).str == "2")
+        assert(sorted(1).str == "1")
+      }
+
+      "before ordering forward edge" in {
 
         val be = before("X", "7")
 
@@ -665,13 +690,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a :+ be,
         )
 
-//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "X", "7", "A", "5")
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g)) // ("1", "6", "X", "7", "A", "5")
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "1")
         assert(sorted(1).str == "6")
         assert(sorted(2).str == "X")
@@ -680,7 +701,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "5")
       }
 
-      "topological before ordering backward edge" in {
+      "before ordering backward edge" in {
 
         val be = before("7", "X")
 
@@ -689,13 +710,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a :+ be,
         )
 
-//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "A", "7", "X", "5")
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "1")
         assert(sorted(1).str == "6")
         assert(sorted(2).str == "A")
@@ -704,7 +721,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "5")
       }
 
-      "topological before ordering two edges" in {
+      "before ordering two edges" in {
 
         val be = before("A", "7")
         val be2 = before("6", "X")
@@ -714,13 +731,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a :+ be :+ be2,
         )
 
-//        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "A", "7", "6", "X", "5")
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "1")
         assert(sorted(1).str == "A")
         assert(sorted(2).str == "7")
@@ -729,7 +742,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "5")
       }
 
-      "topological before ordering successive edges" in {
+      "before ordering successive edges" in {
 
         val be = before("A", "7")
         val be2 = before("7", "5")
@@ -739,13 +752,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a :+ be :+ be2,
         )
 
-        //        val sorted = g.lookup.topologicalSortBy(l, (n: Node) => n.id) // ("1", "6", "A", "7", "5", "X")
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "1")
         assert(sorted(1).str == "6")
         assert(sorted(2).str == "X")
@@ -754,9 +763,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "5")
       }
 
-      "topological before ordering full chain 1" in {
+      "before ordering full chain 1" in {
 
-        //        ("1", "6", "7", "A", "X", "5")
         val bes = Set[Edge](
           before("X", "6"),
           before("6", "5"),
@@ -770,12 +778,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a ++ bes,
         )
 
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-//        scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-//        scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-//        scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "X")
         assert(sorted(1).str == "6")
         assert(sorted(2).str == "5")
@@ -784,9 +789,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "A")
       }
 
-      "topological before ordering full chain 2" in {
+      "before ordering full chain 2" in {
 
-//        ("1", "6", "7", "A", "X", "5")
         val bes = Set[Edge](
           before("1", "5"),
           before("5", "A"),
@@ -800,12 +804,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = p ++ a ++ bes,
         )
 
-        val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+        val sorted = g.lookup.topologicalLassoSort(l)
 
-        // scribe.info(s"TEST: graph:\n${g.toPrettyString}")
-        // scribe.info(s"TEST: chronologically:\n${ul.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-        // scribe.info(s"TEST: topologically sort:\n${sorted.map(n => n.str).mkString("\t", ",\n\t", "\n")}")
-
+        // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
         assert(sorted(0).str == "1")
         assert(sorted(1).str == "5")
         assert(sorted(2).str == "A")
@@ -814,9 +815,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(sorted(5).str == "6")
       }
 
-      "topological before ordering full chain permutations" in {
+      "before ordering full chain permutations" in {
 
-        //        ("1", "6", "7", "A", "X", "5")
         val rawNodes = Seq[Node]("1", "6", "7", "A", "X", "5")
         val perms = rawNodes.permutations
 
@@ -828,8 +828,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
             edges = p ++ a ++ bes,
           )
 
-          val sorted = g.lookup.topologicalSortHeuristic(l, heuristic(g))
+          val sorted = g.lookup.topologicalLassoSort(l)
 
+          // Natural (time) ordering = ("1", "6", "7", "A", "X", "5")
           assert(sorted(0).str == perm(0).str)
           assert(sorted(1).str == perm(1).str)
           assert(sorted(2).str == perm(2).str)
