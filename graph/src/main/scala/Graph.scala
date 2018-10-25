@@ -537,11 +537,15 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def topologicalLassoSort(seq: Seq[Node]): Seq[Node] = {
-    algorithm.topologicalLassoSort[Node,Seq](
-      seq.map(n => idToIdx(n.id)).toArray.sortBy(nodeCreated).map(nodes),
-      (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
-      (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
-    )
+    if(!algorithm.containsCycle(seq.map(n => idToIdx(n.id)).toArray, beforeIdx)) {
+
+      algorithm.topologicalLassoSort[Node, Seq](
+        seq.map(n => idToIdx(n.id)).toArray.sortBy(nodeCreated).map(nodes),
+        (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
+        (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
+      )
+
+    } else seq
   }
 
   lazy val allParentIds: IndexedSeq[NodeId] = ???

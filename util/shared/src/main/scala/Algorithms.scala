@@ -101,6 +101,44 @@ object algorithm {
     map
   }
 
+  def containsCycle(elements: NestedArrayInt, successors: NestedArrayInt): Boolean = {
+
+    val num = elements.length
+
+    var i = 0
+    while(i < num) {
+      val slice = elements(i)
+      val sliceLength = slice.length
+
+      var j = 0
+      while(j < sliceLength) {
+        val idx = slice(j)
+        if(depthFirstSearchExistsWithoutStart(idx, successors, idx))
+          return true
+        j += 1
+      }
+      i += 1
+    }
+
+    false
+  }
+
+  def containsCycle(elements: Array[Int], successors: NestedArrayInt): Boolean = {
+
+    val num = elements.length
+    var i = 0
+
+    while(i < num) {
+      val idx = elements(i)
+      if(depthFirstSearchExistsWithoutStart(idx, successors, idx))
+        return true
+      
+      i += 1
+    }
+
+    false
+  }
+
   @inline def depthFirstSearchWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
     val stack = new ArrayStackInt(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
