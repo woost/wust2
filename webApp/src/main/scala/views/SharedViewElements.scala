@@ -92,6 +92,11 @@ object SharedViewElements {
       }
     }.toObservable.collect { case Some(s) => s }
 
+    val isDisabled = Rx {
+      val graph = state.graph()
+      !parentIds.forall(graph.contains)
+    }
+
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
       // we treat new chat messages as noise per default, so we set a future deletion date
@@ -117,6 +122,7 @@ object SharedViewElements {
         width := "100%",
         cls := "ui form",
         textArea(
+          disabled <-- isDisabled,
           cls := "field",
           if (BrowserDetect.isMobile) {
             value <-- initialValue
