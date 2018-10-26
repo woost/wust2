@@ -103,6 +103,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                     case statusCode if expiryStatusCodes.contains(statusCode) =>
                       Success(Some(s))
                     case _ =>
+                      scribe.error(s"Unexpected success code: $response")
                       Success(None)
                   }
                 case Failure(t) =>

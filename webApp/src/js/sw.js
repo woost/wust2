@@ -115,12 +115,17 @@ function subscribeWebPushAndPersist() {
                     return self.registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-                    }).then(sub => sendSubscriptionToBackend(sub, currentAuth));
+                    }).then(sub => {
+                        log("Success. Sending subscription to backend");
+                        sendSubscriptionToBackend(sub, currentAuth)
+                    });
                 } else {
+                    log("Cannot subscribe, no public key.");
                     return Promise.reject("Cannot subscribe, no public key.");
                 }
             }));
         } else {
+            log("Cannot subscribe, no authentication.");
             return Promise.reject("Cannot subscribe, no authentication.");
         }
     });
@@ -156,6 +161,7 @@ pushEmojis.replace_mode = "unified";
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
+    log("Trying to subcribe to webpush");
     e.waitUntil(
         subscribeWebPushAndPersist()
     );
