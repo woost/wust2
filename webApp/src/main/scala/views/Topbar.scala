@@ -168,7 +168,6 @@ object Topbar {
       dom.window.addEventListener(
         "beforeinstallprompt", { e: dom.Event =>
           e.preventDefault(); // Prevents immediate prompt display
-          dom.console.log("BEFOREINSTALLPROMPT: ", e)
           observer() = Some(e)
         }
       )
