@@ -232,7 +232,8 @@ object ChatView {
     Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
-      state.graphWithLoading { graph =>
+      val graph = state.graph()
+      withLoadingAnimation(state) {
         val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
 
         groups.map { group =>

@@ -31,43 +31,49 @@ object KanbanView {
       minWidth := "0",
       minHeight := "0",
       Rx {
-        val page = state.page()
-        val graph = {
-          val g = state.graph()
-          val transitivePageChildren = page.parentIds.flatMap(g.notDeletedDescendants)
-          g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
+        withLoadingAnimation(state) {
+          val page = state.page()
+          val graph = {
+            val g = state.graph()
+            val transitivePageChildren = page.parentIds.flatMap(g.notDeletedDescendants)
+            g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
+          }
+
+          val unsortedForest = graph.filterIdx { nodeIdx =>
+            val node = graph.nodes(nodeIdx)
+
+            @inline def isContent = node.isInstanceOf[Node.Content]
+
+            @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
+
+            @inline def noPage = !page.parentIdSet.contains(node.id)
+
+            isContent && isTask && noPage
+          }.redundantForestIncludingCycleLeafs
+
+          //        scribe.info(s"SORTING FOREST: $unsortedForest")
+          val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
+          //        scribe.info(s"SORTED FOREST: $sortedForest")
+
+          //        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
+          //        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
+          //
+          //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
+          //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
+
+          div(
+            cls := s"kanbancolumnarea",
+            keyed,
+            Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
+            alignItems.flexStart,
+            overflow.auto,
+
+            sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            newColumnArea(state, page, newColumnFieldActive),
+
+            registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
+          )
         }
-
-        val unsortedForest = graph.filterIdx { nodeIdx =>
-          val node = graph.nodes(nodeIdx)
-          @inline def isContent = node.isInstanceOf[Node.Content]
-          @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
-          @inline def noPage = !page.parentIdSet.contains(node.id)
-          isContent && isTask && noPage
-        }.redundantForestIncludingCycleLeafs
-
-//        scribe.info(s"SORTING FOREST: $unsortedForest")
-        val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
-//        scribe.info(s"SORTED FOREST: $sortedForest")
-
-//        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
-//        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
-//
-//        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
-//        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
-
-        div(
-          cls := s"kanbancolumnarea",
-          keyed,
-          Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
-          alignItems.flexStart,
-          overflow.auto,
-
-          sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
-          newColumnArea(state, page, newColumnFieldActive),
-
-          registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-        )
       }
     )
   }

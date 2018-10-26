@@ -58,13 +58,6 @@ class GlobalState(
     }
   }
 
-  def graphWithLoading(renderFn: Graph => VDomModifier): VDomModifier = {
-    Rx {
-      if (isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation(cls := "animated-fadein"))
-      else renderFn(graph())
-    }
-  }
-
   val channelForest: Rx[Seq[Tree]] = Rx {
     // time("bench: channelTree") {
       graph().channelTree(user().id)
