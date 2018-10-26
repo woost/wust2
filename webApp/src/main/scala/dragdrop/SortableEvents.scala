@@ -76,15 +76,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 //      s"to index $newSortIndex / ${newContChilds.length - 1}")
 
     // Reconstruct ordering
-    def oldOrderingNodes = from.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
+    def oldOrderingNodes = from.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
     val oldOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](oldOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
 
     // Kanban item dropped at an edge of a container
     if(oldOrderedNodes.size != oldContChilds.length) {
       // console.log("Kanban elements by sortable: ", oldContChilds)
-      scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, oldOrderedNodes)}")
-      scribe.warn(s"oldOrderedNodes.size(${oldOrderedNodes.size}) != oldContChilds.length(${oldContChilds.length}) => Kanban item dropped at an edge of a container")
+      scribe.error(s"Kanban elements by orderedNodes: ${getNodeStr(g, oldOrderedNodes)}")
+      scribe.error(s"oldOrderedNodes.size(${oldOrderedNodes.size}) != oldContChilds.length(${oldContChilds.length}) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
     }
 
@@ -113,7 +113,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) into.parentIds.map(nid => Some(Edge.Before(previousBefore.get, previousAfter.get, nid))).toSet else Set.empty[Option[Edge]]
 
-    def newOrderingNodes = into.parentIds.flatMap(parent => g.childrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
+    def newOrderingNodes = into.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
     val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
     // Kanban item dropped at an edge of a container
