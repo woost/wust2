@@ -187,6 +187,7 @@ self.addEventListener('push', e => {
             // } else {
 
                 if (e.data) {
+                    log("push notification with data");
                     let data = e.data.json();
                     let nodeId = data.nodeId;
                     let targetId = data.parentId ? data.parentId : nodeId;
@@ -232,7 +233,8 @@ self.addEventListener('push', e => {
                     });
                 // }
             } else {
-                        return self.registration.showNotification("Empty notification");
+                    log("push notification without data");
+                    return self.registration.showNotification("Empty notification");
             }
         })
     );
