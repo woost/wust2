@@ -202,37 +202,35 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         .as[Insert[Edge]]
     }
 
+    private val insertBefore = quote { c: Edge =>
+      val q = query[Edge].insert(c)
+      // if there is unique conflict, we update the data which might contain new values
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),(data->>'parent'),targetid) WHERE data->>'type'='Before' DO NOTHING"
+        .as[Insert[Edge]]
+    }
+
     def create(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = create(List(edge))
     def create(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-//      val (unconstraintEdges, uniqueEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before])
-//      val unconstraintEdges = edges.filter(e => !(e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before]))
-//      val uniqueEdges = edges.filter(e => e.data.isInstanceOf[EdgeData.Author] || e.data.isInstanceOf[EdgeData.Before])
+      val (beforeEdges, remainingEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Before])
 
       ctx.transaction( implicit ec =>
         for {
-          //          numUnconstraint <- if(unconstraintEdges.nonEmpty) {
-          //            ctx.run {
-          //              liftQuery(unconstraintEdges.toList).foreach(
-          //                query[Edge].insert(_)
-          //              )
-          //            }
-          //          } else Future.successful(Nil)
-          //          numUnique <- if(uniqueEdges.nonEmpty) {
-          //            ctx.run {
-          //              liftQuery(uniqueEdges.toList).foreach(
-          //                upsert(_)
-          //              )
-          //            }
-          //          } else Future.successful(Nil)
-          //        } yield numUnconstraint.forall(_ <= 1) && numUnique.forall(_ <= 1)
-          edges <- if(edges.nonEmpty) {
+          numBefore <- if(beforeEdges.nonEmpty) {
             ctx.run {
-              liftQuery(edges.toList).foreach(
+              liftQuery(beforeEdges.toList)
+                .foreach(
+                  insertBefore(_)
+                )
+            }
+          } else Future.successful(Nil)
+          numRemain <- if(remainingEdges.nonEmpty) {
+            ctx.run {
+              liftQuery(remainingEdges.toList).foreach(
                 upsert(_)
               )
             }
           } else Future.successful(Nil)
-        } yield edges.forall(_ <= 1)
+        } yield numBefore.forall(_ <= 1) && numRemain.forall(_ <= 1)
       ).recoverValue(false)
     }
 
