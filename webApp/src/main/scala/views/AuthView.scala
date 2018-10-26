@@ -10,7 +10,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.Elements._
 import cats.effect.IO
-import org.scalajs.dom
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -38,8 +37,6 @@ object AuthView {
             defaultUsername() = ""
             defaultPassword() = ""
             state.viewConfig() = state.viewConfig.now.redirect
-            // reload page if there is an app update
-            if (state.appUpdateIsAvailable.now) dom.window.location.reload(flag = false)
           case Success(Some(vnode)) =>
             errorMessageHandler.onNext(vnode)
           case Failure(t)           =>

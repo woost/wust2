@@ -38,7 +38,7 @@ object GlobalStateFactory {
 
     val isLoading = Var(false)
 
-    val state = new GlobalState(swUpdateIsAvailable.map(_ => true).unsafeToRx(false), eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading)
     import state._
 
     //TODO: better in rx/obs operations
@@ -130,7 +130,7 @@ object GlobalStateFactory {
       }
 
     // if there is a page change and we got an sw update, we want to reload the page
-    pageObservable.drop(1).withLatestFrom(swUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
+    pageObservable.drop(1).withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
       scribe.info("Going to reload page, due to SW update")
       // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
       window.location.reload(flag = false)
