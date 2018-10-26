@@ -64,8 +64,12 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         }
       }
 
+      def validDeleteEdges = changes.delEdges.forall {
+        case _: Edge.Author => false
+        case _ => true
+      }
 
-      validAddEdges && validNodes
+      validAddEdges && validNodes && validDeleteEdges
     }
 
     // TODO: task instead of this function
