@@ -89,15 +89,14 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     def applyChangesToDb(changes: GraphChanges): () => Future[Boolean] = () => {
       import changes.consistent._
 
+      def failFalse(fut: Future[Boolean], msg: String): Future[Boolean] =
+        fut.flatMap(if (_) Future.successful(true) else Future.failed(new Exception(msg)))
+
       for {
-        true <- db.node.create(addNodes)
-        true <- db.edge.create(addEdges)
-        true <- db.edge.delete(delEdges)
-        _ <- db.node.addMember(
-          addNodes.map(_.id).toList,
-          user.id,
-          AccessLevel.ReadWrite
-        ) //TODO: check
+        _ <- failFalse(db.node.create(addNodes), s"Cannot create nodes: $addNodes")
+        _ <- failFalse(db.edge.create(addEdges), s"Cannot create edges: $addEdges")
+        _ <- failFalse(db.edge.delete(delEdges), s"Cannot delete edges: $delEdges")
+        _ <- db.node.addMember(addNodes.map(_.id).toList, user.id, AccessLevel.ReadWrite)
       } yield true
     }
 
