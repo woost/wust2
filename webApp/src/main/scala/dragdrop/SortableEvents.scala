@@ -47,17 +47,19 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // Get index of moved node in previous container
     @inline def origElem = e.dragEvent.originalSource
+
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
     val oldContChilds = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea"))
     val oldSortIndex = oldContChilds.indexOf(origElem)
 
     // Get index of moved node in new container
     @inline def sourceElem = e.dragEvent.source
+
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-    val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea") )
+    val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea"))
     val newSortIndex = if(!into.isInstanceOf[DragContainer.Kanban.NewColumnArea]) newContChilds.indexOf(sourceElem) else newContChilds.length
 
-//    val containerChanged = from.parentIds != into.parentIds
+    //    val containerChanged = from.parentIds != into.parentIds
     val containerChanged = from != into
     val movedDownwards = oldSortIndex < newSortIndex
 
@@ -67,13 +69,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       return GraphChanges.empty
     }
 
-   // Node id of sorted node
+    // Node id of sorted node
     val sortedNodeId = sortNode.nodeId
 
-//    scribe.info("SORTING PREBUILDS\n" +
-//      s"dragged node: ${g.nodesById(sortNode.nodeId).str}\n\t" +
-//      s"from index $oldSortIndex / ${oldContChilds.length - 1}\n\t" +
-//      s"to index $newSortIndex / ${newContChilds.length - 1}")
+    //    scribe.info("SORTING PREBUILDS\n" +
+    //      s"dragged node: ${g.nodesById(sortNode.nodeId).str}\n\t" +
+    //      s"from index $oldSortIndex / ${oldContChilds.length - 1}\n\t" +
+    //      s"to index $newSortIndex / ${newContChilds.length - 1}")
 
     // Reconstruct ordering
     def oldOrderingNodes = from.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
@@ -83,16 +85,16 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     // Kanban item dropped at an edge of a container
     if(oldOrderedNodes.size != oldContChilds.length) {
       // console.log("Kanban elements by sortable: ", oldContChilds)
-      scribe.error(s"Kanban elements by orderedNodes: ${getNodeStr(g, oldOrderedNodes)}")
-      scribe.error(s"oldOrderedNodes.size(${oldOrderedNodes.size}) != oldContChilds.length(${oldContChilds.length}) => Kanban item dropped at an edge of a container")
+      scribe.error(s"Kanban elements by orderedNodes: ${ getNodeStr(g, oldOrderedNodes) }")
+      scribe.error(s"oldOrderedNodes.size(${ oldOrderedNodes.size }) != oldContChilds.length(${ oldContChilds.length }) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
     }
 
     val oldIndex = oldOrderedNodes.indexOf(g.idToIdx(sortedNodeId))
 
     // Kanban data and node data diverge
-    if(oldIndex != oldSortIndex){
-      scribe.error(s"index of reconstruction and sort must match, oldPosition(${oldIndex+1}) != oldSortPosition(${oldSortIndex+1})")
+    if(oldIndex != oldSortIndex) {
+      scribe.error(s"index of reconstruction and sort must match, oldPosition(${ oldIndex + 1 }) != oldSortPosition(${ oldSortIndex + 1 })")
       return GraphChanges.empty
     }
 
@@ -103,76 +105,92 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val previousEdges: Set[Option[Edge]] = from.parentIds.flatMap(pid => Set(
       previousBefore match {
         case Some(b) => Some(Edge.Before(b, sortedNodeId, pid))
-        case _ => None
+        case _       => None
       },
       previousAfter match {
         case Some(a) => Some(Edge.Before(sortedNodeId, a, pid))
-        case _ => None
+        case _       => None
       }
-      )).toSet
+    )).toSet
 
     @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) into.parentIds.map(nid => Some(Edge.Before(previousBefore.get, previousAfter.get, nid))).toSet else Set.empty[Option[Edge]]
 
     def newOrderingNodes = into.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
     val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
+    if(newOrderedNodes.isEmpty)
+      return GraphChanges.empty
+
     // Kanban item dropped at an edge of a container
     if(newOrderedNodes.size + 1 < newContChilds.length) {
       // console.log("Kanban elements by sortable: ", newContChilds)
-      scribe.warn(s"Kanban elements by orderedNodes: ${getNodeStr(g, newOrderedNodes)}")
-      scribe.warn(s"newOrderedNodes.size(${newOrderedNodes.size}) != newContChilds.length(${newContChilds.length}) => Kanban item dropped at an edge of a container")
+      scribe.warn(s"Kanban elements by orderedNodes: ${ getNodeStr(g, newOrderedNodes) }")
+      scribe.warn(s"newOrderedNodes.size(${ newOrderedNodes.size }) != newContChilds.length(${ newContChilds.length }) => Kanban item dropped at an edge of a container")
       return GraphChanges.empty
     }
 
-    val gc = if(newOrderedNodes.nonEmpty && newSortIndex == newOrderedNodes.size) {
+    val gcProposal: GraphChanges = if(containerChanged && newSortIndex == newOrderedNodes.size) {
       // very end !!! special case of before semantic !!!
 
 //      scribe.debug("!!!handling special case of before semantic!!!")
 
-      val chronologicalOverwrites = newOrderedNodes.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId )
+      val chronologicalOverwrites = newOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
 
       val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toList.flatMap(l => {
         into.parentIds.map(nid =>
-          Edge.Before(g.nodes(l.head).id, g.nodes(l.last).id, nid))
+          Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, nid))
       }) ++ into.parentIds.map(nid => Edge.Before(g.nodeIds(newOrderedNodes.last), sortedNodeId, nid))).toSet
 
       GraphChanges(
         addEdges = newBeforeEdges ++ relinkEdges.flatten,
         delEdges = previousEdges.flatten
       )
+    } else  if(!containerChanged && newSortIndex == newOrderedNodes.size - 1) {
+
+      val chronologicalOverwrites = oldOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
+
+      val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toList.flatMap(l => {
+        into.parentIds.map(nid =>
+          Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, nid))
+      }) ++ into.parentIds.map(nid => Edge.Before(g.nodeIds(oldOrderedNodes.last), sortedNodeId, nid))).toSet
+
+      GraphChanges(
+        addEdges = newBeforeEdges ++ relinkEdges.flatten,
+        delEdges = previousEdges.flatten
+      )
+
     } else {
-      val (nowBefore, nowMiddle, nowAfter) = if(newOrderedNodes.isEmpty) { (None, None, None) }
-                                             else {
+      val (nowBefore, nowMiddle, nowAfter) = {
 
-                                               val (newBefore, newAfter) = if(containerChanged) {
+        val (newBefore, newAfter) = if(containerChanged) {
 
-                                                 val (b, a) = (newSortIndex - 1, newSortIndex)
+          val (b, a) = (newSortIndex - 1, newSortIndex)
 
-                                                 (b, a)
-                                               } else {
-                                                 //      scribe.debug(s"Container not changed")
+          (b, a)
+        } else {
+          //      scribe.debug(s"Container not changed")
 
-                                                 val downCorrection = if(movedDownwards) 1 else 0 // before correction
-                                                 val upCorrection = if(!movedDownwards) -1 else 0 // after correction
-                                                 val beforeIndexShift = if((newSortIndex - 1 + downCorrection) == oldSortIndex) -2 else -1
-                                                 val afterIndexShift = if((newSortIndex + 1 + upCorrection) == oldSortIndex) 2 else 1
+          val downCorrection = if(movedDownwards) 1 else 0 // before correction
+          val upCorrection = if(!movedDownwards) -1 else 0 // after correction
+          val beforeIndexShift = if((newSortIndex - 1 + downCorrection) == oldSortIndex) -2 else -1
+          val afterIndexShift = if((newSortIndex + 1 + upCorrection) == oldSortIndex) 2 else 1
 
-                                                 val (b, a) = (newSortIndex + beforeIndexShift + downCorrection, newSortIndex + afterIndexShift + upCorrection)
+          val (b, a) = (newSortIndex + beforeIndexShift + downCorrection, newSortIndex + afterIndexShift + upCorrection)
 
-                                                 // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
-                                                 if(b == oldSortIndex || a == oldSortIndex) {
-                                                   scribe.error(s"Index conflict: old position ${ oldSortIndex + 1 }, before: ${ b + 1 }, after: ${ a + 1 }")
-                                                   return GraphChanges.empty
-                                                 }
+          // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
+          if(b == oldSortIndex || a == oldSortIndex) {
+            scribe.error(s"Index conflict: old position ${ oldSortIndex + 1 }, before: ${ b + 1 }, after: ${ a + 1 }")
+            return GraphChanges.empty
+          }
 
-                                                 (b, a)
-                                               }
+          (b, a)
+        }
 
-                                               val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None
-                                               val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None
-                                               val m = Some(sortedNodeId)
-                                               (b, m, a)
-                                             }
+        val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None
+        val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None
+        val m = Some(sortedNodeId)
+        (b, m, a)
+      }
 
       val cleanupBeforeEdges = if(nowBefore.isDefined && nowAfter.isDefined) from.parentIds.map(nid => Some(Edge.Before(nowBefore.get, nowAfter.get, nid))).toSet else Set.empty[Option[Edge]]
 
@@ -194,14 +212,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       )
     }
 
+    val gc = gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId))
     scribe.debug("SORTING\n" +
-      s"dragged node: ${g.nodesById(sortedNodeId).str}\n\t" +
-      s"from ${from.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, oldOrderedNodes)}\n\t" +
-      s"from position ${oldIndex+1} / ${oldOrderedNodes.length}\n\t" +
-      s"into ${into.parentIds.map(pid => g.nodesById(pid).str)} containing ${getNodeStr(g, newOrderedNodes)}\n\t" +
-      s"to position ${newSortIndex+1} / ${newOrderedNodes.length}")
+      s"dragged node: ${ g.nodesById(sortedNodeId).str }\n\t" +
+      s"from ${ from.parentIds.map(pid => g.nodesById(pid).str) } containing ${ getNodeStr(g, oldOrderedNodes) }\n\t" +
+      s"from position ${ oldIndex + 1 } / ${ oldOrderedNodes.length }\n\t" +
+      s"into ${ into.parentIds.map(pid => g.nodesById(pid).str) } containing ${ getNodeStr(g, newOrderedNodes) }\n\t" +
+      s"to position ${ newSortIndex + 1 } / ${ newOrderedNodes.length }")
 
-     GraphChanges.log(gc, Some(state.graph.now))
+    GraphChanges.log(gc, Some(state.graph.now))
 
     gc
   }
