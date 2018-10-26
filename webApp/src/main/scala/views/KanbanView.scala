@@ -41,7 +41,7 @@ object KanbanView {
         val unsortedForest = graph.filterIdx { nodeIdx =>
           val node = graph.nodes(nodeIdx)
           val isContent = node.isInstanceOf[Node.Content]
-          val isTask = true // node.role.isInstanceOf[NodeRole.Task.type]
+          val isTask = node.role.isInstanceOf[NodeRole.Task.type]
           val notIsolated = graph.hasNotDeletedChildrenIdx(nodeIdx) || !graph.notDeletedParentsIdx(nodeIdx).forall(idx => page.parentIdSet(graph.nodeIds(idx))) || graph.isStaticParentIn(node.id, page.parentIds)
           val noPage = !page.parentIdSet.contains(node.id)
           isContent && isTask && notIsolated && noPage
