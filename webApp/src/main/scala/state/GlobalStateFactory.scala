@@ -106,18 +106,14 @@ object GlobalStateFactory {
         .subscribe(eventProcessor.localEvents)
 
 
-    val pageObservable = page.toObservable
-
-    // clear this undo/redo history on page change. otherwise you might revert changes from another page that are not currently visible.
-    // update of page was changed manually AFTER initial page
-    // pageObservable.drop(1).map(_ => ChangesHistory.Clear).subscribe(eventProcessor.history.action)
+    // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
+    val appUpdateTrigger = Observable.merge(page.toObservable.drop(1), view.toObservable.drop(1))
 
     // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
     // we will check for an update immediately, but at max every 30 minutes.
     val autoCheckUpdateInterval = 60.minutes
     val maxCheckUpdateInterval = 30.minutes
-    pageObservable
-      .drop(1)
+    appUpdateTrigger
       .echoRepeated(autoCheckUpdateInterval)
       .throttleFirst(maxCheckUpdateInterval)
       .foreach { _ =>
@@ -130,7 +126,7 @@ object GlobalStateFactory {
       }
 
     // if there is a page change and we got an sw update, we want to reload the page
-    pageObservable.drop(1).withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
+    appUpdateTrigger.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
       scribe.info("Going to reload page, due to SW update")
       // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
       window.location.reload(flag = false)
