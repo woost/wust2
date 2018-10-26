@@ -196,7 +196,7 @@ object KanbanView {
 
         position.relative,
         buttonBar(position.absolute, top := "0", right := "0"),
-        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
+//        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
       div(
         cls := "kanbancolumnchildren",
@@ -249,7 +249,7 @@ object KanbanView {
 
       position.relative,
       buttonBar(position.absolute, top := "0", right := "0"),
-      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
+//      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
   }
 
