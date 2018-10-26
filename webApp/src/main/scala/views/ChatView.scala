@@ -279,7 +279,7 @@ object ChatView {
           currentReply() = selectedNodes.now.map(_.nodeId)
           selectedNodes() = Set.empty[SelectedNode]
         }
-      ) //TODO: scroll to focused field?
+      )
     )
   } else Nil
 }

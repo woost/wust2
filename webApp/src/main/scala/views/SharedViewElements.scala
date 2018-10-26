@@ -446,7 +446,7 @@ object SharedViewElements {
     groupsBuilder.result()
   }
 
-  def starActionButton[T <: SelectedNodeBase](state: GlobalState, selected: List[T], anySelectedNodeIsDeleted: Rx[Boolean], anySelectedNodeIsDeletedInFuture: Rx[Boolean])(implicit ctx:Ctx.Owner): BasicVNode = {
+  def starActionButton[T <: SelectedNodeBase](state: GlobalState, selected: List[T], selectedNodes: Var[Set[T]], anySelectedNodeIsDeleted: Rx[Boolean], anySelectedNodeIsDeletedInFuture: Rx[Boolean])(implicit ctx:Ctx.Owner): BasicVNode = {
     div(
       Rx {
         if(anySelectedNodeIsDeleted() || anySelectedNodeIsDeletedInFuture())
@@ -455,7 +455,7 @@ object SharedViewElements {
             onClick foreach {
               val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(t.nodeId, t.directParentIds))
               state.eventProcessor.changes.onNext(changes)
-              ()
+              selectedNodes() = Set.empty[T]
             }
           )
         else
@@ -464,7 +464,7 @@ object SharedViewElements {
             onClick foreach {
               val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(t.nodeId, t.directParentIds, noiseFutureDeleteDate))
               state.eventProcessor.changes.onNext(changes)
-              ()
+              selectedNodes() = Set.empty[T]
             }
           )
       },
@@ -490,7 +490,7 @@ object SharedViewElements {
     }
 
     List(
-      starActionButton(state, selected, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
+      starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
       zoomButton(onClick foreach {
         state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
         selectedNodes() = Set.empty[T]
