@@ -182,9 +182,9 @@ self.addEventListener('push', e => {
         }).then(clients => {
 
 
-            if (focusedClient(clients)) {
-                return;
-            } else {
+            // if (focusedClient(clients)) {
+            //     return;
+            // } else {
 
                 if (e.data) {
                     let data = e.data.json();
@@ -230,7 +230,9 @@ self.addEventListener('push', e => {
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
-                }
+                // }
+            } else {
+                        return self.registration.showNotification("Empty notification");
             }
         })
     );
