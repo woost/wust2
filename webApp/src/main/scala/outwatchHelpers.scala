@@ -16,7 +16,6 @@ import wust.webUtil.macros.KeyHash
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-//TODO nicer name
 package object outwatchHelpers extends KeyHash {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
