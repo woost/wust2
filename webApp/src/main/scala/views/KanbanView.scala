@@ -40,11 +40,10 @@ object KanbanView {
 
         val unsortedForest = graph.filterIdx { nodeIdx =>
           val node = graph.nodes(nodeIdx)
-          val isContent = node.isInstanceOf[Node.Content]
-          val isTask = node.role.isInstanceOf[NodeRole.Task.type]
-          val notIsolated = graph.hasNotDeletedChildrenIdx(nodeIdx) || !graph.notDeletedParentsIdx(nodeIdx).forall(idx => page.parentIdSet(graph.nodeIds(idx))) || graph.isStaticParentIn(node.id, page.parentIds)
-          val noPage = !page.parentIdSet.contains(node.id)
-          isContent && isTask && notIsolated && noPage
+          @inline def isContent = node.isInstanceOf[Node.Content]
+          @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
+          @inline def noPage = !page.parentIdSet.contains(node.id)
+          isContent && isTask && noPage
         }.redundantForestIncludingCycleLeafs
 
 //        scribe.info(s"SORTING FOREST: $unsortedForest")
@@ -98,9 +97,8 @@ object KanbanView {
                 val change = {
                   val newColumnNode = Node.MarkdownTask(str)
                   val add = GraphChanges.addNode(newColumnNode)
-                  val makeStatic = GraphChanges.connect(Edge.StaticParentIn)(newColumnNode.id, page.parentIds)
 //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
-                  add merge makeStatic
+                  add
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
               },
@@ -127,21 +125,31 @@ object KanbanView {
   private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
-        val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
-//        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
-//        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
-        renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
+        Rx {
+          if(state.graph().isExpanded(state.user.now.id, node.id) || isTopLevel) {
+            val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
+            //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
+            //        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
+            renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
+          }
+          else
+            renderCard(state, node, parentIds, selectedNodeIds)(ctx)(VDomModifier(
+              inject,
+              backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex),
+              cls := "kanbancolumncollapsed",
+            )
+        }
       case Tree.Leaf(node)             =>
         Rx {
-          if(state.graph().isStaticParentIn(node.id, parentIds))
-            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isStaticParent = true)(ctx)(inject)
+          if(state.graph().isExpanded(state.user.now.id, node.id) || isTopLevel)
+            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
           else
             renderCard(state, node, parentIds, selectedNodeIds)(ctx)(inject)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isStaticParent: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -154,7 +162,7 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
-          isStaticParent.ifTrue[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
+          isTopLevel.ifFalse[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Shrink to Node")),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
@@ -219,7 +227,7 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
-          div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.StaticParentIn)(node.id, parentIds)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
+          div(div(cls := "fa-fw", freeSolid.faExpand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand to column"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
@@ -281,18 +289,4 @@ object KanbanView {
       }
     )
   }
-
-  private def renderIsolatedNodes(state: GlobalState, page: Page, nodes: Seq[Node], selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner) =
-    div(
-      keyed,
-      if (nodes.isEmpty) VDomModifier.empty else "Unused Nodes",
-      div(
-        cls := "kanbanisolatednodes",
-        keyed,
-        registerSortableContainer(state, DragContainer.Kanban.IsolatedNodes(page.parentIds)),
-
-        nodes.map { node => renderCard(state, node, page.parentIds, selectedNodeIds) }
-      )
-    )
-
 }

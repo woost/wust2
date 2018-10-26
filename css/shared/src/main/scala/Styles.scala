@@ -649,8 +649,12 @@ object CommonStyles extends StyleSheet.Standalone {
     maxHeight(100 %%)
   )
 
-  ".kanbansubcolumn" - (
+  ".kanbansubcolumn, .kanbancolumncollapsed" - (
     border(1 px, solid, white)
+  )
+
+  ".kanbancolumncollapsed" - (
+    color.white,
   )
 
   ".kanbancolumntitle" - (
@@ -661,41 +665,6 @@ object CommonStyles extends StyleSheet.Standalone {
     letterSpacing(0.5 px), // more aesthetic
   )
 
-  ".kanbancolumnheader .buttonbar" - (
-    padding(kanbanColumnPadding),
-    visibility.hidden,
-    fontSize.medium // same as in kanban card
-  )
-
-  ".kanbancolumnheader > p" - (
-    marginBottom(0 em) // default was 1 em
-  )
-
-  ".kanbancolumn.draggable--over .buttonbar" - (
-    visibility.hidden.important // hide buttons when dragging over column
-  )
-
-  ".nodecard:hover .buttonbar," +
-  ".kanbancolumnheader:hover .buttonbar" - (
-    visibility.visible
-  )
-
-  ".kanbancolumnheader .buttonbar > div," +
-  ".nodecard .buttonbar > div" - (
-    borderRadius(3 px),
-    marginLeft(2 px)
-  )
-
-  ".kanbancolumnheader .buttonbar > div" - (
-    padding(2 px),
-    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
-    color(c"rgba(255, 255, 255, 0.83)")
-  )
-
-  ".kanbancolumnheader .buttonbar > div:hover" - (
-    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
-    color(white)
-  )
 
   ".nodecard .buttonbar" - (
     backgroundColor(nodeCardBackgroundColor),
@@ -717,6 +686,48 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgb(71, 71, 71)")
   )
 
+
+  ".kanbancolumnheader .buttonbar" - (
+    padding(kanbanColumnPadding),
+    visibility.hidden,
+    fontSize.medium // same as in kanban card
+  )
+
+  ".kanbancolumnheader > p" - (
+    marginBottom(0 em) // default was 1 em
+  )
+
+  ".kanbancolumn.draggable--over .buttonbar" - (
+    visibility.hidden.important // hide buttons when dragging over column
+  )
+
+  ".nodecard:hover .buttonbar," +
+  ".kanbancolumnheader:hover .buttonbar" - (
+    visibility.visible
+  )
+
+  ".kanbancolumncollapsed.nodecard .buttonbar" - (
+    backgroundColor(transparent),
+  )
+
+  ".kanbancolumnheader .buttonbar > div," +
+  ".nodecard .buttonbar > div" - (
+    borderRadius(3 px),
+    marginLeft(2 px)
+  )
+
+  ".kanbancolumnheader .buttonbar > div," +
+  ".kanbancolumncollapsed .buttonbar > div" - (
+    padding(2 px),
+    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    color(c"rgba(255, 255, 255, 0.83)")
+  )
+
+  ".kanbancolumnheader .buttonbar > div:hover," +
+  ".kanbancolumncollapsed .buttonbar > div:hover" - (
+    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
+    color(white)
+  )
 
   ".kanbancolumnchildren > .nodecard," +
   ".kanbanisolatednodes > .nodecard" - (

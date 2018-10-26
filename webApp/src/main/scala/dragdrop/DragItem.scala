@@ -54,7 +54,6 @@ object DragContainer extends wust.ids.serialize.Circe {
     case class Column(nodeId:NodeId) extends Area { def parentIds = nodeId :: Nil }
     case class ColumnArea(parentIds:Seq[NodeId]) extends Area
     case class NewColumnArea(parentIds:Seq[NodeId]) extends Area
-    case class IsolatedNodes(parentIds:Seq[NodeId]) extends Area
   }
 
   val propName = "_wust_dragcontainer"

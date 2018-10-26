@@ -206,7 +206,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val afterDegree = new Array[Int](n)
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
-  private val staticParentInDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
 
   private val now = EpochMilli.now
@@ -248,8 +247,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                   deletedParentsDegree(sourceIdx) += 1
                 } //TODO everything deleted further in the past should already be filtered in backend
             }
-          case _: Edge.StaticParentIn                 =>
-            staticParentInDegree(sourceIdx) += 1
           case _: Edge.Expanded =>
             expandedNodesDegree(sourceIdx) += 1
           case _: Edge.Notify =>
@@ -275,7 +272,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val afterIdxBuilder = NestedArrayInt.builder(afterDegree)
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
-  private val staticParentInIdxBuilder = NestedArrayInt.builder(staticParentInDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
 
   consistentEdges.foreachAdded { edgeIdx =>
@@ -311,8 +307,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               deletedParentsIdxBuilder.add(sourceIdx, targetIdx)
             } //TODO everything deleted further in the past should already be filtered in backend
         }
-      case _: Edge.StaticParentIn =>
-        staticParentInIdxBuilder.add(sourceIdx, targetIdx)
       case _: Edge.Expanded       =>
         expandedNodesIdxBuilder.add(sourceIdx, targetIdx)
       case _: Edge.Notify         =>
@@ -336,20 +330,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
-  val staticParentInIdx: NestedArrayInt = staticParentInIdxBuilder.result()
   val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
 
   val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) expandedNodesIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
   @inline def expandedNodes(userId: UserId): collection.Set[NodeId] = expandedNodesByIndex(idToIdx(userId))
-  val staticParentInByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
-    if(idx != -1) staticParentInIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
-  }
-  @inline def staticParentIn(nodeId: NodeId): collection.Set[NodeId] = staticParentInByIndex(idToIdx(nodeId))
   val parentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
+  @inline def isExpanded(userId: UserId, nodeId: NodeId): Boolean = expandedNodes(userId).contains(nodeId)
   @inline def parents(nodeId: NodeId): collection.Set[NodeId] = parentsByIndex(idToIdx(nodeId))
   val childrenByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
@@ -590,13 +580,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parents(child).contains(possibleParent)
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
     ancestors(descendent).contains(possibleAncestor)
-
-  def isStaticParentIn(id: NodeId, parentId: NodeId): Boolean = staticParentIn(id).contains(parentId)
-  def isStaticParentIn(id: NodeId, parentIds: Iterable[NodeId]): Boolean = {
-    val staticInParents = staticParentIn(id)
-    parentIds.exists(parentId => staticInParents.contains(parentId))
-  }
-
 
   @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)

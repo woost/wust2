@@ -220,40 +220,22 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
-        val moveStaticInParents = if(graph.isStaticParentIn(dragging.nodeId, from.parentIds)) {
-          GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-        } else GraphChanges.empty
-
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
+        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
-        val moveStaticInParents = if(graph.isStaticParentIn(dragging.nodeId, from.parentIds)) {
-          GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-        } else GraphChanges.empty
-
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
+        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-        // always make new columns static
-        val moveStaticInParents = GraphChanges.changeTarget(Edge.StaticParentIn)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
 
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge moveStaticInParents merge beforeEdges)
-
-      case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.IsolatedNodes, false, false) =>
-
-        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-        val removeStatic = GraphChanges.disconnect(Edge.StaticParentIn)(dragging.nodeId, from.parentIds)
-
-        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge removeStatic merge beforeEdges)
+        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
     }
   }
