@@ -26,7 +26,7 @@ import scala.concurrent.duration._
 import scala.scalajs.js
 
 class GlobalState(
-  val appUpdateIsAvailable: Observable[Unit],
+  val appUpdateIsAvailable: Rx[Boolean],
   val eventProcessor: EventProcessor,
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val viewConfig: Var[ViewConfig],

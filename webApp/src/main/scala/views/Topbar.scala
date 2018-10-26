@@ -156,10 +156,12 @@ object Topbar {
   }
 
   def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    div(state.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary button", "Update App", onClick foreach {
-        window.location.reload(flag = false)
-      })
+    div(state.appUpdateIsAvailable.map { isAvailable =>
+      isAvailable.ifTrue[VDomModifier](
+        button(cls := "tiny ui primary button", "Update App", onClick foreach {
+          window.location.reload(flag = false)
+        })
+      )
     })
 
   // TODO: https://github.com/OutWatch/outwatch/issues/227
@@ -168,7 +170,6 @@ object Topbar {
       dom.window.addEventListener(
         "beforeinstallprompt", { e: dom.Event =>
           e.preventDefault(); // Prevents immediate prompt display
-          dom.console.log("BEFOREINSTALLPROMPT: ", e)
           observer() = Some(e)
         }
       )
