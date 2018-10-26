@@ -52,6 +52,7 @@ class PushService private(service: webpush.PushService) {
       payload
     )
 
+    scribe.info(s"Sending push notification to ${sub}: $payload")
     doSend(notification).toEither.fold(Future.failed, identity)
   }
 
@@ -67,7 +68,7 @@ class PushService private(service: webpush.PushService) {
       payload.asJson.noSpaces
     )
 
-
+    scribe.info(s"Sending push notification to ${sub}: ${payload.content}")
     doSend(notification).toEither.fold(Future.failed, identity)
   }
 }
