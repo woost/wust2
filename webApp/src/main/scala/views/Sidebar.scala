@@ -79,7 +79,7 @@ object Sidebar {
     def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
       state.sidebarOpen() match {
         case true  => VDomModifier(openSidebar, maxWidth := "200px")
-        case false => VDomModifier(closedSidebar)
+        case false => closedSidebar
       }
     }
 
@@ -185,6 +185,7 @@ object Sidebar {
   ): VNode = {
     div(
       cls := "channelicon",
+      keyed(node.id),
       width := s"${ size }px",
       height := s"${ size }px",
       backgroundColor := (node match {

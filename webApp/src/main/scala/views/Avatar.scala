@@ -11,6 +11,7 @@ import wust.util.Memo
 import wust.webApp.outwatchHelpers._
 
 import scala.collection.mutable
+import scala.scalajs.js
 
 object Avatar {
   //TODO: less-angry rainbow? https://bl.ocks.org/mbostock/310c99e53880faec2434
@@ -30,7 +31,7 @@ object Avatar {
 
   val PI2 = PI * 2
 
-  private def accentColorSelection(hue1: Double, rnd: scala.util.Random): Array[Double] = {
+  private def accentColorSelection(hue1: Double, rnd: scala.util.Random): Array[String] = {
     // select two more hues randomly with minimum padding
     val padding = 1
 
@@ -78,35 +79,52 @@ object Avatar {
 //    assert((hue1 - (hue3 - PI2)).abs >= padding)
 //    assert((hue2 - (hue3 - PI2)).abs >= padding)
 
-    Array(hue1, hue1, hue1, hue1, hue2, hue3)
+    @inline def c = 60
+    @inline def l = 65
+    val col1 = HCL(hue1, c, l).toHex
+    val col2 = HCL(hue2, c, l).toHex
+    val col3 = HCL(hue3, c, l).toHex
+    Array(col1, col1, col1, col1, col2, col3)
   }
 
   @inline private def randomElement(array: Array[Double], rnd: scala.util.Random) =
     array(rnd.nextInt(array.length))
+  @inline private def randomElement(array: Array[String], rnd: scala.util.Random) =
+    array(rnd.nextInt(array.length))
 
-  private def addPixel(pixels: mutable.ArrayBuffer[VNode], x: Int, y: Int, color: String): Unit = {
+  private def addPixel(pixels: js.Array[VNode], x: Int, y: Int, color: String): Unit = {
     import outwatch.dom.dsl.svg
-    pixels += svg.rect(
+    pixels push svg.rect(
       dsl.svg.x := x.toString,
       dsl.svg.y := y.toString,
-      svg.width := "1",
-      svg.height := "1",
+      // these will be set via stylesheet instead:
+      //      svg.width := "1",
+      //      svg.height := "1",
       svg.fill := color
     )
   }
 
+  @inline def renderSvg(n:Int, pixels: js.Array[VNode]): VDomModifier = {
+    import outwatch.dom.dsl.svg.viewBox
+    VDomModifier(
+      viewBox := s"0 0 $n $n",
+      dsl.style("shape-rendering") := "optimizeSpeed",
+      dsl.cls := "avatarsvg",
+      pixels
+    )
+  }
+
   def verticalMirror(seed: Any, n: Int): VNode = {
-    import outwatch.dom.dsl.svg.{svg, viewBox}
+    import outwatch.dom.dsl.svg.svg
 
     svg.static(keyValue(seed)) {
       val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
-      val area = n * n
       val half = (n / 2) + (n % 2)
 
-      val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
+      val pixels = new js.Array[VNode]
       val colors = accentColorSelection(genericHue(seed), rnd)
-      def rndColor() = randomElement(colors, rnd)
+      @inline def rndColor() = randomElement(colors, rnd)
 
       // mirror on y axis
       var x = 0
@@ -115,7 +133,7 @@ object Avatar {
         x = 0
         while (x < half) {
           if (rnd.nextBoolean()) {
-            val color = HCL(rndColor(), 60, 65).toHex
+            val color = rndColor()
             addPixel(pixels, x, y, color)
             addPixel(pixels, n - x - 1, y, color)
           }
@@ -124,26 +142,21 @@ object Avatar {
         y += 1
       }
 
-      VDomModifier(
-        viewBox := s"0 0 $n $n",
-        dsl.style("shape-rendering") := "optimizeSpeed",
-        pixels
-      )
+      renderSvg(n, pixels)
     }
   }
 
   def twoMirror(seed: Any, n: Int): VNode = {
-    import outwatch.dom.dsl.svg.{svg, viewBox}
+    import outwatch.dom.dsl.svg.svg
 
     svg.static(keyValue(seed)) {
       val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
-      val area = n * n
       val half = (n / 2) + (n % 2)
 
-      val pixels = new mutable.ArrayBuffer[VNode](initialSize = area)
+      val pixels = new js.Array[VNode]
       val colors = accentColorSelection(genericHue(seed), rnd)
-      def rndColor() = randomElement(colors, rnd)
+      @inline def rndColor() = randomElement(colors, rnd)
 
       if (rnd.nextBoolean()) {
         // mirror on x and y axis
@@ -153,7 +166,7 @@ object Avatar {
           x = 0
           while (x < half) {
             if (rnd.nextBoolean()) {
-              val color = HCL(rndColor(), 60, 65).toHex
+              val color = rndColor()
               addPixel(pixels, x, y, color)
               addPixel(pixels, x, n - y - 1, color)
               addPixel(pixels, n - x - 1, y, color)
@@ -172,7 +185,7 @@ object Avatar {
           x = startx
           while (x < n - startx) {
             if (rnd.nextBoolean()) {
-              val c = HCL(rndColor(), 60, 65).toHex
+              val c = rndColor()
               addPixel(pixels, x, y, c)
               addPixel(pixels, y, x, c)
               addPixel(pixels, n - y - 1, n - x - 1, c)
@@ -185,11 +198,7 @@ object Avatar {
         }
       }
 
-      VDomModifier(
-        viewBox := s"0 0 $n $n",
-        dsl.style("shape-rendering") := "optimizeSpeed",
-        pixels
-      )
+      renderSvg(n, pixels)
     }
   }
 }
