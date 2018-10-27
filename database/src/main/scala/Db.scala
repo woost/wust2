@@ -245,7 +245,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
 
       val remainingEdges = edges.collect { case e if !e.data.isInstanceOf[EdgeData.Before] =>
-        (e.sourceId, e.targetId)
+        (e.sourceId, e.data.tpe, e.targetId)
       }
 
       // tuple
@@ -262,9 +262,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           } else Future.successful(Nil)
           numRemain <- if(remainingEdges.nonEmpty) {
             ctx.run {
-              liftQuery(remainingEdges.toList).foreach { case (sourceId, targetId) =>
-                val q = query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId).delete
-                infix"$q AND (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text])".as[Delete[Edge]]
+              liftQuery(remainingEdges.toList).foreach { case (sourceId, tpe, targetId) =>
+                query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe).delete
               }
             }
           } else Future.successful(Nil)
