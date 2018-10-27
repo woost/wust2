@@ -57,6 +57,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
         )
     }
 
+    //TODO really all?
     db.notifications.getAllSubscriptions().onComplete {
       case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIdsList.toSet.flatten, authors.map(_.name).mkString(","))
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
@@ -122,7 +123,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     Future.traverse(expiredSubscriptions.seq)(identity).foreach { expiredSubscriptions =>
       val flatExpiredSubscriptions = expiredSubscriptions.flatten
       if (flatExpiredSubscriptions.nonEmpty) {
-        db.notifications.delete(flatExpiredSubscriptions.toSet).onComplete {
+        db.notifications.delete(flatExpiredSubscriptions).onComplete {
           case Success(res) =>
             scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
           case Failure(res) =>

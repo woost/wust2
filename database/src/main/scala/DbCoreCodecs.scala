@@ -15,7 +15,4 @@ import wust.dbUtil.DbCommonCodecs
 // Quill needs an implicit encoder/decoder for each occuring type.
 // encoder/decoders for primitives and case classes are provided by quill.
 class DbCoreCodecs(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCommonCodecs(ctx) {
-  import Data._
-  import ctx._
-
 }

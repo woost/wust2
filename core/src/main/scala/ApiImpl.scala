@@ -1,11 +1,12 @@
 package wust.backend
 
+import io.getquill.context.async.TransactionalExecutionContext
 import monix.reactive.Observable
 import scribe.writer.file.LogPath
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
-import wust.db.{Data, Db}
+import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
 
@@ -74,13 +75,13 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
 
     // TODO: task instead of this function
-    val checkAllChanges: () => Future[Unit] = () => {
+    val checkAllChanges: () => Future[SuccessResult.type] = () => {
       val usedIdsFromDb = changes.flatMap(_.involvedNodeIds) diff changes.flatMap(
         _.addNodes
           .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
       )
       db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
-        if (conflictingIds.isEmpty) Future.successful(())
+        if (conflictingIds.isEmpty) Future.successful(SuccessResult)
         else {
           Future.failed(new Exception(
             s"Graph changes not allowed, there are inaccessible node ids in this change set: ${conflictingIds
@@ -90,25 +91,20 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       }
     }
 
-    def applyChangesToDb(changes: GraphChanges): () => Future[Unit] = () => {
+    def applyChangesToDb(changes: GraphChanges)(implicit ec: TransactionalExecutionContext): () => Future[SuccessResult.type] = () => {
       import changes.consistent._
 
-      def failFalse(fut: Future[Boolean], msg: String): Future[Unit] =
-        fut.flatMap(if (_) Future.successful(()) else Future.failed(new Exception(msg)))
-
       for {
-        _ <- failFalse(db.node.create(addNodes), s"Cannot create nodes: $addNodes")
-        _ <- failFalse(db.edge.create(addEdges), s"Cannot create edges: $addEdges")
-        _ <- failFalse(db.edge.delete(delEdges), s"Cannot delete edges: $delEdges")
-        _ <- db.node.addMember(addNodes.map(_.id).toList, user.id, AccessLevel.ReadWrite)
-      } yield ()
+        _ <- db.node.create(addNodes.map(forDb)(breakOut))
+        _ <- db.edge.create(addEdges.map(forDb)(breakOut))
+        _ <- db.edge.delete(delEdges.map(forDb)(breakOut))
+        _ <- db.node.addMember(addNodes.map(_.id)(breakOut), user.id, AccessLevel.ReadWrite)
+      } yield SuccessResult
     }
 
     if (changesAreAllowed) {
-      val changeOperations = changes.map(applyChangesToDb)
-
-      val result: Future[Unit] = db.ctx.transaction { implicit ec =>
-        (checkAllChanges +: changeOperations).foldLeft(Future.successful(())) {
+      val result: Future[SuccessResult.type] = db.ctx.transaction { implicit ec =>
+        (checkAllChanges +: changes.map(applyChangesToDb)).foldLeft(Future.successful(SuccessResult)) {
           (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
         }
       }
