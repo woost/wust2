@@ -132,7 +132,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val gcProposal: GraphChanges = if(containerChanged && newSortIndex == newOrderedNodes.size) {
       // very end !!! special case of before semantic !!!
 
-//      scribe.debug("!!!handling special case of before semantic!!!")
+//      scribe.debug("!!!handling special case of before semantic in CHANGED container!!!")
 
       val chronologicalOverwrites = newOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
 
@@ -146,6 +146,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         delEdges = previousEdges.flatten
       )
     } else  if(!containerChanged && newSortIndex == newOrderedNodes.size - 1) {
+
+//      scribe.debug("!!!handling special case of before semantic in SAME container!!!")
 
       val chronologicalOverwrites = oldOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
 
@@ -212,7 +214,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       )
     }
 
-    val gc = gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId))
+    val gc = gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId)).consistent
     scribe.debug("SORTING\n" +
       s"dragged node: ${ g.nodesById(sortedNodeId).str }\n\t" +
       s"from ${ from.parentIds.map(pid => g.nodesById(pid).str) } containing ${ getNodeStr(g, oldOrderedNodes) }\n\t" +
