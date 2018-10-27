@@ -241,6 +241,27 @@ object algorithm {
   }
 
 
+  def depthFirstSearchExists(starts: Iterable[Int], successors: NestedArrayInt, search: ArraySet):Boolean = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = ArraySet.create(successors.size)
+
+    starts.foreach(stack.push)
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(search.contains(current)) return true
+      if(visited.containsNot(current)) {
+        visited.add(current)
+        successors(current).foreachElement { next =>
+          if(visited.containsNot(next)) stack.push(next)
+        }
+      }
+    }
+
+    false
+  }
+
+
   def depthFirstSearchExists(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
     if(start == search) return true
 

@@ -192,6 +192,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
   private val edgesIdx = InterleavedArray.create(edges.length)
+  val isPinnedSet:ArraySet = ArraySet.create(n)
 
 
   // TODO: have one big triple nested array for all edge lookups?
@@ -258,6 +259,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             notifyByUserDegree(targetIdx) += 1
           case _: Edge.Pinned =>
             pinnedNodeDegree(sourceIdx) += 1
+            isPinnedSet.add(targetIdx)
           case _              =>
         }
       }
@@ -350,6 +352,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
   @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
+
+  @inline def isPinned(idx:Int): Boolean = isPinnedSet.contains(idx)
 
   def beforeOrdering(nodeId: NodeId): Seq[NodeId] = beforeIdx(idToIdx(nodeId)).map(nodes).map(_.id)
   def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
@@ -676,6 +680,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     else ancestorsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
   }
 
+  def anyAncestorIsPinned(nodeIds: Iterable[NodeId]):Boolean = {
+    val starts = new mutable.ArrayBuilder.ofInt
+    nodeIds.foreach { nodeId =>
+      val idx = idToIdx(nodeId)
+      if(idx != -1) starts += idx
+    }
+
+    depthFirstSearchExists(starts.result(), notDeletedParentsIdx, isPinnedSet)
+  }
+
   // IMPORTANT:
   // exactly the same as in the stored procedure
   // when changing things, make sure to change them for the stored procedure as well.
@@ -798,8 +812,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def channelTree(user: UserId): Seq[Tree] = {
     val userIdx = idToIdx(user)
     val channelIndices = pinnedNodeIdx(userIdx)
-    val isChannel = new Array[Int](n)
-    pinnedNodeIdx.foreachElement(userIdx){ isChannel(_) = 1 }
+    val isChannel = ArraySet.create(n)
+    pinnedNodeIdx.foreachElement(userIdx)(isChannel.add)
 
     //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
     def reachable(childChannelIdx: Int, parentChannelIdx: Int): Boolean = {
@@ -818,7 +832,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       child <- channelIndices
       parent <- ancestorsIdx(child)
       if child != parent
-      if isChannel(parent) == 1
+      if isChannel.contains(parent)
       if reachable(child, parent)
     } yield Edge.Parent(nodes(child).id, nodes(parent).id)
 

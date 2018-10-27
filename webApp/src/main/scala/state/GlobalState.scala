@@ -83,7 +83,7 @@ class GlobalState(
     }
   }
 
-  val pageIsBookmarked: Rx[Boolean] = Rx {
+  val pageIsPinned: Rx[Boolean] = Rx {
     val g = graph()
     page().parentIds.forall { parentId =>
       val userIdx = g.lookup.idToIdx(user().id)
