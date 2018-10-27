@@ -195,16 +195,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
   object edge {
 
-    private val upsert = quote { c: Edge =>
-      val q = query[Edge].insert(c)
+    // Remember to use unique edge filter
+//    private val uniqueEdgeFilter: String = "(data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text])"
+
+    private val upsert = quote { e: Edge =>
+      val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
-    private val insertBefore = quote { c: Edge =>
-      val q = query[Edge].insert(c)
-      // if there is unique conflict, we update the data which might contain new values
+    private val insertBefore = quote { e: Edge =>
+      val q = query[Edge].insert(e)
       infix"$q ON CONFLICT(sourceid,(data->>'type'),(data->>'parent'),targetid) WHERE data->>'type'='Before' DO NOTHING"
         .as[Insert[Edge]]
     }
@@ -234,20 +236,43 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).recoverValue(false)
     }
 
+
     def delete(edge: Edge)(implicit ec: ExecutionContext): Future[Boolean] = delete(Set(edge))
     def delete(edges: Iterable[Edge])(implicit ec: ExecutionContext): Future[Boolean] = {
-      val data = edges.map(c => (c.sourceId, c.data.tpe, c.targetId))
-      ctx
-        .run(liftQuery(data.toList).foreach {
-          case (sourceId, tpe, targetId) =>
-            query[Edge]
-              .filter(
-                c => c.sourceId == sourceId && c.data.jsonType == tpe && c.targetId == targetId
-              )
-              .delete
-        })
-        .map(_.forall(_ <= 1))
+      val beforeEdges = edges.collect{case e if e.data.isInstanceOf[EdgeData.Before] =>
+        val beforeData = e.data.asInstanceOf[EdgeData.Before]
+        (e.sourceId, beforeData.parent, e.targetId)
+      }
+
+      val remainingEdges = edges.collect { case e if !e.data.isInstanceOf[EdgeData.Before] =>
+        (e.sourceId, e.targetId)
+      }
+
+      // tuple
+      ctx.transaction( implicit ec =>
+        for {
+          numBefore <- if(beforeEdges.nonEmpty) {
+            ctx.run {
+              liftQuery(beforeEdges.toList)
+                .foreach { case (sourceId, parent, targetId) =>
+                  val q = query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonParent == parent).delete
+                  infix"$q AND data->>'type' = 'Before'".as[Delete[Edge]]
+                }
+            }
+          } else Future.successful(Nil)
+          numRemain <- if(remainingEdges.nonEmpty) {
+            ctx.run {
+              liftQuery(remainingEdges.toList).foreach { case (sourceId, targetId) =>
+                val q = query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId).delete
+                infix"$q AND (data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text])".as[Delete[Edge]]
+              }
+            }
+          } else Future.successful(Nil)
+        } yield numBefore.forall(_ <= 1) && numRemain.forall(_ <= 1)
+      ).recoverValue(false)
+
     }
+
   }
 
   object user {
@@ -283,7 +308,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
-             insert_user_member as (insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
+             insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
              insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(digest)})
       """.as[Insert[Node]]
       }
@@ -304,7 +329,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)}))
-             insert into edge (sourceId, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
+             insert into edge (sourceid, data, targetId) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})
      """.as[Insert[Node]]
       }
       ctx

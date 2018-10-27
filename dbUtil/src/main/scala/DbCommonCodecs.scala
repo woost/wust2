@@ -85,6 +85,7 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit class JsonConnectionDataQuillOps(json: EdgeData) {
     val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
     val jsonType = ctx.quote(infix"$json->>'type'".as[EdgeData.Type])
+    val jsonParent = ctx.quote(infix"$json->>'parent'".as[NodeId])
   }
 }
 
