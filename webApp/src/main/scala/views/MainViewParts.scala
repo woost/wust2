@@ -12,9 +12,7 @@ import wust.webApp.state.{GlobalState, View}
 
 object MainViewParts {
 
-  def newChannelButton(state: GlobalState, label: String = "New Channel")(
-      implicit ctx: Ctx.Owner
-  ): VNode = {
+  def newChannelButton(state: GlobalState, label: String = "New Channel"): VNode = {
     button(
       cls := "ui button",
       label,

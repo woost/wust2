@@ -15,7 +15,7 @@ object NewChannelView {
       justifyContent.spaceAround,
       flexDirection.column,
       alignItems.center,
-      MainViewParts.newChannelButton(state)(ctx)(padding := "20px", marginBottom := "10%")(
+      MainViewParts.newChannelButton(state)(padding := "20px", marginBottom := "10%")(
         onClick foreach { Analytics.sendEvent("view:newchannel", "newchannel") }
       )
     )
