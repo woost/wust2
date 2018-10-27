@@ -23,17 +23,8 @@ object Topbar {
   def apply(state: GlobalState): VNode = {
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
-        paddingRight := "5px",
-        height := "35px",
-        backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
-        color := "white",
-        transition := "background-color 0.5s", // fades on page change
         cls := "topbar",
-        Styles.flex,
-        flexDirection.row,
-        justifyContent.spaceBetween,
-        alignItems.center,
-
+        backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
         header(state).apply(marginRight := "10px"),
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
@@ -99,7 +90,7 @@ object Topbar {
     div(
       padding := "10px",
       fontSize := "20px",
-      width := "40px",
+      width := "45px",
       textAlign.center,
       faBars,
       cursor.pointer,
@@ -189,7 +180,7 @@ object Topbar {
   def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def viewId(view:View) = s"viewswitcher_${view.viewKey}"
     def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
-      label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+      label(`for` := viewId(targetView), icon, padding := "7px", onClick(targetView) --> state.view, cursor.pointer,
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           color := "#111111",
           //borderTop(2 px, solid, pageStyle.bgLightColor)

@@ -1014,7 +1014,14 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".topbar" - (
     userSelect := "none",
-    //borderBottom(solid, 1 px, c"#FFFFFF")
+    paddingRight(5 px),
+    height(45 px),
+    color.white,
+    transition := "background-color 0.5s", // fades on page change
+    Styles.flex,
+    flexDirection.row,
+    justifyContent.spaceBetween,
+    alignItems.center,
   )
 
   ".viewbar" - (
