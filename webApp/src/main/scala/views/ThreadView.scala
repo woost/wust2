@@ -196,8 +196,11 @@ object ThreadView {
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
       // we treat new chat messages as noise per default, so we set a future deletion date
-      val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
-      state.eventProcessor.changes.onNext(changes)
+      val graph = state.graph.now
+      val user = state.user.now
+      val addNodeChange = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
+      val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(user.id, nodeId) else GraphChanges.empty
+      state.eventProcessor.changes.onNext(addNodeChange merge expandChange)
       currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
     }
 
