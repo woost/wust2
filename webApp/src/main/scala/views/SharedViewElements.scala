@@ -242,6 +242,12 @@ object SharedViewElements {
       cursor.pointer
     )
 
+  val taskButton: VNode =
+    div(
+      div(cls := "fa-fw", Icons.task),
+      cursor.pointer
+    )
+
   def authorAvatar(author: Node.User, avatarSize: Int, avatarPadding: Int): VNode = {
     div(Avatar(author)(cls := "avatar",width := s"${avatarSize}px", padding := s"${avatarPadding}px"), marginRight := "5px")
   }
@@ -293,10 +299,7 @@ object SharedViewElements {
       nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
         Styles.flex,
         alignItems.flexEnd,
-        Rx {
-          // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
-          isDeletedNow().ifTrue[VDomModifier](cls := "node-deleted")
-        },
+        Rx { isDeletedNow().ifTrue[VDomModifier](cls := "node-deleted") },
         importanceIndicator,
         cls := "drag-feedback",
 
@@ -398,6 +401,13 @@ object SharedViewElements {
             ),
             zoomButton(
               onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+            ),
+            taskButton(
+              onClick foreach {
+                val change = GraphChanges.addNode(state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))
+                state.eventProcessor.changes.onNext(change)
+                ()
+              }
             )
           )
         }
@@ -497,6 +507,13 @@ object SharedViewElements {
 
     List(
       starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
+      taskButton(
+        onClick foreach {
+          val change = GraphChanges(addNodes = nodeIdSet.map(nodeId => state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))(breakOut))
+          state.eventProcessor.changes.onNext(change)
+          ()
+        }
+      ),
       zoomButton(onClick foreach {
         state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
         selectedNodes() = Set.empty[T]

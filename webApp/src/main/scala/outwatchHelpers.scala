@@ -17,6 +17,8 @@ import wust.webUtil.macros.KeyHash
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
+// TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
+// TODO: vnode.apply version which prepends
 package object outwatchHelpers extends KeyHash {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
@@ -188,7 +190,7 @@ package object outwatchHelpers extends KeyHash {
   import scalacss.defaults.Exports.StyleA
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-  implicit object EmptyVDomModifier extends Empty[VDomModifier] {
+  implicit object EmptyVDM extends Empty[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
   }
 

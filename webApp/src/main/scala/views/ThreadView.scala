@@ -81,13 +81,17 @@ object ThreadView {
   private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx:Ctx.Data): VDomModifier = {
     val graph = state.graph()
     val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
-    groups.map { group =>
-      // because of equals check in thunk, we implicitly generate a wrapped array
-      val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
-      val key = nodeIds.head.toString
+    VDomModifier(
+      // large padding-top to have space for selectedNodes bar
+      (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
+      groups.map { group =>
+        // because of equals check in thunk, we implicitly generate a wrapped array
+        val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
+        val key = nodeIds.head.toString
 
-      div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
-    }
+        div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
+      }
+    )
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean) = {
@@ -332,7 +336,7 @@ object ThreadView {
       if(parentIdx != -1) {
         graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content])
+          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message)
             nodeSet.add(childIdx)
         }
       }

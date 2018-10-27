@@ -236,13 +236,16 @@ object ChatView {
       withLoadingAnimation(state) {
         val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
 
-        groups.map { group =>
-          // because of equals check in thunk, we implicitly generate a wrapped array
-          val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
-          val key = nodeIds.head.toString
+        VDomModifier(
+          groups.nonEmpty.ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
+          groups.map { group =>
+            // because of equals check in thunk, we implicitly generate a wrapped array
+            val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
+            val key = nodeIds.head.toString
 
-          div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
-        }
+            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+          }
+        )
       }
     }
   }

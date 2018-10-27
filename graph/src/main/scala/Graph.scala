@@ -136,6 +136,11 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   def addNodes(newNodes: Iterable[Node]): Graph = new Graph(nodes = nodes ++ newNodes, edges = edges)
 }
 
+final case class RoleStats(roleCounts:List[(NodeRole,Int)]) {
+  lazy val active: List[(NodeRole, Int)] = roleCounts.filter(_._2 > 0)
+  def contains(role:NodeRole): Boolean = active.exists(_._1 == role)
+}
+
 final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
 
   @inline private def n = nodes.length
@@ -364,6 +369,23 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       nodeIdx += 1
     }
     (nodeCreated, nodeModified)
+  }
+
+  def topLevelRoleStats(parentIds:Iterable[NodeId]):RoleStats = {
+    var messageCount = 0
+    var taskCount = 0
+    parentIds.foreach { nodeId =>
+      val nodeIdx = idToIdx(nodeId)
+      if(nodeIdx != -1) {
+        childrenIdx.foreachElement(nodeIdx) { childIdx =>
+          nodes(childIdx).role match {
+            case NodeRole.Message => messageCount += 1
+            case NodeRole.Task    => taskCount += 1
+          }
+        }
+      }
+    }
+    RoleStats(List(NodeRole.Message -> messageCount, NodeRole.Task -> taskCount))
   }
 
   def filterIdx(p: Int => Boolean): Graph = {
