@@ -11,6 +11,7 @@ import wust.ids._
 
 import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
   import ApiEvent._
@@ -73,54 +74,51 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     }
 
     // TODO: task instead of this function
-    val checkAllChanges: () => Future[Boolean] = () => {
+    val checkAllChanges: () => Future[Unit] = () => {
       val usedIdsFromDb = changes.flatMap(_.involvedNodeIds) diff changes.flatMap(
         _.addNodes
           .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
       )
-      db.user.inaccessibleNodes(user.id, usedIdsFromDb).map { conflictingIds =>
-        if (conflictingIds.isEmpty) true
+      db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
+        if (conflictingIds.isEmpty) Future.successful(())
         else {
-          scribe.warn(
-            s"Cannot apply graph changes, there are inaccessible node ids in this change set: ${conflictingIds
+          Future.failed(new Exception(
+            s"Graph changes not allowed, there are inaccessible node ids in this change set: ${conflictingIds
               .map(_.toUuid)}"
-          )
-          false
+          ))
         }
       }
     }
 
-    def applyChangesToDb(changes: GraphChanges): () => Future[Boolean] = () => {
+    def applyChangesToDb(changes: GraphChanges): () => Future[Unit] = () => {
       import changes.consistent._
 
-      def failFalse(fut: Future[Boolean], msg: String): Future[Boolean] =
-        fut.flatMap(if (_) Future.successful(true) else Future.failed(new Exception(msg)))
+      def failFalse(fut: Future[Boolean], msg: String): Future[Unit] =
+        fut.flatMap(if (_) Future.successful(()) else Future.failed(new Exception(msg)))
 
       for {
         _ <- failFalse(db.node.create(addNodes), s"Cannot create nodes: $addNodes")
         _ <- failFalse(db.edge.create(addEdges), s"Cannot create edges: $addEdges")
         _ <- failFalse(db.edge.delete(delEdges), s"Cannot delete edges: $delEdges")
         _ <- db.node.addMember(addNodes.map(_.id).toList, user.id, AccessLevel.ReadWrite)
-      } yield true
+      } yield ()
     }
 
     if (changesAreAllowed) {
       val changeOperations = changes.map(applyChangesToDb)
 
-      val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-        (checkAllChanges +: changeOperations).foldLeft(Future.successful(true)) {
-          (previousSuccess, operation) =>
-            previousSuccess.flatMap { success =>
-              if (success) operation() else Future.successful(false)
-            }
+      val result: Future[Unit] = db.ctx.transaction { implicit ec =>
+        (checkAllChanges +: changeOperations).foldLeft(Future.successful(())) {
+          (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
         }
       }
 
-      result.map { success =>
-        if (success) {
-          val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _).consistent
-          Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
-        } else Returns(false)
+      result.map { _ =>
+        val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _).consistent
+        Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
+      }.recover { case NonFatal(e) =>
+        scribe.warn("Cannot apply changes", e)
+        Returns(false)
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }

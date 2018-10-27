@@ -269,9 +269,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           } else Future.successful(Nil)
         } yield numBefore.forall(_ <= 1) && numRemain.forall(_ <= 1)
       ).recoverValue(false)
-
     }
-
   }
 
   object user {
