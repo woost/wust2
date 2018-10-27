@@ -132,14 +132,15 @@ function subscribeWebPushAndPersist() {
 }
 
 function focusedClient(clients) {
+    let clientIsFocused = false;
     for (let i = 0; i < clients.length; i++) {
         const windowClient = clients[i];
         if (windowClient.focused) {
             clientIsFocused = true;
-            return true;
+            break;
         }
     }
-    return false;
+    return clientIsFocused;
 }
 
 // startup
@@ -148,7 +149,7 @@ port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
 log("BaseUrl: " + baseUrl);
 
-// Weird workaround
+// Weird workaround since emoji requires global
 let global = {};
 importScripts('emoji.min.js');
 let pushEmojis = new global.EmojiConvertor();
@@ -177,17 +178,15 @@ self.addEventListener('push', e => {
 
     e.waitUntil(
         self.clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
+            type: 'window'
         }).then(clients => {
 
-
-            // if (focusedClient(clients)) {
-            //     return;
-            // } else {
+            if (focusedClient(clients)) {
+                log("focused client => ignoring push");
+                return;
+            } else {
 
                 if (e.data) {
-                    log("push notification with data");
                     let data = e.data.json();
                     let nodeId = data.nodeId;
                     let targetId = data.parentId ? data.parentId : nodeId;
@@ -231,10 +230,10 @@ self.addEventListener('push', e => {
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
-                // }
-            } else {
-                    log("push notification without data");
-                    return self.registration.showNotification("Empty notification");
+                } else {
+                    log("push notification without data => ignoring");
+                    return;
+                }
             }
         })
     );
@@ -263,7 +262,7 @@ self.addEventListener('notificationclick', e => {
                 if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
                     return client.focus() && client.navigate(url);
                 } else if (url.indexOf(baseLocation) !== -1) {
-                    let exp = /(?!(page=(default:)?))(([a-zA-z0-9]{22}),?)+/;
+                    let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
                     return client.focus() && client.navigate(newLocation);
@@ -271,9 +270,11 @@ self.addEventListener('notificationclick', e => {
             }
 
             if (clients.openWindow)
-                return clients.openWindow(baseLocation + '#view=chat&page=default:' + targetId);
-            else
+                return clients.openWindow(baseLocation + '#view=chat&page=' + targetId);
+            else {
                 console.log("push with NOOP!");
+                return;
+            }
 
         })
     );
