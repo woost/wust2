@@ -199,6 +199,7 @@ package object collection {
   }
 
   implicit final class RichArraySet(val marked:ArraySet) extends AnyVal {
+    //TODO: track number of added nodes to speed up map and allElements
     @inline def add(elem:Int):Unit = marked(elem) = 1
     @inline def add(elems:IndexedSeq[Int]): Unit = elems.foreachElement(add)
     @inline def remove(elem:Int):Unit = marked(elem) = 0

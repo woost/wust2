@@ -45,6 +45,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
             .insert(_)
             .onConflictUpdate(_.id)(
               (node, excluded) => node.data -> excluded.data,
+              (node, excluded) => node.role -> excluded.role,
               (node, excluded) => node.accessLevel -> excluded.accessLevel
             )
         })
