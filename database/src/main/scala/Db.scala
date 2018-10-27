@@ -201,7 +201,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val upsert = quote { e: Edge =>
       val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
@@ -264,7 +264,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
             ctx.run {
               liftQuery(remainingEdges.toList).foreach { case (sourceId, targetId) =>
                 val q = query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId).delete
-                infix"$q AND (data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text])".as[Delete[Edge]]
+                infix"$q AND (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text])".as[Delete[Edge]]
               }
             }
           } else Future.successful(Nil)
