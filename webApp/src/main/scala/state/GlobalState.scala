@@ -85,8 +85,7 @@ class GlobalState(
 
   val pageIsBookmarked: Rx[Boolean] = Rx {
     val g = graph()
-    if (page().isInstanceOf[Page.NewChannel]) true
-    else page().parentIds.forall { parentId =>
+    page().parentIds.forall { parentId =>
       val userIdx = g.lookup.idToIdx(user().id)
       val parentIdx = g.lookup.idToIdx.getOrElse(parentId, -1)
       if (parentIdx == -1) true

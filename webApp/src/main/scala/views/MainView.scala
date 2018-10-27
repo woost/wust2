@@ -29,12 +29,11 @@ object MainView {
           minWidth := "0", // necessary for "overflow-wrap: word-break" in node-content to play nice with nested flexbox (https://jsfiddle.net/j3yc28km/).
           Rx {
             // don't show non-bookmarked border for:
-            val isNewChannelPage = state.page().isInstanceOf[Page.NewChannel]
             val bookmarked = state.pageIsBookmarked()
             val noContent = !state.view().isContent
             val isOwnUser = state.page().parentIds == Seq(state.user().id)
 
-            (isNewChannelPage || bookmarked || noContent || isOwnUser).ifFalse[VDomModifier](
+            (bookmarked || noContent || isOwnUser).ifFalse[VDomModifier](
               cls := "non-bookmarked-page-frame"
             )
           },

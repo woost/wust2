@@ -73,7 +73,7 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node): VNode = {
-    div.thunkRx(keyValue)(channel.id) { implicit ctx =>
+    div.staticRx(keyValue(channel.id)) { implicit ctx =>
       val isSpecialNode = Rx{
         //TODO we should use the permission system here and have readonly permission for e.g. feedback
         channel.id == state.user().id
