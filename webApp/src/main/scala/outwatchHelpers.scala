@@ -9,6 +9,7 @@ import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.AsVDomModifier
 import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.util.Empty
 import wust.webUtil.macros.KeyHash
@@ -94,6 +95,13 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
     def toObserver: Observer[T] = new VarObserver(rxVar)
+  }
+
+  implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
+    def asJquery: EmitterBuilder[semanticUi.JQuerySelection, R] = builder.map { elem =>
+      import semanticUi.JQuery._
+      $(elem.asInstanceOf[dom.html.Element])
+    }
   }
 
   implicit class RichVNode(val vNode: BasicVNode) {

@@ -165,6 +165,16 @@ object Elements {
     immediate.immediate(() => code)
   }
 
+  // https://github.com/zzarcon/default-passive-events#is-there-a-possibility-to-bring-default-addeventlistener-method-back-for-chosen-elementsglobally-eg-for-time-of-running-some-of-the-code
+  val withoutDefaultPassiveEvents = onDomMount.foreach { elem =>
+    elem
+      .asInstanceOf[js.Dynamic].addEventListener
+      ._original.asInstanceOf[js.UndefOr[js.Dynamic]]
+      .foreach { orig =>
+        elem.asInstanceOf[js.Dynamic].updateDynamic("addEventListener")(orig)
+    }
+  }
+
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnterWithInitial(Observable.empty)
   def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier {

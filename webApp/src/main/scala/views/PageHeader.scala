@@ -72,8 +72,8 @@ object PageHeader {
     )
   }
 
-  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): ThunkVNode = {
-    div.thunk(keyValue(channel))(channel.id) {
+  private def menu(state: GlobalState, channel: Node): VNode = {
+    div.thunkRx(keyValue)(channel.id) { implicit ctx =>
       val isSpecialNode = Rx{
         //TODO we should use the permission system here and have readonly permission for e.g. feedback
         channel.id == state.user().id
@@ -196,10 +196,7 @@ object PageHeader {
           paddingTop := "3px",
           Components.nodeCard(nodeRes._1, maxLength = Some(60)),
           onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
-          onClick(searchModal) foreach { elem =>
-            import semanticUi.JQuery._
-            $(elem).modal("hide")
-          },
+          onClick(searchModal).asJquery.foreach(_.modal("hide"))
         ),
       )
 
@@ -301,10 +298,7 @@ object PageHeader {
           searchModal.onNext(elem)
         },
       ),
-      onClick(searchModal) foreach { elem =>
-        import semanticUi.JQuery._
-        $(elem).modal("toggle")
-      },
+      onClick(searchModal).asJquery.foreach(_.modal("toggle"))
     )
   }
 
@@ -430,9 +424,8 @@ object PageHeader {
           addMemberModal.onNext(elem)
         },
       ),
-      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)) foreach { elem =>
-        import semanticUi.JQuery._
-        $(elem).modal("toggle")
+      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)).asJquery.foreach { elem =>
+        elem.modal("toggle")
       },
     )
   }
@@ -584,17 +577,10 @@ object PageHeader {
         div(cls := "header", "Settings", cursor.default),
         items
       ),
-      // https://semantic-ui.com/modules/dropdown.html#/usage
-      onDomMount.asHtml foreach { elem =>
         // revert default passive events, else dropdown is not working
-        // https://github.com/zzarcon/default-passive-events#is-there-a-possibility-to-bring-default-addeventlistener-method-back-for-chosen-elementsglobally-eg-for-time-of-running-some-of-the-code
-        val orig = elem.asInstanceOf[js.Dynamic].addEventListener._original
-        elem.asInstanceOf[js.Dynamic].updateDynamic("addEventListener")(orig)
-
-        import semanticUi.JQuery._
-        $(elem).dropdown()
-      },
-      keyed(channel.id)
+      Elements.withoutDefaultPassiveEvents,
+      // https://semantic-ui.com/modules/dropdown.html#/usage
+      onDomMount.asJquery.foreach(_.dropdown("hide")),
     )
   }
 }
