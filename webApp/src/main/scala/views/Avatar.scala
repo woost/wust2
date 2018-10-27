@@ -87,19 +87,18 @@ object Avatar {
     Array(col1, col1, col1, col1, col2, col3)
   }
 
-  @inline private def randomElement(array: Array[Double], rnd: scala.util.Random) =
-    array(rnd.nextInt(array.length))
   @inline private def randomElement(array: Array[String], rnd: scala.util.Random) =
     array(rnd.nextInt(array.length))
 
+  private val svgWidthOne = dsl.svg.width := "1"
+  private val svgHeightOne = dsl.svg.height := "1"
   private def addPixel(pixels: js.Array[VNode], x: Int, y: Int, color: String): Unit = {
     import outwatch.dom.dsl.svg
     pixels push svg.rect(
       dsl.svg.x := x.toString,
       dsl.svg.y := y.toString,
-      // these will be set via stylesheet instead:
-      //      svg.width := "1",
-      //      svg.height := "1",
+      svgWidthOne,
+      svgHeightOne,
       svg.fill := color
     )
   }
@@ -109,7 +108,6 @@ object Avatar {
     VDomModifier(
       viewBox := s"0 0 $n $n",
       dsl.style("shape-rendering") := "optimizeSpeed",
-      dsl.cls := "avatarsvg",
       pixels
     )
   }

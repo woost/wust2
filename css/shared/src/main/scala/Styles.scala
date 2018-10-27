@@ -200,12 +200,6 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flexStatic,
   )
 
-  ".avatarsvg > rect" - (
-    width(1 px),
-    height(1 px)
-  )
-
-
   ".animated-fadein" - (
     opacity(0),
     animationName(Styles.fadeInKf),
