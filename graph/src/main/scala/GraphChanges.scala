@@ -51,15 +51,16 @@ object GraphChanges {
   def log(changes: GraphChanges, graph: Option[Graph] = None, premsg: String = ""): Unit = {
     import changes._
     val addNodeLookup = changes.addNodes.by(_.id)
+
     def id(nid: NodeId): String = {
       val str = (for {
         g <- graph
         node = addNodeLookup.getOrElse(nid, g.lookup.nodesById(nid))
-      } yield node.str).fold("")(str => s"${"\""}$str${"\""}")
+      } yield node.str).fold("")(str => s"${ "\"" }$str${ "\"" }")
       s"$str[${ nid.toBase58.takeRight(3) }]"
     }
 
-    scribe.info(s"${premsg}GraphChanges(")
+    scribe.info(s"${ premsg }GraphChanges(")
     if(addNodes.nonEmpty) scribe.info(s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }").mkString(" ") }")
     if(addEdges.nonEmpty) scribe.info(s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString(" ") }")
     if(delEdges.nonEmpty) scribe.info(s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString(" ") }")
@@ -88,7 +89,7 @@ object GraphChanges {
     GraphChanges(addNodes = Set(node), addEdges = Set(Edge.Parent(node.id, parentId)))
   def addNodeWithParent(node: Node, parentIds: Iterable[NodeId]) =
     GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, parentId))(breakOut))
-  def addNodeWithDeletedParent(node: Node, parentIds: Iterable[NodeId],deletedAt:EpochMilli) =
+  def addNodeWithDeletedParent(node: Node, parentIds: Iterable[NodeId], deletedAt: EpochMilli) =
     GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, EdgeData.Parent(Some(deletedAt)), parentId))(breakOut))
 
   def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId) = GraphChanges(
@@ -118,7 +119,7 @@ object GraphChanges {
 
   def delete(nodeIds: Iterable[NodeId], parentIds: Set[NodeId]): GraphChanges =
     nodeIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
-  def delete(nodeId: NodeId, parentIds: Iterable[NodeId], deletedAt:EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
+  def delete(nodeId: NodeId, parentIds: Iterable[NodeId], deletedAt: EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
       parentId => Edge.Parent.delete(nodeId, parentId, deletedAt)
     )(breakOut)
@@ -161,13 +162,23 @@ object GraphChanges {
     disconnect merge connect
   }
 
-  def moveInto(graph: Graph, subjectIds: Iterable[NodeId], targetIds: Iterable[NodeId]): GraphChanges =
-    targetIds.foldLeft(GraphChanges.empty) { (changes, targetId) => changes merge GraphChanges.moveInto(graph, subjectIds, targetId) }
-  def moveInto(graph: Graph, subject: NodeId, target: NodeId): GraphChanges = moveInto(graph, subject :: Nil, target)
-  def moveInto(graph: Graph, subjects: Iterable[NodeId], target: NodeId): GraphChanges = {
+  def moveInto(graph: Graph, subjectIds: Iterable[NodeId], newParentIds: Iterable[NodeId]): GraphChanges =
+    newParentIds.foldLeft(GraphChanges.empty) { (changes, targetId) => changes merge GraphChanges.moveInto(graph, subjectIds, targetId) }
+  def moveInto(graph: Graph, subjectId: NodeId, newParentId: NodeId): GraphChanges = moveInto(graph, subjectId :: Nil, newParentId)
+  def moveInto(graph: Graph, subjectIds: Iterable[NodeId], newParentId: NodeId): GraphChanges = {
     // TODO: only keep deepest parent in transitive chain
-    val newParentships: collection.Set[Edge] = subjects.filterNot(_ == target).map(subject => Edge.Parent(subject, target))(breakOut) // avoid creating self-loops
-    val cycleFreeSubjects: Iterable[NodeId] = subjects.filterNot(subject => subject == target || (graph.ancestors(target) contains subject)) // avoid self loops and cycles
+    val newParentships: collection.Set[Edge] = subjectIds
+      .filterNot(_ == newParentId) // avoid creating self-loops
+      .map { subjectId =>
+        // if subject was not deleted in one of its parents => keep it
+        // if it was deleted, take the latest deletion date
+        val subjectIdx = graph.idToIdx(subjectId)
+        val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
+
+        Edge.Parent(subjectId, EdgeData.Parent(deletedAt), newParentId)
+      }(breakOut)
+
+    val cycleFreeSubjects: Iterable[NodeId] = subjectIds.filterNot(subject => subject == newParentId || (graph.ancestors(newParentId) contains subject)) // avoid self loops and cycles
     val removeParentships = ((
       for {
         subject <- cycleFreeSubjects

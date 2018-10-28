@@ -6,10 +6,11 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.console
+
 import scala.scalajs.js
 import draggable._
 import wust.graph.{Edge, GraphChanges, Tree}
-import wust.ids.NodeId
+import wust.ids.{EdgeData, NodeId}
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -61,17 +62,21 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     state.eventProcessor.enriched.changes.onNext(changes)
   }
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
-  private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = {
-    submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagId))
-  }
+  private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = addTag(nodeIds, tagId :: Nil)
   private def addTag(nodeIds:Seq[NodeId], tagIds:Iterable[NodeId]):Unit = {
-    submit(GraphChanges.connect(Edge.Parent)(nodeIds, tagIds))
+    val changes = nodeIds.foldLeft(GraphChanges.empty) {(currentChange, nodeId) =>
+      val graph = state.graph.now
+      val subjectIdx = graph.idToIdx(nodeId)
+      val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
+      currentChange merge GraphChanges.connect((s,d,t) => new Edge.Parent(s,d,t))(nodeIds, EdgeData.Parent(deletedAt), tagIds)
+    }
+    submit(changes)
   }
 
-  private def moveInto(nodeId:NodeId, parentId:NodeId):Unit = moveInto(nodeId :: Nil, parentId :: Nil)
-  private def moveInto(nodeId:NodeId, parentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, parentIds)
-  private def moveInto(nodeIds:Iterable[NodeId], parentIds:Iterable[NodeId]):Unit = {
-    submit(GraphChanges.moveInto(state.graph.now, nodeIds, parentIds))
+  private def moveInto(nodeId:NodeId, newParentId:NodeId):Unit = moveInto(nodeId :: Nil, newParentId :: Nil)
+  private def moveInto(nodeId:NodeId, newParentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, newParentIds)
+  private def moveInto(nodeIds:Iterable[NodeId], newParentIds:Iterable[NodeId]):Unit = {
+    submit(GraphChanges.moveInto(state.graph.now, nodeIds, newParentIds))
   }
   private def moveChannel(channelId:NodeId, targetChannelId:NodeId):Unit = {
 

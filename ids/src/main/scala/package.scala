@@ -34,10 +34,12 @@ package object ids {
     @inline def day: Long = 24L * hour
     @inline def week: Long = 7L * day
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
-      @inline def <(that: EpochMilli) = t < that
-      @inline def >(that: EpochMilli) = t > that
-      @inline def isBefore(that: EpochMilli) = t < that
-      @inline def isAfter(that: EpochMilli) = t > that
+      @inline def <(that: EpochMilli): Boolean = t < that
+      @inline def >(that: EpochMilli): Boolean = t > that
+      @inline def isBefore(that: EpochMilli): Boolean = t < that
+      @inline def isAfter(that: EpochMilli): Boolean = t > that
+      @inline def newest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) max (that:Long))
+      @inline def oldest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) min (that:Long))
       def humanReadable: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
