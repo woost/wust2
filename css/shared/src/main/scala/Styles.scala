@@ -494,8 +494,8 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
-//    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     nodeCardShadow,
+    minWidth(6 em).important,
   )
 
   ".nodecard a" - (
