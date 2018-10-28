@@ -136,18 +136,20 @@ object ChatView {
         cls := "chat-group-inner-frame",
         chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
 
-        group.map { groupIdx =>
-          val nodeId = groupGraph.nodeIds(groupIdx)
+        group.map { nodeIdx =>
+          val nodeId = groupGraph.nodeIds(nodeIdx)
+          val parentIds = groupGraph.parentsByIndex(nodeIdx)
+
           div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
             val isDeletedNow = Rx {
               val graph = state.graph()
-              graph.isDeletedNow(nodeId, state.page.now.parentIds)
+              graph.isDeletedNow(nodeId, parentIds)
             }
 
             val editMode = Var(false)
 
-            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
+            renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
           }
         }
       )
@@ -197,7 +199,10 @@ object ChatView {
         val messageCard = renderedMessage()
         val parents = parentNodes()
         if(parents.nonEmpty) {
-          val importanceIndicator = Rx { (!editMode() && !isDeletedNow() && !isDeletedInFuture()).ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08")) }
+          val importanceIndicator = Rx {
+            val isImportant = !(editMode() || isDeletedNow() || isDeletedInFuture())
+            isImportant.ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
+          }
           val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents.map(_.id)).get).toHex
           div(
             cls := "nodecard",

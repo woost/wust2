@@ -112,8 +112,8 @@ object ThreadView {
         dragTarget(DragItem.Chat.Message(firstNodeId)),
 
         chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
-        group.map { groupIdx =>
-          val nodeId = groupGraph.nodeIds(groupIdx)
+        group.map { nodeIdx =>
+          val nodeId = groupGraph.nodeIds(nodeIdx)
 
           div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
             val nodeIdList = nodeId :: Nil
