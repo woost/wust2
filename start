@@ -134,10 +134,25 @@ function self() {
         postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgrestorefromprod)
+        echo "clearing local database..."
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading production database and restoring in local database..."
+        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        export $env_slack_postgres
+        echo "clearing local slack database..."
+        postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading production database slack and restoring in local database..."
+        ssh -C harald docker exec -i "woostappslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        ;;
+    pgrestorefromstaging)
+        echo "clearing local database..."
+        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading staging database and restoring in local database..."
         ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         export $env_slack_postgres
+        echo "clearing local slack database..."
         postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading staging database slack and restoring in local database..."
         ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
