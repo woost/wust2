@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
-import org.scalajs.dom
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -32,6 +32,7 @@ object ChatView {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
 
     val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
+    val inputFieldFocusTrigger = PublishSubject[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
 
@@ -47,7 +48,7 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, additional = additionalNodeActions(selectedNodes,currentReply)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, additional = additionalNodeActions(selectedNodes,currentReply,inputFieldFocusTrigger)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
         position.absolute,
         width := "100%"
       ),
@@ -55,7 +56,7 @@ object ChatView {
         cls := "chat-history",
         overflow.auto,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, currentReply, selectedNodes),
+        chatHistory(state, currentReply, selectedNodes, inputFieldFocusTrigger),
         outerDragOptions,
 
         // clicking on background deselects
@@ -97,12 +98,12 @@ object ChatView {
           else state.page.now.parentIdSet
         }
 
-        inputField(state, replyNodes, scrollHandler)(ctx)(Styles.flexStatic)
+        inputField(state, replyNodes, scrollHandler, inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
       }
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
@@ -117,14 +118,14 @@ object ChatView {
             val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
             val key = nodeIds.head.toString
 
-            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
           }
         )
       }
     }
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val author: Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val isLargeScreen = state.screenSize.now == ScreenSize.Large
@@ -149,7 +150,7 @@ object ChatView {
 
             val editMode = Var(false)
 
-            renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
+            renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
           }
         }
       )
@@ -157,7 +158,7 @@ object ChatView {
   }
 
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -174,8 +175,13 @@ object ChatView {
         .map(id => graph.nodes(graph.idToIdx(id)))(breakOut)
     }
 
+    def replyAction = {
+      currentReply.update(_ ++ Set(nodeId))
+      inputFieldFocusTrigger.onNext(Unit)
+    }
+
     val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = currentReply.update(_ ++ Set(nodeId))) //TODO reply action
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
@@ -274,11 +280,13 @@ object ChatView {
     nodes
   }
 
-  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]) = List(
+  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus:PublishSubject[Unit]) = List(
     replyButton(
       onClick foreach {
         currentReply() = selectedNodes.now.map(_.nodeId)
         selectedNodes() = Set.empty[SelectedNode]
+        inputFieldTriggerFocus.onNext(Unit)
+        ()
       }
     )
   )

@@ -1,32 +1,27 @@
 package wust.webApp.views
 
 import cats.effect.IO
-
-import collection.breakOut
 import fontAwesome._
+import monix.reactive.Observable
+import org.scalajs.dom
+import org.scalajs.dom.raw.HTMLElement
+import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
-import wust.util.collection._
-import wust.webApp.Icons
+import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.dragdrop.DragItem
+import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.jsdom.dateFns
-import wust.webApp.BrowserDetect
-import wust.sdk.NodeColor._
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
-import org.scalajs.dom.window
-import wust.webApp.dragdrop.DragItem
 
-import scala.collection.mutable
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 
 object SharedViewElements {
@@ -84,7 +79,7 @@ object SharedViewElements {
     }
   }
 
-  def inputField(state: GlobalState, parentIds: => Iterable[NodeId], scrollHandler:ScrollHandler)(implicit ctx: Ctx.Owner): VNode = {
+  def inputField(state: GlobalState, parentIds: => Iterable[NodeId], scrollHandler:ScrollHandler, triggerFocus:Observable[Unit] = Observable.empty)(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = Rx {
       state.viewConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
@@ -112,7 +107,10 @@ object SharedViewElements {
       }
     }
 
+
+
     div(
+      managed(IO(triggerFocus.foreach { _ => currentTextArea.focus()})),
       Styles.flex,
       alignItems.center,
       justifyContent.stretch,
@@ -347,7 +345,7 @@ object SharedViewElements {
     cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
   )
 
-  def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner) =
+  def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
     (state.screenSize.now == ScreenSize.Small).ifFalse[VDomModifier] {
       div(
         cls := "ui checkbox fitted",
@@ -366,7 +364,7 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner) = {
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flexStatic,
       cls := "chatmsg-controls",
