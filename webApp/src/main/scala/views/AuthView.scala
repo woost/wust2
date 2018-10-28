@@ -110,7 +110,8 @@ object AuthView {
         },
         onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
         managed(IO { username.subscribe(defaultUsername) }),
-        managed(IO { password.subscribe(defaultPassword) })
+        managed(IO { password.subscribe(defaultPassword) }),
+        marginBottom := "20px",
       )
     )
   }

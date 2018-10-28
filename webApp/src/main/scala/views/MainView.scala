@@ -42,6 +42,7 @@ object MainView {
             Styles.flex,
             Styles.growFull,
             flexDirection.column,
+            overflow.auto,
             Rx {
               val view = state.view()
               view.isContent
@@ -53,7 +54,7 @@ object MainView {
             // It is important that the view rendering is in a separate Rx.
             // This avoids rerendering the whole view when only the screen-size changed
             Rx {
-              ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1)
+              ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1, overflow.visible)
             },
           )
         )
