@@ -72,8 +72,10 @@ object PageHeader {
     )
   }
 
-  private def menu(state: GlobalState, channel: Node): VNode = {
-    div.staticRx(keyValue(channel.id)) { implicit ctx =>
+  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    //TODO: if div.static we rerender on user change with an inconsistent graph... that crashes with index out bounds
+    // div.staticRx(keyValue(channel.id)) { implicit ctx =>
+    div {
       val isSpecialNode = Rx{
         //TODO we should use the permission system here and have readonly permission for e.g. feedback
         channel.id == state.user().id
