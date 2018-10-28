@@ -47,8 +47,7 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      //TODO: maybe we want to reply to multiple nodes as well in chat?
-      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes, currentReply), selectedNodes).apply(
+      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, additional = additionalNodeActions(selectedNodes,currentReply)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
         position.absolute,
         width := "100%"
       ),
@@ -220,7 +219,7 @@ object ChatView {
     )
   }
 
-  def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
       val idx = graph.idToIdx(parent.id)
@@ -270,18 +269,21 @@ object ChatView {
     nodes
   }
 
+  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]) = List(
+    replyButton(
+      onClick foreach {
+        currentReply() = selectedNodes.now.map(_.nodeId)
+        selectedNodes() = Set.empty[SelectedNode]
+      }
+    )
+  )
+
   //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
       editButton(
         onClick foreach {
           selectedNodes.now.head.editMode() = true
-          selectedNodes() = Set.empty[SelectedNode]
-        }
-      ),
-      replyButton(
-        onClick foreach {
-          currentReply() = selectedNodes.now.map(_.nodeId)
           selectedNodes() = Set.empty[SelectedNode]
         }
       )

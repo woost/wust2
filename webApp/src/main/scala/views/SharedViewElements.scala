@@ -491,7 +491,7 @@ object SharedViewElements {
     )
   }
 
-  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
+  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], additional:List[VNode] = Nil)(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
@@ -522,6 +522,6 @@ object SharedViewElements {
         selectedNodes() = Set.empty[T]
       }),
       SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted),
-    )
+    ) ::: additional
   }
 }
