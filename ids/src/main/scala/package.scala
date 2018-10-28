@@ -62,4 +62,5 @@ package object ids {
     @inline def max = EpochMilli(64060588800000L)
   }
   type EpochMilli = EpochMilli.Type
+  @inline implicit def ord:Ordering[EpochMilli] = Ordering.by(epochMilli => epochMilli:Long): @inline
 }

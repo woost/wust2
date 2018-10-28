@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import fontAwesome.freeSolid
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
@@ -19,7 +20,7 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 
 
@@ -78,11 +79,12 @@ object ChatView {
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
-              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
+              backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
               div(
                 Styles.flex,
                 alignItems.flexStart,
-                parentMessage(state, node, isDeletedNow, currentReply).apply(alignSelf.center),
+                flexWrap.wrap,
+                parentMessage(state, node.id, isDeletedNow, currentReply).apply(alignSelf.center),
                 closeButton(
                   marginLeft.auto,
                   onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -98,7 +100,8 @@ object ChatView {
           else state.page.now.parentIdSet
         }
 
-        inputField(state, replyNodes, scrollHandler, inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+        val bgColor = Rx{ NodeColor.pageHue(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
+        inputField(state, replyNodes, scrollHandler, inputFieldFocusTrigger)(ctx)(Styles.flexStatic, Rx{ backgroundColor :=? bgColor()} )
       }
     )
   }
@@ -114,22 +117,42 @@ object ChatView {
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
           groups.map { group =>
-            // because of equals check in thunk, we implicitly generate a wrapped array
-            val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
-            val key = nodeIds.head.toString
-
-            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+            thunkRxFun(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger)
           }
         )
       }
     }
   }
 
+  private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
+    // because of equals check in thunk, we implicitly generate a wrapped array
+    val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
+    val key = nodeIds.head.toString
+    val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).map(graph.nodeIds)
+    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+  }
+
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+
     val author: Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val isLargeScreen = state.screenSize.now == ScreenSize.Large
+    val commonParentsIdx = groupGraph.parentsIdx(group(0)).sortBy(idx => groupGraph.nodeCreated(idx))
+    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentIdSet)
 
+    val commonParents = div(
+      Styles.flex,
+      alignItems.flexStart,
+      flexWrap.wrap,
+      commonParentsIdx.map { parentIdx =>
+        state.page.now.parentIdSet.contains(groupGraph.nodeIds(parentIdx)).ifFalse[VDomModifier](
+          parentMessage(state, groupGraph.nodeIds(parentIdx), false, currentReply)
+        )
+      }
+    )
+
+    val bgColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex)
+    val lineColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
     VDomModifier(
       cls := "chat-group-outer-frame",
       isLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
@@ -137,26 +160,48 @@ object ChatView {
         cls := "chat-group-inner-frame",
         chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
 
-        group.map { nodeIdx =>
-          val nodeId = groupGraph.nodeIds(nodeIdx)
-          val parentIds = groupGraph.parentsByIndex(nodeIdx)
+        div(
+          cls := "chat-expanded-thread",
+          backgroundColor :=? bgColor,
+          commonParents,
 
-          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
+          div(
+            cls := "chat-thread-messages",
+            lineColor.map(lineColor => borderLeft := s"3px solid ${ lineColor }"),
 
-            val isDeletedNow = Rx {
-              val graph = state.graph()
-              graph.isDeletedNow(nodeId, parentIds)
-            }
+            group.map { nodeIdx =>
+              val nodeId = groupGraph.nodeIds(nodeIdx)
+              val parentIds = groupGraph.parentsByIndex(nodeIdx)
 
-            val editMode = Var(false)
+              div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
-            renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
-          }
-        }
+                val isDeletedNow = Rx {
+                  val graph = state.graph()
+                  graph.isDeletedNow(nodeId, parentIds)
+                }
+
+                val editMode = Var(false)
+
+                renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
+              }
+            },
+            commonParentIds.nonEmpty.ifTrue[VDomModifier](threadReplyButton(state, commonParentIds.toSet, currentReply))
+          )
+        )
       )
     )
   }
 
+  private def threadReplyButton(state: GlobalState, commonParentIds:Set[NodeId], currentReply: Var[Set[NodeId]]) = {
+    div(
+      cls := "chat-replybutton",
+      freeSolid.faReply,
+      " reply",
+      marginTop := "3px",
+      marginLeft := "8px",
+      onClick.stopPropagation foreach { currentReply() = commonParentIds }
+    )
+  }
 
   private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VNode = {
 
@@ -166,13 +211,12 @@ object ChatView {
 
     val isDeletedInFuture = Rx {
       val graph = state.graph()
-      graph.isDeletedInFuture(nodeId, directParentIds)
-    }
-
-    val parentNodes: Rx[Seq[Node]] = Rx {
-      val graph = state.graph()
-      (graph.parents(nodeId) -- state.page.now.parentIds)
-        .map(id => graph.nodes(graph.idToIdx(id)))(breakOut)
+      val nodeIdx = graph.idToIdx(nodeId)
+      if(nodeIdx == -1) true
+      else graph.combinedDeletedAt(nodeIdx) match {
+        case Some(deletedAt) => deletedAt isAfter EpochMilli.now
+        case None => false
+      }
     }
 
     def replyAction = {
@@ -201,48 +245,34 @@ object ChatView {
       isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
       selectByClickingOnRow,
       checkbox,
-      Rx {
-        val messageCard = renderedMessage()
-        val parents = parentNodes()
-        if(parents.nonEmpty) {
-          val importanceIndicator = Rx {
-            val isImportant = !(editMode() || isDeletedNow() || isDeletedInFuture())
-            isImportant.ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
-          }
-          val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.pageHue(parents.map(_.id)).get).toHex
-          div(
-            cls := "nodecard",
-            backgroundColor := (if(isDeletedNow()) bgColor + "88" else bgColor), //TODO: rgbia hex notation is not supported yet in Edge: https://caniuse.com/#feat=css-rrggbbaa
-            div(
-              Styles.flex,
-              alignItems.flexStart,
-              parents.map { parent =>
-                parentMessage(state, parent, isDeletedNow(), currentReply)
-              }
-            ),
-            messageCard.map(_ (boxShadow := "none", backgroundColor := bgColor)),
-            importanceIndicator,
-          )
-        } else messageCard: VDomModifier
-      },
+      Rx { renderedMessage() },
       controls,
       messageRowDragOptions(nodeId, selectedNodes, editMode)
     )
   }
 
-  private def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def parentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
-      val idx = graph.idToIdx(parent.id)
-      val authors = graph.authors(parent.id)
+      val idx = graph.idToIdx(parentId)
+      val authors = graph.authors(parentId)
       val creationEpochMillis = if(idx == -1) None else Some(graph.nodeCreated(idx))
       (authors.headOption, creationEpochMillis)
+    }
+
+    val parent = Rx{
+      val graph = state.graph()
+      val node = graph.nodesByIdGet(parentId)
+
+      println("rerendering: " + node.fold("")(_.str))
+      node
     }
 
     div(
       padding := "1px",
       borderTopLeftRadius := "2px",
       borderTopRightRadius := "2px",
+      minWidth := "0", // fixes word-break in flexbox
       Rx {
         val tuple = authorAndCreated()
         val (author, creationEpochMillis) = tuple
@@ -250,13 +280,12 @@ object ChatView {
           padding := "2px",
         )
       },
-      nodeCard(parent)(
-        fontSize.xSmall,
-        backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
-        boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-        cursor.pointer,
-        onTap foreach { currentReply.update(_ ++ Set(parent.id)) },
-      ),
+      Rx {
+        parent().map(node => nodeCard(node)(
+          cursor.pointer,
+          onClick foreach { currentReply.update(_ ++ Set(parentId)) },
+        ))
+      },
       margin := "3px",
       isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
     )
@@ -278,6 +307,32 @@ object ChatView {
     nodeSet.foreachAdded(nodes += _)
     sortByCreated(nodes, graph)
     nodes
+  }
+
+  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
+    if(messages.isEmpty) return Array[Array[Int]]()
+
+    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
+    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
+    var lastAuthor: Int = -1
+    var lastParents: SliceInt = null
+    messages.foreach { message =>
+      val author: Int = graph.authorsIdx(message, 0)
+      val parents: SliceInt = graph.parentsIdx(message)
+
+      if((lastAuthor != -1 && author != lastAuthor) ||
+        (lastParents != null && parents != lastParents)
+      ) {
+        groupsBuilder += currentGroupBuilder.result()
+        currentGroupBuilder.clear()
+      }
+
+      currentGroupBuilder += message
+      lastAuthor = author
+      lastParents = parents
+    }
+    groupsBuilder += currentGroupBuilder.result()
+    groupsBuilder.result()
   }
 
   private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus:PublishSubject[Unit]) = List(
