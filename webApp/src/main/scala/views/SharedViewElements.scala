@@ -295,7 +295,10 @@ object SharedViewElements {
 
 
     def render(node: Node)(implicit ctx: Ctx.Owner) = {
-      val importanceIndicator = Rx { (!editMode() && !isDeletedNow() && !isDeletedInFuture()).ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08")) }
+      val importanceIndicator = Rx {
+        val isImportant = (!editMode() && !isDeletedNow() && !isDeletedInFuture())
+        isImportant.ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
+      }
       nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
         Styles.flex,
         alignItems.flexEnd,

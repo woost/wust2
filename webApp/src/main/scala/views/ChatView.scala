@@ -26,7 +26,7 @@ import scala.scalajs.js
 object ChatView {
   import SharedViewElements._
 
-  private final case class SelectedNode(nodeId:NodeId)(val editMode:Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
+  private final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
@@ -89,7 +89,7 @@ object ChatView {
                 ),
               )
             )
-          }(breakOut):Seq[VDomModifier]
+          }(breakOut): Seq[VDomModifier]
         )
       },
       {
@@ -97,12 +97,66 @@ object ChatView {
           if(currentReply.now.nonEmpty) currentReply.now
           else state.page.now.parentIdSet
         }
+
         inputField(state, replyNodes, scrollHandler)(ctx)(Styles.flexStatic)
       }
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
+    Rx {
+      state.screenSize() // on screensize change, rerender whole chat history
+      val page = state.page()
+      val graph = state.graph()
+      withLoadingAnimation(state) {
+        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
+
+        VDomModifier(
+          groups.nonEmpty.ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
+          groups.map { group =>
+            // because of equals check in thunk, we implicitly generate a wrapped array
+            val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
+            val key = nodeIds.head.toString
+
+            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
+          }
+        )
+      }
+    }
+  }
+
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val author: Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
+    val creationEpochMillis = groupGraph.nodeCreated(group(0))
+    val isLargeScreen = state.screenSize.now == ScreenSize.Large
+
+    VDomModifier(
+      cls := "chat-group-outer-frame",
+      isLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      div(
+        cls := "chat-group-inner-frame",
+        chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
+
+        group.map { groupIdx =>
+          val nodeId = groupGraph.nodeIds(groupIdx)
+          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
+
+            val isDeletedNow = Rx {
+              val graph = state.graph()
+              graph.isDeletedNow(nodeId, state.page.now.parentIds)
+            }
+
+            val editMode = Var(false)
+
+            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
+          }
+        }
+      )
+    )
+  }
+
+
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -156,7 +210,7 @@ object ChatView {
                 parentMessage(state, parent, isDeletedNow(), currentReply)
               }
             ),
-            messageCard.map(_(boxShadow := "none", backgroundColor := bgColor)),
+            messageCard.map(_ (boxShadow := "none", backgroundColor := bgColor)),
             importanceIndicator,
           )
         } else messageCard: VDomModifier
@@ -166,88 +220,36 @@ object ChatView {
     )
   }
 
-    def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
-      val authorAndCreated = Rx {
-        val graph = state.graph()
-        val idx = graph.idToIdx(parent.id)
-        val authors = graph.authors(parent.id)
-        val creationEpochMillis = if (idx == -1) None else Some(graph.nodeCreated(idx))
-        (authors.headOption, creationEpochMillis)
-      }
-
-      div(
-        padding := "1px",
-        borderTopLeftRadius := "2px",
-        borderTopRightRadius := "2px",
-        Rx {
-          val tuple = authorAndCreated()
-          val (author, creationEpochMillis) = tuple
-          chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
-            padding := "2px",
-          )
-        },
-        nodeCard(parent)(
-          fontSize.xSmall,
-          backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
-          boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
-          cursor.pointer,
-          onTap foreach {currentReply.update(_ ++ Set(parent.id))},
-        ),
-        margin := "3px",
-        isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
-      )
-    }
-
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val author:Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
-    val creationEpochMillis = groupGraph.nodeCreated(group(0))
-    val isLargeScreen = state.screenSize.now == ScreenSize.Large
-
-    VDomModifier(
-      cls := "chat-group-outer-frame",
-      isLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
-      div(
-        cls := "chat-group-inner-frame",
-        chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
-
-        group.map { groupIdx =>
-          val nodeId = groupGraph.nodeIds(groupIdx)
-          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
-
-            val isDeletedNow = Rx {
-              val graph = state.graph()
-              graph.isDeletedNow(nodeId, state.page.now.parentIds)
-            }
-
-            val editMode = Var(false)
-
-            renderMessageRow(state, nodeId, state.page.now.parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply)
-          }
-        }
-      )
-    )
-  }
-
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
-    Rx {
-      state.screenSize() // on screensize change, rerender whole chat history
-      val page = state.page()
+  def parentMessage(state: GlobalState, parent: Node, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+    val authorAndCreated = Rx {
       val graph = state.graph()
-      withLoadingAnimation(state) {
-        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
-
-        VDomModifier(
-          groups.nonEmpty.ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
-          groups.map { group =>
-            // because of equals check in thunk, we implicitly generate a wrapped array
-            val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
-            val key = nodeIds.head.toString
-
-            div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, currentReply, selectedNodes))
-          }
-        )
-      }
+      val idx = graph.idToIdx(parent.id)
+      val authors = graph.authors(parent.id)
+      val creationEpochMillis = if(idx == -1) None else Some(graph.nodeCreated(idx))
+      (authors.headOption, creationEpochMillis)
     }
+
+    div(
+      padding := "1px",
+      borderTopLeftRadius := "2px",
+      borderTopRightRadius := "2px",
+      Rx {
+        val tuple = authorAndCreated()
+        val (author, creationEpochMillis) = tuple
+        chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
+          padding := "2px",
+        )
+      },
+      nodeCard(parent)(
+        fontSize.xSmall,
+        backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parent.id)).toHex,
+        boxShadow := s"0px 1px 0px 1px ${ tagColor(parent.id).toHex }",
+        cursor.pointer,
+        onTap foreach { currentReply.update(_ ++ Set(parent.id)) },
+      ),
+      margin := "3px",
+      isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
+    )
   }
 
   private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
