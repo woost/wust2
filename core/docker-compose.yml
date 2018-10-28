@@ -3,7 +3,7 @@ version: '3'
 services:
   postgres:
     restart: ${DOCKER_RESTART_POLICY-on-failure}
-    image: postgres:10.1-alpine
+    image: postgres:11.0-alpine
 
     # https://pgtune.leopard.in.ua
     # DB Version: 10
