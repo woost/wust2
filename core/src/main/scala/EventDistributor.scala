@@ -35,7 +35,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   override def publish(
       events: List[ApiEvent],
       origin: Option[NotifiableClient[ApiEvent, State]]
-  ): Unit = if (events.nonEmpty) {
+  ): Unit = if (events.nonEmpty) Future {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
     val (checkedNodeIdsList, involvedCheckedNodeIdsList, authorsList) = events.map {
