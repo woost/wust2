@@ -1,24 +1,39 @@
 package wust.util
 
-import wust.util.collection.InterleavedArray
-import wust.util.collection._
+import wust.util.collection.{InterleavedArray, _}
 
 import scala.collection.mutable
-import scala.collection.mutable.ArrayBuilder
+
+// Simulates Array[Array[Int]] but stored only in one array for performance reasons.
+// data: contains all data of the virtual nested arrays
+// sliceArray: stores start/length of nested array interleaved
 
 final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) extends IndexedSeq[SliceInt] {
-  // sliceArray stores start/length of nested array interleaved
+  @inline def length: Int = sliceArray.elementCount
+  @inline override def size: Int = length
+  @inline override def isEmpty: Boolean = length == 0
+  @inline override def nonEmpty: Boolean = length != 0
 
   @inline def sliceStart(idx: Int):Int = sliceArray.a(idx)
   @inline def sliceLength(idx: Int):Int = sliceArray.b(idx)
   @inline def sliceIsEmpty(idx: Int):Boolean = sliceLength(idx) == 0
   @inline def sliceNonEmpty(idx: Int):Boolean = sliceLength(idx) > 0
-  @inline override def length: Int = sliceArray.elementCount
-  @inline override def apply(idx: Int): SliceInt = new SliceInt(data, sliceStart(idx), sliceLength(idx))
-  @inline def apply(idx1: Int, idx2:Int): Int = data(sliceStart(idx1)+idx2)
-  @inline def get(idx1: Int, idx2:Int): Option[Int] = if(idx1 < length && idx2 < sliceLength(idx1)) Some(apply(idx1,idx2)) else None
-  @inline def update(idx1: Int, idx2:Int, newValue:Int): Unit = data(sliceStart(idx1)+idx2) = newValue
+  @inline private def dataIndex(idx1:Int, idx2:Int):Int = sliceStart(idx1)+idx2
+
+  @inline def apply(idx: Int): SliceInt = new SliceInt(data, sliceStart(idx), sliceLength(idx))
+  @inline def safe(idx: Int): SliceInt = {
+    if(idx < 0 || length <= idx) new SliceInt(data,0,0)
+    else apply(idx)
+  }
+  @inline def apply(idx1: Int, idx2:Int): Int = data(dataIndex(idx1,idx2))
+  @inline def get(idx1: Int, idx2:Int): Option[Int] = {
+    if(0 <= idx1 && idx1 < length && 0 <= idx2 && idx2 < sliceLength(idx1))
+      Some(apply(idx1,idx2))
+    else None
+  }
+  @inline def update(idx1: Int, idx2:Int, newValue:Int): Unit = data(dataIndex(idx1,idx2)) = newValue
   @inline def foreachElement(idx: Int)(f:Int => Unit):Unit = {
+    // fast iteration over sub-array without allocation
     var i = 0
     val n = sliceLength(idx)
     while(i < n) {
