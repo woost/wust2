@@ -4,6 +4,7 @@ import wust.api._
 import wust.graph.Node
 import wust.db.{Data, Db}
 import wust.ids._
+import scala.collection.JavaConverters._
 import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
 
@@ -104,7 +105,8 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                     case statusCode if expiryStatusCodes.contains(statusCode) =>
                       Success(Some(s))
                     case _ =>
-                      scribe.error(s"Unexpected success code: $response")
+                      val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
+                      scribe.error(s"Unexpected success code: $response body: $body")
                       Success(None)
                   }
                 case Failure(t) =>
