@@ -5,6 +5,7 @@ import sbt.{Def, Keys}
 import sbtassembly.AssemblyKeys
 import sbtdocker.ImageName
 import sbtdocker.mutable.Dockerfile
+import scala.util.Try
 
 import scala.concurrent.duration._
 
@@ -40,10 +41,11 @@ object Docker {
   }
 
   def imageNames(name: String, versionPostfix: String = ""): Def.Initialize[List[ImageName]] = Def.setting {
-    val rawBranch = sys.env.get("CIRCLE_BRANCH") orElse scala.util
-      .Try(git.gitCurrentBranch.value)
-      .filter(_.nonEmpty)
-      .toOption getOrElse "dirty"
+    val rawBranch = 
+      sys.env.get("OVERRIDE_BRANCH") orElse
+      sys.env.get("CIRCLE_BRANCH") orElse
+      Try(git.gitCurrentBranch.value).filter(_.nonEmpty).toOption getOrElse
+      "dirty"
 
     val branch = if (rawBranch == "master") "latest" else rawBranch
     val tags = branch :: Keys.version.value :: Nil
