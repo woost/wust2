@@ -13,8 +13,9 @@ import wust.webApp.views.{MainView, Rendered}
 import scala.scalajs.{LinkingInfo, js}
 
 object Main {
-  def main(args: Array[String]): Unit = {
-    defaultPassiveEvents.DefaultPassiveEvents // initialize default-passive-events for smoother scrolling
+  def domSetup(): Unit = {
+    // initialize default-passive-events for smoother scrolling
+    defaultPassiveEvents.DefaultPassiveEvents
 
     // Add polyfill for setImmediate
     // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate
@@ -23,20 +24,14 @@ object Main {
     // setTimeout( ... , 0)
     // This reduces latency for the async scheduler
     js.Dynamic.global.setImmediate = immediate.immediate
+  }
 
-//    DevOnly {
-      // helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
-        // org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", proxy)
-      // }
-//    }
-
+  def main(args: Array[String]): Unit = {
     Logging.setup()
 
-    val swUpdateIsAvailable =
-       if (!LinkingInfo.developmentMode)
-        ServiceWorker.register()
-       else Observable.empty
+    domSetup()
 
+    val swUpdateIsAvailable = if (!LinkingInfo.developmentMode) ServiceWorker.register() else Observable.empty
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
@@ -46,6 +41,10 @@ object Main {
       val styleTag = document.createElement("style")
       document.head.appendChild(styleTag)
       styleTag.innerHTML = wust.css.StyleRendering.renderAll
+
+      // helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
+      // org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", proxy)
+      // }
     }
 
     Rendered.init()
