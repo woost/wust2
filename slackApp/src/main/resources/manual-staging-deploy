@@ -20,5 +20,5 @@ docker push "$DOCKER_REGISTRY/woost/web:latest"
 docker push "$DOCKER_REGISTRY/woost/slack:latest"
 
 [[ -n "$STAGING_URL" ]] || exit 0
-echo "Triggering deploy..."
+echo "Triggering staging deploy..."
 curl "$STAGING_URL"
