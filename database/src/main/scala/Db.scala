@@ -142,7 +142,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         query[WebPushSubscription]
           .filter(s => s.endpointUrl == lift(endpointUrl) && s.p256dh == lift(p256dh) && s.auth == lift(auth)).delete
-      ).flatMap(numberDeletes => checkUnexpected(numberDeletes == 1, s"Unexpected number of webpush subscription deletes: $numberDeletes / 1"))
+      ).flatMap(numberDeletes => checkUnexpected(numberDeletes <= 1, s"Unexpected number of webpush subscription deletes: $numberDeletes <= 1"))
     }
 
     def delete(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[SuccessResult.type] = delete(List(subscription))
@@ -150,7 +150,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         liftQuery(subscriptions.toList)
           .foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete)
-      ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of webpush subscription deletes: ${touched.sum} < ${subscriptions.size} - ${subscriptions.zip(touched)}"))
+      ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of webpush subscription deletes: ${touched.sum} <= ${subscriptions.size} - ${subscriptions.zip(touched)}"))
     }
 
     def getSubscriptions(userIds: Set[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
@@ -237,7 +237,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           }
         } else Future.successful(Nil)
         touched = numBefore ++ numRemain
-        r <- checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of edge deletes: ${touched.sum} < ${edges.size} - ${edges.zip(touched)}")
+        r <- checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of edge deletes: ${touched.sum} <= ${edges.size} - ${edges.zip(touched)}")
       } yield r
     }
   }
