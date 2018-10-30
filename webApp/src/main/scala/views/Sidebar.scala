@@ -56,7 +56,7 @@ object Sidebar {
       top := "0px",
       div(
         openSidebar,
-        div(Topbar.authentication(state))(
+        div(SharedViewElements.authStatus(state))(
           alignSelf.center,
           marginTop := "30px",
           marginBottom := "10px",

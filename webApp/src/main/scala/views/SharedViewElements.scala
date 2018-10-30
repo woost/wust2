@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fontAwesome._
+import googleAnalytics.Analytics
 import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
@@ -9,6 +10,7 @@ import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -19,6 +21,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.webApp.views.Topbar.{login, logout}
 import wust.webApp.{BrowserDetect, Client, Icons}
 
 import scala.collection.{breakOut, mutable}
@@ -570,4 +573,26 @@ object SharedViewElements {
     )
   }
 
+  def authStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
+    state.user.map {
+      case user: AuthUser.Assumed  => login(state).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => login(state).apply(Styles.flexStatic)
+      case user: AuthUser.Real     => div(
+        Styles.flex,
+        alignItems.center,
+        div(
+          Styles.flex,
+          alignItems.center,
+          Avatar.user(user.id)(height := "20px", cls := "avatar"),
+          span(
+            user.name,
+            padding := "0 5px",
+            Styles.wordWrap
+          ),
+          cursor.pointer,
+          onClick[View](View.UserSettings) --> state.view,
+          onClick foreach { Analytics.sendEvent("authstatus", "avatar") },
+        ),
+        logout(state))
+    }
 }
