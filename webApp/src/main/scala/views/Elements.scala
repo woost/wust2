@@ -2,7 +2,9 @@ package wust.webApp.views
 
 import cats.implicits._
 import cats.effect.IO
+import emojijs.EmojiConvertor
 import fontAwesome.freeSolid
+import marked.Marked
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -197,4 +199,15 @@ object Elements {
     cursor.pointer,
   )
 
+
+  def markdownVNode(str: String) = div(div(prop("innerHTML") := markdownString(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def markdownString(str: String): String = EmojiConvertor.replace_unified(EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
+
+  def escapeHtml(content: String): String = {
+    // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
+    val text = dom.window.document.createTextNode(content)
+    val wrap = dom.window.document.createElement("div")
+    wrap.appendChild(text)
+    wrap.innerHTML
+  }
 }

@@ -14,7 +14,7 @@ import semanticUi.{DimmerOptions, ModalOptions}
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
-import Rendered.renderNodeData
+import Components.renderNodeData
 import cats.effect.IO
 import monix.reactive.{Observable, subjects}
 import wust.graph.Node.User

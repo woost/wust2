@@ -11,20 +11,15 @@ import rx._
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
-import marked.{Marked, MarkedOptions}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
-import wust.webApp.views.Rendered._
-import emojijs.EmojiConvertor
 import monix.execution.Cancelable
 import wust.util._
 import wust.css.Styles
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 
-import scala.scalajs.js
-import scala.util.control.NonFatal
 import wust.util.StringOps._
 
 object Placeholders {
@@ -32,40 +27,24 @@ object Placeholders {
   val newTag = placeholder := "Create new tag. Press Enter to submit."
 }
 
-object Rendered {
+object Components {
   private val implicitUserName = "Unregistered User"
 
-  def userName(user: NodeData.User) = {
-    if(user.isImplicit) Rendered.implicitUserName else user.name
+  def displayUserName(user: NodeData.User) = {
+    if(user.isImplicit) implicitUserName else user.name
   }
 
   val htmlNodeData: NodeData => String = {
     case NodeData.Markdown(content)  => markdownString(content)
     case NodeData.PlainText(content) => escapeHtml(content)
-    case user: NodeData.User         => s"User: ${ escapeHtml(userName(user)) }"
+    case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
   }
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
-    case user: NodeData.User         => div(userName(user))
+    case user: NodeData.User         => div(displayUserName(user))
   }
-
-  def markdownVNode(str: String) = div(div(prop("innerHTML") := markdownString(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def markdownString(str: String): String = replace_full_emoji(str)
-
-  private def replace_full_emoji(str: String): String = EmojiConvertor.replace_unified(EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
-
-  private def escapeHtml(content: String): String = {
-    // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
-    val text = window.document.createTextNode(content)
-    val wrap = window.document.createElement("div")
-    wrap.appendChild(text)
-    wrap.innerHTML
-  }
-}
-
-object Components {
 
   private val woostPathCurve = "m51.843 221.96c81.204 0-6.6913-63.86 18.402 13.37 25.093 77.23 58.666-26.098-7.029 21.633-65.695 47.73 42.949 47.73-22.746 0-65.695-47.731-32.122 55.597-7.029-21.633 25.093-77.23-62.802-13.37 18.402-13.37z"
   val woostIcon = {

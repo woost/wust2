@@ -13,7 +13,8 @@ import wust.webApp.Client
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Placeholders
-import wust.webApp.views.Rendered._
+import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 
 import PostHeuristic._
 import Restructure._

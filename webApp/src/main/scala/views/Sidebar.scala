@@ -18,7 +18,7 @@ import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
 import collection.breakOut
 
 object Sidebar {
-  import MainViewParts._, Rendered._, Components._
+  import MainViewParts._, Components._
 
   def apply(state: GlobalState): VNode = {
     val smallIconSize = 40

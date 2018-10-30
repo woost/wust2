@@ -1,8 +1,6 @@
 package wust.webApp.state
 
-import emojijs.EmojiConvertor
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import rx._
 import wust.api.ApiEvent.ReplaceGraph
@@ -12,12 +10,10 @@ import wust.ids._
 import wust.sdk._
 import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Rendered
 import wust.webApp.{Client, DevOnly}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
-import scala.scalajs.js.Date
 
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {

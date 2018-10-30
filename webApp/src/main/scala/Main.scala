@@ -1,17 +1,16 @@
 package wust.webApp
 
+import emojijs.EmojiConvertor
 import highlight.Highlight
 import marked.{Marked, MarkedOptions}
-import emojijs.EmojiConvertor
 import monix.reactive.Observable
-import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom._
 import rx._
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalStateFactory
-import wust.webApp.views.{MainView, Rendered}
+import wust.webApp.views.MainView
 
 import scala.scalajs.{LinkingInfo, js}
 
