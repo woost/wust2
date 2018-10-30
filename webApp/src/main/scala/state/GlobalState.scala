@@ -58,21 +58,14 @@ class GlobalState(
     }
   }
 
-  val channelForest: Rx[Seq[Tree]] = Rx {
-    // time("bench: channelTree") {
-      graph().channelTree(user().id)
-    // }
-  }
+  val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
+  val channels: Rx[Seq[Node]] = Rx { channelForest().flatMap(_.flatten).distinct }
 
-  val channels: Rx[Seq[Node]] = Rx {
-    channelForest().flatMap(_.flatten).distinct
-  }
-
-  val addNodesInTransit = eventProcessor.changesInTransit
+  val addNodesInTransit: Rx[Set[NodeId]] = eventProcessor.changesInTransit
     .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
     .unsafeToRx(Set.empty)
 
-  val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
+  val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
     rawPage() match {
@@ -83,23 +76,14 @@ class GlobalState(
     }
   }
 
-  val pageIsPinned: Rx[Boolean] = Rx {
-    val g = graph()
-    page().parentIds.forall { parentId =>
-      val userIdx = g.lookup.idToIdx(user().id)
-      val parentIdx = g.lookup.idToIdx.getOrElse(parentId, -1)
-      if (parentIdx == -1) true
-      else g.lookup.pinnedNodeIdx(userIdx).contains(parentIdx) //TODO faster? better?
-    }
-  }
-
+  val pageNotFound:Rx[Boolean] = Rx{ !page().parentIds.forall(graph().contains) }
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
-  val documentIsVisible: Rx[Boolean] = {
-    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
-
-    events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
-  }
+//  val documentIsVisible: Rx[Boolean] = {
+//    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
+//
+//    events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
+//  }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
   permissionState.triggerLater { state =>
     if(state == PermissionState.granted || state == PermissionState.denied)

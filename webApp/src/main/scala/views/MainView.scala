@@ -54,7 +54,16 @@ object MainView {
             // It is important that the view rendering is in a separate Rx.
             // This avoids rerendering the whole view when only the screen-size changed
             Rx {
-              ViewRender(state.view(), state).apply(Styles.growFull, flexGrow := 1, overflow.visible)
+              if(state.view().isContent && state.pageNotFound()) {
+                PageNotFoundView(state)
+              } else {
+                // we can now assume, that every page parentId is contained in the graph
+                ViewRender(state.view(), state).apply(
+                  Styles.growFull,
+                  flexGrow := 1,
+                  overflow.visible
+                )
+              }
             },
           )
         )

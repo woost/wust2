@@ -143,6 +143,14 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.growFull
   )
 
+  ".pagenotfound" - (
+    opacity(0),
+    animationName(Styles.fadeInKf),
+    animationDuration(1.5 seconds),
+    animationDelay(2000 milliseconds),
+    animationFillMode.forwards,
+  )
+
   // -- breadcrumb --
   ".breadcrumbs" - (
     padding(1 px, 3 px),
@@ -204,7 +212,8 @@ object CommonStyles extends StyleSheet.Standalone {
     opacity(0),
     animationName(Styles.fadeInKf),
     animationDuration(1.5 seconds),
-    animationDelay(100 milliseconds)
+    animationDelay(100 milliseconds),
+    animationFillMode.forwards,
   )
   ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
