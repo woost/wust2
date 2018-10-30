@@ -25,6 +25,7 @@ import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 
 import scala.scalajs.js
 import scala.util.control.NonFatal
+import wust.util.StringOps._
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
@@ -32,67 +33,36 @@ object Placeholders {
 }
 
 object Rendered {
-  val emoji = new EmojiConvertor()
-  val implicitUserName = "Unregistered User"
+  private val implicitUserName = "Unregistered User"
 
-  val htmlPostData: NodeData => String = {
-    case NodeData.Markdown(content)  => mdString(content)
-    case NodeData.PlainText(content) =>
-      // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
-      val text = window.document.createTextNode(content)
-      val wrap = window.document.createElement("div")
-      wrap.appendChild(text)
-      wrap.innerHTML
-    case user: NodeData.User         => s"User: ${ user.name }"
+  def userName(user: NodeData.User) = {
+    if(user.isImplicit) Rendered.implicitUserName else user.name
   }
 
-  def init(): Unit = {
-    Marked.setOptions(new MarkedOptions {
-      gfm = true
-      highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks
-        lang.toOption match {
-          case Some(l) => "<div class = \"hljs\">" + Highlight.highlight(l, code).value + "</div>"
-          case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
-        }
-      }): js.Function2[String, js.UndefOr[String], String]
-      // sanitize = true
-      // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
-    })
-
-    emoji.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
-    emoji.img_sets.apple.sheet_size = 32
-    emoji.img_set = "apple"
-    emoji.use_sheet = true
-    emoji.init_env()
-    emoji.include_title = true
-    emoji.text_mode = false
-    emoji.colons_mode = false
-    emoji.allow_native = false
-    emoji.wrap_native = true
-    emoji.avoid_ms_emoji = true
-    emoji.replace_mode = "img"
-
-  }
-
-  def trimToMaxLength(str: String, maxLength: Option[Int]): String = {
-    maxLength.fold(str) { length =>
-      val rawString = str.trim
-      if(rawString.length > length)
-        rawString.take(length - 3) + "..."
-      else rawString
-    }
+  val htmlNodeData: NodeData => String = {
+    case NodeData.Markdown(content)  => markdownString(content)
+    case NodeData.PlainText(content) => escapeHtml(content)
+    case user: NodeData.User         => s"User: ${ escapeHtml(userName(user)) }"
   }
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
-    case NodeData.Markdown(content)  => mdHtml(trimToMaxLength(content, maxLength))
+    case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
-    case user: NodeData.User         => div(if(user.isImplicit) implicitUserName else user.name)
+    case user: NodeData.User         => div(userName(user))
   }
 
-  def replace_full_emoji(str: String): String = emoji.replace_unified(emoji.replace_colons(Marked(emoji.replace_emoticons_with_colons(str))))
+  def markdownVNode(str: String) = div(div(prop("innerHTML") := markdownString(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def markdownString(str: String): String = replace_full_emoji(str)
 
-  def mdHtml(str: String) = div(div(prop("innerHTML") := replace_full_emoji(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def mdString(str: String): String = replace_full_emoji(str)
+  private def replace_full_emoji(str: String): String = EmojiConvertor.replace_unified(EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
+
+  private def escapeHtml(content: String): String = {
+    // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
+    val text = window.document.createTextNode(content)
+    val wrap = window.document.createElement("div")
+    wrap.appendChild(text)
+    wrap.innerHTML
+  }
 }
 
 object Components {
@@ -157,7 +127,7 @@ object Components {
   }
 
   def nodeTag(state: GlobalState, tag: Node): VNode = {
-    val contentString = Rendered.trimToMaxLength(tag.data.str, Some(20))
+    val contentString = trimToMaxLength(tag.data.str, Some(20))
     renderNodeTag(state, tag, contentString)
   }
 

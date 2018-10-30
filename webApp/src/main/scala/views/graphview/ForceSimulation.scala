@@ -465,7 +465,7 @@ object ForceSimulation {
 
     time(log(s"updating staying posts[${node.size()}]")) {
       node
-        .html((node: Node) => htmlPostData(node.data))
+        .html((node: Node) => htmlNodeData(node.data))
         .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined))
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }

@@ -259,7 +259,7 @@ object SharedViewElements {
   }
 
   def authorName(author: Node.User): VNode = {
-    div(if(author.data.isImplicit) Rendered.implicitUserName else author.name, cls := "chatmsg-author")
+    div(Rendered.userName(author.data), cls := "chatmsg-author")
   }
 
   def creationDate(created: EpochMilli): VDomModifier = {

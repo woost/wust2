@@ -152,7 +152,7 @@ sealed trait RestructuringTask {
             width := "100%",
           ),
           div(
-            mdHtml(description),
+            markdownVNode(description),
             borderTop := "2px dotted",
           ),
           div(
