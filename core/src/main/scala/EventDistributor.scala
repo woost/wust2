@@ -16,6 +16,7 @@ import wust.backend.config.PushNotificationConfig
 
 import scala.util.{Failure, Success, Try}
 
+//TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificationConfig])(
     implicit ec: ExecutionContext
 ) extends EventDistributor[ApiEvent, State] {
@@ -66,8 +67,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], nodeIds: Set[NodeId], username: String): Unit = pushService.foreach { pushService =>
-    // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
-    val expiryStatusCodes = Set(404, 410)
+    val expiryStatusCodes = Set(
+      // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
+      404, 410, // expired
+      400, 401, // invalid auth headers
+    )
     val successStatusCode = 201
 
     //TODO really .par?
@@ -100,11 +104,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
               pushService.send(s, data).transform {
                 case Success(response) =>
                   response.getStatusLine.getStatusCode match {
-                    case `successStatusCode` =>
+                    case `successStatusCode`                                  =>
                       Success(None)
                     case statusCode if expiryStatusCodes.contains(statusCode) =>
                       Success(Some(s))
-                    case _ =>
+                    case _                                                    =>
                       val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
                       scribe.error(s"Unexpected success code: $response body: $body")
                       Success(None)
