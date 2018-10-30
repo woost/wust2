@@ -20,7 +20,10 @@ object Base64Codec {
   }
 
   def decode(data: String): ByteBuffer = {
-    val byteString = atob(data)
+    // remove urlsafety first:
+    val base64Data = data.replace("_", "/").replace("-", "+")
+
+    val byteString = atob(base64Data)
     val buffer = ByteBuffer.allocateDirect(byteString.size)
     byteString.foreach(c => buffer.put(c.toByte))
     buffer.flip()
