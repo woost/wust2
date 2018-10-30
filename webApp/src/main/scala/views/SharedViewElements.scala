@@ -13,13 +13,13 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.webApp.{BrowserDetect, Client, Icons}
 
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
@@ -516,4 +516,58 @@ object SharedViewElements {
       SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted),
     ) ::: additional
   }
+
+  def newChannelButton(state: GlobalState, label: String = "New Channel"): VNode = {
+    button(
+      cls := "ui button",
+      label,
+      onClick foreach { ev =>
+        ev.target.asInstanceOf[dom.html.Element].blur()
+        val user = state.user.now
+
+        val nextPage = Page.NewChannel(NodeId.fresh)
+        if (state.view.now.isContent) state.page() = nextPage
+        else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
+      }
+    )
+  }
+
+  def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+    val urlImporter = Handler.unsafe[String]
+
+    def importGithubUrl(url: String): Unit = Client.githubApi.importContent(url)
+    def importGitterUrl(url: String): Unit = Client.gitterApi.importContent(url)
+
+    def connectToGithub(): Unit = Client.auth.issuePluginToken().foreach { auth =>
+      scribe.info(s"Generated plugin token: $auth")
+      val connUser = Client.githubApi.connectUser(auth.token)
+      connUser foreach {
+        case Some(url) =>
+          org.scalajs.dom.window.location.href = url
+        case None =>
+          scribe.info(s"Could not connect user: $auth")
+      }
+    }
+
+    div(
+      fontWeight.bold,
+      fontSize := "20px",
+      marginBottom := "10px",
+      "Constant synchronization",
+      button("Connect to GitHub", width := "100%", onClick foreach(connectToGithub())),
+      "One time import",
+      input(tpe := "text", width := "100%", onInput.value --> urlImporter),
+      button(
+        "GitHub",
+        width := "100%",
+        onClick(urlImporter) foreach((url: String) => importGithubUrl(url))
+      ),
+      button(
+        "Gitter",
+        width := "100%",
+        onClick(urlImporter) foreach((url: String) => importGitterUrl(url))
+      ),
+    )
+  }
+
 }

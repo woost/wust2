@@ -1,24 +1,26 @@
 package wust.webApp.views
 
-import cats.implicits._
 import cats.effect.IO
 import emojijs.EmojiConvertor
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
-import monix.reactive.{Observable, Observer}
+import monix.reactive.Observable
 import org.scalajs.dom
-import org.scalajs.dom.{KeyboardEvent, MouseEvent}
-import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.window.{clearTimeout, setTimeout}
+import org.scalajs.dom.{KeyboardEvent, MouseEvent}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
 import wust.css.Styles
-import wust.webApp.outwatchHelpers._
 import wust.webApp.BrowserDetect
+import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
+
+// This file contains utilities that are not woost-related.
+// They could be contributed to outwatch and used in other projects
 
 object Elements {
   // Enter-behavior which is consistent across mobile and desktop:

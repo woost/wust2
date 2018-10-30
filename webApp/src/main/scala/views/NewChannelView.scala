@@ -7,6 +7,7 @@ import rx.Ctx
 import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
+import wust.webApp.views.SharedViewElements._
 
 object NewChannelView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
@@ -15,7 +16,7 @@ object NewChannelView {
       justifyContent.spaceAround,
       flexDirection.column,
       alignItems.center,
-      MainViewParts.newChannelButton(state)(padding := "20px", marginBottom := "10%")(
+      newChannelButton(state)(padding := "20px", marginBottom := "10%")(
         onClick foreach { Analytics.sendEvent("view:newchannel", "newchannel") }
       )
     )

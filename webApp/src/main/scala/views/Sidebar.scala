@@ -1,12 +1,10 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
-import wust.graph.Tree.Leaf
+import wust.css.ZIndex
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -14,11 +12,12 @@ import wust.util.RichBoolean
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
+import wust.webApp.views.Components._
+import wust.webApp.views.SharedViewElements._
 
-import collection.breakOut
+import scala.collection.breakOut
 
 object Sidebar {
-  import MainViewParts._, Components._
 
   def apply(state: GlobalState): VNode = {
     val smallIconSize = 40

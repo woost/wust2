@@ -1,26 +1,26 @@
 package wust.webApp.views
 
-import highlight._
+import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
-import org.scalajs.dom.{console, document, window}
-import outwatch.dom.helpers.EmitterBuilder
+import org.scalajs.dom.document
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import wust.css.Styles
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
+import wust.util.StringOps._
+import wust.util._
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
+import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
-import monix.execution.Cancelable
-import wust.util._
-import wust.css.Styles
-import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 
-import wust.util.StringOps._
+// This file contains woost-related UI helpers.
 
 object Placeholders {
   val newNode = placeholder := "Create new post. Press Enter to submit."
