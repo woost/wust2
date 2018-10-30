@@ -65,7 +65,10 @@ object KanbanView {
             cls := s"kanbancolumnarea",
             keyed,
             Styles.flex, // no Styles.flex, since we set a custom minWidth/Height
+            flexDirection.column, // for flex-wrap to wrap in the other direction
+            flexWrap.wrap,
             alignItems.flexStart,
+            justifyContent.spaceBetween,
             overflow.auto,
 
             sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
