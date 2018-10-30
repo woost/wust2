@@ -44,7 +44,7 @@ object GraphBenchmarks {
     import wust.graph._
     import wust.ids._
     def randomGraph(size:Int, d:Double) = {
-      val nodes = List.fill(size)(Node.Content(NodeData.PlainText("")))
+      val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
       val edges = for( a <- nodes; b <- nodes if rDouble <= d ) yield Edge.Parent(a.id, b.id)
       Graph(nodes, edges)
     }
@@ -59,7 +59,7 @@ object GraphBenchmarks {
     Seq(
       Benchmark[Graph]("parents w/o edges",
       { size =>
-        val nodes = List.fill(size)(Node.Content(NodeData.PlainText("")))
+        val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
         Graph(nodes)
       },
       (graph, _) =>
@@ -67,7 +67,7 @@ object GraphBenchmarks {
       ),
       Benchmark[Graph]("parents path",
       { size =>
-        val nodes = List.fill(size)(Node.Content(NodeData.PlainText("")))
+        val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
         val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Parent(a.id, EdgeData.Parent, b.id)}
         Graph(nodes, edges)
       },

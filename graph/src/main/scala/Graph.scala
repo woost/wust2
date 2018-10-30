@@ -137,6 +137,9 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   @deprecated("Be aware that you are constructing a new graph here.", "")
   def addNodes(newNodes: Iterable[Node]): Graph = new Graph(nodes = nodes ++ newNodes, edges = edges)
+
+  @deprecated("Be aware that you are constructing a new graph here.", "")
+  def addEdges(newEdges: Iterable[Edge]): Graph = new Graph(nodes = nodes, edges = edges ++ newEdges)
 }
 
 final case class RoleStats(roleCounts: List[(NodeRole, Int)]) {
