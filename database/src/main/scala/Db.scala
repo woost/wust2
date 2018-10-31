@@ -131,11 +131,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           .insert(lift(subscription))
           .onConflictUpdate(_.endpointUrl, _.p256dh, _.auth)(
             (s, excluded) => s.userId -> excluded.userId
-          )
+          ).returning(_.id)
       }
 
-      ctx.run(q)
-        .flatMap(numberInserts => checkUnexpected(numberInserts == 1, s"Unexpected number of webpush subscription inserts of user '${subscription.userId}': $numberInserts / 1"))
+      ctx.run(q).map(_ => SuccessResult)
+      //.flatMap(numberInserts => checkUnexpected(numberInserts == 1, s"Unexpected number of webpush subscription inserts of user '${subscription.userId.toUuid}': $numberInserts == 1"))
     }
 
     def cancelWebPush(endpointUrl: String, p256dh: String, auth: String)(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
