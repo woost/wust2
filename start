@@ -304,8 +304,8 @@ function self() {
         docker_compose core dev up -d
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration
-        postgres_core_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
-        postgres_core_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+        postgres_core_command psql -U $POSTGRES_USER --command="DROP DATABASE IF EXISTS wust_template"
+        postgres_core_command psql -U $POSTGRES_USER --command="CREATE DATABASE wust_template TEMPLATE wust"
         # sbt_with_args coverage it:test coverageReport
         sbt_with_args it:test
         docker_compose core dev down -v
