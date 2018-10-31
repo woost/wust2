@@ -32,35 +32,13 @@ function docker_compose() {
         add_args="-f $project/docker-compose.$stage.yml"
     fi
 
-    set +e
-    output=$(docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3} 2>&1 | tee /dev/tty )
-    err=$?
-    set -e
-
-    if [[ -n "$(echo $output | grep -E 'manifest for woost/db-migration:[^ ]* not found')" ]]; then
-        echo "Cannot find db-migration image, rebuilding..."
-        sbt dbMigration/docker
-        docker_compose $@
-    elif [[ -n "$(echo $output | grep -E 'manifest for woost/[^ ]* not found')" ]]; then
-        echo "Cannot find some docker image, rebuilding all images..."
-        sbt docker
-        docker_compose $@
-    elif [[ $err -ne 0 ]]; then
-        echo "docker-compose failed, exiting"
-        exit 1
-    fi
-}
-function postgres_core_nottycommand() {
-    docker exec -i "devcore_postgres_1" "$@"
+    docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args "${@:3}"
 }
 function postgres_core_command() {
-    docker exec -it "devcore_postgres_1" "$@"
-}
-function postgres_slack_nottycommand() {
-    docker exec -i "devslackapp_postgres_1" "$@"
+    docker_compose core dev exec postgres "$@"
 }
 function postgres_slack_command() {
-    docker exec -it "devslackapp_postgres_1" "$@"
+    docker_compose slackApp dev exec postgres "$@"
 }
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
@@ -131,29 +109,29 @@ function self() {
         ;;
     pgrestore)
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        postgres_core_comman psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgrestorefromprod)
         echo "clearing local database..."
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading production database and restoring in local database..."
-        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_comman psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         export $env_slack_postgres
         echo "clearing local slack database..."
         postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading production database slack and restoring in local database..."
-        ssh -C harald docker exec -i "woostappslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        ssh -C harald docker exec -i "woostappslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_comman psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgrestorefromstaging)
         echo "clearing local database..."
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading staging database and restoring in local database..."
-        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_comman psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         export $env_slack_postgres
         echo "clearing local slack database..."
         postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading staging database slack and restoring in local database..."
-        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
         export $env_postgres_secret $env_postgres_local
@@ -301,7 +279,8 @@ function self() {
         ;;
     test.integration)
         export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local_connectivity $env_slack
-        docker_compose core dev up -d
+        docker_compose core dev down
+        docker_compose core dev up -d --no-recreate
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration
         postgres_core_command psql -U $POSTGRES_USER --command="DROP DATABASE IF EXISTS wust_template"
