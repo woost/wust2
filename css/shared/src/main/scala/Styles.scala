@@ -654,6 +654,7 @@ object CommonStyles extends StyleSheet.Standalone {
     display.flex,
     minHeight(0 px),
     minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+    maxWidth(kanbanColumnWidth),
     flexDirection.column,
     maxHeight(100 %%)
   )
