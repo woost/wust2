@@ -110,8 +110,8 @@ function subscribeWebPushAndPersist() {
     currentAuth().then(currentAuth => {
         if (currentAuth) {
             getPublicKey().then(publicKey => publicKey.json().then ( publicKeyJson => {
-                if (publicKey) {
-                    log("publicKey: ", publicKey);
+                if (publicKeyJson) {
+                    log("publicKey: ", publicKeyJson);
                     return self.registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
