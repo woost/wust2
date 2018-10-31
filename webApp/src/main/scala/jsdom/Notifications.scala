@@ -33,11 +33,14 @@ object Notifications {
     case _ =>
       scribe.info("Will not subscribe web push, no permission")
   }
-  def requestPermissionsAndSubscribe()(implicit ec: ExecutionContext): Unit = {
+  def requestPermissionsAndSubscribe(onSuccess: => Unit = ())(implicit ec: ExecutionContext): Unit = {
     Notification.foreach { n =>
       n.requestPermission { (state: String) =>
         scribe.info(s"Requested notification permission: $state")
-        subscribe()
+        if (state.asInstanceOf[PermissionState] == PermissionState.granted) {
+          subscribe()
+          onSuccess
+        }
       }
     }
   }

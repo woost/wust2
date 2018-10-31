@@ -461,25 +461,28 @@ object PageHeader {
     )
   )
 
-  private def decorateIcon(permissionState: PermissionState)(icon: IconLookup, action: VDomModifier, description: String)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def decorateIcon(state: GlobalState, permissionState: PermissionState)(icon: IconLookup, description: String, changes: GraphChanges, changesOnSuccessPrompt: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
     val default = "default".asInstanceOf[PermissionState]
     div(
       permissionState match {
         case PermissionState.granted => VDomModifier(
           (icon: VNode) (cls := "fa-fw"),
           title := description,
-          action
+          onClick(changes) --> state.eventProcessor.changes
         )
         case PermissionState.prompt | `default`  => VDomModifier(
           iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
           title := "Notifications are currently disabled. Click to enable.",
-          onClick foreach { Notifications.requestPermissionsAndSubscribe() },
-          action
+          onClick foreach {
+            Notifications.requestPermissionsAndSubscribe {
+              if (changesOnSuccessPrompt) state.eventProcessor.changes.onNext(changes)
+            }
+          },
         )
         case PermissionState.denied  => VDomModifier(
           iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
           title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-          action
+          onClick(changes) --> state.eventProcessor.changes
         )
       }
     )
@@ -491,16 +494,32 @@ object PageHeader {
         val graph = state.graph()
         val user = state.user()
         val permissionState = state.permissionState()
-        val hasNotifyEdge = graph.notifyByUserIdx(graph.idToIdx(user.id)).contains(graph.idToIdx(channel.id))
-        if(hasNotifyEdge) decorateIcon(permissionState)(
+        val channelIdx = graph.idToIdx(channel.id)
+        val userIdx = graph.idToIdx(user.id)
+        val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
+
+        if(hasNotifyEdge) decorateIcon(state, permissionState)(
           freeSolid.faBell,
-          action = onClick(GraphChanges.disconnect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
-          description = "You are watching this node and will be notified about changes. Click to stop watching."
-        ) else decorateIcon(permissionState)(
-          freeSolid.faBellSlash,
-          action = onClick(GraphChanges.connect(Edge.Notify)(channel.id, user.id)) --> state.eventProcessor.changes,
-          description = "You are not watching this node. Click to start watching."
-        )
+          description = "You are watching this node and will be notified about changes. Click to stop watching.",
+          changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
+          changesOnSuccessPrompt = false
+        ) else {
+          val canNotifyParents = graph
+            .ancestorsIdx(channelIdx)
+            .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
+
+          if (canNotifyParents) decorateIcon(state, permissionState)(
+            freeRegular.faBell,
+            description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
+            changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
+            changesOnSuccessPrompt = true
+          ) else decorateIcon(state, permissionState)(
+            freeRegular.faBellSlash,
+            description = "You are not watching this node and will not be notified. Click to start watching.",
+            changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
+            changesOnSuccessPrompt = true
+          )
+        }
       }
     }
   }
@@ -610,7 +629,7 @@ object PermissionSelection {
       access = NodeAccess.Inherited,
       name = { (nodeId, graph) =>
         val canAccess = graph
-          .parents(nodeId)
+          .parents(nodeId) //TODO: incorrect need to traverse all ancestors and stop at private nodes
           .exists(nid => graph.nodesById(nid).meta.accessLevel == NodeAccess.ReadWrite)
         val inheritedLevel = if(canAccess) "Public" else "Private"
         s"Inherited ($inheritedLevel)"
