@@ -52,7 +52,8 @@ object Main {
           case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
         }
       }): js.Function2[String, js.UndefOr[String], String]
-      // sanitize = true
+      sanitize = true // this sanitizes all html input
+      //TODO provide a sane sanitizer that whitelists some commonly used html features
       // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
     })
 
