@@ -135,7 +135,7 @@ object KanbanView {
     tree match {
       case Tree.Parent(node, children) =>
         Rx {
-          if(state.graph().isExpanded(state.user.now.id, node.id) || isTopLevel) {
+          if(state.graph().isExpanded(state.user.now.id, node.id)) {
             val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
             //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
             //        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
@@ -150,7 +150,7 @@ object KanbanView {
         }
       case Tree.Leaf(node)             =>
         Rx {
-          if(state.graph().isExpanded(state.user.now.id, node.id) || isTopLevel)
+          if(state.graph().isExpanded(state.user.now.id, node.id))
             renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
           else
             renderCard(state, node, parentIds, selectedNodeIds)(ctx)(inject)
@@ -171,7 +171,7 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
-          isTopLevel.ifFalse[VDomModifier](div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse")),
+          div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
