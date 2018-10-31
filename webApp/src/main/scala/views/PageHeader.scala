@@ -130,7 +130,7 @@ object PageHeader {
     )
   }
 
-  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
 
     // Workaround: Autsch!
     val urlHolderId = "shareurlholder"
@@ -147,6 +147,16 @@ object PageHeader {
       urlHolder,
       onClick foreach {
         scribe.info(s"sharing post: $channel")
+
+        // make channel public if it is not. we are sharing the link, so we want it to be public.
+        channel match {
+          case channel: Node.Content =>
+            if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
+              val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
+              state.eventProcessor.changes.onNext(changes)
+            }
+          case _ => ()
+        }
 
         val shareTitle = channel.data.str
         val shareUrl = dom.window.location.href
@@ -568,7 +578,7 @@ object PageHeader {
         }
       ))
 
-    val items:List[VDomModifier] = List(searchButton(state, channel), addMemberButton(state, channel), shareButton(channel), permissionItem, leaveItem, deleteItem)
+    val items:List[VDomModifier] = List(searchButton(state, channel), addMemberButton(state, channel), shareButton(state, channel), permissionItem, leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
