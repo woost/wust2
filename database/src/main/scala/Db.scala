@@ -280,7 +280,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
       ctx.run(q)
         .flatMap { numberInserts =>
-          checkUnexpected(numberInserts == 1, user, s"Unexpected number of user inserts $userId: $numberInserts / 1")
+          checkUnexpected(numberInserts == 1, user, s"Unexpected number of user inserts ${userId.toUuid}: $numberInserts / 1")
         }
     }
 
@@ -298,7 +298,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
       ctx.run(q)
         .flatMap { numberInserts =>
-          checkUnexpected(numberInserts == 1, user, s"Unexpected number of user inserts $userId: $numberInserts / 1")
+          checkUnexpected(numberInserts == 1, user, s"Unexpected number of user inserts ${userId.toUuid}: $numberInserts / 1")
         }
     }
 
@@ -313,7 +313,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           for {
             numberUserInserts <- ctx.run(queryUser.filter(_.id == lift(userId)).update(lift(updatedUser)))
             numberPWInserts <- ctx.run(query[Password].insert(lift(Password(userId, passwordDigest))))
-            u <- checkUnexpected(numberPWInserts == 1 && numberUserInserts == 1, Option(updatedUser), s"Unexpected number of user/pw inserts $userId: $numberUserInserts / 1, $numberPWInserts / 1")
+            u <- checkUnexpected(numberPWInserts == 1 && numberUserInserts == 1, Option(updatedUser), s"Unexpected number of user/pw inserts ${userId.toUuid}: $numberUserInserts / 1, $numberPWInserts / 1")
           } yield u
         })
     }
@@ -373,7 +373,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         query[Password].filter(_.userId == lift(userId)).update(_.digest -> lift(digest))
       ).flatMap { numberUpdated =>
-        checkUnexpected(numberUpdated == 1, s"Unexpected number of password updates for user $userId: $numberUpdated / 1")
+        checkUnexpected(numberUpdated == 1, s"Unexpected number of password updates for user ${userId.toUuid}: $numberUpdated / 1")
       }
     }
 
