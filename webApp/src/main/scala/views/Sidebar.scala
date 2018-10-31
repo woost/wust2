@@ -4,7 +4,7 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.ZIndex
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -24,7 +24,6 @@ object Sidebar {
 
     def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      height := "100%",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       minWidth := s"${ smallIconSize }px",
       channelIcons(state, smallIconSize),
@@ -37,7 +36,6 @@ object Sidebar {
     def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
-      height := "100%",
       channels(state),
       newChannelButton(state).apply(
         cls := "newChannelButton-large " + buttonStyles,
@@ -46,22 +44,11 @@ object Sidebar {
     )
 
     def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
-      height := "100%",
-      width := "100%",
-      background := "rgba(0,0,0,0.3)",
-      zIndex := ZIndex.overlay,
+      cls := "overlay-sidebar",
       onClick(false) --> state.sidebarOpen,
-      position.absolute,
-      left := "0px",
-      top := "0px",
       div(
         openSidebar,
-        div(SharedViewElements.authStatus(state))(
-          alignSelf.center,
-          marginTop := "30px",
-          marginBottom := "10px",
-        ),
-        width := "90%",
+        SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px")),
       )
     )
 
@@ -108,15 +95,8 @@ object Sidebar {
           )
         ),
 
-        channelIcon(state, node, selected, 30)(ctx)(
-          marginRight := "5px",
-          borderRadius := "2px",
-        ),
-        renderNodeData(node.data)(
-          cls := "channel-name",
-          paddingLeft := "3px",
-          paddingRight := "3px",
-        ),
+        channelIcon(state, node, selected, 30),
+        renderNodeData(node.data)(cls := "channel-name"),
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",

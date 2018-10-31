@@ -233,6 +233,20 @@ object CommonStyles extends StyleSheet.Standalone {
     alignContent.stretch,
   )
 
+  ".overlay-sidebar" - (
+    zIndex(ZIndex.overlay),
+    position.absolute,
+    left(0 px),
+    top(0 px),
+    height(100 %%),
+    width(100 %%),
+    background := "rgba(0,0,0,0.3)"
+  )
+
+  ".overlay-sidebar > .sidebar" - (
+    marginRight(50 px)
+  )
+
   ".customChannelIcon" - (
     Styles.flex,
     alignItems.center,
@@ -265,6 +279,15 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(2 px),
   )
 
+  ".channel-line > .channelicon" - (
+    marginRight(5 px),
+    borderRadius(2 px),
+  )
+
+  ".channel-name"  - (
+    paddingLeft(3 px),
+    paddingRight(3 px)
+  )
 
   ".channel-name > div > p" - (
     margin(0 px) // avoid default p margin. p usually comes from markdown rendering

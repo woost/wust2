@@ -573,7 +573,7 @@ object SharedViewElements {
     )
   }
 
-  def authStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
+  def authStatus(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[VNode] =
     state.user.map {
       case user: AuthUser.Assumed  => login(state).apply(Styles.flexStatic)
       case user: AuthUser.Implicit => login(state).apply(Styles.flexStatic)
