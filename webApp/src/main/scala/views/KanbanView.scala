@@ -252,7 +252,6 @@ object KanbanView {
     div(
       cls := s"kanbannewcolumnarea",
       keyed,
-      registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
       position.relative,
       onClick.stopPropagation(true) --> fieldActive,
       Rx {
