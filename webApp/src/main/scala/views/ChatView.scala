@@ -143,7 +143,7 @@ object ChatView {
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
         state.page.now.parentIdSet.contains(groupGraph.nodeIds(parentIdx)).ifFalse[VDomModifier](
-          renderParentMessage(state, groupGraph.nodeIds(parentIdx), false, currentReply)
+          renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, currentReply = currentReply)
         )
       }
     )

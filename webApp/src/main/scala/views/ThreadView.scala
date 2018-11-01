@@ -303,7 +303,7 @@ object ThreadView {
   private def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
       val graph = state.graph()
-      graph.children(nodeId).size
+      graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId))
     }
     Rx {
       if(isExpanded()) {
