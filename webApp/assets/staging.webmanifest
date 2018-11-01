@@ -1,0 +1,31 @@
+{
+  "name": "Staging",
+  "short_name": "Staging",
+  "start_url": "./",
+  "display": "standalone",
+  "theme_color": "#0072C8",
+  "background_color": "#fff",
+  "description": "Collaborative Communication",
+  "icons": [
+      {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+      },
+      {
+          "src": "/android-chrome-512x512.png",
+          "sizes": "512x512",
+          "type": "image/png"
+      }
+  ],
+  "related_applications": [],
+  "share_target": {
+    "url_template": "/#view=chat&page=default&share?title={title}&text={text}&url={url}",
+    "action": "/#view=chat&page=default&share",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

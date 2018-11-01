@@ -29,6 +29,7 @@ const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;
+const gitBranch = execSync('(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD || echo "") 2> /dev/null').toString().trim() // branch, fallback to commit hash
 module.exports = commons.webpack;
 
 // set up output path
@@ -38,9 +39,12 @@ module.exports.output.path = Path.join(__dirname, "dist");
 // copy some assets to dist folder
 //TODO entry and handle with loader (hash)
 function copyAssets(context) {
-    return new CopyPlugin([
-        { from: "**/*", to: module.exports.output.path }
-    ], { context: context });
+    var patterns = [{ from: "**/*", to: module.exports.output.path }];
+    if(gitBranch !== 'production') {
+        patterns.push({ from: "staging.webmanifest", to: Path.join(module.exports.output.path, "site.webmanifest") });
+    }
+
+    return new CopyPlugin(patterns, { context: context });
 }
 module.exports.plugins.push(copyAssets(dirs.assets));
 module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
