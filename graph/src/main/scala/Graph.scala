@@ -392,7 +392,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentIds.foreach { nodeId =>
       val nodeIdx = idToIdx(nodeId)
       if(nodeIdx != -1) {
-        childrenIdx.foreachElement(nodeIdx) { childIdx =>
+        notDeletedChildrenIdx.foreachElement(nodeIdx) { childIdx =>
           nodes(childIdx).role match {
             case NodeRole.Message => messageCount += 1
             case NodeRole.Task    => taskCount += 1
