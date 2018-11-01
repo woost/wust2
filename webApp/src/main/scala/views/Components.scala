@@ -138,27 +138,26 @@ object Components {
     )
   }
 
-  def renderNodeCard(node: Node, injected: VDomModifier): VNode = {
+  def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
     div(
       keyed(node.id),
       cls := "node nodecard",
       div(
-        keyed(node.id),
         cls := "nodecard-content",
-        injected
+        contentInject
       ),
     )
   }
-  def nodeCard(node: Node, injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+  def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
     renderNodeCard(
       node,
-      injected = VDomModifier(renderNodeData(node.data, maxLength), injected)
+      contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
     )
   }
   def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], injected: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       node,
-      injected = VDomModifier(
+      contentInject = VDomModifier(
         editableNode(state, node, editMode, submit, maxLength),
         injected
       )

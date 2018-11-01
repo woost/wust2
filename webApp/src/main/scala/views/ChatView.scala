@@ -73,18 +73,15 @@ object ChatView {
 
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
           Styles.flex,
-          alignItems.flexStart,
           currentReply().map { replyNodeId =>
             val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page.now.parentIds)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
-              backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.pageHue(replyNodeId :: Nil).get).toHex,
+              backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
               div(
                 Styles.flex,
-                alignItems.flexStart,
-                flexWrap.wrap,
-                parentMessage(state, node.id, isDeletedNow, currentReply).apply(alignSelf.center),
+                renderParentMessage(state, node.id, isDeletedNow, currentReply),
                 closeButton(
                   marginLeft.auto,
                   onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -142,11 +139,10 @@ object ChatView {
 
     val commonParents = div(
       Styles.flex,
-      alignItems.flexStart,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
         state.page.now.parentIdSet.contains(groupGraph.nodeIds(parentIdx)).ifFalse[VDomModifier](
-          parentMessage(state, groupGraph.nodeIds(parentIdx), false, currentReply)
+          renderParentMessage(state, groupGraph.nodeIds(parentIdx), false, currentReply)
         )
       }
     )
@@ -251,7 +247,7 @@ object ChatView {
     )
   }
 
-  private def parentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def renderParentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
       val idx = graph.idToIdx(parentId)
@@ -262,31 +258,41 @@ object ChatView {
 
     val parent = Rx{
       val graph = state.graph()
-      val node = graph.nodesByIdGet(parentId)
-
-      println("rerendering: " + node.fold("")(_.str))
-      node
+      graph.nodesByIdGet(parentId)
     }
 
     div(
-      padding := "1px",
-      borderTopLeftRadius := "2px",
-      borderTopRightRadius := "2px",
       minWidth := "0", // fixes word-break in flexbox
       Rx {
         val tuple = authorAndCreated()
         val (author, creationEpochMillis) = tuple
-        chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
-          padding := "2px",
+        parent().map(node =>
+          div(
+            keyed(node.id),
+            chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
+              padding := "2px",
+              opacity := 0.7,
+            ),
+            marginLeft := "5px",
+            borderLeft := s"3px solid ${ tagColor(parentId).toHex }",
+            paddingRight := "5px",
+            paddingBottom := "3px",
+            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parentId)).toHex,
+            cursor.pointer,
+            onClick foreach { currentReply.update(_ ++ Set(parentId)) },
+            div(
+              opacity := 0.7,
+              Styles.flex,
+              paddingLeft := "0.5em",
+              div(
+                cls := "nodecard-content",
+                renderNodeData(node.data, maxLength = Some(200)),
+              ),
+              div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px"),
+            )
+          )
         )
       },
-      Rx {
-        parent().map(node => nodeCard(node)(
-          cursor.pointer,
-          onClick foreach { currentReply.update(_ ++ Set(parentId)) },
-        ))
-      },
-      margin := "3px",
       isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
     )
   }

@@ -364,7 +364,7 @@ object ThreadView {
           selectedNodes.now.head.showReplyField() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
-      ) //TODO: scroll to focused field?
+      )
     )
   } else Nil
 }

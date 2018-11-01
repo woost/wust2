@@ -122,7 +122,7 @@ object SelectedNodes {
   }
 
   private def selectedNodeCard[T <: SelectedNodeBase](state:GlobalState, selectedNodes: Var[Set[T]], node: Node)(implicit ctx: Ctx.Owner) = {
-    nodeCard(node,injected = Seq[VDomModifier](
+    nodeCard(node,contentInject = Seq[VDomModifier](
       Styles.flex,
       alignItems.center,
       span(

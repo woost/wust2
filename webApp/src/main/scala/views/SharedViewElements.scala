@@ -256,14 +256,19 @@ object SharedViewElements {
   }
 
   def authorName(author: Node.User): VNode = {
-    div(Components.displayUserName(author.data), cls := "chatmsg-author")
+    div(
+      cls := "chatmsg-author",
+      Styles.flexStatic,
+      Components.displayUserName(author.data),
+    )
   }
 
   def creationDate(created: EpochMilli): VDomModifier = {
     (created != EpochMilli.min).ifTrue[VDomModifier](
       div(
+        cls := "chatmsg-date",
+        Styles.flexStatic,
         dateFns.formatDistance(new js.Date(created), new js.Date), " ago",
-        cls := "chatmsg-date"
       )
     )
   }
