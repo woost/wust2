@@ -59,10 +59,10 @@ package object outwatchHelpers extends KeyHash {
 
     def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => println(s"$name: $x"))
+      rx.foreach(x => scribe.info(s"$name: $x"))
     }
     def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => println(print(x)))
+      rx.foreach(x => scribe.info(print(x)))
     }
 
     //TODO: add to scala-rx in an efficient macro
@@ -153,8 +153,8 @@ package object outwatchHelpers extends KeyHash {
     }
 
     def debug: Cancelable = debug()
-    def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => println(s"$name: $x"))
-    def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => println(print(x)))
+    def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => scribe.info(s"$name: $x"))
+    def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => scribe.info(print(x)))
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
