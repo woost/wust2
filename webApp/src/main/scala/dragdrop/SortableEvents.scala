@@ -28,7 +28,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   draggable.on[SortableStopEvent]("sortable:stop", sortableStopEvent.onNext _)
 
   //  draggable.on("sortable:start", (e:SortableEvent) => console.log("sortable:start", e))
-  //  draggable.on("sortable:sort", () => console.log("sortable:sort"))
+//    draggable.on("sortable:sort", () => console.log("sortable:sort"))
   //  draggable.on("sortable:sorted", () => console.log("sortable:sorted"))
   //  draggable.on("sortable:stop", () => console.log("sortable:stop"))
 
@@ -123,6 +123,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // Kanban item dropped at an edge of a container
     if(newOrderedNodes.size + 1 < newContChilds.length) {
+      //TODO: what is the difference to the similar if-block before: if(oldOrderedNodes.size != oldContChilds.length)
       // console.log("Kanban elements by sortable: ", newContChilds)
       scribe.warn(s"Kanban elements by orderedNodes: ${ getNodeStr(g, newOrderedNodes) }")
       scribe.warn(s"newOrderedNodes.size(${ newOrderedNodes.size }) != newContChilds.length(${ newContChilds.length }) => Kanban item dropped at an edge of a container")
@@ -237,25 +238,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(beforeEdges)
 
-      case (e, dragging: DragItem.Kanban.SubColumn, from: Kanban.Column, into: Kanban.ColumnArea, false, false) =>
-
+      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Area, false, false) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-
-        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
-
-      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
-
-        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
-
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
-
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, dragging.nodeId)
-
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge expand merge beforeEdges)
 
