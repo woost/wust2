@@ -106,6 +106,12 @@ object KanbanView {
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
 
+    val messageChildrenCount = Rx {
+      val graph = state.graph()
+      graph.messageChildrenIdx.sliceLength(graph.idToIdx(node.id))
+    }
+
+
     val buttonBar = div(
       cls := "buttonbar",
       Styles.flex,
@@ -147,7 +153,14 @@ object KanbanView {
         cls := "kanbancolumnheader",
         keyed(node.id, parentIds),
         cls := "draghandle",
+
+        Styles.flex,
+        alignItems.flexEnd,
+        justifyContent.spaceBetween,
+
         columnTitle,
+
+        Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
 
         position.relative,
         buttonBar(position.absolute, top := "0", right := "0"),
@@ -164,6 +177,17 @@ object KanbanView {
       ))
     )
   }
+
+  private val renderMessageCount = {
+    div(
+      Styles.flexStatic,
+      Styles.flex,
+      color := "gray",
+      margin := "5px",
+      div(freeRegular.faComments, marginRight := "5px"),
+    )
+  }
+
 
   private def renderCard(state: GlobalState, node: Node, parentIds: Seq[NodeId], selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
@@ -197,14 +221,25 @@ object KanbanView {
       }
     )
 
+    val messageChildrenCount = Rx {
+      val graph = state.graph()
+      graph.messageChildrenIdx.sliceLength(graph.idToIdx(node.id))
+    }
+
     rendered(
+      Styles.flex,
+      alignItems.flexEnd,
+      justifyContent.spaceBetween,
+
       // sortable: draggable needs to be direct child of container
       editable.map(editable => if(editable) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
       keyed(node.id, parentIds),
       cls := "draghandle",
 
-      position.relative,
+      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
+
+      position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),
 //      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
     )
