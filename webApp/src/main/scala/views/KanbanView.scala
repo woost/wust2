@@ -87,8 +87,8 @@ object KanbanView {
       cls := s"kanbannewcolumnarea",
       keyed,
       registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
-      onClick.stopPropagation(true) --> fieldActive,
       position.relative,
+      onClick.stopPropagation(true) --> fieldActive,
       Rx {
         if(fieldActive()) {
           div(
@@ -106,8 +106,9 @@ object KanbanView {
                 val change = {
                   val newColumnNode = Node.MarkdownTask(str)
                   val add = GraphChanges.addNode(newColumnNode)
+                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
 //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
-                  add
+                  add merge expand
                 }
                 state.eventProcessor.enriched.changes.onNext(change)
               },
@@ -124,7 +125,7 @@ object KanbanView {
             left := "0",
             right := "0",
             cls := "kanbannewcolumnareacontent",
-            "+ Add Column"
+            "+ Add Column",
           )
       },
       marginRightHack

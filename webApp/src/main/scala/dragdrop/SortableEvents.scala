@@ -254,9 +254,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (e, dragging: DragItem.Kanban.SubItem, from: Kanban.Area, into: Kanban.NewColumnArea, false, false) =>
 
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, dragging.nodeId)
 
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
+        state.eventProcessor.enriched.changes.onNext(move merge expand merge beforeEdges)
 
     }
   }
