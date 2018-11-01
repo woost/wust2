@@ -100,7 +100,7 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     // The booleans: Ctrl is dow, Shift is down
     import DragItem._
     {
-      case (dragging: Chat.Message, target: Chat.Thread, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: Chat.Message, target: Chat.Thread, false, false) => moveInto(dragging.nodeId, target.nodeIds)
 
       case (dragging: Kanban.Card, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: Kanban.Column, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)

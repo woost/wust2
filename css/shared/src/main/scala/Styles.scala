@@ -932,7 +932,9 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable node
   ".draggable-container .node.draggable--over," +
-  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // threadview
+  ".chat-expanded-thread.draggable--over .chat-common-parents," + // chatview
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
   ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
   ".chat-row.draggable--over .nodecard" - (
@@ -942,8 +944,19 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
+    borderLeft(3 px, solid, transparent).important,
+    opacity(1),
+  )
+
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div > div" - (// chatview
+    opacity(1).important,
+  )
+
   ".chat-row.draggable--over .nodecard *," +
-  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *," + // threadview
+  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-author," + // chatview
+  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-date," + // chatview
   ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *" - ( // first message in a group
     color.white.important,
   )

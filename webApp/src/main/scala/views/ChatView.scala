@@ -138,6 +138,7 @@ object ChatView {
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentIdSet)
 
     val commonParents = div(
+      cls := "chat-common-parents",
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
@@ -160,6 +161,10 @@ object ChatView {
           cls := "chat-expanded-thread",
           backgroundColor :=? bgColor,
           commonParents,
+
+          draggableAs(DragItem.DisableDrag),
+          cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
+          dragTarget(DragItem.Chat.Thread(commonParentIds)),
 
           div(
             cls := "chat-thread-messages",

@@ -166,7 +166,7 @@ object ThreadView {
 
       draggableAs(DragItem.DisableDrag),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-      dragTarget(DragItem.Chat.Thread(nodeId)),
+      dragTarget(DragItem.Chat.Thread(nodeId :: Nil)),
 
       div(
         cls := "chat-thread-messages",
