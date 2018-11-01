@@ -677,7 +677,7 @@ object CommonStyles extends StyleSheet.Standalone {
     display.flex,
     minHeight(0 px),
     minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
-    maxWidth(kanbanColumnWidth),
+    // we don't specify a max-width here. This would cause cards in nested columns to be too big for the available width.
     flexDirection.column,
     maxHeight(100 %%)
   )
