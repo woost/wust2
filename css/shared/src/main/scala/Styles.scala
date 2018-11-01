@@ -682,6 +682,14 @@ object CommonStyles extends StyleSheet.Standalone {
     maxHeight(100 %%)
   )
 
+  ".kanbancolumnarea > .nodecard" - (
+    minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+    marginTop(0 px),
+    marginLeft(0 px),
+    marginRight(10 px),
+  )
+
+
   ".kanbansubcolumn, .kanbancolumncollapsed" - (
     border(1 px, solid, white)
   )

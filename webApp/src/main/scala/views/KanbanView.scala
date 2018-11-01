@@ -68,7 +68,7 @@ object KanbanView {
             alignItems.flexStart,
             overflow.auto,
 
-            sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true, inject = cls := "kanbantoplevelcolumn")),
+            sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
             newColumnArea(state, page, newColumnFieldActive),
 
             registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
@@ -78,7 +78,7 @@ object KanbanView {
     )
   }
 
-  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
         Rx {
@@ -86,26 +86,22 @@ object KanbanView {
             val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
             //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
             //        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
-            renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
+            renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
-            renderCard(state, node, parentIds, selectedNodeIds)(ctx)(VDomModifier(
-              inject,
-              backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex),
-              cls := "kanbancolumncollapsed",
-            )
+            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
         }
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id))
-            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)(ctx)(inject)
+            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           else
-            renderCard(state, node, parentIds, selectedNodeIds)(ctx)(inject)
+            renderCard(state, node, parentIds, selectedNodeIds)
         }
     }
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isCollapsed: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -118,7 +114,10 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
-          div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse"),
+          if(isCollapsed)
+            div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand")
+          else
+            div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
@@ -134,8 +133,8 @@ object KanbanView {
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
+      if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       keyed(node.id, parentIds),
-      isTopLevel.ifFalse[VDomModifier](cls := "kanbansubcolumn"),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       if(isTopLevel) VDomModifier(
         draggableAs(DragItem.Kanban.ToplevelColumn(node.id)),
@@ -154,13 +153,15 @@ object KanbanView {
         buttonBar(position.absolute, top := "0", right := "0"),
 //        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
-      div(
-        cls := "kanbancolumnchildren",
-        registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
-        keyed(node.id, parentIds),
-        children.map(t => renderTree(state, t, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields, selectedNodeIds)),
-      ),
-      addNodeField(state, node.id, path, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+      isCollapsed.ifFalse[VDomModifier](VDomModifier(
+        div(
+          cls := "kanbancolumnchildren",
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
+          keyed(node.id, parentIds),
+          children.map(t => renderTree(state, t, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields, selectedNodeIds)),
+        ),
+        addNodeField(state, node.id, path, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+      ))
     )
   }
 
