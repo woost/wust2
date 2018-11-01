@@ -7,6 +7,7 @@ import wust.css.Styles
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
+import wust.webApp.views.Components._
 import wust.util._
 
 object MagicView {
@@ -16,20 +17,22 @@ object MagicView {
       Styles.flex,
       flexDirection.column,
       Rx {
-        val stats = state.graph().topLevelRoleStats(state.page().parentIds)
-        VDomModifier(
-          if(stats.contains(NodeRole.Task)) {
-            div(
-              Styles.growFull,
-              Styles.flex,
-              flexDirection.column,
-              KanbanView.apply(state).apply(Styles.growFull),
-              ThreadView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
-            )
-          } else {
-            ThreadView.apply(state).apply(Styles.growFull)
-          }
-        )
+        withLoadingAnimation(state) {
+          val stats = state.graph().topLevelRoleStats(state.page().parentIds)
+          VDomModifier(
+            if(stats.contains(NodeRole.Task)) {
+              div(
+                Styles.growFull,
+                Styles.flex,
+                flexDirection.column,
+                KanbanView.apply(state).apply(Styles.growFull),
+                ThreadView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
+              )
+            } else {
+              ThreadView.apply(state).apply(Styles.growFull)
+            }
+          )
+        }
       }
     )
   }
