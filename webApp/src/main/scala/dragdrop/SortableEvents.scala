@@ -57,7 +57,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
     val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea"))
-    val newSortIndex = if(!into.isInstanceOf[DragContainer.Kanban.NewColumnArea]) newContChilds.indexOf(sourceElem) else newContChilds.length
+    val newSortIndex = newContChilds.indexOf(sourceElem)
 
     //    val containerChanged = from.parentIds != into.parentIds
     val containerChanged = from != into
