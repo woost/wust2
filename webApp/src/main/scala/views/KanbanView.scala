@@ -81,57 +81,6 @@ object KanbanView {
     )
   }
 
-  private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
-    val marginRightHack = div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
-    div(
-      cls := s"kanbannewcolumnarea",
-      keyed,
-      registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
-      position.relative,
-      onClick.stopPropagation(true) --> fieldActive,
-      Rx {
-        if(fieldActive()) {
-          div(
-            keyed,
-            cls := "kanbannewcolumnareaform",
-            cls := "ui form",
-            textArea(
-              keyed,
-              cls := "field fluid",
-              fontSize.larger,
-              fontWeight.bold,
-              rows := 2,
-              placeholder := "Press Enter to add.",
-              valueWithEnter foreach { str =>
-                val change = {
-                  val newColumnNode = Node.MarkdownTask(str)
-                  val add = GraphChanges.addNode(newColumnNode)
-                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
-//                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
-                  add merge expand
-                }
-                state.eventProcessor.enriched.changes.onNext(change)
-              },
-              onDomMount.asHtml --> inNextAnimationFrame(_.focus()),
-              onBlur.value foreach { v => if(v.isEmpty) fieldActive() = false }
-            )
-          )
-        }
-        else
-          div(
-            keyed,
-            position.absolute,
-            top := "0",
-            left := "0",
-            right := "0",
-            cls := "kanbannewcolumnareacontent",
-            "+ Add Column",
-          )
-      },
-      marginRightHack
-    )
-  }
-
   private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, inject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
@@ -299,4 +248,56 @@ object KanbanView {
       }
     )
   }
+
+  private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+    val marginRightHack = div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
+    div(
+      cls := s"kanbannewcolumnarea",
+      keyed,
+      registerSortableContainer(state, DragContainer.Kanban.NewColumnArea(page.parentIds)),
+      position.relative,
+      onClick.stopPropagation(true) --> fieldActive,
+      Rx {
+        if(fieldActive()) {
+          div(
+            keyed,
+            cls := "kanbannewcolumnareaform",
+            cls := "ui form",
+            textArea(
+              keyed,
+              cls := "field fluid",
+              fontSize.larger,
+              fontWeight.bold,
+              rows := 2,
+              placeholder := "Press Enter to add.",
+              valueWithEnter foreach { str =>
+                val change = {
+                  val newColumnNode = Node.MarkdownTask(str)
+                  val add = GraphChanges.addNode(newColumnNode)
+                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
+                  //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
+                  add merge expand
+                }
+                state.eventProcessor.enriched.changes.onNext(change)
+              },
+              onDomMount.asHtml --> inNextAnimationFrame(_.focus()),
+              onBlur.value foreach { v => if(v.isEmpty) fieldActive() = false }
+            )
+          )
+        }
+        else
+          div(
+            keyed,
+            position.absolute,
+            top := "0",
+            left := "0",
+            right := "0",
+            cls := "kanbannewcolumnareacontent",
+            "+ Add Column",
+          )
+      },
+      marginRightHack
+    )
+  }
+
 }
