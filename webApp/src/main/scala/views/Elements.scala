@@ -8,6 +8,7 @@ import monix.execution.Cancelable
 import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.{KeyboardEvent, MouseEvent}
 import outwatch.dom._
@@ -184,7 +185,7 @@ object Elements {
       val clearInput = Handler.unsafe[Unit].mapObservable(_ => "")
       val writeValue = Observable(clearInput, overrideValue).merge
       VDomModifier(
-          value <-- writeValue,
+        value <-- writeValue,
         onEnter.stopPropagation.value.filter(_.nonEmpty) foreach { value =>
           // We clear input field before userInput is triggered
           clearInput.onNext(())
@@ -193,6 +194,27 @@ object Elements {
         managed(() => userInput subscribe sink)
       )
     }
+
+  class TextAreaAutoResizer {
+    // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
+    var offset = 0.0
+    var elem:HTMLElement = _
+
+    def trigger(): Unit = {
+      elem.style.height = "auto" // fixes the behaviour of scrollHeight
+      elem.style.height = s"${offset + elem.scrollHeight}px"
+    }
+
+    val modifiers = VDomModifier(
+      overflowY.hidden,
+      onDomMount.asHtml.foreach { textAreaElem =>
+        elem = textAreaElem
+        offset = elem.offsetHeight - elem.scrollHeight
+        elem.style.height = s"${offset + elem.scrollHeight}px"
+      },
+      onInput.foreach { trigger() }
+    )
+  }
 
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),

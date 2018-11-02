@@ -248,6 +248,15 @@ object KanbanView {
   private def addNodeField(state: GlobalState, parentId: NodeId, path:List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
     val fullPath = parentId :: path
     val active = Rx{activeReplyFields() contains fullPath}
+
+    val autoResizer = new TextAreaAutoResizer
+
+    val heightOptions = VDomModifier(
+      rows := 1,
+      resize := "none",
+      autoResizer.modifiers
+    )
+
     div(
       cls := "kanbanaddnodefield",
       keyed(parentId),
@@ -259,11 +268,12 @@ object KanbanView {
             textArea(
               keyed(parentId),
               cls := "field fluid",
-              rows := 2,
+              heightOptions,
               placeholder := "Press Enter to add.",
               valueWithEnter foreach { str =>
                 val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
-                state.eventProcessor.enriched.changes.onNext(change)
+                val submitted = state.eventProcessor.enriched.changes.onNext(change)
+                submitted.foreach{_ => autoResizer.trigger()}
               },
               onDomMount.asHtml --> inNextAnimationFrame(_.focus),
               onBlur.value foreach { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }

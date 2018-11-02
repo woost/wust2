@@ -88,13 +88,26 @@ object SharedViewElements {
       }
     }.toObservable.collect { case Some(s) => s }
 
+    val autoResizer = new TextAreaAutoResizer
+
+    val heightOptions = VDomModifier(
+      rows := 1,
+      resize := "none",
+      autoResizer.modifiers
+    )
+
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
       // we treat new chat messages as noise per default, so we set a future deletion date
       val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), parentIds, deletedAt = noiseFutureDeleteDate)
 
-      state.eventProcessor.changes.onNext(changes)
+      val submitted = state.eventProcessor.changes.onNext(changes)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
+
+      // trigger autoResize
+      submitted.foreach { _ =>
+        autoResizer.trigger()
+      }
     }
 
     if(!BrowserDetect.isMobile) {
@@ -103,7 +116,75 @@ object SharedViewElements {
       }
     }
 
+    val initialValueOptions = {
+      if (BrowserDetect.isMobile) {
+        value <-- initialValue
+      } else {
+        valueWithEnterWithInitial(initialValue) foreach handleInput _
+      }
+    }
 
+    val placeHolderString = {
+      if(BrowserDetect.isMobile) "Write a message"
+      else "Write a message and press Enter to submit."
+    }
+
+    val immediatelyFocus = {
+      BrowserDetect.isMobile.ifFalse(
+        onDomMount.asHtml --> inNextAnimationFrame(_.focus())
+      )
+    }
+
+    val pageScrollFixForMobileKeyboard = BrowserDetect.isMobile.ifTrue(VDomModifier(
+      onFocus foreach {
+        // when mobile keyboard opens, it may scroll up.
+        // so we scroll down again.
+        if(scrollHandler.isScrolledToBottomNow) {
+          window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 500)
+          // again for slower phones...
+          window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 2000)
+          ()
+        }
+      },
+      eventProp("touchstart") foreach {
+        // if field is already focused, but keyboard is closed:
+        // we do not know if the keyboard is opened right now,
+        // but we can detect if it was opened: by screen-height changes
+        if(scrollHandler.isScrolledToBottomNow) {
+          val screenHeight = window.screen.availHeight
+          window.setTimeout({() =>
+            val keyboardWasOpened = screenHeight > window.screen.availHeight
+            if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+          }, 500)
+          // and again for slower phones...
+          window.setTimeout({() =>
+            val keyboardWasOpened = screenHeight > window.screen.availHeight
+            if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+          }, 2000)
+          ()
+        }
+      }
+    ))
+
+    val submitButton = BrowserDetect.isMobile.ifTrue[VDomModifier](
+      div( // clickable box around circular button
+        padding := "3px",
+        button(
+          margin := "0px",
+          Styles.flexStatic,
+          cls := "ui circular icon button",
+          freeRegular.faPaperPlane,
+          fontSize := "1.1rem",
+          backgroundColor := "steelblue",
+          color := "white",
+        ),
+        onClick foreach {
+          val str = currentTextArea.value
+          handleInput(str)
+          currentTextArea.value = ""
+        },
+      )
+    )
 
     div(
       managed(IO(triggerFocus.foreach { _ => currentTextArea.focus()})),
@@ -117,65 +198,16 @@ object SharedViewElements {
         cls := "ui form",
         textArea(
           cls := "field",
-          if (BrowserDetect.isMobile) {
-            value <-- initialValue
-          } else {
-            valueWithEnterWithInitial(initialValue) foreach handleInput _
-          },
-          rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-          resize := "none",
-          placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
+          initialValueOptions,
+          heightOptions,
+          placeholder := placeHolderString,
+
+          immediatelyFocus,
+          pageScrollFixForMobileKeyboard,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
-          BrowserDetect.isMobile.ifFalse(onDomMount.asHtml --> inNextAnimationFrame(_.focus())), // immediately focus
-          BrowserDetect.isMobile.ifTrue(onFocus foreach {
-            // when mobile keyboard opens, it may scroll up.
-            // so we scroll down again.
-            if(scrollHandler.isScrolledToBottomNow) {
-              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 500)
-              // again for slower phones...
-              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 2000)
-              ()
-            }
-          }),
-          BrowserDetect.isMobile.ifTrue(eventProp("touchstart") foreach {
-          // if field is already focused, but keyboard is closed:
-          // we do not know if the keyboard is opened right now,
-          // but we can detect if it was opened: by screen-height changes
-          if(scrollHandler.isScrolledToBottomNow) {
-            val screenHeight = window.screen.availHeight
-            window.setTimeout({() =>
-              val keyboardWasOpened = screenHeight > window.screen.availHeight
-              if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
-            }, 500)
-            // and again for slower phones...
-            window.setTimeout({() =>
-              val keyboardWasOpened = screenHeight > window.screen.availHeight
-              if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
-            }, 2000)
-            ()
-          }
-        })
         )
       ),
-      BrowserDetect.isMobile.ifTrue[VDomModifier](
-        div( // clickable box around circular button
-          padding := "3px",
-          button(
-            margin := "0px",
-            Styles.flexStatic,
-            cls := "ui circular icon button",
-            freeRegular.faPaperPlane,
-            fontSize := "1.1rem",
-            backgroundColor := "steelblue",
-            color := "white",
-          ),
-          onClick foreach {
-            val str = currentTextArea.value
-            handleInput(str)
-            currentTextArea.value = ""
-          },
-        )
-      )
+      submitButton
     )
   }
 

@@ -192,6 +192,9 @@ object ThreadView {
   }
 
   private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean]): VNode = {
+    // TODO: reuse inputField of SharedViewElements
+
+    val autoResizer = new TextAreaAutoResizer
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
@@ -200,9 +203,17 @@ object ThreadView {
       val user = state.user.now
       val addNodeChange = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
       val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(user.id, nodeId) else GraphChanges.empty
-      state.eventProcessor.changes.onNext(addNodeChange merge expandChange)
+      val submitted = state.eventProcessor.changes.onNext(addNodeChange merge expandChange)
       currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
+      submitted.foreach{_ => autoResizer.trigger()}
     }
+
+
+    val heightOptions = VDomModifier(
+      rows := 1,
+      resize := "none",
+      autoResizer.modifiers
+    )
 
     div(
       Styles.flex,
@@ -215,8 +226,7 @@ object ThreadView {
           BrowserDetect.isMobile.ifFalse {
             valueWithEnter foreach handleInput _
           },
-          rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-          resize := "none",
+          heightOptions,
           placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
           onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
