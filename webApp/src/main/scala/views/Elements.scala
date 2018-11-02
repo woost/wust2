@@ -23,9 +23,6 @@ import scala.scalajs.js
 // They could be contributed to outwatch and used in other projects
 
 object Elements {
-  // Enter-behavior which is consistent across mobile and desktop:
-  // - textarea: enter emits keyCode for Enter
-  // - input: Enter triggers submit
 
   def scrollToBottom(elem: dom.Element): Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
@@ -181,15 +178,21 @@ object Elements {
 
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnterWithInitial(Observable.empty)
-  def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] { sink =>
-    val userInput = Handler.unsafe[String]
-    val writeValue = Observable(userInput.map(_ => ""), overrideValue).merge
-    VDomModifier(
-      value <-- writeValue,
-      onEnter.stopPropagation.value.filter(_.nonEmpty) --> userInput,
-      managed(() => userInput subscribe sink)
-    )
-  }
+  def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] {
+    sink =>
+      val userInput = Handler.unsafe[String]
+      val clearInput = Handler.unsafe[Unit].mapObservable(_ => "")
+      val writeValue = Observable(clearInput, overrideValue).merge
+      VDomModifier(
+          value <-- writeValue,
+        onEnter.stopPropagation.value.filter(_.nonEmpty) foreach { value =>
+          // We clear input field before userInput is triggered
+          clearInput.onNext(())
+          userInput.onNext(value)
+        },
+        managed(() => userInput subscribe sink)
+      )
+    }
 
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),
