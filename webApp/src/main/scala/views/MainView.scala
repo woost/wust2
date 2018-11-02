@@ -44,13 +44,24 @@ object MainView {
             Styles.growFull,
             flexDirection.column,
             overflow.auto,
-            Rx {
-              val view = state.view()
-              view.isContent
-                .ifTrueSeq(Seq(
-                  (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic)),
-                  PageHeader(state).apply(Styles.flexStatic)
-                ))
+            {
+              val pageHasParents = Rx {
+
+                val graph = state.graph()
+                val page = state.page()
+                page.parentIds.exists(graph.hasParents)
+              }
+              val breadCrumbs = Rx {
+                pageHasParents().ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic))
+              }
+              Rx {
+                val view = state.view()
+                view.isContent
+                  .ifTrue[VDomModifier](VDomModifier(
+                    breadCrumbs,
+                    PageHeader(state).apply(Styles.flexStatic)
+                  ))
+              }
             },
             // It is important that the view rendering is in a separate Rx.
             // This avoids rerendering the whole view when only the screen-size changed
