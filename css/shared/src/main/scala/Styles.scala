@@ -785,6 +785,13 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flexStatic,
   )
 
+  ".kanbancolumnheader" - (
+    Styles.flexStatic,
+    Styles.flex,
+    alignItems.flexEnd,
+    justifyContent.spaceBetween,
+  )
+
   ".kanbancolumnchildren" - (
     minHeight(50 px), // enough vertical area to drag cards in
     minWidth(kanbanColumnWidth), // enough horizontal area to not flicker width when adding cards

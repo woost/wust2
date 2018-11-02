@@ -154,15 +154,11 @@ object KanbanView {
         keyed(node.id, parentIds),
         cls := "draghandle",
 
-        Styles.flex,
-        alignItems.flexEnd,
-        justifyContent.spaceBetween,
-
         columnTitle,
 
         Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
 
-        position.relative,
+        position.relative, // for buttonbar
         buttonBar(position.absolute, top := "0", right := "0"),
 //        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
