@@ -4,6 +4,7 @@ import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.document
+import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
@@ -14,6 +15,7 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
+import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
@@ -272,12 +274,14 @@ object Components {
 
     val initialRender: Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
 
-    def save(text: String): Unit = {
+    def save(contentEditable:HTMLElement): Unit = {
       if(editMode.now) {
-        val changes = GraphChanges.addNode(node.copy(data = NodeData.Markdown(text)))
+        val text = contentEditable.textContent
+        val updatedNode = node.copy(data = NodeData.Markdown(text))
+        val changes = GraphChanges.addNode(updatedNode)
         submit.onNext(changes)
 
-        initialRender() = renderNodeData(changes.addNodes.head.data)
+        initialRender() = renderNodeData(updatedNode.data, maxLength)
         editMode() = false
       }
     }
@@ -300,9 +304,14 @@ object Components {
           color := "#000",
           cursor.auto,
 
-          onEnter.map(_.target.asInstanceOf[dom.html.Element].textContent) foreach { text => save(text) },
-          onBlur foreach { discardChanges() },
           onFocus foreach { e => document.execCommand("selectAll", false, null) },
+
+          if(BrowserDetect.isMobile) VDomModifier(
+            onBlur foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+          ) else VDomModifier(
+            onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+            onBlur foreach { discardChanges() },
+          ),
           onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
