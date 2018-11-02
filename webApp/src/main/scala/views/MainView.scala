@@ -9,6 +9,7 @@ import wust.util._
 import wust.webApp.DevOnly
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.views.Components._
 
 object MainView {
 
@@ -55,7 +56,9 @@ object MainView {
             // This avoids rerendering the whole view when only the screen-size changed
             Rx {
               if(state.view().isContent && state.pageNotFound()) {
-                PageNotFoundView(state)
+                withLoadingAnimation(state) {
+                  PageNotFoundView(state)
+                }
               } else {
                 // we can now assume, that every page parentId is contained in the graph
                 ViewRender(state.view(), state).apply(
