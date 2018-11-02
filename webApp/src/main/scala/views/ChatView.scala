@@ -63,7 +63,13 @@ object ChatView {
 
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
-        scrollHandler.scrollOptions(state)
+        scrollHandler.scrollOptions,
+        managed { () =>
+          // on page change, always scroll down
+          state.page.foreach { _ =>
+            scrollHandler.scrollToBottomInAnimationFrame()
+          }
+        }
       ),
       managed(() => state.page.foreach { _ => currentReply() = Set.empty[NodeId] }),
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,

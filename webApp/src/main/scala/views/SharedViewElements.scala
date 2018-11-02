@@ -38,41 +38,6 @@ object SharedViewElements {
     def directParentIds: Iterable[NodeId]
   }
 
-  final case class ScrollHandler(scrollableHistoryElem: Var[Option[HTMLElement]], isScrolledToBottom: Var[Boolean]) {
-    //TODO: move to Elements.scala
-
-    val scrollToBottomInAnimationFrame = requestSingleAnimationFrame {
-      scrollableHistoryElem.now.foreach { elem =>
-        scrollToBottom(elem)
-      }
-    }
-
-    def isScrolledToBottomNow = scrollableHistoryElem.now.fold(true){ elem =>
-      elem.scrollHeight - elem.clientHeight <= elem.scrollTop + 11
-    } // at bottom + 10 px tolerance
-
-    def scrollOptions(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier(
-      onDomPreUpdate foreach {
-        isScrolledToBottom() = isScrolledToBottomNow
-      },
-      onDomUpdate foreach {
-        if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
-      },
-      onDomMount.asHtml foreach { elem =>
-        scrollableHistoryElem() = Some(elem)
-        scrollToBottomInAnimationFrame()
-      },
-      managed { () =>
-        // on page change, always scroll down
-        state.page.foreach { _ =>
-          isScrolledToBottom() = true
-          scrollToBottomInAnimationFrame()
-        }
-      }
-    )
-
-  }
-
   @inline def sortByCreated(nodes: js.Array[Int], graph: Graph): Unit = {
     nodes.sort { (a, b) =>
       val createdA = graph.nodeCreated(a)

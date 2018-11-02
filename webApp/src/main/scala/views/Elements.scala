@@ -17,6 +17,7 @@ import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBu
 import wust.css.Styles
 import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
+import rx._
 
 import scala.scalajs.js
 
@@ -31,6 +32,33 @@ object Elements {
       elem.scrollTop = elem.scrollHeight - elem.clientHeight
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
+
+  final case class ScrollHandler(scrollableHistoryElem: Var[Option[HTMLElement]], isScrolledToBottom: Var[Boolean]) {
+
+    val scrollToBottomInAnimationFrame: () => Unit = requestSingleAnimationFrame {
+      scrollableHistoryElem.now.foreach { elem =>
+        scrollToBottom(elem)
+      }
+    }
+
+    def isScrolledToBottomNow: Boolean = scrollableHistoryElem.now.fold(true){ elem =>
+      elem.scrollHeight - elem.clientHeight <= elem.scrollTop + 11
+    } // at bottom + 10 px tolerance
+
+    def scrollOptions(implicit ctx: Ctx.Owner) = VDomModifier(
+      onDomPreUpdate foreach {
+        isScrolledToBottom() = isScrolledToBottomNow
+      },
+      onDomUpdate foreach {
+        if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
+      },
+      onDomMount.asHtml foreach { elem =>
+        scrollableHistoryElem() = Some(elem)
+        scrollToBottomInAnimationFrame()
+      },
+    )
+  }
+
 
   val onEnter: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
