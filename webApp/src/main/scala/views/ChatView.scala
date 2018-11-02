@@ -37,6 +37,9 @@ object ChatView {
     val inputFieldFocusTrigger = PublishSubject[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
+    currentReply.foreach{ _ =>
+      inputFieldFocusTrigger.onNext(())
+    }
 
     val outerDragOptions = VDomModifier(
       draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
