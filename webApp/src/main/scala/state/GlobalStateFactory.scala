@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom.window
 import rx._
@@ -27,10 +28,10 @@ object GlobalStateFactory {
       Client.currentAuth
     )
 
-    val isOnline = Observable.merge(
+    val isOnline = Observable(
       Client.observable.connected.map(_ => true),
       Client.observable.closed.map(_ => false)
-    ).unsafeToRx(true)
+    ).merge.unsafeToRx(true)
 
     val isLoading = Var(false)
 
@@ -98,12 +99,12 @@ object GlobalStateFactory {
 
         observable.map(ReplaceGraph.apply)
       }
-        .doOnNext(_ => isLoading() = false)
+        .doOnNext(_ => Task(isLoading() = false))
         .subscribe(eventProcessor.localEvents)
 
 
     // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
-    val appUpdateTrigger = Observable.merge(page.toObservable.drop(1), view.toObservable.drop(1))
+    val appUpdateTrigger = Observable(page.toObservable.drop(1), view.toObservable.drop(1)).merge
 
     // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
     // we will check for an update immediately, but at max every 30 minutes.

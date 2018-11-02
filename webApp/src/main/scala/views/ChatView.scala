@@ -64,7 +64,7 @@ object ChatView {
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.scrollOptions(state)
       ),
-      managed(IO { state.page.foreach { _ => currentReply() = Set.empty[NodeId] } }),
+      managed(() => state.page.foreach { _ => currentReply() = Set.empty[NodeId] }),
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
       Rx {
         val graph = state.graph()

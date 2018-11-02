@@ -59,15 +59,13 @@ object SharedViewElements {
         scrollableHistoryElem() = Some(elem)
         scrollToBottomInAnimationFrame()
       },
-      managed(
-        IO {
-          // on page change, always scroll down
-          state.page.foreach { _ =>
-            isScrolledToBottom() = true
-            scrollToBottomInAnimationFrame()
-          }
-        },
-      ),
+      managed { () =>
+        // on page change, always scroll down
+        state.page.foreach { _ =>
+          isScrolledToBottom() = true
+          scrollToBottomInAnimationFrame()
+        }
+      }
     )
 
   }

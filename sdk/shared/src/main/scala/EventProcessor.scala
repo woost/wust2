@@ -96,14 +96,14 @@ class EventProcessor private (
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable.merge(enrichedChanges, changes)
+    val allChanges = Observable(enrichedChanges, changes).merge
 
     val localChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
 
     val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
-    val graphEvents = Observable.merge(eventStream, localEvents.map(Seq(_)), localChangesAsEvents)
+    val graphEvents = Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge
 
     val graphWithChanges: Observable[Graph] = {
       var lastGraph = Graph.empty
@@ -133,7 +133,7 @@ class EventProcessor private (
     //TODO should by sync
     val obs = graph.headL
     this.changes.onNext(changes)
-    obs.runAsync
+    obs.runToFuture
   }
 
   private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)

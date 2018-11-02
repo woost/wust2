@@ -3,11 +3,9 @@ package wust.webApp
 import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import outwatch.AsVDomModifier
 import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
@@ -87,10 +85,6 @@ package object outwatchHelpers extends KeyHash {
     }
   }
 
-  //TODO: add to outwatch
-  implicit def arrayModifier[T](implicit vm: AsVDomModifier[T]): AsVDomModifier[Array[T]] =
-    (value: Array[T]) => CompositeModifier(value.map(v => vm.asVDomModifier(v)).toJSArray)
-
   implicit object VarAsObserver extends AsObserver[Var] {
     override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
   }
@@ -158,10 +152,10 @@ package object outwatchHelpers extends KeyHash {
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
-  def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
+  def keyDown(keyCode: Int): Observable[Boolean] = Observable(
    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
- ).startWith(false :: Nil)
+ ).merge.startWith(false :: Nil)
 
   // fontawesome uses svg for icons and span for layered icons.
   // we need to handle layers as an html tag instead of svg.

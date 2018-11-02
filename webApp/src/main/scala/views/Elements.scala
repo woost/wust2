@@ -45,18 +45,18 @@ object Elements {
       .preventDefault
 
   val onGlobalEscape: CustomEmitterBuilder[KeyboardEvent, VDomModifier] =
-    EmitterBuilder.ofModifier { (sink: dom.KeyboardEvent => Unit) =>
+    EmitterBuilder.ofModifier[dom.KeyboardEvent] { sink =>
       if (BrowserDetect.isMobile) VDomModifier.empty
-      else managed(IO(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape).foreach(sink)))
+      else managed(() => events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape) subscribe sink)
     }
 
   val onGlobalClick: CustomEmitterBuilder[MouseEvent, VDomModifier] =
-    EmitterBuilder.ofModifier { (sink: dom.MouseEvent => Unit) =>
-      managed(IO(events.document.onClick.foreach(sink)))
+    EmitterBuilder.ofModifier[dom.MouseEvent] { sink =>
+      managed(() => events.document.onClick subscribe sink)
     }
 
   val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier { (sink: Boolean => Unit) =>
+    EmitterBuilder.ofModifier[Boolean] { sink =>
       // https://stackoverflow.com/a/27413909
       val duration = 251
       val distanceToleranceSq = 5*5
@@ -82,7 +82,7 @@ object Elements {
         }
 
         if (!longpress) {
-          sink(false) // click
+          sink.onNext(false) // click
         }
       }
 
@@ -98,7 +98,7 @@ object Elements {
           val dy = currenty - starty
           val distanceSq = dx*dx + dy*dy
           if(distanceSq <= distanceToleranceSq) {
-            sink(true) // long click
+            sink.onNext(true) // long click
           }
           longpress = true // prevents click
         }, duration)
@@ -122,14 +122,14 @@ object Elements {
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
     import hammerjs._
-    EmitterBuilder.ofModifier { (sink: hammerjs.Event => Unit) =>
+    EmitterBuilder.ofModifier[hammerjs.Event] { sink =>
       managedElement.asHtml { elem =>
         elem.asInstanceOf[js.Dynamic].hammer = js.undefined
         var hammertime = new Hammer[Event](elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
         propagating(hammertime).on(events, { e =>
           e.stopPropagation()
           // if(e.target == elem)
-          sink(e)
+          sink.onNext(e)
         })
 
         Cancelable { () =>
@@ -181,18 +181,15 @@ object Elements {
 
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnterWithInitial(Observable.empty)
-  def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier {
-    (sink: String => Unit) =>
-      val userInput = Handler.unsafe[String]
-      val writeValue = Observable.merge(userInput.map(_ => ""), overrideValue)
-      VDomModifier(
-          value <-- writeValue,
-        //TODO WTF WHY DOES THAT NOT WORK?
-        //          onEnter.value.filter(_.nonEmpty) --> userInput,
-        onEnter.stopPropagation.map(_.currentTarget.asInstanceOf[dom.html.Input].value).filter(_.nonEmpty) --> userInput,
-        managed(IO(userInput.foreach(sink)))
-      )
-    }
+  def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] { sink =>
+    val userInput = Handler.unsafe[String]
+    val writeValue = Observable(userInput.map(_ => ""), overrideValue).merge
+    VDomModifier(
+      value <-- writeValue,
+      onEnter.stopPropagation.value.filter(_.nonEmpty) --> userInput,
+      managed(() => userInput subscribe sink)
+    )
+  }
 
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),

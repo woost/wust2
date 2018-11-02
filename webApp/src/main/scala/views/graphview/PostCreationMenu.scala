@@ -60,7 +60,7 @@ object PostCreationMenu {
           valueWithEnter --> inputHandler,
           Placeholders.newNode,
           onDomMount.asHtml foreach(_.focus()),
-          style("resize") := "none", //TODO: outwatch resize?
+          resize := "none",
           margin := "0px",
           rows := 2,
         ),

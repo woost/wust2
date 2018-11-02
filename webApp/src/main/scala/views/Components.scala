@@ -191,32 +191,22 @@ object Components {
   }
 
   def draggableAs(payload: => DragPayload): VDomModifier = {
-    Seq(
+    VDomModifier(
       cls := "draggable", // makes this element discoverable for the Draggable library
       onDomMount.asHtml foreach{ elem =>
         writeDragPayload(elem, payload)
-      },
-      //TODO: onDomUpdate should not be necessary here. This is a workaround until outwatch executes onDomMount when triggered in an Rx
-      onDomUpdate.asHtml foreach{ elem =>
-        writeDragPayload(elem, payload)
-      },
-    )
-  }
-
-  def dragTarget(dragTarget: DragTarget): VDomModifier = {
-    VDomModifier(
-      onDomMount.asHtml foreach{ elem =>
-        writeDragTarget(elem, dragTarget)
-      },
-      //TODO: onDomUpdate should not be necessary here. This is a workaround until outwatch executes onDomMount when triggered in an Rx
-      onDomUpdate.asHtml foreach{ elem =>
-        writeDragTarget(elem, dragTarget)
       }
     )
   }
 
+  def dragTarget(dragTarget: DragTarget): VDomModifier = {
+    onDomMount.asHtml foreach{ elem =>
+      writeDragTarget(elem, dragTarget)
+    }
+  }
+
   def registerDraggableContainer(state: GlobalState): VDomModifier = {
-    Seq(
+    VDomModifier(
       //    border := "2px solid blue",
       outline := "none", // hides focus outline
       cls := "draggable-container",
@@ -230,7 +220,7 @@ object Components {
   }
 
   def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
-    Seq(
+    VDomModifier(
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
       cls := "sortable-container",
@@ -324,7 +314,7 @@ object Components {
 
   val onIntersectionWithViewport: EmitterBuilder[Boolean, VDomModifier] = onIntersectionWithViewport(ignoreInitial = false)
   def onIntersectionWithViewport(ignoreInitial: Boolean): EmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier { (sink: Boolean => Unit) =>
+    EmitterBuilder.ofModifier[Boolean] { sink =>
       var prevIsIntersecting = ignoreInitial
 
       VDomModifier(
@@ -334,7 +324,7 @@ object Components {
             { (entry, obs) =>
               val isIntersecting = entry.head.isIntersecting
               if (isIntersecting != prevIsIntersecting) {
-                sink(isIntersecting)
+                sink.onNext(isIntersecting)
                 prevIsIntersecting = isIntersecting
               }
             },
@@ -356,7 +346,7 @@ object Components {
     }
 
   val onInfiniteScrollUp: EmitterBuilder[Int, VDomModifier] =
-    EmitterBuilder.ofModifier { (sink: Int => Unit) =>
+    EmitterBuilder.ofModifier[Int] { sink =>
 
       var lastHeight = 0.0
       var lastScrollTop = 0.0
@@ -369,7 +359,7 @@ object Components {
           onIntersectionWithViewport(ignoreInitial = false).foreach { isIntersecting =>
             if (isIntersecting) {
               numSteps += 1
-              sink(numSteps)
+              sink.onNext(numSteps)
             }
           }
         ),
