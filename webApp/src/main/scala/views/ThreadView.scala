@@ -1,6 +1,9 @@
 package wust.webApp.views
 
 import fontAwesome._
+import monix.execution.Ack
+import monix.execution.Ack.Continue
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
@@ -22,6 +25,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
+import scala.concurrent.Future
 import scala.scalajs.js
 
 object ThreadView {
@@ -64,7 +68,25 @@ object ThreadView {
         scrollHandler.scrollOptions(state)
 
       ),
-      inputField(state, state.page.now.parentIds, scrollHandler)(ctx)(Styles.flexStatic)
+      {
+        def submitAction(str:String) = {
+          // we treat new chat messages as noise per default, so we set a future deletion date
+          scrollHandler.scrollToBottomInAnimationFrame()
+          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentIds, deletedAt = noiseFutureDeleteDate)
+          state.eventProcessor.changes.onNext(changes)
+        }
+
+        val inputFieldFocusTrigger = PublishSubject[Unit]
+
+        if(!BrowserDetect.isMobile) {
+          state.page.triggerLater {
+            inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
+            ()
+          }
+        }
+
+        inputField(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+      }
     )
   }
 
@@ -191,72 +213,27 @@ object ThreadView {
     )
   }
 
-  private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean]): VNode = {
-    // TODO: reuse inputField of SharedViewElements
+  private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
 
-    val autoResizer = new TextAreaAutoResizer
-
-    var currentTextArea: dom.html.TextArea = null
-    def handleInput(str: String): Unit = if (str.nonEmpty) {
+    def handleInput(str: String): Future[Ack] = if (str.nonEmpty) {
       // we treat new chat messages as noise per default, so we set a future deletion date
       val graph = state.graph.now
       val user = state.user.now
       val addNodeChange = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
       val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(user.id, nodeId) else GraphChanges.empty
-      val submitted = state.eventProcessor.changes.onNext(addNodeChange merge expandChange)
-      currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
-      submitted.foreach{_ => autoResizer.trigger()}
+      val changes = addNodeChange merge expandChange
+      state.eventProcessor.changes.onNext(changes)
+    } else Future.successful(Continue)
+
+    def blurAction(value: String):Unit = if(value.isEmpty) {
+      window.setTimeout(() => showReplyField() = false, 150)
     }
 
 
-    val heightOptions = VDomModifier(
-      rows := 1,
-      resize := "none",
-      autoResizer.modifiers
-    )
-
-    div(
-      Styles.flex,
-      alignItems.center,
-
-      div(
-        cls := "ui form",
-        textArea(
-          cls := "field",
-          BrowserDetect.isMobile.ifFalse {
-            valueWithEnter foreach handleInput _
-          },
-          heightOptions,
-          placeholder := (if(BrowserDetect.isMobile) "Write a message" else "Write a message and press Enter to submit."),
-          onDomMount.asHtml --> inNextAnimationFrame(_.focus()), // immediately focus
-          onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
-          //TODO: outwatch: Emitterbuilder.timeOut
-          onBlur.value foreach  {value => if(value.isEmpty) window.setTimeout(() => showReplyField() = false, 150)},
-        ),
-        padding := "3px",
-        width := "100%"
-      ),
-      BrowserDetect.isMobile.ifTrue[VDomModifier](
-        div( // clickable box around circular button
-          padding := "3px",
-          button(
-            margin := "0px",
-            Styles.flexStatic,
-            cls := "ui circular icon button",
-            freeRegular.faPaperPlane,
-            fontSize := "1.1rem",
-            backgroundColor := "steelblue",
-            color := "white",
-          ),
-          onClick foreach {
-            val str = currentTextArea.value
-            handleInput(str)
-            currentTextArea.value = ""
-          },
-        )
-      ),
+    inputField(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true).apply(
       closeButton(
-        onClick foreach { showReplyField() = false },
+        padding := "15px",
+        onClick.stopPropagation foreach { showReplyField() = false },
       ),
     )
   }

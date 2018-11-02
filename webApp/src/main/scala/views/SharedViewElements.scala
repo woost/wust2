@@ -3,6 +3,7 @@ package wust.webApp.views
 import cats.effect.IO
 import fontAwesome._
 import googleAnalytics.Analytics
+import monix.execution.Ack
 import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
@@ -25,6 +26,7 @@ import wust.webApp.views.Topbar.{login, logout}
 import wust.webApp.{BrowserDetect, Client, Icons}
 
 import scala.collection.{breakOut, mutable}
+import scala.concurrent.Future
 import scala.scalajs.js
 
 object SharedViewElements {
@@ -37,6 +39,7 @@ object SharedViewElements {
   }
 
   final case class ScrollHandler(scrollableHistoryElem: Var[Option[HTMLElement]], isScrolledToBottom: Var[Boolean]) {
+    //TODO: move to Elements.scala
 
     val scrollToBottomInAnimationFrame = requestSingleAnimationFrame {
       scrollableHistoryElem.now.foreach { elem =>
@@ -80,13 +83,21 @@ object SharedViewElements {
     }
   }
 
-  def inputField(state: GlobalState, parentIds: => Iterable[NodeId], scrollHandler:ScrollHandler, triggerFocus:Observable[Unit] = Observable.empty)(implicit ctx: Ctx.Owner): VNode = {
-    val initialValue = Rx {
+  def inputField(
+    state: GlobalState,
+    submitAction: String => Future[Ack],
+    blurAction: Option[String => Unit] = None,
+    scrollHandler:Option[ScrollHandler] = None,
+    triggerFocus:Observable[Unit] = Observable.empty,
+    autoFocus:Boolean = false,
+    preFillByShareApi:Boolean = false
+  )(implicit ctx: Ctx.Owner): VNode = {
+    val initialValue = if(preFillByShareApi) Rx {
       state.viewConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toObservable.collect { case Some(s) => s }
+    }.toObservable.collect { case Some(s) => s } else Observable.empty
 
     val autoResizer = new TextAreaAutoResizer
 
@@ -98,10 +109,7 @@ object SharedViewElements {
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (str.nonEmpty) {
-      // we treat new chat messages as noise per default, so we set a future deletion date
-      val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), parentIds, deletedAt = noiseFutureDeleteDate)
-
-      val submitted = state.eventProcessor.changes.onNext(changes)
+      val submitted = submitAction(str)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
 
       // trigger autoResize
@@ -110,13 +118,7 @@ object SharedViewElements {
       }
     }
 
-    if(!BrowserDetect.isMobile) {
-      state.page.triggerLater {
-        if(currentTextArea != null) currentTextArea.focus() // re-gain focus on page-change
-      }
-    }
-
-    val initialValueOptions = {
+    val initialValueAndSubmitOptions = {
       if (BrowserDetect.isMobile) {
         value <-- initialValue
       } else {
@@ -130,39 +132,43 @@ object SharedViewElements {
     }
 
     val immediatelyFocus = {
-      BrowserDetect.isMobile.ifFalse(
+      autoFocus.ifTrue(
         onDomMount.asHtml --> inNextAnimationFrame(_.focus())
       )
     }
 
     val pageScrollFixForMobileKeyboard = BrowserDetect.isMobile.ifTrue(VDomModifier(
-      onFocus foreach {
-        // when mobile keyboard opens, it may scroll up.
-        // so we scroll down again.
-        if(scrollHandler.isScrolledToBottomNow) {
-          window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 500)
-          // again for slower phones...
-          window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 2000)
-          ()
-        }
-      },
-      eventProp("touchstart") foreach {
-        // if field is already focused, but keyboard is closed:
-        // we do not know if the keyboard is opened right now,
-        // but we can detect if it was opened: by screen-height changes
-        if(scrollHandler.isScrolledToBottomNow) {
-          val screenHeight = window.screen.availHeight
-          window.setTimeout({() =>
-            val keyboardWasOpened = screenHeight > window.screen.availHeight
-            if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
-          }, 500)
-          // and again for slower phones...
-          window.setTimeout({() =>
-            val keyboardWasOpened = screenHeight > window.screen.availHeight
-            if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
-          }, 2000)
-          ()
-        }
+      scrollHandler.map { scrollHandler =>
+        VDomModifier(
+          onFocus foreach {
+            // when mobile keyboard opens, it may scroll up.
+            // so we scroll down again.
+            if(scrollHandler.isScrolledToBottomNow) {
+              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 500)
+              // again for slower phones...
+              window.setTimeout(() => scrollHandler.scrollToBottomInAnimationFrame(), 2000)
+              ()
+            }
+          },
+          eventProp("touchstart") foreach {
+            // if field is already focused, but keyboard is closed:
+            // we do not know if the keyboard is opened right now,
+            // but we can detect if it was opened: by screen-height changes
+            if(scrollHandler.isScrolledToBottomNow) {
+              val screenHeight = window.screen.availHeight
+              window.setTimeout({ () =>
+                val keyboardWasOpened = screenHeight > window.screen.availHeight
+                if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+              }, 500)
+              // and again for slower phones...
+              window.setTimeout({ () =>
+                val keyboardWasOpened = screenHeight > window.screen.availHeight
+                if(keyboardWasOpened) scrollHandler.scrollToBottomInAnimationFrame()
+              }, 2000)
+              ()
+            }
+          }
+        )
       }
     ))
 
@@ -189,7 +195,7 @@ object SharedViewElements {
     div(
       managed(IO(triggerFocus.foreach { _ => currentTextArea.focus()})),
       Styles.flex,
-      alignItems.center,
+      alignItems.flexStart,
       justifyContent.stretch,
       div(
         margin := "3px",
@@ -198,11 +204,12 @@ object SharedViewElements {
         cls := "ui form",
         textArea(
           cls := "field",
-          initialValueOptions,
+          initialValueAndSubmitOptions,
           heightOptions,
           placeholder := placeHolderString,
 
           immediatelyFocus,
+          blurAction.map(onBlur.value foreach _),
           pageScrollFixForMobileKeyboard,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
         )

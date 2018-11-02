@@ -185,10 +185,10 @@ object Elements {
     private val writeValue = Observable(clearInput, overrideValue).merge
 
     def trigger(): Unit = {
-          // We clear input field before userInput is triggered
+      // We clear input field before userInput is triggered
       val value = elem.value
-          clearInput.onNext(())
-          userInput.onNext(value)
+      clearInput.onNext(())
+      userInput.onNext(value)
     }
 
     val emitterBuilder: CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] { sink =>

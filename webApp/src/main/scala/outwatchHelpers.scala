@@ -18,6 +18,7 @@ import scala.scalajs.js.JSConverters._
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
 // TODO: vnode.apply version which prepends, or in general allows to modify the modifier sequence
 //TODO: outwatch: onInput.target foreach { elem => ... }
+//TODO: outwatch: Emitterbuilder.timeOut or delay
 package object outwatchHelpers extends KeyHash {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =

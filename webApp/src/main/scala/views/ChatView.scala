@@ -14,6 +14,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
@@ -98,7 +99,26 @@ object ChatView {
         }
 
         val bgColor = Rx{ NodeColor.pageHue(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
-        inputField(state, replyNodes, scrollHandler, inputFieldFocusTrigger)(ctx)(Styles.flexStatic, Rx{ backgroundColor :=? bgColor()} )
+
+        def submitAction(str:String) = {
+          scrollHandler.scrollToBottomInAnimationFrame()
+          // we treat new chat messages as noise per default, so we set a future deletion date
+          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), replyNodes, deletedAt = noiseFutureDeleteDate)
+          state.eventProcessor.changes.onNext(changes)
+
+        }
+
+        if(!BrowserDetect.isMobile) {
+          state.page.triggerLater {
+            inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
+            ()
+          }
+        }
+
+        inputField(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
+          Styles.flexStatic,
+          Rx{ backgroundColor :=? bgColor()}
+        )
       }
     )
   }
