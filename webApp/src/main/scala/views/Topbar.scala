@@ -136,7 +136,7 @@ object Topbar {
       }))
 
     val syncStatusIcon = Rx {
-      (state.isOnline(), state.isSynced()) match {
+      (state.isOnline(), state.isSynced() && !state.isLoading()) match {
         case (true, true)  => span(syncedIcon, title := "Everything is up to date")
         case (true, false) => span(syncingIcon, title := "Syncing changes...")
         case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")
