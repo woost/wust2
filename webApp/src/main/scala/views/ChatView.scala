@@ -33,7 +33,7 @@ object ChatView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
 
-    val scrollHandler = ScrollHandler(Var(None: Option[HTMLElement]), Var(true))
+    val scrollHandler = new ScrollBottomHandler
     val inputFieldFocusTrigger = PublishSubject[Unit]
 
     val currentReply = Var(Set.empty[NodeId])
@@ -66,7 +66,7 @@ object ChatView {
 
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
-        scrollHandler.scrollOptions,
+        scrollHandler.modifier,
         managed { () =>
           // on page change, always scroll down
           state.page.foreach { _ =>

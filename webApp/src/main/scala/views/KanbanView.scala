@@ -6,11 +6,11 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeRole, NodeId}
+import wust.ids.{NodeData, NodeId, NodeRole}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
-import wust.webApp.Icons
+import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -18,6 +18,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
 object KanbanView {
+  import SharedViewElements._
 
   private val maxLength = 100
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
@@ -136,6 +137,8 @@ object KanbanView {
       }
     )
 
+    val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
+
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
@@ -168,8 +171,9 @@ object KanbanView {
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
           keyed(node.id, parentIds),
           children.map(t => renderTree(state, t, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields, selectedNodeIds)),
+          scrollHandler.modifier,
         ),
-        addNodeField(state, node.id, path, activeReplyFields) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+        addNodeField(state, node.id, path, activeReplyFields, scrollHandler) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
       ))
     )
   }
@@ -241,96 +245,79 @@ object KanbanView {
     )
   }
 
-  private def addNodeField(state: GlobalState, parentId: NodeId, path:List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])(implicit ctx: Ctx.Owner): VNode = {
+  private def addNodeField(state: GlobalState, parentId: NodeId, path:List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], scrollHandler: ScrollBottomHandler)(implicit ctx: Ctx.Owner): VNode = {
     val fullPath = parentId :: path
     val active = Rx{activeReplyFields() contains fullPath}
+    active.foreach{ active =>
+      if(active) scrollHandler.scrollToBottomInAnimationFrame()
+    }
 
-    val autoResizer = new TextAreaAutoResizer
+    def submitAction(str:String) = {
+      val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
+      state.eventProcessor.enriched.changes.onNext(change)
+    }
 
-    val heightOptions = VDomModifier(
-      rows := 1,
-      resize := "none",
-      autoResizer.modifiers
-    )
+    def blurAction(v:String) = {
+      if(v.isEmpty) activeReplyFields.update(_ - fullPath)
+    }
+
+    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
 
     div(
       cls := "kanbanaddnodefield",
       keyed(parentId),
       Rx {
         if(active())
-          div(
-            cls := "ui form",
-            keyed(parentId),
-            textArea(
-              keyed(parentId),
-              cls := "field fluid",
-              heightOptions,
-              placeholder := "Press Enter to add.",
-              valueWithEnter foreach { str =>
-                val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
-                val submitted = state.eventProcessor.enriched.changes.onNext(change)
-                submitted.foreach{_ => autoResizer.trigger()}
-              },
-              onDomMount.asHtml --> inNextAnimationFrame(_.focus),
-              onBlur.value foreach { v => if(v.isEmpty) activeReplyFields.update(_ - fullPath) }
-            )
-          )
+          inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder))
         else
           div(
-            keyed(parentId),
             "+ Add Card",
-            // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
-            // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
-            // before the click was finished. This does not happen with onMouseDown combined with deferred opening of the new reply field.
-            onMouseDown foreach { defer{ activeReplyFields.update(_ + fullPath) } }
+            onClick foreach { activeReplyFields.update(_ + fullPath) }
           )
       }
     )
   }
 
   private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
-    val marginRightHack = div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
+    def submitAction(str:String) = {
+      val change = {
+        val newColumnNode = Node.MarkdownTask(str)
+        val add = GraphChanges.addNode(newColumnNode)
+        val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
+        //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
+        add merge expand
+      }
+      state.eventProcessor.enriched.changes.onNext(change)
+    }
+
+    def blurAction(v:String) = {
+      if(v.isEmpty) fieldActive() = false
+    }
+
+    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
+
+    val marginRightHack = VDomModifier(
+      position.relative,
+      div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
+    )
+
     div(
       cls := s"kanbannewcolumnarea",
       keyed,
-      position.relative,
       onClick.stopPropagation(true) --> fieldActive,
       Rx {
         if(fieldActive()) {
-          div(
-            keyed,
+          inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder), textAreaModifiers = VDomModifier(
+            fontSize.larger,
+            fontWeight.bold,
+          )).apply(
             cls := "kanbannewcolumnareaform",
-            cls := "ui form",
-            textArea(
-              keyed,
-              cls := "field fluid",
-              fontSize.larger,
-              fontWeight.bold,
-              rows := 2,
-              placeholder := "Press Enter to add.",
-              valueWithEnter foreach { str =>
-                val change = {
-                  val newColumnNode = Node.MarkdownTask(str)
-                  val add = GraphChanges.addNode(newColumnNode)
-                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
-                  //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
-                  add merge expand
-                }
-                state.eventProcessor.enriched.changes.onNext(change)
-              },
-              onDomMount.asHtml --> inNextAnimationFrame(_.focus()),
-              onBlur.value foreach { v => if(v.isEmpty) fieldActive() = false }
-            )
           )
         }
         else
           div(
-            keyed,
-            position.absolute,
-            top := "0",
-            left := "0",
-            right := "0",
             cls := "kanbannewcolumnareacontent",
+            margin.auto,
             "+ Add Column",
           )
       },

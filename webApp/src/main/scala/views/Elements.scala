@@ -33,19 +33,21 @@ object Elements {
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
-  final case class ScrollHandler(scrollableHistoryElem: Var[Option[HTMLElement]], isScrolledToBottom: Var[Boolean]) {
+  final class ScrollBottomHandler(initialScrollToBottom:Boolean = true) {
+    val scrollableElem: Var[Option[HTMLElement]] = Var(None)
+    val isScrolledToBottom = Var[Boolean](true)
 
     val scrollToBottomInAnimationFrame: () => Unit = requestSingleAnimationFrame {
-      scrollableHistoryElem.now.foreach { elem =>
+      scrollableElem.now.foreach { elem =>
         scrollToBottom(elem)
       }
     }
 
-    def isScrolledToBottomNow: Boolean = scrollableHistoryElem.now.fold(true){ elem =>
+    def isScrolledToBottomNow: Boolean = scrollableElem.now.fold(true){ elem =>
       elem.scrollHeight - elem.clientHeight <= elem.scrollTop + 11
     } // at bottom + 10 px tolerance
 
-    def scrollOptions(implicit ctx: Ctx.Owner) = VDomModifier(
+    def modifier(implicit ctx: Ctx.Owner) = VDomModifier(
       onDomPreUpdate foreach {
         isScrolledToBottom() = isScrolledToBottomNow
       },
@@ -53,8 +55,8 @@ object Elements {
         if (isScrolledToBottom.now) scrollToBottomInAnimationFrame()
       },
       onDomMount.asHtml foreach { elem =>
-        scrollableHistoryElem() = Some(elem)
-        scrollToBottomInAnimationFrame()
+        scrollableElem() = Some(elem)
+        if(initialScrollToBottom) scrollToBottomInAnimationFrame()
       },
     )
   }
@@ -205,7 +207,7 @@ object Elements {
     }
   }
 
-  class ValueWithEnter(overrideValue: Observable[String] = Observable.empty) {
+  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
@@ -235,7 +237,7 @@ object Elements {
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter).emitterBuilder
   def valueWithEnterWithInitial(overrideValue: Observable[String]): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue).emitterBuilder
 
-  class TextAreaAutoResizer {
+  final class TextAreaAutoResizer {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
     var offset = 0.0
     var elem:HTMLElement = _

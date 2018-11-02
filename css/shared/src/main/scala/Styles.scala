@@ -632,7 +632,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbannewcolumnarea" - (
     minWidth(kanbanColumnWidth),
     maxWidth(kanbanColumnWidth), // prevents inner fluid textarea to exceed size
-    height(100 px),
+    minHeight(100 px),
     backgroundColor(c"rgba(158, 158, 158, 0.25)"),
     borderRadius(kanbanColumnBorderRadius),
     cursor.pointer,

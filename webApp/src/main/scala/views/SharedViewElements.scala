@@ -52,10 +52,12 @@ object SharedViewElements {
     state: GlobalState,
     submitAction: String => Future[Ack],
     blurAction: Option[String => Unit] = None,
-    scrollHandler:Option[ScrollHandler] = None,
+    scrollHandler:Option[ScrollBottomHandler] = None,
     triggerFocus:Observable[Unit] = Observable.empty,
     autoFocus:Boolean = false,
-    preFillByShareApi:Boolean = false
+    placeHolderMessage:Option[String] = None,
+    preFillByShareApi:Boolean = false,
+    textAreaModifiers:VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
       state.viewConfig().shareOptions.map { share =>
@@ -91,7 +93,7 @@ object SharedViewElements {
       }
     }
 
-    val placeHolderString = {
+    val placeHolderString = placeHolderMessage.getOrElse {
       if(BrowserDetect.isMobile || state.screenSize.now == ScreenSize.Small) "Write a message"
       else "Write a message and press Enter to submit."
     }
@@ -177,6 +179,7 @@ object SharedViewElements {
           blurAction.map(onBlur.value foreach _),
           pageScrollFixForMobileKeyboard,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
+          textAreaModifiers,
         )
       ),
       submitButton
