@@ -353,7 +353,7 @@ object SharedViewElements {
   )
 
   def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
-    (state.screenSize.now == ScreenSize.Small).ifFalse[VDomModifier] {
+    BrowserDetect.isMobile.ifFalse[VDomModifier] {
       div(
         cls := "ui checkbox fitted",
         marginLeft := "5px",
