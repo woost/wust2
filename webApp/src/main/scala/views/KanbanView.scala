@@ -173,7 +173,7 @@ object KanbanView {
           children.map(t => renderTree(state, t, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
-        addNodeField(state, node.id, path, activeReplyFields, scrollHandler) // does not belong to sortable container => always stays at the bottom. TODO: is this a draggable bug? If last element is not draggable, it can still be pushed away by a movable element
+        addNodeField(state, node.id, path, activeReplyFields, scrollHandler)
       ))
     )
   }
@@ -288,6 +288,7 @@ object KanbanView {
         add merge expand
       }
       state.eventProcessor.enriched.changes.onNext(change)
+      //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again
     }
 
     def blurAction(v:String) = {
