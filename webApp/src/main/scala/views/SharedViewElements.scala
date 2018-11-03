@@ -188,12 +188,14 @@ object SharedViewElements {
   }
 
   val dragHandle = div(
+    Styles.flex,
+    alignItems.center,
     cls := "draghandle",
-    paddingLeft := "8px",
-    freeSolid.faGripVertical,
-    paddingRight := "8px",
+    paddingLeft := "12px",
+    freeSolid.faBars,
+    paddingRight := "12px",
     color := "#b3bfca",
-    alignSelf.center,
+    alignSelf.stretch,
     marginLeft.auto,
     onMouseDown.stopPropagation foreach {},
   )
