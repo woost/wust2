@@ -71,6 +71,7 @@ object SharedViewElements {
     val heightOptions = VDomModifier(
       rows := 1,
       resize := "none",
+      minHeight := "42px",
       autoResizer.modifiers
     )
 
