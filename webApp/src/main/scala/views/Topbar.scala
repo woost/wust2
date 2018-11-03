@@ -1,7 +1,6 @@
 package wust.webApp.views
 
-import fontAwesome.{freeRegular, _}
-import fontAwesome.freeSolid._
+import fontAwesome._
 import googleAnalytics.Analytics
 import org.scalajs.dom
 import org.scalajs.dom.window
@@ -92,7 +91,7 @@ object Topbar {
       fontSize := "20px",
       width := "45px",
       textAlign.center,
-      faBars,
+      freeSolid.faBars,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick foreach { ev =>
