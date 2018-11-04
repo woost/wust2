@@ -73,9 +73,7 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    //TODO: if div.static we rerender on user change with an inconsistent graph... that crashes with index out bounds
-    // div.staticRx(keyValue(channel.id)) { implicit ctx =>
-    div {
+    div.staticRx(keyValue(channel.id)) { implicit ctx =>
       val isSpecialNode = Rx{
         //TODO we should use the permission system here and have readonly permission for e.g. feedback
         channel.id == state.user().id
@@ -192,7 +190,7 @@ object PageHeader {
 
     }
 
-    val searchModal = PublishSubject[dom.html.Element]
+    val searchModal = Handler.unsafe[semanticUi.JQuerySelection]
     val searchLocal = PublishSubject[String]
     val searchGlobal = PublishSubject[String]
     val searchInputProcess = PublishSubject[String]
@@ -208,7 +206,7 @@ object PageHeader {
           paddingTop := "3px",
           Components.nodeCard(nodeRes._1, maxLength = Some(60)),
           onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
-          onClick(searchModal).asJquery.foreach(_.modal("hide"))
+          onClick(searchModal).foreach(_.modal("hide"))
         ),
       )
 
@@ -299,24 +297,23 @@ object PageHeader {
             searchResult,
           ),
         ),
-        onDomMount.asHtml foreach { elem =>
-          import semanticUi.JQuery._
-          $(elem).modal(new ModalOptions {
+        onDomMount.asJquery foreach { elem =>
+          elem.modal(new ModalOptions {
             //          blurring = true
             dimmerSettings = new DimmerOptions {
               opacity = "0.5"
             }
-          }).modal("hide")
+          })
           searchModal.onNext(elem)
         },
       ),
-      onClick(searchModal).asJquery.foreach(_.modal("toggle"))
+      onClick(searchModal).foreach(_.modal("toggle"))
     )
   }
 
   private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    val addMemberModal = PublishSubject[dom.html.Element]
+    val addMemberModal = Handler.unsafe[semanticUi.JQuerySelection]
     val addMember = PublishSubject[String]
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
@@ -425,20 +422,17 @@ object PageHeader {
             }
           )
         ),
-        onDomMount.asHtml foreach { elem =>
-          import semanticUi.JQuery._
-          $(elem).modal(new ModalOptions {
+        onDomMount.asJquery foreach { elem =>
+          elem.modal(new ModalOptions {
             //          blurring = true
             dimmerSettings = new DimmerOptions {
               opacity = "0.5"
             }
-          }).modal("hide")
+          })
           addMemberModal.onNext(elem)
         },
       ),
-      onClick.transform(_.withLatestFrom(addMemberModal)((_, o) => o)).asJquery.foreach { elem =>
-        elem.modal("toggle")
-      },
+      onClick(addMemberModal).foreach(_.modal("toggle"))
     )
   }
 
@@ -463,29 +457,27 @@ object PageHeader {
 
   private def decorateIcon(state: GlobalState, permissionState: PermissionState)(icon: IconLookup, description: String, changes: GraphChanges, changesOnSuccessPrompt: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
     val default = "default".asInstanceOf[PermissionState]
-    div(
-      permissionState match {
-        case PermissionState.granted => VDomModifier(
-          (icon: VNode) (cls := "fa-fw"),
-          title := description,
-          onClick(changes) --> state.eventProcessor.changes
-        )
-        case PermissionState.prompt | `default`  => VDomModifier(
-          iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
-          title := "Notifications are currently disabled. Click to enable.",
-          onClick foreach {
-            Notifications.requestPermissionsAndSubscribe {
-              if (changesOnSuccessPrompt) state.eventProcessor.changes.onNext(changes)
-            }
-          },
-        )
-        case PermissionState.denied  => VDomModifier(
-          iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
-          title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-          onClick(changes) --> state.eventProcessor.changes
-        )
-      }
-    )
+    permissionState match {
+      case PermissionState.granted => VDomModifier(
+        (icon: VNode) (cls := "fa-fw"),
+        title := description,
+        onClick(changes) --> state.eventProcessor.changes
+      )
+      case PermissionState.prompt | `default`  => VDomModifier(
+        iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
+        title := "Notifications are currently disabled. Click to enable.",
+        onClick foreach {
+          Notifications.requestPermissionsAndSubscribe {
+            if (changesOnSuccessPrompt) state.eventProcessor.changes.onNext(changes)
+          }
+        },
+      )
+      case PermissionState.denied  => VDomModifier(
+        iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
+        title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
+        onClick(changes) --> state.eventProcessor.changes
+      )
+    }
   }
 
   private def notifyControl(state: GlobalState, channel: Node): VNode = {
