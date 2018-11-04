@@ -72,16 +72,11 @@ object Elements {
       .filter(_.keyCode == KeyCode.Escape)
       .preventDefault
 
-  val onGlobalEscape: CustomEmitterBuilder[KeyboardEvent, VDomModifier] =
-    EmitterBuilder.ofModifier[dom.KeyboardEvent] { sink =>
-      if (BrowserDetect.isMobile) VDomModifier.empty
-      else managed(() => events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape) subscribe sink)
-    }
+  val onGlobalEscape: SyncEmitterBuilder[KeyboardEvent, VDomModifier] =
+    if (BrowserDetect.isMobile) EmitterBuilder.empty else EmitterBuilder(events.document.onKeyDown.filter(e => e.keyCode == KeyCode.Escape))
 
-  val onGlobalClick: CustomEmitterBuilder[MouseEvent, VDomModifier] =
-    EmitterBuilder.ofModifier[dom.MouseEvent] { sink =>
-      managed(() => events.document.onClick subscribe sink)
-    }
+  val onGlobalClick: SyncEmitterBuilder[MouseEvent, VDomModifier] =
+    EmitterBuilder(events.document.onClick)
 
   val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
     EmitterBuilder.ofModifier[Boolean] { sink =>
