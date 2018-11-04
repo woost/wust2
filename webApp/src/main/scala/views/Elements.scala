@@ -79,7 +79,7 @@ object Elements {
     EmitterBuilder(events.document.onClick)
 
   val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier[Boolean] { sink =>
+    EmitterBuilder.ofModifier[Boolean] { sink => IO {
       // https://stackoverflow.com/a/27413909
       val duration = 251
       val distanceToleranceSq = 5*5
@@ -141,7 +141,7 @@ object Elements {
         eventProp("touchleave") foreach {cancel()},
         eventProp("touchcancel") foreach {cancel()},
       )
-    }
+    }}
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
     import hammerjs._

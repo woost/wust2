@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
@@ -251,9 +252,7 @@ object Components {
     val editMode = Var(false)
     editableNode(state, node, editMode, submit)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation foreach {
-        if(!editMode.now) {
-          editMode() = true
-        }
+        editMode() = !editMode.now
       }
     )
   }
@@ -323,7 +322,7 @@ object Components {
 
   val onIntersectionWithViewport: EmitterBuilder[Boolean, VDomModifier] = onIntersectionWithViewport(ignoreInitial = false)
   def onIntersectionWithViewport(ignoreInitial: Boolean): EmitterBuilder[Boolean, VDomModifier] =
-    EmitterBuilder.ofModifier[Boolean] { sink =>
+    EmitterBuilder.ofModifier[Boolean] { sink => IO {
       var prevIsIntersecting = ignoreInitial
 
       VDomModifier(
@@ -352,10 +351,10 @@ object Components {
           }
         }
       )
-    }
+    }}
 
   val onInfiniteScrollUp: EmitterBuilder[Int, VDomModifier] =
-    EmitterBuilder.ofModifier[Int] { sink =>
+    EmitterBuilder.ofModifier[Int] { sink => IO {
 
       var lastHeight = 0.0
       var lastScrollTop = 0.0
@@ -383,5 +382,5 @@ object Components {
           }
         }
       )
-    }
+    }}
 }
