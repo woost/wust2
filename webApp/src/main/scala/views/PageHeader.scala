@@ -36,11 +36,9 @@ import scala.util.{Failure, Success}
 
 
 object PageHeader {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState): VNode = {
     import state._
-    //TODO static after outwatch fix
-    // div.staticRx(keyValue)(implicit ctx =>
-    div(keyed)(
+    div.staticRx(keyValue)(implicit ctx =>
       VDomModifier(
         cls := "pageheader",
         Rx {
@@ -75,9 +73,7 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    //TODO static after outwatch fix
-    // div.staticRx(keyValue(channel.id)) { implicit ctx =>
-    div(keyed) {
+    div.staticRx(keyValue(channel.id)) { implicit ctx =>
       val isSpecialNode = Rx{
         //TODO we should use the permission system here and have readonly permission for e.g. feedback
         channel.id == state.user().id
