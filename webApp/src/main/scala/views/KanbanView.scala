@@ -152,6 +152,7 @@ object KanbanView {
       ),
       div(
         cls := "kanbancolumnheader",
+        isCollapsed.ifTrue[VDomModifier](cls := "kanbancolumncollapsed"),
         keyed(node.id, parentIds),
         cls := "draghandle",
 

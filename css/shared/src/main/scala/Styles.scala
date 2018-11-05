@@ -690,12 +690,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  ".kanbansubcolumn, .kanbancolumncollapsed" - (
+  ".kanbansubcolumn" - (
     border(1 px, solid, white)
-  )
-
-  ".kanbancolumncollapsed" - (
-    color.white,
   )
 
   ".kanbancolumntitle" - (
@@ -747,25 +743,19 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.visible
   )
 
-  ".kanbancolumncollapsed.nodecard .buttonbar" - (
-    backgroundColor(transparent),
-  )
-
   ".kanbancolumnheader .buttonbar > div," +
   ".nodecard .buttonbar > div" - (
     borderRadius(3 px),
     marginLeft(2 px)
   )
 
-  ".kanbancolumnheader .buttonbar > div," +
-  ".kanbancolumncollapsed .buttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > div" - (
     padding(2 px),
     backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
-  ".kanbancolumnheader .buttonbar > div:hover," +
-  ".kanbancolumncollapsed .buttonbar > div:hover" - (
+  ".kanbancolumnheader .buttonbar > div:hover" - (
     backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
     color(white)
   )
@@ -806,6 +796,10 @@ object CommonStyles extends StyleSheet.Standalone {
   // therefore, instead setting a padding on the column, we set a margin/padding on the inner elements.
   ".kanbancolumn > .kanbancolumnheader" - (
     padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
+  )
+
+  ".kanbancolumnheader.kanbancolumncollapsed" - (
+    padding(kanbanColumnPadding),
   )
 
   ".kanbancolumnchildren > .nodecard," +
