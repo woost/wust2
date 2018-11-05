@@ -49,14 +49,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     @inline def origElem = e.dragEvent.originalSource
 
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-    val oldContChilds = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea"))
+    val oldContChilds = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
     val oldSortIndex = oldContChilds.indexOf(origElem)
 
     // Get index of moved node in new container
     @inline def sourceElem = e.dragEvent.source
 
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-    val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") || f.classList.contains("kanbannewcolumnarea"))
+    val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
     val newSortIndex = newContChilds.indexOf(sourceElem)
 
     //    val containerChanged = from.parentIds != into.parentIds
@@ -269,12 +269,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   sortableSortEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
     val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256
     val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
-    val dragging = readDragPayload(e.dragEvent.source)
-    val overContainer = readDragContainer(overContainerWorkaround)
-    val sourceContainer = readDragContainer(sourceContainerWorkaround)
+    val draggingOpt = readDragPayload(e.dragEvent.source)
+    val overContainerOpt = readDragContainer(overContainerWorkaround)
+    val sourceContainerOpt = readDragContainer(sourceContainerWorkaround)
 
     // white listing allowed sortable actions
-    (dragging, sourceContainer, overContainer) match {
+    (draggingOpt, sourceContainerOpt, overContainerOpt) match {
       case (Some(dragging), Some(sourceContainer), Some(overContainer)) if sortableActions.isDefinedAt((null, dragging, sourceContainer, overContainer, ctrl, shift)) => // allowed
 //      case (Some(dragging), Some(sourceContainer), Some(overContainer)) => println(s"not allowed: $sourceContainer -> $dragging -> $overContainer"); e.cancel()
       case a => e.cancel() // not allowed
@@ -283,11 +283,11 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
 
   sortableStopEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
-      val dragging = readDragPayload(e.dragEvent.source)
-      val oldContainer = readDragContainer(e.oldContainer)
-      val newContainer = if(e.newContainer != e.oldContainer) readDragContainer(e.newContainer) else oldContainer
+      val draggingOpt = readDragPayload(e.dragEvent.source)
+      val oldContainerOpt = readDragContainer(e.oldContainer)
+      val newContainerOpt = if(e.newContainer != e.oldContainer) readDragContainer(e.newContainer) else oldContainerOpt
 
-      (dragging, oldContainer, newContainer) match {
+      (draggingOpt, oldContainerOpt, newContainerOpt) match {
         case (Some(dragging), Some(oldContainer), Some(newContainer)) =>
           sortableActions.applyOrElse((e, dragging, oldContainer, newContainer, ctrl, shift), (other:(SortableEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean)) => scribe.warn(s"sort combination not handled."))
         case other => scribe.warn(s"incomplete drag action: $other")
