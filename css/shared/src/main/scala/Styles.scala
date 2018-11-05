@@ -706,6 +706,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumntitle" - (
+    width(100 %%),
     maxWidth(kanbanCardWidth),
     // TODO: separate style for word-breaking in nodes
     Styles.wordWrap,
