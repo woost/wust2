@@ -123,6 +123,32 @@ object CommonStyles extends StyleSheet.Standalone {
     boxSizing.borderBox
   )
 
+  ":not(input):not(textarea):not([contenteditable=true])," +
+  ":not(input):not(textarea):not([contenteditable=true])::after," +
+  ":not(input):not(textarea):not([contenteditable=true])::before" - (
+//    backgroundColor.blue.important,
+    userSelect := none,
+  )
+
+
+  ".enable-text-selection, .enable-text-selection *" - (
+    (userSelect := "text").important,
+    cursor.text.important
+  )
+
+
+  "input, button, textarea, :focus" - (
+    outline.none // You should add some other style for :focus to help UX/a11y
+  )
+
+  // Prevent the text contents of draggable elements from being selectable.
+  "[draggable=true]" - (
+    userSelect := none,
+    // FIXME: support -khtml-user-drag
+    userDrag.element
+  )
+
+
   "html, body" - (
     Styles.slim,
     width(100 %%),
@@ -188,12 +214,7 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold
   )
 
-  ".pageheader" - (
-    userSelect := "none",
-  )
-
   ".pageheader-channeltitle" - (
-    userSelect := "text",
     fontSize(20 px),
     Styles.wordWrap,
     marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
@@ -221,7 +242,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".sidebar" - (
-    userSelect := "none",
     color.white,
     transition := "background-color 0.5s",
     Styles.flexStatic,
@@ -380,13 +400,6 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  /* Prevent the text contents of draggable elements from being selectable. */
-  "[draggable]" - (
-    userSelect := "none",
-    // FIXME: support -khtml-user-drag
-    userDrag.element
-  )
-
   ".graphnode" - (
     Styles.wordWrap,
     textRendering := "optimizeLegibility",
@@ -452,7 +465,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-row" - (
-    userSelect := "none",
     alignItems.center,
     padding(2 px, 20 px, 2 px, 0 px)
   )
@@ -536,7 +548,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content > *" - (
     padding(2 px, 4 px), // when editing, clicking on the padding does not unfocus
-    userSelect := "text",
   )
 
   ".nodecard-content" - (
@@ -619,10 +630,6 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
   val kanbanColumnBorderRadius = (3 px)
-
-  ".kanbancolumnarea .nodecard-content > *:not([contenteditable=true])" - (
-    (userSelect := none).important, // overwrites nodecard-content userSelect
-    )
 
   ".kanbanview" - (
     padding(kanbanPageSpacing),
@@ -868,7 +875,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val selectedNodesBgColor = c"#85D5FF"
   ".selectednodes" - (
-    userSelect := none,
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
     zIndex(ZIndex.overlayLow),
@@ -910,10 +916,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".selectednodes .nodelist.draggable-mirror" - (
     backgroundColor(selectedNodesBgColor),
-  )
-
-  ".draghandle" - (
-    userSelect := none
   )
 
   ".draggable, .draghandle" - (
@@ -1073,7 +1075,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".topbar" - (
-    userSelect := "none",
     paddingRight(5 px),
     height(45 px),
     color.white,

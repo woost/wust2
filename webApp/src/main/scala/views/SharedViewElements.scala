@@ -307,7 +307,7 @@ object SharedViewElements {
         val unimportant = editMode() || isDeletedNow() || isDeletedInFuture()
         unimportant.ifFalse[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
       }
-      nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
+      nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
         Styles.flex,
         alignItems.flexEnd,
         Rx { isDeletedNow().ifTrue[VDomModifier](cls := "node-deleted") },
