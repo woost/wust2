@@ -112,7 +112,7 @@ object Sidebar {
           case Tree.Parent(_, children) => div(
             paddingLeft := "10px",
             fontSize := s"${ math.max(8, 14 - depth) }px",
-            children.map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+            children.sortBy(_.node.id).map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case Tree.Leaf(_)             => VDomModifier.empty
         }
@@ -130,8 +130,8 @@ object Sidebar {
 
         VDomModifier(
           channelLine(user.toNode, pageParentIds, pageStyle),
-          channelForest.map { channelTree =>
-            channelList(channelTree, pageParentIds, pageStyle, depth = 0)
+          channelForest.sortBy(_.node.id).map { channelTree =>
+            channelList(channelTree, pageParentIds, pageStyle)
           }
         )
       }

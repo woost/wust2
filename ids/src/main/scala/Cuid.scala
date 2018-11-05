@@ -88,4 +88,6 @@ object Cuid {
   }
 
   @inline private def maxLong = 4738381338321616895L
+
+  @inline implicit def ord:Ordering[Cuid] = Ordering.by(cuid => (cuid.left, cuid.right))
 }
