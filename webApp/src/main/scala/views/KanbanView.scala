@@ -148,13 +148,15 @@ object KanbanView {
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       keyed(node.id, parentIds),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
-      if(isTopLevel) VDomModifier(
-        draggableAs(DragItem.Kanban.ToplevelColumn(node.id)),
-        dragTarget(DragItem.Kanban.ToplevelColumn(node.id)),
-      ) else VDomModifier(
-        draggableAs(DragItem.Kanban.SubColumn(node.id)),
-        dragTarget(DragItem.Kanban.SubColumn(node.id))
-      ),
+      Rx{ if(editable()) draggableAs(DragItem.DisableDrag) else { // prevents dragging when selecting text
+        if(isTopLevel) VDomModifier(
+          draggableAs(DragItem.Kanban.ToplevelColumn(node.id)),
+          dragTarget(DragItem.Kanban.ToplevelColumn(node.id)),
+        ) else VDomModifier(
+          draggableAs(DragItem.Kanban.SubColumn(node.id)),
+          dragTarget(DragItem.Kanban.SubColumn(node.id))
+        )
+      }},
       div(
         cls := "kanbancolumnheader",
         isCollapsed.ifTrue[VDomModifier](cls := "kanbancolumncollapsed"),
@@ -236,7 +238,7 @@ object KanbanView {
       justifyContent.spaceBetween,
 
       // sortable: draggable needs to be direct child of container
-      editable.map(editable => if(editable) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id))), // prevents dragging when selecting text
+      Rx { if(editable()) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
       keyed(node.id, parentIds),
       cls := "draghandle",
