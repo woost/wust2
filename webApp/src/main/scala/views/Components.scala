@@ -252,7 +252,9 @@ object Components {
     val editMode = Var(false)
     editableNode(state, node, editMode, submit)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation foreach {
-        editMode() = !editMode.now
+        if(!editMode.now) {
+          editMode() = true
+        }
       }
     )
   }
