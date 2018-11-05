@@ -201,7 +201,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           }
         } else Future.successful(Nil)
         touched = numBefore ++ numRemain
-        r <- checkUnexpected(touched.forall(_ == 1), s"Unexpected number of edge inserts: ${touched.sum} / ${edges.size} - ${edges.zip(touched)}")
+        // Ignored insert (on conflict do nothing) do not count as touched
+        r <- checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of edge inserts: ${touched.sum} / ${edges.size} - ${edges.zip(touched)}")
       } yield r
     }
 
