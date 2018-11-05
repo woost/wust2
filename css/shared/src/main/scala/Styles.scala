@@ -624,8 +624,12 @@ object CommonStyles extends StyleSheet.Standalone {
     (userSelect := none).important, // overwrites nodecard-content userSelect
     )
 
-  ".kanbancolumnarea" - (
+  ".kanbanview" - (
     padding(kanbanPageSpacing),
+    height(100 %%),
+  )
+
+  ".kanbancolumnarea" - (
     height(100 %%),
   )
 

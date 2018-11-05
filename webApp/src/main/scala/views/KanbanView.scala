@@ -29,6 +29,9 @@ object KanbanView {
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
+      cls := "kanbanview",
+      Styles.flex,
+      alignItems.flexStart,
       Rx {
         withLoadingAnimation(state) {
           val page = state.page()
@@ -60,20 +63,22 @@ object KanbanView {
           //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
           //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
 
-          VDomModifier(
+          div(
             cls := s"kanbancolumnarea",
             keyed,
+            Styles.flexStatic,
+
             Styles.flex,
             alignItems.flexStart,
             overflow.auto,
 
             sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
-            newColumnArea(state, page, newColumnFieldActive),
 
             registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
           )
         }
-      }
+      },
+      Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) },
     )
   }
 
@@ -277,7 +282,7 @@ object KanbanView {
     )
   }
 
-  private def newColumnArea(state: GlobalState, page: Page, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def newColumnArea(state: GlobalState, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     def submitAction(str:String) = {
       val change = {
         val newColumnNode = Node.MarkdownTask(str)
