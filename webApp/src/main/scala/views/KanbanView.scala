@@ -315,6 +315,7 @@ object KanbanView {
           inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder), textAreaModifiers = VDomModifier(
             fontSize.larger,
             fontWeight.bold,
+            minHeight := "50px",
           )).apply(
             cls := "kanbannewcolumnareaform",
           )
