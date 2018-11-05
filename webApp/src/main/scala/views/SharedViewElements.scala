@@ -315,7 +315,7 @@ object SharedViewElements {
         cls := "drag-feedback",
 
         syncedIcon,
-        dragHandle,
+        dragHandle(Styles.flexStatic),
         renderedMessageModifier
       )
     }
