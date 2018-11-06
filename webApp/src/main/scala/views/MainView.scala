@@ -54,9 +54,11 @@ object MainView {
               val breadCrumbs = Rx {
                 pageHasParents().ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic))
               }
+              val viewIsContent = Rx {
+                state.view().isContent
+              }
               Rx {
-                val view = state.view()
-                view.isContent
+                viewIsContent()
                   .ifTrue[VDomModifier](VDomModifier(
                     breadCrumbs,
                     PageHeader(state).apply(Styles.flexStatic)
