@@ -202,14 +202,14 @@ object SharedViewElements {
 
   val activeStarButton: VNode = {
     div(
-      div(cls := "fa-fw", title := "Mark as important", freeSolid.faStar, color := "#fbbd08"),
+      div(cls := "fa-fw", title := "Mark as unimportant and delete automatically after a week", freeSolid.faStar, color := "#fbbd08"),
       cursor.pointer,
     )
   }
 
   val inactiveStarButton: VNode = {
     div(
-      div(cls := "fa-fw", title := "Mark as unimportant and delete automatically after a week", freeRegular.faStar, color := "#fbbd08"),
+      div(cls := "fa-fw", title := "Mark as important", freeRegular.faStar, color := "#fbbd08"),
       cursor.pointer,
     )
   }
