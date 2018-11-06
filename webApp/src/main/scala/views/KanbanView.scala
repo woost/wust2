@@ -30,8 +30,12 @@ object KanbanView {
 
     div(
       cls := "kanbanview",
+
+      overflow.auto,
+
       Styles.flex,
       alignItems.flexStart,
+
       Rx {
         withLoadingAnimation(state) {
           val page = state.page()
@@ -70,7 +74,6 @@ object KanbanView {
 
             Styles.flex,
             alignItems.flexStart,
-            overflow.auto,
 
             sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 

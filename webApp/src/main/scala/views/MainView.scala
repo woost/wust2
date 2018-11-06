@@ -76,7 +76,8 @@ object MainView {
                 // we can now assume, that every page parentId is contained in the graph
                 ViewRender(state.view(), state).apply(
                   Styles.growFull,
-                  flexGrow := 1,
+                  flexGrow := 1
+                ).prepend(
                   overflow.visible
                 )
               }
