@@ -302,6 +302,7 @@ function self() {
     pgdump
     pgrestore [file]
     pgrestorefromprod
+    pgrestorefromstaging
     pgclean
 
     apps
