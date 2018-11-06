@@ -35,10 +35,10 @@ function docker_compose() {
     docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args "${@:3}"
 }
 function postgres_core_command() {
-    docker_compose core dev exec postgres "$@"
+    docker_compose core dev exec -T postgres "$@"
 }
 function postgres_slack_command() {
-    docker_compose slackApp dev exec postgres "$@"
+    docker_compose slackApp dev exec -T postgres "$@"
 }
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
