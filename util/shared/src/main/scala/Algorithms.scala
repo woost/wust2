@@ -265,7 +265,7 @@ object algorithm {
       if(search.contains(current)) return true
       if(visited.containsNot(current)) {
         visited.add(current)
-        successors(current).foreachElement { next =>
+        successors.foreachElement(current) { next =>
           if(visited.containsNot(next)) stack.push(next)
         }
       }
