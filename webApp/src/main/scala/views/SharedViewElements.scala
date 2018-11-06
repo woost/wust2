@@ -202,52 +202,52 @@ object SharedViewElements {
 
   val activeStarButton: VNode = {
     div(
-      div(cls := "fa-fw", freeSolid.faStar, color := "#fbbd08"),
+      div(cls := "fa-fw", title := "Mark as important", freeSolid.faStar, color := "#fbbd08"),
       cursor.pointer,
     )
   }
 
   val inactiveStarButton: VNode = {
     div(
-      div(cls := "fa-fw", freeRegular.faStar, color := "#fbbd08"),
+      div(cls := "fa-fw", title := "Mark as unimportant and delete automatically after a week", freeRegular.faStar, color := "#fbbd08"),
       cursor.pointer,
     )
   }
 
   val replyButton: VNode = {
     div(
-      div(cls := "fa-fw", freeSolid.faReply),
+      div(cls := "fa-fw", title := "Reply to message", freeSolid.faReply),
       cursor.pointer,
     )
   }
 
   val editButton: VNode =
     div(
-      div(cls := "fa-fw", Icons.edit),
+      div(cls := "fa-fw", title := "Edit message", Icons.edit),
       cursor.pointer,
     )
 
   val deleteButton: VNode =
     div(
-      div(cls := "fa-fw", Icons.delete),
+      div(cls := "fa-fw", title := "Delete message", Icons.delete),
       cursor.pointer,
     )
 
   val undeleteButton: VNode =
     div(
-      div(cls := "fa-fw", Icons.undelete),
+      div(cls := "fa-fw", title := "Recover message", Icons.undelete),
       cursor.pointer,
     )
 
   val zoomButton: VNode =
     div(
-      div(cls := "fa-fw", Icons.zoom),
+      div(cls := "fa-fw", title := "Zoom into message and focus", Icons.zoom),
       cursor.pointer
     )
 
   val taskButton: VNode =
     div(
-      div(cls := "fa-fw", Icons.task),
+      div(cls := "fa-fw", title := "Convert message into task", Icons.task),
       cursor.pointer
     )
 
