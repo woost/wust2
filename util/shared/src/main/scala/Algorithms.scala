@@ -101,28 +101,6 @@ object algorithm {
     map
   }
 
-  def containsCycle(elements: NestedArrayInt, successors: NestedArrayInt): Boolean = {
-
-    val num = elements.length
-
-    var i = 0
-    while(i < num) {
-      val slice = elements(i)
-      val sliceLength = slice.length
-
-      var j = 0
-      while(j < sliceLength) {
-        val idx = slice(j)
-        if(depthFirstSearchExistsWithoutStart(idx, successors, idx))
-          return true
-        j += 1
-      }
-      i += 1
-    }
-
-    false
-  }
-
   def containsCycle(elements: Array[Int], successors: NestedArrayInt): Boolean = {
 
     val num = elements.length
@@ -171,6 +149,41 @@ object algorithm {
     }
   }
 
+
+  def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
+
+    val stack = new ArrayStackInt(capacity = 2 * successors.size)
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    successors.foreachElement(start) { succElem =>
+      stack.push(start)
+      stack.push(succElem)
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      val previous = stack.pop()
+      if(current == search) return Some(previous)
+      if(visited.containsNot(current)) {
+        visited.add(current)
+
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) {
+            stack.push(current)
+            stack.push(next)
+          }
+        }
+
+      }
+    }
+
+    None
+  }
+
+  /* 
+   * DFS starts after the start index and searches for `search`
+   * Choosing start = search results in a cycle search
+   */
   def depthFirstSearchExistsWithoutStart(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
 
     val stack = new ArrayStackInt(capacity = successors.size)
