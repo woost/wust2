@@ -166,6 +166,8 @@ object Elements {
 
   val onTap: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("tap")
   val onPress: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("press")
+  val onSwipeRight: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swiperight")
+  val onSwipeLeft: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swipeleft")
 
   def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName: String): Option[T] = {
     import io.circe.parser.decode

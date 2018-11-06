@@ -14,6 +14,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
+import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
 
@@ -30,7 +31,8 @@ object Sidebar {
       newChannelButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
         onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
-      )
+      ),
+      onSwipeRight(true) --> state.sidebarOpen,
     )
 
     def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
@@ -41,6 +43,7 @@ object Sidebar {
         cls := "newChannelButton-large " + buttonStyles,
         onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
       ),
+      onSwipeLeft(false) --> state.sidebarOpen,
     )
 
     def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
