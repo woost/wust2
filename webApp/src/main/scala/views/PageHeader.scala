@@ -73,37 +73,35 @@ object PageHeader {
   }
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    div.staticRx(keyValue(channel.id)) { implicit ctx =>
-      val isSpecialNode = Rx{
-        //TODO we should use the permission system here and have readonly permission for e.g. feedback
-        channel.id == state.user().id
-      }
-      val isBookmarked = Rx {
-        val g = state.graph()
-        val channelIdx = g.idToIdx(channel.id)
-        val userIdx = g.idToIdx(state.user().id)
-        state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
-      }
-
-      val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
-
-      VDomModifier(
-        Styles.flex,
-        alignItems.center,
-        flexWrap.wrap,
-        marginLeft.auto,
-        minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-        justifyContent.center, // horizontal centering when wrapped
-        Rx {
-          val showChannelsButton = isSpecialNode() || isBookmarked()
-          showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
-        },
-        notifyControl(state, channel).apply(buttonStyle),
-        Rx {
-          settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
-        },
-      )
+    val isSpecialNode = Rx{
+      //TODO we should use the permission system here and have readonly permission for e.g. feedback
+      channel.id == state.user().id
     }
+    val isBookmarked = Rx {
+      val g = state.graph()
+      val channelIdx = g.idToIdx(channel.id)
+      val userIdx = g.idToIdx(state.user().id)
+      state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
+    }
+
+    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
+
+    div(
+      Styles.flex,
+      alignItems.center,
+      flexWrap.wrap,
+      marginLeft.auto,
+      minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
+      justifyContent.center, // horizontal centering when wrapped
+      Rx {
+        val showChannelsButton = isSpecialNode() || isBookmarked()
+        showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
+      },
+      notifyControl(state, channel).apply(buttonStyle),
+      Rx {
+        settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
+      },
+    )
   }
 
   private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
