@@ -4,7 +4,7 @@ import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.api.AuthResult
+import wust.api.{AuthResult, AuthUser}
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, View}
@@ -108,9 +108,32 @@ object AuthView {
             cursor.pointer
           )
         },
+        Rx {
+          state.user() match {
+            case AuthUser.Implicit(_, name, _) => div(
+              div(cls := "ui divider"),
+              margin := "auto",
+              fontSize := "8px",
+              p("You are currently logged in as an unregistered User. If you login or register, the content of this unregisterd user will be merged with your user. Or you can: ",
+              button(
+                fontSize := "8px",
+                cls := "negative ui mini button",
+                padding := "2px",
+                margin := "0px",
+                "Logout and forget content",
+                onClick foreach {
+                  Client.auth.logout()
+                  ()
+                }
+              ))
+            )
+            case _ => VDomModifier.empty
+
+          }
+        },
         onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
-        managed(IO { username.subscribe(defaultUsername) }),
-        managed(IO { password.subscribe(defaultPassword) }),
+        emitter(username) --> defaultUsername,
+        emitter(password) --> defaultPassword,
         marginBottom := "20px",
       )
     )
