@@ -141,7 +141,12 @@ object ChatView {
         val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
 
         VDomModifier(
-          groups.nonEmpty.ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
+          groups.nonEmpty.ifTrue[VDomModifier](
+            if(state.screenSize.now == ScreenSize.Small)
+              padding := "50px 0px 5px 5px"
+            else
+              padding := "50px 0px 5px 20px"
+          ),
           groups.map { group =>
             thunkRxFun(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger)
           }
@@ -162,7 +167,6 @@ object ChatView {
 
     val author: Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
-    val isLargeScreen = state.screenSize.now == ScreenSize.Large
     val commonParentsIdx = groupGraph.parentsIdx(group(0)).sortBy(idx => groupGraph.nodeCreated(idx))
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentIdSet)
 
@@ -181,10 +185,12 @@ object ChatView {
     val lineColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
     VDomModifier(
       cls := "chat-group-outer-frame",
-      isLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      state.largeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
       div(
         cls := "chat-group-inner-frame",
-        chatMessageHeader(author, creationEpochMillis, isLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
+        chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
+          state.smallScreen.ifTrue[VDomModifier](paddingLeft := "0")
+        ),
 
         div(
           cls := "chat-expanded-thread",
@@ -197,6 +203,7 @@ object ChatView {
 
           div(
             cls := "chat-thread-messages",
+            (state.screenSize.now == ScreenSize.Small).ifTrue[VDomModifier](marginLeft := "0px"),
             lineColor.map(lineColor => borderLeft := s"3px solid ${ lineColor }"),
 
             group.map { nodeIdx =>
@@ -295,7 +302,7 @@ object ChatView {
               padding := "2px",
               opacity := 0.7,
             ),
-            marginLeft := "5px",
+            state.largeScreen.ifTrue[VDomModifier](marginLeft := "5px"),
             borderLeft := s"3px solid ${ tagColor(parentId).toHex }",
             paddingRight := "5px",
             paddingBottom := "3px",
@@ -307,6 +314,7 @@ object ChatView {
               div(
                 cls := "nodecard-content",
                 cls := "enable-text-selection",
+                fontSize.smaller,
                 renderNodeData(node.data, maxLength = Some(200)),
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
