@@ -214,8 +214,9 @@ object Elements {
     def trigger(): Unit = {
       // We clear input field before userInput is triggered
       val value = elem.value
-      clearInput.onNext(())
-      userInput.onNext(value)
+      clearInput.onNext(()).foreach { _ =>
+        userInput.onNext(value)
+      }
     }
 
     val emitterBuilder: CustomEmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier[String] { sink =>
