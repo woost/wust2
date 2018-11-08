@@ -152,7 +152,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
-  def createArraySet(ids: Set[NodeId]): ArraySet = {
+  def createArraySet(ids: Iterable[NodeId]): ArraySet = {
     val marker = ArraySet.create(n)
     ids.foreach { id =>
       val idx = idToIdx(id)
@@ -162,7 +162,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     marker
   }
 
-  def createBitSet(ids: Iterable[NodeId]): immutable.BitSet = {
+  def createImmutableBitSet(ids: Iterable[NodeId]): immutable.BitSet = {
     val builder = immutable.BitSet.newBuilder
     ids.foreach { id =>
       val idx = idToIdx(id)
@@ -183,7 +183,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
 
-  @inline def idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
+  @inline val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
   @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
   @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
     val idx = idToIdx(nodeId)
@@ -381,20 +381,31 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
-  val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli]) = {
+  val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli], nodeCreatorIdx:Array[Int]) = {
     val nodeCreated = Array.fill(n)(EpochMilli.min)
     val nodeModified = Array.fill(n)(EpochMilli.min)
+    val nodeCreator = new Array[Int](n)
     var nodeIdx = 0
     while(nodeIdx < n) {
       val authorEdgeIndices: SliceInt = authorshipEdgeIdx(nodeIdx)
       if(authorEdgeIndices.nonEmpty) {
-        val (createdEdge, lastModifierEdge) = authorEdgeIndices.minMax(smallerThan = (a, b) => edges(a).asInstanceOf[Edge.Author].data.timestamp < edges(b).asInstanceOf[Edge.Author].data.timestamp)
-        nodeCreated(nodeIdx) = edges(createdEdge).asInstanceOf[Edge.Author].data.timestamp
-        nodeModified(nodeIdx) = edges(lastModifierEdge).asInstanceOf[Edge.Author].data.timestamp
+        val (createdEdgeIdx, lastModifierEdgeIdx) = authorEdgeIndices.minMax(smallerThan = (a, b) => edges(a).asInstanceOf[Edge.Author].data.timestamp < edges(b).asInstanceOf[Edge.Author].data.timestamp)
+        nodeCreated(nodeIdx) = edges(createdEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
+        nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
+        nodeCreator(nodeIdx) = edgesIdx.a(createdEdgeIdx)
+      } else {
+        nodeCreator(nodeIdx) = -1
       }
       nodeIdx += 1
     }
-    (nodeCreated, nodeModified)
+    (nodeCreated, nodeModified, nodeCreator)
+  }
+
+  def nodeCreator(idx:Int): Option[Node.User] = {
+    nodeCreatorIdx(idx) match {
+      case -1 => None
+      case authorIdx => Option(nodes(authorIdx).asInstanceOf[Node.User])
+    }
   }
 
   def topLevelRoleStats(parentIds: Iterable[NodeId]): RoleStats = {

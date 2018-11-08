@@ -138,45 +138,45 @@ object ChatView {
       val page = state.page()
       val graph = state.graph()
       withLoadingAnimation(state) {
-        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph)
+        val pageParentArraySet = graph.createArraySet(page.parentIdSet)
+        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph, pageParentArraySet)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
-            if(state.screenSize.now == ScreenSize.Small)
-              padding := "50px 0px 5px 5px"
-            else
-              padding := "50px 0px 5px 20px"
+            if(state.screenSize.now == ScreenSize.Small) padding := "50px 0px 5px 5px"
+            else padding := "50px 0px 5px 20px"
           ),
           groups.map { group =>
-            thunkRxFun(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger)
+            thunkRxFun(state, graph, group, pageParentArraySet, currentReply, selectedNodes, inputFieldFocusTrigger)
           }
         )
       }
     }
   }
 
-  private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
+  private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], pageParentArraySet:ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
     val key = nodeIds.head.toString
     val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).map(graph.nodeIds)
-    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, pageParentArraySet, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentArraySet: ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val author: Option[Node.User] = groupGraph.authorsIdx.get(group(0), 0).map(authorIdx => groupGraph.nodes(authorIdx).asInstanceOf[Node.User])
+    val author: Option[Node.User] = groupGraph.nodeCreator(group(0))
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
-    val commonParentsIdx = groupGraph.parentsIdx(group(0)).sortBy(idx => groupGraph.nodeCreated(idx))
+
+    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(pageParentArraySet.containsNot).sortBy(idx => groupGraph.nodeCreated(idx))
+    @inline def inReplyGroup = commonParentsIdx.nonEmpty
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentIdSet)
 
-    val commonParents = div(
+    def renderCommonParents(implicit ctx: Ctx.Owner) = div(
       cls := "chat-common-parents",
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
-        state.page.now.parentIdSet.contains(groupGraph.nodeIds(parentIdx)).ifFalse[VDomModifier](
-          renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply)
+        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply
         )
       }
     )
@@ -185,17 +185,18 @@ object ChatView {
     val lineColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
     VDomModifier(
       cls := "chat-group-outer-frame",
-      state.largeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      (state.largeScreen).ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(bigAuthorAvatar)),
       div(
         cls := "chat-group-inner-frame",
-        chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
+        inReplyGroup.ifFalse[VDomModifier](chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
           state.smallScreen.ifTrue[VDomModifier](paddingLeft := "0")
-        ),
+        )),
 
         div(
           cls := "chat-expanded-thread",
           backgroundColor :=? bgColor,
-          commonParents,
+
+          inReplyGroup.ifTrue[VDomModifier](renderCommonParents),
 
           draggableAs(DragItem.DisableDrag),
           cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
@@ -219,7 +220,7 @@ object ChatView {
 
                 val editMode = Var(false)
 
-                renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
+                renderMessageRow(state, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
               }
             },
           )
@@ -228,7 +229,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -249,6 +250,13 @@ object ChatView {
       inputFieldFocusTrigger.onNext(Unit)
     }
 
+    def messageHeader = Rx {
+      val graph = state.graph()
+      val idx = graph.idToIdx(nodeId)
+      val author: Option[Node.User] = graph.nodeCreator(idx)
+      chatMessageHeader(author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
+    }
+
     val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
@@ -264,15 +272,18 @@ object ChatView {
     }
 
     div(
-      cls := "chat-row",
-      Styles.flex,
+      inReplyGroup.ifTrue[VDomModifier](messageHeader),
+      div(
+        cls := "chat-row",
+        Styles.flex,
 
-      isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
-      selectByClickingOnRow,
-      checkbox,
-      Rx { renderedMessage() },
-      controls,
-      messageRowDragOptions(nodeId, selectedNodes, editMode)
+        isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
+        selectByClickingOnRow,
+        checkbox,
+        Rx { renderedMessage() },
+        controls,
+        messageRowDragOptions(nodeId, selectedNodes, editMode)
+      )
     )
   }
 
@@ -315,7 +326,7 @@ object ChatView {
                 cls := "nodecard-content",
                 cls := "enable-text-selection",
                 fontSize.smaller,
-                renderNodeData(node.data, maxLength = Some(200)),
+                renderNodeData(node.data, maxLength = Some(100)),
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
@@ -332,6 +343,7 @@ object ChatView {
 
   private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     val nodeSet = ArraySet.create(graph.nodes.length)
+    //TODO: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
@@ -348,22 +360,29 @@ object ChatView {
     nodes
   }
 
-  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
+  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentArraySet: ArraySet): Array[Array[Int]] = {
     if(messages.isEmpty) return Array[Array[Int]]()
 
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
-    var lastAuthor: Int = -1
+    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
     var lastParents: SliceInt = null
     messages.foreach { message =>
-      val author: Int = graph.authorsIdx(message, 0)
+      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
       val parents: SliceInt = graph.parentsIdx(message)
 
-      if((lastAuthor != -1 && author != lastAuthor) ||
-        (lastParents != null && parents != lastParents)
-      ) {
+      @inline def differentParents = lastParents != null && parents != lastParents
+      @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
+      @inline def noParents = lastParents != null && parents.forall(pageParentArraySet.contains)
+      @inline def introduceGroupSplit(): Unit = {
         groupsBuilder += currentGroupBuilder.result()
         currentGroupBuilder.clear()
+      }
+
+      if(differentParents) {
+        introduceGroupSplit()
+      } else if(differentAuthors && noParents) {
+        introduceGroupSplit()
       }
 
       currentGroupBuilder += message

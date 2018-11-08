@@ -429,7 +429,7 @@ object SharedViewElements {
   def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
     val directNodeTags:Rx[Seq[Node]] = Rx {
       val graph = state.graph()
-      graph.directNodeTags(graph.idToIdx(nodeId), graph.createBitSet(directParentIds))
+      graph.directNodeTags(graph.idToIdx(nodeId), graph.createImmutableBitSet(directParentIds))
     }
 
     Rx {
@@ -457,11 +457,11 @@ object SharedViewElements {
 
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
-    var lastAuthor: Int = -1
+    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
     messages.foreach { message =>
-      val author: Int = graph.authorsIdx(message, 0)
+      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
 
-      if(author != lastAuthor && lastAuthor != -1) {
+      if(author != lastAuthor && lastAuthor != -2) {
         groupsBuilder += currentGroupBuilder.result()
         currentGroupBuilder.clear()
       }

@@ -99,6 +99,8 @@ package object collection {
   }
 
   implicit final class RichArray[T](val array:Array[T]) extends AnyVal {
+    @inline def get(idx:Int):Option[T] = if(0 <= idx && idx < array.length) Some(array(idx)) else None
+
     @inline def filterIdx(p: Int => Boolean)(implicit ev: ClassTag[T]):Array[T] = {
       val builder = mutable.ArrayBuilder.make[T]
       var i = 0
