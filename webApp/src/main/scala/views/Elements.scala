@@ -237,16 +237,22 @@ object Elements {
   final class TextAreaAutoResizer {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
     var elem:HTMLElement = _
+    var lastScrollHeight: Int = 0
 
     def trigger(): Unit = {
-      elem.style.height = "auto" // fixes the behaviour of scrollHeight
-      elem.style.height = s"${elem.scrollHeight}px"
+      val currScrollHeight = elem.scrollHeight
+      if(lastScrollHeight != currScrollHeight) {
+        lastScrollHeight = currScrollHeight
+        elem.style.height = "auto" // fixes the behaviour of scrollHeight
+        elem.style.height = s"${currScrollHeight}px"
+      }
     }
 
     val modifiers = VDomModifier(
       overflowY.hidden,
       onDomMount.asHtml.foreach { textAreaElem =>
         elem = textAreaElem
+        lastScrollHeight = elem.scrollHeight
         elem.style.height = s"${elem.scrollHeight}px"
       },
       onInput.foreach { trigger() }
