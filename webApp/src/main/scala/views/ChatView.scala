@@ -215,21 +215,9 @@ object ChatView {
                 renderMessageRow(state, nodeId, parentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
               }
             },
-            commonParentIds.nonEmpty.ifTrue[VDomModifier](threadReplyButton(state, commonParentIds.toSet, currentReply))
           )
         )
       )
-    )
-  }
-
-  private def threadReplyButton(state: GlobalState, commonParentIds:Set[NodeId], currentReply: Var[Set[NodeId]]) = {
-    div(
-      cls := "chat-replybutton",
-      freeSolid.faReply,
-      " reply",
-      marginTop := "3px",
-      marginLeft := "8px",
-      onClick.stopPropagation foreach { currentReply() = commonParentIds }
     )
   }
 
