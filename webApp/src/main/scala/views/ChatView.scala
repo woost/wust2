@@ -14,7 +14,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.BrowserDetect
+import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
@@ -91,7 +91,7 @@ object ChatView {
               backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
               div(
                 Styles.flex,
-                renderParentMessage(state, node.id, isDeletedNow, currentReply),
+                renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply),
                 closeButton(
                   marginLeft.auto,
                   onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -172,7 +172,7 @@ object ChatView {
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
         state.page.now.parentIdSet.contains(groupGraph.nodeIds(parentIdx)).ifFalse[VDomModifier](
-          renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, currentReply = currentReply)
+          renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply)
         )
       }
     )
@@ -269,7 +269,7 @@ object ChatView {
     )
   }
 
-  private def renderParentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def renderParentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
       val idx = graph.idToIdx(parentId)
@@ -300,17 +300,20 @@ object ChatView {
             paddingRight := "5px",
             paddingBottom := "3px",
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parentId)).toHex,
-            cursor.pointer,
-            onClick foreach { currentReply.update(_ ++ Set(parentId)) },
             div(
               opacity := 0.7,
               Styles.flex,
               paddingLeft := "0.5em",
               div(
                 cls := "nodecard-content",
+                cls := "enable-text-selection",
                 renderNodeData(node.data, maxLength = Some(200)),
               ),
-              div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px"),
+              div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
+              div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
+                state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(parentId :: Nil)))
+                selectedNodes() = Set.empty[SelectedNode]
+              }, cursor.pointer),
             )
           )
         )
