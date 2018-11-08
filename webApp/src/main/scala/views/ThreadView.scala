@@ -327,6 +327,7 @@ object ThreadView {
     if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
 
     val nodeSet = ArraySet.create(graph.nodes.length)
+    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {

@@ -343,13 +343,13 @@ object ChatView {
 
   private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     val nodeSet = ArraySet.create(graph.nodes.length)
-    //TODO: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
+    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
         graph.descendantsIdx(parentIdx).foreachElement { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content])
+          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message)
             nodeSet.add(childIdx)
         }
       }
