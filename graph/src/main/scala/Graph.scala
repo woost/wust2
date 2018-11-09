@@ -855,12 +855,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       if(excludeCycleLeafs) {
         val nonCycleChildren = notDeletedChildrenIdx(root).filterNot(visited.contains)
         if(nonCycleChildren.nonEmpty) {
-          Tree.Parent(nodes(root), nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut))
+          Tree.Parent(nodes(root), (nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
         }
         else
           Tree.Leaf(nodes(root))
       } else {
-        Tree.Parent(nodes(root), notDeletedChildrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut))
+        Tree.Parent(nodes(root), (notDeletedChildrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
       }
     }
     else
@@ -868,10 +868,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   lazy val redundantForestExcludingCycleLeafs: List[Tree] = {
-    rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = true))(breakOut)
+    (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = true))(breakOut): List[Tree]).sortBy(_.node.id)
   }
   lazy val redundantForestIncludingCycleLeafs: List[Tree] = {
-    rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut)
+    (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree]).sortBy(_.node.id)
   }
 
   def channelTree(user: UserId): Seq[Tree] = {
