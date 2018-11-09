@@ -241,11 +241,11 @@ object Elements {
     var lastScrollHeight: Int = 0
 
     def trigger(): Unit = {
-      val currScrollHeight = elem.scrollHeight
-      if(lastScrollHeight != currScrollHeight) {
-        lastScrollHeight = currScrollHeight
+      if(lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
-        elem.style.height = s"${currScrollHeight}px"
+        val currentScrollHeight = elem.scrollHeight
+        elem.style.height = s"${currentScrollHeight}px"
+        lastScrollHeight = currentScrollHeight
       }
     }
 
