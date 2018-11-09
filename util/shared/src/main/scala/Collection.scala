@@ -3,7 +3,6 @@ package wust.util
 import scala.collection.generic.{CanBuildFrom, CanCombineFrom}
 import scala.collection.{IterableLike, breakOut, mutable}
 import scala.reflect.ClassTag
-import supertagged._
 
 package object collection {
 
@@ -112,6 +111,20 @@ package object collection {
       builder.result()
     }
 
+    @inline def filterIdxToArraySet(p: Int => Boolean):(ArraySet,Int) = {
+      val set = ArraySet.create(array.length)
+      var i = 0
+      var size = 0
+      while(i < array.length) {
+        if(p(i)) {
+          set += i
+          size += 1
+        }
+        i += 1
+      }
+      (set, size)
+    }
+
     @inline def foreachIndex(f: Int => Unit): Unit = {
       val n = array.length
       var i = 0
@@ -156,91 +169,10 @@ package object collection {
       builder.result()
     }
 
-    @inline def markerArray(n:Int):ArraySet = {
+    @inline def toArraySet(n:Int):ArraySet = {
       val marked = ArraySet.create(n)
       marked.add(array)
       marked
-    }
-  }
-
-  object InterleavedArray extends TaggedType[Array[Int]] {
-    @inline def create(n:Int): InterleavedArray = apply(new Array[Int](n*2))
-  }
-  type InterleavedArray = InterleavedArray.Type
-
-  object ArraySet extends TaggedType[Array[Int]] {
-    @inline def create(n:Int): ArraySet = apply(new Array[Int](n))
-  }
-  type ArraySet = ArraySet.Type
-
-  implicit final class RichInterleavedArray(val interleaved:InterleavedArray) extends AnyVal {
-    @inline def a(i:Int): Int = interleaved(i*2)
-    @inline def b(i:Int): Int = interleaved(i*2+1)
-    @inline def updatea(i:Int, value:Int): Unit = interleaved(i*2) = value
-    @inline def updateb(i:Int, value:Int): Unit = interleaved(i*2+1) = value
-    @inline def elementCount:Int = interleaved.length / 2
-
-    @inline def foreachTwoElements(f: (Int,Int) => Unit): Unit = {
-      val n = elementCount
-      var i = 0
-
-      while(i < n ) {
-        f(a(i), b(i))
-        i += 1
-      }
-    }
-    @inline def foreachIndexAndTwoElements(f: (Int,Int,Int) => Unit): Unit = {
-      val n = elementCount
-      var i = 0
-
-      while(i < n ) {
-        f(i, a(i), b(i))
-        i += 1
-      }
-    }
-  }
-
-  implicit final class RichArraySet(val marked:ArraySet) extends AnyVal {
-    //TODO: track number of added nodes to speed up map and allElements
-    @inline def add(elem:Int):Unit = marked(elem) = 1
-    @inline def add(elems:IndexedSeq[Int]): Unit = elems.foreachElement(add)
-    @inline def remove(elem:Int):Unit = marked(elem) = 0
-    @inline def remove(elems:IndexedSeq[Int]): Unit =  elems.foreachElement(remove)
-    @inline def contains(elem:Int):Boolean = marked(elem) == 1
-    @inline def containsNot(elem:Int):Boolean = marked(elem) == 0
-
-    @inline def foreachAdded(f:Int => Unit):Unit = {
-      marked.foreachIndex{ i =>
-        if(contains(i)) f(i)
-      }
-    }
-
-    @inline def calculateSize: Int = {
-      var size = 0
-      marked.foreachIndex{ i =>
-        if(contains(i)) size += 1
-      }
-      size
-    }
-
-    @inline def map[T](f:Int => T)(implicit classTag:ClassTag[T]):Array[T] = {
-      val array = new Array[T](calculateSize)
-      var pos = 0
-      foreachAdded{ i =>
-        array(pos) = f(i)
-        pos += 1
-      }
-      array
-    }
-
-    @inline def allElements:Array[Int] = {
-      val array = new Array[Int](calculateSize)
-      var pos = 0
-      foreachAdded{ i =>
-        array(pos) = i
-        pos += 1
-      }
-      array
     }
   }
 

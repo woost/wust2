@@ -1,13 +1,14 @@
 package wust.graph
 
 import wust.ids._
-import wust.util.{Memo, NestedArrayInt, SliceInt, algorithm}
+import wust.util._
 import wust.util.algorithm._
 import wust.util.collection._
 import wust.util.time.time
 
-import collection.{breakOut, mutable}
+import scala.collection.{breakOut, mutable}
 import scala.collection.immutable
+import scala.collection
 
 object Graph {
   val empty = new Graph(Array.empty, Array.empty)
@@ -59,6 +60,14 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   def toSummaryString: String = {
     s"Graph(nodes: ${ nodes.length }, ${ edges.length })"
+  }
+
+  def subset(p: Int => Boolean):ArraySet = {
+    val set = ArraySet.create(nodes.length)
+    nodes.foreachIndex{i =>
+      if(p(i)) set.add(i)
+    }
+    set
   }
 
   @deprecated("Be aware that you are constructing a new graph here.", "")
@@ -294,7 +303,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
 
-  consistentEdges.foreachAdded { edgeIdx =>
+  consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
     val targetIdx = edgesIdx.b(edgeIdx)
     val edge = edges(edgeIdx)
@@ -428,9 +437,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def filterIdx(p: Int => Boolean): Graph = {
     // we only want to call p once for each node
     // and not trigger the pre-caching machinery of nodeIds
-    val filteredNodesIndices = nodes.indices.filter(p)
+    val (filteredNodesIndices, retained) = nodes.filterIdxToArraySet(p)
 
-    @inline def nothingFiltered = filteredNodesIndices.length == nodes.length
+    @inline def nothingFiltered = retained == nodes.length
 
     if(nothingFiltered) graph
     else {
@@ -586,7 +595,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
     parentsIdx.foreachElement(nodeIdx)(tagSet.remove)
 
-    tagSet.map(nodes)
+    tagSet.mapToArray(nodes)
   }
 
   lazy val chronologicalNodesAscendingIdx: Array[Int] = {

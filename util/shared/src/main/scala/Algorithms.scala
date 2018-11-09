@@ -118,7 +118,7 @@ object algorithm {
   }
 
   @inline def depthFirstSearchWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     if (!append(start)) return
@@ -152,7 +152,7 @@ object algorithm {
 
   def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
 
-    val stack = new ArrayStackInt(capacity = 2 * successors.size)
+    val stack = ArrayStackInt.create(capacity = 2 * successors.size)
     val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     successors.foreachElement(start) { succElem =>
@@ -186,7 +186,7 @@ object algorithm {
    */
   def depthFirstSearchExistsWithoutStart(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
 
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     var i = 0
@@ -216,7 +216,7 @@ object algorithm {
   }
 
   def depthFirstSearch(start: Int, successors: NestedArrayInt):Array[Int] = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
     val result = new mutable.ArrayBuilder.ofInt
 
@@ -255,7 +255,7 @@ object algorithm {
 
 
   def depthFirstSearchExists(starts: Iterable[Int], successors: NestedArrayInt, search: ArraySet):Boolean = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = ArraySet.create(successors.size)
 
     starts.foreach(stack.push)
@@ -278,7 +278,7 @@ object algorithm {
   def depthFirstSearchExists(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
     if(start == search) return true
 
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     visited(start) = 1
@@ -310,7 +310,7 @@ object algorithm {
 
 
   def depthFirstSearchExcludeExists(start: Int, successors: NestedArrayInt, exclude:Array[Int], search:Int):Boolean = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     visited(start) = 1
@@ -342,7 +342,7 @@ object algorithm {
   }
 
   def depthFirstSearchWithoutStarts(start: Array[Int], successors: NestedArrayInt):Array[Int] = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
     val result = new mutable.ArrayBuilder.ofInt
 
@@ -381,7 +381,7 @@ object algorithm {
   }
 
   def depthFirstSearchWithoutStart(start: Int, successors: NestedArrayInt):Array[Int] = {
-    val stack = new ArrayStackInt(capacity = successors.size)
+    val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
     val result = new mutable.ArrayBuilder.ofInt
 

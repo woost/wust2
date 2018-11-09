@@ -355,7 +355,7 @@ object ChatView {
       }
     }
     val nodes = js.Array[Int]()
-    nodeSet.foreachAdded(nodes += _)
+    nodeSet.foreach(nodes += _)
     sortByCreated(nodes, graph)
     nodes
   }

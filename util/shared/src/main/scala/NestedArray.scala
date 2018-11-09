@@ -1,6 +1,6 @@
 package wust.util
 
-import wust.util.collection.{InterleavedArray, _}
+import wust.util.collection._
 
 import scala.collection.mutable
 
@@ -40,6 +40,16 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
       f(apply(idx,i))
       i += 1
     }
+  }
+  @inline def forall(idx: Int)(f:Int => Boolean):Boolean = {
+    // fast iteration over sub-array without allocation
+    var i = 0
+    val n = sliceLength(idx)
+    while(i < n) {
+      if(!f(apply(idx,i))) return false
+      i += 1
+    }
+    true
   }
 }
 
