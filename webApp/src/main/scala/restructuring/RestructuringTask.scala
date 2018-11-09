@@ -13,7 +13,8 @@ import wust.webApp.Client
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Placeholders
-import wust.webApp.views.Rendered._
+import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 
 import PostHeuristic._
 import Restructure._
@@ -152,7 +153,7 @@ sealed trait RestructuringTask {
             width := "100%",
           ),
           div(
-            mdHtml(description),
+            markdownVNode(description),
             borderTop := "2px dotted",
           ),
           div(
@@ -202,13 +203,13 @@ sealed trait YesNoTask extends RestructuringTask {
           "Yes",
           onClick(graphChangesYes) --> state.eventProcessor.enriched.changes,
           onClick(TaskFeedback(true, true, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging,
-          onClick handleWith(scribe.info(s"$title($postChoice) = YES")),
+          onClick foreach(scribe.info(s"$title($postChoice) = YES")),
         ),
         button(
           "No",
           onClick(TaskFeedback(true, false, graphChangesYes)) --> RestructuringTaskGenerator.taskDisplayWithLogging
         ),
-        onClick handleWith(scribe.info(s"$title($postChoice) = NO")),
+        onClick foreach(scribe.info(s"$title($postChoice) = NO")),
         width := "100%",
       )
     )
@@ -242,7 +243,7 @@ sealed trait AddTagTask extends RestructuringTask {
   def constructComponent(sourcePosts: Posts, targetPosts: Posts, sink: Observer[String]): VNode = {
 
     def textAreaWithEnterAndLog(actionSink: Observer[String]) = {
-      val userInput = Handler.created[String]
+      val userInput = Handler.unsafe[String]
       val clearHandler = userInput.map(_ => "")
       userInput.foreach(txt => scribe.info(s"$title($sourcePosts -> $targetPosts) $txt"))
 
@@ -729,10 +730,10 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
       |Wenn Sie mit dem Unterteilen des Posts fertig sind, können Sie dies mit dem "Confirm" Button bestätigen.
     """.stripMargin
 
-  def stringToPost(str: String, condition: Boolean, state: GlobalState): Option[Node.Content] = {
+  def stringToNode(str: String, condition: Boolean, state: GlobalState): Option[Node.Content] = {
     if (!condition) return None
     // TODO: author = state.user.now.id
-    Some(Node.Content(NodeId.fresh, NodeData.Markdown(str.trim)))
+    Some(Node.Content(NodeId.fresh, NodeData.Markdown(str.trim), NodeRole.Message))
   }
 
   def splittedPostPreview(
@@ -751,9 +752,9 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
     val currSelText = elementText.substring(selectionOffsets._1, selectionOffsets._2).trim
 
     val before =
-      stringToPost(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
-    val middle = stringToPost(currSelText, currSelText.nonEmpty, state)
-    val after = stringToPost(
+      stringToNode(elementText.take(selectionOffsets._1), selectionOffsets._1 != 0, state)
+    val middle = stringToNode(currSelText, currSelText.nonEmpty, state)
+    val after = stringToNode(
       elementText.substring(selectionOffsets._2),
       selectionOffsets._2 != elementText.length,
       state
@@ -795,7 +796,7 @@ case class SplitPosts(posts: Posts) extends RestructuringTask {
 
   def component(state: GlobalState): VNode = {
     val splitPost = posts.take(1)
-    val postPreview = Handler.created[List[Posts]](List(splitPost))
+    val postPreview = Handler.unsafe[List[Posts]](List(splitPost))
 
     div(
       div(
@@ -898,7 +899,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
       val tagPostWithParents: GraphChanges = graph.nodes.find(_.data.str == tag) match {
         case None =>
           //TODO: author = state.user.now.id
-          val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag))
+          val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag), NodeRole.Message)
           val newParent = state.page.now.parentIds
           val postTag = post.map(p => Edge.Parent(p.id, newTag.id))
           GraphChanges(
@@ -941,7 +942,7 @@ object RestructuringTaskGenerator {
   )
 
   val taskDisplayWithLogging: Handler[TaskFeedback] =
-    Handler.created[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty))
+    Handler.unsafe[TaskFeedback](TaskFeedback(false, false, GraphChanges.empty))
 
   def renderButton(activateTasks: Boolean): VNode = {
     val buttonType = if (activateTasks) {

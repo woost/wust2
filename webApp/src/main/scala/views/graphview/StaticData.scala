@@ -201,7 +201,7 @@ object StaticData {
         //          val p = posts(pId)
         //
         //        }
-        graph.lookup.allParentIdsTopologicallySortedByChildren.map { p =>
+        graph.allParentIdsTopologicallySortedByChildren.map { p =>
           new EulerSet(
             parent = p,
             children = graph.descendants(p).toArray,

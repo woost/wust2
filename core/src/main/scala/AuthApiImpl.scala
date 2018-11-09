@@ -10,6 +10,7 @@ import wust.backend.auth._
 import wust.db.Db
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext)
     extends AuthApi[ApiFunction] {
@@ -17,19 +18,22 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def changePassword(password: String): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
     val digest = passwordDigest(password)
-    db.user.changePassword(user.id, digest).map(Returns(_))
+    db.user.changePassword(user.id, digest)
+      .map(_ => Returns(true))
   }
 
   //TODO: some password checks
   def register(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     val newUser = state.auth.map(_.user) match {
-      case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
+      case Some(AuthUser.Implicit(prevUserId, _, _)) =>
         //TODO: propagate name change to the respective groups
-        db.user.activateImplicitUser(prevUserId, name, digest)
-      case Some(AuthUser.Assumed(userId, channelNodeId)) =>
-        db.user.create(userId, name, digest, channelNodeId)
-      case _ => db.user.create(UserId.fresh, name, digest, NodeId.fresh)
+        db.ctx.transaction { implicit ec =>
+          db.user.activateImplicitUser(prevUserId, name, digest)
+        }
+      case Some(AuthUser.Assumed(userId)) =>
+        db.user.create(userId, name, digest).map(Some(_)).recover{case NonFatal(_) => None }
+      case _ => db.user.create(UserId.fresh, name, digest).map(Some(_)).recover{case NonFatal(_) => None }
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
@@ -41,12 +45,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     val newUser = db.user.getUserAndDigest(name).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
-          case Some(AuthUser.Implicit(prevUserId, _, _, _)) =>
+          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
             //TODO propagate new groups into state?
             //TODO: propagate name change to the respective groups and the connected clients
-            db.user
-              .mergeImplicitUser(prevUserId, user.id)
-              .flatMap {
+            db.ctx.transaction { implicit ec =>
+              db.user.mergeImplicitUser(prevUserId, user.id).flatMap {
                 case true => Future.successful(Right(user))
                 case false =>
                   Future.failed(
@@ -55,6 +58,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
                     )
                   )
               }
+            }
           case _ => Future.successful(Right(user))
         }
 
@@ -88,10 +92,9 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
 
   def createImplicitUserForApp(): ApiFunction[Option[Authentication.Verified]] = Action { _ =>
     val userId = UserId.fresh
-    val implUser = db.user.createImplicitUser(userId, userId.toBase58, NodeId.fresh)
-    implUser.map {
-      case Some(auth) => Some(jwt.generateAuthentication(auth))
-      case None => None
+    val implUser = db.user.createImplicitUser(userId, userId.toBase58)
+    implUser.map { auth =>
+      Some(jwt.generateAuthentication(auth))
     }
   }
 

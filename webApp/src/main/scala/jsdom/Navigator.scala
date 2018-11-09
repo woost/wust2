@@ -22,13 +22,8 @@ object Navigator {
     def apply(data: ShareData): js.Promise[Unit] = n.share(data).asInstanceOf[js.Promise[Unit]]
   }
 
-  // test share button: as navigator share is not defined on desktop browsers
-  // DevOnly {
-    // dom.window.navigator.asInstanceOf[js.Dynamic].share = { (thisObj: js.Any, data: ShareData) =>
-    //   org.scalajs.dom.console.log("Share function called", data, thisObj)
-    //   js.Promise.resolve[Unit](())
-    // }: js.ThisFunction1[js.Any, ShareData, js.Promise[Unit]]
-  // }
+  // test share button on desktop by enabling experimental features in chrome:
+  // chrome://flags/#enable-experimental-web-platform-features
 }
 
 //TODO contribute to scala-js

@@ -1,6 +1,5 @@
 import org.scalatest._
 import wust.util.{NestedArrayInt, SliceInt}
-import wust.ids._
 
 class SliceSpec extends FreeSpec with MustMatchers {
 

@@ -34,7 +34,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
   }
 
   def filterUndeleteEvents(gc: GraphChanges) = {
-    if(gc.addNodes.collect{case n @ Node.Content(_,_,_) => n}.isEmpty){
+    if(gc.addNodes.collect{case n : Node.Content => n}.isEmpty){
       gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e}
     } else
         Set.empty[Edge]

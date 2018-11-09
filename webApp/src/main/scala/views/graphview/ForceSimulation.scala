@@ -1,6 +1,7 @@
 package views.graphview
 
 import d3v4._
+import wust.webApp.BrowserDetect
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
@@ -15,7 +16,7 @@ import wust.sdk.NodeColor._
 import wust.util.time.time
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Rendered._
+import wust.webApp.views.Components._
 
 import scala.concurrent.Promise
 import scala.scalajs.js
@@ -75,14 +76,16 @@ class ForceSimulation(
   private val canvasLayerElement = Promise[dom.html.Canvas]
 
   var isCtrlPressed = false
-  keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
+  
+  if (!BrowserDetect.isMobile)
+    keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
   val component: VNode = {
     import outwatch.dom.dsl._
     import outwatch.dom.dsl.styles.extra._
 
     div(
-      onDomMount.asHtml handleWith { e =>
+      onDomMount.asHtml foreach { e =>
         backgroundElement.success(e)
       },
       position := "relative",
@@ -92,13 +95,13 @@ class ForceSimulation(
       // Mouse events from all children pass through to backgroundElement (e.g. zoom).
       canvas(
         position := "absolute",
-        onDomMount.map(_.asInstanceOf[dom.html.Canvas]) handleWith { (e) =>
+        onDomMount.map(_.asInstanceOf[dom.html.Canvas]) foreach { (e) =>
           canvasLayerElement.success(e)
         },
         // pointerEvents := "none" // background handles mouse events
       ),
       div(
-        onDomMount.asHtml handleWith { e =>
+        onDomMount.asHtml foreach { e =>
           postContainerElement.success(e); ()
         },
         width := "100%",
@@ -462,7 +465,7 @@ object ForceSimulation {
 
     time(log(s"updating staying posts[${node.size()}]")) {
       node
-        .html((node: Node) => htmlPostData(node.data))
+        .html((node: Node) => htmlNodeData(node.data))
         .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined))
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }

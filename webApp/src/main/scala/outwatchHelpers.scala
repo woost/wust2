@@ -3,19 +3,23 @@ package wust.webApp
 import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.subjects.{BehaviorSubject, ReplaySubject}
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import outwatch.dom.{AsObserver, AsValueObservable, Handler, OutWatch, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.util.Empty
+import wust.webUtil.macros.KeyHash
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-//TODO nicer name
-package object outwatchHelpers {
+// TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
+// TODO: vnode.apply version which prepends, or in general allows to modify the modifier sequence
+//TODO: outwatch: onInput.target foreach { elem => ... }
+//TODO: outwatch: Emitterbuilder.timeOut or delay
+package object outwatchHelpers extends KeyHash {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
 //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
@@ -33,14 +37,6 @@ package object outwatchHelpers {
     }
   }
 
-
-  implicit class RichHandlerFactory(val v: Handler.type) extends AnyVal {
-    def created[T]:Handler[T] = ReplaySubject.createLimited(1)
-
-    def created[T](seed:T):Handler[T] = BehaviorSubject[T](seed)
-  }
-
-  //TODO toObservable/toVar/toRx are methods should be done once and with care. Therefore they should not be in an implicit class on the instance, but in an extra factory like ReactiveConverters.observable/rx/var
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
     def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
       observer =>
@@ -63,14 +59,21 @@ package object outwatchHelpers {
 
     def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => println(s"$name: $x"))
+      rx.foreach(x => scribe.info(s"$name: $x"))
     }
     def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => println(print(x)))
+      rx.foreach(x => scribe.info(print(x)))
     }
 
     //TODO: add to scala-rx in an efficient macro
     def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
+  }
+
+
+  def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
+
+  def managedOwner(implicit ctx: Ctx.Owner): VDomModifier = {
+    dsl.onDomUnmount foreach { ctx.contextualRx.kill() }
   }
 
   implicit def obsToCancelable(obs: Obs): Cancelable = {
@@ -92,7 +95,23 @@ package object outwatchHelpers {
     def toObserver: Observer[T] = new VarObserver(rxVar)
   }
 
-  implicit class RichVNode(val vNode: VNode) {
+  implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
+    def asJquery: EmitterBuilder[semanticUi.JQuerySelection, R] = builder.map { elem =>
+      import semanticUi.JQuery._
+      $(elem.asInstanceOf[dom.html.Element])
+    }
+  }
+
+  implicit class RichVNode(val vNode: BasicVNode) {
+    def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = vNode.conditional(key)(false)(renderFn)
+    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = static(key) {
+      val owner = createManualOwner()
+      VDomModifier(renderFn(owner), managedOwner(owner))
+    }
+    def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args) {
+      val owner = createManualOwner()
+      VDomModifier(renderFn(owner), managedOwner(owner))
+    }
     def render: org.scalajs.dom.Element = {
       val elem = document.createElement("div")
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()
@@ -130,28 +149,34 @@ package object outwatchHelpers {
     }
 
     def debug: Cancelable = debug()
-    def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => println(s"$name: $x"))
-    def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => println(print(x)))
+    def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => scribe.info(s"$name: $x"))
+    def debug(print: T => String): CancelableFuture[Unit] = o.foreach(x => scribe.info(print(x)))
   }
 
   //TODO: Outwatch observable for specific key is pressed Observable[Boolean]
-  def keyDown(keyCode: Int): Observable[Boolean] = Observable.merge(
-    outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
-    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
-  ).startWith(false :: Nil)
+  def keyDown(keyCode: Int): Observable[Boolean] = Observable(
+   outwatch.dom.dsl.events.document.onKeyDown.collect { case e if e.keyCode == keyCode => true },
+   outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
+ ).merge.startWith(false :: Nil)
 
+  // fontawesome uses svg for icons and span for layered icons.
+  // we need to handle layers as an html tag instead of svg.
+  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
+  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
+    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
+    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
+  )
   private def abstractTreeToVNode(tree: AbstractElement): VNode = {
-    // fontawesome uses svg for icons and span for layered icons.
-    // we need to handle layers as an html tag instead of svg.
-    val tag = if (tree.tag == "span") dsl.htmlTag(tree.tag) else dsl.svgTag(tree.tag)
-    tag(
-      tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
-      tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
-    )
+    val tag = stringToTag(tree.tag)
+    tag(treeToModifiers(tree))
+  }
+  private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag.static(keyValue(key))(treeToModifiers(tree))
   }
 
   implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
-    abstractTreeToVNode(fontawesome.icon(icon).`abstract`(0))
+    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
   }
 
   implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
@@ -161,22 +186,13 @@ package object outwatchHelpers {
   import scalacss.defaults.Exports.StyleA
   implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-  implicit object VDomModifierEmpty extends Empty[VDomModifier] {
-    def empty: VDomModifier = VDomModifier.empty
+  implicit object EmptyVDM extends Empty[VDomModifier] {
+    @inline def empty: VDomModifier = VDomModifier.empty
   }
 
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
     def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
-  }
-
-  def keyed(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = keyed(Nil)
-  def keyed(keys: Any*)(implicit file: sourcecode.File, line: sourcecode.Line, column: sourcecode.Column): VDomModifier = {
-    val parts = s"${file.value}:${line.value}:${column.value}" +: keys
-    val keyNumber = parts.hashCode
-    val keyModifier = dsl.key := keyNumber
-    if (DevOnly.isTrue) VDomModifier(keyModifier, dsl.data.key := keyNumber)
-    else keyModifier
   }
 
   def requestSingleAnimationFrame(): ( => Unit) => Unit = {
@@ -197,7 +213,7 @@ package object outwatchHelpers {
   }
 
 
-  def inAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
+  def inNextAnimationFrame[T](next: T => Unit): Observer[T] = new Observer.Sync[T] {
     private val requester = requestSingleAnimationFrame()
     override def onNext(elem: T): Ack = {
       requester(next(elem))

@@ -2,6 +2,7 @@ package wust.util
 
 object algorithm {
   import scala.collection.{IterableLike, breakOut, mutable}
+  import wust.util.collection._
   import math.Ordering
 
   def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V, T] = {
@@ -100,6 +101,120 @@ object algorithm {
     map
   }
 
+  def containsCycle(elements: Array[Int], successors: NestedArrayInt): Boolean = {
+
+    val num = elements.length
+    var i = 0
+
+    while(i < num) {
+      val idx = elements(i)
+      if(depthFirstSearchExistsWithoutStart(idx, successors, idx))
+        return true
+      
+      i += 1
+    }
+
+    false
+  }
+
+  @inline def depthFirstSearchWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    if (!append(start)) return
+
+    visited(start) = 1
+    var i = 0
+    val startSuccessorCount = successors(start).length
+    while(i < startSuccessorCount) {
+      stack.push(successors(start, i))
+      i += 1
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(visited(current) != 1) {
+        if (!append(current)) return
+
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+  }
+
+
+  def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
+
+    val stack = new ArrayStackInt(capacity = 2 * successors.size)
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    successors.foreachElement(start) { succElem =>
+      stack.push(start)
+      stack.push(succElem)
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      val previous = stack.pop()
+      if(current == search) return Some(previous)
+      if(visited.containsNot(current)) {
+        visited.add(current)
+
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) {
+            stack.push(current)
+            stack.push(next)
+          }
+        }
+
+      }
+    }
+
+    None
+  }
+
+  /* 
+   * DFS starts after the start index and searches for `search`
+   * Choosing start = search results in a cycle search
+   */
+  def depthFirstSearchExistsWithoutStart(start: Int, successors: NestedArrayInt, search:Int):Boolean = {
+
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    var i = 0
+    val startSuccessorCount = successors(start).length
+    while(i < startSuccessorCount) {
+      stack.push(successors(start, i))
+      i += 1
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(current == search) return true
+      if(visited(current) != 1) {
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+
+    false
+  }
+
   def depthFirstSearch(start: Int, successors: NestedArrayInt):Array[Int] = {
     val stack = new ArrayStackInt(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
@@ -136,6 +251,27 @@ object algorithm {
 
 
     result.result()
+  }
+
+
+  def depthFirstSearchExists(starts: Iterable[Int], successors: NestedArrayInt, search: ArraySet):Boolean = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = ArraySet.create(successors.size)
+
+    starts.foreach(stack.push)
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(search.contains(current)) return true
+      if(visited.containsNot(current)) {
+        visited.add(current)
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) stack.push(next)
+        }
+      }
+    }
+
+    false
   }
 
 
@@ -205,6 +341,44 @@ object algorithm {
     false
   }
 
+  def depthFirstSearchWithoutStarts(start: Array[Int], successors: NestedArrayInt):Array[Int] = {
+    val stack = new ArrayStackInt(capacity = successors.size)
+    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val result = new mutable.ArrayBuilder.ofInt
+
+    // start is intentionally left out.
+    // it is still possible that start is visited later. (in a cycle)
+    // result += start
+    // visited(start) = 1
+
+    var i = 0
+    start.foreachElement { start =>
+      val startSuccessorCount = successors(start).length
+      while(i < startSuccessorCount) {
+        stack.push(successors(start, i))
+        i += 1
+      }
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(visited(current) != 1) {
+        result += current
+        visited(current) = 1
+        val nexts = successors(current)
+        val nextCount = nexts.length
+        i = 0
+        while(i < nextCount) {
+          val next = nexts(i)
+          if(visited(next) != 1) stack.push(next)
+          i += 1
+        }
+      }
+    }
+
+
+    result.result()
+  }
 
   def depthFirstSearchWithoutStart(start: Int, successors: NestedArrayInt):Array[Int] = {
     val stack = new ArrayStackInt(capacity = successors.size)
@@ -304,8 +478,8 @@ object algorithm {
   }
 
   def topologicalSort(
-      vertices: Array[Int], // indices of vertices in successors
-      successors: NestedArrayInt
+    vertices: Array[Int], // indices of vertices in successors
+    successors: NestedArrayInt
   ): Array[Int] = {
     // assert(vertices.length <= successors.length)
     // assert(vertices.length == vertices.toSet.size, "no duplicates allowed")
@@ -358,10 +532,48 @@ object algorithm {
     sorted
   }
 
+  def topologicalSortForward(
+      vertices: Array[Int], // indices of vertices in successors
+      successors: NestedArrayInt
+  ): Array[Int] = {
+
+    val n = successors.length // the number of total vertices in the graph
+    val vertexCount = vertices.length // the number of vertices to sort
+
+    var sorted = new Array[Int](vertexCount) // the result
+    var sortCount = 0 // count to fill the result array from back to front
+    val visited = new Array[Int](vertexCount)
+
+    @inline def add(vertex:Int):Unit = {
+      sorted(sortCount) = vertex
+      sortCount += 1
+    }
+
+    def visit(idx: Int): Unit = {
+      val vertex = vertices(idx)
+      visited(idx) = 1
+      for (nextIdx <- successors(vertex)) {
+        val revIdx = vertices(nextIdx)
+        if (revIdx != -1 && visited(revIdx) == 0) {
+          visit(revIdx)
+        }
+      }
+      add(vertex)
+    }
+
+    var i = 0
+    while (i < vertexCount) {
+      if(visited(i) == 0) visit(i)
+      i += 1
+    }
+
+    sorted
+  }
+
   @deprecated("This is the old, slow version of topologicalSort", "")
   def topologicalSortSlow[V, COLL[V]](
-      vertices: IterableLike[V, COLL[V]],
-      successors: V => Iterable[V]
+    vertices: IterableLike[V, COLL[V]],
+    successors: V => Iterable[V]
   ): List[V] = {
     var sorted: List[V] = Nil
     val unmarked = mutable.LinkedHashSet.empty[V] ++ vertices.toList.reverse // for stable algorithm
@@ -378,4 +590,89 @@ object algorithm {
 
     sorted
   }
+
+  def topologicalLassoSort[V, COLL[V]](
+    vertices: IterableLike[V, COLL[V]],
+    predecessors: V => Iterable[V],
+    successors: V => Iterable[V])
+  : List[V] = {
+    var sorted: List[V] = Nil
+    val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
+
+    if(vertices.isEmpty){
+      return vertices.toList
+    }
+
+    def visit(n: V): Unit = {
+
+
+      if(sorted.contains(n)) return
+
+      // successors are nodes that have to be sorted before n
+      val succs = successors(n)
+      if(succs.nonEmpty) {
+        for(s <- successors(n) if unmarked.contains(s)) {
+          // if there is node s that comes before n, we requeue n and return
+            unmarked.enqueue(n)
+            return
+        }
+      }
+
+      // no nodes that comes before => add to sorted
+      sorted ::= n
+
+      // predecessors are nodes that come directly after n
+      for (m <- predecessors(n) if unmarked.contains(m)) {
+        unmarked.dequeueFirst(v => v == m).foreach(visit)
+      }
+
+    }
+
+    while (unmarked.nonEmpty) {
+      visit(unmarked.dequeue())
+    }
+
+    sorted
+  }
+
+  def topologicalSortWithHeuristic[V, COLL[V]](
+    vertices: IterableLike[V, COLL[V]],
+    predecessors: V => Iterable[V],
+    successors: V => Iterable[V],
+    heuristic: (V, V) => Boolean,
+  ): List[V] = {
+    var sorted: List[V] = Nil
+    val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
+
+    def visit(n: V): Unit = {
+
+      if(sorted.contains(n)) return
+
+      // successors are nodes that come before n
+      val succs = successors(n)
+      if(succs.nonEmpty) {
+        for(s <- successors(n).toIndexedSeq.sortWith(heuristic) if unmarked.contains(s)) {
+          // if there is node s that comes before n, we requeue n and return
+          unmarked.enqueue(n)
+          return
+        }
+      }
+
+      // no nodes that comes before => add to sorted
+      sorted ::= n
+
+      // predecessors are nodes that come directly after n
+      for (m <- predecessors(n).toIndexedSeq.sortWith(heuristic) if unmarked.contains(m)) {
+        unmarked.dequeueFirst(v => v == m).foreach(visit)
+      }
+
+    }
+
+    while (unmarked.nonEmpty) {
+      visit(unmarked.dequeue())
+    }
+
+    sorted
+  }
+
 }

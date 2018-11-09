@@ -1,9 +1,10 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{GraphChanges, Node}
+import wust.graph.Node
 import wust.db.{Data, Db}
 import wust.ids._
+import scala.collection.JavaConverters._
 import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
 
@@ -15,6 +16,7 @@ import wust.backend.config.PushNotificationConfig
 
 import scala.util.{Failure, Success, Try}
 
+//TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificationConfig])(
     implicit ec: ExecutionContext
 ) extends EventDistributor[ApiEvent, State] {
@@ -35,39 +37,41 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   override def publish(
       events: List[ApiEvent],
       origin: Option[NotifiableClient[ApiEvent, State]]
-  ): Unit = if (events.nonEmpty) {
+  ): Unit = if (events.nonEmpty) Future {
     scribe.info(s"Event distributor (${subscribers.size} clients): $events from $origin")
 
-    val (checkedNodeIdsList, uncheckedNodeIdsList) = events.map {
-      case ApiEvent.NewGraphChanges(_, changes) =>
-        val userData: Set[(UserId, String)] = changes.addNodes.collect { case c: Node.User => c.id -> c.name }(breakOut) //FIXME we cannot not check permission on users nodes as they currentl have no permissions, we just allow them for now.
-        (changes.involvedNodeIds.toSet -- userData.map(_._1), userData)
-      case _ => (Set.empty[NodeId], Set.empty[(UserId, String)])
-    }.unzip
-    val checkedNodeIds: Set[NodeId] = checkedNodeIdsList.toSet.flatten
-    val uncheckedNodeIds: Set[(UserId, String)] = uncheckedNodeIdsList.toSet.flatten
+    val (checkedNodeIdsList, involvedCheckedNodeIdsList, authorsList) = events.map {
+      case ApiEvent.NewGraphChanges(user, changes) =>
+        (changes.addNodes.map(_.id) -- Set(user.id), changes.involvedNodeIds -- Set(user.id), Set(user)) // expose author node
+      case _ => (Set.empty[NodeId], Set.empty[NodeId], Set.empty[Node.User])
+    }.unzip3
+    val authors: Set[Node.User] = authorsList.toSet.flatten
 
     subscribers.foreach { client =>
       if (origin.fold(true)(_ != client))
         client.notify(stateFut =>
           stateFut.flatMap { state =>
             state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
-              db.notifications.updateNodesForConnectedUser(auth.user.id, checkedNodeIds)
-                .map(permittedNodeIds => events.map(eventFilter(uncheckedNodeIds.map(_._1).toSet ++ permittedNodeIds)))
+              db.notifications.updateNodesForConnectedUser(auth.user.id, involvedCheckedNodeIdsList.toSet.flatten)
+                .map(permittedNodeIds => events.flatMap(eventFilter(authors.map(_.id) ++ permittedNodeIds)(_)))
             }
           }
         )
     }
 
+    //TODO really all?
     db.notifications.getAllSubscriptions().onComplete {
-      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIds, uncheckedNodeIds.map(_._2).headOption.getOrElse(""))
+      case Success(subscriptions) => distributeNotifications(subscriptions, events, checkedNodeIdsList.toSet.flatten, authors.map(_.name).mkString(","))
       case Failure(t) => scribe.warn(s"Failed to get webpush subscriptions", t)
     }
   }
 
   private def distributeNotifications(subscriptions: List[Data.WebPushSubscription], events: List[ApiEvent], nodeIds: Set[NodeId], username: String): Unit = pushService.foreach { pushService =>
-    // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
-    val expiryStatusCodes = Set(404, 410)
+    val expiryStatusCodes = Set(
+      // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
+      404, 410, // expired
+      400, 401, // invalid auth headers
+    )
     val successStatusCode = 201
 
     //TODO really .par?
@@ -77,7 +81,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val expiredSubscriptions = parallelSubscriptions.map { s =>
       db.notifications.notifiedNodesForUser(s.userId, nodeIds).transformWith {
         case Success(permittedNodeIds) =>
-          val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet))
+          val filteredEvents = events.map(eventFilter(permittedNodeIds.toSet)).flatten
           val payload: Future[Seq[PushData]] = Future.sequence(filteredEvents.collect {
             case ApiEvent.NewGraphChanges(_, changes) if changes.addNodes.nonEmpty =>
               changes.addNodes.map{ n =>
@@ -100,11 +104,13 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
               pushService.send(s, data).transform {
                 case Success(response) =>
                   response.getStatusLine.getStatusCode match {
-                    case `successStatusCode` =>
+                    case `successStatusCode`                                  =>
                       Success(None)
                     case statusCode if expiryStatusCodes.contains(statusCode) =>
                       Success(Some(s))
-                    case _ =>
+                    case _                                                    =>
+                      val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
+                      scribe.error(s"Unexpected success code: $response body: $body")
                       Success(None)
                   }
                 case Failure(t) =>
@@ -123,7 +129,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     Future.traverse(expiredSubscriptions.seq)(identity).foreach { expiredSubscriptions =>
       val flatExpiredSubscriptions = expiredSubscriptions.flatten
       if (flatExpiredSubscriptions.nonEmpty) {
-        db.notifications.delete(flatExpiredSubscriptions.toSet).onComplete {
+        db.notifications.delete(flatExpiredSubscriptions).onComplete {
           case Success(res) =>
             scribe.info(s"Deleted expired subscriptions ($expiredSubscriptions): $res")
           case Failure(res) =>
@@ -133,8 +139,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
   }
 
-  private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => ApiEvent = {
-    case ApiEvent.NewGraphChanges(user, changes) => ApiEvent.NewGraphChanges(user, changes.filter(allowedNodeIds))
-    case other => other
+  private def eventFilter(allowedNodeIds: Set[NodeId]): ApiEvent => Option[ApiEvent] = {
+    case ApiEvent.NewGraphChanges(user, changes) =>
+      val allowedChanges = changes.filter(allowedNodeIds)
+      if (allowedChanges.isEmpty) None
+      else Some(ApiEvent.NewGraphChanges(user, allowedChanges))
+    case other => Some(other)
   }
 }

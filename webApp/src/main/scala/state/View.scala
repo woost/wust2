@@ -10,6 +10,10 @@ sealed trait View {
   def isContent: Boolean
 }
 object View {
+  case object Magic extends View {
+    def viewKey = "magic"
+    def isContent = true
+  }
   case object Thread extends View {
     def viewKey = "thread"
     def isContent = true
@@ -60,7 +64,7 @@ object View {
 
   val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
 
-  def default: View = Chat
+  def default: View = Magic
 }
 
 sealed trait ViewOperator {

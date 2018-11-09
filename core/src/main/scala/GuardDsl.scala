@@ -18,8 +18,8 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       user: AuthUser.Assumed
   ): Future[Option[Authentication.Verified]] = {
     db.user
-      .createImplicitUser(user.id, user.name, user.channelNodeId)
-      .map(_.map(user => jwt.generateAuthentication(user)))
+      .createImplicitUser(user.id, user.name)
+      .map(user => Some(jwt.generateAuthentication(user)))
   }
 
   implicit class GuardedOps[F[+ _]: ApiData.MonadError](factory: ApiFunction.Factory[F]) {

@@ -11,7 +11,8 @@ import scala.concurrent.duration._
 object ZIndex {
   val controls = 10
   val draggable = 100
-  val overlay = 1000
+  val overlayLow = 1000
+  val overlay = 2000
   val dragging = 10000
 }
 
@@ -82,6 +83,11 @@ object Styles extends StyleSheet.Inline {
     flexShrink(0)
   )
 
+  val wordWrap = style(
+    overflowWrap := "break-word",
+    minWidth(0 px),
+  )
+
   val gridOpts = style(
     display.grid,
     gridGap(0 px),
@@ -94,6 +100,19 @@ object Styles extends StyleSheet.Inline {
     (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(133,213,255,0)")
   )
 
+  val loadingAnimationDashOffsetKf = keyframes(
+    (100 %%) -> style(svgStrokeDashOffset := "100")
+  )
+
+  val loadingAnimationDashArrayKf = keyframes(
+    (0 %%) -> style(svgStrokeDashArray := "30 3.33333"),
+    (100 %%) -> style(svgStrokeDashArray := "16.11111 17.22222")
+  )
+
+  val fadeInKf = keyframes(
+    (0 %%) -> style(opacity(0)),
+    (100 %%) -> style(opacity(1))
+  )
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -103,6 +122,32 @@ object CommonStyles extends StyleSheet.Standalone {
   "*, *:before, *:after" - (
     boxSizing.borderBox
   )
+
+  ":not(input):not(textarea):not([contenteditable=true])," +
+  ":not(input):not(textarea):not([contenteditable=true])::after," +
+  ":not(input):not(textarea):not([contenteditable=true])::before" - (
+//    backgroundColor.blue.important,
+    userSelect := none,
+  )
+
+
+  ".enable-text-selection, .enable-text-selection *" - (
+    (userSelect := "text").important,
+    cursor.text.important
+  )
+
+
+  "input, button, textarea, :focus" - (
+    outline.none // You should add some other style for :focus to help UX/a11y
+  )
+
+  // Prevent the text contents of draggable elements from being selectable.
+  "[draggable=true]" - (
+    userSelect := none,
+    // FIXME: support -khtml-user-drag
+    userDrag.element
+  )
+
 
   "html, body" - (
     Styles.slim,
@@ -122,6 +167,14 @@ object CommonStyles extends StyleSheet.Standalone {
   ".mainview" - (
     flexDirection.column,
     Styles.growFull
+  )
+
+  ".pagenotfound" - (
+    opacity(0),
+    animationName(Styles.fadeInKf),
+    animationDuration(1.5 seconds),
+    animationDelay(2000 milliseconds),
+    animationFillMode.forwards,
   )
 
   // -- breadcrumb --
@@ -163,8 +216,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".pageheader-channeltitle" - (
     fontSize(20 px),
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
@@ -177,6 +229,18 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flexStatic,
   )
 
+  ".animated-fadein" - (
+    opacity(0),
+    animationName(Styles.fadeInKf),
+    animationDuration(1.5 seconds),
+    animationDelay(100 milliseconds),
+    animationFillMode.forwards,
+  )
+  ".woost-loading-animation-logo" - (
+    svgStrokeDashOffset := "0",
+    animation := s"${Styles.fadeInKf.name.value} 1s, ${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
+  )
+
   ".sidebar" - (
     color.white,
     transition := "background-color 0.5s",
@@ -187,6 +251,20 @@ object CommonStyles extends StyleSheet.Standalone {
     justifyContent.flexStart,
     alignItems.stretch,
     alignContent.stretch,
+  )
+
+  ".overlay-sidebar" - (
+    zIndex(ZIndex.overlay),
+    position.absolute,
+    left(0 px),
+    top(0 px),
+    height(100 %%),
+    width(100 %%),
+    background := "rgba(0,0,0,0.3)"
+  )
+
+  ".overlay-sidebar > .sidebar" - (
+    marginRight(50 px)
   )
 
   ".customChannelIcon" - (
@@ -221,6 +299,15 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(2 px),
   )
 
+  ".channel-line > .channelicon" - (
+    marginRight(5 px),
+    borderRadius(2 px),
+  )
+
+  ".channel-name"  - (
+    paddingLeft(3 px),
+    paddingRight(3 px)
+  )
 
   ".channel-name > div > p" - (
     margin(0 px) // avoid default p margin. p usually comes from markdown rendering
@@ -228,8 +315,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channel-name," +
   ".channel-name *" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap
   )
 
   ".channelIcons" - (
@@ -314,15 +400,8 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  /* Prevent the text contents of draggable elements from being selectable. */
-  "[draggable]" - (
-    userSelect := "none",
-    // FIXME: support -khtml-user-drag
-    userDrag.element
-  )
-
   ".graphnode" - (
-    wordWrap.breakWord,
+    Styles.wordWrap,
     textRendering := "optimizeLegibility",
     position.absolute,
     padding(3 px, 5 px),
@@ -337,22 +416,27 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- chatview --
   ".chat-history" - (
-    height(100 %%)
+    height(100 %%),
   )
 
-  ".chatmsg-group-outer-frame" - (
-    paddingTop(10 px),
+  ".chat-group-outer-frame" - (
     minWidth(0 px),
     minHeight(0 px),
     Styles.flex,
   )
 
-  ".chat-history .chat-thread .chatmsg-group-outer-frame" - (
+  ".chat-group-outer-frame > div:first-child" - ( // contains avatar
+    paddingTop(8 px),
+  )
+
+  ".chat-thread-messages .chat-group-inner-frame" - (
     paddingTop(5 px)
   )
 
-  ".chat-history .chatmsg-group-inner-frame" - (
+  ".chat-group-inner-frame" - (
+    paddingTop(10 px),
     width(100 %%), // expands selection highlight to the whole line
+    minWidth(0 px), // fixes word-wrapping in nested flexbox
   )
 
   ".chat-history .chatmsg-header" - (
@@ -379,31 +463,26 @@ object CommonStyles extends StyleSheet.Standalone {
     color.grey
   )
 
-  ".chatmsg-line" - (
+  ".chat-row" - (
     alignItems.center,
     padding(2 px, 20 px, 2 px, 0 px)
   )
 
-  ".chat-history .chatmsg-line .checkbox" - (
+  ".chat-row .checkbox" - (
     visibility.hidden
   )
 
   val chatmsgIndent = marginLeft(3 px)
-  ".chat-history .chatmsg-line > .tag" - (
+  ".chat-row > .tag" - (
     chatmsgIndent, // when a tag is displayed at message position
     whiteSpace.normal, // displaying tags as content should behave like normal nodes
   )
 
-  ".chat-history .chatmsg-line > .nodecard" - (
+  ".chat-row > .nodecard" - (
     chatmsgIndent,
   )
 
-  ".chat-history .chatmsg-line > .tag *" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
-  )
-
-  ".workflow .chatmsg-controls, .chat-history .chatmsg-controls" - (
+  ".chatmsg-controls" - (
     visibility.hidden,
     Styles.flex,
     alignItems.center,
@@ -425,22 +504,22 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  // -- controls on hover --
-  ".chatmsg-line:hover" - (
+  //   -- controls on hover --
+  ".chat-row:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
   )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
-  ".chat-history .chatmsg-line:hover .chatmsg-controls,"+
-  ".chat-history .chatmsg-line:hover .checkbox,"+
-  ".chat-history .chatmsg-line:hover .transitivetag,"+
-  ".chat-history .chatmsg-line:focus .chatmsg-controls,"+
-  ".chat-history .chatmsg-line:focus .checkbox,"+
-  ".chat-history .chatmsg-line:focus .transitivetag" - (
+  ".chat-row:hover .chatmsg-controls,"+
+  ".chat-row:hover .checkbox,"+
+  ".chat-row:hover .transitivetag,"+
+  ".chat-row:focus .chatmsg-controls,"+
+  ".chat-row:focus .checkbox,"+
+  ".chat-row:focus .transitivetag" - (
     visibility.visible
   )
 
-  ".chat-history .chat-thread" - (
+  ".chat-thread-messages" - (
     marginLeft(5 px),
     paddingLeft(5 px),
     paddingBottom(5 px),
@@ -484,8 +563,8 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
-//    borderTop(1 px, solid, rgba(158, 158, 158, 0.19)),
     nodeCardShadow,
+    minWidth(6 em).important,
   )
 
   ".nodecard a" - (
@@ -497,8 +576,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard-content" - (
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     /* display.inlineBlock, */
     border(1 px, solid, transparent), /* placeholder for the dashed border when dragging */
     minHeight(2 em), // height when card is empty
@@ -572,7 +650,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanColumnPaddingPx = 7
   val kanbanColumnPadding = (kanbanColumnPaddingPx px)
   val kanbanRowSpacing = (8 px)
-  val kanbanPageSpacing = (5 px)
+  val kanbanPageSpacing = (10 px)
   val kanbanCardWidthPx = 250
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
@@ -580,17 +658,17 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbanview" - (
     padding(kanbanPageSpacing),
+    height(100 %%),
   )
 
   ".kanbancolumnarea" - (
     height(100 %%),
-    paddingBottom(5 px)
   )
 
   ".kanbannewcolumnarea" - (
     minWidth(kanbanColumnWidth),
     maxWidth(kanbanColumnWidth), // prevents inner fluid textarea to exceed size
-    height(100 px),
+    minHeight(100 px),
     backgroundColor(c"rgba(158, 158, 158, 0.25)"),
     borderRadius(kanbanColumnBorderRadius),
     cursor.pointer,
@@ -612,10 +690,10 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgba(0, 0, 0, 0.62)"),
   )
 
-  ".kanbannewcolumnarea > .nodecard" - ( // when dragging card over, to create new column
+  ".kanbannewcolumnarea > .nodecard" - ( // this constellation appears, when dragging card over NewColumnArea to create a new column
     width(kanbanColumnWidth),
     height(100 px),
-    margin(0 px).important
+    margin(0 px).important,
   )
 
   ".kanbannewcolumnarea .kanbancolumn" - (
@@ -628,27 +706,60 @@ object CommonStyles extends StyleSheet.Standalone {
     marginTop(0 px),
     marginLeft(0 px),
     marginRight(10 px),
-    marginBottom(20 px),
   )
 
   ".kanbantoplevelcolumn" - (
     border(1 px, solid, white),
-    Styles.flex,
+    display.flex,
+    minHeight(0 px),
+    minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+    // we don't specify a max-width here. This would cause cards in nested columns to be too big for the available width.
     flexDirection.column,
     maxHeight(100 %%)
   )
+
+  ".kanbancolumnarea > .nodecard" - (
+    minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
+    marginTop(0 px),
+    marginLeft(0 px),
+    marginRight(10 px),
+  )
+
 
   ".kanbansubcolumn" - (
     border(1 px, solid, white)
   )
 
   ".kanbancolumntitle" - (
+    width(100 %%),
     maxWidth(kanbanCardWidth),
     // TODO: separate style for word-breaking in nodes
-    wordWrap.breakWord,
-    wordBreak :=! "break-word",
+    Styles.wordWrap,
     minHeight(2 em), // if title is empty
+    letterSpacing(0.5 px), // more aesthetic
   )
+
+
+  ".nodecard .buttonbar" - (
+    backgroundColor(nodeCardBackgroundColor),
+    padding(2 px, 4 px),
+    visibility.hidden
+  )
+
+  ".nodecard.draggable--over .buttonbar" - (
+    backgroundColor(transparent),
+    )
+
+  ".nodecard .buttonbar > div" - (
+    color(c"rgb(157, 157, 157)"),
+    padding(2 px)
+  )
+
+  ".nodecard .buttonbar > div:hover" - (
+    backgroundColor(c"rgba(215, 215, 215, 0.9)"),
+    color(c"rgb(71, 71, 71)")
+  )
+
 
   ".kanbancolumnheader .buttonbar" - (
     padding(kanbanColumnPadding),
@@ -686,27 +797,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(white)
   )
 
-  ".nodecard .buttonbar" - (
-    backgroundColor(nodeCardBackgroundColor),
-    padding(2 px, 4 px),
-    visibility.hidden
-  )
-
-  ".nodecard.draggable--over .buttonbar" - (
-    backgroundColor(transparent),
-    )
-
-  ".nodecard .buttonbar > div" - (
-    color(c"rgb(157, 157, 157)"),
-    padding(2 px)
-  )
-
-  ".nodecard .buttonbar > div:hover" - (
-    backgroundColor(c"rgba(215, 215, 215, 0.9)"),
-    color(c"rgb(71, 71, 71)")
-  )
-
-
   ".kanbancolumnchildren > .nodecard," +
   ".kanbanisolatednodes > .nodecard" - (
     width(kanbanCardWidth),
@@ -720,6 +810,13 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.large,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
+  )
+
+  ".kanbancolumnheader" - (
+    Styles.flexStatic,
+    Styles.flex,
+    alignItems.flexEnd,
+    justifyContent.spaceBetween,
   )
 
   ".kanbancolumnchildren" - (
@@ -736,6 +833,10 @@ object CommonStyles extends StyleSheet.Standalone {
   // therefore, instead setting a padding on the column, we set a margin/padding on the inner elements.
   ".kanbancolumn > .kanbancolumnheader" - (
     padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
+  )
+
+  ".kanbancolumnheader.kanbancolumncollapsed" - (
+    padding(kanbanColumnPadding),
   )
 
   ".kanbancolumnchildren > .nodecard," +
@@ -801,7 +902,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".selectednodes" - (
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
-    zIndex(ZIndex.overlay),
+    zIndex(ZIndex.overlayLow),
   )
 
   ".selectednodes > .nodelist" - (
@@ -842,10 +943,6 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(selectedNodesBgColor),
   )
 
-  ".draghandle" - (
-    userSelect := none
-  )
-
   ".draggable, .draghandle" - (
     cursor.move,
   )
@@ -867,13 +964,33 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable node
   ".draggable-container .node.draggable--over," +
-  ".chat-thread.draggable--over," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // threadview
+  ".chat-expanded-thread.draggable--over .chat-common-parents," + // chatview
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
-  ".chatmsg-line.draggable--over .nodecard" - (
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
+  ".chat-row.draggable--over .nodecard" - (
     backgroundColor(c"rgba(65,184,255, 1)").important,
     color.white.important,
     opacity(1).important,
     cursor.move.important
+  )
+
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
+    borderLeft(3 px, solid, transparent).important,
+    opacity(1),
+  )
+
+  ".chat-expanded-thread.draggable--over .chat-common-parents > div > div > div" - (// chatview
+    opacity(1).important,
+  )
+
+  ".chat-row.draggable--over .nodecard *," +
+  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *," + // threadview
+  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-author," + // chatview
+  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-date," + // chatview
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *" - ( // first message in a group
+    color.white.important,
   )
 
   ".draggable-mirror" - (
@@ -884,33 +1001,41 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable nodecard
   ".nodecard.draggable--over," +
-  ".chatmsg-line.draggable--over .nodecard" - (
+  ".chat-row.draggable--over .nodecard" - (
     borderTop(1 px, solid, transparent).important,
     (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
   )
 
-  ".chatmsg-line .nodecard.draggable-mirror" - (
+  ".chat-row .nodecard.draggable-mirror" - (
     backgroundColor(nodeCardBackgroundColor).important,
     nodeCardShadow.important,
     color.inherit.important
   )
 
-  ".chatmsg-line.draggable-mirror .tag," +
-  ".chatmsg-line.draggable-mirror .tagdot," +
-  ".chatmsg-line.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
-  ".chatmsg-line.draggable-mirror .collapsebutton" - (
+  ".chat-row.draggable-mirror .tag," +
+  ".chat-row.draggable-mirror .tagdot," +
+  ".chat-row.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
+  ".chat-row.draggable-mirror .collapsebutton" - (
     visibility.hidden.important
   )
 
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
-  ".nodecard.draggable--over.draggable-source--is-dragging," +
-  ".chatmsg-line.draggable-source--is-dragging .nodecard,"+
-  ".chatmsg-line.draggable--over.draggable-source--is-dragging .nodecard,"+
-  ".chatmsg-line.draggable--over .nodecard.draggable-source--is-dragging" - (
+  ".nodecard.draggable-source--is-dragging.draggable--over," +
+  ".chat-row.draggable-source--is-dragging .nodecard,"+
+  ".chat-row.draggable-source--is-dragging.draggable--over .nodecard," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard" - (
     backgroundColor(white).important,
+    color(onDragNodeCardColor).important,
     (boxShadow := none).important,
     border(1 px, dashed, onDragNodeCardColor).important,
+  )
+
+
+  ".chat-row.draggable-source--is-dragging .nodecard *,"+
+  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard *," +
+  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard *" - (
+    backgroundColor(white).important,
     color(onDragNodeCardColor).important,
   )
 
@@ -953,7 +1078,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
-  ".chatmsg-line.draggable-source--is-dragging .transitivetag" - (
+  ".chat-row.draggable-source--is-dragging .transitivetag" - (
     visibility.visible
     )
 
@@ -975,7 +1100,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".topbar" - (
-    //borderBottom(solid, 1 px, c"#FFFFFF")
+    paddingRight(5 px),
+    height(45 px),
+    color.white,
+    transition := "background-color 0.5s", // fades on page change
+    Styles.flex,
+    flexDirection.row,
+    justifyContent.spaceBetween,
+    alignItems.center,
   )
 
   ".viewbar" - (
@@ -1022,17 +1154,4 @@ object CommonStyles extends StyleSheet.Standalone {
 
 object StyleRendering {
   def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String]
-
-  //    final def render[Out](implicit r: Renderer[Out], env: Env): Out =
-  // cssRegister.render
-
-  // import java.io.{File, PrintWriter}
-
-  // /** Generates css files from scalacss styles */
-  // def Build() = {
-  //   // val w = new PrintWriter(new File("../webApp/src/css/generated.css"))
-  //   val w = new PrintWriter(new File("../webApp/src/css/style.css"))
-  //   w.write(renderAll)
-  //   w.close()
-  // }
 }

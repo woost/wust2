@@ -20,8 +20,8 @@ class PushService private(service: webpush.PushService) {
   // so we do the same as sendAsync, but inject our own callback that completes a promise.
   private def doSend(notification: webpush.Notification): Try[Future[HttpResponse]] = Try {
     val httpPost = service.preparePost(notification)
-    val closeableHttpAsyncClient = HttpAsyncClients.createSystem();
-    closeableHttpAsyncClient.start();
+    val closeableHttpAsyncClient = HttpAsyncClients.createSystem()
+    closeableHttpAsyncClient.start()
 
     // callback for closing the http client
     val closeCb = new ClosableCallback(closeableHttpAsyncClient)
@@ -52,6 +52,7 @@ class PushService private(service: webpush.PushService) {
       payload
     )
 
+    scribe.info(s"Sending push notification to ${sub}: $payload")
     doSend(notification).toEither.fold(Future.failed, identity)
   }
 
@@ -67,7 +68,7 @@ class PushService private(service: webpush.PushService) {
       payload.asJson.noSpaces
     )
 
-
+    scribe.info(s"Sending push notification to ${sub}: ${payload.content}")
     doSend(notification).toEither.fold(Future.failed, identity)
   }
 }

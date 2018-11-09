@@ -29,7 +29,7 @@ object Collapse {
     // println("collapsedLocalContainments: " + collapsedLocalContainments)
 
     displayGraph.copy(
-      graph = graph removeNodes hiddenPosts removeConnections hiddenContainments,
+      graph = graph removeNodes hiddenPosts removeEdges hiddenContainments,
       redirectedConnections = redirectedConnections,
       collapsedContainments = collapsedLocalContainments
     )
@@ -68,7 +68,7 @@ object Collapse {
       alternativePosts: collection.Map[NodeId, Set[NodeId]]
   ): Set[LocalConnection] = {
     (alternativePosts.keys.flatMap { post =>
-      graph.lookup.incidentContainments(post).flatMap { c =>
+      graph.incidentContainments(post).flatMap { c =>
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId))
           yield {

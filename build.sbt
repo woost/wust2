@@ -95,7 +95,8 @@ lazy val commonSettings = Seq(
 
   // Scalaxy/Streams makes your Scala collections code faster
   // Fuses collection streams down to while loops
-  scalacOptions += "-Xplugin-require:scalaxy-streams",
+  // Only use it in production
+  scalacOptions += {if (isDevRun.?.value.getOrElse(false)) "-Xplugin-disable:scalaxy-streams" else "-Xplugin-require:scalaxy-streams"},
   scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
   scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
   addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
@@ -105,6 +106,7 @@ lazy val commonWebSettings = Seq(
   useYarn := true, // makes scalajs-bundler use yarn instead of npm
   yarnExtraArgs in Compile := Seq("--ignore-engines"), // ignoring, since javascript people seem to be too stupid to compare node versions. When version 9 is available and >= 8 is required, it fails. Affected: @gfx/node-zopfli
   scalacOptions += "-P:scalajs:sjsDefinedByDefault",
+  scalacOptions in fullOptJS ++= Seq("-Xelide-below", "5000"), // remove assertions from production code
   scalacOptions ++= {
     if (isDevRun.?.value.getOrElse(false)) {
       // To enable dev source map support,
@@ -131,10 +133,8 @@ lazy val webSettings = Seq(
   requiresDOM := true, // still required by bundler: https://github.com/scalacenter/scalajs-bundler/issues/181
   version in installJsdom := "11.12.0", // TODO: update jsdom to v12 when resolved in scala-js: https://github.com/scala-js/scala-js/issues/3432
   scalaJSUseMainModuleInitializer := true,
-  //TODO ?: scalaJSStage in Test := FullOptStage,
-  scalaJSLinkerConfig in (Compile, fastOptJS) ~= {
-    _.withSourceMap(withSourceMaps).withOptimizer(!withSourceMaps)
-  }, // disable optimizations for better debugging experience
+  scalaJSStage in Test := FastOptStage,
+  scalaJSLinkerConfig in (Compile, fastOptJS) ~= { _.withSourceMap(withSourceMaps) },
   scalaJSLinkerConfig in (Compile, fullOptJS) ~= { _.withSourceMap(withSourceMaps) },
   npmDevDependencies in Compile ++= Deps.npm.webpackDependencies,
   version in webpack := Deps.webpackVersion,
@@ -146,7 +146,7 @@ lazy val webSettings = Seq(
   webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.dev.js"),
   webpackBundlingMode in fastOptJS := BundlingMode
     .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
-  webpackDevServerExtraArgs := Seq("--progress", "--color"),
+  webpackDevServerExtraArgs := Seq("--progress", "--color", "--public"),
   // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
   // a folder which is served and watched by the webpack devserver.
   // this is a workaround for: https://github.com/scalacenter/scalajs-bundler/issues/180
@@ -246,8 +246,12 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
     libraryDependencies ++=
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
+      Deps.taggedTypes.value ::
       Nil
   )
+lazy val utilJS = util.js
+lazy val utilJVM = util.jvm
+
 
 lazy val bench = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
@@ -273,9 +277,6 @@ lazy val serviceUtil = project
       Deps.circe.genericExtras.value ::
       Nil
   )
-
-lazy val utilJS = util.js
-lazy val utilJVM = util.jvm
 
 lazy val sdk = crossProject(JSPlatform, JVMPlatform)
   .dependsOn(api, util)
@@ -329,7 +330,6 @@ lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
 
 lazy val css = crossProject(JSPlatform, JVMPlatform)
-  .crossType(CrossType.Pure)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
   .settings(
@@ -409,12 +409,11 @@ lazy val core = project
     javaOptions in reStart += "-Xmx50m"
   )
 
-lazy val webApp = project
-  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(sdkJS, cssJS)
-  .settings(commonSettings, commonWebSettings, webSettings)
+
+lazy val webUtil = project
+  .enablePlugins(ScalaJSPlugin)
+  .settings(commonSettings, commonWebSettings)
   .settings(
-//    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
         Deps.scalarx.value ::
@@ -425,7 +424,17 @@ lazy val webApp = project
         Deps.kantanRegex.core.value ::
         Deps.kantanRegex.generic.value ::
         Deps.fontawesome.value ::
-        Nil,
+        Nil
+  )
+
+lazy val webApp = project
+  .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
+  .dependsOn(sdkJS, cssJS, webUtil)
+  .settings(commonSettings, commonWebSettings, webSettings)
+  .settings(
+//    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
+    libraryDependencies ++=
+      Nil,
     npmDependencies in Compile ++=
       Deps.npm.defaultPassiveEvents ::
       Deps.npm.immediate ::
@@ -439,6 +448,7 @@ lazy val webApp = project
       Deps.npm.emojiData ::
       Deps.npm.hammerjs ::
       Deps.npm.propagatingHammerjs ::
+      Deps.npm.mobileDetect ::
       Nil
   )
 

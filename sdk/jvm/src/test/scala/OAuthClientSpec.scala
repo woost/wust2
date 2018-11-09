@@ -32,7 +32,7 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
     val client = getClient()
 
     val randomState = UUID.randomUUID().toString
-    val url = client.map(c => c.authorizeUrlWithState(Authentication.Verified(AuthUser.Real(UserId.fresh, UserId.fresh.toBase58, 0, NodeId.fresh), 0, "token"), List("read:org", "read:user", "repo" , "write:discussion"), randomState).map(_.toString))
+    val url = client.map(c => c.authorizeUrlWithState(Authentication.Verified(AuthUser.Real(UserId.fresh, UserId.fresh.toBase58, 0), 0, "token"), List("read:org", "read:user", "repo" , "write:discussion"), randomState).map(_.toString))
 
     url should be ('right)
     url shouldEqual Right(Some(s"http://localhost/wust/oauth/authorize?state=$randomState&scope=read:org,read:user,repo,write:discussion&redirect_uri=http://localhost:8080/oauth/auth&client_id=clientId&response_type=code"))
@@ -43,7 +43,7 @@ class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
     val client = getClient("wust.test2")
 
     val randomState = UUID.randomUUID().toString
-    val url = client.map(c => c.authorizeUrlWithState(Authentication.Verified(AuthUser.Real(UserId.fresh, UserId.fresh.toBase58, 0, NodeId.fresh), 0, "token"), List("read:org", "read:user", "repo" , "write:discussion"), randomState).map(_.toString))
+    val url = client.map(c => c.authorizeUrlWithState(Authentication.Verified(AuthUser.Real(UserId.fresh, UserId.fresh.toBase58, 0), 0, "token"), List("read:org", "read:user", "repo" , "write:discussion"), randomState).map(_.toString))
 
     url should be ('right)
     url shouldEqual Right(Some(s"http://localhost/oauth/authorize?state=$randomState&scope=read:org,read:user,repo,write:discussion&redirect_uri=http://localhost:8080/oauth/auth&client_id=clientId&response_type=code"))

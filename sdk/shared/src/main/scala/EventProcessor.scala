@@ -74,14 +74,13 @@ class EventProcessor private (
   }.share
   val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
-  // changes that are only applied to the graph but are never sent
-  val nonSendingChanges = PublishSubject[GraphChanges] // TODO: merge with manualUnsafeEvents?
-
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   object enriched {
     val changes = PublishSubject[GraphChanges]
   }
+
+  val localEvents = PublishSubject[ApiEvent.GraphContent]
 
   // public reader
   val (localChanges, graph): (Observable[GraphChanges], Observable[Graph]) = {
@@ -97,28 +96,31 @@ class EventProcessor private (
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable.merge(enrichedChanges, changes)
+    val allChanges = Observable(enrichedChanges, changes).merge
 
-    val localChanges: Observable[GraphChanges] =
-      allChanges.withLatestFrom2(currentUser.startWith(Seq(initialAuth.user)), rawGraphWithInit)((a, b, g) => (a, b, g)).collect {
-        case (changes, user, graph) if changes.nonEmpty =>
-          val changesCandidate = changes.consistent.withAuthor(user.id)
+    val localChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
+      case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
+    }.share
 
-          // Workaround - quick fix: This prevents that changing a nodes content breaks ordering
-          val authorEdgesToRemove = for {
-            changedNode <- changesCandidate.addNodes.collect{case Node.Content(id, _, _) if graph.nodeIds.contains(id) => id}
-            authorEdge <- changesCandidate.addEdges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
-            graphAuthorEdge <- graph.edges.collect{case e @ Edge.Author(userId, EdgeData.Author(_), nodeId) if userId == user.id && nodeId == changedNode => e}
-          } yield (authorEdge, graphAuthorEdge)
+    val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
+    val graphEvents = Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge
 
-          changesCandidate.copy(addEdges = changesCandidate.addEdges -- authorEdgesToRemove.map(_._1) ++ authorEdgesToRemove.map(_._2))
-      }.share
-
-    val localEvents = Observable.merge(localChanges, nonSendingChanges).withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.id, gc._1)))
-    val graphEvents = Observable.merge(eventStream, localEvents)
-
-    val graphWithChanges: Observable[Graph] = graphEvents.scan(Graph.empty) { (graph, events) =>
-      events.foldLeft(graph)(EventUpdate.applyEventOnGraph)
+    val graphWithChanges: Observable[Graph] = {
+      var lastGraph = Graph.empty
+      graphEvents.map { events =>
+        var lastChanges: GraphChanges = null
+        events.foreach {
+          case ApiEvent.NewGraphChanges(user, changes) =>
+            val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
+            if (lastChanges == null) lastChanges = completeChanges.consistent
+            else lastChanges = lastChanges.merge(completeChanges).consistent
+          case ApiEvent.ReplaceGraph(graph) =>
+            lastChanges = null
+            lastGraph = graph
+        }
+        if (lastChanges != null) lastGraph = lastGraph.applyChanges(lastChanges)
+        lastGraph
+      }
     }
 
     graphWithChanges subscribe rawGraph
@@ -131,7 +133,7 @@ class EventProcessor private (
     //TODO should by sync
     val obs = graph.headL
     this.changes.onNext(changes)
-    obs.runAsync
+    obs.runToFuture
   }
 
   private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)
@@ -140,7 +142,7 @@ class EventProcessor private (
     val localChangesIndexedBusy = new BusyBufferObservable(localChangesIndexed, maxCount = 10)
       .map(list => (list.map(_._1), list.last._2))
 
-    Observable.tailRecM(localChangesIndexedBusy) { changes =>
+    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(200 millis)) { changes =>
       changes.flatMap {
         case (c, idx) =>
           Observable.fromFuture(sendChanges(c)).map {

@@ -32,7 +32,7 @@ object PostHeuristic {
   sealed trait FrontendHeuristic extends PostHeuristic {
     def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult = {
       Future.successful(
-        List(frontendHeuristic(graph.contentNodes.toList, num))
+        List(frontendHeuristic(???, num))
           .map(l => Heuristic.PostResult(None, l))
       )
     }
@@ -184,7 +184,7 @@ object PostHeuristic {
 
   sealed trait BackendHeuristic extends PostHeuristic {
     def heuristic(graph: Graph, num: Option[Int]): PostHeuristicResult =
-      backendHeuristic(graph.contentNodes.toSet, num)
+      backendHeuristic(???, num)
     protected def backendHeuristic(
         posts: Set[Node.Content],
         num: Option[Int] = Some(2)

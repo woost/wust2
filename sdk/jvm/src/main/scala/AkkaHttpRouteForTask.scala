@@ -26,7 +26,7 @@ object AkkaHttpRouteForTask {
    import covenant.core.util.LogHelper._
 
   def fromTaskRouter[PickleType : FromRequestUnmarshaller : ToResponseMarshaller](router: Router[PickleType, Task])(implicit scheduler: Scheduler): Route = {
-    requestFunctionToRoute[PickleType](r => router(r).toEither.map(_.map(complete(_)).runAsync))
+    requestFunctionToRoute[PickleType](r => router(r).toEither.map(_.map(complete(_)).runToFuture))
   }
 
   private def requestFunctionToRoute[PickleType : FromRequestUnmarshaller : ToResponseMarshaller](router: Request[PickleType] => Either[ServerFailure, Future[Route]]): Route = {

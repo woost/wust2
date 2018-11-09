@@ -1,15 +1,18 @@
 package wust.backend
 
+import io.getquill.context.async.TransactionalExecutionContext
 import monix.reactive.Observable
+import scribe.writer.file.LogPath
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
-import wust.db.{Data, Db}
+import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
 
 import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
   import ApiEvent._
@@ -58,67 +61,60 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
           case Edge.Author(_, _, postId) => postId
         }
         changes.addNodes.forall {
-          case Node.Content(id, _, _) => allPostsWithAuthor.contains(id)
+          case node:Node.Content => allPostsWithAuthor.contains(node.id)
           case _                      => false
         }
       }
 
+      def validDeleteEdges = changes.delEdges.forall {
+        case _: Edge.Author => false
+        case _ => true
+      }
 
-      validAddEdges && validNodes
+      validAddEdges && validNodes && validDeleteEdges
     }
 
     // TODO: task instead of this function
-    val checkAllChanges: () => Future[Boolean] = () => {
-      val usedIdsFromDb = changes.flatMap(_.involvedNodeIdsWithEdges) diff changes.flatMap(
+    val checkAllChanges: () => Future[SuccessResult.type] = () => {
+      val usedIdsFromDb = changes.flatMap(_.involvedNodeIds) diff changes.flatMap(
         _.addNodes
           .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
       )
-      db.user.inaccessibleNodes(user.id, usedIdsFromDb).map { conflictingIds =>
-        if (conflictingIds.isEmpty) true
+      db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
+        if (conflictingIds.isEmpty) Future.successful(SuccessResult)
         else {
-          scribe.warn(
-            s"Cannot apply graph changes, there are inaccessible node ids in this change set: ${conflictingIds
+          Future.failed(new Exception(
+            s"Graph changes not allowed, there are inaccessible node ids in this change set: ${conflictingIds
               .map(_.toUuid)}"
-          )
-          false
+          ))
         }
       }
     }
 
-    def applyChangesToDb(changes: GraphChanges): () => Future[Boolean] = () => {
+    def applyChangesToDb(changes: GraphChanges)(implicit ec: TransactionalExecutionContext): () => Future[SuccessResult.type] = () => {
       import changes.consistent._
 
       for {
-        true <- db.node.create(addNodes)
-        true <- db.edge.create(addEdges)
-        true <- db.edge.delete(delEdges)
-        _ <- db.node.addMember(
-          addNodes.map(_.id).toList,
-          user.id,
-          AccessLevel.ReadWrite
-        ) //TODO: check
-      } yield true
+        _ <- db.node.create(addNodes.map(forDb)(breakOut))
+        _ <- db.edge.create(addEdges.map(forDb)(breakOut))
+        _ <- db.edge.delete(delEdges.map(forDb)(breakOut))
+        _ <- db.node.addMember(addNodes.map(_.id)(breakOut), user.id, AccessLevel.ReadWrite)
+      } yield SuccessResult
     }
 
     if (changesAreAllowed) {
-      val changeOperations = changes.map(applyChangesToDb)
-
-      val result: Future[Boolean] = db.ctx.transaction { implicit ec =>
-        (checkAllChanges +: changeOperations).foldLeft(Future.successful(true)) {
-          (previousSuccess, operation) =>
-            previousSuccess.flatMap { success =>
-              if (success) operation() else Future.successful(false)
-            }
+      val result: Future[SuccessResult.type] = db.ctx.transaction { implicit ec =>
+        (checkAllChanges +: changes.map(applyChangesToDb)).foldLeft(Future.successful(SuccessResult)) {
+          (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
         }
       }
 
-      result.map { success =>
-        if (success) {
-          // TODO: always add the user to graphchange events, in case other users have never seen this user.
-          val additionalChanges = GraphChanges(addNodes = Set(user.toNode))
-          val compactChanges = changes.foldLeft(additionalChanges)(_ merge _)
-          Returns(true, Seq(NewGraphChanges(user.id, compactChanges)))
-        } else Returns(false)
+      result.map { _ =>
+        val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _).consistent
+        Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
+      }.recover { case NonFatal(e) =>
+        scribe.warn("Cannot apply changes", e)
+        Returns(false)
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
@@ -140,10 +136,9 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
             if (added)
               Seq(
                 NewGraphChanges(
-                  user.id,
+                  user,
                   GraphChanges(
                     addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)),
-                    addNodes = Set(user)
                   )
                 )
               )
@@ -259,7 +254,7 @@ object ApiLogger {
   val client: Logger = {
    val loggerName = "client-log"
    val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-   val writer = FileWriter.flat(prefix = loggerName, maxLogs = Some(3), maxBytes = Some(100 * 1024 * 1024))
+   val writer = FileWriter().path(LogPath.daily(prefix = loggerName)).maxLogs(max = 3).maxSize(maxSizeInBytes = 100 * 1024 * 1024)
    Logger(loggerName)
      .clearHandlers()
      .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = writer)

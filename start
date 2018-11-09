@@ -10,9 +10,11 @@ script_dir="$(dirname $0)"
 sql_checksum_file="$script_dir/.sql_checksum"
 sql_checksum_dir="$script_dir/dbMigration/core/sql"
 
+git_branch=$(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD) # branch, or fall back to commit hash
+
 function assure_db_migration() {
     if [ -z "$CI" ]; then
-        new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | { cat; git symbolic-ref --short HEAD; } | md5sum)"
+        new_checksum="$(find $sql_checksum_dir -type f -exec md5sum {} \; | sort -k 2 | { cat; echo $git_branch; } | md5sum)"
         old_checksum="$(cat $sql_checksum_file 2> /dev/null || true)"
         if [ "$old_checksum" != "$new_checksum" ]; then
             echo "New db migration available, building db-migration image"
@@ -30,35 +32,13 @@ function docker_compose() {
         add_args="-f $project/docker-compose.$stage.yml"
     fi
 
-    set +e
-    output=$(docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args ${@:3} 2>&1 | tee /dev/tty )
-    err=$?
-    set -e
-
-    if [[ -n "$(echo $output | grep -E 'manifest for woost/db-migration:[^ ]* not found')" ]]; then
-        echo "Cannot find db-migration image, rebuilding..."
-        sbt dbMigration/docker
-        docker_compose $@
-    elif [[ -n "$(echo $output | grep -E 'manifest for woost/[^ ]* not found')" ]]; then
-        echo "Cannot find some docker image, rebuilding all images..."
-        sbt docker
-        docker_compose $@
-    elif [[ $err -ne 0 ]]; then
-        echo "docker-compose failed, exiting"
-        exit 1
-    fi
-}
-function postgres_core_nottycommand() {
-    docker exec -i "devcore_postgres_1" "$@"
+    docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args "${@:3}"
 }
 function postgres_core_command() {
-    docker exec -it "devcore_postgres_1" "$@"
-}
-function postgres_slack_nottycommand() {
-    docker exec -i "devslackapp_postgres_1" "$@"
+    docker_compose core dev exec -T postgres "$@"
 }
 function postgres_slack_command() {
-    docker exec -it "devslackapp_postgres_1" "$@"
+    docker_compose slackApp dev exec -T postgres "$@"
 }
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
@@ -68,11 +48,11 @@ function sbt_with_args() {
     sbt $args
 }
 function sbt() {
-    command sbt -Dquill.macro.log=false $EXTRASBTARGS $@
+    command sbt -Dquill.macro.log=${LOGQUILL:-false} $EXTRASBTARGS $@
 }
 
 FALLBACKVERSION="dirty" # When git is not available
-[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=`git rev-parse --abbrev-ref HEAD` || VERSION=$FALLBACKVERSION
+[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=$git_branch || VERSION=$FALLBACKVERSION
 [ "$VERSION" == "master" ] && VERSION="latest"
 
 
@@ -81,7 +61,7 @@ env_wust_version="WUST_VERSION=$VERSION"
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust WUST_PUSH_SUBJECT=push.dev@woost.space WUST_PUSH_PUBLIC_KEY=BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0 WUST_PUSH_PRIVATE_KEY=or76yI5iDE+S9gWkVU2g0JuHyq4OD/AtwHTHefkoo3k"
 env_wust_local="WUST_HOSTNAME=localhost DOCKER_RESTART_POLICY=no"
 env_postgres_secret="POSTGRES_PASSWORD=test"
-env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5433"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5432"
 
 env_github_redis="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6379"
 env_github_app="WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} "
@@ -129,14 +109,29 @@ function self() {
         ;;
     pgrestore)
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
+        postgres_core_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=- < $2
         ;;
     pgrestorefromprod)
+        echo "clearing local database..."
         postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        echo "downloading production database and restoring in local database..."
+        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
         export $env_slack_postgres
+        echo "clearing local slack database..."
         postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_nottycommand psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        echo "downloading production database slack and restoring in local database..."
+        ssh -C harald docker exec -i "woostappslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
+        ;;
+    pgrestorefromstaging)
+        echo "clearing local database..."
+        postgres_core_command psql -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading staging database and restoring in local database..."
+        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U wust --file=-
+        export $env_slack_postgres
+        echo "clearing local slack database..."
+        postgres_slack_command psql -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading staging database slack and restoring in local database..."
+        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_command psql --single-transaction --set ON_ERROR_STOP=on -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
         export $env_postgres_secret $env_postgres_local
@@ -284,11 +279,12 @@ function self() {
         ;;
     test.integration)
         export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local_connectivity $env_slack
-        docker_compose core dev up -d
+        docker_compose core dev down
+        docker_compose core dev up -d --no-recreate
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration
-        postgres_core_command psql -U postgres --command="DROP DATABASE IF EXISTS wust_template"
-        postgres_core_command psql -U postgres --command="CREATE DATABASE wust_template TEMPLATE wust"
+        postgres_core_command psql -U $POSTGRES_USER --command="DROP DATABASE IF EXISTS wust_template"
+        postgres_core_command psql -U $POSTGRES_USER --command="CREATE DATABASE wust_template TEMPLATE wust"
         # sbt_with_args coverage it:test coverageReport
         sbt_with_args it:test
         docker_compose core dev down -v
@@ -306,6 +302,7 @@ function self() {
     pgdump
     pgrestore [file]
     pgrestorefromprod
+    pgrestorefromstaging
     pgclean
 
     apps

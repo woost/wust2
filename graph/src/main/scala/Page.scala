@@ -27,6 +27,5 @@ object Page {
   def unapply(page: Page): Option[(Seq[NodeId], Seq[NodeId])] = Some((page.parentIds, page.childrenIds))
 
   val empty: Page = Page(Seq.empty)
-  def ofUser(user: UserInfo): Page = apply(Seq(user.channelNodeId))
   def apply(parentId: NodeId): Page = apply(Seq(parentId))
 }

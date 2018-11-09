@@ -30,14 +30,13 @@ object SelectedPostMenu {
       val graph = state.graph()
       //TODO: getOrElse necessary? Handle post removal.
       //TODO: we are filtering out non-content posts, what about editing them?
-      graph.nodesById
-        .get(nodeId)
+      graph.nodesByIdGet(nodeId)
         .collect { case p: Node.Content => p }
-        .getOrElse(Node.Content(NodeData.PlainText("")))
+        .getOrElse(Node.MarkdownMessage(""))
     }
 
     val rxTags: Rx[Seq[Node]] = Rx {
-      val g = state.graphContent()
+      val g = state.graph()
       g.parents(nodeId).map(g.nodesById)(breakOut)
     }
 
@@ -56,14 +55,14 @@ object SelectedPostMenu {
       div(
         marginBottom := "5px",
         tags.map { tag =>
-          removableNodeTag(state, tag, taggedNodeId = rxPost.now.id, state.graph.now)
+          removableNodeTag(state, tag, taggedNodeId = rxPost.now.id)
         }
       )
     }
 
-    val editMode = Handler.created[Boolean](false)
+    val editMode = Handler.unsafe[Boolean](false)
 
-    val updatePostHandler = Handler.created[String]
+    val updatePostHandler = Handler.unsafe[String]
     updatePostHandler.foreach { newContent =>
       val changes =
         GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
@@ -72,28 +71,28 @@ object SelectedPostMenu {
       editMode.onNext(false)
     }
 
-    val insertPostHandler = Handler.created[String]
+    val insertPostHandler = Handler.unsafe[String]
     insertPostHandler.foreach { content =>
-      val newPost = Node.Content(NodeData.Markdown(content))
+      val newNode = Node.MarkdownMessage(content)
 
       val changes = GraphChanges(
-        addNodes = Set(newPost),
-        addEdges = Set(Edge.Parent(newPost.id, rxPost.now.id))
+        addNodes = Set(newNode),
+        addEdges = Set(Edge.Parent(newNode.id, rxPost.now.id))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
 
-    val connectPostHandler = Handler.created[String]
+    val connectPostHandler = Handler.unsafe[String]
     connectPostHandler.foreach { content =>
-      val newPost = Node.Content(NodeId.fresh, NodeData.Markdown(content))
+      val newNode = Node.MarkdownMessage(content)
 
       val changes = GraphChanges(
-        addNodes = Set(newPost),
+        addNodes = Set(newNode),
         addEdges = Set(
-          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newPost.id)
-        ) ++ state.graphContent.now
+          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newNode.id)
+        ) ++ state.graph.now
           .parents(rxPost.now.id)
-          .map(parentId => Edge.Parent(newPost.id, parentId))
+          .map(parentId => Edge.Parent(newNode.id, parentId))
       )
       state.eventProcessor.enriched.changes.onNext(changes)
     }
@@ -104,14 +103,14 @@ object SelectedPostMenu {
           textArea(
             valueWithEnter --> updatePostHandler,
             rxPost.now.data.str,
-            onDomMount.map(_.asInstanceOf[TextArea]) handleWith(textArea => textArea.select())
+            onDomMount.map(_.asInstanceOf[TextArea]) foreach(textArea => textArea.select())
           )
         } else {
           div(
             rxPost.map(_.data.str),
             textAlign := "center",
             fontSize := "150%", //post.fontSize,
-            wordWrap := "break-word",
+            Styles.wordWrap,
             display.block,
             margin := "10px",
             onClick(true) --> editMode
@@ -123,7 +122,7 @@ object SelectedPostMenu {
     //TODO: wrap in one observable
     div(
       position.absolute,
-      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
+      onClick foreach(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
       transform <-- transformStyle,
       div(
@@ -192,7 +191,7 @@ object SelectedPostMenu {
           flexGrow := 1,
           alignItems.center,
           span(action.name),
-          onClick handleWith { event =>
+          onClick foreach { event =>
             event.stopPropagation()
 
             println(s"\nMenu ${action.name}: [${post.id}]${post.data}")

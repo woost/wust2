@@ -16,6 +16,12 @@ docker push "$DOCKER_REGISTRY/woost/web"
 # docker push "$DOCKER_REGISTRY/woost/gitter"
 docker push "$DOCKER_REGISTRY/woost/slack"
 
-[[ "$CIRCLE_BRANCH" == "master" ]] && [[ -n "$STAGING_URL" ]] || exit 0
-echo "Triggering deploy..."
-curl "$STAGING_URL" 2> /dev/null
+if [[ "$CIRCLE_BRANCH" == "master" ]] && [[ -n "$STAGING_URL" ]]; then
+    echo "Triggering staging deploy..."
+    curl "$STAGING_URL" 2> /dev/null
+fi
+
+if [[ "$CIRCLE_BRANCH" == "production" ]] && [[ -n "$PRODUCTION_URL" ]]; then
+    echo "Triggering production deploy..."
+    curl "$PRODUCTION_URL" 2> /dev/null
+fi

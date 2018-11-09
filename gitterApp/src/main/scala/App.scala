@@ -65,7 +65,7 @@ class WustReceiver(client: WustClient[Future])(implicit ec: ExecutionContext) ex
   def push(msg: ExchangeMessage, author: UserId): Future[Either[String, Node]] = {
     println(s"new message: ${msg.content}")
     // TODO: author
-    val post = Node.Content(NodeData.Markdown(msg.content))
+    val post = Node.MarkdownMessage(msg.content)
     val connection = Edge.Parent(post.id, Constants.gitterId)
 
     val changes = List(GraphChanges(addNodes = Set(post), addEdges = Set(connection)))
@@ -114,7 +114,7 @@ object WustReceiver {
       }, "Cannot login")
       // TODO: author: wustUser
       changes = GraphChanges(
-        addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter")))
+        addNodes = Set(Node.Content(Constants.gitterId, NodeData.PlainText("wust-gitter"), NodeRole.Message))
       )
       _ <- valid(client.api.changeGraph(List(changes)), "cannot change graph")
       graph <- valid(client.api.getGraph(Page.empty))

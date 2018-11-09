@@ -104,6 +104,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Node.Content(
           TestConstants.messageNodeId,
           NodeData.Markdown("createMessageEvent"),
+          NodeRole.Message,
           NodeMeta(NodeAccess.Inherited),
         )
       ),
@@ -145,6 +146,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Node.Content(
           TestConstants.channelNodeId,
           NodeData.Markdown("createChannelEvent"),
+          NodeRole.Message,
           NodeMeta(NodeAccess.Inherited),
         )
       ),
@@ -246,6 +248,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Node.Content(
           TestConstants.messageNodeId,
           NodeData.Markdown("updateMessageEvent"),
+          NodeRole.Message,
           NodeMeta(NodeAccess.Inherited),
         )
       ),
@@ -282,6 +285,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         Node.Content(
           TestConstants.channelNodeId,
           NodeData.Markdown("updateChannelEvent"),
+          NodeRole.Message,
           NodeMeta(NodeAccess.Inherited),
         )
       ),
@@ -318,7 +322,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addNodes = Set(
         Node.User(
           UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf"),
-          NodeData.User("j",false,0,NodeId.fromBase58String("5RBLjXF3CLH6vX1GJ1AS8g")),
+          NodeData.User("j",false,0),
           NodeMeta(NodeAccess.Restricted)
         )
       ),

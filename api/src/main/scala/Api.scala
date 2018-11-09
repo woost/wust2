@@ -4,6 +4,7 @@ import sloth.PathName
 import wust.graph._
 import wust.ids.{EdgeData, _}
 import cats.data.NonEmptyList
+import wust.graph.Node.User
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
@@ -65,28 +66,27 @@ object AuthResult {
 sealed trait AuthUser {
   def id: UserId
   def name: String
-  def channelNodeId: NodeId
   def toNode: Node.User
 }
 object AuthUser {
   sealed trait Persisted extends AuthUser
-  case class Real(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+  case class Real(id: UserId, name: String, revision: Int)
       extends Persisted {
     def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = false, revision, channelNodeId), NodeMeta.User)
+      Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
   }
-  case class Implicit(id: UserId, name: String, revision: Int, channelNodeId: NodeId)
+  case class Implicit(id: UserId, name: String, revision: Int)
       extends Persisted {
     def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = true, revision, channelNodeId), NodeMeta.User)
+      Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
   }
-  case class Assumed(id: UserId, channelNodeId: NodeId) extends AuthUser {
+  case class Assumed(id: UserId) extends AuthUser {
     def name = s"unregistered-user-${id.toCuidString.takeRight(4)}"
-    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0, channelNodeId = channelNodeId), NodeMeta.User)
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0), NodeMeta.User)
   }
 
   implicit def AsUserInfo(user: AuthUser): UserInfo =
-    UserInfo(user.id, user.name, user.channelNodeId)
+    UserInfo(user.id, user.name)
 }
 
 sealed trait Authentication {
@@ -98,7 +98,7 @@ object Authentication {
 
   case class Assumed(user: AuthUser.Assumed) extends Authentication
   object Assumed {
-    def fresh = Assumed(AuthUser.Assumed(UserId.fresh, NodeId.fresh))
+    def fresh = Assumed(AuthUser.Assumed(UserId.fresh))
   }
   case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication {
     override def toString = s"Authentication.Verified($user)"
@@ -123,18 +123,18 @@ object ApiEvent {
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
-    val user: UserId
+    val user: User
   }
   object NewGraphChanges {
-    def unapply(event: ApiEvent): Option[(UserId, GraphChanges)] = event match {
+    def unapply(event: ApiEvent): Option[(User, GraphChanges)] = event match {
       case gc: NewGraphChanges => Some(gc.user -> gc.changes)
       case _                   => None
     }
 
-    def apply(user: UserId, changes: GraphChanges) = ForPublic(user, changes)
-    case class ForPublic(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public
-    case class ForPrivate(user: UserId, changes: GraphChanges) extends NewGraphChanges with Private
-    case class ForAll(user: UserId, changes: GraphChanges) extends NewGraphChanges with Public with Private
+    def apply(user: User, changes: GraphChanges) = ForPublic(user, changes)
+    case class ForPublic(user: User, changes: GraphChanges) extends NewGraphChanges with Public
+    case class ForPrivate(user: User, changes: GraphChanges) extends NewGraphChanges with Private
+    case class ForAll(user: User, changes: GraphChanges) extends NewGraphChanges with Public with Private
   }
 
   case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {

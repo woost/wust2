@@ -4,10 +4,10 @@ import fontAwesome._
 import outwatchHelpers._
 
 object Icons {
-  val zoom = freeSolid.faSearchPlus
-  val edit = freeRegular.faEdit
-  val delete = freeRegular.faTrashAlt
-  val undelete = fontawesome.layered(
+  val zoom: IconDefinition = freeSolid.faSearchPlus
+  val edit: IconDefinition = freeRegular.faEdit
+  val delete: IconDefinition = freeRegular.faTrashAlt
+  val undelete: Layer = fontawesome.layered(
     fontawesome.icon(freeRegular.faTrashAlt),
     fontawesome.icon(freeSolid.faMinus, new Params {
       transform = new Transform {
@@ -16,4 +16,5 @@ object Icons {
 
     })
   )
+  val task: IconDefinition = freeRegular.faCheckSquare
 }

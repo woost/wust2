@@ -110,31 +110,37 @@ function subscribeWebPushAndPersist() {
     currentAuth().then(currentAuth => {
         if (currentAuth) {
             getPublicKey().then(publicKey => publicKey.json().then ( publicKeyJson => {
-                if (publicKey) {
-                    log("publicKey: ", publicKey);
+                if (publicKeyJson) {
+                    log("publicKey: ", publicKeyJson);
                     return self.registration.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-                    }).then(sub => sendSubscriptionToBackend(sub, currentAuth));
+                    }).then(sub => {
+                        log("Success. Sending subscription to backend");
+                        sendSubscriptionToBackend(sub, currentAuth)
+                    });
                 } else {
+                    log("Cannot subscribe, no public key.");
                     return Promise.reject("Cannot subscribe, no public key.");
                 }
             }));
         } else {
+            log("Cannot subscribe, no authentication.");
             return Promise.reject("Cannot subscribe, no authentication.");
         }
     });
 }
 
 function focusedClient(clients) {
+    let clientIsFocused = false;
     for (let i = 0; i < clients.length; i++) {
         const windowClient = clients[i];
         if (windowClient.focused) {
             clientIsFocused = true;
-            return true;
+            break;
         }
     }
-    return false;
+    return clientIsFocused;
 }
 
 // startup
@@ -143,7 +149,7 @@ port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
 log("BaseUrl: " + baseUrl);
 
-// Weird workaround
+// Weird workaround since emoji requires global
 let global = {};
 importScripts('emoji.min.js');
 let pushEmojis = new global.EmojiConvertor();
@@ -156,6 +162,7 @@ pushEmojis.replace_mode = "unified";
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
+    log("Trying to subcribe to webpush");
     e.waitUntil(
         subscribeWebPushAndPersist()
     );
@@ -171,12 +178,11 @@ self.addEventListener('push', e => {
 
     e.waitUntil(
         self.clients.matchAll({
-            type: 'window',
-            includeUncontrolled: true
+            type: 'window'
         }).then(clients => {
 
-
             if (focusedClient(clients)) {
+                log("focused client => ignoring push");
                 return;
             } else {
 
@@ -185,7 +191,7 @@ self.addEventListener('push', e => {
                     let nodeId = data.nodeId;
                     let targetId = data.parentId ? data.parentId : nodeId;
                     let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
-                    let user = data.username;
+                    let user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
                     let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
                     let options = {
@@ -224,6 +230,9 @@ self.addEventListener('push', e => {
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
+                } else {
+                    log("push notification without data => ignoring");
+                    return;
                 }
             }
         })
@@ -253,7 +262,7 @@ self.addEventListener('notificationclick', e => {
                 if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
                     return client.focus() && client.navigate(url);
                 } else if (url.indexOf(baseLocation) !== -1) {
-                    let exp = /(?!(page=(default:)?))(([a-zA-z0-9]{22}),?)+/;
+                    let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
                     return client.focus() && client.navigate(newLocation);
@@ -261,9 +270,11 @@ self.addEventListener('notificationclick', e => {
             }
 
             if (clients.openWindow)
-                return clients.openWindow(baseLocation + '#view=chat&page=default:' + targetId);
-            else
+                return clients.openWindow(baseLocation + '#view=chat&page=' + targetId);
+            else {
                 console.log("push with NOOP!");
+                return;
+            }
 
         })
     );

@@ -25,43 +25,34 @@ class ClientStorage(implicit owner: Ctx.Owner) {
   private def fromJson[T: Decoder](value: String): Option[T] = decode[T](value).right.toOption
 
   val auth: Var[Option[Authentication]] = {
-    val connectable = LocalStorage
+    LocalStorage
       .handlerWithoutEvents(keys.auth)
       .unsafeRunSync()
       .mapHandler[Option[Authentication]](auth => Option(toJson(auth)))(_.flatMap(fromJson[Authentication]))
-
-    connectable.connect()
-    connectable.unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
+      .unsafeToVar(internal(keys.auth).flatMap(fromJson[Authentication]))
   }
 
   //TODO: howto handle with events from other tabs?
   val graphChanges: Handler[List[GraphChanges]] = {
-    val connectable = LocalStorage
+    LocalStorage
       .handlerWithoutEvents(keys.graphChanges)
       .unsafeRunSync()
       .mapHandler[List[GraphChanges]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))
-
-    connectable.connect()
-    connectable
   }
 
   val sidebarOpen: Var[Boolean] = {
-    val connectable = LocalStorage
+    LocalStorage
       .handlerWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
       .mapHandler[Boolean](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]).getOrElse(false))
-
-    connectable.connect()
-    connectable.unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
+      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
   }
 
   val backendTimeDelta: Var[Long] = {
-    val connectable: Handler[Long] with outwatch.ReactiveConnectable = LocalStorage
+    LocalStorage
       .handlerWithoutEvents(keys.backendTimeDelta)
       .unsafeRunSync()
       .mapHandler[Long](delta => Option(toJson(delta)))(_.flatMap(fromJson[Long]).getOrElse(0L))
-
-    connectable.connect()
-    connectable.unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
+      .unsafeToVar(internal(keys.backendTimeDelta).flatMap(fromJson[Long]).getOrElse(0L))
   }
 }

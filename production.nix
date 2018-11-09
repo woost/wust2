@@ -10,7 +10,7 @@ in
       scala sbt
       docker docker_compose
       ngrok # github app -> webhooks to localhost
-      nodejs-9_x yarn
+      nodejs-10_x yarn
       phantomjs
       gnumake gcc # required for some weird npm things
     ];

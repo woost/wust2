@@ -1,28 +1,28 @@
 package wust.util
 package time {
-  class StopWatch {
+  final class StopWatch {
     var startTime = 0L
     var totalPassedTime = 0L
 
-    def now = System.nanoTime
-    def passed = now - startTime
+    @inline def now = System.nanoTime
+    @inline def passed = now - startTime
 
-    def reset(): Unit = { totalPassedTime = 0 }
-    def start(): Unit = { startTime = now }
-    def restart(): Unit = { reset(); start() }
-    def stop(): Unit = { totalPassedTime += passed }
+    @inline def reset(): Unit = { totalPassedTime = 0 }
+    @inline def start(): Unit = { startTime = now }
+    @inline def restart(): Unit = { reset(); start() }
+    @inline def stop(): Unit = { totalPassedTime += passed }
 
-    def measure[A](code: => A) = {
+    @inline def measure[A](code: => A) = {
       start()
       val returnValue = code
       stop()
       returnValue
     }
 
-    def benchmark(n: Int)(code: => Unit): Double = {
+    @inline def benchmark(n: Int)(code: => Unit): Double = {
       var i = 0
       start()
-      while (i < n) {
+      while(i < n) {
         code
         i += 1
       }
@@ -31,24 +31,27 @@ package time {
       passed.toDouble / n
     }
 
-    def readNanos = if (totalPassedTime == 0) passed else totalPassedTime
-    def readMicros = readNanos / 1000
-    def readMillis = readNanos / 1000000
-    def readSeconds = readNanos / 1000000000.0
-    def readHuman: String = readHuman(3)
-    def readHuman(precision: Int = 8) = {
+    @inline def readNanos = if(totalPassedTime == 0) passed else totalPassedTime
+    @inline def readMicros = readNanos / 1000
+    @inline def readMillis = readNanos / 1000000
+    @inline def readSeconds = readNanos / 1000000000.0
+    @inline def readHuman: String = readHuman(3)
+    @inline def readHuman(precision: Int = 8) = {
       val time = readSeconds
       val fraction = time - math.floor(time)
       var s = time.toInt
       val sb = new StringBuilder
-      val d = s / 86400; s -= d * 86400
-      if (d > 0) sb ++= "%dd " format d
+      val d = s / 86400;
+      s -= d * 86400
+      if(d > 0) sb ++= "%dd " format d
 
-      val h = s / 3600; s -= h * 3600
-      if (h > 0) sb ++= "%dh " format h
+      val h = s / 3600;
+      s -= h * 3600
+      if(h > 0) sb ++= "%dh " format h
 
-      val m = s / 60; s -= m * 60
-      if (m > 0) sb ++= "%dm " format m
+      val m = s / 60;
+      s -= m * 60
+      if(m > 0) sb ++= "%dm " format m
 
       sb ++= "%." + precision + "fs" format (s + fraction)
       sb.toString
@@ -57,16 +60,16 @@ package time {
 }
 
 package object time {
-  def time[T](name: String)(code: => T): T = {
+  @inline def time[T](name: String)(code: => T): T = {
     val start = System.nanoTime
     val result: T = code
     val duration = (System.nanoTime - start) / 1000000.0
-    println(s"$name: ${duration}ms")
+    println(s"$name: ${ duration }ms")
     result
   }
 
   object StopWatch {
-    def started = {
+    @inline def started = {
       val s = new StopWatch
       s.start()
       s

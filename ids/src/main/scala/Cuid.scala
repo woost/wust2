@@ -6,19 +6,26 @@ import java.nio.ByteBuffer
 import wust.util.collection._
 import org.sazabi.base58.Base58
 
-case class Cuid(left: Long, right: Long) {
+@inline
+final case class Cuid(left: Long, right: Long) {
   import wust.ids.Cuid._
   // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
-  require(
+  assert(
     left >= 0 && left <= maxLong,
     s"left part of Cuid needs to be positive and less or equal than $maxLong, value is: $left."
   )
-  require(
+  assert(
     right >= 0 && right <= maxLong,
     s"right part of Cuid needs to be positive and less or equal than $maxLong, value is: $right."
   )
 
   def toUuid: UUID = new UUID(left, right)
+
+   @inline override def hashCode: Int = (left ^ (left >> 32)).toInt ^ (right ^ (right >> 32)).toInt
+   @inline override def equals(that: Any): Boolean = that match {
+     case that: Cuid => isEqual(that)
+     case _              => false
+   }
 
   def toCuidString: String = {
     val base = 36
@@ -38,7 +45,17 @@ case class Cuid(left: Long, right: Long) {
     Base58(toByteArray).str
   }
 
-  override def toString = toBase58
+  def toHex:String = s"${left.toHexString}|${right.toHexString}"
+
+  @inline def isEqual(that: Cuid): Boolean = left == that.left && right == that.right
+  @inline def <(that: Cuid): Boolean = left < that.left || (left == that.left && right < that.right)
+  def compare(that: Cuid): Int = {
+    if (this < that) -1
+    else if (this isEqual that) 0
+    else 1
+  }
+
+  override def toString: String = toHex
 }
 object Cuid {
   def fromUuid(uuid: UUID): Cuid =
@@ -70,5 +87,7 @@ object Cuid {
     fromByteArray(Base58.toByteArray(Base58.fromString(str).get).get)
   }
 
-  private def maxLong = 4738381338321616895L
+  @inline private def maxLong = 4738381338321616895L
+
+  @inline implicit def ord:Ordering[Cuid] = Ordering.by(cuid => (cuid.left, cuid.right))
 }

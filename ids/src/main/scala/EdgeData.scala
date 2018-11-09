@@ -35,9 +35,13 @@ object EdgeData {
   case class Label(name: String) extends Named with EdgeData
   object Label extends Named
 
-  case object StaticParentIn extends Named with EdgeData
+  case object Pinned extends Named with EdgeData
 
   case object Expanded extends Named with EdgeData
+
+  // ordering types
+  case class Before(parent: NodeId) extends Named with EdgeData
+  object Before extends Named
 
   // case class Number(content: String, weight: Double) extends Named with ConnectionData
   // object Number extends Named

@@ -7,6 +7,6 @@ export CI=true # also set by ci server, but helps when running locally
 export SOURCEMAPS=false # for building production js assets with sourcemap
 
 # building with sbt needs around 2G, 300M Metaspace
-export _JAVA_OPTIONS="-Xms2000M -Xmx2850M -XX:MetaspaceSize=300M -XX:MaxMetaspaceSize=350M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
+export _JAVA_OPTIONS="-Xms2000M -Xmx2500M -XX:MaxMetaspaceSize=350M -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"
 
 sbt core/docker dbMigration/docker slackApp/docker webApp/docker

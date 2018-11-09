@@ -27,6 +27,7 @@ class EmojiConvertor() extends js.Object {
   def replace_colons(colonString: String): String = js.native
   def replace_unified(unifiedString: String): String = js.native
 }
+object EmojiConvertor extends EmojiConvertor
 
 //self.img_sets = {
 //'apple' : {'path' : '/emoji-data/img-apple-64/', 'sheet' : '/emoji-data/sheet_apple_64.png', 'sheet_size' : 64, 'mask' : 1},

@@ -10,9 +10,10 @@ object Data {
   val DEFAULT = 0L
 
   case class Node(
-      id: NodeId,
-      data: NodeData,
-      accessLevel: NodeAccess
+    id: NodeId,
+    data: NodeData,
+    role: NodeRole,
+    accessLevel: NodeAccess
   )
 
   case class User(
@@ -49,41 +50,30 @@ object Data {
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
   case class GraphRow(
-      nodeId: NodeId,
-      data: NodeData,
-      accessLevel: NodeAccess,
-      targetIds: List[NodeId],
-      edgeData: List[EdgeData]
+    nodeId: NodeId,
+    data: NodeData,
+    role: NodeRole,
+    accessLevel: NodeAccess,
+    targetIds: List[NodeId],
+    edgeData: List[EdgeData]
   ) {
-    require(targetIds.size == edgeData.size, "targetIds and connectionData need to have same arity")
+    require(targetIds.length == edgeData.length, "targetIds and connectionData need to have same arity")
   }
-  case class Graph(nodes: Seq[Node], edges: Seq[Edge])
+  case class Graph(nodes: Array[Node], edges: Array[Edge])
   object Graph {
-    def from(rowsList: List[GraphRow]): Graph = {
-      val rows = rowsList.toArray
-      val posts = mutable.ArrayBuffer.empty[Node]
-      val connections = mutable.ArrayBuffer.empty[Edge]
-      var i = 0
-      var j = 0
-      while (i < rows.length) {
-        val row = rows(i)
-        val targetIds = row.targetIds
-        val post = Node(row.nodeId, row.data, row.accessLevel)
+    def from(rows: Seq[GraphRow]): Graph = {
+      val nodes = mutable.ArrayBuilder.make[Node]
+      val edges = mutable.ArrayBuilder.make[Edge]
+      nodes.sizeHint(rows.length)
 
-        posts += post
+      rows.foreach { row =>
+        nodes += Node(row.nodeId, row.data, row.role, row.accessLevel)
 
-        j = 0
-        while (j < row.targetIds.length) {
-          val connectionData = row.edgeData(j)
-          val targetId = targetIds(j)
-
-          connections += Edge(post.id, connectionData, targetId)
-          j += 1
+        (row.targetIds zip row.edgeData).foreach { case (targetId, edgeData) =>
+          edges += Edge(row.nodeId, edgeData, targetId)
         }
-
-        i += 1
       }
-      Graph(posts, connections)
+      Graph(nodes.result(), edges.result())
     }
   }
 }

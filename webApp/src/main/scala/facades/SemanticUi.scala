@@ -34,7 +34,7 @@ trait JQuerySelectionWithModal extends js.Object {
 
 @js.native
 trait JQuerySelectionWithDropdown extends js.Object {
-  def dropdown():Unit = js.native
+  def dropdown(arg: String = ???):Unit = js.native
 }
 
 

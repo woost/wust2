@@ -26,11 +26,11 @@ object PostCreationMenu {
       s"translate(${x}px, ${y}px)"
     }
 
-    val inputHandler = Handler.created[String]
+    val inputHandler = Handler.unsafe[String]
     var ySimPostOffset: Double = 50
     inputHandler.foreach { content =>
       val author = state.user.now
-      val changes = GraphChanges.addNode(NodeData.Markdown(content))
+      val changes = GraphChanges.addMarkdownMessage(content)
       state.eventProcessor.enriched.changes.onNext(changes)
 
     // TODO: move created post below menu (not working yet)
@@ -50,7 +50,7 @@ object PostCreationMenu {
     div(
       position.absolute,
       //TODO: prevent drag events to bubble to background
-      onClick handleWith(_.stopPropagation()), // prevent click from bubbling to background
+      onClick foreach(_.stopPropagation()), // prevent click from bubbling to background
       transform <-- transformStyle,
       width := "300px",
       div(
@@ -59,8 +59,8 @@ object PostCreationMenu {
           cls := "fluid field",
           valueWithEnter --> inputHandler,
           Placeholders.newNode,
-          onDomMount.asHtml handleWith(_.focus()),
-          style("resize") := "none", //TODO: outwatch resize?
+          onDomMount.asHtml foreach(_.focus()),
+          resize := "none",
           margin := "0px",
           rows := 2,
         ),

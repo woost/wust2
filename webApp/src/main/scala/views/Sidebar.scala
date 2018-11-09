@@ -1,12 +1,10 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.{Styles, ZIndex}
-import wust.graph.Tree.Leaf
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -14,59 +12,78 @@ import wust.util.RichBoolean
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
+import wust.webApp.views.Components._
+import wust.webApp.views.SharedViewElements._
+import wust.webApp.views.Elements._
 
-import collection.breakOut
+import scala.collection.breakOut
 
 object Sidebar {
-  import MainViewParts._, Rendered._, Components._
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState): VNode = {
+    val smallIconSize = 40
 
-    div(
+    def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      style("user-select") := "none",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+      minWidth := s"${ smallIconSize }px",
+      channelIcons(state, smallIconSize),
+      newChannelButton(state, "+").apply(
+        cls := "newChannelButton-small " + buttonStyles,
+        onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
+      ),
+      onSwipeRight(true) --> state.sidebarOpen,
+    )
+
+    def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
+      cls := "sidebar",
+      backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+      channels(state),
+      newChannelButton(state).apply(
+        cls := "newChannelButton-large " + buttonStyles,
+        onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
+      ),
+      onSwipeLeft(false) --> state.sidebarOpen,
+    )
+
+    def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
+      cls := "overlay-sidebar",
+      onClick(false) --> state.sidebarOpen,
+      div(
+        openSidebar,
+        SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px")),
+      )
+    )
+
+    def sidebarWithOverlay(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+      closedSidebar,
       Rx {
         state.sidebarOpen() match {
-          case true  => VDomModifier( // sidebar open
-            channels(state)(ctx),
-            newChannelButton(state)(ctx)(
-              cls := "newChannelButton-large " + buttonStyles,
-              onClick handleWith { Analytics.sendEvent("sidebar_open", "newchannel") }
-            ),
-            Rx {
-              if(state.screenSize() == ScreenSize.Small) VDomModifier(
-                div(Topbar.authentication(state))(
-                  alignSelf.center,
-                  marginTop := "30px",
-                  marginBottom := "10px",
-                ),
-                width := "100%",
-                height := "100%",
-                zIndex := ZIndex.overlay,
-                onClick(false) --> state.sidebarOpen
-              ) else VDomModifier(
-                maxWidth := "200px",
-              )
-            },
-          )
-          case false =>
-            val iconSize = 40
-            VDomModifier( // sidebar closed
-              minWidth := s"${ iconSize }px",
-              channelIcons(state, iconSize)(ctx),
-              newChannelButton(state, "+")(ctx)(
-                cls := "newChannelButton-small " + buttonStyles,
-                onClick handleWith { Analytics.sendEvent("sidebar_closed", "newchannel") }
-              )
-            )
+          case true  => div(overlayOpenSidebar)
+          case false => VDomModifier.empty
         }
-      },
-      registerDraggableContainer(state)
+      }
     )
+
+    def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
+      state.sidebarOpen() match {
+        case true  => VDomModifier(openSidebar, maxWidth := "200px")
+        case false => closedSidebar
+      }
+    }
+
+    div.staticRx(keyValue) { implicit ctx =>
+      VDomModifier(
+        Rx {
+          if (state.screenSize() == ScreenSize.Small) sidebarWithOverlay
+          else sidebarWithExpand
+        },
+        registerDraggableContainer(state)
+      )
+    }
   }
 
-  val buttonStyles = Seq("tiny", "compact", "inverted", "grey").mkString(" ")
+  val buttonStyles = "tiny compact inverted grey"
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -81,22 +98,14 @@ object Sidebar {
           )
         ),
 
-        channelIcon(state, node, selected, 30)(ctx)(
-          marginRight := "5px",
-          borderRadius := "2px",
-        ),
-        renderNodeData(node.data)(
-          cls := "channel-name",
-          paddingLeft := "3px",
-          paddingRight := "3px",
-        ),
+        channelIcon(state, node, selected, 30),
+        renderNodeData(node.data)(cls := "channel-name"),
         onChannelClick(ChannelAction.Node(node.id))(state),
-        onClick handleWith { Analytics.sendEvent("sidebar_open", "clickchannel") },
+        onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
-        draggableAs(state, DragItem.Channel(node.id)),
+        draggableAs(DragItem.Channel(node.id)),
         dragTarget(DragItem.Channel(node.id)),
-      )
-      ,
+      ),
     }
 
     def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -106,7 +115,7 @@ object Sidebar {
           case Tree.Parent(_, children) => div(
             paddingLeft := "10px",
             fontSize := s"${ math.max(8, 14 - depth) }px",
-            children.map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+            children.sortBy(_.node.id).map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case Tree.Leaf(_)             => VDomModifier.empty
         }
@@ -116,15 +125,16 @@ object Sidebar {
     div(
       cls := "channels",
       Rx {
-        val channelTree: Tree = state.channelTree()
-        val pageParentIds = state.page().parentIdSet
+        val channelForest = state.channelForest()
+        val page = state.page()
+        val pageParentIds = page.parentIdSet
         val pageStyle = state.pageStyle()
+        val user = state.user()
+
         VDomModifier(
-          channelLine(state.user().toNode, pageParentIds, pageStyle),
-          channelTree match {
-            case Tree.Parent(_, children) =>
-              children.map { child => channelList(child, pageParentIds, pageStyle, depth = 0) }(breakOut): Seq[VDomModifier]
-            case Tree.Leaf(_)             => VDomModifier.empty
+          channelLine(user.toNode, pageParentIds, pageStyle),
+          channelForest.sortBy(_.node.id).map { channelTree =>
+            channelList(channelTree, pageParentIds, pageStyle)
           }
         )
       }
@@ -135,14 +145,14 @@ object Sidebar {
     div(
       cls := "channelIcons",
       Rx {
-        val allChannels = state.channels().drop(1)
+        val allChannels = state.channels()
         val page = state.page()
         VDomModifier(
           allChannels.map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
-              onClick handleWith { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              draggableAs(state, DragItem.Channel(node.id)),
+              onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
+              draggableAs(DragItem.Channel(node.id)),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
             )
@@ -157,6 +167,7 @@ object Sidebar {
   ): VNode = {
     div(
       cls := "channelicon",
+      keyed(node.id),
       width := s"${ size }px",
       height := s"${ size }px",
       backgroundColor := (node match {
@@ -178,10 +189,10 @@ object Sidebar {
     case class Node(id: NodeId) extends AnyVal with ChannelAction
   }
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    onClick.map { e =>
+    onClick foreach { e =>
       val page = state.page.now
       //TODO if (e.shiftKey) {
-      action match {
+      val newPage = action match {
         case ChannelAction.Node(id)   =>
           if(e.ctrlKey) {
             val filtered = page.parentIds.filterNot(_ == id)
@@ -192,8 +203,7 @@ object Sidebar {
             page.copy(parentIds = parentIds)
           } else Page(Seq(id))
       }
-    } handleWith { page =>
       val contentView = if(state.view.now.isContent) state.view.now else View.default
-      state.viewConfig() = state.viewConfig.now.copy(page = page, view = contentView)
+      state.viewConfig() = state.viewConfig.now.copy(page = newPage, view = contentView, redirectTo = None)
     }
 }

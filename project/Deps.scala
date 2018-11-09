@@ -10,7 +10,7 @@ object Deps {
   // testing
   val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.5")
   val specs2 = dep("org.specs2" %% "specs2-core" % "4.3.4")
-  val mockito = dep("org.mockito" % "mockito-core" % "2.22.0")
+  val mockito = dep("org.mockito" % "mockito-core" % "2.23.0")
   val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
 
   // core libraries
@@ -25,7 +25,7 @@ object Deps {
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.22.0")
     val httpPlay = dep("de.heikoseeberger" %% "akka-http-play-json" % "1.22.0")
-    val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.3.0")
+    val httpCors = dep("ch.megard" %% "akka-http-cors" % "0.3.1")
     val stream = dep("com.typesafe.akka" %% "akka-stream" % version)
     val actor = dep("com.typesafe.akka" %% "akka-actor" % version)
     val testkit = dep("com.typesafe.akka" %% "akka-testkit" % version)
@@ -50,14 +50,14 @@ object Deps {
   val fontawesome = dep("com.github.fdietze" % "scala-js-fontawesome" % "599552b")
   val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
-  val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "e64d5d7")
+  val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "a15d3ae")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.cornerman" % "outwatch" % "54ad545")
+  val outwatch = dep("com.github.cornerman" % "outwatch" % "848e0a7")
 
   // utility
   val scribe = new {
     val perfolation = dep("com.github.fdietze.perfolation" %%% "perfolation" % "6854947")
-    val core = dep("com.outr" %%% "scribe" % "2.5.3")
+    val core = dep("com.outr" %%% "scribe" % "2.6.0")
   }
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.2")
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.5.1-cats")
@@ -65,7 +65,7 @@ object Deps {
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
-  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC1")
+  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC2-840c090")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.5")
@@ -77,7 +77,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "474a7ba"
+    private val version = "1edde27"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)
@@ -109,8 +109,8 @@ object Deps {
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
   //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
 
-  val webpackVersion = "4.17.2"
-  val webpackDevServerVersion = "3.1.7"
+  val webpackVersion = "4.23.1"
+  val webpackDevServerVersion = "3.1.10"
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
@@ -118,13 +118,14 @@ object Deps {
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
     val highlight = "highlight.js" -> "9.12.0"
     val dateFns = "date-fns" -> "v2.0.0-alpha.16"
-    val draggable = "@shopify/draggable" -> "1.0.0-beta.7"
-    val fomanticUi = "fomantic-ui-css" -> "2.4.4"
+    val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
+    val fomanticUi = "fomantic-ui-css" -> "2.6.3"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
     val hammerjs = "hammerjs" -> "2.0.8"
     val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
     val immediate = "immediate" -> "3.2.3"
+    val mobileDetect = "mobile-detect" -> "1.4.3"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
@@ -143,13 +144,15 @@ object Deps {
         "webpack-merge" -> "4.1.4" ::
         "copy-webpack-plugin" -> "4.5.2" ::
         "workbox-webpack-plugin" -> "3.4.1" ::
+        "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
+        "cssnano" -> "4.1.4" ::
         Nil
   }
 
   object docker {
     val nginx = "nginx:1.13.12-alpine"
     val openjdk8 = "openjdk:8-jre-alpine"
-    val flyway = "boxfuse/flyway:5.1.1-alpine"
-    val pgtap = "cornerman/docker-pgtap"
+    val flyway = "boxfuse/flyway:5.2.1-alpine"
+    val pgtap = "cornerman/docker-pgtap:76be6863efb8815e6947d252c1362e0ec998b949"
   }
 }

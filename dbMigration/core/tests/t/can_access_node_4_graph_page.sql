@@ -27,6 +27,7 @@ $$ language sql;
 
 
 
+
 -- IMPORTANT:
 -- exactly the same test cases as in GraphSpec
 -- when changing things, make sure to change them for the Graph as well.
@@ -90,22 +91,27 @@ select insert_node(touuid('C8'), null);
 select insert_parentship(touuid('C8'), touuid('B8'));
 
 
--- single node
+-- for comparing arrays element-wise
+CREATE OR REPLACE FUNCTION array_sort(anyarray) RETURNS anyarray AS $$
+SELECT array_agg(x order by x) FROM unnest($1) x;
+$$ LANGUAGE 'sql';
+
+
 SELECT cmp_ok(graph_page_nodes(array[touuid('B1')], array[]::uuid[], touuid('A1')), '=', array[]::uuid[]);
 drop table visited;
 SELECT cmp_ok(graph_page_nodes(array[touuid('B2')], array[]::uuid[], touuid('A2')), '=', array[]::uuid[]);
 drop table visited;
 SELECT cmp_ok(graph_page_nodes(array[touuid('B3')], array[]::uuid[], touuid('A3')), '=', array[]::uuid[]);
 drop table visited;
-SELECT cmp_ok(graph_page_nodes(array[touuid('B4')], array[]::uuid[], touuid('A4')), '=', array[touuid('B4'), touuid('C4')]);
+SELECT cmp_ok(array_sort(graph_page_nodes(array[touuid('B4')], array[]::uuid[], touuid('A4'))), '=', array_sort(array[touuid('B4'), touuid('C4')]));
 drop table visited;
-SELECT cmp_ok(graph_page_nodes(array[touuid('B5')], array[]::uuid[], touuid('A5')), '=', array[touuid('C5'), touuid('B5')]);
+SELECT cmp_ok(array_sort(graph_page_nodes(array[touuid('B5')], array[]::uuid[], touuid('A5'))), '=', array_sort(array[touuid('C5'), touuid('B5')]));
 drop table visited;
-SELECT cmp_ok(graph_page_nodes(array[touuid('B6')], array[]::uuid[], touuid('A6')), '=', array[touuid('B6'), touuid('C6')]);
+SELECT cmp_ok(array_sort(graph_page_nodes(array[touuid('B6')], array[]::uuid[], touuid('A6'))), '=', array_sort(array[touuid('B6'), touuid('C6')]));
 drop table visited;
 SELECT cmp_ok(graph_page_nodes(array[touuid('B7')], array[]::uuid[], touuid('A7')), '=', array[]::uuid[]);
 drop table visited;
-SELECT cmp_ok(graph_page_nodes(array[touuid('B8')], array[]::uuid[], touuid('A8')), '=', array[touuid('B8'), touuid('C8')]);
+SELECT cmp_ok(array_sort(graph_page_nodes(array[touuid('B8')], array[]::uuid[], touuid('A8'))), '=', array_sort(array[touuid('B8'), touuid('C8')]));
 drop table visited;
 
 SELECT * FROM finish();

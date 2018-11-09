@@ -15,6 +15,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 
   "empty String" in {
+    pending
     val cfg = ViewConfig.fromUrlHash("")
     val expected = createViewConfig(View.Error(""), Page.empty, None)
     cfg.page mustEqual expected.page
@@ -22,6 +23,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "invalid String" in {
+    pending
     val cfg = ViewConfig.fromUrlHash("someone said I should write something here")
     val expected = createViewConfig(View.Error(""), Page.empty, None)
     cfg.page mustEqual expected.page
@@ -109,6 +111,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "single page" in {
+    pending
     val orig = createViewConfig(View.default, Page(Seq(freshNodeId(1), freshNodeId(2)), Seq(freshNodeId(3), freshNodeId(4))), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
@@ -116,6 +119,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "view and page" in {
+    pending
     val orig = createViewConfig(View.Thread, Page(freshNodeId(5)), None)
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page
@@ -123,6 +127,7 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
   }
 
   "view and page and prev" in {
+    pending
     val orig = createViewConfig(View.Signup, Page(freshNodeId(6)), Some(View.Thread))
     val cfg = toStringAndBack(orig)
     cfg.page mustEqual orig.page

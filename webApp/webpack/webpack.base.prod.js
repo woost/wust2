@@ -10,6 +10,17 @@ const HtmlPlugin = require("html-webpack-plugin");
 const HtmlIncludeAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
+const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
+
+// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
+// this file will automatically be picked up by webpack from that folder.
+const { execSync } = require('child_process');
+// stderr is sent to stdout of parent process
+// you can set options.stdio if you want it to go elsewhere
+const rootFolder = Path.resolve(__dirname, '../../../../..');
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx500M";
+execSync('cd ' + rootFolder + '; sbt cssJVM/run');
+
 
 const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
@@ -18,6 +29,7 @@ const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;
+const gitBranch = execSync('(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD || echo "") 2> /dev/null').toString().trim() // branch, fallback to commit hash
 module.exports = commons.webpack;
 
 // set up output path
@@ -27,9 +39,12 @@ module.exports.output.path = Path.join(__dirname, "dist");
 // copy some assets to dist folder
 //TODO entry and handle with loader (hash)
 function copyAssets(context) {
-    return new CopyPlugin([
-        { from: "**/*", to: module.exports.output.path }
-    ], { context: context });
+    var patterns = [{ from: "**/*", to: module.exports.output.path }];
+    if(gitBranch !== 'production') {
+        patterns.push({ from: "staging.webmanifest", to: Path.join(module.exports.output.path, "site.webmanifest") });
+    }
+
+    return new CopyPlugin(patterns, { context: context });
 }
 module.exports.plugins.push(copyAssets(dirs.assets));
 module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
@@ -100,7 +115,18 @@ cssFiles.forEach(function (file) {
 const extractSass = new ExtractTextPlugin({
     filename: filenamePattern + '.css'
 });
+
 module.exports.plugins.push(extractSass);
+module.exports.plugins.push(
+    new OptimizeCssAssetsPlugin({
+      assetNameRegExp: /\.css$/g,
+      cssProcessor: require('cssnano'),
+      cssProcessorPluginOptions: {
+        preset: ['default', { discardComments: { removeAll: true } }],
+      },
+      canPrint: true
+    })
+);
 // module.exports.module.rules.push({
 //     test: /style\.scss$/,
 //     use: extractSass.extract({

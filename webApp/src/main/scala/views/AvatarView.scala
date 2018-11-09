@@ -56,12 +56,12 @@ object AvatarView {
         // List.tabulate(n)(i => Avatar(i, 13, true)(width := s"${size}px", height := s"${size}px")  ),
         // // div(),
         // List.tabulate(n)(i => Avatar(i, 25, true)(width := s"${size}px", height := s"${size}px")  ),
-        //{
-        //  //~290us
-        //  val sw = new wust.util.time.StopWatch()
-        //  sw.benchmark(100000)(Avatar.twoMirror(scala.util.Random.nextInt(), 10))
-        //  sw.readMicros.toInt //TODO: Outwatch: accept Long
-        //}
+        {
+          // to measure, disable the static rendering in Avatar
+          val sw = new wust.util.time.StopWatch()
+          sw.benchmark(200000)(Avatar.twoMirror(scala.util.Random.nextInt(), 10))
+          sw.readMicros
+        }
       )
     )
   }

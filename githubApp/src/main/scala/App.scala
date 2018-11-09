@@ -40,9 +40,9 @@ import wust.api.Authentication.Token
 
 object Constants {
   //TODO
-  val githubNode = Node.Content(NodeData.PlainText("wust-github"))
-  val issuesNode = Node.Content(NodeData.PlainText("wust-github-issue"))
-  val commentsNode = Node.Content(NodeData.PlainText("wust-github-comment"))
+  val githubNode = Node.Content(NodeData.PlainText("wust-github"), NodeRole.Message)
+  val issuesNode = Node.Content(NodeData.PlainText("wust-github-issue"), NodeRole.Task)
+  val commentsNode = Node.Content(NodeData.PlainText("wust-github-comment"), NodeRole.Message)
 
   val githubId: NodeId = githubNode.id //NodeId("wust-github")
   val issueTagId: NodeId = issuesNode.id //NodeId("wust-github-issue")
@@ -54,7 +54,7 @@ object Constants {
   val wustRepo = "bug"
 
 //  val wustUser = Post.User(UserId.fresh, PostData.User("wust", true, 0, ChannelNodeId.fresh), PostMeta.User) // TODO get rid of this static user assumption
-  val wustUser = AuthUser.Assumed(UserId.fresh, NodeId.fresh)
+  val wustUser = AuthUser.Assumed(UserId.fresh)
 
 }
 
@@ -103,8 +103,8 @@ object AppServer {
 //    val issuePost = Post(NodeId.fresh, PostData.PlainText(issue.body), Constants.wustUser.id, issue.created_at, issue.updated_at)
 //    val issueDesc = Post(NodeId.fresh, PostData.PlainText(issue.title), Constants.wustUser.id, issue.created_at, issue.updated_at)
     // TODO: author + date
-    val issuePost: Node = Node.Content(NodeData.PlainText(issue.body))
-    val issueDesc: Node = Node.Content(NodeData.PlainText(issue.title))
+    val issuePost: Node = Node.Content(NodeData.PlainText(issue.body), NodeRole.Task)
+    val issueDesc: Node = Node.Content(NodeData.PlainText(issue.title), NodeRole.Message)
     val issuePosts = Set(issuePost, issueDesc)
 
     val edges = Set(
@@ -549,7 +549,7 @@ object WustReceiver {
       val redirectCommentsToAdd: collection.Set[Node] =
         githubAddPosts.filter(post => { // TODO: In this case: Push comment tag to backend!
           !currGraph.inChildParentRelation(post.id, Constants.issueTagId) &&
-            currGraph.lookup.inDescendantAncestorRelation(post.id, Constants.issueTagId)
+            currGraph.inDescendantAncestorRelation(post.id, Constants.issueTagId)
         })
 
       val createIssuesCall = issuesToAdd

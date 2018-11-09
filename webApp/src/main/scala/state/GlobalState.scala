@@ -7,6 +7,7 @@ import monocle.macros.GenLens
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
+import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api._
@@ -17,6 +18,8 @@ import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components
+import wust.css.Styles
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -27,7 +30,8 @@ class GlobalState(
   val eventProcessor: EventProcessor,
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val viewConfig: Var[ViewConfig],
-  val isOnline: Rx[Boolean]
+  val isOnline: Rx[Boolean],
+  val isLoading: Rx[Boolean]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
@@ -39,38 +43,29 @@ class GlobalState(
     Rx {
       val graph = internalGraph()
       val u = user()
-    val newGraph =
-      if (graph.lookup.contains(u.channelNodeId)) graph
+      val newGraph =
+        if (graph.contains(u.id)) graph
         else {
           graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-            Node.Content(u.channelNodeId, NodeData.defaultChannelsData, NodeMeta(NodeAccess.Level(AccessLevel.Restricted))) ::
-              user().toNode ::
-              Nil
+            user().toNode ::
+            Nil
           )
         }
 
-    newGraph
-  }
-  }
-
-  val channelTree: Rx[Tree] = Rx {
-    val channelNode = graph().nodesById(user().channelNodeId)
-    // time("bench: channelTree") {
-      graph().channelTree(channelNode)
-    // }
+      newGraph
+    }
   }
 
-  val channels: Rx[Seq[Node]] = Rx {
-    channelTree().flatten.distinct
-  }
+  val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
+  val channels: Rx[Seq[Node]] = Rx { channelForest().flatMap(_.flatten).distinct }
 
-  val addNodesInTransit = eventProcessor.changesInTransit
-    .map(changes => changes.flatMap(_.involvedNodeIds)(breakOut): Set[NodeId])
+  val addNodesInTransit: Rx[Set[NodeId]] = eventProcessor.changesInTransit
+    .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
     .unsafeToRx(Set.empty)
 
-  val isSynced = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
+  val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
   val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
     rawPage() match {
@@ -81,26 +76,19 @@ class GlobalState(
     }
   }
 
-  val pageIsBookmarked: Rx[Boolean] = Rx {
-    page().parentIds.forall(
-      graph().children(user().channelNodeId).contains
-    )
-  }
-
+  val pageNotFound:Rx[Boolean] = Rx{ !page().parentIds.forall(graph().contains) }
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
-  val documentIsVisible: Rx[Boolean] = {
-    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
-
-    events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
-  }
+//  val documentIsVisible: Rx[Boolean] = {
+//    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
+//
+//    events.window.eventProp[dom.Event]("visibilitychange").map(_ => isVisible).unsafeToRx(isVisible)
+//  }
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
   permissionState.triggerLater { state =>
     if(state == PermissionState.granted || state == PermissionState.denied)
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
-
-  val graphContent: Rx[Graph] = Rx { graph().pageContentWithAuthors(page()) }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
     if(!view().isContent || page().parentIds.nonEmpty)
@@ -110,15 +98,11 @@ class GlobalState(
   }
 
   val pageParentNodes: Rx[Seq[Node]] = Rx {
-    page().parentIds.flatMap(id => graph().nodesById.get(id))
+    page().parentIds.flatMap(id => graph().lookup.nodesByIdGet(id))
   }
 
   val pageStyle = Rx {
     PageStyle(view(), page())
-  }
-
-  val selectedNodeIds: Var[Set[NodeId]] = Var(Set.empty[NodeId]).mapRead { selectedNodeIds =>
-    selectedNodeIds().filter(graph().nodesById.isDefinedAt)
   }
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
@@ -127,6 +111,9 @@ class GlobalState(
     .debounce(0.2 second)
     .map(_ => ScreenSize.calculate())
     .unsafeToRx(ScreenSize.calculate())
+
+  @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
+  @inline def largeScreen: Boolean = screenSize.now != ScreenSize.Small
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"

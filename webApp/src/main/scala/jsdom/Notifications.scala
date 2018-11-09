@@ -22,7 +22,7 @@ object Notifications {
   import Navigator._
 
   def cancelSubscription()(implicit ec: ExecutionContext): Unit = {
-    WebPush.cancelAndPerist()
+    WebPush.cancelAndPersist()
   }
   def refreshSubscription()(implicit ec: ExecutionContext): Unit = {
     WebPush.getSubscriptionAndPersist()
@@ -33,11 +33,14 @@ object Notifications {
     case _ =>
       scribe.info("Will not subscribe web push, no permission")
   }
-  def requestPermissionsAndSubscribe()(implicit ec: ExecutionContext): Unit = {
+  def requestPermissionsAndSubscribe(onSuccess: => Unit = ())(implicit ec: ExecutionContext): Unit = {
     Notification.foreach { n =>
       n.requestPermission { (state: String) =>
         scribe.info(s"Requested notification permission: $state")
-        subscribe()
+        if (state.asInstanceOf[PermissionState] == PermissionState.granted) {
+          subscribe()
+          onSuccess
+        }
       }
     }
   }
@@ -102,7 +105,7 @@ object Notifications {
     //TODO retry if failed with Task
     private lazy val serverPublicKey = Client.push.getPublicKey()
 
-    def cancelAndPerist()(implicit ec: ExecutionContext): Unit =
+    def cancelAndPersist()(implicit ec: ExecutionContext): Unit =
       persistPushSubscription(_.getSubscription(), Client.push.cancelSubscription, unsubscribe = true)
 
     def getSubscriptionAndPersist()(implicit ec: ExecutionContext): Unit =

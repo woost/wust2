@@ -10,7 +10,7 @@ const commons = require('./webpack.base.common.js');
 const dirs = commons.woost.dirs;
 const appName = commons.woost.appName;
 const cssFolder = commons.woost.cssFolder;
-const cssFiles = commons.woost.cssFiles;
+const cssFiles = commons.woost.cssFiles.filter(x => !x.endsWith('scalacss.css')); //filter out generated css file...
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;
@@ -29,7 +29,7 @@ const loaderJsFile = appName + '-loader.js';
 // module.exports.entry[appName].push('./' + baseJsFile);
 // module.exports.entry[appName].push('./' + loaderJsFile);
 module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
-const extraAssets = [ loaderJsFile, baseJsFile ].concat(staticIncludeAssets).concat(cssFiles.map(function(f) { return Path.basename(f); }));
+const extraAssets = staticIncludeAssets.concat([ loaderJsFile, baseJsFile ]).concat(cssFiles.map(function(f) { return Path.basename(f); }));
 
 ////////////////////////////////////////
 // html template generate index.html

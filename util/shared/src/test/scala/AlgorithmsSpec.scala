@@ -157,7 +157,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       edges.zipWithIndex.foreach{ case (successors,v) if result.indexOf(v) != -1 =>
         successors.foreach{ s => 
           assert(result.indexOf(s) != -1)
-          println(s"$v < $s")
+//          println(s"$v < $s")
           assert(result.indexOf(v) < result.indexOf(s), s": $v was not before $s : ${result.toList}")
         }
       }

@@ -1,12 +1,12 @@
 package wust.webApp.views
 
-import fontAwesome.{freeRegular, _}
-import fontAwesome.freeSolid._
+import fontAwesome._
 import googleAnalytics.Analytics
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.dsl.styles.extra._
 import rx._
 import wust.api.AuthUser
 import wust.css.Styles
@@ -19,34 +19,28 @@ import wust.webApp.state._
 import scala.scalajs.js
 
 object Topbar {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = div(
-    style("user-select") := "none",
-    paddingRight := "5px",
-    height := "35px",
-    backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
-    color := "white",
-    transition := "background-color 0.5s", // fades on page change
-    cls := "topbar",
-    Styles.flex,
-    flexDirection.row,
-    justifyContent.spaceBetween,
-    alignItems.center,
-
-    header(state).apply(marginRight := "10px"),
-    appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
-    beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
-    Rx {
-      state.view().isContent.ifTrue[VDomModifier](
-        viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
-      )
-    },
-    FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
-    Rx {
-      (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
-        authentication(state)
+  def apply(state: GlobalState): VNode = {
+    div.staticRx(keyValue) { implicit ctx =>
+      VDomModifier(
+        cls := "topbar",
+        backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+        header(state).apply(marginRight := "10px"),
+        appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
+        beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
+        Rx {
+          state.view().isContent.ifTrue[VDomModifier](
+            viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
+          )
+        },
+        FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
+        Rx {
+          (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+            SharedViewElements.authStatus(state)
+          )
+        }
       )
     }
-  )
+  }
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "5px 5px",
@@ -56,7 +50,7 @@ object Topbar {
     color := "white",
     textDecoration := "none",
     onClick(ViewConfig.default) --> state.viewConfig,
-    onClick handleWith {
+    onClick foreach {
       Analytics.sendEvent("logo", "clicked")
     },
     cursor.pointer
@@ -69,7 +63,7 @@ object Topbar {
     borderRadius := "3px",
     padding := "0px 5px",
     fontWeight.bold,
-    style("transform") := "rotate(-7deg)",
+    transform := "rotate(-7deg)",
 
     marginRight := "5px"
   )
@@ -95,12 +89,12 @@ object Topbar {
     div(
       padding := "10px",
       fontSize := "20px",
-      width := "40px",
+      width := "45px",
       textAlign.center,
-      faBars,
+      freeSolid.faBars,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-      onClick handleWith { ev =>
+      onClick foreach { ev =>
         Analytics.sendEvent("hamburger", if(sidebarOpen.now) "close" else "open")
         sidebarOpen() = !sidebarOpen.now;
         ev.stopPropagation()
@@ -141,21 +135,19 @@ object Topbar {
       }))
 
     val syncStatusIcon = Rx {
-      (state.isOnline(), state.isSynced()) match {
+      (state.isOnline(), state.isSynced() && !state.isLoading()) match {
         case (true, true)  => span(syncedIcon, title := "Everything is up to date")
         case (true, false) => span(syncingIcon, title := "Syncing changes...")
         case (false, _)    => span(offlineIcon, color := "tomato", title := "Disconnected")
       }
     }
 
-    div(
-      syncStatusIcon
-    )
+    div(syncStatusIcon)
   }
 
   def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(state.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary button", "Update App", onClick handleWith {
+      button(cls := "tiny ui primary button", "Update App", onClick foreach {
         window.location.reload(flag = false)
       })
     })
@@ -166,7 +158,6 @@ object Topbar {
       dom.window.addEventListener(
         "beforeinstallprompt", { e: dom.Event =>
           e.preventDefault(); // Prevents immediate prompt display
-          dom.console.log("BEFOREINSTALLPROMPT: ", e)
           observer() = Some(e)
         }
       )
@@ -176,7 +167,7 @@ object Topbar {
     div(
       Rx {
         beforeInstallPromptEvents().map { e =>
-          button(cls := "tiny ui primary button", "Install as App", onClick handleWith {
+          button(cls := "tiny ui primary button", "Install as App", onClick foreach {
             e.asInstanceOf[js.Dynamic].prompt();
             ()
           })
@@ -188,7 +179,7 @@ object Topbar {
   def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def viewId(view:View) = s"viewswitcher_${view.viewKey}"
     def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
-      label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+      label(`for` := viewId(targetView), icon, padding := "7px", onClick(targetView) --> state.view, cursor.pointer,
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           color := "#111111",
           //borderTop(2 px, solid, pageStyle.bgLightColor)
@@ -200,7 +191,7 @@ object Topbar {
     def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
       input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
-          onInput handleWith {
+          onInput foreach {
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         }
       )
@@ -217,6 +208,8 @@ object Topbar {
         val currentView = state.view()
         val pageStyle = state.pageStyle()
         Seq(
+          MkInput(currentView, pageStyle, View.Magic),
+          MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           MkInput(currentView, pageStyle, View.Chat),
           MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
           MkInput(currentView, pageStyle, View.Workflow),
@@ -233,37 +226,13 @@ object Topbar {
 
   }
 
-  def authentication(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier =
-    state.user.map {
-      case user: AuthUser.Assumed  => login(state).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => login(state).apply(Styles.flexStatic)
-      case user: AuthUser.Real     => div(
-        Styles.flex,
-        alignItems.center,
-        div(
-          Styles.flex,
-          alignItems.center,
-          Avatar.user(user.id)(height := "20px", cls := "avatar"),
-          span(
-            user.name,
-            padding := "0 5px",
-            wordWrap := "break-word",
-            style("word-break") := "break-word",
-          ),
-          cursor.pointer,
-          onClick[View](View.UserSettings) --> state.view,
-          onClick handleWith { Analytics.sendEvent("topbar", "avatar") },
-        ),
-        logout(state))
-    }
-
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     div(
       button(
         cls := "tiny compact ui inverted button",
         "Signup",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
-        onClick handleWith {
+        onClick foreach {
           Analytics.sendEvent("topbar", "signup")
         },
       ),
@@ -271,7 +240,7 @@ object Topbar {
         cls := "tiny compact ui inverted button",
         "Login",
         onClick(state.viewConfig.now.showViewWithRedirect(View.Login)) --> state.viewConfig,
-        onClick handleWith {
+        onClick foreach {
           Analytics.sendEvent("topbar", "login")
         },
       )
@@ -281,7 +250,7 @@ object Topbar {
     button(
       cls := "tiny compact ui inverted grey button",
       "Logout",
-      onClick handleWith {
+      onClick foreach {
         Client.auth.logout().foreach { _ =>
           state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).showViewWithRedirect(View.Login)
         }

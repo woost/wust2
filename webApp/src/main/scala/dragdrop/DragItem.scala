@@ -24,7 +24,7 @@ object DragItem extends wust.ids.serialize.Circe {
   object Chat {
     case class Messages(nodeIds: Seq[NodeId]) extends AnyNodes
     case class Message(nodeId: NodeId) extends ChildNode
-    case class Thread(nodeId: NodeId) extends ParentNode
+    case class Thread(nodeIds: Seq[NodeId]) extends MultiParentNodes
     case class Page(nodeIds: Seq[NodeId]) extends MultiParentNodes
   }
 
@@ -53,8 +53,6 @@ object DragContainer extends wust.ids.serialize.Circe {
     sealed trait Area extends DragContainer { def parentIds: Seq[NodeId] }
     case class Column(nodeId:NodeId) extends Area { def parentIds = nodeId :: Nil }
     case class ColumnArea(parentIds:Seq[NodeId]) extends Area
-    case class NewColumnArea(parentIds:Seq[NodeId]) extends Area
-    case class IsolatedNodes(parentIds:Seq[NodeId]) extends Area
   }
 
   val propName = "_wust_dragcontainer"
