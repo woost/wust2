@@ -26,6 +26,10 @@ object View {
     def viewKey = "kanban"
     def isContent = true
   }
+  case object ListV extends View {
+    def viewKey = "list"
+    def isContent = true
+  }
   case object Graph extends View {
     def viewKey = "graph"
     def isContent = true
