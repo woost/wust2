@@ -827,15 +827,16 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowBehavior.contain
   )
 
-  ".kanbanaddnodefield > div" - (
-    color(c"rgba(255,255,255,0.5)"),
+  ".kanbanaddnodefieldtext" - (
+    color(white),
+    opacity(0.5),
     fontSize.medium,
     fontWeight.normal,
     cursor.pointer,
   )
 
-  ".kanbanaddnodefield:hover > div" - (
-    color(white)
+  ".kanbanaddnodefieldtext:hover" - (
+    opacity(1),
   )
 
   ".kanbanisolatednodes" - (

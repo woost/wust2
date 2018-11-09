@@ -30,11 +30,8 @@ object DragItem extends wust.ids.serialize.Circe {
 
   object Kanban {
     sealed trait Item { def nodeId: NodeId }
-    sealed trait Column extends ParentNode with Item
-    sealed trait SubItem extends Item
-    case class ToplevelColumn(nodeId: NodeId) extends Column
-    case class SubColumn(nodeId: NodeId) extends Column with SubItem
-    case class Card(nodeId: NodeId) extends ChildNode with SubItem
+    case class Column(nodeId: NodeId) extends ParentNode with Item
+    case class Card(nodeId: NodeId) extends ChildNode with Item
   }
 
   val payloadPropName = "_wust_dragpayload"
@@ -53,6 +50,7 @@ object DragContainer extends wust.ids.serialize.Circe {
     sealed trait Area extends DragContainer { def parentIds: Seq[NodeId] }
     case class Column(nodeId:NodeId) extends Area { def parentIds = nodeId :: Nil }
     case class ColumnArea(parentIds:Seq[NodeId]) extends Area
+    case class Uncategorized(parentIds:Seq[NodeId]) extends Area
   }
 
   val propName = "_wust_dragcontainer"

@@ -234,11 +234,16 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     def graph = state.graph.now
 
     {
-      case (e, dragging: DragItem.Kanban.ToplevelColumn, from: Kanban.ColumnArea, into: Kanban.ColumnArea, false, false) =>
+      case (e, dragging: DragItem.Kanban.Column, from: Kanban.Area, into: Kanban.ColumnArea, false, false) =>
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(beforeEdges)
 
-      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Area, false, false) =>
+      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val beforeEdges = beforeChanges(graph, e, dragging, from, into)
+        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
+
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Area, into: Kanban.Uncategorized, false, false) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
