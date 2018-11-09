@@ -18,17 +18,80 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.{Placeholders}
-import wust.webApp.views.ThreadView.{ChatKind}
 
 import scala.collection.breakOut
 import scala.scalajs.js
+
+/// Provides a node with the context that it resides in (i.e. its relevant parents)
+case class NodeContext(val nodeId: NodeId, val directParentIds : Set[NodeId])
+object NodeContext
+{
+  implicit def toNodeId(node : NodeContext) = node.nodeId
+}
+
+/// All state manipulations go through this class.
+/** Mostly used as a safety-abstraction over the ever-changing GlobalState. */
+class WorkflowState(
+  val globalState : GlobalState
+)
+{
+  val selectedNodeIds : Var[Set[NodeId]] = Var(Set.empty)
+  def parentIds(implicit ctx: Ctx.Owner) = Rx {
+    globalState.page().parentIdSet
+  }
+
+  def page = globalState.page
+  def user = globalState.user
+
+  def pageStyle = globalState.pageStyle
+
+  def nodeFromId(nodeId : NodeId)(implicit ctx: Ctx.Owner) = Rx {
+    globalState.graph().nodesById(nodeId)
+  }
+
+  /// deletes the node as a child from the passed parents
+  def delete(nodeId : NodeId, from : Set[NodeId]) = {
+    globalState.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, from))
+  }
+  def delete(node : NodeContext) = {
+    globalState.eventProcessor.changes.onNext(GraphChanges.delete(node.nodeId, node.directParentIds))
+  }
+  /// undeletes the node as a child from the passed parents
+  def undelete(nodeId : NodeId, from : Set[NodeId]) = {
+    globalState.eventProcessor.changes.onNext(GraphChanges.undelete(nodeId, from))
+  }
+  def undelete(node : NodeContext) = {
+    globalState.eventProcessor.changes.onNext(GraphChanges.undelete(node.nodeId, node.directParentIds))
+  }
+  def isDeleted(node : NodeContext)(implicit ctx: Ctx.Owner) = Rx {
+    globalState.graph().isDeletedNow(node.nodeId, node.directParentIds)
+  }
+  def isSelected(nodeId : NodeId)(implicit ctx: Ctx.Owner) = selectedNodeIds.map(_ contains nodeId)
+
+  /// zooms on a node, effectively changing the page
+  def zoomTo(nodeId : NodeId)(implicit ctx: Ctx.Owner) = {
+    globalState.viewConfig.onNext(globalState.viewConfig.now.copy(page = Page(nodeId)))
+  }
+
+  def nodes(implicit ctx: Ctx.Owner) = Rx {
+    val page = globalState.page()
+    val fullGraph = globalState.graph()
+    fullGraph.chronologicalNodesAscending.collect {
+      case n: Node.Content if (fullGraph.isChildOfAny(n.id, page.parentIds)
+                                 || fullGraph.isDeletedNow(n.id, page.parentIds)) =>
+        n.id
+    }
+  }
+}
+
 
 object WorkflowView {
   // -- display options --
   val grouping = false
   val lastActiveEditable : Var[Option[NodeId]] = Var(None)
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(globalState: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val state = new WorkflowState(globalState)
     val stylesOuterDiv = Seq[VDomModifier](
       cls := "workflow",
       Styles.flex,
@@ -37,23 +100,12 @@ object WorkflowView {
       alignItems.stretch,
       alignContent.stretch,
     )
-    val stylesInnerDiv = Seq[VDomModifier](
-      Styles.flex,
-      flexDirection.row,
-      height := "100%",
-      position.relative,
-    )
     div(
       stylesOuterDiv,
       activeEditableControls(state),
-      div(
-        stylesInnerDiv,
-        chatHistory(state).apply(
-          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        ),
-      ),
+      renderTasksWrapper(state, innerRender = { renderTasks(state) }),
       Rx { inputField(state, state.page().parentIdSet).apply(keyed, Styles.flexStatic, padding := "3px") },
-      registerDraggableContainer(state),
+      // registerDraggableContainer(state),
     )
   }
 
@@ -77,7 +129,7 @@ object WorkflowView {
               cursor.pointer,
               onClick.stopPropagation --> sideEffect {println(s"Outdenting node: ${nodeId}")})
 
-    def deleteButton(state: GlobalState, nodeId: Set[NodeId], directParentIds: Set[NodeId],
+    def deleteButton(state: WorkflowState, nodeId: Set[NodeId], directParentIds: Set[NodeId],
                      wrapper: VNode = entryWrapper)
                     (implicit ctx: Ctx.Owner) =
       wrapper(
@@ -85,7 +137,7 @@ object WorkflowView {
         onClick.stopPropagation --> sideEffect {
           println(s"deleting ${nodeId} with parents: ${directParentIds}")
           nodeId.foreach { nodeId =>
-            state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+            state.delete(nodeId, from = directParentIds)
           }
           state.selectedNodeIds.update(_ -- nodeId)
         },
@@ -98,7 +150,7 @@ object WorkflowView {
 
   /// Controls to e.g indent or outdent the last edited entry
   /** TODO: indent/outdent requires an order between entries. */
-  def activeEditableControls(state: GlobalState)(implicit ctx: Ctx.Owner) = Rx {
+  def activeEditableControls(state: WorkflowState)(implicit ctx: Ctx.Owner) = Rx {
     val nodes : Set[NodeId] = state.selectedNodeIds()
     (!nodes.isEmpty).ifTrueSeq[VDomModifier](
       Seq(components.listWrapper(
@@ -106,232 +158,77 @@ object WorkflowView {
             showDebugInfo.ifTrue[VDomModifier](s"selected ${nodes.size}"),
             components.outdentButton(nodes),
             components.indentButton(nodes),
-            components.deleteButton(state, nodes, state.page().parentIdSet)),
+            components.deleteButton(state, nodes, state.parentIds(ctx)())),
           )
     )
   }
 
 
-  def chatHistory(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  /// wraps around the innerRender method
+  def renderTasksWrapper(state: WorkflowState,
+                         innerRender: => Seq[VDomModifier])(implicit ctx: Ctx.Owner): Seq[VDomModifier] = {
     val scrolledToBottom = PublishSubject[Boolean]
-    val activeReplyFields = Var(Set.empty[List[NodeId]])
 
-    div(
-      cls := "workflow-wrapper",
-      // this wrapping div is currently needed,
-      // to allow dragging the scrollbar without triggering a drag event.
-      // see https://github.com/Shopify/draggable/issues/262
-      div(
-        padding := "20px 0 20px 20px",
-        Rx {
-          val page = state.page()
-          val fullGraph = state.graph()
-          val graph = state.graphContent()
-          val user = state.user()
-          val nodes = graph.lookup.chronologicalNodesAscending.collect {
-            case n: Node.Content if (fullGraph.isChildOfAny(n.id, page.parentIds)
-                                       || fullGraph.isDeletedChildOfAny(n.id, page.parentIds)) =>
-              n.id
-          }
-          if(nodes.isEmpty)
-            VDomModifier(emptyChatNotice)
-          else
-            VDomModifier(
-              groupNodes(graph, nodes, state, user.id)
-                .map(kind => renderGroupedMessages(
-                       state, kind.nodeIds, graph, page.parentIdSet, Nil, page.parentIdSet,
-                       user.id, activeReplyFields)),
-              draggableAs(state, DragItem.DisableDrag),
-              cursor.default, // draggable sets cursor.move, but drag is disabled on page background
-              dragTarget(DragItem.Chat.Page(page.parentIds)),
-              keyed
-            )
-        },
-        onUpdate --> sideEffect { (prev, _) =>
-          scrolledToBottom
-            .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
-        },
-        onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
-          case ((_, elem), atBottom) => (elem, atBottom)
-        }) --> sideEffect { (elem, atBottom) =>
-          if(atBottom) scrollToBottom(elem)
-        }
-      )
+    Seq(
+      padding := "20px 0 20px 20px",
+      Rx {
+        val nodes = state.nodes(ctx)()
+        if(nodes.isEmpty)
+          VDomModifier(emptyChatNotice)
+        else
+          VDomModifier(innerRender)
+      },
+      onUpdate --> sideEffect { (prev, _) =>
+        scrolledToBottom
+          .onNext(prev.scrollHeight - prev.clientHeight <= prev.scrollTop + 11) // at bottom + 10 px tolerance
+      },
+      onPostPatch.transform(_.withLatestFrom(scrolledToBottom) {
+                              case ((_, elem), atBottom) => (elem, atBottom)
+                            }) --> sideEffect { (elem, atBottom) =>
+        if(atBottom) scrollToBottom(elem)
+      },
+      backgroundColor <-- state.pageStyle.map(_.bgLightColor),
     )
   }
+
+  /// Renders all tasks of the current page via the renderTask fn
+  def renderTasks(state: WorkflowState)
+                 (implicit ctx: Ctx.Owner): Seq[VDomModifier] = Seq(Rx {
+    val nodes = state.nodes
+    nodes().map { nodeId =>
+      val nodeCtx = NodeContext(nodeId, state.parentIds(ctx)())
+      renderTask(state, nodeCtx)
+    }
+  })
 
   private def emptyChatNotice: VNode =
     h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
 
-  /** returns a Seq of ChatKind instances where similar successive nodes are grouped via ChatKind.Group */
-  private def groupNodes(
-    graph: Graph,
-    nodes: Seq[NodeId],
-    state: GlobalState,
-    currentUserId: UserId
-  ) = {
-    def shouldGroup(nodes: NodeId*) = {
-      grouping && // grouping enabled
-        graph.authorIds(nodes.head).headOption.fold(false) { authorId =>
-          nodes.forall(node => graph.authorIds(node).head == authorId)
-        }
-    }
-
-    nodes.foldLeft(Seq[ChatKind]()) { (kinds, node) =>
-      kinds.lastOption match {
-        case Some(ChatKind.Single(lastNode)) =>
-          if(shouldGroup(lastNode, node))
-            kinds.dropRight(1) :+ ChatKind.Group(Seq(lastNode, node))
-          else
-            kinds :+ ChatKind.Single(node)
-
-        case Some(ChatKind.Group(lastNodes)) =>
-          if(shouldGroup(lastNodes.last, node))
-            kinds.dropRight(1) :+ ChatKind.Group(nodeIds = lastNodes :+ node)
-          else
-            kinds :+ ChatKind.Single(node)
-
-        case None => kinds :+ ChatKind.Single(node)
-      }
-    }
-  }
-
-  private def renderGroupedMessages(
-    state: GlobalState,
-    nodeIds: Seq[NodeId],
-    graph: Graph,
-    alreadyVisualizedParentIds: Set[NodeId],
-    path: List[NodeId],
-    directParentIds: Set[NodeId],
-    currentUserId: UserId,
-    activeReplyFields: Var[Set[List[NodeId]]]
-  )(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-    val currNode = nodeIds.last
-    val headNode = nodeIds.head
-    val isMine = graph.authors(currNode).contains(currentUserId)
-
-    div(
-      cls := "chatmsg-group-outer-frame",
-      // if the head-node is moved/removed, all reply-fields in this Group close. We didn't find a better key yet.
-      keyed(headNode),
-      div(
-        keyed,
-        cls := "chatmsg-group-inner-frame",
-        nodeIds.map(nid =>
-          renderThread(state, graph, alreadyVisualizedParentIds = alreadyVisualizedParentIds,
-                       path = path, directParentIds = directParentIds, nid,
-                       currentUserId, activeReplyFields)
-        ),
-      ),
-    )
-  }
-
-  private def renderThread(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId],
-                           path: List[NodeId], directParentIds: Set[NodeId], nodeId: NodeId,
-                           currentUserId: UserId, activeReplyFields: Var[Set[List[NodeId]]])
-                          (implicit ctx: Ctx.Owner): VNode = {
-    val inCycle = alreadyVisualizedParentIds.contains(nodeId)
-    val hasDisplayableChildren = (graph.hasChildren(nodeId) || graph.hasDeletedChildren(nodeId))
-    if(!graph.isDeletedNow(nodeId, directParentIds)
-         && hasDisplayableChildren
-         && !inCycle) {
-      val children = (graph.children(nodeId) ++ graph.deletedChildren(nodeId))
-        .toSeq.sortBy(nid => graph.nodeCreated(nid): Long)
-      div(
-        keyed(nodeId),
-        workflowEntry(state, graph, alreadyVisualizedParentIds,
-                        directParentIds, nodeId)(ctx)(
-          div(
-            cls := "chat-thread",
-            paddingLeft := s"10px",
-            //borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
-
-            groupNodes(graph, children, state, currentUserId)
-              .map(kind => renderGroupedMessages(state, kind.nodeIds, graph, alreadyVisualizedParentIds + nodeId,
-                                                 nodeId :: path, Set(nodeId), currentUserId,
-                                                 activeReplyFields)),
-
-            replyField(state, nodeId, directParentIds, path, activeReplyFields),
-
-            draggableAs(state, DragItem.DisableDrag),
-            dragTarget(DragItem.Chat.Thread(nodeId)),
-            cursor.default, // draggable sets cursor.move, but drag is disabled on thread background
-            keyed(nodeId)
-          )),
-      )
-    }
-    else
-      workflowEntry(state, graph, alreadyVisualizedParentIds, directParentIds, nodeId,
-                      messageCardInjected = inCycle.ifTrue[VDomModifier] {
-                        VDomModifier(
-                          Styles.flex,
-                          alignItems.center,
-                          freeSolid.faSyncAlt,
-                          paddingRight := "3px",
-                          backgroundColor := "#CCC",
-                          color := "#666",
-                          boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-                          )
-                      })
-  }
-
-  def replyField(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId],
-                 path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]])
+  def replyField(state: WorkflowState, nodeCtx: NodeContext,
+                 path: List[NodeId])
                 (implicit ctx: Ctx.Owner) = {
-    val fullPath = nodeId :: path
-
     div(
-      keyed(nodeId),
       Rx {
-        val active = activeReplyFields() contains fullPath
-        if(active)
-          div(
-            keyed(nodeId),
-            Styles.flex,
-            alignItems.center,
-            inputField(state, directParentIds = Set(nodeId),
-              blurAction = { value => if(value.isEmpty) activeReplyFields.update(_ - fullPath) }
-            )(ctx)(
-              keyed(nodeId),
-              padding := "3px",
-              width := "100%"
-            ),
-            div(
-              keyed,
-              freeSolid.faTimes,
-              padding := "10px",
-              Styles.flexStatic,
-              cursor.pointer,
-              onClick --> sideEffect { activeReplyFields.update(_ - fullPath) },
-            )
-          )
-        else
-          div(
-            cls := "chat-replybutton",
-            freeSolid.faReply,
-            " reply",
-            marginTop := "3px",
-            marginLeft := "8px",
-            // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
-            // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
-            // before the click was finished. This does not happen with onMouseDown.
-            onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + fullPath) }
-          )
+        div(
+          cls := "chat-replybutton",
+          freeSolid.faReply,
+          " reply",
+          marginTop := "3px",
+          marginLeft := "8px",
+          // not onClick, because if another reply-field is already open, the click first triggers the blur-event of
+          // the active field. If the field was empty it disappears, and shifts the reply-field away from the cursor
+          // before the click was finished. This does not happen with onMouseDown.
+          //onMouseDown.stopPropagation --> sideEffect { activeReplyFields.update(_ + fullPath) }
+        )
       }
     )
   }
 
   /// @return the actual body of a chat message
-  /** Should be styled in such a way as to be repeatable so we can use this in groups */
-  private def workflowEntry(state: GlobalState, graph: Graph, alreadyVisualizedParentIds: Set[NodeId],
-                            directParentIds: Set[NodeId], nodeId: NodeId,
-                            messageCardInjected: VDomModifier = VDomModifier.empty)
-                           (implicit ctx: Ctx.Owner) = {
-    val isDeleted = graph.isDeletedNow(nodeId, directParentIds)
-    val isSelected = state.selectedNodeIds.map(_ contains nodeId)
-    val node = graph.nodesById(nodeId)
+  private def renderTask(state: WorkflowState, nodeCtx : NodeContext)
+                        (implicit ctx: Ctx.Owner) : Seq[VDomModifier] = {
+    val isDeleted = state.isDeleted(nodeCtx)
+    val isSelected = state.isSelected(nodeCtx)
 
     val editable = Var(false)
 
@@ -342,44 +239,37 @@ object WorkflowView {
         tpe := "checkbox",
         checked <-- isSelected,
         onChange.checked --> sideEffect { checked =>
-          if(checked) state.selectedNodeIds.update(_ + nodeId)
-          else state.selectedNodeIds.update(_ - nodeId)
+          if(checked) state.selectedNodeIds.update(_ + nodeCtx.nodeId)
+          else state.selectedNodeIds.update(_ - nodeCtx.nodeId)
         }
       ),
       label()
     )
 
-    val msgControls = div(
-      //cls := "chatmsg-controls",
-      if(isDeleted) undeleteButton(state, nodeId, directParentIds)
-      else VDomModifier(
-        editButton(state, editable),
-        components.deleteButton(state, Set(nodeId), directParentIds, wrapper=div())
-      )
-    )
-
-    val messageCard = workflowEntryEditable(state, node, editable = editable,
-                                            state.eventProcessor.changes,
-                                            newTagParentIds = directParentIds)(ctx)(
-      isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-      cls := "drag-feedback",
-      messageCardInjected,
-      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
-    )
+    // val messageCard = workflowEntryEditable(state, node, editable = editable,
+    //                                         state.eventProcessor.changes,
+    //                                         newTagParentIds = directParentIds)(ctx)(
+    //   isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
+    //   cls := "drag-feedback",
+    //   messageCardInjected,
+    //   onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
+    // )
 
 
-    li(
-      isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
-      div( // this nesting is needed to get a :hover effect on the selected background
+    Seq(
+      li(
+        isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
         cls := "chatmsg-line",
         Styles.flex,
         onClick.stopPropagation(!editable.now) --> editable,
-        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeId)) },
+        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeCtx.nodeId)) },
 
-        messageCard,
-        Rx { (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](msgControls(Styles.flexStatic)) }
-      )
-    )
+        Rx {
+          val node = state.nodeFromId(nodeCtx)
+          // TODO: workflowEntryEditable
+          nodeCard(node(), checkbox)
+        }
+      ))
   }
 
   private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
@@ -389,7 +279,7 @@ object WorkflowView {
       cursor.pointer,
     )
 
-  private def undeleteButton(state: GlobalState, nodeId: NodeId, directParentIds: Set[NodeId])
+  private def undeleteButton(state: WorkflowState, nodeId: NodeId, directParentIds: Set[NodeId])
                             (implicit ctx: Ctx.Owner) =
     div(
       div(cls := "fa-fw", fontawesome.layered(
@@ -401,51 +291,28 @@ object WorkflowView {
 
         })
       )),
-      onClick.stopPropagation(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+      onClick.stopPropagation --> sideEffect { _ => state.undelete(nodeId, directParentIds) },
       cursor.pointer,
     )
 
-  private def zoomButton(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
+  private def zoomButton(state: WorkflowState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
     div(
       div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
-      onClick.stopPropagation(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+      onClick.stopPropagation --> sideEffect { _ => state.zoomTo(nodeId) },
       cursor.pointer,
     )
 
-  private def inputField(state: GlobalState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())
+  private def inputField(state: WorkflowState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())
                         (implicit ctx: Ctx.Owner): VNode = {
-    val disableUserInput = Rx {
-      val graphNotLoaded = (state.graph().lookup.nodeIdSet intersect state.page().parentIdSet).isEmpty
-      graphNotLoaded
-    }
-
-    val initialValue = Rx {
-      state.viewConfig().shareOptions.map { share =>
-        val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
-        elements.mkString(" - ")
-      }
-    }
-
     div(
       cls := "ui form",
       keyed(directParentIds),
       textArea(
         keyed,
         cls := "field",
-        valueWithEnterWithInitial(initialValue.toObservable.collect { case Some(s) => s }) handleWith { str =>
-          val graph = state.graphContent.now
-          val selectedNodeIds = state.selectedNodeIds.now
-          val changes = {
-            val newNode = Node.Content.empty
-            GraphChanges.addNodeWithParent(Node.Content(NodeData.Markdown(str)), directParentIds)
-          }
-
-          state.eventProcessor.changes.onNext(changes)
-          //submittedNewMessage.onNext(Unit)
-        },
         onInsert.asHtml --> sideEffect { e => e.focus() },
         onBlur.value --> sideEffect { value => blurAction(value) },
-        disabled <-- disableUserInput,
+        //disabled <-- disableUserInput,
         rows := 1, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
         style("resize") := "none", //TODO: add resize style to scala-dom-types
         Placeholders.newNode

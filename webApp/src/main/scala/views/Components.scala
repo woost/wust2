@@ -311,8 +311,8 @@ object Components {
 
     def deleteNode(graph : Graph): Unit = {
       discardChanges()
-      println(s"Deleting ${node.id}")
-      submit.onNext(GraphChanges.delete(node.id, graph))
+      //println(s"Deleting ${node.id}")
+      //submit.onNext(GraphChanges.delete(node.id, graph))
     }
 
     object KeyCode {
@@ -320,8 +320,9 @@ object Components {
     }
 
     def isAtBeginningOfEditable = {
-      val range = window.getSelection.getRangeAt(0)
-      range.endOffset == 0
+      //val range = window.getSelection.getRangeAt(0)
+      //range.endOffset == 0
+      false
     }
 
     ///val enterPressedAtEnd = ????
