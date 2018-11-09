@@ -45,6 +45,15 @@ case class GraphChanges(
   lazy val isEmpty: Boolean = allProps.forall(s => s.isEmpty)
   def nonEmpty: Boolean = !isEmpty
   lazy val size: Int = allProps.foldLeft(0)(_ + _.size)
+
+  override def toString = {
+    val members = List(
+      if(addNodes.nonEmpty) Some(s"addNodes = $addNodes") else None,
+      if(addEdges.nonEmpty) Some(s"addEdges = $addEdges") else None,
+      if(delEdges.nonEmpty) Some(s"delEdges = $delEdges") else None,
+    ).flatten.mkString(", ")
+    s"GraphChanges($members)"
+  }
 }
 object GraphChanges {
 
