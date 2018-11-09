@@ -533,17 +533,16 @@ object SharedViewElements {
     ) ::: additional
   }
 
-  def newChannelButton(state: GlobalState, label: String = "New Channel"): VNode = {
+  def newChannelButton(state: GlobalState, label: String = "New Channel", view: View = View.default): VNode = {
     button(
       cls := "ui button",
       label,
       onClick foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
-        val user = state.user.now
 
         val nextPage = Page.NewChannel(NodeId.fresh)
         if (state.view.now.isContent) state.page() = nextPage
-        else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
+        else state.viewConfig.update(_.copy(page = nextPage, view = view))
       }
     )
   }

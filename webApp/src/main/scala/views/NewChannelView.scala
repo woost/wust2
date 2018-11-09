@@ -6,7 +6,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.SharedViewElements._
 import wust.util._
 
@@ -19,11 +19,17 @@ object NewChannelView {
         height := "100%",
         Styles.flex,
         justifyContent.spaceAround,
-        flexDirection.column,
         alignItems.center,
-        newChannelButton(state)(padding := "20px", marginBottom := "10%")(
-          onClick foreach { Analytics.sendEvent("view:newchannel", "newchannel") }
-        ),
+        div(
+          marginBottom := "10%",
+          textAlign.center,
+          newChannelButton(state, label = "+ New Chat", view = View.Chat)(padding := "20px", margin := "20px 40px")(
+            onClick foreach { Analytics.sendEvent("view:newchannel", "newchat") }
+          ),
+          newChannelButton(state, label = "+ New Kanban", view = View.Kanban)(padding := "20px", margin := "20px 40px")(
+            onClick foreach { Analytics.sendEvent("view:newchannel", "newkanban") }
+          ),
+        )
       ),
       Rx {
         (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
