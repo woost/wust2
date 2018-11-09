@@ -17,6 +17,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.util.collection._
 
 object ListView {
   import SharedViewElements._
@@ -24,6 +25,7 @@ object ListView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       overflow.auto,
+      padding := "10px",
 
       Rx {
         withLoadingAnimation(state) {
@@ -35,26 +37,42 @@ object ListView {
             g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
           }
 
+          val doneIdx: Int = graph.nodes.findIdx(node => node.str.trim.toLowerCase == "done").getOrElse(-2) // TODO: this also finds sub-columns named done. Prevent this and find only toplevel columns?
+          val doneNode = doneIdx match {
+            case -2 => None
+            case idx => Some(graph.nodes(idx))
+          }
+
           val pageParentArraySet = graph.createArraySet(page.parentIdSet)
 
-          val allTasks:ArraySet = graph.subset { nodeIdx =>
+          val allTasks: ArraySet = graph.subset { nodeIdx =>
             val node = graph.nodes(nodeIdx)
 
+            @inline def isDoneNode = nodeIdx == doneIdx
             @inline def isContent = node.isInstanceOf[Node.Content]
             @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
             @inline def noPage = pageParentArraySet.containsNot(nodeIdx)
 
-            isContent && isTask && noPage
+            !isDoneNode && isContent && isTask && noPage
           }
 
-          val (todoTasks, doneTasks) = allTasks.partition { nodeIdx =>
 
-            true
+          val (todoTasks, doneTasks) = {
+            doneIdx match {
+              case -2 => (allTasks, ArraySet.create(graph.nodes.length))
+              case doneIdx =>
+                allTasks.partition { nodeIdx =>
+                  @inline def isDone = graph.parentsIdx.exists(nodeIdx)(_ == doneIdx)
+
+                  !isDone
+                }
+            }
           }
 
           VDomModifier(
-            div(todoTasks.map(nodeIdx =>
-              nodeCard(graph.nodes(nodeIdx)).apply(margin := "2px").prepend(
+            div(todoTasks.map{nodeIdx =>
+              val node = graph.nodes(nodeIdx)
+              nodeCard(node).apply(margin := "3px").prepend(
                 Styles.flex,
                 alignItems.flexStart,
                 div(
@@ -65,12 +83,47 @@ object ListView {
                   input(
                     tpe := "checkbox",
                     onChange.checked foreach { checked =>
+                      if(checked) {
+                        val (doneNodeId, doneNodeAddChange) = doneNode match {
+                          case None                   =>
+                            val freshDoneNode = Node.MarkdownTask("Done")
+                            (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, page.parentIds))
+                          case Some(existingDoneNode) => (existingDoneNode.id, GraphChanges.empty)
+                        }
+                        val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, state.graph.now.parents(node.id), doneNodeId :: Nil)
+                        state.eventProcessor.changes.onNext(changes)
+                      }
                     }
                   ),
                   label()
                 )
-)
-            ))
+              )}),
+            hr(border := "1px solid black", opacity := 0.4, margin := "15px"),
+            div(
+              opacity := 0.5,
+              doneTasks.map{nodeIdx =>
+                val node = graph.nodes(nodeIdx)
+                nodeCard(node).apply(margin := "3px").prepend(
+                  Styles.flex,
+                  alignItems.flexStart,
+                  div(
+                    cls := "ui checkbox fitted",
+                    marginTop := "5px",
+                    marginLeft := "5px",
+                    marginRight := "3px",
+                    input(
+                      tpe := "checkbox",
+                      checked := true,
+                      onChange.checked foreach { checked =>
+                        if(!checked) {
+                          val changes = GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, doneNode.get.id :: Nil, state.page.now.parentIds)
+                          state.eventProcessor.changes.onNext(changes)
+                        }
+                      }
+                    ),
+                    label()
+                  )
+                )})
           )
         }
       },

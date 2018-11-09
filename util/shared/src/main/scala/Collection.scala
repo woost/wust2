@@ -102,13 +102,17 @@ package object collection {
 
     @inline def filterIdx(p: Int => Boolean)(implicit ev: ClassTag[T]):Array[T] = {
       val builder = mutable.ArrayBuilder.make[T]
-      var i = 0
-      while(i < array.length) {
-        if(p(i))
-          builder += array(i)
-        i += 1
+      array.foreachIndexAndElement{ (i,elem) =>
+        if(p(i)) builder += elem
       }
       builder.result()
+    }
+
+    @inline def findIdx(p:T => Boolean):Option[Int] = {
+      array.foreachIndexAndElement{ (i,elem) =>
+        if(p(elem)) return Some(i)
+      }
+      None
     }
 
     @inline def filterIdxToArraySet(p: Int => Boolean):(ArraySet,Int) = {

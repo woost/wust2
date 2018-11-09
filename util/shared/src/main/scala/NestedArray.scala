@@ -51,6 +51,16 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
     }
     true
   }
+  @inline def exists(idx: Int)(f:Int => Boolean):Boolean = {
+    // fast iteration over sub-array without allocation
+    var i = 0
+    val n = sliceLength(idx)
+    while(i < n) {
+      if(f(apply(idx,i))) return true
+      i += 1
+    }
+    false
+  }
 }
 
 final class NestedArrayIntBuilder(nestedArray: NestedArrayInt){
