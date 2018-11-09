@@ -225,8 +225,8 @@ object PageHeader {
       )
     }
 
-    val searches = Observable
-      .merge(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global))
+    val searches = Observable(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global))
+      .merge
       .distinctUntilChanged(cats.Eq.fromUniversalEquals)
 
     val searchResult: Observable[VDomModifier] = searches.map {
@@ -343,8 +343,8 @@ object PageHeader {
     }
 
     div(
-      managed(IO{ addMember.foreach(handleAddMember) }),
-      managed(IO{ removeMember.foreach(handleRemoveMember) }),
+      emitter(addMember).foreach(handleAddMember(_)),
+      emitter(removeMember).foreach(handleRemoveMember(_)),
 
       cls := "item",
       i(

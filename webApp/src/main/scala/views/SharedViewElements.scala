@@ -64,7 +64,7 @@ object SharedViewElements {
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toObservable.collect { case Some(s) => s } else Observable.empty
+    }.toObservable.collect { case Some(s) => s } else ValueObservable.empty
 
     val autoResizer = new TextAreaAutoResizer
 
@@ -161,7 +161,7 @@ object SharedViewElements {
     )
 
     div(
-      managed(IO(triggerFocus.foreach { _ => currentTextArea.focus()})),
+      emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
       alignItems.flexStart,
       justifyContent.stretch,

@@ -50,7 +50,7 @@ object UserSettingsView {
     }
     VDomModifier(
       div(
-        managed(IO(clearHandler.subscribe(password))),
+        emitter(clearHandler) --> password,
         cls := "ui fluid input",
         input(
           placeholder := "New password",

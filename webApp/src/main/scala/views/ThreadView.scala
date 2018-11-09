@@ -66,13 +66,10 @@ object ThreadView {
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.modifier,
-        managed { () =>
-          // on page change, always scroll down
-          state.page.foreach { _ =>
-            scrollHandler.scrollToBottomInAnimationFrame()
-          }
+        // on page change, always scroll down
+        emitterRx(state.page).foreach {
+          scrollHandler.scrollToBottomInAnimationFrame()
         }
-
       ),
       {
         def submitAction(str:String) = {

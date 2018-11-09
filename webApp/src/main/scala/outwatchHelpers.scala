@@ -1,5 +1,6 @@
 package wust.webApp
 
+import cats.effect.IO
 import fontAwesome._
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
@@ -7,7 +8,7 @@ import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
 import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
 import rx._
 import wust.util.Empty
 import wust.webUtil.macros.KeyHash
@@ -27,7 +28,7 @@ package object outwatchHelpers extends KeyHash {
 //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
-    def empty[T: Empty]: Var[T] = Var(Empty[T])
+    @inline def empty[T: Empty]: Var[T] = Var(Empty[T])
   }
 
   implicit class RichRxFactory(val v: Rx.type) extends AnyVal {
@@ -38,24 +39,34 @@ package object outwatchHelpers extends KeyHash {
   }
 
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
-    def toLaterObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
-      observer =>
+
+    def toObservable: ValueObservable[T] = new ValueObservable[T] {
+      override def tailObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+        implicit val ctx = Ctx.Owner.Unsafe
         val obs = rx.triggerLater(observer.onNext(_))
         Cancelable(() => obs.kill())
+      }
+      override def headValue: Option[T] = Some(rx.now)
     }
 
-    def toObservable(implicit ctx: Ctx.Owner): Observable[T] = Observable.create[T](Unbounded) {
-      observer =>
-        val obs = rx.foreach(observer.onNext)
-        Cancelable(() => obs.kill())
+    def toRawObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+      implicit val ctx = Ctx.Owner.Unsafe
+      val obs = rx.foreach(observer.onNext)
+      Cancelable(() => obs.kill())
+    }
+
+    def toRawObservable[A](f: Ctx.Owner => Rx[T] => Rx[A]): Observable[A] = Observable.create[A](Unbounded) { observer =>
+      implicit val ctx = createManualOwner()
+      f(ctx)(rx).foreach(observer.onNext)(ctx)
+      Cancelable(() => ctx.contextualRx.kill())
     }
 
     def tail(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(rx.now) { v =>
       rx.triggerLater(v() = _)
     }
 
-    def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
-    def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
+    @inline def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
+    @inline def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
 
     def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
     def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
@@ -66,7 +77,7 @@ package object outwatchHelpers extends KeyHash {
     }
 
     //TODO: add to scala-rx in an efficient macro
-    def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.filter(f.isDefinedAt _).map(f)
+    def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.map(f.lift).filter(_.isDefined).map(_.get)
   }
 
 
@@ -76,23 +87,20 @@ package object outwatchHelpers extends KeyHash {
     dsl.onDomUnmount foreach { ctx.contextualRx.kill() }
   }
 
-  implicit def obsToCancelable(obs: Obs): Cancelable = {
+  @inline implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
   }
 
-  implicit def RxAsValueObservable(implicit ctx:Ctx.Owner): AsValueObservable[Rx] = new AsValueObservable[Rx] {
-    override def as[T](stream: Rx[T]): ValueObservable[T] = new ValueObservable[T] {
-      override def observable: Observable[T] = stream.toLaterObservable
-      override def value: Option[T] = Some(stream.now)
-    }
+  implicit def RxAsValueObservable: AsValueObservable[Rx] = new AsValueObservable[Rx] {
+    @inline override def as[T](stream: Rx[T]): ValueObservable[T] = stream.toObservable
   }
 
   implicit object VarAsObserver extends AsObserver[Var] {
-    override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
+    @inline override def as[T](stream: Var[_ >: T]): Observer[T] = stream.toObserver
   }
 
   implicit class RichVar[T](val rxVar: Var[T]) extends AnyVal {
-    def toObserver: Observer[T] = new VarObserver(rxVar)
+    @inline def toObserver: Observer[T] = new VarObserver(rxVar)
   }
 
   implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
@@ -103,8 +111,7 @@ package object outwatchHelpers extends KeyHash {
   }
 
   implicit class RichVNode(val vNode: BasicVNode) {
-    def static(key: Key.Value)(renderFn: => VDomModifier): ConditionalVNode = vNode.conditional(key)(false)(renderFn)
-    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = static(key) {
+    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key) {
       val owner = createManualOwner()
       VDomModifier(renderFn(owner), managedOwner(owner))
     }
@@ -121,9 +128,9 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
-      val rx = Var[T](seed)
-      o.subscribe(rx)
-      rx.foreach(o.onNext)
+      val rx = Var[T](o.headValue.getOrElse(seed))
+      o.tailObservable.subscribe(rx)
+      rx.triggerLater(o.onNext(_))
       rx
     }
   }
@@ -131,11 +138,7 @@ package object outwatchHelpers extends KeyHash {
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
-    def unsafeToRx(seed: T): rx.Rx[T] = {
-      val rx = Var[T](seed)
-      o.subscribe(rx)
-      rx
-    }
+    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
 
     def subscribe(that: Var[T]): Cancelable = o.subscribe(new VarObserver[T](that))
 
@@ -184,7 +187,7 @@ package object outwatchHelpers extends KeyHash {
   }
 
   import scalacss.defaults.Exports.StyleA
-  implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
+  @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
   implicit object EmptyVDM extends Empty[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
@@ -222,6 +225,9 @@ package object outwatchHelpers extends KeyHash {
     override def onError(ex: Throwable): Unit = throw ex
     override def onComplete(): Unit = ()
   }
+
+  @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
+
 }
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
@@ -231,4 +237,36 @@ class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
   }
   override def onError(ex: Throwable): Unit = throw ex
   override def onComplete(): Unit = ()
+}
+
+trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] {
+  import outwatchHelpers._
+  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
+  @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
+  @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transformRx[O](implicit ctx => _.filter(predicate))
+  @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = mapOption(f.lift)
+  @inline def mapOption[T](f: O => Option[T]): EmitterBuilder[T, R] = transformRx[T](implicit ctx => v => v.map(v => f(v)).filter(_.isEmpty).map(_.get))
+}
+class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[E] => Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
+  import outwatchHelpers._
+  override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable[T](tr(rx.toRawObservable(transformer)))
+  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder[E,T](rx, ctx => rx => tr(ctx)(transformer(ctx)(rx)))
+  override def -->(observer: Observer[O]): VDomModifier = IO {
+    outwatch.dom.managed { () =>
+      implicit val ctx = createManualOwner()
+      transformer(ctx)(rx).foreach(observer.onNext)(ctx)
+      Cancelable(() => ctx.contextualRx.kill())
+    }
+  }
+}
+class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
+  import outwatchHelpers._
+  override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toRawObservable))
+  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder(rx, tr)
+  override def -->(observer: Observer[O]): VDomModifier = IO {
+    implicit val ctx = Ctx.Owner.Unsafe
+    outwatch.dom.managed { () =>
+      rx.foreach(observer.onNext)
+    }
+  }
 }

@@ -250,7 +250,7 @@ sealed trait AddTagTask extends RestructuringTask {
       textArea(
         width := "100%",
         value <-- clearHandler,
-        managed(actionSink <-- userInput),
+        emitter(userInput) --> actionSink,
         onKeyDown
           .collect { case e if e.keyCode == KeyCode.Enter && !e.shiftKey => e.preventDefault(); e }
           .value
