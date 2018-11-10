@@ -47,6 +47,7 @@ object algorithm {
     false
   }
 
+  // @inline avoids the function call of append
   @inline def depthFirstSearchWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
     val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
@@ -74,6 +75,29 @@ object algorithm {
           val next = nexts(i)
           if(visited(next) != 1) stack.push(next)
           i += 1
+        }
+      }
+    }
+  }
+
+
+  // @inline avoids the function call of append
+  @inline def depthFirstSearchAfterStartWithManualAppend(start: Int, successors: NestedArrayInt, append: Int => Boolean):Unit = {
+    val stack = ArrayStackInt.create(capacity = successors.size)
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    successors.foreachElement(start) { succElem =>
+      stack.push(succElem)
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      if(visited.containsNot(current)) {
+        if (!append(current)) return
+
+        visited += current
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) stack.push(next)
         }
       }
     }

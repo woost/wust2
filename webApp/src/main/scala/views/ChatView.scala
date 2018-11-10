@@ -137,7 +137,7 @@ object ChatView {
       val graph = state.graph()
       withLoadingAnimation(state) {
         val pageParentArraySet = graph.createArraySet(page.parentIdSet)
-        val groups = calculateMessageGrouping(chatMessages(page.parentIds, graph), graph, pageParentArraySet)
+        val groups = calculateMessageGrouping(selectChatMessages(page.parentIds, graph), graph, pageParentArraySet)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
@@ -339,17 +339,20 @@ object ChatView {
     )
   }
 
-  private def chatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+  private def selectChatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     val nodeSet = ArraySet.create(graph.nodes.length)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
-        graph.descendantsIdx(parentIdx).foreachElement { childIdx =>
+        algorithm.depthFirstSearchAfterStartWithManualAppend(start = parentIdx, graph.childrenIdx, append = { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message)
+          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message) {
             nodeSet.add(childIdx)
-        }
+            true
+          }
+          else false // don't go further down
+        })
       }
     }
     val nodes = js.Array[Int]()
