@@ -27,8 +27,6 @@ package object collection {
       }
     }
 
-    def topologicalSortBy(next: T => Iterable[T]) = algorithm.topologicalSortSlow(col, next)
-
     def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
 
     def leftPadTo(len: Int, elem: T)(implicit canBuildFrom: CanBuildFrom[Repr[T], T, Repr[T]]): Repr[T] = {

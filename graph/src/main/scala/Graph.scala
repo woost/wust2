@@ -206,7 +206,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
-  private val edgesIdx = InterleavedArray.create(edges.length)
+  val edgesIdx = InterleavedArray.create(edges.length)
   val isPinnedSet: ArraySet = ArraySet.create(n)
 
 
@@ -215,6 +215,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   // To avoid array builders for each node, we collect the node degrees in a
   // loop and then add the indices in a second loop. This is twice as fast
   // than using one loop with arraybuilders. (A lot less allocations)
+  private val outDegree = new Array[Int](n)
   private val parentsDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
   private val messageChildrenDegree = new Array[Int](n)
@@ -241,6 +242,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         consistentEdges.add(edgeIdx)
         edgesIdx.updatea(edgeIdx, sourceIdx)
         edgesIdx.updateb(edgeIdx, targetIdx)
+        outDegree(sourceIdx) += 1
         edge match {
           case _: Edge.Author   =>
             authorshipDegree(targetIdx) += 1
@@ -286,6 +288,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
+  private val outgoingEdgeIdxBuilder = NestedArrayInt.builder(outDegree)
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
@@ -307,6 +310,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val sourceIdx = edgesIdx.a(edgeIdx)
     val targetIdx = edgesIdx.b(edgeIdx)
     val edge = edges(edgeIdx)
+    outgoingEdgeIdxBuilder.add(sourceIdx, edgeIdx)
     edge match {
       case _: Edge.Author   =>
         authorshipEdgeIdxBuilder.add(targetIdx, edgeIdx)
@@ -353,6 +357,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
+  val outgoingEdgeIdx: NestedArrayInt = outgoingEdgeIdxBuilder.result()
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
@@ -643,29 +648,24 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else seq
   }
 
-  lazy val allParentIds: IndexedSeq[NodeId] = ???
-  lazy val allParentIdsTopologicallySortedByChildren: Iterable[NodeId] =
-    allParentIds.topologicalSortBy(children)
+  lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {
+    val allParentsBuilder = new mutable.ArrayBuilder.ofInt
+    edgesIdx.foreachIndexAndTwoElements { (i, _, targetIdx) =>
+      if(edges(i).isInstanceOf[Edge.Parent])
+        allParentsBuilder += targetIdx
+    }
+    topologicalSort(allParentsBuilder.result(), childrenIdx)
+  }
 
   private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] =
     defaultNeighbourhood(nodeIds, emptyNodeIdSet)
+  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
   lazy val successorsWithoutParent
   : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
     NodeId,
     Edge,
     NodeId
     ](???, _.sourceId, _.targetId)
-  lazy val predecessorsWithoutParent
-  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[
-    NodeId,
-    Edge,
-    NodeId
-    ](???, _.targetId, _.sourceId)
-  lazy val neighboursWithoutParent
-  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
-    NodeId,
-    Edge
-    ](???, _.targetId, _.sourceId)
 
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean =
     parents(child).contains(possibleParent)
@@ -692,12 +692,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val p = parents(childId)
     parentIds.exists(p.contains)
   }
-
-  private lazy val connectionDefaultNeighbourhood: collection.Map[NodeId, collection.Set[Edge]] =
-    defaultNeighbourhood(nodeIds, Set.empty[Edge])
-  lazy val outgoingEdges
-  : collection.Map[NodeId, collection.Set[Edge]] = connectionDefaultNeighbourhood ++
-    directedIncidenceList[NodeId, Edge](edges, _.sourceId)
 
   lazy val incidentParentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = ???

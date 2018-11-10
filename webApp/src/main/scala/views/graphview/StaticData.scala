@@ -201,11 +201,11 @@ object StaticData {
         //          val p = posts(pId)
         //
         //        }
-        graph.allParentIdsTopologicallySortedByChildren.map { p =>
+        graph.allParentIdsTopologicallySortedByChildren.map { nodeIdx =>
           new EulerSet(
-            parent = p,
-            children = graph.descendants(p).toArray,
-            depth = graph.childDepth(p)
+            parent = graph.nodeIds(nodeIdx),
+            children = graph.descendantsIdx(nodeIdx).map(graph.nodeIds),
+            depth = graph.childDepth(graph.nodeIds(nodeIdx))
           )
         }(breakOut)
       }

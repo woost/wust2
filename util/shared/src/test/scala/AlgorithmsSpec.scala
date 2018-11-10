@@ -34,62 +34,6 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
           Map(1 -> Set(2, 3), 2 -> Set(3))
       }
     }
-
-    "adjacency list" - {
-      "empty" in {
-        adjacencyList[Int, Int](Nil, identity, identity) mustEqual Map.empty
-      }
-
-      "neighbours" in {
-        adjacencyList[Int, (Int, Int)](edges, _._1, _._2) mustEqual
-          Map(1 -> Set(2, 3), 2 -> Set(1, 3), 3 -> Set(1, 2))
-      }
-    }
-
-    "directed incidence list" - {
-      "empty" in {
-        directedIncidenceList[Int, Int](Nil, identity) mustEqual Map.empty
-      }
-
-      "outgoing edges" in {
-        directedIncidenceList[Int, (Int, Int)](edges, _._1) mustEqual
-          Map(1 -> Set(1 -> 2, 1 -> 3), 2 -> Set(2 -> 3))
-      }
-    }
-    "incidence list" - {
-      "empty" in {
-        incidenceList[Int, Int](Nil, identity, identity) mustEqual Map.empty
-      }
-
-      "incident edges" in {
-        incidenceList[Int, (Int, Int)](edges, _._1, _._2) mustEqual
-          Map(1 -> Set(1 -> 2, 1 -> 3),
-              2 -> Set(1 -> 2, 2 -> 3),
-              3 -> Set(1 -> 3, 2 -> 3))
-      }
-    }
-
-    "degree sequence" - {
-      "empty" in {
-        degreeSequence[Int, Int](Nil, identity, identity) mustEqual Map.empty
-      }
-
-      "neighbours" in {
-        degreeSequence[Int, (Int, Int)](edges, _._1, _._2) mustEqual
-          Map(1 -> 2, 2 -> 2, 3 -> 2)
-      }
-    }
-
-    "directed degree sequence" - {
-      "empty" in {
-        directedDegreeSequence[Int, Int](Nil, identity) mustEqual Map.empty
-      }
-
-      "neighbours" in {
-        directedDegreeSequence[Int, (Int, Int)](edges, _._1) mustEqual
-          Map(1 -> 2, 2 -> 1)
-      }
-    }
   }
 
   "depth first search" - {

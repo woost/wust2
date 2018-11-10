@@ -5,6 +5,7 @@ object algorithm {
   import wust.util.collection._
   import math.Ordering
 
+  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
   def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V, T] = {
     val map = mutable.HashMap[V, T]().withDefaultValue(default)
     map.sizeHint(vertices.size)
@@ -14,6 +15,7 @@ object algorithm {
     map
   }
 
+  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
   def directedAdjacencyList[V1, E, V2](
       edges: Iterable[E],
       inf: E => V1,
@@ -25,78 +27,6 @@ object algorithm {
       val in = inf(e)
       val out = outf(e)
       map(in) += out
-    }
-    map
-  }
-
-  def adjacencyList[V, E](
-      edges: Iterable[E],
-      inf: E => V,
-      outf: E => V
-  ): scala.collection.Map[V, scala.collection.Set[V]] = { // TODO: Multimap
-    val map =
-      mutable.HashMap[V, scala.collection.Set[V]]().withDefaultValue(mutable.HashSet.empty[V])
-    edges.foreach { e =>
-      val in = inf(e)
-      val out = outf(e)
-      map(in) += out
-      map(out) += in
-    }
-    map
-  }
-
-  def degreeSequence[V, E](
-      edges: Iterable[E],
-      inf: E => V,
-      outf: E => V
-  ): scala.collection.Map[V, Int] = {
-    val map = mutable.HashMap[V, Int]().withDefaultValue(0)
-    edges.foreach { e =>
-      val in = inf(e)
-      val out = outf(e)
-      map(in) += 1
-      map(out) += 1
-    }
-    map
-  }
-
-  def directedDegreeSequence[V, E](
-      edges: Iterable[E],
-      inf: E => V
-  ): scala.collection.Map[V, Int] = {
-    val map = mutable.HashMap[V, Int]().withDefaultValue(0)
-    edges.foreach { e =>
-      val in = inf(e)
-      map(in) += 1
-    }
-    map
-  }
-
-  def directedIncidenceList[V, E](
-      edges: Iterable[E],
-      inf: E => V
-  ): scala.collection.Map[V, scala.collection.Set[E]] = { // TODO: Multimap
-    val map =
-      mutable.HashMap[V, scala.collection.Set[E]]().withDefaultValue(mutable.HashSet.empty[E])
-    edges.foreach { e =>
-      val in = inf(e)
-      map(in) += e
-    }
-    map
-  }
-
-  def incidenceList[V, E](
-      edges: Iterable[E],
-      inf: E => V,
-      outf: E => V
-  ): scala.collection.Map[V, scala.collection.Set[E]] = { // TODO: Multimap
-    val map =
-      mutable.HashMap[V, scala.collection.Set[E]]().withDefaultValue(mutable.HashSet.empty[E])
-    edges.foreach { e =>
-      val in = inf(e)
-      val out = outf(e)
-      map(in) += e
-      map(out) += e
     }
     map
   }

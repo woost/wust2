@@ -6,6 +6,7 @@ import covenant.ws._
 import chameleon.ext.boopickle._
 import boopickle.Default._
 import java.nio.ByteBuffer
+import wust.util.collection._
 
 import colorado.HCL
 import covenant.core.DefaultLogHandler
@@ -71,15 +72,12 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
         case Success(response) =>
           response match {
             case graph: Graph => // graph is always grouped and logged as table
-              val lookup = graph.lookup
-              val rows = (lookup.outgoingEdges.map {
-                case (nodeId, edges) =>
-                  val node = lookup.nodesById(nodeId)
-                  val es = edges.map(
-                    edge =>
-                      s"${edge.data.tpe.take(1)} ${edge.targetId.toBase58
-                        .takeRight(3)} ${lookup.nodesById(edge.targetId).data.str}"
-                  )(breakOut): List[String]
+              val rows = (graph.nodes.zipWithIndex.map {
+                case (node,idx) =>
+                  val es = graph.outgoingEdgeIdx(idx).map{ edgeIdx =>
+                    val edge = graph.edges(edgeIdx)
+                    s"${edge.data.tpe.take(1)} ${edge.targetId.toBase58
+                      .takeRight(3)} ${graph.nodes(graph.edgesIdx.b(edgeIdx)).data.str}"}(breakOut): List[String]
                   val id = node.id.toBase58.takeRight(3)
                   val tpe = node.data.tpe.take(1)
                   val content = node.data.str

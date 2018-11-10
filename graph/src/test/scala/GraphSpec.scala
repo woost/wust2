@@ -90,28 +90,6 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.successorsWithoutParent(13) mustEqual Set.empty
     }
 
-    "predecessors of post" in {
-      pending
-      val graph = Graph(
-        nodes = List(1, 11, 12, 13, 14),
-        edges = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
-      )
-
-      graph.predecessorsWithoutParent(12) mustEqual Set[NodeId](11)
-      graph.predecessorsWithoutParent(13) mustEqual Set[NodeId](12)
-    }
-
-    "neighbours of post" in {
-      pending
-      val graph = Graph(
-        nodes = List(1, 11, 12, 13, 14),
-        edges = List(Connection(1, 11), Connection(11, 12), Connection(12, 1), Connection(12, 13)) ++ List(Containment(12, 14))
-      )
-
-      graph.neighboursWithoutParent(12) mustEqual Set[NodeId](1, 11, 13)
-      graph.neighboursWithoutParent(13) mustEqual Set[NodeId](12)
-    }
-
     "children of post" in {
       val graph = Graph(
         nodes = List(1, 11, 12, 13, 14),

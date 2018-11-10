@@ -16,10 +16,6 @@ class CollectionSpec extends FreeSpec with MustMatchers {
       Seq(A(1, 2), A(1, 3), A(2, 3)).distinctBy(_.y) mustEqual Seq(A(1, 2), A(1, 3))
       Seq(A(1, 2), A(1, 3), A(2, 3)).distinctBy(identity) mustEqual Seq(A(1, 2), A(1, 3), A(2, 3)).distinct
     }
-
-    "topologicalSortBy" in {
-      Seq(1, 2, 3).topologicalSortBy(_ => Seq(3, 2)) mustEqual Seq(1, 3, 2)
-    }
   }
 
   "RichSet" - {
