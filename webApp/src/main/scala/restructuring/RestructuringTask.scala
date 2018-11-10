@@ -967,7 +967,7 @@ object RestructuringTaskGenerator {
     )
   }
 
-  def render(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map { feedback =>
+  def render(globalState: GlobalState): ValueObservable[VNode] = taskDisplayWithLogging.map { feedback =>
     scribe.info(s"display task! ${feedback.toString}")
     Client.api.log(feedback.toString)
     if (feedback.displayNext) {
@@ -1010,7 +1010,7 @@ object RestructuringTaskGenerator {
 
   private var _studyTaskList = Future.successful(List.empty[RestructuringTask])
 
-  def renderStudy(globalState: GlobalState): Observable[VNode] = taskDisplayWithLogging.map {
+  def renderStudy(globalState: GlobalState): ValueObservable[VNode] = taskDisplayWithLogging.map {
     feedback =>
       if (feedback.displayNext) {
         if (!initLoad) {

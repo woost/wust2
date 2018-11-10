@@ -7,7 +7,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ObservableWithInitialValue, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
 import rx._
 import wust.util.Empty
@@ -39,14 +39,13 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
 
-    def toObservable: ValueObservable[T] = new ValueObservable[T] {
-      override def tailObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
-        implicit val ctx = Ctx.Owner.Unsafe
-        val obs = rx.triggerLater(observer.onNext(_))
-        Cancelable(() => obs.kill())
-      }
-      override def headValue: Option[T] = Some(rx.now)
+    def toTailObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+      implicit val ctx = Ctx.Owner.Unsafe
+      val obs = rx.triggerLater(observer.onNext(_))
+      Cancelable(() => obs.kill())
     }
+
+    def toValueObservable: ValueObservable[T] = () => ObservableWithInitialValue(Some(rx.now), rx.toTailObservable)
 
     def toRawObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
       implicit val ctx = Ctx.Owner.Unsafe
@@ -86,7 +85,7 @@ package object outwatchHelpers extends KeyHash {
   }
 
   implicit def RxAsValueObservable: AsValueObservable[Rx] = new AsValueObservable[Rx] {
-    @inline override def as[T](stream: Rx[T]): ValueObservable[T] = stream.toObservable
+    @inline override def as[T](stream: Rx[T]): ValueObservable[T] = stream.toValueObservable
   }
 
   implicit object VarAsObserver extends AsObserver[Var] {
@@ -122,8 +121,9 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
-      val rx = Var[T](o.headValue.getOrElse(seed))
-      o.tailObservable.subscribe(rx)
+      val v = o.value()
+      val rx = Var[T](v.head.getOrElse(seed))
+      v.tail.subscribe(rx)
       rx.triggerLater(o.onNext(_))
       rx
     }

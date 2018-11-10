@@ -82,7 +82,7 @@ object GlobalStateFactory {
       (pageWithPrev(), user())
     }
 
-    userAndPage.toObservable
+    userAndPage.toRawObservable
       .switchMap { case ((prevPage, page), user) =>
         val observable = if (prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds) =>
@@ -104,7 +104,7 @@ object GlobalStateFactory {
 
 
     // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
-    val appUpdateTrigger = Observable(page.toObservable.drop(1), view.toObservable.drop(1)).merge
+    val appUpdateTrigger = Observable(page.toTailObservable, view.toTailObservable).merge
 
     // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
     // we will check for an update immediately, but at max every 30 minutes.
