@@ -12,6 +12,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalStateFactory
 import wust.webApp.views.MainView
 
+import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
 
 object Main {
@@ -83,7 +84,7 @@ object Main {
 
       // debug snabbdom patching in outwatch
       // helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
-      // org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", proxy)
+      //   org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
       // }
     }
   }
