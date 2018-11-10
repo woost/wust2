@@ -19,20 +19,16 @@ object MagicView {
       Styles.flex,
       flexDirection.column,
       Rx {
-        withLoadingAnimation(state) {
-          VDomModifier(
-            if(statsContainsTask()) {
-              div(
-                Styles.growFull,
-                Styles.flex,
-                flexDirection.column,
-                KanbanView.apply(state).apply(Styles.growFull),
-                ChatView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
-              )
-            } else {
-              ChatView.apply(state).apply(Styles.growFull)
-            }
+        if(statsContainsTask()) {
+          div(
+            Styles.growFull,
+            Styles.flex,
+            flexDirection.column,
+            KanbanView.apply(state).apply(Styles.growFull),
+            ChatView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
           )
+        } else {
+          ChatView.apply(state).apply(Styles.growFull)
         }
       }
     )
