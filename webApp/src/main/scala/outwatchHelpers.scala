@@ -17,7 +17,6 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
-// TODO: vnode.apply version which prepends, or in general allows to modify the modifier sequence
 //TODO: outwatch: onInput.target foreach { elem => ... }
 //TODO: outwatch: Emitterbuilder.timeOut or delay
 package object outwatchHelpers extends KeyHash {
@@ -80,12 +79,7 @@ package object outwatchHelpers extends KeyHash {
     def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.map(f.lift).filter(_.isDefined).map(_.get)
   }
 
-
   def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
-
-  def managedOwner(implicit ctx: Ctx.Owner): VDomModifier = {
-    dsl.onDomUnmount foreach { ctx.contextualRx.kill() }
-  }
 
   @inline implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
@@ -112,12 +106,12 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class RichVNode(val vNode: BasicVNode) {
     def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key) {
-      val owner = createManualOwner()
-      VDomModifier(renderFn(owner), managedOwner(owner))
+      val ctx = createManualOwner()
+      VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
     }
     def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args) {
-      val owner = createManualOwner()
-      VDomModifier(renderFn(owner), managedOwner(owner))
+      val ctx = createManualOwner()
+      VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
     }
     def render: org.scalajs.dom.Element = {
       val elem = document.createElement("div")
@@ -226,8 +220,8 @@ package object outwatchHelpers extends KeyHash {
     override def onComplete(): Unit = ()
   }
 
+  //TODO AsEmitterBuilder type class in outwatch?
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
-
 }
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
@@ -251,7 +245,7 @@ class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[
   import outwatchHelpers._
   override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable[T](tr(rx.toRawObservable(transformer)))
   def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder[E,T](rx, ctx => rx => tr(ctx)(transformer(ctx)(rx)))
-  override def -->(observer: Observer[O]): VDomModifier = IO {
+  override def -->(observer: Observer[O]): VDomModifier = {
     outwatch.dom.managed { () =>
       implicit val ctx = createManualOwner()
       transformer(ctx)(rx).foreach(observer.onNext)(ctx)
@@ -263,7 +257,7 @@ class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifie
   import outwatchHelpers._
   override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toRawObservable))
   def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder(rx, tr)
-  override def -->(observer: Observer[O]): VDomModifier = IO {
+  override def -->(observer: Observer[O]): VDomModifier = {
     implicit val ctx = Ctx.Owner.Unsafe
     outwatch.dom.managed { () =>
       rx.foreach(observer.onNext)
