@@ -431,11 +431,11 @@ object algorithm {
     }
     @inline def reverseLookup(i:Int) = _reverseLookup(i)-1
 
-    var sorted = new Array[Int](vertexCount) // the result
+    val sorted = new Array[Int](vertexCount) // the result
     var sortCount = 0 // count to fill the result array from back to front
-    val visited = new Array[Int](vertexCount)
+    val visited = ArraySet.create(vertexCount)
 
-    @inline def add(vertex:Int):Unit = {
+    @inline def addToSorted(vertex:Int):Unit = {
       sorted(vertexCount - sortCount - 1) = vertex
       sortCount += 1
     }
@@ -443,19 +443,19 @@ object algorithm {
 
     def visit(idx: Int): Unit = {
       val vertex = vertices(idx)
-      visited(idx) = 1
-      for (nextIdx <- successors(vertex)) {
+      visited += idx
+      successors.foreachElement(vertex) { nextIdx =>
         val revIdx = reverseLookup(nextIdx)
-        if (revIdx != -1 && visited(revIdx) == 0) {
+        if (revIdx != -1 && visited.containsNot(revIdx)) {
           visit(revIdx)
         }
       }
-      add(vertex)
+      addToSorted(vertex)
     }
 
     var i = vertices.length - 1
     while (i > -1) {
-      if(visited(i) == 0) visit(i)
+      if(visited.containsNot(i)) visit(i)
       i -= 1
     }
 
