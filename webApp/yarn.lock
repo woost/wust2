@@ -7312,9 +7312,9 @@ slide@^1.1.5:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-"snabbdom@git://github.com/cornerman/snabbdom.git#0313e25":
+"snabbdom@git://github.com/cornerman/snabbdom.git#bac3e6a":
   version "0.7.2"
-  resolved "git://github.com/cornerman/snabbdom.git#0313e2575ed76430b2df5bc849e75c206de8fcee"
+  resolved "git://github.com/cornerman/snabbdom.git#bac3e6aafc023d3d6df69cd5810fc0e6a63a6a83"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"
