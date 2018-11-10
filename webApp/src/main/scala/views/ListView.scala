@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome.{freeRegular, freeSolid}
+import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -26,6 +27,8 @@ object ListView {
     div(
       overflow.auto,
       padding := "10px",
+
+      addListItemInputField(state),
 
       Rx {
         withLoadingAnimation(state) {
@@ -72,7 +75,7 @@ object ListView {
           VDomModifier(
             div(todoTasks.map{nodeIdx =>
               val node = graph.nodes(nodeIdx)
-              nodeCard(node).apply(margin := "3px").prepend(
+              nodeCard(node).apply(margin := "4px").prepend(
                 Styles.flex,
                 alignItems.flexStart,
                 div(
@@ -98,12 +101,12 @@ object ListView {
                   label()
                 )
               )}),
-            hr(border := "1px solid black", opacity := 0.4, margin := "15px"),
+            doneTasks.calculateNonEmpty.ifTrue[VDomModifier](hr(border := "1px solid black", opacity := 0.4, margin := "15px")),
             div(
               opacity := 0.5,
               doneTasks.map{nodeIdx =>
                 val node = graph.nodes(nodeIdx)
-                nodeCard(node).apply(margin := "3px").prepend(
+                nodeCard(node).apply(margin := "4px").prepend(
                   Styles.flex,
                   alignItems.flexStart,
                   div(
@@ -128,6 +131,32 @@ object ListView {
         }
       },
     )
+  }
+
+  private def addListItemInputField(state: GlobalState)(implicit ctx:Ctx.Owner) = {
+    def submitAction(str:String) = {
+      val change = GraphChanges.addMarkdownTask(str)
+      state.eventProcessor.enriched.changes.onNext(change)
+    }
+
+    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
+
+    val inputFieldFocusTrigger = PublishSubject[Unit]
+
+    if(!BrowserDetect.isMobile) {
+      state.page.triggerLater {
+        inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
+        ()
+      }
+    }
+
+    inputField(state, submitAction,
+      preFillByShareApi = true,
+      autoFocus = !BrowserDetect.isMobile,
+      triggerFocus = inputFieldFocusTrigger,
+      placeHolderMessage = Some(placeHolder),
+      submitIcon = freeSolid.faPlus
+    )(ctx)(Styles.flexStatic)
   }
 
 }

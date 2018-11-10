@@ -57,6 +57,7 @@ object SharedViewElements {
     autoFocus:Boolean = false,
     placeHolderMessage:Option[String] = None,
     preFillByShareApi:Boolean = false,
+    submitIcon:VDomModifier = freeRegular.faPaperPlane,
     textAreaModifiers:VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
@@ -147,7 +148,7 @@ object SharedViewElements {
           margin := "0px",
           Styles.flexStatic,
           cls := "ui circular icon button",
-          freeRegular.faPaperPlane,
+          submitIcon,
           fontSize := "1.1rem",
           backgroundColor := "steelblue",
           color := "white",

@@ -30,6 +30,12 @@ object ArraySet {
     }
   }
 
+  @inline def calculateIsEmpty:Boolean = {
+    foreach{_ => return false}
+    true
+  }
+  @inline def calculateNonEmpty:Boolean = !calculateIsEmpty
+
   @inline def calculateSize: Int = {
     var size = 0
     marked.foreachIndex{ i =>
