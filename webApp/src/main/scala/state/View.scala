@@ -64,7 +64,7 @@ object View {
 
   val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
 
-  def default: View = Magic
+  def default: View = Chat
 }
 
 sealed trait ViewOperator {

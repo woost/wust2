@@ -208,8 +208,8 @@ object Topbar {
         val currentView = state.view()
         val pageStyle = state.pageStyle()
         Seq(
-          MkInput(currentView, pageStyle, View.Magic),
-          MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          // MkInput(currentView, pageStyle, View.Magic),
+          // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           MkInput(currentView, pageStyle, View.Chat),
           MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
           MkInput(currentView, pageStyle, View.Thread),
