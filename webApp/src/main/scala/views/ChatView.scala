@@ -307,7 +307,7 @@ object ChatView {
         parent().map(node =>
           div(
             keyed(node.id),
-            chatMessageHeader(author, creationEpochMillis.getOrElse(EpochMilli.min), author.map(smallAuthorAvatar))(
+            chatMessageHeader(author, author.map(smallAuthorAvatar))(
               padding := "2px",
               opacity := 0.7,
             ),

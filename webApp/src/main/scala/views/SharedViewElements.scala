@@ -326,6 +326,13 @@ object SharedViewElements {
     }
   }
 
+  def chatMessageHeader(author: Option[Node.User], avatar: VDomModifier) = div(
+    cls := "chatmsg-header",
+    Styles.flex,
+    avatar,
+    author.map(authorName),
+  )
+
   def chatMessageHeader(author: Option[Node.User], creationEpochMillis: EpochMilli, avatar: VDomModifier) = div(
     cls := "chatmsg-header",
     Styles.flex,
