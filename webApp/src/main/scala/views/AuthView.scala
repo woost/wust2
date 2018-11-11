@@ -45,7 +45,7 @@ object AuthView {
     }: ((String, String)) => Unit
     val username = Handler.unsafe[String](defaultUsername.now)
     val password = Handler.unsafe[String](defaultPassword.now)
-    val nameAndPassword = username.observable.combineLatest(password.observable)
+    val nameAndPassword = username.combineLatest(password)
 
     div(
       padding := "10px",
