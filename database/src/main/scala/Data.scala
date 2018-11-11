@@ -48,6 +48,18 @@ object Data {
     }
   }
 
+  // Result of notifiedUsersByNodes
+  case class RawPushData(subscription: Data.WebPushSubscription, notifiedNodes: List[NodeId])
+  case class NotifyRow(userId: UserId, nodeIds: List[NodeId])
+  case class WebPushNotifications(
+    id: Long,
+    userId: UserId,
+    endpointUrl: String,
+    p256dh: String,
+    auth: String,
+    notifiedNodes: List[NodeId]
+  )
+
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
   case class GraphRow(
     nodeId: NodeId,
