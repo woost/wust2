@@ -228,6 +228,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     gc
   }
 
+  // This partial function describes what happens, but also what is allowed to drag from where to where
   val
   sortableActions:PartialFunction[(SortableStopEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean),Unit] = {
     import DragContainer._
@@ -235,8 +236,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     {
       case (e, dragging: DragItem.Kanban.Column, from: Kanban.Area, into: Kanban.ColumnArea, false, false) =>
+        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(beforeEdges)
+        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
         val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
