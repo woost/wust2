@@ -38,6 +38,10 @@ object View {
     def viewKey = "list"
     def isContent = true
   }
+  case object Property extends View {
+    def viewKey = "property"
+    def isContent = true
+  }
   case object Graph extends View {
     def viewKey = "graph"
     def isContent = true

@@ -14,6 +14,7 @@ object ViewRender {
     case View.Chat             => ChatView(state)
     case View.Kanban           => KanbanView(state)
     case View.List             => ListView(state)
+    case View.Property         => PropertyView(state)
     case View.Graph            => GraphView(state)
     case View.Login            => AuthView.login(state)
     case View.Signup           => AuthView.signup(state)
