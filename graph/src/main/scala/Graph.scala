@@ -489,7 +489,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val members = membersByIndex(nodeIdx)
     builder ++= members
     var counter = members.size
-    depthFirstSearchWithManualAppend(nodeIdx, childrenIdx, append = { idx =>
+    depthFirstSearchWithManualAppendStopIfAppendFalse(nodeIdx, childrenIdx, append = { idx =>
       val authors = authorsByIndex(idx)
       builder ++= authors
       counter += authors.size
@@ -698,10 +698,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val incidentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
 
   def involvedInContainmentCycleIdx(idx: Int): Boolean = {
-    depthFirstSearchExistsWithoutStart(idx, childrenIdx, idx)
+    depthFirstSearchExistsAfterStart(idx, childrenIdx, idx)
   }
   def involvedInNotDeletedContainmentCycleIdx(idx: Int): Boolean = {
-    depthFirstSearchExistsWithoutStart(idx, notDeletedChildrenIdx, idx)
+    depthFirstSearchExistsAfterStart(idx, notDeletedChildrenIdx, idx)
   }
   def involvedInContainmentCycle(id: NodeId): Boolean = {
     val idx = idToIdx(id)
@@ -711,7 +711,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def descendantsIdx(nodeIdx: Int) = _descendantsIdx(nodeIdx)
   private val _descendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
-    depthFirstSearchWithoutStart(nodeIdx, childrenIdx)
+    depthFirstSearchAfterStart(nodeIdx, childrenIdx)
   }
   def descendants(nodeId: NodeId) = _descendants(idToIdx(nodeId))
   private val _descendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
@@ -721,7 +721,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def notDeletedDescendantsIdx(nodeIdx: Int) = _notDeletedDescendantsIdx(nodeIdx)
   private val _notDeletedDescendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
-    depthFirstSearchWithoutStart(nodeIdx, notDeletedChildrenIdx)
+    depthFirstSearchAfterStart(nodeIdx, notDeletedChildrenIdx)
   }
   def notDeletedDescendants(nodeId: NodeId) = _notDeletedDescendants(idToIdx(nodeId))
   private val _notDeletedDescendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
@@ -731,7 +731,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def ancestorsIdx(nodeIdx: Int) = _ancestorsIdx(nodeIdx)
   private val _ancestorsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx =>
-    depthFirstSearchWithoutStart(nodeIdx, parentsIdx)
+    depthFirstSearchAfterStart(nodeIdx, parentsIdx)
   }
   def ancestors(nodeId: NodeId) = _ancestors(idToIdx(nodeId))
   private val _ancestors: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>

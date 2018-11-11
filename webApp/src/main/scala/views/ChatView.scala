@@ -342,19 +342,15 @@ object ChatView {
   private def selectChatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     val nodeSet = ArraySet.create(graph.nodes.length)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
-    parentIds.foreach { parentId =>
-      val parentIdx = graph.idToIdx(parentId)
-      if(parentIdx != -1) {
-        algorithm.depthFirstSearchAfterStartWithManualAppend(start = parentIdx, graph.childrenIdx, append = { childIdx =>
-          val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message) {
-            nodeSet.add(childIdx)
-            true
-          }
-          else false // don't go further down
-        })
+    val parentsIdx:Array[Int] = (parentIds.map(graph.idToIdx)(breakOut):Array[Int]).filterNot(_ == -1)
+    algorithm.depthFirstSearchAfterStartsWithContinue(starts = parentsIdx, graph.childrenIdx, { childIdx =>
+      val childNode = graph.nodes(childIdx)
+      if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message) {
+        nodeSet.add(childIdx)
+        true
       }
-    }
+      else false // don't go further down
+    })
     val nodes = js.Array[Int]()
     nodeSet.foreach(nodes += _)
     sortByCreated(nodes, graph)
