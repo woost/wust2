@@ -34,7 +34,7 @@ object View {
     def viewKey = "kanban"
     def isContent = true
   }
-  case object ListV extends View {
+  case object List extends View {
     def viewKey = "list"
     def isContent = true
   }

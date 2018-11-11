@@ -20,6 +20,6 @@ object SubObjects {
     }
 
     val subObjects = recursiveSubObjects(traitTag.tpe.typeSymbol)
-    c.Expr[List[Trait]](q"List(..$subObjects)")
+    c.Expr[List[Trait]](q"_root_.scala.List(..$subObjects)")
   }
 }
