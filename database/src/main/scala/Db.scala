@@ -119,6 +119,21 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
     }
 
+    def notifyDataByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[RawPushData]] = {
+      val q = quote {
+        infix"select * from subscriptions_by_nodeid(${lift(nodesOfInterest)})"
+          .as[Query[WebPushNotifications]]
+      }
+      ctx.run(q).map(_.map(n => RawPushData(WebPushSubscription(n.id, n.userId, n.endpointUrl, n.p256dh, n.auth), n.notifiedNodes)))
+    }
+
+    def notifiedUsersByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[NotifyRow]] = {
+      ctx.run(
+        infix"select * from notified_users_search_fast(${lift(nodesOfInterest)})"
+          .as[Query[NotifyRow]]
+      )
+    }
+
     def updateNodesForConnectedUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
       ctx.run(
         infix"select id from unnest(${lift(nodeIds.toList)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
