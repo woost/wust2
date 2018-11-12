@@ -1,3 +1,5 @@
+drop function subscriptions_by_nodeid;
+
 create or replace function subscriptions_by_nodeid(startids uuid[])
     returns table (
          id integer, userid uuid, endpointUrl text, p256dh text, auth text, notifiedNodes uuid[]
@@ -30,6 +32,8 @@ drop function can_access_node_recursive;
 drop function can_access_node;
 drop function can_access_node_in_down_traversal;
 drop function inaccessible_nodes;
+drop function subscriptions_by_nodeid;
+drop function notified_users_search_fast;
 
 drop aggregate array_merge_agg(anyarray);
 drop function array_intersect;
