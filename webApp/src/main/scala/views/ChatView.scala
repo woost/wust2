@@ -108,6 +108,7 @@ object ChatView {
         val bgColor = Rx{ NodeColor.pageHue(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
 
         def submitAction(str:String) = {
+          currentReply() = Set.empty[NodeId]
           scrollHandler.scrollToBottomInAnimationFrame()
           // we treat new chat messages as noise per default, so we set a future deletion date
           val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), replyNodes, deletedAt = noiseFutureDeleteDate)
