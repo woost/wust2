@@ -84,7 +84,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   private def sendWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
     state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
       db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
-        .map(permittedNodeIds => NewGraphChanges(author, graphChanges.filter(permittedNodeIds.toSet)) :: Nil)
+        .map(permittedNodeIds => NewGraphChanges(author, graphChanges.filterWithWhitelist(permittedNodeIds.toSet, {case _: Edge.Author => true; case _ => false;})) :: Nil)
     }
   }
 
