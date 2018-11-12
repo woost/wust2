@@ -77,14 +77,18 @@ object GlobalStateFactory {
     // change into our local state without asking the backend. when the page
     // changes, we get a new graph. except when it is just a Page.NewChannel.
     // There we want tnuro issue the new-channel change.
+    {
     val pageWithPrev = page.fold((Page.empty, Page.empty)) { case ((_, prev), curr) => (prev, curr) }
     val userAndPage = Rx {
       (pageWithPrev(), user())
     }
 
+    var isFirstGraphRequest = true
     userAndPage.toRawObservable
       .switchMap { case ((prevPage, page), user) =>
-        val observable = if (prevPage != page) page match {
+        val observable: Observable[Graph] = if (view.now == View.NewChannel && !isFirstGraphRequest) {
+          Observable.empty
+        } else if (prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds) =>
             isLoading() = true
             Observable.fromFuture(Client.api.getGraph(page))
@@ -97,10 +101,13 @@ object GlobalStateFactory {
           Observable.fromFuture(Client.api.getGraph(page))
         }
 
+        isFirstGraphRequest = false
+
         observable.map(ReplaceGraph.apply)
       }
         .doOnNext(_ => Task(isLoading() = false))
         .subscribe(eventProcessor.localEvents)
+    }
 
 
     // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
@@ -152,7 +159,7 @@ object GlobalStateFactory {
 
     DevOnly {
 
-//      rawGraph.debug((g: Graph) => s"rawGraph: ${g.toString}")
+     graph.debug((g: Graph) => s"graph: ${g.toString}")
 //      perspective.debug("perspective")
 //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
       //      focusedNodeId.debug("focusedNodeId")
