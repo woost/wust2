@@ -279,11 +279,14 @@ object Components {
       if(editMode.now) {
         val text = contentEditable.textContent
         val updatedNode = node.copy(data = NodeData.Markdown(text))
+
+        Var.set(
+          initialRender -> renderNodeData(updatedNode.data, maxLength),
+          editMode -> false
+        )
+
         val changes = GraphChanges.addNode(updatedNode)
         submit.onNext(changes)
-
-        initialRender() = renderNodeData(updatedNode.data, maxLength)
-        editMode() = false
       }
     }
 
