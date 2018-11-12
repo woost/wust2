@@ -90,7 +90,8 @@ object ListView {
                         val (doneNodeId, doneNodeAddChange) = doneNode match {
                           case None                   =>
                             val freshDoneNode = Node.MarkdownTask("Done")
-                            (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, page.parentIds))
+                            val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
+                            (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, page.parentIds) merge expand)
                           case Some(existingDoneNode) => (existingDoneNode.id, GraphChanges.empty)
                         }
                         val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, state.graph.now.parents(node.id), doneNodeId :: Nil)
