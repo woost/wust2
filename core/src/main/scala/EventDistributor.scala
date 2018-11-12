@@ -115,7 +115,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val parallelRawPushMeta = rawPushMeta.par
     parallelRawPushMeta.tasksupport = new ExecutionContextTaskSupport(ec)
 
-    val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelRawPushMeta.map { case RawPushData(subscription, notifiedNodes) =>
+    val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelRawPushMeta.map { case RawPushData(subscription, notifiedNodes) if subscription.userId != author.id =>
       notifiedNodes.map { nodeId =>
         val node = addNodesByNodeId(nodeId)
         val parentNode = parentNodeByChildId.get(nodeId)
