@@ -86,6 +86,7 @@ object ChatView {
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
+              minWidth := "0", // fixes overflow-wrap for parent preview
               backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
               div(
                 Styles.flex,
