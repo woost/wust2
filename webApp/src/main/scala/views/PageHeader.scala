@@ -74,7 +74,7 @@ object PageHeader {
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     val isSpecialNode = Rx{
-      //TODO we should use the permission system here and have readonly permission for e.g. feedback
+      //TODO we should use the permission system here
       channel.id == state.user().id
     }
     val isBookmarked = Rx {
@@ -526,8 +526,9 @@ object PageHeader {
   //TODO move menu to own file, makes up for a lot of code in this file
   //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazy?
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+    val canWrite: Boolean = !isOwnUser && channel.id != FeedbackForm.feedbackNodeId // TODO: actually check readonly permissions here
     val permissionItem:VDomModifier = channel match {
-        case channel: Node.Content =>
+        case channel: Node.Content if canWrite =>
           div(
             cls := "item",
             i(
@@ -587,7 +588,12 @@ object PageHeader {
         }
       ))
 
-    val items:List[VDomModifier] = List(searchButton(state, channel), addMemberButton(state, channel), shareButton(state, channel), permissionItem, leaveItem, deleteItem)
+
+    val addMemberItem = canWrite.ifTrue[VDomModifier](addMemberButton(state, channel))
+    val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
+    val searchItem = searchButton(state, channel)
+
+    val items:List[VDomModifier] = List(searchItem, addMemberItem, shareItem, permissionItem, leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
