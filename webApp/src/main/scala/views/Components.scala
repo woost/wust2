@@ -6,10 +6,11 @@ import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
-import outwatch.dom._
+import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import semanticUi.{JQuerySelection, SearchOptions, SearchSourceEntry}
 import wust.css.Styles
 import wust.graph._
 import wust.ids.{NodeData, _}
@@ -23,6 +24,9 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 
+import scala.scalajs.js
+import scala.collection.breakOut
+
 // This file contains woost-related UI helpers.
 
 object Placeholders {
@@ -32,6 +36,7 @@ object Placeholders {
 
 object Components {
   private val implicitUserName = "Unregistered User"
+
 
   def displayUserName(user: NodeData.User) = {
     if(user.isImplicit) implicitUserName else user.name
@@ -388,4 +393,51 @@ object Components {
         }
       )
     }}
+
+
+  def searchInGraph(graph: Rx[Graph], filter: Node.Content => Boolean = _ => true): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    var elem: JQuerySelection = null
+    div(
+      keyed,
+      cls := "ui category search",
+      div(
+        cls := "ui icon input",
+        input(
+          cls := "prompt",
+          tpe := "text",
+          placeholder := "Search nodes...",
+
+          onFocus.foreach { _ =>
+            elem.search(arg = new SearchOptions {
+              `type` = "category"
+
+              source = graph.now.nodes.collect { case node: Node.Content if filter(node) =>
+                val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
+                val cat: js.UndefOr[String] = if (parents.isEmpty) js.undefined else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+                new SearchSourceEntry {
+                  title = node.str
+                  category = cat
+                  data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
+                }
+              }(breakOut): js.Array[SearchSourceEntry]
+
+              searchFields = js.Array("title")
+
+              onSelect = { (selected, results) =>
+                val id = selected.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
+                sink.onNext(id)
+                true
+              }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
+            })
+          }
+        ),
+        i(cls := "search icon"),
+      ),
+      div(cls := "results"),
+
+      onDomMount.asJquery.foreach { e =>
+        elem = e
+      }
+    )
+  })
 }
