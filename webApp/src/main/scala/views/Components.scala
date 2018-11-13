@@ -440,4 +440,67 @@ object Components {
       }
     )
   })
+
+  def createModal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
+    div(
+      keyed,
+      cls := "ui modal",
+      i(cls := "close icon"),
+      div(
+        cls := "header",
+        header
+      ),
+      div(
+        cls := "content",
+        div(
+          cls := "ui medium",
+          div(
+            cls := "description",
+            description
+          )
+        ),
+        actions.map { actions =>
+          div(
+            cls := "actions",
+            actions
+          )
+        }
+      ),
+    )
+  }
+
+  def createTaskButton(state: GlobalState): VDomModifier = IO {
+    var elem: JQuerySelection = null
+
+    val header = "Create a task"
+    val description = VDomModifier(
+      div(cls := "ui header", "We have auto-chosen the parent of this task"),
+      div("bla")
+    )
+    val actions = VDomModifier(
+      div(
+        cls := "ui black deny button",
+        "Cancel"
+      ),
+      div(
+        cls := "ui positive right labeled icon button",
+        "Create",
+        i(cls := "checkmark icon")
+      )
+    )
+
+    div(
+      button(
+        cls := "ui fluid primary button",
+        "Create Task",
+        display.block,
+        margin := "auto",
+        marginTop := "5px",
+        onClick.mapTo(elem).foreach(_.modal("show"))
+      ),
+
+      // TODO: better way to expose element from modal?
+      createModal(header, description, Some(actions))(onDomMount.asJquery.foreach(elem = _))
+    )
+  }
 }
