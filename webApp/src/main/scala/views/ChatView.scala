@@ -101,14 +101,15 @@ object ChatView {
         )
       },
       {
-        def replyNodes: Set[NodeId] = {
-          if(currentReply.now.nonEmpty) currentReply.now
-          else state.page.now.parentIdSet
-        }
-
         val bgColor = Rx{ NodeColor.pageHue(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
 
         def submitAction(str:String) = {
+
+          val replyNodes: Set[NodeId] = {
+            if(currentReply.now.nonEmpty) currentReply.now
+            else state.page.now.parentIdSet
+          }
+
           currentReply() = Set.empty[NodeId]
           scrollHandler.scrollToBottomInAnimationFrame()
           // we treat new chat messages as noise per default, so we set a future deletion date
