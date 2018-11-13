@@ -7,7 +7,7 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ObservableWithInitialValue, ConditionalVNode, Handler, Key, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
+import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, ManagedSubscriptions, ObservableWithInitialValue, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
 import rx._
 import wust.util.Empty
@@ -100,6 +100,13 @@ package object outwatchHelpers extends KeyHash {
     def asJquery: EmitterBuilder[semanticUi.JQuerySelection, R] = builder.map { elem =>
       import semanticUi.JQuery._
       $(elem.asInstanceOf[dom.html.Element])
+    }
+  }
+
+  implicit class ManagedElementsWithJquery(val builder: outwatch.dom.managedElement.type) extends AnyVal {
+    def asJquery(subscription: semanticUi.JQuerySelection => Cancelable): VDomModifier = builder { elem =>
+      import semanticUi.JQuery._
+      subscription($(elem.asInstanceOf[dom.html.Element]))
     }
   }
 
