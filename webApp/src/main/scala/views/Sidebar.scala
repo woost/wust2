@@ -146,9 +146,10 @@ object Sidebar {
       cls := "channelIcons",
       Rx {
         val allChannels = state.channels()
+        val user = state.user()
         val page = state.page()
         VDomModifier(
-          allChannels.map { node =>
+          (user.toNode +: allChannels).map { node =>
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
