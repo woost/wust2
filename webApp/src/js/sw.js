@@ -246,13 +246,14 @@ self.addEventListener('notificationclick', e => {
 
         //which ones are the pwa ones, which ones live in the browser?
         self.clients.matchAll({
-            type: 'window'
+            type: 'window',
+            includeUncontrolled: true
         }).then(clients => {
 
             let notifi = e.notification.data;
             let nodeId = notifi.nodeId;
             let targetId = notifi.targetId;
-            let baseLocation = 'https://staging.woost.space/'
+            let baseLocation = 'https://staging.woost.space/';
 
             for (const index in clients) {
                 let client = clients[index];
@@ -260,19 +261,19 @@ self.addEventListener('notificationclick', e => {
                 let url = client.url;
 
                 if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
-                    return client.focus() && client.navigate(url);
+                    return client.focus().then(function (client) { client.navigate(url); });
                 } else if (url.indexOf(baseLocation) !== -1) {
                     let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
-                    return client.focus() && client.navigate(newLocation);
+                    return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             if (clients.openWindow)
-                return clients.openWindow(baseLocation + '#view=chat&page=' + targetId);
+                return clients.openWindow(baseLocation + '#view=thread&page=' + targetId).then(function (client) { client.focus(); });
             else {
-                console.log("push with NOOP!");
+                log("push with NOOP!");
                 return;
             }
 
