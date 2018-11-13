@@ -277,7 +277,14 @@ object SharedViewElements {
       div(
         cls := "chatmsg-date",
         Styles.flexStatic,
-        dateFns.formatDistance(new js.Date(created), new js.Date), " ago",
+        {
+          val createdDate = new js.Date(created)
+          if(dateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
+            dateFns.format(new js.Date(created), "Pp") // localized date and time
+          else
+            dateFns.format(new js.Date(created), "p") // localized only time
+        }
+//        dateFns.formatDistance(new js.Date(created), new js.Date), " ago",
       )
     )
   }

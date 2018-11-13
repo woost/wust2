@@ -2691,10 +2691,10 @@ date-fns@^1.27.2:
   resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-1.29.0.tgz#12e609cdcb935127311d04d33334e2960a2a54e6"
   integrity sha512-lbTXWZ6M20cWH8N9S6afb0SBm6tMk+uUg6z3MqHPKE9atmsY3kJkTm8vKe93izJ2B2+q5MV990sM2CHgtAZaOw==
 
-date-fns@v2.0.0-alpha.16:
-  version "2.0.0-alpha.16"
-  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.0.0-alpha.16.tgz#d249a6c9b799252652fb9e3f25460eaf9de86ac7"
-  integrity sha1-0kmmybeZJSZS+54/JUYOr53oasc=
+date-fns@v2.0.0-alpha.23:
+  version "2.0.0-alpha.23"
+  resolved "https://registry.yarnpkg.com/date-fns/-/date-fns-2.0.0-alpha.23.tgz#d3384f4628de78a4819fb3292286c8fa77cb175d"
+  integrity sha512-KeTgG5mbk+o9UbMXqxOvW+G46mWOWqJdjQDOP8t82E6Q28oH2ObcBvdRQbNFR55cun4QUg359PeE/KDBWJlk9g==
 
 date-now@^0.1.4:
   version "0.1.4"
