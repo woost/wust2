@@ -110,7 +110,7 @@ package object outwatchHelpers extends KeyHash {
     }
   }
 
-  implicit class RichVNode(val vNode: BasicVNode) {
+  implicit class RichVNode(val vNode: BasicVNode) extends AnyVal {
     def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key) {
       val ctx = createManualOwner()
       VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
