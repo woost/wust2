@@ -170,7 +170,10 @@ self.addEventListener('activate', e => {
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
+
     log("ServiceWorker received push notification", e);
+    console.log(e);
+
     if(Notification.permission != "granted") {
         log("ServiceWorker received but notifications are not granted, ignoring");
         return;
@@ -178,13 +181,15 @@ self.addEventListener('push', e => {
 
     e.waitUntil(
         self.clients.matchAll({
-            type: 'window'
+            type: 'window',
+            includeUncontrolled: true
         }).then(clients => {
 
             if (focusedClient(clients)) {
                 log("focused client => ignoring push");
                 return;
             } else {
+                log("no focused client found");
 
                 if (e.data) {
                     let data = e.data.json();
@@ -213,7 +218,7 @@ self.addEventListener('push', e => {
                     };
 
                     return registration.getNotifications().then(notifications => {
-                        let count = 0;
+                        let count = 1;
 
                         for(let i = 0; i < notifications.length; i++) {
                             if (notifications[i].data &&
@@ -224,9 +229,9 @@ self.addEventListener('push', e => {
                             }
                         }
 
-                        console.log(`number of notifications = ${count}`);
+                        log(`number of notifications = ${count}`);
 
-                        let title = (count > 0) ? `${channel} (${count} new messages)` : channel;
+                        let title = (count > 1) ? `${channel} (${count} new messages)` : channel;
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
@@ -240,8 +245,11 @@ self.addEventListener('push', e => {
 });
 
 self.addEventListener('notificationclick', e => {
-    e.notification.close();
 
+    log("ServiceWorker received notification click");
+    console.log(e);
+
+    e.notification.close();
     e.waitUntil(
 
         //which ones are the pwa ones, which ones live in the browser?
@@ -261,8 +269,11 @@ self.addEventListener('notificationclick', e => {
                 let url = client.url;
 
                 if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
+                    log("Found window that is already including node");
+
                     return client.focus().then(function (client) { client.navigate(url); });
                 } else if (url.indexOf(baseLocation) !== -1) {
+                    log("Found woost window => opening node");
                     let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
@@ -270,10 +281,12 @@ self.addEventListener('notificationclick', e => {
                 }
             }
 
+            log("no matching client found. Opening new window");
+
             if (clients.openWindow)
                 return clients.openWindow(baseLocation + '/#view=thread&page=' + targetId).then(function (client) { client.focus(); });
             else {
-                log("push with NOOP!");
+                log("no clients to open => push with NOOP!");
                 return;
             }
 
