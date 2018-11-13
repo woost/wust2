@@ -343,7 +343,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               parentsIdxBuilder.add(sourceIdx, targetIdx)
               parentEdgeIdxBuilder.add(sourceIdx, edgeIdx)
               childrenIdxBuilder.add(targetIdx, sourceIdx)
-              if(childIsMessage) messageChildrenIdxBuilder.add(targetIdx, sourceIdx)
               deletedParentsIdxBuilder.add(sourceIdx, targetIdx)
             } //TODO everything deleted further in the past should already be filtered in backend
         }
