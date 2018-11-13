@@ -253,7 +253,7 @@ self.addEventListener('notificationclick', e => {
             let notifi = e.notification.data;
             let nodeId = notifi.nodeId;
             let targetId = notifi.targetId;
-            let baseLocation = 'https://staging.woost.space/';
+            let baseLocation = 'https://staging.woost.space';
 
             for (const index in clients) {
                 let client = clients[index];
@@ -271,7 +271,7 @@ self.addEventListener('notificationclick', e => {
             }
 
             if (clients.openWindow)
-                return clients.openWindow(baseLocation + '#view=thread&page=' + targetId).then(function (client) { client.focus(); });
+                return clients.openWindow(baseLocation + '/#view=thread&page=' + targetId).then(function (client) { client.focus(); });
             else {
                 log("push with NOOP!");
                 return;
