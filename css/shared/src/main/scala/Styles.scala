@@ -657,6 +657,11 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(transparent),
   )
 
+  ".kanban-uncategorized-title" - (
+    padding(5 px),
+    color(c"rgba(0, 0, 0, 0.62)"),
+  )
+
   ".kanbannewcolumnareacontent" - (
     width(kanbanColumnWidth),
     paddingTop(35 px),
