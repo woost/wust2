@@ -460,27 +460,6 @@ object SharedViewElements {
     }
   }
 
-  def calculateMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
-    if(messages.isEmpty) return Array[Array[Int]]()
-
-    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
-    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
-    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
-    messages.foreach { message =>
-      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-
-      if(author != lastAuthor && lastAuthor != -2) {
-        groupsBuilder += currentGroupBuilder.result()
-        currentGroupBuilder.clear()
-      }
-
-      currentGroupBuilder += message
-      lastAuthor = author
-    }
-    groupsBuilder += currentGroupBuilder.result()
-    groupsBuilder.result()
-  }
-
   def starActionButton[T <: SelectedNodeBase](state: GlobalState, selected: List[T], selectedNodes: Var[Set[T]], anySelectedNodeIsDeleted: Rx[Boolean], anySelectedNodeIsDeletedInFuture: Rx[Boolean])(implicit ctx:Ctx.Owner): BasicVNode = {
     div(
       Rx {

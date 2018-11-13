@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+import scala.collection.{breakOut, mutable}
 import monix.execution.Ack
 import monix.execution.Ack.Continue
 import monix.reactive.subjects.PublishSubject
@@ -105,7 +106,7 @@ object ThreadView {
 
   private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx:Ctx.Data): VDomModifier = {
     val graph = state.graph()
-    val groups = calculateMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
+    val groups = calculateThreadMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
     VDomModifier(
       // large padding-top to have space for selectedNodes bar
       (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
@@ -340,6 +341,28 @@ object ThreadView {
     sortByCreated(nodes, graph)
     nodes
   }
+
+  def calculateThreadMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
+    if(messages.isEmpty) return Array[Array[Int]]()
+
+    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
+    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
+    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
+    messages.foreach { message =>
+      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
+
+      if(author != lastAuthor && lastAuthor != -2) {
+        groupsBuilder += currentGroupBuilder.result()
+        currentGroupBuilder.clear()
+      }
+
+      currentGroupBuilder += message
+      lastAuthor = author
+    }
+    groupsBuilder += currentGroupBuilder.result()
+    groupsBuilder.result()
+  }
+
 
   //TODO share code with threadview?
   private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
