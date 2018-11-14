@@ -104,6 +104,7 @@ object Sidebar {
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
         draggableAs(DragItem.Channel(node.id)),
+        cls := "draghandle",
         dragTarget(DragItem.Channel(node.id)),
       ),
     }
@@ -153,7 +154,7 @@ object Sidebar {
             channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              draggableAs(DragItem.Channel(node.id)),
+              draggableAs(DragItem.DisableDrag),
               dragTarget(DragItem.Channel(node.id)),
               cls := "node drag-feedback"
             )
