@@ -258,37 +258,32 @@ self.addEventListener('notificationclick', e => {
             includeUncontrolled: true
         }).then(clients => {
 
-            let notifi = e.notification.data;
-            let nodeId = notifi.nodeId;
-            let targetId = notifi.targetId;
+            let ndata = e.notification.data;
+            let messageId = ndata.nodeId;
+            let channelId = ndata.targetId;
             let baseLocation = 'https://staging.woost.space';
 
             for (const index in clients) {
-                let client = clients[index];
 
+                let client = clients[index];
                 let url = client.url;
 
-                if (url.indexOf(targetId) !== -1 || url.indexOf(nodeId) !== -1) {
+                if (url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node");
 
                     return client.focus().then(function (client) { client.navigate(url); });
                 } else if (url.indexOf(baseLocation) !== -1) {
                     log("Found woost window => opening node");
-                    let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    let newLocation = (url.search(exp) !== -1) ? url.replace(exp, targetId) : url;
 
+                    let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
+                    let newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : url;
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             log("no matching client found. Opening new window");
 
-            if (clients.openWindow)
-                return clients.openWindow(baseLocation + '/#view=thread&page=' + targetId).then(function (client) { client.focus(); });
-            else {
-                log("no clients to open => push with NOOP!");
-                return;
-            }
+            return clients.openWindow(baseLocation + '/#view=chat&page=' + channelId).then(function (client) { client.focus(); });
 
         })
     );
