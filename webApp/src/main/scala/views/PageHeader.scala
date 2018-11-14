@@ -50,10 +50,13 @@ object PageHeader {
   }
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val channelTitle = editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
-      cls := "pageheader-channeltitle",
-      onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-    )
+    val channelTitle = (if(channel.id == FeedbackForm.feedbackNodeId)
+                          renderNodeData(channel.data)
+                        else {
+                          editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+                            onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+                          )
+                        })(cls := "pageheader-channeltitle")
 
     div(
       padding := "5px",
