@@ -36,9 +36,10 @@ import scala.util.{Failure, Success}
 
 
 object PageHeader {
-  def apply(state: GlobalState): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     import state._
-    div.staticRx(keyValue)(implicit ctx =>
+    //TODO thunk: div.staticRx(keyValue)(implicit ctx =>
+    div(keyed)(
       VDomModifier(
         cls := "pageheader",
         Rx {
@@ -482,8 +483,9 @@ object PageHeader {
     }
   }
 
-  private def notifyControl(state: GlobalState, channel: Node): VNode = {
-    div.thunkRx(keyValue)(channel.id) { implicit ctx =>
+  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    // TODO thunk: div.thunkRx(keyValue)(channel.id) { implicit ctx =>
+    div(keyed) {
       Rx {
         val graph = state.graph()
         val user = state.user()
