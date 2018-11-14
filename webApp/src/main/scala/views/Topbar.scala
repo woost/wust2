@@ -27,6 +27,7 @@ object Topbar {
         header(state).apply(marginRight := "10px"),
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
+
         FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
         Rx {
           (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](

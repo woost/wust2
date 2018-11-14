@@ -22,7 +22,7 @@ trait JQuerySelection extends js.Object {
   def modal(options: ModalOptions): String = js.native
 
   def search(arg: SearchOptions):Unit = js.native
-  def search(arg: String): String = js.native
+  def search(arg: String, arg1: Any = ???, arg2: Any = ???): String = js.native
 }
 
 trait DimmerOptions extends js.Object {
@@ -37,6 +37,9 @@ trait ModalOptions extends js.Object {
 trait SearchOptions extends js.Object {
   var `type`: js.UndefOr[String] = js.undefined
   var source: js.UndefOr[js.Array[SearchSourceEntry]] = js.undefined
+  var cache: js.UndefOr[Boolean] = js.undefined
+  var searchOnFocus: js.UndefOr[Boolean] = js.undefined
+  var minCharacters: js.UndefOr[Int] = js.undefined
   var searchFields: js.UndefOr[js.Array[String]] = js.undefined
   var fullTextSearch: js.UndefOr[Boolean] = js.undefined
   var onSelect: js.UndefOr[js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]] = js.undefined

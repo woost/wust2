@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
-import monix.execution.Cancelable
+import monix.execution.{Ack, Cancelable}
 import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.document
@@ -122,28 +122,32 @@ object Components {
     renderNodeTag(state, tag, editableNode(state, tag, editMode, submit, maxLength))
   }
 
-  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId): VNode = {
+  def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit): VNode = {
     nodeTag(state, tag)(
       span(
         "×",
         cls := "actionbutton",
         onClick.stopPropagation foreach {
-          // when removing last parent, fall one level lower into the still existing grandparents
-          //TODO: move to GraphChange factory
-          // val removingLastParent = graph.parents(taggedNodeId).size == 1
-          // val addedGrandParents: scala.collection.Set[Edge] =
-          //   if (removingLastParent)
-          //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
-          //   else
-          //     Set.empty
-
-          state.eventProcessor.changes.onNext(
-            GraphChanges.delete(taggedNodeId, Set(tag.id))
-          )
-          ()
+          action()
         },
       )
     )
+  }
+
+  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId): VNode = {
+    removableNodeTagCustom(state, tag, () => {
+      // when removing last parent, fall one level lower into the still existing grandparents
+      //TODO: move to GraphChange factory
+      // val removingLastParent = graph.parents(taggedNodeId).size == 1
+      // val addedGrandParents: scala.collection.Set[Edge] =
+      //   if (removingLastParent)
+      //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
+      //   else
+      //     Set.empty
+      state.eventProcessor.changes.onNext(
+        GraphChanges.delete(taggedNodeId, Set(tag.id))
+      )
+    })
   }
 
   def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
@@ -395,7 +399,7 @@ object Components {
     }}
 
 
-  def searchInGraph(graph: Rx[Graph], filter: Node.Content => Boolean = _ => true): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+  def searchInGraph(graph: Rx[Graph], placeholder: String, filter: Node.Content => Boolean = _ => true): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
     var elem: JQuerySelection = null
     div(
       keyed,
@@ -405,15 +409,17 @@ object Components {
         input(
           cls := "prompt",
           tpe := "text",
-          placeholder := "Search nodes...",
+          dsl.placeholder := placeholder,
 
           onFocus.foreach { _ =>
             elem.search(arg = new SearchOptions {
               `type` = "category"
 
+              cache = false
+
               source = graph.now.nodes.collect { case node: Node.Content if filter(node) =>
                 val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
-                val cat: js.UndefOr[String] = if (parents.isEmpty) js.undefined else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+                val cat = if (parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
                 new SearchSourceEntry {
                   title = node.str
                   category = cat
@@ -426,6 +432,7 @@ object Components {
               onSelect = { (selected, results) =>
                 val id = selected.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
                 sink.onNext(id)
+                elem.search("set value", "")
                 true
               }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
             })
@@ -441,7 +448,7 @@ object Components {
     )
   })
 
-  def createModal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
+  def modalComponent(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
     div(
       keyed,
       cls := "ui modal",
@@ -461,6 +468,7 @@ object Components {
         ),
         actions.map { actions =>
           div(
+            marginLeft := "auto",
             cls := "actions",
             actions
           )
@@ -469,24 +477,45 @@ object Components {
     )
   }
 
-  def createTaskButton(state: GlobalState): VDomModifier = IO {
-    var elem: JQuerySelection = null
+  def createTaskButton(state: GlobalState, selectedNodes: Rx[Seq[NodeId]] = Var(Nil))(implicit ctx: Ctx.Owner): VDomModifier = IO {
+    val selectedParents = Var[List[NodeId]](state.page.now.parentIds.toList)
+    var modalElement: JQuerySelection = null
+    var searchElement: JQuerySelection = null
+
+    def newMessage(msg: String) = {
+      state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownTask(msg), selectedParents.now))
+    }
 
     val header = "Create a task"
     val description = VDomModifier(
-      div(cls := "ui header", "We have auto-chosen the parent of this task"),
-      div("bla")
-    )
-    val actions = VDomModifier(
       div(
-        cls := "ui black deny button",
-        "Cancel"
+        Styles.flex,
+        flexDirection.row,
+        alignItems.center,
+        justifyContent.flexEnd,
+        padding := "5px",
+
+        b("Tag: "),
+        div(
+          paddingLeft := "5px",
+          Rx {
+            val g = state.graph()
+            selectedParents().map(tagId =>
+              g.nodesByIdGet(tagId).map { tag =>
+                removableNodeTagCustom(state, tag, () => selectedParents.update(list => list.filter(_ != tag.id)))
+              }
+            )
+          }
+        ),
+        div(
+          paddingLeft := "5px",
+          searchInGraph(state.graph, placeholder = "Add tag", filter = n => !selectedParents.now.contains(n.id)).foreach { nodeId =>
+            selectedParents() = nodeId :: selectedParents.now
+          },
+        )
       ),
-      div(
-        cls := "ui positive right labeled icon button",
-        "Create",
-        i(cls := "checkmark icon")
-      )
+
+      SharedViewElements.inputField(state, submitAction = newMessage, autoFocus = true)
     )
 
     div(
@@ -496,11 +525,11 @@ object Components {
         display.block,
         margin := "auto",
         marginTop := "5px",
-        onClick.mapTo(elem).foreach(_.modal("show"))
+        onClick.mapTo(modalElement).foreach(_.modal("show"))
       ),
 
       // TODO: better way to expose element from modal?
-      createModal(header, description, Some(actions))(onDomMount.asJquery.foreach(elem = _))
+      modalComponent(header, description)(onDomMount.asJquery.foreach(modalElement = _))
     )
   }
 }
