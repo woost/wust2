@@ -381,8 +381,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val parentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
+  val notDeletedParentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
+    if(idx != -1) notDeletedParentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
+  }
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Boolean = expandedNodes(userId).contains(nodeId)
   @inline def parents(nodeId: NodeId): collection.Set[NodeId] = parentsByIndex(idToIdx(nodeId))
+  @inline def notDeletedParents(nodeId: NodeId): collection.Set[NodeId] = notDeletedParentsByIndex(idToIdx(nodeId))
   val childrenByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
@@ -909,9 +913,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
 
     // NodeId -> distance
-    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
+    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](notDeletedParents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
-    val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, parents).toSet }
+    val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, notDeletedParents).toSet }
     type GroupIdx = Int
     type Distance = Int
     val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =
