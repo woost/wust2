@@ -131,10 +131,10 @@ function subscribeWebPushAndPersist() {
     });
 }
 
-function focusedClient(clients) {
+function focusedClient(windowClients) {
     let clientIsFocused = false;
-    for (let i = 0; i < clients.length; i++) {
-        const windowClient = clients[i];
+    for (let i = 0; i < windowClients.length; i++) {
+        const windowClient = windowClients[i];
         if (windowClient.focused) {
             clientIsFocused = true;
             break;
@@ -183,21 +183,21 @@ self.addEventListener('push', e => {
         self.clients.matchAll({
             type: 'window',
             includeUncontrolled: true
-        }).then(clients => {
+        }).then(windowClients => {
 
-            if (focusedClient(clients)) {
+            if (focusedClient(windowClients)) {
                 log("focused client => ignoring push");
                 return;
             } else {
                 log("no focused client found");
 
                 if (e.data) {
-                    let data = e.data.json();
-                    let nodeId = data.nodeId;
-                    let targetId = data.parentId ? data.parentId : nodeId;
-                    let channel = data.parentContent ? `${data.parentContent}` : 'Woost';
-                    let user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
-                    let content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
+                    const data = e.data.json();
+                    const nodeId = data.nodeId;
+                    const targetId = data.parentId ? data.parentId : nodeId;
+                    const channel = data.parentContent ? `${data.parentContent}` : 'Woost';
+                    const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
+                    const content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
                     let options = {
                         body: content,
@@ -231,7 +231,7 @@ self.addEventListener('push', e => {
 
                         log(`number of notifications = ${count}`);
 
-                        let title = (count > 1) ? `${channel} (${count} new messages)` : channel;
+                        const title = (count > 1) ? `${channel} (${count} new messages)` : channel;
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
@@ -256,17 +256,17 @@ self.addEventListener('notificationclick', e => {
         self.clients.matchAll({
             type: 'window',
             includeUncontrolled: true
-        }).then(clients => {
+        }).then(windowClients => {
 
-            let ndata = e.notification.data;
-            let messageId = ndata.nodeId;
-            let channelId = ndata.targetId;
-            let baseLocation = 'https://staging.woost.space';
+            const ndata = e.notification.data;
+            const messageId = ndata.nodeId;
+            const channelId = ndata.targetId;
+            const baseLocation = "https://staging.woost.space";
 
-            for (const index in clients) {
+            for (const index in windowClients) {
 
-                let client = clients[index];
-                let url = client.url;
+                const client = windowClients[index];
+                const url = client.url;
 
                 if (url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node");
@@ -275,15 +275,15 @@ self.addEventListener('notificationclick', e => {
                 } else if (url.indexOf(baseLocation) !== -1) {
                     log("Found woost window => opening node");
 
-                    let exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    let newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : (baseLocation + '/#view=chat&page=' + channelId);
+                    const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
+                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : (baseLocation + "/#view=chat&page=" + channelId);
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             log("no matching client found. Opening new window");
 
-            return clients.openWindow(baseLocation + '/#view=chat&page=' + channelId).then(function (client) { client.focus(); });
+            return self.clients.openWindow(baseLocation + "/#view=chat&page=" + channelId).then(function (client) { client.focus(); });
 
         })
     );
