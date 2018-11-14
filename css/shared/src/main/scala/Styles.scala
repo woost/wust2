@@ -1092,17 +1092,11 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.center,
   )
 
-  ".viewbar" - (
-    height(100 %%),
-  )
-
   ".viewbar label" - (
     height(100 %%),
-    paddingTop(2 px),
-    paddingLeft(5 px),
-    paddingRight(5 px),
-    marginTop(2 px),
-    marginBottom(-2 px),
+
+    padding(2 px, 5 px, 5 px, 5 px),
+
     border(1 px, solid, transparent),
     borderRadius(2 px),
     &("svg") - (
@@ -1111,11 +1105,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".viewbar .checked + label" - (
-    // backgroundColor(rgb(48, 99, 69)),
     color(c"#111111"),
-    border(1 px, solid, white),
-    borderTop(2 px, solid, white),
-    borderBottom(1 px, solid, transparent)
   )
 
   ".emoji-outer" - (

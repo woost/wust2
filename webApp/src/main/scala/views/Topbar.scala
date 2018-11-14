@@ -27,11 +27,6 @@ object Topbar {
         header(state).apply(marginRight := "10px"),
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
-        Rx {
-          state.view().isContent.ifTrue[VDomModifier](
-            viewSwitcher(state).apply(marginLeft.auto, marginRight.auto)
-          )
-        },
         FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
         Rx {
           (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
@@ -174,56 +169,6 @@ object Topbar {
         }
       }
     )
-  }
-
-  def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    def viewId(view:View) = s"viewswitcher_${view.viewKey}"
-    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
-      label(`for` := viewId(targetView), icon, padding := "7px", onClick(targetView) --> state.view, cursor.pointer,
-        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
-          color := "#111111",
-          //borderTop(2 px, solid, pageStyle.bgLightColor)
-          backgroundColor := pageStyle.bgColor
-        ))
-      )
-    }
-
-    def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
-      input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
-        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
-          onInput foreach {
-          Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
-        }
-      )
-    }
-
-    div(
-      cls := "viewbar",
-      Styles.flex,
-      flexDirection.row,
-      justifyContent.spaceBetween,
-      alignItems.center,
-
-      Rx {
-        val currentView = state.view()
-        val pageStyle = state.pageStyle()
-        Seq(
-          // MkInput(currentView, pageStyle, View.Magic),
-          // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
-          MkInput(currentView, pageStyle, View.Chat),
-          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
-          MkInput(currentView, pageStyle, View.Thread),
-          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
-          MkInput(currentView, pageStyle, View.Kanban),
-          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
-          MkInput(currentView, pageStyle, View.ListV),
-          MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
-          MkInput(currentView, pageStyle, View.Graph),
-          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
-        )
-      }
-    )
-
   }
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =

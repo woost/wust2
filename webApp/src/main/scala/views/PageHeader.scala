@@ -26,7 +26,7 @@ import wust.webApp.{Client, Icons, views}
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
-import wust.webApp.state.{GlobalState, ScreenSize, ViewConfig}
+import wust.webApp.state._
 import wust.webApp.views.Components._
 
 import scala.concurrent.Future
@@ -43,7 +43,8 @@ object PageHeader {
         cls := "pageheader",
         Rx {
           pageParentNodes().map { channel => channelRow(state, channel) }
-        }
+        },
+        viewSwitcher(state),
       )
     )
   }
@@ -610,6 +611,56 @@ object PageHeader {
       onDomMount.asJquery.foreach(_.dropdown("hide")),
     )
   }
+
+  private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    def viewId(view:View) = s"viewswitcher_${view.viewKey}"
+    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
+      label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
+          backgroundColor := pageStyle.sidebarBgColor,
+          color := "white",
+        ))
+      )
+    }
+
+    def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
+      input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
+        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
+        onInput foreach {
+          Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
+        }
+      )
+    }
+
+    div(
+      cls := "viewbar",
+      Styles.flex,
+      flexDirection.row,
+      justifyContent.flexEnd,
+      alignItems.center,
+
+      Rx {
+        val currentView = state.view()
+        val pageStyle = state.pageStyle()
+        Seq(
+          // MkInput(currentView, pageStyle, View.Magic),
+          // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          MkInput(currentView, pageStyle, View.Chat),
+          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
+          MkInput(currentView, pageStyle, View.Thread),
+          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
+          MkInput(currentView, pageStyle, View.Kanban),
+          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
+          MkInput(currentView, pageStyle, View.ListV),
+          MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
+          MkInput(currentView, pageStyle, View.Graph),
+          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+        )
+      }
+    )
+
+  }
+
 }
 
 case class PermissionSelection(
