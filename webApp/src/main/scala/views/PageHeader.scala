@@ -656,8 +656,8 @@ object PageHeader {
           MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
           MkInput(currentView, pageStyle, View.ListV),
           MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
-          MkInput(currentView, pageStyle, View.Graph),
-          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+//          MkInput(currentView, pageStyle, View.Graph),
+//          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
       }
     )
