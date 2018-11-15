@@ -312,6 +312,7 @@ object Components {
         if(editMode()) VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
+          cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
           whiteSpace.preWrap, // preserve white space in Markdown code
           backgroundColor := "#FFF",
           color := "#000",
