@@ -38,6 +38,16 @@ object GlobalStateFactory {
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading)
     import state._
 
+    // clear selected nodes on view and page change
+    {
+      val clearTrigger = Rx {
+        view()
+        page()
+        ()
+      }
+      clearTrigger.foreach { _ => selectedNodes() = Nil }
+    }
+
     //TODO: better in rx/obs operations
     // store auth in localstore and indexed db
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
@@ -60,17 +70,6 @@ object GlobalStateFactory {
       }
     }
 
-    def newChannelTitle(state: GlobalState) = {
-  //    var today = new Date()
-  //    // January is 0!
-  //    val title =
-  //      s"Channel ${today.getMonth + 1}-${today.getDate} ${today.getHours()}:${today.getMinutes()}"
-  //    val sameNamePosts = state.channels.now.filter(_.data.str.startsWith(title))
-  //    if (sameNamePosts.isEmpty) title
-  //    else s"$title ${('A' - 1 + sameNamePosts.size).toChar}"
-      "New Channel"
-    }
-
     //TODO: better build up state from server events?
     // only adding a new channel would normally get a new graph. but we can
     // avoid this here and do nothing. Optimistic UI. We just integrate this
@@ -87,19 +86,17 @@ object GlobalStateFactory {
     var prevUser: Node.User = null
     userAndPage.toRawObservable
       .switchMap { case (page, user) =>
-        val observable: Observable[Graph] = if (view.now == View.NewChannel && !isFirstGraphRequest) {
-          Observable.empty
+        val observable: Observable[Graph] = if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
+          isLoading() = true
+          Observable.fromFuture(Client.api.getGraph(page))
         } else if (prevPage == null || prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds) =>
             isLoading() = true
-            Observable.fromFuture(Client.api.getGraph(page))
-          case Page.NewChannel(nodeId) =>
-            val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.id)
+            if (isFirstGraphRequest || view.now != View.NewChannel) Observable.fromFuture(Client.api.getGraph(page))
+            else Observable.empty
+          case Page.NewChanges(_, changes)            =>
             eventProcessor.changes.onNext(changes)
             Observable.empty
-        } else if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
-          isLoading() = true
-          Observable.fromFuture(Client.api.getGraph(page))
         } else {
           Observable.empty
         }

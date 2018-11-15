@@ -5,6 +5,7 @@ import fontAwesome._
 import googleAnalytics.Analytics
 import monix.execution.Ack
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
@@ -534,10 +535,26 @@ object SharedViewElements {
       onClick foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
 
-        val nextPage = Page.NewChannel(NodeId.fresh)
+        val nodeId = NodeId.fresh
+        val nextPage = Page.NewChanges(Some(nodeId), GraphChanges.newChannel(nodeId, state.user.now.id))
         if (state.view.now.isContent) state.page() = nextPage
         else state.viewConfig.update(_.copy(page = nextPage, view = view))
       }
+    )
+  }
+
+  def createNewButton(state: GlobalState, label: String = "New", defaultView: View = View.default, addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+    val show = PublishSubject[Boolean]()
+
+    button(
+      cls := "ui tiny compact inverted button",
+      label,
+      onClick foreach { ev =>
+        ev.target.asInstanceOf[dom.html.Element].blur()
+        show.onNext(true)
+      },
+
+      CreateNewPrompt(state, show, defaultView, addToChannels, nodeRole)
     )
   }
 

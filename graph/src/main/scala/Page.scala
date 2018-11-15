@@ -14,8 +14,8 @@ sealed trait Page {
 }
 object Page {
   case class Selection(parentIds: Seq[NodeId], childrenIds: Seq[NodeId]) extends Page
-  case class NewChannel(nodeId: NodeId) extends Page {
-    override def parentIds = nodeId :: Nil
+  case class NewChanges(nodeId: Option[NodeId], extraChanges: GraphChanges) extends Page {
+    override def parentIds = nodeId.toList
     override def childrenIds = Nil
   }
 

@@ -1,12 +1,14 @@
 package wust.webApp.views
 
 import cats.effect.IO
-import monix.execution.{Ack, Cancelable}
+import fomanticui.{SearchOptions, SearchSourceEntry}
+import fontAwesome.{IconLookup, freeRegular}
+import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
-import outwatch.dom.{helpers, _}
+import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
@@ -24,8 +26,8 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
 
-import scala.scalajs.js
 import scala.collection.breakOut
+import scala.scalajs.js
 
 // This file contains woost-related UI helpers.
 
@@ -85,14 +87,14 @@ object Components {
     else renderFn
   }
 
-  private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier): VNode = {
+  private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier, pageOnClick: Boolean): VNode = {
     span(
       cls := "node tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
-      onClick foreach { e =>
+      if (pageOnClick) onClick foreach { e =>
         state.page() = Page(Seq(tag.id)); e.stopPropagation()
-      },
+      } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
@@ -113,17 +115,17 @@ object Components {
     )
   }
 
-  def nodeTag(state: GlobalState, tag: Node): VNode = {
-    val contentString = trimToMaxLength(tag.data.str, Some(20))
-    renderNodeTag(state, tag, contentString)
+  def nodeTag(state: GlobalState, tag: Node, pageOnClick: Boolean = true): VNode = {
+    val contentString = trimToMaxLength(tag.data.str, 20)
+    renderNodeTag(state, tag, contentString, pageOnClick)
   }
 
   def editableNodeTag(state: GlobalState, tag: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20))(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeTag(state, tag, editableNode(state, tag, editMode, submit, maxLength))
+    renderNodeTag(state, tag, editableNode(state, tag, editMode, submit, maxLength), pageOnClick = false)
   }
 
   def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit): VNode = {
-    nodeTag(state, tag)(
+    nodeTag(state, tag, pageOnClick = false)(
       span(
         "×",
         cls := "actionbutton",
@@ -400,7 +402,7 @@ object Components {
     }}
 
 
-  def searchInGraph(graph: Rx[Graph], placeholder: String, filter: Node.Content => Boolean = _ => true): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+  def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
     var elem: JQuerySelection = null
     div(
       keyed,
@@ -418,7 +420,7 @@ object Components {
 
               cache = false
 
-              source = graph.now.nodes.collect { case node: Node.Content if filter(node) =>
+              source = graph.now.nodes.collect { case node: Node if filter(node) =>
                 val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
                 val cat = if (parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
                 new SearchSourceEntry {
@@ -437,7 +439,9 @@ object Components {
                 true
               }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
             })
-          }
+          },
+
+          valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
         ),
         i(cls := "search icon"),
       ),
@@ -452,7 +456,7 @@ object Components {
   def modalComponent(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
     div(
       keyed,
-      cls := "ui modal",
+      cls := "ui basic modal",
       i(cls := "close icon"),
       div(
         cls := "header",
@@ -477,60 +481,5 @@ object Components {
       ),
     )
   }
-
-  def createTaskButton(state: GlobalState, selectedNodes: Rx[Seq[NodeId]] = Var(Nil))(implicit ctx: Ctx.Owner): VDomModifier = IO {
-    val selectedParents = Var[List[NodeId]](state.page.now.parentIds.toList)
-    var modalElement: JQuerySelection = null
-    var searchElement: JQuerySelection = null
-
-    def newMessage(msg: String) = {
-      state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownTask(msg), selectedParents.now))
-    }
-
-    val header = "Create a task"
-    val description = VDomModifier(
-      div(
-        Styles.flex,
-        flexDirection.row,
-        alignItems.center,
-        justifyContent.flexEnd,
-        padding := "5px",
-
-        b("Tag: "),
-        div(
-          paddingLeft := "5px",
-          Rx {
-            val g = state.graph()
-            selectedParents().map(tagId =>
-              g.nodesByIdGet(tagId).map { tag =>
-                removableNodeTagCustom(state, tag, () => selectedParents.update(list => list.filter(_ != tag.id)))
-              }
-            )
-          }
-        ),
-        div(
-          paddingLeft := "5px",
-          searchInGraph(state.graph, placeholder = "Add tag", filter = n => !selectedParents.now.contains(n.id)).foreach { nodeId =>
-            selectedParents() = nodeId :: selectedParents.now
-          },
-        )
-      ),
-
-      SharedViewElements.inputField(state, submitAction = newMessage, autoFocus = true)
-    )
-
-    div(
-      button(
-        cls := "ui fluid primary button",
-        "Create Task",
-        display.block,
-        margin := "auto",
-        marginTop := "5px",
-        onClick.mapTo(modalElement).foreach(_.modal("show"))
-      ),
-
-      // TODO: better way to expose element from modal?
-      modalComponent(header, description)(onDomMount.asJquery.foreach(modalElement = _))
-    )
-  }
 }
+

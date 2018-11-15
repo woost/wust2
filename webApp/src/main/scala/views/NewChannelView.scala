@@ -5,6 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
+import wust.ids.NodeRole
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.SharedViewElements._
@@ -23,13 +24,13 @@ object NewChannelView {
         div(
           marginBottom := "10%",
           textAlign.center,
-          newChannelButton(state, label = "+ New Chat", view = View.Chat)(padding := "20px", margin := "20px 40px")(
+          newChannelButton(state, label = "+ New Chat", view = View.Chat).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:newchannel", "newchat") }
           ),
-          newChannelButton(state, label = "+ New List", view = View.ListV)(padding := "20px", margin := "20px 40px")(
+          newChannelButton(state, label = "+ New List", view = View.ListV).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:newchannel", "newlist") }
           ),
-          newChannelButton(state, label = "+ New Kanban", view = View.Kanban)(padding := "20px", margin := "20px 40px")(
+          newChannelButton(state, label = "+ New Kanban", view = View.Kanban).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:newchannel", "newkanban") }
           ),
         )

@@ -1,0 +1,211 @@
+package wust.webApp.views
+
+import fontAwesome.{IconLookup, freeRegular, freeSolid}
+import jquery.JQuerySelection
+import outwatch.dom._
+import outwatch.dom.dsl._
+import rx._
+import wust.graph.{Edge, GraphChanges, Node, Page}
+import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.webApp.state.{GlobalState, View}
+import Components._
+import cats.effect.IO
+import colorado.{Color, RGB}
+import monix.execution.Ack
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
+import wust.css.Styles
+import wust.graph.Edge.Pinned
+import wust.sdk.{BaseColors, NodeColor}
+import wust.webApp.outwatchHelpers._
+import wust.util._
+
+import scala.concurrent.Future
+
+object CreateNewPrompt {
+  private sealed trait Error
+  private object Error {
+    case object MissingTag extends Error
+  }
+
+  def apply(state: GlobalState, show: Observable[Boolean], defaultView: View, defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
+    val parentNodes = Var[List[NodeId]](Nil)
+    val childNodes = Var[List[NodeId]](Nil)
+    val nodeRole = Var[NodeRole](defaultNodeRole)
+    val addToChannels = Var[Boolean](defaultAddToChannels)
+    val errorMessages = Var[List[Error]](Nil)
+
+    var modalElement: JQuerySelection = null
+    var searchElement: JQuerySelection = null
+
+    def newMessage(msg: String): Future[Ack] = {
+      val ack = if (parentNodes.now.isEmpty) {
+        errorMessages.update(errors => (Error.MissingTag :: errors).distinct)
+        Ack.Continue
+      } else if (errorMessages.now.isEmpty) {
+        val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now)
+        val changes =
+          GraphChanges.addNodeWithParent(newNode, parentNodes.now) merge
+          GraphChanges.addToParent(childNodes.now, newNode.id)
+
+        if (addToChannels.now) {
+          val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
+          val nextPage = Page.NewChanges(Some(newNode.id), changes merge channelChanges)
+          if (state.view.now.isContent) state.page() = nextPage
+          else state.viewConfig.update(_.copy(page = nextPage, view = defaultView))
+          Ack.Continue
+        } else {
+          state.eventProcessor.changes.onNext(changes)
+        }
+
+      } else {
+        Ack.Continue
+      }
+
+      ack.map { ack =>
+        modalElement.modal("hide")
+        ack
+      }
+    }
+
+    val header = div(
+      Styles.flex,
+      flexDirection.row,
+      flexWrap.wrap,
+      alignItems.center,
+
+      div("Create new ", color := "rgba(0,0,0,0.62)"),
+      div(
+        marginLeft := "10px",
+        cls := "ui basic buttons",
+        Rx {
+          def roleButton(title: String, icon: IconLookup, role: NodeRole): VDomModifier = div(
+            cls := "ui button",
+            icon, " ", title,
+            (nodeRole() == role).ifTrue[VDomModifier](cls := "active"),
+            onClick(role) --> nodeRole
+          )
+          VDomModifier(
+            roleButton("Task", freeRegular.faCheckSquare, NodeRole.Task),
+            roleButton("Message", freeRegular.faComment, NodeRole.Message)
+          )
+        }
+      ),
+      button(
+        marginLeft := "10px",
+        cls := "ui button",
+        "Add to Channels",
+        Rx {
+          if (addToChannels()) cls := "active" else cls := "primary"
+        },
+        onClick.mapTo(!addToChannels.now) --> addToChannels
+      )
+    )
+
+    val description = VDomModifier(
+      Styles.flex,
+      flexDirection.column,
+      flexWrap.wrap,
+      alignItems.center,
+
+      div(
+        padding := "5px",
+
+        Styles.flex,
+        flexDirection.row,
+        flexWrap.wrap,
+        alignItems.center,
+
+        div(
+          paddingLeft := "5px",
+          Rx {
+            val g = state.graph()
+            parentNodes().map(tagId =>
+              g.nodesByIdGet(tagId).map { tag =>
+                removableNodeTagCustom(state, tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
+              }
+            )
+          }
+        ),
+        div(
+          paddingLeft := "5px",
+          searchInGraph(
+            state.graph,
+            placeholder = "Add tag",
+            valid = errorMessages.map(e => !e.contains(Error.MissingTag)),
+            {
+              case n: Node.Content => !parentNodes.now.contains(n.id)
+              // only allow own user, we do not have public profiles yet
+              case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
+            }
+          ).foreach { nodeId =>
+            errorMessages.update(_.filterNot(_ == Error.MissingTag))
+            parentNodes() = nodeId :: parentNodes.now
+          },
+        )
+      ),
+
+      SharedViewElements.inputField(state, submitAction = newMessage, autoFocus = true).apply(width := "100%", padding := "10px"),
+
+      errorMessages.map {
+        case Nil => VDomModifier.empty
+        case errors =>
+          div(
+            cls := "ui negative message",
+            div(cls := "header", s"Cannot create new ${nodeRole.now}"),
+            errors.map {
+              case Error.MissingTag => p("Missing tag")
+            }
+          )
+      },
+
+      div(
+        width := "300px",
+        marginLeft := "auto",
+        Rx {
+          val nodes = childNodes().flatMap { id =>
+            state.graph().nodesByIdGet(id).map { node =>
+              nodeCard(node, contentInject = VDomModifier(Styles.flex, flexDirection.row, justifyContent.spaceBetween, span(freeSolid.faTimes, cursor.pointer, onClick.mapTo(childNodes.now.filterNot(_ == node.id)) --> childNodes)), maxLength = Some(20))
+            }
+          }
+
+          if (nodes.isEmpty) VDomModifier.empty
+          else VDomModifier(
+            div(
+              Styles.flex,
+              flexDirection.column,
+              justifyContent.spaceBetween,
+
+              freeRegular.faComments,
+              span(marginLeft := "auto", freeSolid.faTimes, cursor.pointer, onClick(Nil) --> childNodes)
+            ),
+            nodes
+          )
+        }
+      )
+    )
+
+    VDomModifier(
+      emitter(show).foreach { show =>
+        if (show) {
+          val potentialParents = state.page.now.parentIds.toList
+          val parents = if (potentialParents.isEmpty) List(state.user.now.id) else potentialParents
+          val children = state.selectedNodes.now
+          Var.set(
+            parentNodes -> parents,
+            childNodes -> children
+          )
+
+          modalElement.modal("show")
+        }
+        else modalElement.modal("hide")
+      },
+
+      // TODO: better way to expose element from modal?
+      modalComponent(header, description)(
+        backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
+        onDomMount.asJquery.foreach(modalElement = _))
+    )
+  }
+
+}

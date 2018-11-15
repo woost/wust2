@@ -108,19 +108,20 @@ object GraphChanges {
   def addNodeWithDeletedParent(node: Node, parentIds: Iterable[NodeId], deletedAt: EpochMilli) =
     GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, EdgeData.Parent(Some(deletedAt)), parentId))(breakOut))
 
-  def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId) = GraphChanges(
+  def addToParent(nodeId: NodeId, parentId: NodeId): GraphChanges = addToParent(List(nodeId), parentId)
+  def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId): GraphChanges= GraphChanges(
     addEdges = nodeIds.map { channelId =>
       Edge.Parent(channelId, parentId)
     }(breakOut)
   )
 
-  def addToParents(nodeId: NodeId, parentIds: Iterable[NodeId]) = GraphChanges(
+  def addToParents(nodeId: NodeId, parentIds: Iterable[NodeId]): GraphChanges = GraphChanges(
     addEdges = parentIds.map { parentId =>
       Edge.Parent(nodeId, parentId)
     }(breakOut)
   )
 
-  def newChannel(nodeId: NodeId, title: String, userId: UserId): GraphChanges = {
+  def newChannel(nodeId: NodeId, userId: UserId, title: String = "New Channel"): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),

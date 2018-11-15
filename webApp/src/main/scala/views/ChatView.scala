@@ -57,6 +57,7 @@ object ChatView {
         position.absolute,
         width := "100%"
       ),
+      emitterRx(selectedNodes).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> state.selectedNodes,
       div(
         cls := "chat-history",
         overflow.auto,
