@@ -20,7 +20,7 @@
   ],
   "related_applications": [],
   "share_target": {
-    "action": "/#view=magic",
+    "action": "/#",
     "params": {
       "title": "title",
       "text": "text",
