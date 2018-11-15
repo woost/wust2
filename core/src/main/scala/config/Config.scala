@@ -20,7 +20,7 @@ case class SmtpConfig(endpoint: String, username: String, password: String) {
 }
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-case class ServerConfig(port: Int, clientBufferSize: Int, allowedOrigins: List[String])
+case class ServerConfig(host: String, port: Int, clientBufferSize: Int, allowedOrigins: List[String])
 
 case class Config(
     server: ServerConfig,

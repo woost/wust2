@@ -20,28 +20,28 @@ object Logging {
   val detailFormatter =
     formatter"${scribe.format.time} $shortLevel [$shortThreadName] $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
 
-  def setup(cfg: Config = Config.default): Unit = {
+  def setup(hostname: String, id: String, logstashConfig: Option[LogstashConfig] = None): Unit = {
     val rootSetup = Logger.root
       .clearHandlers()
       .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
       .withHandler(
         formatter = detailFormatter,
         minimumLevel = Some(Level.Info),
-        writer = FileWriter().path(LogPath.daily(prefix = cfg.id, directory = Paths.get("logs")))
+        writer = FileWriter().path(LogPath.daily(prefix = id, directory = Paths.get("logs")))
       )
 
 
-    val configuredSetup = cfg.logstash.fold(rootSetup) { logstashCfg =>
+    val configuredSetup = logstashConfig.fold(rootSetup) { logstashCfg =>
       import Scheduler.Implicits.global
       implicit val system = ActorSystem.create("logging")
       implicit val materializer = ActorMaterializer()
 
       val writer = new QueuedLogstashWriter(
         url = logstashCfg.url,
-        service = cfg.id,
+        service = id,
         additionalFields = Map(
           "type" -> "applog",
-          "beat.hostname" -> InetAddress.getLocalHost.getHostName))
+          "beat.hostname" -> hostname))
 
       writer.start()
 
@@ -59,9 +59,5 @@ object Logging {
 
   case class LogstashConfig(url: String) {
     override def toString = s"LogstashConfig(${url.split("/").head})"
-  }
-  case class Config(id: String, logstash: Option[LogstashConfig])
-  object Config {
-    def default = Config("app", None)
   }
 }

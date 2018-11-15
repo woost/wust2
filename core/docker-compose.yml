@@ -37,6 +37,7 @@ services:
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"
+      WUST_HOSTNAME: ${WUST_HOSTNAME}
       WUST_AUTH_SECRET: ${WUST_AUTH_SECRET}
       WUST_EMAIL_ADDRESS: ${WUST_EMAIL_ADDRESS}
       WUST_SMTP_ENDPOINT: ${WUST_SMTP_ENDPOINT}

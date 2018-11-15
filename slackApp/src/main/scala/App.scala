@@ -433,7 +433,7 @@ object App extends scala.App {
   Config.load() match {
     case Left(err)     => scribe.info(s"Cannot load config: $err")
     case Right(config) =>
-      Logging.setup(Logging.Config(id = "slack", config.logstash))
+      Logging.setup(hostname = config.appServer.host, id = "slack", config.logstash)
       val oAuthClient = OAuthClient(config.oAuth, config.appServer, config.wustServer)
       val slackPersistenceAdapter = PostgresAdapter(config.postgres)
       val slackClient = SlackClient(config.slack.token, isUser = false)
