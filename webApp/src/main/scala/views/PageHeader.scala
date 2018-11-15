@@ -577,7 +577,7 @@ object PageHeader {
       ))
 
     val deleteItem =
-      (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
+      (bookmarked && canWrite).ifTrue[VDomModifier](div(
         cls := "item",
         i(
           cls := "icon fa-fw",
