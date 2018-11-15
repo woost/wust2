@@ -15,15 +15,15 @@ import wust.webApp.views.Components._
 object BreadCrumbs {
 
   /** options */
-  val showOwn = true
-  val channelsAlwaysFirst = true ///< whether "Channels" should always come first
+  private val showOwn = false
 
-  def intersperse[T](list: List[T], co: T): List[T] = list match {
+  private def intersperse[T](list: List[T], co: T): List[T] = list match {
     case one :: two :: rest => one :: co :: intersperse(two :: rest, co)
-    case short              => short
+    case one :: Nil         => one :: co :: Nil
+    case Nil                => Nil
   }
 
-  def cycleIndicator(rotate : Boolean) = {
+  private def cycleIndicator(rotate : Boolean) = {
     //"\u21ba"
     img(
       cls := "cycle-indicator",

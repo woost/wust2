@@ -45,14 +45,8 @@ object MainView {
             flexDirection.column,
             overflow.auto,
             {
-              val pageHasParents = Rx {
-
-                val graph = state.graph()
-                val page = state.page()
-                page.parentIds.exists(graph.hasParents)
-              }
               val breadCrumbs = Rx {
-                pageHasParents().ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic))
+                BreadCrumbs(state)(Styles.flexStatic)
               }
               val viewIsContent = Rx {
                 state.view().isContent
