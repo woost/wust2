@@ -10,7 +10,7 @@ import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import semanticUi.{JQuerySelection, SearchOptions, SearchSourceEntry}
+import jquery.JQuerySelection
 import wust.css.Styles
 import wust.graph._
 import wust.ids.{NodeData, _}

@@ -10,12 +10,12 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
-import semanticUi.{DimmerOptions, ModalOptions}
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import Components.renderNodeData
 import cats.effect.IO
+import fomanticui.{DimmerOptions, ModalOptions}
 import monix.reactive.{Observable, subjects}
 import wust.graph.Node.User
 import wust.ids._
@@ -193,7 +193,7 @@ object PageHeader {
 
     }
 
-    val searchModal = Handler.unsafe[semanticUi.JQuerySelection]
+    val searchModal = Handler.unsafe[jquery.JQuerySelection]
     val searchLocal = PublishSubject[String]
     val searchGlobal = PublishSubject[String]
     val searchInputProcess = PublishSubject[String]
@@ -316,7 +316,7 @@ object PageHeader {
 
   private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    val addMemberModal = Handler.unsafe[semanticUi.JQuerySelection]
+    val addMemberModal = Handler.unsafe[jquery.JQuerySelection]
     val addMember = PublishSubject[String]
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]

@@ -1,21 +1,10 @@
-package semanticUi
-
-import org.scalajs.dom.raw.HTMLElement
+package fomanticui
 
 import scala.scalajs.js
-import scala.scalajs.js.annotation._
-import scala.scalajs.js.|
 
 @js.native
-@JSGlobalScope
-object JQuery extends js.Object {
-  def `$`(elem:HTMLElement):JQuerySelection = js.native
-
-  def alert(message: String): Unit = js.native
-}
-
-@js.native
-trait JQuerySelection extends js.Object {
+// fomantic ui is imported globally
+trait JQuerySelectionWithFomanticUI extends js.Object {
   def dropdown(arg: String = ???):Unit = js.native
 
   def modal(behavior: String*): Unit = js.native

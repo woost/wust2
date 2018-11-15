@@ -2,6 +2,7 @@ package wust.webApp
 
 import cats.effect.IO
 import fontAwesome._
+import jquery.JQuerySelection
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
@@ -97,15 +98,15 @@ package object outwatchHelpers extends KeyHash {
   }
 
   implicit class TypedElementsWithJquery[O <: dom.Element, R](val builder: EmitterBuilder[O, R]) extends AnyVal {
-    def asJquery: EmitterBuilder[semanticUi.JQuerySelection, R] = builder.map { elem =>
-      import semanticUi.JQuery._
+    def asJquery: EmitterBuilder[JQuerySelection, R] = builder.map { elem =>
+      import jquery.JQuery._
       $(elem.asInstanceOf[dom.html.Element])
     }
   }
 
   implicit class ManagedElementsWithJquery(val builder: outwatch.dom.managedElement.type) extends AnyVal {
-    def asJquery(subscription: semanticUi.JQuerySelection => Cancelable): VDomModifier = builder { elem =>
-      import semanticUi.JQuery._
+    def asJquery(subscription: JQuerySelection => Cancelable): VDomModifier = builder { elem =>
+      import jquery.JQuery._
       subscription($(elem.asInstanceOf[dom.html.Element]))
     }
   }
