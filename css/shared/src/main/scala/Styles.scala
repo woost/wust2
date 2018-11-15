@@ -319,12 +319,15 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".channelIcons" - (
-    overflowY.auto
+    overflowY.auto,
+    Styles.flex,
+    flexDirection.column,
+    alignItems.flexEnd,
   )
 
+  val channelIconDefaultPadding = 4
   ".channelicon" - (
-    border(2 px, solid, transparent),
-    padding(2 px),
+    padding(channelIconDefaultPadding px),
     Styles.flexStatic,
     margin(0 px),
     cursor.pointer.important, // overwrites cursor from .draggable

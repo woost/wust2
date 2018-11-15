@@ -59,7 +59,7 @@ class GlobalState(
   }
 
   val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
-  val channels: Rx[Seq[Node]] = Rx { channelForest().flatMap(_.flatten).distinct }
+  val channels: Rx[Seq[(Node,Int)]] = Rx { channelForest().flatMap(_.flattenWithDepth()).distinct }
 
   val addNodesInTransit: Rx[Set[NodeId]] = eventProcessor.changesInTransit
     .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
@@ -118,7 +118,7 @@ class GlobalState(
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     handle = ".draghandle"
-    //    delay = 200.0
+    delay = 200.0
     mirror = new MirrorOptions {
       constrainDimensions = true
     }

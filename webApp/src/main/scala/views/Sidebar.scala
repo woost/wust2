@@ -4,7 +4,7 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -143,6 +143,10 @@ object Sidebar {
   }
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
+    val indentFactor = 2
+    val focusBorderWidth = 2
+    val defaultPadding = CommonStyles.channelIconDefaultPadding
+    val maxVisualizedDepth = 3
     div(
       cls := "channelIcons",
       Rx {
@@ -150,13 +154,28 @@ object Sidebar {
         val user = state.user()
         val page = state.page()
         VDomModifier(
-          (user.toNode +: allChannels).map { node =>
-            channelIcon(state, node, page.parentIds.contains(node.id), size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
+          ((user.toNode,0) +: allChannels).map { case (node,rawDepth) =>
+            val depth = rawDepth min maxVisualizedDepth
+            val isSelected = page.parentIds.contains(node.id)
+            channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(DragItem.DisableDrag),
               dragTarget(DragItem.Channel(node.id)),
-              cls := "node drag-feedback"
+              cls := "node drag-feedback",
+              // for each indent, steal padding on left and right
+              // and reduce the width, so that the icon keeps its size
+              if(isSelected) VDomModifier(
+                width := s"${ size-(depth*indentFactor) }px",
+                height := s"${ size-(2*focusBorderWidth) }px",
+                marginTop := "2px",
+                marginBottom := "2px",
+                marginLeft := s"${depth*indentFactor}px",
+                padding := s"${defaultPadding - focusBorderWidth}px ${defaultPadding - (depth*indentFactor/2.0)}px",
+              ) else VDomModifier(
+                padding := s"${defaultPadding}px ${defaultPadding - (depth*indentFactor/2.0)}px",
+                width := s"${size - (depth * indentFactor)}px",
+              ),
             )
           },
         )
@@ -164,7 +183,7 @@ object Sidebar {
     )
   }
 
-  def channelIcon(state: GlobalState, node: Node, selected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
+  def channelIcon(state: GlobalState, node: Node, isSelected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
     implicit ctx: Ctx.Owner
   ): VNode = {
     div(
@@ -177,10 +196,9 @@ object Sidebar {
         case _: Node.User       => "rgb(255, 255, 255)"
       }),
       opacity := (node match {
-        case node: Node.Content => if(selected) 1.0 else 0.75
-        case _: Node.User       => if(selected) 1.0 else 0.9
+        case node: Node.Content => if(isSelected) 1.0 else 0.75
+        case _: Node.User       => if(isSelected) 1.0 else 0.9
       }),
-      selected.ifTrueOption(borderColor := selectedBorderColor),
       Avatar(node),
       title := node.data.str,
     )
