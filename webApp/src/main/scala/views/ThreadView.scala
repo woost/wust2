@@ -115,20 +115,24 @@ object ThreadView {
         val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
         val key = nodeIds.head.toString
 
-        div.thunk(key)(nodeIds, state.screenSize.now)(thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel))
+        div.thunkRx(key)(nodeIds, state.screenSize.now)(implicit ctx =>
+          thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
+        )
       }
     )
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean) = {
-    val author:Option[Node.User] = groupGraph.nodeCreator(group(0))
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+    val author: Rx[Option[Node.User]] = Rx {
+      state.graph().nodeCreator(group(0))
+    }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val firstNodeId = groupGraph.nodeIds(group(0))
-    val topLevelAndLargeScreen = isTopLevel && (state.screenSize.now == ScreenSize.Large)
+    val topLevelAndLargeScreen = isTopLevel && state.largeScreen
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(bigAuthorAvatar)),
+      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(_.map(bigAuthorAvatar))),
 
       div(
         cls := "chat-group-inner-frame",
@@ -137,7 +141,7 @@ object ThreadView {
         cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
         dragTarget(DragItem.Chat.Message(firstNodeId)),
 
-        chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar))),
+        author.map(author => chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
           val nodeId = groupGraph.nodeIds(nodeIdx)
 

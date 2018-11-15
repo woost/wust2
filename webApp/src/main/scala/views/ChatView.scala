@@ -165,7 +165,9 @@ object ChatView {
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentArraySet: ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val author: Option[Node.User] = groupGraph.nodeCreator(group(0))
+    val author: Rx[Option[Node.User]] = Rx {
+      state.graph().nodeCreator(group(0))
+    }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
     val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(pageParentArraySet.containsNot).sortBy(idx => groupGraph.nodeCreated(idx))
@@ -186,12 +188,12 @@ object ChatView {
     val lineColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
     VDomModifier(
       cls := "chat-group-outer-frame",
-      (state.largeScreen).ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(bigAuthorAvatar)),
+      state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(bigAuthorAvatar))),
       div(
         cls := "chat-group-inner-frame",
-        inReplyGroup.ifFalse[VDomModifier](chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
+        inReplyGroup.ifFalse[VDomModifier](author.map(author => chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
           state.smallScreen.ifTrue[VDomModifier](paddingLeft := "0")
-        )),
+        ))),
 
         div(
           cls := "chat-expanded-thread",
@@ -205,7 +207,7 @@ object ChatView {
 
           div(
             cls := "chat-thread-messages",
-            (state.screenSize.now == ScreenSize.Small).ifTrue[VDomModifier](marginLeft := "0px"),
+            state.smallScreen.ifTrue[VDomModifier](marginLeft := "0px"),
             lineColor.map(lineColor => borderLeft := s"3px solid ${ lineColor }"),
 
             group.map { nodeIdx =>

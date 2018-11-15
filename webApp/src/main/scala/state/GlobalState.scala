@@ -113,7 +113,7 @@ class GlobalState(
     .unsafeToRx(ScreenSize.calculate())
 
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
-  @inline def largeScreen: Boolean = screenSize.now != ScreenSize.Small
+  @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large
 
   val draggable = new Draggable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
