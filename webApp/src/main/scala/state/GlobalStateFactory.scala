@@ -78,17 +78,18 @@ object GlobalStateFactory {
     // changes, we get a new graph. except when it is just a Page.NewChannel.
     // There we want tnuro issue the new-channel change.
     {
-    val pageWithPrev = page.fold((Page.empty, Page.empty)) { case ((_, prev), curr) => (prev, curr) }
     val userAndPage = Rx {
-      (pageWithPrev(), user())
+      (page(), user().toNode)
     }
 
     var isFirstGraphRequest = true
+    var prevPage: Page = null
+    var prevUser: Node.User = null
     userAndPage.toRawObservable
-      .switchMap { case ((prevPage, page), user) =>
+      .switchMap { case (page, user) =>
         val observable: Observable[Graph] = if (view.now == View.NewChannel && !isFirstGraphRequest) {
           Observable.empty
-        } else if (prevPage != page) page match {
+        } else if (prevPage == null || prevPage != page) page match {
           case Page.Selection(parentIds, childrenIds) =>
             isLoading() = true
             Observable.fromFuture(Client.api.getGraph(page))
@@ -96,11 +97,15 @@ object GlobalStateFactory {
             val changes = GraphChanges.newChannel(nodeId, newChannelTitle(state), user.id)
             eventProcessor.changes.onNext(changes)
             Observable.empty
-        } else {
+        } else if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
           isLoading() = true
           Observable.fromFuture(Client.api.getGraph(page))
+        } else {
+          Observable.empty
         }
 
+        prevPage = page
+        prevUser = user
         isFirstGraphRequest = false
 
         observable.map(ReplaceGraph.apply)
