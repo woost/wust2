@@ -120,7 +120,7 @@ object PageHeader {
         val users = graph.usersInNode(channel.id, max = 7)
 
         users.map(user => Avatar.user(user.id)(
-          htmlTag("title")(user.name), //TODO: add svg title tag to scala-dom-types
+          svgTag("title")(user.name), //TODO: add svg title tag to scala-dom-types
           marginLeft := "2px",
           width := "22px",
           height := "22px",
