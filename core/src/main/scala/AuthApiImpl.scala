@@ -32,8 +32,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
           db.user.activateImplicitUser(prevUserId, name, digest)
         }
       case Some(AuthUser.Assumed(userId)) =>
-        db.user.create(userId, name, digest).map(Some(_)).recover{case NonFatal(_) => None }
-      case _ => db.user.create(UserId.fresh, name, digest).map(Some(_)).recover{case NonFatal(_) => None }
+        db.user.create(userId, name, digest).map(Some(_))
+      case _ => db.user.create(UserId.fresh, name, digest).map(Some(_))
     }
 
     val newAuth = newUser.map(_.map(u => jwt.generateAuthentication(u)).toRight(AuthResult.BadUser))
