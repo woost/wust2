@@ -6,27 +6,28 @@ import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids
 import wust.ids._
-import wust.webApp.Icons
+import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, View}
+import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.Elements._
+import wust.util._
 
 object FeedbackForm {
 
   val feedbackNodeId = NodeId(Cuid.fromBase58("15Wooooooooostfeedback"))
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    val show = Var(false)
+    val show = Var(true)
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
     val feedbackText = Var("")
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val initialStatus = "(Press Enter to submit)"
+    val initialStatus = if(BrowserDetect.isMobile) "" else "(Press Enter to submit)"
     val statusText = Var(initialStatus)
 
     var timeout:Option[Int] = None
@@ -40,6 +41,10 @@ object FeedbackForm {
     }
 
     val feedbackForm = div(
+      width := "240px",
+      fontSize.smaller,
+      color := "#666",
+      cls := "enable-text-selection",
       div(
         cls := "ui form",
         textArea(
@@ -47,13 +52,13 @@ object FeedbackForm {
           valueWithEnter foreach { submit() },
           onInput.value --> feedbackText,
           value <-- clear,
-          width := "220px",
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
           placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
         )
       ),
-      div(textAlign.right, fontSize.smaller, color := "#666", statusText),
+      div(textAlign.right, statusText),
+      div("Be aware that your feedback will be publicly accessible. For private feedback, send a mail to ",a(href := "mailto:team@woost.space", "team@woost.space", cursor.pointer), ".")
     )
 
     div(
@@ -70,16 +75,9 @@ object FeedbackForm {
       ),
       div(
         activeDisplay,
-        position.fixed, top := "35px", right := "100px",
+        position.fixed, top := s"${CommonStyles.topBarHeight}px", right <-- Rx{ if(state.screenSize() == ScreenSize.Small) "0px" else "100px" },
         zIndex := ZIndex.overlay,
         padding := "10px", background := "#F8F8F8", border := "1px solid #888",
-        div(
-          Styles.flex,
-          justifyContent.spaceBetween,
-          alignItems.center,
-
-          color := "#666",
-        ),
         feedbackForm,
         div(
           marginTop := "20px",

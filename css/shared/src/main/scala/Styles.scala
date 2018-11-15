@@ -1081,9 +1081,10 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := nonBookmarkShadowOpts
   )
 
+  val topBarHeight = 45
   ".topbar" - (
     paddingRight(5 px),
-    height(45 px),
+    height(topBarHeight px),
     color.white,
     transition := "background-color 0.5s", // fades on page change
     Styles.flex,
