@@ -20,16 +20,15 @@ object ServiceWorker {
         sw.register("sw.js").toFuture.onComplete {
           case Success(registration) =>
             console.log("SW registered: ", registration)
-            registration.onupdatefound = {
-              event =>
-                val installingWorker = registration.installing
-                installingWorker.onstatechange = { event =>
-                  console.log("Update of SW found", installingWorker, Navigator.serviceWorker.get.controller)
-                  if (installingWorker.state == "installed" && Navigator.serviceWorker.get.controller.asInstanceOf[js.UndefOr[OriginalServiceWorker]].isDefined) {
-                    console.log("New SW installed, can update.")
-                    subject.onNext(())
-                  }
+            registration.onupdatefound = { event =>
+              val installingWorker = registration.installing
+              installingWorker.onstatechange = { event =>
+                val activeServiceworker = Navigator.serviceWorker.get.controller
+                if (installingWorker.state == "installed" && activeServiceworker != null) {
+                  console.log("New SW installed, can update.")
+                  subject.onNext(())
                 }
+              }
             }
           case Failure(registrationError) =>
             scribe.warn("SW registration failed: ", registrationError)
