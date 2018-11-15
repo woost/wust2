@@ -109,25 +109,25 @@ jobs:
 
 workflows:
   version: 2
-  commit:
-    jobs:
-      - build-test-unit:
-          filters:
-            branches:
-              only:
-                - master
-                - /rc-.*/
-                - circleci
-      - hold:
-          type: approval
-          requires:
-            - build-test-unit
-      - test-integration:
-          requires:
-            - hold
-      - deploy:
-          requires:
-            - test-integration
+  # commit:
+  #   jobs:
+  #     - build-test-unit:
+  #         filters:
+  #           branches:
+  #             only:
+  #               - master
+  #               - /rc-.*/
+  #               - circleci
+  #     - hold:
+  #         type: approval
+  #         requires:
+  #           - build-test-unit
+  #     - test-integration:
+  #         requires:
+  #           - hold
+  #     - deploy:
+  #         requires:
+  #           - test-integration
 
   nightly:
     triggers:
