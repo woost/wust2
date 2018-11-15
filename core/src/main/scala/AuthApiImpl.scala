@@ -1,6 +1,7 @@
 package wust.backend
 
 import com.roundeights.hasher.Hasher
+import sun.text.normalizer.ICUBinary.Authenticate
 import wust.api._
 import wust.graph.{Graph, Node}
 import wust.ids._
@@ -75,19 +76,19 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     resultOnVerifiedAuth(newAuth)
   }
 
-  def verifyToken(token: Authentication.Token): ApiFunction[Option[Authentication.Verified]] =
-    Action {
-      validAuthFromToken(token)
-    }
-
-  def assumeLogin(user: AuthUser.Assumed): ApiFunction[Boolean] = Effect { state =>
-    val newAuth = Authentication.Assumed(user)
-    resultOnAssumedAuth(newAuth)
+  def verifyToken(token: Authentication.Token): ApiFunction[Option[Authentication.Verified]] = Action {
+    validAuthFromToken(token)
   }
 
-  def logout(): ApiFunction[Boolean] = Effect { state =>
+  def assumeLogin(user: AuthUser.Assumed): ApiFunction[Boolean] = Effect { _ =>
+    db.user.checkIfUserAlreadyExists(user.id).map { alreadyExists =>
+      resultOnAssumedAuth(!alreadyExists, Authentication.Assumed(user))
+    }
+  }
+
+  def logout(): ApiFunction[Boolean] = Effect { _ =>
     val newAuth = Authentication.Assumed.fresh
-    resultOnAssumedAuth(newAuth)
+    Future.successful(resultOnAssumedAuth(true, newAuth))
   }
 
   def createImplicitUserForApp(): ApiFunction[Option[Authentication.Verified]] = Action { _ =>
@@ -114,8 +115,8 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT)(implicit ec: ExecutionContext
     authEvent :: Nil
   }
 
-  private def resultOnAssumedAuth(auth: Authentication.Assumed): Future[ApiData.Effect[Boolean]] = {
-    Future.successful(Returns(true, authChangeEvents(auth)))
+  private def resultOnAssumedAuth(success: Boolean, auth: Authentication.Assumed): ApiData.Effect[Boolean] = {
+    if (success) Returns(true, authChangeEvents(auth)) else Returns(false)
   }
 
   private def resultOnVerifiedAuth[T](

@@ -401,6 +401,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.headOption)
     }
 
+    def checkIfUserAlreadyExists(userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+      import user.data._
+      ctx.run {
+        queryUser
+          .filter(u => u.id == lift(userId))
+          .take(1)
+      }.map(_.nonEmpty)
+    }
+
     def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Boolean] = {
       import user.data._
       ctx.run {
