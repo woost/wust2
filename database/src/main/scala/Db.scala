@@ -402,7 +402,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def checkIfUserAlreadyExists(userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      import user.data._
       ctx.run {
         queryUser
           .filter(u => u.id == lift(userId))
