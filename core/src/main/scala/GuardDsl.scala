@@ -53,18 +53,14 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
       }
   }
 
-  def validAuthFromToken[T](
-      token: Authentication.Token
-  )(implicit ec: ExecutionContext): Future[Option[Authentication.Verified]] =
+  def validAuthFromToken(token: Authentication.Token)(implicit ec: ExecutionContext): Future[Option[Authentication.Verified]] =
     jwt.authenticationFromToken(token).map { auth =>
       db.user.checkIfEqualUserExists(auth.user).map { isValid =>
         if (isValid) Some(auth) else None
       }
     } getOrElse Future.successful(None)
 
-  def onBehalfOfUser[T, F[_]: ApiData.MonadError](
-      token: Authentication.Token
-  )(code: Authentication.Verified => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
+  def onBehalfOfUser[T, F[_]: ApiData.MonadError](token: Authentication.Token)(code: Authentication.Verified => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     val newAuth = validAuthFromToken(token)
     newAuth.flatMap(
       _.fold[Future[F[T]]](Future.successful(ApiData.MonadError.raiseError(ApiError.Forbidden)))(
@@ -73,10 +69,7 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     )
   }
 
-  def canAccessNode[T, F[_]: ApiData.MonadError](
-      userId: UserId,
-      nodeId: NodeId
-  )(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
+  def canAccessNode[T, F[_]: ApiData.MonadError](userId: UserId, nodeId: NodeId )(code: => Future[F[T]])(implicit ec: ExecutionContext): Future[F[T]] = {
     (for {
       true <- db.user.canAccessNode(userId, nodeId)
       result <- code
