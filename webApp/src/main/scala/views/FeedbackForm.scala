@@ -21,7 +21,7 @@ object FeedbackForm {
   val feedbackNodeId = NodeId(Cuid.fromBase58("15Wooooooooostfeedback"))
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    val show = Var(true)
+    val show = Var(false)
     val activeDisplay = Rx { display := (if(show()) "block" else "none") }
 
     val feedbackText = Var("")
