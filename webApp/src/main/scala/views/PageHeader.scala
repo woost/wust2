@@ -559,6 +559,60 @@ object PageHeader {
         case _ => VDomModifier.empty
       }
 
+      val nodeRoleItem:VDomModifier = channel match {
+        case channel: Node.Content if canWrite =>
+
+          def nodeRoleSubItem(nodeRole: NodeRole) = div(
+            cls := "item",
+            (channel.role == nodeRole).ifTrueOption(i(cls := "check icon")),
+            nodeRole.toString,
+            onClick(GraphChanges.addNode(channel.copy(role = nodeRole))) --> state.eventProcessor.changes,
+            onClick foreach {
+              Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
+            }
+          )
+
+          div(
+            cls := "item",
+            i(
+              cls := "icon fa-fw",
+              freeSolid.faExchangeAlt,
+              marginRight := "5px",
+            ),
+            span(cls := "text", "Convert", cursor.pointer),
+            div(
+              cls := "menu",
+              nodeRoleSubItem(NodeRole.Message),
+              nodeRoleSubItem(NodeRole.Task)
+            )
+          )
+        case _ => VDomModifier.empty
+      }
+
+    val mentionInItem:VDomModifier = {
+      div(
+        cls := "item",
+        i(
+          cls := "icon fa-fw",
+          freeSolid.faCopy,
+          marginRight := "5px",
+        ),
+        span(cls := "text", "Mention in", cursor.pointer),
+        div(
+          cls := "menu",
+          padding := "10px",
+          searchInGraph(state.graph, placeholder = "Enter Tag", filter = {
+            case node: Node.Content => true
+            case node: Node.User => node.id == state.user.now.id
+          }).foreach { nodeId =>
+            state.eventProcessor.changes.onNext(
+              GraphChanges.addToParent(channel.id, nodeId)
+            )
+          }
+        )
+      )
+    }
+
     val leaveItem:VDomModifier =
       (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
         cls := "item",
@@ -594,7 +648,7 @@ object PageHeader {
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
 
-    val items:List[VDomModifier] = List(searchItem, addMemberItem, shareItem, permissionItem, leaveItem, deleteItem)
+    val items:List[VDomModifier] = List(searchItem, addMemberItem, mentionInItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
