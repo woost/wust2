@@ -1,36 +1,31 @@
 package wust.webApp.views
 
+import fomanticui.{DimmerOptions, ModalOptions}
 import fontAwesome._
 import googleAnalytics.Analytics
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.console
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
 import rx._
-import wust.api.AuthUser
 import wust.css.Styles
-import wust.graph._
-import Components.renderNodeData
-import cats.effect.IO
-import fomanticui.{DimmerOptions, ModalOptions}
-import monix.reactive.{Observable, subjects}
 import wust.graph.Node.User
+import wust.graph._
 import wust.ids._
+import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
-import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
-import wust.webApp.{Client, Icons, views}
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components._
+import wust.webApp.views.Components.{renderNodeData, _}
+import wust.webApp.{Client, Icons}
 
-import scala.concurrent.Future
 import scala.collection.breakOut
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.{Failure, Success}
 
