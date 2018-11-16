@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
-import fomanticui.{SearchOptions, SearchSourceEntry}
+import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
 import fontAwesome.{IconLookup, freeRegular}
 import monix.execution.Cancelable
 import monix.reactive.Observer
@@ -483,3 +483,23 @@ object Components {
   }
 }
 
+
+sealed trait ToastLevel { def value: String }
+object ToastLevel {
+  case object Info extends ToastLevel { def value = "info" }
+  case object Success extends ToastLevel { def value = "success" }
+  case object Warning extends ToastLevel { def value = "warning" }
+  case object Error extends ToastLevel { def value = "error" }
+}
+object Toast {
+  def apply(msg: String, click: () => Unit = () => (), level: ToastLevel = ToastLevel.Info): Unit = {
+    import jquery.JQuery._
+    `$`(document.body).toast(new ToastOptions {
+      `class` = level.value
+      onClick = click: js.Function0[Unit]
+      position = "bottom right"
+      message = msg
+      displayTime = 5000
+    })
+  }
+}

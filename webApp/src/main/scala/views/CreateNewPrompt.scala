@@ -38,8 +38,10 @@ object CreateNewPrompt {
     var modalElement: JQuerySelection = null
     var searchElement: JQuerySelection = null
 
+    show.foreach { s => println("DAAL " + s)}
+
     def newMessage(msg: String): Future[Ack] = {
-      val ack = if (parentNodes.now.isEmpty) {
+      if (parentNodes.now.isEmpty) {
         errorMessages.update(errors => (Error.MissingTag :: errors).distinct)
         Ack.Continue
       } else if (errorMessages.now.isEmpty) {
@@ -48,7 +50,7 @@ object CreateNewPrompt {
           GraphChanges.addNodeWithParent(newNode, parentNodes.now) merge
           GraphChanges.addToParent(childNodes.now, newNode.id)
 
-        if (addToChannels.now) {
+        val ack = if (addToChannels.now) {
           val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
           val nextPage = Page.NewChanges(Some(newNode.id), changes merge channelChanges)
           if (state.view.now.isContent) state.page() = nextPage
@@ -58,14 +60,13 @@ object CreateNewPrompt {
           state.eventProcessor.changes.onNext(changes)
         }
 
+        modalElement.modal("hide")
+        Toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.page() = Page(newNode.id), level = ToastLevel.Success)
+        ack
       } else {
         Ack.Continue
       }
 
-      ack.map { ack =>
-        modalElement.modal("hide")
-        ack
-      }
     }
 
     val header = div(
