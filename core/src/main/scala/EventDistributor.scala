@@ -115,30 +115,32 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val parallelRawPushMeta = rawPushMeta.par
     parallelRawPushMeta.tasksupport = new ExecutionContextTaskSupport(ec)
 
-    val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelRawPushMeta.map { case RawPushData(subscription, notifiedNodes) if subscription.userId != author.id =>
-      notifiedNodes.map { nodeId =>
-        val node = addNodesByNodeId(nodeId)
-        val parentNode = parentNodeByChildId.get(nodeId)
+    val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelRawPushMeta.map {
+      case RawPushData(subscription, notifiedNodes) if subscription.userId != author.id =>
+        notifiedNodes.map { nodeId =>
+          val node = addNodesByNodeId(nodeId)
+          val parentNode = parentNodeByChildId.get(nodeId)
 
-        val pushData = PushData(author.name, node.data.str.trim, node.id.toBase58, parentNode.map(_.data.str), parentNode.map(_.id.toBase58))
+          val pushData = PushData(author.name, node.data.str.trim, node.id.toBase58, parentNode.map(_.data.str), parentNode.map(_.id.toBase58))
 
-        pushService.send(subscription, pushData).transform {
-                case Success(response) =>
-                  response.getStatusLine.getStatusCode match {
-                    case `successStatusCode`                                  =>
-                      Success(None)
-                    case statusCode if expiryStatusCodes.contains(statusCode) =>
-                Success(Some(subscription))
-                    case _ =>
-                      val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
-                      scribe.error(s"Unexpected success code: $response body: $body")
-                      Success(None)
-                  }
-                case Failure(t) =>
-                  scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+          pushService.send(subscription, pushData).transform {
+            case Success(response) =>
+              response.getStatusLine.getStatusCode match {
+                case `successStatusCode`                                  =>
                   Success(None)
+                case statusCode if expiryStatusCodes.contains(statusCode) =>
+                  Success(Some(subscription))
+                case _                                                    =>
+                  val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
+                  scribe.error(s"Unexpected success code: $response body: $body")
+                  Success(None)
+              }
+            case Failure(t)        =>
+              scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+              Success(None)
+          }
         }
-      }
+      case _ => List.empty[Future[Option[Data.WebPushSubscription]]]
     }
 
     Future.sequence(expiredSubscriptions.seq.flatten)
