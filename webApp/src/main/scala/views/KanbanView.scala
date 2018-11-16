@@ -92,11 +92,11 @@ object KanbanView {
               sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
               registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-            )
+            ),
+            Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) },
           )
         }
       },
-      Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) },
     )
   }
 
