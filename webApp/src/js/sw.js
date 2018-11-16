@@ -145,9 +145,10 @@ function focusedClient(windowClients) {
 
 // startup
 log("ServiceWorker starting!");
-port = location.port ? ":" + location.port : '';
+const port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
 log("BaseUrl: " + baseUrl);
+log("Origin: " + location.origin);
 
 // Weird workaround since emoji requires global
 let global = {};
@@ -283,7 +284,7 @@ self.addEventListener('notificationclick', e => {
 
             log("no matching client found. Opening new window");
 
-            return self.clients.openWindow(baseLocation + "/#view=chat&page=" + channelId).then(function (client) { client.focus(); });
+            return self.clients.openWindow("/#view=chat&page=" + channelId);
 
         })
     );
