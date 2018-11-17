@@ -166,8 +166,10 @@ object ChatView {
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentArraySet: ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
+    val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
-      state.graph().nodeCreator(group(0))
+      val graph = state.graph()
+      graph.nodeCreator(graph.idToIdx(groupHeadId))
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 

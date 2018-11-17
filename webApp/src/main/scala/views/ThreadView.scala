@@ -124,8 +124,10 @@ object ThreadView {
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+    val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
-      state.graph().nodeCreator(group(0))
+      val graph = state.graph()
+      graph.nodeCreator(graph.idToIdx(groupHeadId))
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val firstNodeId = groupGraph.nodeIds(group(0))
