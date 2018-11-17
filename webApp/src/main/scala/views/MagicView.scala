@@ -25,10 +25,10 @@ object MagicView {
             Styles.flex,
             flexDirection.column,
             KanbanView.apply(state).apply(Styles.growFull),
-            ChatView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
+            ConversationView.apply(state).apply(Styles.flexStatic, maxHeight := "50%")
           )
         } else {
-          ChatView.apply(state).apply(Styles.growFull)
+          ConversationView.apply(state).apply(Styles.growFull)
         }
       }
     )

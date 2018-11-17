@@ -14,6 +14,10 @@ object View {
     def viewKey = "magic"
     def isContent = true
   }
+  case object Conversation extends View {
+    def viewKey = "conversation"
+    def isContent = true
+  }
   case object Thread extends View {
     def viewKey = "thread"
     def isContent = true
@@ -64,7 +68,7 @@ object View {
 
   val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
 
-  def default: View = Chat
+  def default: View = Conversation
 }
 
 sealed trait ViewOperator {
