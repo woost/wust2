@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import concurrent.duration._
 import emojijs.EmojiConvertor
 import fontAwesome.freeSolid
 import marked.Marked
@@ -256,7 +257,7 @@ object Elements {
         lastScrollHeight = elem.scrollHeight
         elem.style.height = s"${elem.scrollHeight}px"
       },
-      onInput.foreach { trigger() }
+      onInput.debounce(300 milliseconds).foreach { trigger() }
     )
   }
 
