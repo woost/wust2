@@ -69,7 +69,7 @@ object Components {
   }
 
 
-  val woostLoadingAnimation:VNode = {
+  val woostLoadingAnimation: VNode = {
     import svg._
     div(
       svg(
@@ -82,8 +82,8 @@ object Components {
     )
   }
 
-  def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data:Ctx.Data): VDomModifier = {
-    if (state.isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation(cls := "animated-fadein"))
+  def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data: Ctx.Data): VDomModifier = {
+    if(state.isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation(cls := "animated-fadein"))
     else renderFn
   }
 
@@ -92,7 +92,7 @@ object Components {
       cls := "node tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
-      if (pageOnClick) onClick foreach { e =>
+      if(pageOnClick) onClick foreach { e =>
         state.page() = Page(tag.id); e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
@@ -180,7 +180,7 @@ object Components {
     )
   }
 
-  def readDragTarget(elem: dom.html.Element):Option[DragTarget] = {
+  def readDragTarget(elem: dom.html.Element): Option[DragTarget] = {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }
 
@@ -188,7 +188,7 @@ object Components {
     writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
   }
 
-  def readDragPayload(elem: dom.html.Element):Option[DragPayload] = {
+  def readDragPayload(elem: dom.html.Element): Option[DragPayload] = {
     readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
   }
 
@@ -196,7 +196,7 @@ object Components {
     writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
   }
 
-  def readDragContainer(elem: dom.html.Element):Option[DragContainer] = {
+  def readDragContainer(elem: dom.html.Element): Option[DragContainer] = {
     readPropertyFromElement[DragContainer](elem, DragContainer.propName)
   }
 
@@ -204,20 +204,41 @@ object Components {
     writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
   }
 
+  def readDraggableDraggedAction(elem: dom.html.Element): Option[() => Unit] = {
+    readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
+  }
+
+  def writeDraggableDraggedAction(elem: dom.html.Element, action: => () => Unit): Unit = {
+    writePropertyIntoElement(elem, DragItem.draggedActionPropName, action)
+  }
+
+
   def draggableAs(payload: => DragPayload): VDomModifier = {
     VDomModifier(
       cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomMount.asHtml foreach{ elem =>
+      onDomMount.asHtml foreach { elem =>
         writeDragPayload(elem, payload)
       }
     )
   }
 
   def dragTarget(dragTarget: DragTarget): VDomModifier = {
-    onDomMount.asHtml foreach{ elem =>
+    onDomMount.asHtml foreach { elem =>
       writeDragTarget(elem, dragTarget)
     }
   }
+
+  def onDraggableDragged: EmitterBuilder[Unit, VDomModifier] =
+    EmitterBuilder.ofModifier[Unit] { sink =>
+      IO {
+        VDomModifier(
+          onDomMount.asHtml foreach { elem =>
+            writeDraggableDraggedAction(elem, () => sink.onNext(Unit))
+          }
+        )
+      }
+    }
+
 
   def registerDraggableContainer(state: GlobalState): VDomModifier = {
     VDomModifier(

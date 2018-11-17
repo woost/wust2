@@ -36,6 +36,7 @@ object DragItem extends wust.ids.serialize.Circe {
 
   val payloadPropName = "_wust_dragpayload"
   val targetPropName = "_wust_dragtarget"
+  val draggedActionPropName = "_wust_draggedaction"
 
   implicit val payloadDecoder: Decoder[DragPayload] = deriveDecoder[DragPayload]
   implicit val payloadEncoder: Encoder[DragPayload] = deriveEncoder[DragPayload]

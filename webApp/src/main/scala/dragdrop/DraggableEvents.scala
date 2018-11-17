@@ -142,10 +142,10 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
 //  shiftDown.foreach(down => println(s"shift down: $down"))
 
   dragStopEvent.map { e =>
-    readDragPayload(e.originalSource)
-  }.withLatestFrom3(lastDragTarget, ctrlDown, shiftDown)((p,t,ctrl,shift) => (p,t, ctrl, shift)).foreachTry { pt =>
+    (readDraggableDraggedAction(e.originalSource), readDragPayload(e.originalSource))
+  }.withLatestFrom3(lastDragTarget, ctrlDown, shiftDown)((actionAndPayload,t,ctrl,shift) => (actionAndPayload._1, actionAndPayload._2,t, ctrl, shift)).foreachTry { pt =>
     pt match {
-      case (Some(payload), Some(target), ctrl, shift) =>
+      case (afterDraggedAction, Some(payload), Some(target), ctrl, shift) =>
         scribe.debug(s"Dropped: $payload -> $target${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
         dragActions.andThen{ _ =>
           Analytics.sendEvent("drag", "dropped", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
@@ -154,7 +154,8 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
           scribe.debug(s"drag combination not handled.")
         }:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit]
         )
-      case other => scribe.debug(s"incomplete drag action: $other")
+        afterDraggedAction.foreach(_.apply())
+      case other                                                          => scribe.debug(s"incomplete drag action: $other")
     }
     lastDragTarget.onNext(None)
   }

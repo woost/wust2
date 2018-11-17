@@ -180,10 +180,12 @@ object Elements {
   }
 
   def readPropertyFromElement[T](elem: dom.html.Element, propName: String): Option[T] = {
-    for {
-      elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
-      valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]].toOption
-    } yield valueProvider()
+    (
+      for {
+        elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]]
+        valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]]
+      } yield valueProvider()
+    ).toOption
   }
 
   def writePropertyIntoElement(elem: dom.html.Element, propName: String, value: => Any): Unit = {

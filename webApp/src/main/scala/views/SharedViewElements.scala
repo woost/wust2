@@ -364,7 +364,10 @@ object SharedViewElements {
             DragItem.Chat.Message(nodeId)
         }
         // payload is call by name, so it's always the current selectedNodeIds
-        draggableAs(payload)
+        VDomModifier(
+          draggableAs(payload),
+          onDraggableDragged.foreach{ selectedNodes() = Set.empty[T] }
+        )
       }
     },
     dragTarget(DragItem.Chat.Message(nodeId)),
