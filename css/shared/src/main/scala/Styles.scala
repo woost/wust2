@@ -1101,6 +1101,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".viewbar label" - (
+    fontSize.larger,
     height(100 %%),
 
     padding(2 px, 5 px, 5 px, 5 px),

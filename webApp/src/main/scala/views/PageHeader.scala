@@ -11,7 +11,7 @@ import org.scalajs.dom.html
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
@@ -42,7 +42,6 @@ object PageHeader {
           val page = state.page()
           page.parentId.flatMap(graph.nodesByIdGet).map { parentNode => channelRow(state, parentNode) }
         },
-        viewSwitcher(state),
       )
     )
   }
@@ -70,7 +69,7 @@ object PageHeader {
         val hasBigScreen = state.screenSize() != ScreenSize.Small
         hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px"))
       },
-      menu(state, channel)
+      menu(state, channel).apply(marginLeft.auto),
     )
   }
 
@@ -92,14 +91,18 @@ object PageHeader {
       Styles.flex,
       alignItems.center,
       flexWrap.wrap,
-      marginLeft.auto,
       minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-      justifyContent.center, // horizontal centering when wrapped
+      justifyContent.flexEnd, // horizontal centering when wrapped
       Rx {
-        val showChannelsButton = isSpecialNode() || isBookmarked()
-        showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
+        val hideBookmarkButton = isSpecialNode() || isBookmarked()
+        hideBookmarkButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(
+          Styles.flexStatic,
+          marginTop := "3px",
+          marginBottom := "3px",
+        ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
+      viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
       },
@@ -685,6 +688,7 @@ object PageHeader {
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
       cls := "ui icon top left labeled pointing dropdown",
+      zIndex := ZIndex.overlay,
       freeSolid.faCog,
       div(
         cls := "menu",
@@ -705,7 +709,8 @@ object PageHeader {
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
-        ))
+        )),
+        title := targetView.viewKey
       )
     }
 
