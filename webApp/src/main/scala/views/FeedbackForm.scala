@@ -12,7 +12,7 @@ import wust.ids
 import wust.ids._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize, View}
+import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View}
 import wust.webApp.views.Elements._
 import wust.util._
 
@@ -92,7 +92,7 @@ object FeedbackForm {
             onClick foreach {
               val nextPage = Page(feedbackNodeId)
               if (state.view.now.isContent) state.page() = nextPage
-              else state.viewConfig.update(_.copy(page = nextPage, view = View.default))
+              else state.viewConfig.update(_.copy(pageChange = PageChange(nextPage), view = View.default))
               show() = false
               Analytics.sendEvent("feedback", "show")
             }

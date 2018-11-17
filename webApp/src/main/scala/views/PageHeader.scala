@@ -205,7 +205,7 @@ object PageHeader {
           fontFamily := "Roboto Slab",
           paddingTop := "3px",
           Components.nodeCard(nodeRes._1, maxLength = Some(60)),
-          onClick(viewConf.copy(page = Page(nodeRes._1.id))) --> state.viewConfig,
+          onClick(Page(nodeRes._1.id)) --> state.page,
           onClick(searchModal).foreach(_.modal("hide"))
         ),
       )

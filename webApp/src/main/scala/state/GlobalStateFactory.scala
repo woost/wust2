@@ -78,35 +78,36 @@ object GlobalStateFactory {
     // There we want tnuro issue the new-channel change.
     {
     val userAndPage = Rx {
-      (page(), user().toNode)
+      (pageChange(), user().toNode)
     }
 
+    var lastTransitChanges: List[GraphChanges] = Nil
+    eventProcessor.changesInTransit.foreach { lastTransitChanges = _ }
+
     var isFirstGraphRequest = true
-    var prevPage: Page = null
+    var prevPage: PageChange = null
     var prevUser: Node.User = null
     userAndPage.toRawObservable
-      .switchMap { case (page, user) =>
-        val observable: Observable[Graph] = if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
-          isLoading() = true
-          Observable.fromFuture(Client.api.getGraph(page))
-        } else if (prevPage == null || prevPage != page) page match {
-          case _:Page.Selection =>
+      .switchMap { case (pageChange, user) =>
+        val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
+        val observable: Observable[Graph] =
+          if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
             isLoading() = true
-            if (isFirstGraphRequest || view.now != View.NewChannel) Observable.fromFuture(Client.api.getGraph(page))
-            else Observable.empty
-          case Page.NewChanges(_, changes)            =>
-            eventProcessor.changes.onNext(changes)
+            Observable.fromFuture(Client.api.getGraph(pageChange.page))
+          } else if (prevPage == null || prevPage != pageChange) {
+            if (pageChange.needsGet && (!pageChange.page.isEmpty || isFirstGraphRequest)) {
+              isLoading() = true
+              Observable.fromFuture(Client.api.getGraph(pageChange.page))
+            } else Observable.empty
+          } else {
             Observable.empty
-          case Page.Empty => Observable.fromFuture(Client.api.getGraph(page))
-        } else {
-          Observable.empty
-        }
+          }
 
-        prevPage = page
+        prevPage = pageChange
         prevUser = user
         isFirstGraphRequest = false
 
-        observable.map(ReplaceGraph.apply)
+        observable.map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
       }
         .doOnNext(_ => Task(isLoading() = false))
         .subscribe(eventProcessor.localEvents)
@@ -190,7 +191,7 @@ object GlobalStateFactory {
     val containedNodes = addEdges.collect { case Edge.Parent(source, _, _) => source }
     val toContain = addNodes
       .filterNot(p => containedNodes(p.id))
-      .flatMap(p => toParentConnections(viewConfig.page, p.id))
+      .flatMap(p => toParentConnections(viewConfig.pageChange.page, p.id))
 
     changes.consistent merge GraphChanges(addEdges = toContain)
   }

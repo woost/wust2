@@ -11,7 +11,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageStyle, ScreenSize, View}
+import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.views.Elements._
@@ -224,6 +224,6 @@ object Sidebar {
                         Page(id)
       }
       val contentView = if(state.view.now.isContent) state.view.now else View.default
-      state.viewConfig() = state.viewConfig.now.copy(page = newPage, view = contentView, redirectTo = None)
+      state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(newPage), view = contentView, redirectTo = None)
     }
 }

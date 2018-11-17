@@ -7,7 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids.{NodeData, NodeId, NodeRole}
-import wust.webApp.state.{GlobalState, View}
+import wust.webApp.state.{GlobalState, PageChange, View}
 import Components._
 import cats.effect.IO
 import colorado.{Color, RGB}
@@ -52,10 +52,10 @@ object CreateNewPrompt {
 
         val ack = if (addToChannels.now) {
           val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
-          val nextPage = Page.NewChanges(Some(newNode.id), changes merge channelChanges)
-          if (state.view.now.isContent) state.page() = nextPage
-          else state.viewConfig.update(_.copy(page = nextPage, view = defaultView))
-          Ack.Continue
+          val nextPage = PageChange(Page(newNode.id), needsGet = false)
+          if (state.view.now.isContent) state.pageChange() = nextPage
+          else state.viewConfig.update(_.copy(pageChange = nextPage, view = defaultView))
+          state.eventProcessor.changes.onNext(changes merge channelChanges)
         } else {
           state.eventProcessor.changes.onNext(changes)
         }

@@ -2,22 +2,12 @@ package wust.graph
 
 import wust.ids._
 
-sealed trait Page {
-  def parentId: Option[NodeId]
+case class Page(parentId: Option[NodeId]) extends AnyVal {
+  @inline def isEmpty: Boolean = parentId.isEmpty
+  @inline def isDefined: Boolean = parentId.isDefined
 }
 
 object Page {
-  case class Selection(nodeId: NodeId) extends Page {
-    override def parentId: Option[NodeId] = Some(nodeId)
-  }
-  case class NewChanges(parentId: Option[NodeId], extraChanges: GraphChanges) extends Page
-
-  case object Empty extends Page {
-    @inline override def parentId: Option[NodeId] = None
-  }
-
-  def apply(parentId: NodeId): Page = Selection(parentId)
-  def unapply(page: Page): Option[NodeId] = page.parentId
-
-  @inline def empty: Page = Empty
+  @inline def apply(parentId: NodeId): Page = Page(Some(parentId))
+  @inline def empty: Page = Page(None)
 }

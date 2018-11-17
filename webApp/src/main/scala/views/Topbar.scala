@@ -199,7 +199,7 @@ object Topbar {
       "Logout",
       onClick foreach {
         Client.auth.logout().foreach { _ =>
-          state.viewConfig() = state.viewConfig.now.copy(page = Page.empty).showViewWithRedirect(View.Login)
+          state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty)).showViewWithRedirect(View.Login)
         }
         Analytics.sendEvent("topbar", "logout")
       }

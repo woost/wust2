@@ -334,8 +334,10 @@ object ChatView {
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
-                state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(parentId)))
-                selectedNodes() = Set.empty[SelectedNode]
+                Var.set(
+                  state.page -> Page(parentId),
+                  selectedNodes -> Set.empty[SelectedNode]
+                )
               }, cursor.pointer),
             )
           )

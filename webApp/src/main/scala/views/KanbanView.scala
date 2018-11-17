@@ -183,7 +183,7 @@ object KanbanView {
             },
             cursor.pointer, title := "Delete"
           ),
-          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
+          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, title := "Zoom in"),
         )
       }
     )
@@ -213,7 +213,7 @@ object KanbanView {
 
         columnTitle,
 
-        Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
+        Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)) },
 
         position.relative, // for buttonbar
         buttonBar(position.absolute, top := "0", right := "0"),
@@ -270,7 +270,7 @@ object KanbanView {
             },
             cursor.pointer, title := "Delete"
           ),
-          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer, title := "Zoom in"),
+          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, title := "Zoom in"),
         )
       }
     )
@@ -291,7 +291,7 @@ object KanbanView {
       keyed(node.id, parentId),
       cls := "draghandle",
 
-      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
+      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)) },
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),

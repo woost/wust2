@@ -20,7 +20,7 @@ import wust.util._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize, View}
+import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
@@ -427,7 +427,7 @@ object SharedViewElements {
               },
             ),
             zoomButton(
-              onClick.mapTo(state.viewConfig.now.copy(page = Page(nodeId))) --> state.viewConfig,
+              onClick(Page(nodeId)) --> state.page,
             ),
             taskButton(
               onClick foreach {
@@ -532,9 +532,10 @@ object SharedViewElements {
         ev.target.asInstanceOf[dom.html.Element].blur()
 
         val nodeId = NodeId.fresh
-        val nextPage = Page.NewChanges(Some(nodeId), GraphChanges.newChannel(nodeId, state.user.now.id))
-        if (state.view.now.isContent) state.page() = nextPage
-        else state.viewConfig.update(_.copy(page = nextPage, view = view))
+        state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id))
+        val nextPage = PageChange(Page(nodeId), needsGet = false)
+        if (state.view.now.isContent) state.pageChange() = nextPage
+        else state.viewConfig.update(_.copy(pageChange = nextPage, view = view))
       }
     )
   }

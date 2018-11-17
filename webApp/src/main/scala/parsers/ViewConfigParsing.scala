@@ -3,7 +3,7 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import wust.graph.Page
 import wust.ids.{Cuid, NodeId}
-import wust.webApp.state.{ShareOptions, View, ViewConfig, ViewOperator}
+import wust.webApp.state._
 import kantan.regex._
 import kantan.regex.implicits._
 import kantan.regex.generic._
@@ -66,7 +66,7 @@ private object UrlOption {
 
     def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
       parseSingle(regex, text).map { page =>
-        config.copy(page = page)
+        config.copy(pageChange = PageChange(page))
       }
   }
   object redirectTo extends UrlOption {
@@ -117,9 +117,9 @@ object ViewConfigParser {
 object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
     val viewString = UrlOption.view.key + "=" + cfg.view.viewKey
-    val pageString = cfg.page match {
-      case Page.Empty => ""
-      case Page(parentId) =>
+    val pageString = cfg.pageChange.page.parentId match {
+      case None => ""
+      case Some(parentId) =>
         "&" + UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
     val redirectToStringWithSep =
