@@ -7,6 +7,7 @@ import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
+import org.scalajs.dom.html
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -98,7 +99,7 @@ object PageHeader {
         val showChannelsButton = isSpecialNode() || isBookmarked()
         showChannelsButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(Styles.flexStatic))
       },
-      notifyControl(state, channel).apply(buttonStyle),
+//      notifyControl(state, channel).apply(buttonStyle),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
       },
@@ -454,7 +455,7 @@ object PageHeader {
     )
   )
 
-  private def decorateIcon(state: GlobalState, permissionState: PermissionState)(icon: IconLookup, description: String, changes: GraphChanges, changesOnSuccessPrompt: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def decorateNotificationIcon(state: GlobalState, permissionState: PermissionState)(icon: IconLookup, description: String, changes: GraphChanges, changesOnSuccessPrompt: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
     val default = "default".asInstanceOf[PermissionState]
     permissionState match {
       case PermissionState.granted => VDomModifier(
@@ -485,12 +486,12 @@ object PageHeader {
       Rx {
         val graph = state.graph()
         val user = state.user()
-        val permissionState = state.permissionState()
         val channelIdx = graph.idToIdx(channel.id)
         val userIdx = graph.idToIdx(user.id)
+        val permissionState = state.permissionState()
         val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
 
-        if(hasNotifyEdge) decorateIcon(state, permissionState)(
+        if(hasNotifyEdge) decorateNotificationIcon(state, permissionState)(
           freeSolid.faBell,
           description = "You are watching this node and will be notified about changes. Click to stop watching.",
           changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
@@ -500,12 +501,12 @@ object PageHeader {
             .ancestorsIdx(channelIdx)
             .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
 
-          if (canNotifyParents) decorateIcon(state, permissionState)(
+          if (canNotifyParents) decorateNotificationIcon(state, permissionState)(
             freeRegular.faBell,
             description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
             changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
             changesOnSuccessPrompt = true
-          ) else decorateIcon(state, permissionState)(
+          ) else decorateNotificationIcon(state, permissionState)(
             freeRegular.faBellSlash,
             description = "You are not watching this node and will not be notified. Click to start watching.",
             changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
@@ -526,7 +527,7 @@ object PageHeader {
 
   //TODO make this reactive by itself and never rerender, because the modal stuff is quite expensive.
   //TODO move menu to own file, makes up for a lot of code in this file
-  //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazy?
+  //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazily?
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     val canWrite: Boolean = !isOwnUser && channel.id != FeedbackForm.feedbackNodeId // TODO: actually check readonly permissions here
     val permissionItem:VDomModifier = channel match {
@@ -559,6 +560,36 @@ object PageHeader {
           )
         case _ => VDomModifier.empty
       }
+
+    val notificationItem:VDomModifier = {
+      var notifyControlElement:html.Element = null
+      (!isOwnUser).ifTrue[VDomModifier](div(
+        cls := "item",
+        notifyControl(state,channel).apply(
+          display.inline,
+          cls := "icon fa-fw",
+          marginRight := "5px",
+          onDomMount.asHtml.foreach ( notifyControlElement = _ )
+        ),
+        Rx {
+          val graph = state.graph()
+          val user = state.user()
+          val channelIdx = graph.idToIdx(channel.id)
+          val userIdx = graph.idToIdx(user.id)
+          @inline def permissionGranted = state.permissionState() == PermissionState.granted
+          @inline def hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
+          val text = if(permissionGranted && hasNotifyEdge) "Mute" else "Unmute"
+          span(cls := "text", text, cursor.pointer)
+        },
+
+        onClick.foreach {
+          //TODO: when this is a simple hack, so that we can still switch back to a Notification Icon-Button
+          if(notifyControlElement != null)
+            notifyControlElement.click()
+        }
+      ))
+    }
+
 
       val nodeRoleItem:VDomModifier = channel match {
         case channel: Node.Content if canWrite =>
@@ -649,7 +680,7 @@ object PageHeader {
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
 
-    val items:List[VDomModifier] = List(searchItem, addMemberItem, mentionInItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+    val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, mentionInItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
@@ -737,21 +768,21 @@ object PermissionSelection {
         s"Inherited ($inheritedLevel)"
       },
       value = "Inherited",
-      description = "The permissions for this Node are inherited from its parents",
+      description = "The permissions for this page are the same as for its parents", // TODO: write name of parent page. Notion did permission UI very well.
       icon = freeSolid.faArrowUp
     ) ::
       PermissionSelection(
         access = NodeAccess.Level(AccessLevel.ReadWrite),
         name = (_, _) => "Public",
         value = "Public",
-        description = "Anyone can access this Node via the URL",
+        description = "Anyone can access this page via the URL",
         icon = freeSolid.faUserPlus
       ) ::
       PermissionSelection(
         access = NodeAccess.Level(AccessLevel.Restricted),
         name = (_, _) => "Private",
         value = "Private",
-        description = "Only you and explicit members can access this Node",
+        description = "Only you and explicit members can access this page",
         icon = freeSolid.faLock
       ) ::
       Nil
