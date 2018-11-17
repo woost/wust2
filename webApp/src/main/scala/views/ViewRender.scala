@@ -9,6 +9,7 @@ object ViewRender {
   def apply(view: View, state: GlobalState)(implicit ctx: Ctx.Owner): VNode = view match {
     case View.Magic           => MagicView(state)
     case View.Conversation    => ConversationView(state)
+    case View.Tasks            => TasksView(state)
     case View.Thread           => ThreadView(state)
     case View.Chat             => ChatView(state)
     case View.Kanban           => KanbanView(state)

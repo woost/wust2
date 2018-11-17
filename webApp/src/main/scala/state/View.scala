@@ -18,6 +18,10 @@ object View {
     def viewKey = "conversation"
     def isContent = true
   }
+  case object Tasks extends View {
+    def viewKey = "tasks"
+    def isContent = true
+  }
   case object Thread extends View {
     def viewKey = "thread"
     def isContent = true

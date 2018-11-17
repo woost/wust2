@@ -737,10 +737,12 @@ object PageHeader {
 //          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
 //          MkInput(currentView, pageStyle, View.Thread),
 //          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
-          MkInput(currentView, pageStyle, View.Kanban),
-          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
-          MkInput(currentView, pageStyle, View.ListV),
-          MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
+          MkInput(currentView, pageStyle, View.Tasks),
+          MkLabel(currentView, pageStyle, View.Tasks, freeSolid.faTasks),
+//          MkInput(currentView, pageStyle, View.Kanban),
+//          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
+//          MkInput(currentView, pageStyle, View.ListV),
+//          MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
 //          MkInput(currentView, pageStyle, View.Graph),
 //          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
