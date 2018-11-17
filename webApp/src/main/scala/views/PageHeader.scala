@@ -520,7 +520,7 @@ object PageHeader {
   private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
     button(
       cls := "ui compact primary button",
-      "Add to Channels",
+      "Bookmark",
       onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
