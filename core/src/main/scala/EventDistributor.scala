@@ -136,14 +136,14 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                   scribe.info(s"Subscription expired")
                   Success(Some(subscription))
                 case statusCode if invalidHeaderCodes.contains(statusCode) =>
-                  scribe.info(s"Invalid headers")
-                  Success(Some(subscription))
+                  scribe.error(s"Invalid headers")
+                  Success(None)
                 case `tooManyRequestsCode`                                 =>
-                  scribe.info(s"Too many requests.")
-                  Success(Some(subscription))
+                  scribe.error(s"Too many requests.")
+                  Success(None)
                 case `payloadTooLargeCode`                                 =>
-                  scribe.info(s"Payload to lagre.")
-                  Success(Some(subscription))
+                  scribe.error(s"Payload to lagre.")
+                  Success(None)
                 case _                                                     =>
                   val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
                   scribe.error(s"Unexpected success code: $response body: $body")
