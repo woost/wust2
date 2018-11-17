@@ -545,6 +545,10 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth(6 em).important,
   )
 
+  ".zero-min-width-important" - (
+    minWidth(0 px).important,
+  )
+
   ".nodecard a" - (
     cursor.pointer
   )
