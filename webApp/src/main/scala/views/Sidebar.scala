@@ -142,10 +142,10 @@ object Sidebar {
   }
 
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
-    val indentFactor = 2
+    val indentFactor = 3
     val focusBorderWidth = 2
     val defaultPadding = CommonStyles.channelIconDefaultPadding
-    val maxVisualizedDepth = 3
+    val maxVisualizedDepth = 2
     div(
       cls := "channelIcons",
       Rx {
