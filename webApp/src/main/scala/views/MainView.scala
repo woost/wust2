@@ -32,8 +32,8 @@ object MainView {
             // don't show non-bookmarked border for:
             @inline def noContent = !state.view().isContent
             @inline def isLoading = state.isLoading()
-            @inline def isOwnUser = state.page().parentIds == Seq(state.user().id)
-            @inline def anyPageParentIsPinned = state.graph().anyAncestorIsPinned(state.page().parentIds)
+            @inline def isOwnUser = state.page().parentId.contains(state.user().id)
+            @inline def anyPageParentIsPinned = state.graph().anyAncestorIsPinned(state.page().parentId)
 
             (noContent || isLoading || isOwnUser || anyPageParentIsPinned).ifFalse[VDomModifier](
               cls := "non-bookmarked-page-frame"

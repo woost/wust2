@@ -10,7 +10,7 @@ object PageStyle {
   def apply(view: View, page: Page)(implicit ctx: Ctx.Owner) = {
 
     def applyPageHue(base: HCL): String = {
-      val pageHueOpt = NodeColor.pageHue(page.parentIds).filter(_ => view.isContent)
+      val pageHueOpt = NodeColor.mixHues(page.parentId).filter(_ => view.isContent)
       pageHueOpt.fold[Color](LAB(base.l, 0, 0))(hue => base.copy(h = hue)).toHex
     }
 

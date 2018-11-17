@@ -62,8 +62,8 @@ class DraggableEvents(state: GlobalState, draggable: Draggable) {
     state.eventProcessor.enriched.changes.onNext(changes)
   }
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
-  private def addTag(nodeIds:Seq[NodeId], tagId:NodeId):Unit = addTag(nodeIds, tagId :: Nil)
-  private def addTag(nodeIds:Seq[NodeId], tagIds:Iterable[NodeId]):Unit = {
+  private def addTag(nodeIds:Iterable[NodeId], tagId:NodeId):Unit = addTag(nodeIds, tagId :: Nil)
+  private def addTag(nodeIds:Iterable[NodeId], tagIds:Iterable[NodeId]):Unit = {
     val changes = nodeIds.foldLeft(GraphChanges.empty) {(currentChange, nodeId) =>
       val graph = state.graph.now
       val subjectIdx = graph.idToIdx(nodeId)

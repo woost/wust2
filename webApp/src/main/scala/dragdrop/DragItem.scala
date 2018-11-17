@@ -9,8 +9,8 @@ sealed trait DragTarget extends Product
 object DragItem extends wust.ids.serialize.Circe {
   case object DisableDrag extends DragPayload
 
-  sealed trait AnyNodes extends DragPayload with DragTarget { def nodeIds: Seq[NodeId] }
-  sealed trait SingleNode extends AnyNodes { def nodeId: NodeId; def nodeIds: Seq[NodeId] = nodeId :: Nil }
+  sealed trait AnyNodes extends DragPayload with DragTarget { def nodeIds: Iterable[NodeId] }
+  sealed trait SingleNode extends AnyNodes { def nodeId: NodeId; @inline def nodeIds: Iterable[NodeId] = nodeId :: Nil }
   sealed trait ChildNode extends SingleNode
   sealed trait ParentNode extends SingleNode
   sealed trait MultiParentNodes extends AnyNodes
@@ -25,7 +25,7 @@ object DragItem extends wust.ids.serialize.Circe {
     case class Messages(nodeIds: Seq[NodeId]) extends AnyNodes
     case class Message(nodeId: NodeId) extends ChildNode
     case class Thread(nodeIds: Seq[NodeId]) extends MultiParentNodes
-    case class Page(nodeIds: Seq[NodeId]) extends MultiParentNodes
+    case class Page(nodeId: NodeId) extends ParentNode
   }
 
   object Kanban {
@@ -47,10 +47,10 @@ object DragItem extends wust.ids.serialize.Circe {
 sealed trait DragContainer
 object DragContainer extends wust.ids.serialize.Circe {
   object Kanban {
-    sealed trait Area extends DragContainer { def parentIds: Seq[NodeId] }
-    case class Column(nodeId:NodeId) extends Area { def parentIds = nodeId :: Nil }
-    case class ColumnArea(parentIds:Seq[NodeId]) extends Area
-    case class Uncategorized(parentIds:Seq[NodeId]) extends Area
+    sealed trait Area extends DragContainer { def parentId: NodeId }
+    case class Column(nodeId:NodeId) extends Area { @inline def parentId = nodeId }
+    case class ColumnArea(parentId:NodeId) extends Area
+    case class Uncategorized(parentId:NodeId) extends Area
   }
 
   val propName = "_wust_dragcontainer"

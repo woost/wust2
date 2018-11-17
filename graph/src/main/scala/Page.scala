@@ -3,29 +3,21 @@ package wust.graph
 import wust.ids._
 
 sealed trait Page {
-  def parentIds: Seq[NodeId]
-  def childrenIds: Seq[NodeId]
-
-  def copy(parentIds: Seq[NodeId] = parentIds, childrenIds: Seq[NodeId] = childrenIds): Page.Selection = {
-    Page.Selection(parentIds, childrenIds)
-  }
-
-  lazy val parentIdSet = parentIds.toSet
+  def parentId: Option[NodeId]
 }
+
 object Page {
-  case class Selection(parentIds: Seq[NodeId], childrenIds: Seq[NodeId]) extends Page
-  case class NewChanges(nodeId: Option[NodeId], extraChanges: GraphChanges) extends Page {
-    override def parentIds = nodeId.toList
-    override def childrenIds = Nil
+  case class Selection(nodeId: NodeId) extends Page {
+    override def parentId: Option[NodeId] = Some(nodeId)
+  }
+  case class NewChanges(parentId: Option[NodeId], extraChanges: GraphChanges) extends Page
+
+  case object Empty extends Page {
+    @inline override def parentId: Option[NodeId] = None
   }
 
-  def apply(
-    parentIds: Seq[NodeId],
-    childrenIds: Seq[NodeId] = Nil,
-  ): Page = Selection(parentIds, childrenIds)
+  def apply(parentId: NodeId): Page = Selection(parentId)
+  def unapply(page: Page): Option[NodeId] = page.parentId
 
-  def unapply(page: Page): Option[(Seq[NodeId], Seq[NodeId])] = Some((page.parentIds, page.childrenIds))
-
-  val empty: Page = Page(Seq.empty)
-  def apply(parentId: NodeId): Page = apply(Seq(parentId))
+  @inline def empty: Page = Empty
 }

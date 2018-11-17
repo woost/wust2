@@ -87,8 +87,8 @@ object Sidebar {
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    def channelLine(node: Node, pageParentIds: Set[NodeId], pageStyle: PageStyle): VNode = {
-      val selected = pageParentIds contains node.id
+    def channelLine(node: Node, pageParentId: Option[NodeId], pageStyle: PageStyle): VNode = {
+      val selected = pageParentId contains node.id
       div(
         cls := "channel-line",
         selected.ifTrueSeq(
@@ -109,14 +109,14 @@ object Sidebar {
       ),
     }
 
-    def channelList(channels: Tree, pageParentIds: Set[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
+    def channelList(channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
       div(
-        channelLine(channels.node, pageParentIds, pageStyle),
+        channelLine(channels.node, pageParentId, pageStyle),
         channels match {
           case Tree.Parent(_, children) => div(
             paddingLeft := "10px",
             fontSize := s"${ math.max(8, 14 - depth) }px",
-            children.map { child => channelList(child, pageParentIds, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+            children.map { child => channelList(child, pageParentId, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case Tree.Leaf(_)             => VDomModifier.empty
         }
@@ -128,14 +128,13 @@ object Sidebar {
       Rx {
         val channelForest = state.channelForest()
         val page = state.page()
-        val pageParentIds = page.parentIdSet
         val pageStyle = state.pageStyle()
         val user = state.user()
 
         VDomModifier(
-          channelLine(user.toNode, pageParentIds, pageStyle),
+          channelLine(user.toNode, page.parentId, pageStyle),
           channelForest.map { channelTree =>
-            channelList(channelTree, pageParentIds, pageStyle)
+            channelList(channelTree, page.parentId, pageStyle)
           }
         )
       }
@@ -156,7 +155,7 @@ object Sidebar {
         VDomModifier(
           ((user.toNode,0) +: allChannels).map { case (node,rawDepth) =>
             val depth = rawDepth min maxVisualizedDepth
-            val isSelected = page.parentIds.contains(node.id)
+            val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
@@ -214,14 +213,15 @@ object Sidebar {
       //TODO if (e.shiftKey) {
       val newPage = action match {
         case ChannelAction.Node(id)   =>
-          if(e.ctrlKey) {
-            val filtered = page.parentIds.filterNot(_ == id)
-            val parentIds =
-              if(filtered.size == page.parentIds.size) page.parentIds :+ id
-              else if(filtered.nonEmpty) filtered
-              else Seq(id)
-            page.copy(parentIds = parentIds)
-          } else Page(Seq(id))
+//          if(e.ctrlKey) {
+//            val filtered = page.parentIds.filterNot(_ == id)
+//            val parentIds =
+//              if(filtered.size == page.parentIds.size) page.parentIds :+ id
+//              else if(filtered.nonEmpty) filtered
+//              else Seq(id)
+//            page.copy(parentIds = parentIds)
+//          } else
+                        Page(id)
       }
       val contentView = if(state.view.now.isContent) state.view.now else View.default
       state.viewConfig() = state.viewConfig.now.copy(page = newPage, view = contentView, redirectTo = None)

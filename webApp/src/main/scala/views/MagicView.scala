@@ -12,7 +12,7 @@ import wust.util._
 
 object MagicView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val stats = Rx { state.graph().topLevelRoleStats(state.page().parentIds) }
+    val stats = Rx { state.graph().topLevelRoleStats(state.page().parentId) }
     val statsContainsTask = Rx { stats() contains NodeRole.Task }
     div(
       keyed,

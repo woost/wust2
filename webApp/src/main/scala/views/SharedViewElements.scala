@@ -520,10 +520,6 @@ object SharedViewElements {
           ()
         }
       ),
-      zoomButton(onClick foreach {
-        state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(nodeIdSet)))
-        selectedNodes() = Set.empty[T]
-      }),
       SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted),
     ) ::: additional
   }

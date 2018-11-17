@@ -40,8 +40,7 @@ object BreadCrumbs {
           val page = state.page()
           val user = state.user()
           val graph = state.graph()
-          val parentIds = page.parentIds
-          parentIds.map { (parentId: NodeId) =>
+          page.parentId.map { (parentId: NodeId) =>
             val parentDepths = graph.parentDepths(parentId)
             val distanceToNodes = parentDepths.toList.sortBy { case (depth, _) => -depth }
             val elements = distanceToNodes.flatMap { case (distance, gIdToNodeIds) =>

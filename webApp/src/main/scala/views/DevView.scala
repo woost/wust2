@@ -137,7 +137,7 @@ object DevView {
           def deletePost(ids: Seq[NodeId]): Unit = {
             ids.foreach { nodeId =>
               state.eventProcessor.changes
-                .onNext(GraphChanges.delete(nodeId, state.page.now.parentIdSet))
+                .onNext(GraphChanges.delete(nodeId, state.page.now.parentId))
             }
           }
 

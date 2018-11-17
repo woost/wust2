@@ -217,7 +217,7 @@ object SelectedPostMenu {
 
   val menuActions: List[MenuAction] = List(
     MenuAction("Focus", { (p: Node, state: GlobalState) =>
-      state.page() = Page(Seq(p.id))
+      state.page() = Page(p.id)
     }),
 //    MenuAction(
 //      "Collapse",
@@ -235,7 +235,7 @@ object SelectedPostMenu {
         state.eventProcessor.enriched.changes
           .onNext(
             GraphChanges
-              .delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentIdSet)
+              .delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentId.toSet)
           )
       }
     ),
