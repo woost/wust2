@@ -15,12 +15,12 @@ class CuidSpec extends FreeSpec with MustMatchers {
 
   "big uuid" in {
     val original = new UUID(Long.MaxValue, Long.MaxValue)
-    assertThrows[IllegalArgumentException] { Cuid.fromUuid(original) }
+    assertThrows[AssertionError] { Cuid.fromUuid(original) }
   }
 
   "small uuid" in {
     val original = new UUID(-1, -1)
-    assertThrows[IllegalArgumentException] { Cuid.fromUuid(original) }
+    assertThrows[AssertionError] { Cuid.fromUuid(original) }
   }
 
   "cuid" in {
