@@ -157,6 +157,10 @@ object Sidebar {
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
+              title := node.data.str,
+//              data.tooltip := node.data.str,
+//              data.position := "right center",
+
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               draggableAs(DragItem.DisableDrag),
@@ -199,7 +203,6 @@ object Sidebar {
         case _: Node.User       => if(isSelected) 1.0 else 0.9
       }),
       Avatar(node),
-      title := node.data.str,
     )
   }
 
