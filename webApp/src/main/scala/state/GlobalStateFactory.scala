@@ -97,7 +97,7 @@ object GlobalStateFactory {
           case Page.NewChanges(_, changes)            =>
             eventProcessor.changes.onNext(changes)
             Observable.empty
-          case Page.Empty => Observable.empty
+          case Page.Empty => Observable.fromFuture(Client.api.getGraph(page))
         } else {
           Observable.empty
         }
