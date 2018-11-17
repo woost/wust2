@@ -7,12 +7,14 @@ import org.scalajs.dom.console
 import draggable._
 import org.scalajs.dom.raw.HTMLElement
 import wust.graph.{Edge, GraphChanges, GraphLookup}
+import wust.ids.NodeId
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
+import scala.collection.breakOut
 import scala.scalajs.js
 
 
@@ -78,7 +80,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     //      s"to index $newSortIndex / ${newContChilds.length - 1}")
 
     // Reconstruct ordering
-    def oldOrderingNodes = from.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
+    def oldOrderingNodes = g.notDeletedChildrenIdx(g.idToIdx(from.parentId)) // nodes in container
     val oldOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](oldOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
 
@@ -102,20 +104,20 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val previousBefore = if(oldIndex > 0) Some(g.nodeIds(oldOrderedNodes(oldIndex - 1))) else None // Moved from very beginning
     val previousAfter = if(oldIndex < oldOrderedNodes.size - 1) Some(g.nodeIds(oldOrderedNodes(oldIndex + 1))) else None // Moved from very end
 
-    val previousEdges: Set[Option[Edge]] = from.parentIds.flatMap(pid => Set(
+    val previousEdges: Set[Option[Edge]] = Set(
       previousBefore match {
-        case Some(b) => Some(Edge.Before(b, sortedNodeId, pid))
+        case Some(b) => Some(Edge.Before(b, sortedNodeId, from.parentId))
         case _       => None
       },
       previousAfter match {
-        case Some(a) => Some(Edge.Before(sortedNodeId, a, pid))
+        case Some(a) => Some(Edge.Before(sortedNodeId, a, from.parentId))
         case _       => None
       }
-    )).toSet
+    )
 
-    @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) into.parentIds.map(nid => Some(Edge.Before(previousBefore.get, previousAfter.get, nid))).toSet else Set.empty[Option[Edge]]
+    @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) Set(Some(Edge.Before(previousBefore.get, previousAfter.get, into.parentId))) else Set.empty[Option[Edge]]
 
-    def newOrderingNodes = into.parentIds.flatMap(parent => g.notDeletedChildrenIdx(g.idToIdx(parent)).toSeq) // nodes in container
+    def newOrderingNodes = g.notDeletedChildrenIdx(g.idToIdx(into.parentId)) // nodes in container
     val newOrderedNodes: Seq[Int] = g.topologicalSortByIdx[Int](newOrderingNodes, identity, Some(_)) // rebuild ordering in container
 
     if(newOrderedNodes.isEmpty)
@@ -137,10 +139,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       val chronologicalOverwrites = newOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
 
-      val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toList.flatMap(l => {
-        into.parentIds.map(nid =>
-          Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, nid))
-      }) ++ into.parentIds.map(nid => Edge.Before(g.nodeIds(newOrderedNodes.last), sortedNodeId, nid))).toSet
+      val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toSeq.map(l => {
+        Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, into.parentId)
+      })(breakOut):Set[Edge]) + Edge.Before(g.nodeIds(newOrderedNodes.last), sortedNodeId, into.parentId)
 
       GraphChanges(
         addEdges = newBeforeEdges ++ relinkEdges.flatten,
@@ -152,10 +153,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       val chronologicalOverwrites = oldOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
 
-      val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toList.flatMap(l => {
-        into.parentIds.map(nid =>
-          Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, nid))
-      }) ++ into.parentIds.map(nid => Edge.Before(g.nodeIds(oldOrderedNodes.last), sortedNodeId, nid))).toSet
+      val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toSeq.map(l => {
+          Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, into.parentId)
+      })(breakOut):Set[Edge]) + Edge.Before(g.nodeIds(oldOrderedNodes.last), sortedNodeId, into.parentId)
 
       GraphChanges(
         addEdges = newBeforeEdges ++ relinkEdges.flatten,
@@ -195,19 +195,19 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         (b, m, a)
       }
 
-      val cleanupBeforeEdges = if(nowBefore.isDefined && nowAfter.isDefined) from.parentIds.map(nid => Some(Edge.Before(nowBefore.get, nowAfter.get, nid))).toSet else Set.empty[Option[Edge]]
+      val cleanupBeforeEdges = if(nowBefore.isDefined && nowAfter.isDefined) Set(Some(Edge.Before(nowBefore.get, nowAfter.get, from.parentId))) else Set.empty[Option[Edge]]
 
-      val newBeforeEdges = into.parentIds.flatMap(nid => Set(
+      val newBeforeEdges = Set(
         if(nowBefore.isDefined && nowMiddle.isDefined)
-          Some(Edge.Before(nowBefore.get, nowMiddle.get, nid))
+          Some(Edge.Before(nowBefore.get, nowMiddle.get, into.parentId))
         else
           None
         ,
         if(nowAfter.isDefined && nowMiddle.isDefined)
-          Some(Edge.Before(nowMiddle.get, nowAfter.get, nid))
+          Some(Edge.Before(nowMiddle.get, nowAfter.get, into.parentId))
         else
           None
-      )).toSet
+      )
 
       GraphChanges(
         addEdges = (newBeforeEdges ++ relinkEdges).flatten,
@@ -218,9 +218,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val gc = gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId)).consistent
     scribe.debug("SORTING\n" +
       s"dragged node: ${ g.nodesById(sortedNodeId).str }\n\t" +
-      s"from ${ from.parentIds.map(pid => g.nodesById(pid).str) } containing ${ getNodeStr(g, oldOrderedNodes) }\n\t" +
+      s"from ${ g.nodesById(from.parentId).str } containing ${ getNodeStr(g, oldOrderedNodes) }\n\t" +
       s"from position ${ oldIndex + 1 } / ${ oldOrderedNodes.length }\n\t" +
-      s"into ${ into.parentIds.map(pid => g.nodesById(pid).str) } containing ${ getNodeStr(g, newOrderedNodes) }\n\t" +
+      s"into ${ g.nodesById(into.parentId).str } containing ${ getNodeStr(g, newOrderedNodes) }\n\t" +
       s"to position ${ newSortIndex + 1 } / ${ newOrderedNodes.length }")
 
     GraphChanges.log(gc, Some(state.graph.now))
@@ -236,17 +236,17 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     {
       case (e, dragging: DragItem.Kanban.Column, from: Kanban.Area, into: Kanban.ColumnArea, false, false) =>
-        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
-        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
 
       case (e, dragging: DragItem.Kanban.Card, from: Kanban.Area, into: Kanban.Uncategorized, false, false) =>
-        val move = GraphChanges.changeTarget(Edge.Parent)(dragging.nodeId :: Nil, from.parentIds, into.parentIds)
+        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
         val beforeEdges = beforeChanges(graph, e, dragging, from, into)
         state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
     }

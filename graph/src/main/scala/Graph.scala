@@ -72,7 +72,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   @deprecated("Be aware that you are constructing a new graph here.", "")
   def pageContent(page: Page): Graph = {
-    val pageChildren = page.parentIds.flatMap(lookup.descendants)
+    val pageChildren = page.parentId.fold(Seq.empty[NodeId])(lookup.descendants)
     this.filterIds(pageChildren.toSet)
   }
 

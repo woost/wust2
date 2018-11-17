@@ -189,12 +189,9 @@ object CreateNewPrompt {
     VDomModifier(
       emitter(show).foreach { show =>
         if (show) {
-          val potentialParents = state.page.now.parentIds.toList
-          val parents = if (potentialParents.isEmpty) List(state.user.now.id) else potentialParents
-          val children = state.selectedNodes.now
           Var.set(
-            parentNodes -> parents,
-            childNodes -> children
+            parentNodes -> List(state.page.now.parentId.getOrElse(state.user.now.id)),
+            childNodes -> state.selectedNodes.now
           )
 
           modalElement.modal("show")

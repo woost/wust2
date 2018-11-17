@@ -36,8 +36,8 @@ object ListView {
 
           val graph = {
             val g = state.graph()
-            val transitivePageChildren = page.parentIds.flatMap(g.notDeletedDescendants)
-            g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
+            val transitivePageChildren = page.parentId.toSeq.flatMap(g.notDeletedDescendants)
+            g.filterIds(page.parentId.toSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
           }
 
           val doneIdx: Int = graph.nodes.findIdx(node => node.str.trim.toLowerCase == "done").getOrElse(-2) // TODO: this also finds sub-columns named done. Prevent this and find only toplevel columns?
@@ -46,7 +46,7 @@ object ListView {
             case idx => Some(graph.nodes(idx))
           }
 
-          val pageParentArraySet = graph.createArraySet(page.parentIdSet)
+          val pageParentArraySet = graph.createArraySet(page.parentId) // TODO: remove, since set only contains max one item
 
           val allTasks: ArraySet = graph.subset { nodeIdx =>
             val node = graph.nodes(nodeIdx)
@@ -72,7 +72,8 @@ object ListView {
             }
           }
 
-          VDomModifier(
+          page.parentId.map{ pageParentId =>
+            VDomModifier(
             div(todoTasks.map{nodeIdx =>
               val node = graph.nodes(nodeIdx)
               nodeCard(node).apply(margin := "4px").prepend(
@@ -91,7 +92,7 @@ object ListView {
                           case None                   =>
                             val freshDoneNode = Node.MarkdownTask("Done")
                             val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
-                            (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, page.parentIds) merge expand)
+                            (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, pageParentId) merge expand)
                           case Some(existingDoneNode) => (existingDoneNode.id, GraphChanges.empty)
                         }
                         val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, state.graph.now.parents(node.id), doneNodeId :: Nil)
@@ -120,15 +121,15 @@ object ListView {
                       checked := true,
                       onChange.checked foreach { checked =>
                         if(!checked) {
-                          val changes = GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, doneNode.get.id :: Nil, state.page.now.parentIds)
+                          val changes = GraphChanges.changeTarget(Edge.Parent)(node.id :: Nil, doneNode.get.id :: Nil, pageParentId :: Nil)
                           state.eventProcessor.changes.onNext(changes)
                         }
                       }
                     ),
                     label()
                   )
-                )})
-          )
+                )}))
+          }
         }
       },
     )

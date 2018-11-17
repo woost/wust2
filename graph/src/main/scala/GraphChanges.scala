@@ -141,6 +141,9 @@ object GraphChanges {
       parentId => Edge.Parent.delete(nodeId, parentId, deletedAt)
     )(breakOut)
   )
+  def delete(nodeId: NodeId, parentId: NodeId): GraphChanges = GraphChanges(
+    addEdges = Set(Edge.Parent.delete(nodeId, parentId))
+  )
 
   class ConnectFactory[SOURCEID, TARGETID, EDGE <: Edge](edge: (SOURCEID, TARGETID) => EDGE, toGraphChanges: collection.Set[EDGE] => GraphChanges) {
     def apply(sourceId: SOURCEID, targetId: TARGETID): GraphChanges =

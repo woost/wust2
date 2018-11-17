@@ -43,7 +43,7 @@ object ThreadView {
 
     val outerDragOptions = VDomModifier(
       draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
+      Rx { state.page().parentId.map(pageParentId => dragTarget(DragItem.Chat.Page(pageParentId))) },
       registerDraggableContainer(state),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
@@ -77,7 +77,7 @@ object ThreadView {
         def submitAction(str:String) = {
           // we treat new chat messages as noise per default, so we set a future deletion date
           scrollHandler.scrollToBottomInAnimationFrame()
-          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentIds, deletedAt = noiseFutureDeleteDate)
+          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentId, deletedAt = noiseFutureDeleteDate)
           state.eventProcessor.changes.onNext(changes)
         }
 
@@ -100,7 +100,7 @@ object ThreadView {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
       withLoadingAnimation(state) {
-        renderThreadGroups(state, directParentIds = page.parentIds, transitiveParentIds = page.parentIdSet, selectedNodes, isTopLevel = true)
+        renderThreadGroups(state, directParentIds = page.parentId, transitiveParentIds = page.parentId.toSet, selectedNodes, isTopLevel = true)
       }
     }
   }
@@ -374,16 +374,20 @@ object ThreadView {
     List(
       editButton(
         onClick foreach {
-          selectedNodes.now.head.editMode() = true
+          selectedNode.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
       ),
       replyButton(
         onClick foreach {
-          selectedNodes.now.head.showReplyField() = true
+          selectedNode.showReplyField() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
-      )
+      ),
+      zoomButton(onClick foreach {
+        state.page.onNext(Page(selectedNode.nodeId))
+        selectedNodes() = Set.empty[SelectedNode]
+      }),
     )
   } else Nil
 }

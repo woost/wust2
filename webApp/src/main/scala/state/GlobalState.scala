@@ -69,16 +69,9 @@ class GlobalState(
 
   val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
-  val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page)).mapRead { rawPage =>
-    rawPage() match {
-      case p: Page.Selection => p.copy(
-        parentIds = rawPage().parentIds //.filter(rawGraph().postsById.isDefinedAt)
-      )
-      case p                 => p
-    }
-  }
+  val page: Var[Page] = viewConfig.zoom(GenLens[ViewConfig](_.page))
 
-  val pageNotFound:Rx[Boolean] = Rx{ !page().parentIds.forall(graph().contains) }
+  val pageNotFound:Rx[Boolean] = Rx{ !page().parentId.forall(graph().contains) }
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
 //  val documentIsVisible: Rx[Boolean] = {
@@ -93,14 +86,10 @@ class GlobalState(
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if(!view().isContent || page().parentIds.nonEmpty)
+    if(!view().isContent || page().parentId.nonEmpty)
       view()
     else
       View.NewChannel
-  }
-
-  val pageParentNodes: Rx[Seq[Node]] = Rx {
-    page().parentIds.flatMap(id => graph().lookup.nodesByIdGet(id))
   }
 
   val pageStyle = Rx {

@@ -43,11 +43,11 @@ object KanbanView {
 
           val graph = {
             val g = state.graph()
-            val transitivePageChildren = page.parentIds.flatMap(g.notDeletedDescendants)
-            g.filterIds(page.parentIdSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
+            val transitivePageChildren = page.parentId.toSeq.flatMap(g.notDeletedDescendants)
+            g.filterIds(page.parentId.toSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
           }
 
-          val pageParentArraySet = graph.createArraySet(page.parentIdSet)
+          val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove, since it contains max one element
 
           val allTasks:ArraySet = graph.subset { nodeIdx =>
             val node = graph.nodes(nodeIdx)
@@ -80,27 +80,29 @@ object KanbanView {
           //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
           //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
 
-          VDomModifier(
-            renderUncategorizedColumn(state, uncategorizedTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
-            div(
-              cls := s"kanbancolumnarea",
-              keyed,
-              Styles.flexStatic,
+          page.parentId.map { pageParentId =>
+            VDomModifier(
+              renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
+              div(
+                cls := s"kanbancolumnarea",
+                keyed,
+                Styles.flexStatic,
 
-              Styles.flex,
-              alignItems.flexStart,
-              sortedForest.map(tree => renderTree(state, tree, parentIds = page.parentIds, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+                Styles.flex,
+                alignItems.flexStart,
+                sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
-              registerSortableContainer(state, DragContainer.Kanban.ColumnArea(state.page().parentIds)),
-            ),
-            Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) },
-          )
+                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
+              ),
+              Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) }
+            )
+          }
         }
       },
     )
   }
 
-  private def renderTree(state: GlobalState, tree: Tree, parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderTree(state: GlobalState, tree: Tree, parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
         Rx {
@@ -108,17 +110,17 @@ object KanbanView {
             val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
             //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
             //        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
-            renderColumn(state, node, sortedChildren, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+            renderColumn(state, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
-            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
+            renderColumn(state, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
         }
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id))
-            renderColumn(state, node, Nil, parentIds, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+            renderColumn(state, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           else
-            renderCard(state, node, parentIds, selectedNodeIds)
+            renderCard(state, node, parentId, selectedNodeIds)
         }
     }
   }
@@ -126,12 +128,12 @@ object KanbanView {
 
   private def renderUncategorizedColumn(
     state: GlobalState,
+    parentId:NodeId,
     children: Seq[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
-    val parentIds = state.page.now.parentIds
-    val columnColor = BaseColors.kanbanColumnBg.copy(h = pageHue(parentIds).get).toHex
+    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(parentId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
     div(
@@ -143,15 +145,15 @@ object KanbanView {
       p(cls := "kanban-uncategorized-title", "Uncategorized"),
       div(
         cls := "kanbancolumnchildren",
-        registerSortableContainer(state, DragContainer.Kanban.Uncategorized(parentIds)),
-        children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentIds = parentIds, selectedNodeIds)),
+        registerSortableContainer(state, DragContainer.Kanban.Uncategorized(parentId)),
+        children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, selectedNodeIds)),
         scrollHandler.modifier,
       ),
-      addNodeField(state, parentIds, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
+      addNodeField(state, parentId, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
     )
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentIds: Seq[NodeId], path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isCollapsed: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isCollapsed: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -176,7 +178,7 @@ object KanbanView {
             div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
+              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
@@ -192,7 +194,7 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
-      keyed(node.id, parentIds),
+      keyed(node.id, parentId),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       Rx{ if(editable()) draggableAs(DragItem.DisableDrag) else { // prevents dragging when selecting text
         if(isTopLevel) VDomModifier(
@@ -206,7 +208,7 @@ object KanbanView {
       div(
         cls := "kanbancolumnheader",
         isCollapsed.ifTrue[VDomModifier](cls := "kanbancolumncollapsed"),
-        keyed(node.id, parentIds),
+        keyed(node.id, parentId),
         cls := "draghandle",
 
         columnTitle,
@@ -221,11 +223,11 @@ object KanbanView {
         div(
           cls := "kanbancolumnchildren",
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
-          keyed(node.id, parentIds),
-          children.map(tree => renderTree(state, tree, parentIds = node.id :: Nil, path = node.id :: path, activeReplyFields, selectedNodeIds)),
+          keyed(node.id, parentId),
+          children.map(tree => renderTree(state, tree, parentId = node.id, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
-        addNodeField(state, node.id :: Nil, path, activeReplyFields, scrollHandler)
+        addNodeField(state, node.id, path, activeReplyFields, scrollHandler)
       ))
     )
   }
@@ -241,7 +243,7 @@ object KanbanView {
   }
 
 
-  private def renderCard(state: GlobalState, node: Node, parentIds: Seq[NodeId], selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderCard(state: GlobalState, node: Node, parentId: NodeId, selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
     val rendered = nodeCardEditable(
       state, node,
@@ -263,7 +265,7 @@ object KanbanView {
           div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand"),
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentIds))
+              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
@@ -286,7 +288,7 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       Rx { if(editable()) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
-      keyed(node.id, parentIds),
+      keyed(node.id, parentId),
       cls := "draghandle",
 
       Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig, cursor.pointer)) },
@@ -299,20 +301,20 @@ object KanbanView {
 
   private def addNodeField(
     state: GlobalState,
-    parentIds: Seq[NodeId],
+    parentId: NodeId,
     path:List[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     scrollHandler: ScrollBottomHandler,
     textColor:Option[String] = None,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val fullPath = parentIds.head :: path
+    val fullPath = parentId :: path
     val active = Rx{activeReplyFields() contains fullPath}
     active.foreach{ active =>
       if(active) scrollHandler.scrollToBottomInAnimationFrame()
     }
 
     def submitAction(str:String) = {
-      val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentIds)
+      val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
       state.eventProcessor.enriched.changes.onNext(change)
     }
 
@@ -324,7 +326,7 @@ object KanbanView {
 
     div(
       cls := "kanbanaddnodefield",
-      keyed(parentIds),
+      keyed(parentId),
       Rx {
         if(active())
           inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder))

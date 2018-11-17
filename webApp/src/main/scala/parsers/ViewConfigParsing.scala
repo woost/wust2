@@ -59,10 +59,9 @@ private object UrlOption {
   object page extends UrlOption {
     val key = "page"
 
-    val regex = Regex[(String, Option[String])](rx"^(\w+(,\w+)*)(:\w+(,\w)*)?$$")
-      .map(_.map { case (parentIds, childrenIdsOpt) =>
-          val childrenIds = childrenIdsOpt.fold("")(_.tail)
-          Page(parentIds.split(",").map(s => NodeId(Cuid.fromBase58(s))), childrenIds.split(",").map(s => NodeId(Cuid.fromBase58(s))))
+    val regex = Regex[String](rx"^(\w+)$$")
+      .map(_.map { case parentId =>
+          Page(NodeId(Cuid.fromBase58(parentId)))
       })
 
     def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
@@ -119,11 +118,9 @@ object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
     val viewString = UrlOption.view.key + "=" + cfg.view.viewKey
     val pageString = cfg.page match {
-      case Page(parentIds, childrenIds) if parentIds.isEmpty && childrenIds.isEmpty => ""
-      case Page(parentIds, childrenIds) if childrenIds.isEmpty =>
-        "&" + UrlOption.page.key + "=" + s"${parentIds.map(_.toBase58).mkString(",")}"
-      case Page(parentIds, childrenIds) =>
-        "&" + UrlOption.page.key + "=" + s"${parentIds.map(_.toBase58).mkString(",")}:${childrenIds.map(_.toBase58).mkString(",")}"
+      case Page.Empty => ""
+      case Page(parentId) =>
+        "&" + UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
     val redirectToStringWithSep =
       cfg.redirectTo.fold("")(v => "&" + UrlOption.redirectTo.key + "=" + v.viewKey)

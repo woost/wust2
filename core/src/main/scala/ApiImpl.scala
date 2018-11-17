@@ -225,7 +225,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       posts: List[NodeId],
       num: Option[Int]
   ): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
-    getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
+    ???
+    //    getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
   }
 
   override def currentTime: Dsl.ApiFunction[EpochMilli] = Action { Future.successful(EpochMilli.now) }
@@ -241,8 +242,8 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
   // }
 
   private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
-    // TODO: also include the direct parents of the parentIds to be able no navigate upwards
-    db.graph.getPage(page.parentIds.toList, page.childrenIds.toList, userId).map(forClient)
+    // TODO: also include the transitive parents of the page-parentId to be able no navigate upwards
+    db.graph.getPage(page.parentId.toSeq, Nil, userId).map(forClient)
   }
 }
 

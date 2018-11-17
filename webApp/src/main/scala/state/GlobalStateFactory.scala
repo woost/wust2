@@ -90,13 +90,14 @@ object GlobalStateFactory {
           isLoading() = true
           Observable.fromFuture(Client.api.getGraph(page))
         } else if (prevPage == null || prevPage != page) page match {
-          case Page.Selection(parentIds, childrenIds) =>
+          case _:Page.Selection =>
             isLoading() = true
             if (isFirstGraphRequest || view.now != View.NewChannel) Observable.fromFuture(Client.api.getGraph(page))
             else Observable.empty
           case Page.NewChanges(_, changes)            =>
             eventProcessor.changes.onNext(changes)
             Observable.empty
+          case Page.Empty => Observable.empty
         } else {
           Observable.empty
         }
@@ -183,8 +184,8 @@ object GlobalStateFactory {
   ): GraphChanges = {
     import changes.consistent._
 
-    def toParentConnections(page: Page, nodeId: NodeId): Seq[Edge] =
-      page.parentIds.map(Edge.Parent(nodeId, _))(breakOut)
+    def toParentConnections(page: Page, nodeId: NodeId): Option[Edge] =
+      page.parentId.map(Edge.Parent(nodeId, _))
 
     val containedNodes = addEdges.collect { case Edge.Parent(source, _, _) => source }
     val toContain = addNodes

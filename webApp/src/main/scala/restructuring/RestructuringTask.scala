@@ -900,7 +900,7 @@ case class AddTagToPosts(posts: Posts) extends AddTagTask {
         case None =>
           //TODO: author = state.user.now.id
           val newTag = Node.Content(NodeId.fresh, NodeData.Markdown(tag), NodeRole.Message)
-          val newParent = state.page.now.parentIds
+          val newParent = state.page.now.parentId
           val postTag = post.map(p => Edge.Parent(p.id, newTag.id))
           GraphChanges(
             addNodes = Set(newTag),

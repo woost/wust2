@@ -29,6 +29,7 @@ import io.circe.generic.extras.auto._
 import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler
+import wust.graph.Page
 
 import scala.util.{Failure, Success}
 

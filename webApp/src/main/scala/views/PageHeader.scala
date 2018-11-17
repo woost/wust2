@@ -32,13 +32,14 @@ import scala.util.{Failure, Success}
 
 object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state._
     //TODO thunk: div.staticRx(keyValue)(implicit ctx =>
     div(keyed)(
       VDomModifier(
         cls := "pageheader",
         Rx {
-          pageParentNodes().map { channel => channelRow(state, channel) }
+          val graph = state.graph()
+          val page = state.page()
+          page.parentId.flatMap(graph.nodesByIdGet).map { parentNode => channelRow(state, parentNode) }
         },
         viewSwitcher(state),
       )

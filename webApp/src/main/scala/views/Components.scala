@@ -93,7 +93,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if (pageOnClick) onClick foreach { e =>
-        state.page() = Page(Seq(tag.id)); e.stopPropagation()
+        state.page() = Page(tag.id); e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
@@ -107,7 +107,7 @@ object Components {
       backgroundColor := tagColor(tag.id).toHex,
       title := tag.data.str,
       onClick foreach { e =>
-        state.page() = Page(Seq(tag.id)); e.stopPropagation()
+        state.page() = Page(tag.id); e.stopPropagation()
       },
       draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
@@ -246,15 +246,6 @@ object Components {
         }
       }
     )
-  }
-
-  def withOrder(state: GlobalState, page: Page): VDomModifier = {
-    val parents = page.parentIds
-
-    state.graph.now.lookup.beforeIdx
-
-
-    div()
   }
 
   def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges])(

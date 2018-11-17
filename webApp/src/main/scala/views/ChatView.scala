@@ -43,7 +43,7 @@ object ChatView {
 
     val outerDragOptions = VDomModifier(
       draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { dragTarget(DragItem.Chat.Page(state.page().parentIds)) },
+      Rx { state.page().parentId.map(parentId => dragTarget(DragItem.Chat.Page(parentId))) },
       registerDraggableContainer(state),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
@@ -83,7 +83,7 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
           Styles.flex,
           currentReply().map { replyNodeId =>
-            val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page.now.parentIds)
+            val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page().parentId)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -102,13 +102,13 @@ object ChatView {
         )
       },
       {
-        val bgColor = Rx{ NodeColor.pageHue(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
+        val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
 
         def submitAction(str:String) = {
 
           val replyNodes: Set[NodeId] = {
             if(currentReply.now.nonEmpty) currentReply.now
-            else state.page.now.parentIdSet
+            else state.page.now.parentId.toSet
           }
 
           currentReply() = Set.empty[NodeId]
@@ -140,8 +140,8 @@ object ChatView {
       val page = state.page()
       val graph = state.graph()
       withLoadingAnimation(state) {
-        val pageParentArraySet = graph.createArraySet(page.parentIdSet)
-        val groups = calculateMessageGrouping(selectChatMessages(page.parentIds, graph), graph, pageParentArraySet)
+        val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove. It only conntains max one element
+        val groups = calculateMessageGrouping(selectChatMessages(page.parentId, graph), graph, pageParentArraySet)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
@@ -173,7 +173,7 @@ object ChatView {
 
     val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(pageParentArraySet.containsNot).sortBy(idx => groupGraph.nodeCreated(idx))
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
-    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentIdSet)
+    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentId.contains)
 
     def renderCommonParents(implicit ctx: Ctx.Owner) = div(
       cls := "chat-common-parents",
@@ -185,8 +185,8 @@ object ChatView {
       }
     )
 
-    val bgColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex)
-    val lineColor = NodeColor.pageHue(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
+    val bgColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex)
+    val lineColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
     VDomModifier(
       cls := "chat-group-outer-frame",
       state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(bigAuthorAvatar))),
@@ -334,7 +334,7 @@ object ChatView {
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
-                state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(parentId :: Nil)))
+                state.viewConfig.onNext(state.viewConfig.now.copy(page = Page(parentId)))
                 selectedNodes() = Set.empty[SelectedNode]
               }, cursor.pointer),
             )
@@ -412,10 +412,14 @@ object ChatView {
     List(
       editButton(
         onClick foreach {
-          selectedNodes.now.head.editMode() = true
+          selectedNode.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
-      )
+      ),
+      zoomButton(onClick foreach {
+        state.page.onNext(Page(selectedNode.nodeId))
+        selectedNodes() = Set.empty[SelectedNode]
+      }),
     )
   } else Nil
 }
