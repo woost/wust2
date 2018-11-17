@@ -121,7 +121,7 @@ object GraphChanges {
     }(breakOut)
   )
 
-  def newChannel(nodeId: NodeId, userId: UserId, title: String = "New Channel"): GraphChanges = {
+  def newChannel(nodeId: NodeId, userId: UserId, title: String = "Untitled Workspace"): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.PlainText(title),
