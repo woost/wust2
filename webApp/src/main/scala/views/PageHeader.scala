@@ -654,7 +654,7 @@ object PageHeader {
           freeSolid.faSignOutAlt,
           marginRight := "5px",
         ),
-        span(cls := "text", "Leave Channel", cursor.pointer),
+        span(cls := "text", "Leave Workspace", cursor.pointer),
         onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
@@ -666,7 +666,7 @@ object PageHeader {
           Icons.delete,
           marginRight := "5px",
         ),
-        span(cls := "text", "Delete Channel", cursor.pointer),
+        span(cls := "text", "Delete Workspace", cursor.pointer),
         onClick foreach {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)

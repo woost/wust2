@@ -527,7 +527,7 @@ object SharedViewElements {
     ) ::: additional
   }
 
-  def newChannelButton(state: GlobalState, label: String = "New Channel", view: View = View.default): VNode = {
+  def newChannelButton(state: GlobalState, label: String = "New Workspace", view: View = View.default): VNode = {
     button(
       cls := "ui button",
       label,

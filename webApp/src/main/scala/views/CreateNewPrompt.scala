@@ -88,17 +88,10 @@ object CreateNewPrompt {
             roleButton("Task", freeRegular.faCheckSquare, NodeRole.Task),
             roleButton("Message", freeRegular.faComment, NodeRole.Message)
           )
-        }
-      ),
-      button(
-        marginLeft := "10px",
-        cls := "ui button",
-        "Add to Channels",
-        Rx {
-          if (addToChannels()) cls := "active" else cls := "primary"
         },
-        onClick.mapTo(!addToChannels.now) --> addToChannels
-      )
+        marginRight := "30px"
+      ),
+      SemanticUiElements.uiToggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels,
     )
 
     val description = VDomModifier(

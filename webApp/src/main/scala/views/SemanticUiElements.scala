@@ -23,10 +23,10 @@ import rx._
 import scala.scalajs.js
 
 object SemanticUiElements {
-  def uiToggle(labelText:String): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
+  def uiToggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(
       cls := "ui toggle checkbox",
-      input(tpe := "checkbox", onChange.checked --> sink),
+      input(tpe := "checkbox", onChange.checked --> sink, defaultChecked := initialChecked),
       label(labelText)
     )}
 }
