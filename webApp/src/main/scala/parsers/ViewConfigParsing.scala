@@ -99,18 +99,28 @@ object ViewConfigParser {
     UrlOption.share.key -> UrlOption.share,
   )
 
-  def parse(text: String): DecodeResult[ViewConfig] = wust.util.time.time("parse url") {
+  def parse(text: String): ViewConfig = {
     val matched = decodeSeq(allOptionsRegex.eval(text).toList)
-    matched.flatMap(_.foldLeft[DecodeResult[ViewConfig]](Right(ViewConfig.default)) {
-      case (Right(cfg), (key, value)) =>
-        allOptionsMap.get(key) match {
-          case Some(option) => option.update(cfg, value)
-          case None =>
-            scribe.warn(s"Unknown key '$key' in url. Will be ignored.")
-            Right(cfg)
+    val result = matched.map(_.foldLeft[ViewConfig](ViewConfig.default) { case (cfg, (key, value)) =>
+      allOptionsMap.get(key) match {
+        case Some(option) => option.update(cfg, value) match {
+          case Right(cfg) => cfg
+          case Left(err)  =>
+            scribe.warn(s"Cannot parse option '$key' in url, will be ignored: ${ err.getMessage }")
+            cfg
         }
-      case (Left(err), _) => Left(err)
+        case None         =>
+          scribe.warn(s"Unknown key '$key' in url, will be ignored.")
+          cfg
+      }
     })
+
+    result match {
+      case Right(cfg) => cfg
+      case Left(err)  =>
+        scribe.warn(s"Cannot parse url, falling back to default view config: ${ err.getMessage }")
+        ViewConfig.default
+    }
   }
 }
 

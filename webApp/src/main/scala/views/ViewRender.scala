@@ -19,7 +19,6 @@ object ViewRender {
     case View.Signup           => AuthView.signup(state)
     case View.NewChannel       => NewChannelView(state)
     case View.UserSettings     => UserSettingsView(state)
-    case View.Error(msg)       => ErrorView(msg, state)
     case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(_, state)), state)
   }
 }

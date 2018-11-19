@@ -18,14 +18,7 @@ case class ViewConfig(view: View, pageChange: PageChange, redirectTo: Option[Vie
 object ViewConfig {
   val default = ViewConfig(View.default, PageChange(Page.empty), None, None)
 
-  def fromUrlHash(hash: String): ViewConfig = {
-    ViewConfigParser.parse(hash) match {
-      case Right(config) => config
-      case Left(failure) =>
-        val errMsg = s"Failed to parse url from hash '$hash' at $failure"
-        ViewConfig(View.Error(errMsg), PageChange(Page.empty), None, None)
-    }
-  }
+  def fromUrlHash(hash: String): ViewConfig = ViewConfigParser.parse(hash)
 
   def toUrlHash(config: ViewConfig): String = ViewConfigWriter.write(config)
 }

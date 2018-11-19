@@ -31,7 +31,8 @@ class GlobalState(
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val viewConfig: Var[ViewConfig],
   val isOnline: Rx[Boolean],
-  val isLoading: Rx[Boolean]
+  val isLoading: Rx[Boolean],
+  val hasError: Rx[Boolean]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)

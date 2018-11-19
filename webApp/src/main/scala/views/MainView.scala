@@ -15,6 +15,15 @@ object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      Rx {
+        if (state.hasError()) ErrorPage()
+        else main(state)
+      }
+    )
+  }
+
+  private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
+    VDomModifier(
       cls := "mainview",
       Styles.flex,
 //      DevOnly { DevView(state) },

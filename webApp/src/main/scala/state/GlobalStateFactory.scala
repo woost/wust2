@@ -12,6 +12,7 @@ import wust.sdk._
 import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{Client, DevOnly}
+import outwatch.dom.helpers.OutwatchTracing
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -35,7 +36,9 @@ object GlobalStateFactory {
 
     val isLoading = Var(false)
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading)
+    val hasError = OutwatchTracing.error.map(_ => true).unsafeToRx(false)
+
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError)
     import state._
 
     // clear selected nodes on view and page change

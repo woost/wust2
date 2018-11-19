@@ -58,10 +58,6 @@ object View {
     def viewKey = "usersettings"
     def isContent = false
   }
-  case class Error(msg: String) extends View {
-    def viewKey = "error"
-    def isContent = false
-  }
   case class Tiled(operator: ViewOperator, views: NonEmptyList[View]) extends View {
     def viewKey = views.map(_.viewKey).toList.mkString(operator.separator)
     def isContent = views.exists(_.isContent)
