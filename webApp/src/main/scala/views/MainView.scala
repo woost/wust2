@@ -71,10 +71,8 @@ object MainView {
             // It is important that the view rendering is in a separate Rx.
             // This avoids rerendering the whole view when only the screen-size changed
             Rx {
-              if(state.view().isContent && state.pageNotFound()) {
-                withLoadingAnimation(state) {
-                  PageNotFoundView(state)
-                }
+              if(state.view().isContent && state.pageNotFound() && !state.isLoading()) {
+                PageNotFoundView(state)
               } else {
                 // we can now assume, that every page parentId is contained in the graph
                 ViewRender(state.view(), state).apply(
