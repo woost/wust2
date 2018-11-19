@@ -43,7 +43,7 @@ object ConversationView {
         position.absolute,
         zIndex := ZIndex.overlayLow-1, // like selectednodes, but still below
 
-        width := "100%",
+        right := "0px",
         padding := "5px",
         paddingRight := "10px",
         textAlign.right,
