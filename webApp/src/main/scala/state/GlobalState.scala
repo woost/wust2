@@ -20,7 +20,9 @@ import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.Components
 import wust.css.Styles
+import wust.util.algorithm
 
+import scala.collection.mutable
 import scala.collection.breakOut
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -80,6 +82,34 @@ class GlobalState(
   }
 
   val pageNotFound:Rx[Boolean] = Rx{ !page().parentId.forall(graph().contains) }
+
+  val pageHasParents = Rx {
+    page().parentId.exists(graph().hasParents)
+  }
+
+  Rx {
+    //TODO: userdescendant
+
+    def anyPageParentIsPinned = graph().anyAncestorIsPinned(page().parentId)
+    def pageIsUnderUser:Boolean = (for {
+      pageParentId <- page().parentId
+      pageIdx = graph().idToIdx(pageParentId)
+      if pageIdx != -1
+      userIdx = graph().idToIdx(user().id)
+      if userIdx != -1
+    } yield algorithm.depthFirstSearchExists(start = pageIdx, graph().notDeletedParentsIdx, userIdx)).getOrElse(true)
+
+    if(page().parentId.nonEmpty && !isLoading() && !anyPageParentIsPinned && !pageIsUnderUser) {
+      // user probably clicked on a woost-link.
+      // So we pin the page as channels and enable notifications
+      val changes = page().parentId.foldLeft(GraphChanges.empty) {(changes,parentId) =>
+        changes
+        .merge(GraphChanges.connect(Edge.Notify)(parentId, user.now.id))
+        .merge(GraphChanges.connect(Edge.Pinned)(user.now.id, parentId))
+      }
+      eventProcessor.changes.onNext(changes)
+    }
+  }
 
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
 //  val documentIsVisible: Rx[Boolean] = {
