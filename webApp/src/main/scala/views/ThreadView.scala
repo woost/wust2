@@ -338,7 +338,7 @@ object ThreadView {
       if(parentIdx != -1) {
         graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message)
+          if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)))
             nodeSet.add(childIdx)
         }
       }

@@ -17,6 +17,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
+import wust.sdk.NodeColor
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
@@ -325,7 +326,8 @@ object SharedViewElements {
 
         syncedIcon,
         dragHandle(Styles.flexStatic),
-        renderedMessageModifier
+        renderedMessageModifier,
+        (node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)
       )
     }
 
@@ -394,6 +396,11 @@ object SharedViewElements {
     }
 
   def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VNode = {
+    val nodeRole = Rx {
+      val g = state.graph()
+      g.nodesById(nodeId).role
+    }
+
     div(
       Styles.flexStatic,
       cls := "chatmsg-controls",
@@ -432,13 +439,16 @@ object SharedViewElements {
             zoomButton(
               onClick(Page(nodeId)) --> state.page,
             ),
-            taskButton(
-              onClick foreach {
-                val change = GraphChanges.addNode(state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))
-                state.eventProcessor.changes.onNext(change)
-                ()
-              }
-            )
+            Rx {
+              (nodeRole() == NodeRole.Task).ifFalse[VDomModifier](taskButton(
+                onClick foreach {
+                  val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
+                  val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
+                  state.eventProcessor.changes.onNext(change)
+                  Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.page() = Page(nodeId), level = ToastLevel.Success)
+                }
+              ))
+            }
           )
         }
       }

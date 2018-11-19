@@ -10,6 +10,7 @@ import rx._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.NodeColor
 import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
@@ -331,7 +332,7 @@ object ChatView {
                 cls := "nodecard-content",
                 cls := "enable-text-selection",
                 fontSize.smaller,
-                renderNodeData(node.data, maxLength = Some(100)),
+                renderNodeData(node.data, maxLength = Some(100))((node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)),
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
@@ -354,9 +355,11 @@ object ChatView {
     val parentsIdx:Array[Int] = (parentIds.map(graph.idToIdx)(breakOut):Array[Int]).filterNot(_ == -1)
     algorithm.depthFirstSearchAfterStartsWithContinue(starts = parentsIdx, graph.childrenIdx, { childIdx =>
       val childNode = graph.nodes(childIdx)
-      if(childNode.isInstanceOf[Node.Content] && childNode.role == NodeRole.Message) {
-        nodeSet.add(childIdx)
-        true
+      if(childNode.isInstanceOf[Node.Content]) {
+        if (childNode.role == NodeRole.Message) {
+          nodeSet.add(childIdx)
+          true
+        } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)
       }
       else false // don't go further down
     })
