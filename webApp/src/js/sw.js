@@ -272,19 +272,19 @@ self.addEventListener('notificationclick', e => {
                 if (url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node");
 
-                    return client.focus().then(function (client) { client.navigate(url); });
+                    return client.navigate(url).then(function (client) { client.focus(); });
                 } else if (url.indexOf(baseLocation) !== -1) {
                     log("Found woost window => opening node");
 
                     const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : (baseLocation + "/#view=chat&page=" + channelId);
-                    return client.focus().then(function (client) { client.navigate(newLocation); });
+                    return client.navigate(newLocation).then(function (client) { client.focus(); });
                 }
             }
 
             log("no matching client found. Opening new window");
 
-            return self.clients.openWindow("/#view=chat&page=" + channelId);
+            return self.clients.openWindow("/#view=chat&page=" + channelId).then(function (client) { client.focus(); });
 
         })
     );
