@@ -431,6 +431,8 @@ object Components {
               `type` = "category"
 
               cache = false
+              searchOnFocus = true
+              minCharacters = 0
 
               source = graph.now.nodes.collect { case node: Node if filter(node) =>
                 val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
