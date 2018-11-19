@@ -12,13 +12,13 @@ import wust.ids
 import wust.ids._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View}
+import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View, NodePermission}
 import wust.webApp.views.Elements._
 import wust.util._
 
 object FeedbackForm {
 
-  val feedbackNodeId = NodeId(Cuid.fromBase58("15Wooooooooostfeedback"))
+  def feedbackNodeId = NodePermission.feedbackNodeId
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)

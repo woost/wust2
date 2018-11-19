@@ -21,7 +21,7 @@ import wust.sdk.NodeColor
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View}
+import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
@@ -401,54 +401,56 @@ object SharedViewElements {
       g.nodesById(nodeId).role
     }
 
+    val canWrite = NodePermission.canWrite(state, nodeId)
+
     div(
       Styles.flexStatic,
       cls := "chatmsg-controls",
       BrowserDetect.isMobile.ifFalse[VDomModifier] {
         Rx {
           if(isDeletedNow()) {
-            undeleteButton(
+            canWrite().ifTrue[VDomModifier](undeleteButton(
               onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-            )
+            ))
           }
           else VDomModifier(
-            if(isDeletedInFuture()) {
-              inactiveStarButton(
-                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-              )
-            } else {
-              activeStarButton(
-                onClick foreach {
-                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
-                  ()
-                }
-              )
-            },
-            replyButton(
-              onClick foreach { replyAction }
-            ),
-            editButton(
-              onClick.mapTo(!editMode.now) --> editMode
-            ),
-            deleteButton(
-              onClick foreach {
-                state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-                selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+            canWrite().ifTrue[VDomModifier](VDomModifier(
+              if(isDeletedInFuture()) {
+                inactiveStarButton(
+                  onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+                )
+              } else {
+                activeStarButton(
+                  onClick foreach {
+                    state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
+                    ()
+                  }
+                )
               },
-            ),
+              replyButton(
+                onClick foreach { replyAction }
+              ),
+              editButton(
+                onClick.mapTo(!editMode.now) --> editMode
+              ),
+              deleteButton(
+                onClick foreach {
+                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+                  selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+                },
+              ),
+            )),
             zoomButton(
               onClick(Page(nodeId)) --> state.page,
             ),
-            Rx {
-              (nodeRole() == NodeRole.Task).ifFalse[VDomModifier](taskButton(
-                onClick foreach {
-                  val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
-                  val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
-                  state.eventProcessor.changes.onNext(change)
-                  Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.page() = Page(nodeId), level = ToastLevel.Success)
-                }
-              ))
-            }
+            (nodeRole() != NodeRole.Task && canWrite()).ifTrue[VDomModifier](taskButton(
+              onClick foreach {
+                val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
+                val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
+                state.eventProcessor.changes.onNext(change)
+                Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.page() = Page(nodeId), level = ToastLevel.Success)
+              }
+            ))
           )
         }
       }

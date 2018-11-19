@@ -46,13 +46,16 @@ object PageHeader {
   }
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val channelTitle = (if(channel.id == FeedbackForm.feedbackNodeId)
-                          renderNodeData(channel.data)
-                        else {
-                          editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
-                            onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-                          )
-                        })(cls := "pageheader-channeltitle")
+    val channelTitle = NodePermission.canWrite(state, channel.id).map { canWrite =>
+      val node =
+        if(!canWrite) renderNodeData(channel.data)
+        else {
+          editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+            onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+          )
+        }
+      node(cls := "pageheader-channeltitle")
+    }
 
     div(
       padding := "5px",
@@ -63,7 +66,7 @@ object PageHeader {
       alignItems.center,
 
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
-      channelTitle(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px"),
+      channelTitle.map(_(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px")),
       Rx {
         val hasBigScreen = state.screenSize() != ScreenSize.Small
         hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px"))
@@ -530,7 +533,7 @@ object PageHeader {
   //TODO move menu to own file, makes up for a lot of code in this file
   //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazily?
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    val canWrite: Boolean = !isOwnUser && channel.id != FeedbackForm.feedbackNodeId // TODO: actually check readonly permissions here
+    val canWrite = NodePermission.canWrite(state, channel.id).now //TODO reactive? but settingsmenu is anyhow rerendered
     val permissionItem:VDomModifier = channel match {
         case channel: Node.Content if canWrite =>
           div(
