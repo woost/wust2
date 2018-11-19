@@ -38,8 +38,6 @@ object CreateNewPrompt {
     var modalElement: JQuerySelection = null
     var searchElement: JQuerySelection = null
 
-    show.foreach { s => println("DAAL " + s)}
-
     def newMessage(msg: String): Future[Ack] = {
       if (parentNodes.now.isEmpty) {
         errorMessages.update(errors => (Error.MissingTag :: errors).distinct)
