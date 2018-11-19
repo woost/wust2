@@ -182,8 +182,7 @@ object ChatView {
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
-        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply
-        )
+        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply)
       }
     )
 
