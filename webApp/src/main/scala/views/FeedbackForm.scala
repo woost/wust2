@@ -90,10 +90,10 @@ object FeedbackForm {
             "Show all Feedback",
             (Icons.zoom:VNode)(marginLeft := "5px"),
             onClick foreach {
-              val nextPage = Page(feedbackNodeId)
-              if (state.view.now.isContent) state.page() = nextPage
-              else state.viewConfig.update(_.copy(pageChange = PageChange(nextPage), view = View.default))
-              show() = false
+              Var.set(
+                state.viewConfig -> state.focusNodeViewConfig(feedbackNodeId),
+                show -> false
+              )
               Analytics.sendEvent("feedback", "show")
             }
           ),

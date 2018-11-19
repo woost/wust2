@@ -676,7 +676,7 @@ object PageHeader {
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
           state.viewConfig() = ViewConfig.default
-          Toast(s"Deleted Workspace '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.page() = Page(channel.id), level = ToastLevel.Success)
+          Toast(s"Deleted Workspace '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig() = state.focusNodeViewConfig(channel.id), level = ToastLevel.Success)
         }
       ))
 

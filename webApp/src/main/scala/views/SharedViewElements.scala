@@ -448,7 +448,7 @@ object SharedViewElements {
                 val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
                 val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
                 state.eventProcessor.changes.onNext(change)
-                Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.page() = Page(nodeId), level = ToastLevel.Success)
+                Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.viewConfig() = state.focusNodeViewConfig(nodeId), level = ToastLevel.Success)
               }
             ))
           )
@@ -548,9 +548,7 @@ object SharedViewElements {
 
         val nodeId = NodeId.fresh
         state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id))
-        val nextPage = PageChange(Page(nodeId), needsGet = false)
-        if (state.view.now.isContent) state.pageChange() = nextPage
-        else state.viewConfig.update(_.copy(pageChange = nextPage, view = view))
+        state.viewConfig() = state.focusNodeViewConfig(nodeId, needsGet = false)
       }
     )
   }

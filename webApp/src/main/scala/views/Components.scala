@@ -93,7 +93,8 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        state.page() = Page(tag.id); e.stopPropagation()
+        state.page() = Page(tag.id)
+        e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),
@@ -107,7 +108,8 @@ object Components {
       backgroundColor := tagColor(tag.id).toHex,
       title := tag.data.str,
       onClick foreach { e =>
-        state.page() = Page(tag.id); e.stopPropagation()
+        state.page() = Page(tag.id)
+        e.stopPropagation()
       },
       draggableAs(DragItem.Tag(tag.id)),
       dragTarget(DragItem.Tag(tag.id)),

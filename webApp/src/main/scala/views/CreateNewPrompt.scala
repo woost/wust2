@@ -50,16 +50,14 @@ object CreateNewPrompt {
 
         val ack = if (addToChannels.now) {
           val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
-          val nextPage = PageChange(Page(newNode.id), needsGet = false)
-          if (state.view.now.isContent) state.pageChange() = nextPage
-          else state.viewConfig.update(_.copy(pageChange = nextPage, view = defaultView))
+          state.viewConfig() = state.focusNodeViewConfig(newNode.id, needsGet = false)
           state.eventProcessor.changes.onNext(changes merge channelChanges)
         } else {
           state.eventProcessor.changes.onNext(changes)
         }
 
         modalElement.modal("hide")
-        Toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.page() = Page(newNode.id), level = ToastLevel.Success)
+        Toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = state.focusNodeViewConfig(newNode.id), level = ToastLevel.Success)
         ack
       } else {
         Ack.Continue
