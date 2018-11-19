@@ -168,16 +168,15 @@ object Sidebar {
               cls := "node drag-feedback",
               // for each indent, steal padding on left and right
               // and reduce the width, so that the icon keeps its size
+              width := s"${ size-(depth*indentFactor) }px",
+              marginLeft := s"${depth*indentFactor}px",
               if(isSelected) VDomModifier(
-                width := s"${ size-(depth*indentFactor) }px",
                 height := s"${ size-(2*focusBorderWidth) }px",
                 marginTop := "2px",
                 marginBottom := "2px",
-                marginLeft := s"${depth*indentFactor}px",
                 padding := s"${defaultPadding - focusBorderWidth}px ${defaultPadding - (depth*indentFactor/2.0)}px",
               ) else VDomModifier(
                 padding := s"${defaultPadding}px ${defaultPadding - (depth*indentFactor/2.0)}px",
-                width := s"${size - (depth * indentFactor)}px",
               ),
             )
           },

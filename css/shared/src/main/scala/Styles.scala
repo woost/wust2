@@ -320,9 +320,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channelIcons" - (
     overflowY.auto,
+    paddingBottom(5 px), // fix overflow (unnecessary scrollbar) in firefox
     Styles.flex,
     flexDirection.column,
-    alignItems.flexEnd,
+    alignItems.flexStart, // in safari and firefox the scrollbar takes away some with. this alignment controls which part of the icons is shown
   )
 
   val channelIconDefaultPadding = 4
