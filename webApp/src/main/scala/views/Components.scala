@@ -455,6 +455,9 @@ object Components {
                 true
               }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
             })
+
+
+            elem.search("search local", "") // enfoce autocomplete on focus, otherwise it does not work for the initial focus
           },
 
           valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
