@@ -32,7 +32,7 @@ object ChatView {
   private final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up
+    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with state.selectednode. also in sync with threadview
 
     val scrollHandler = new ScrollBottomHandler
     val inputFieldFocusTrigger = PublishSubject[Unit]
