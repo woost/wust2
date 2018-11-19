@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome.{IconDefinition, freeBrands, freeSolid}
+import googleAnalytics.Analytics
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -15,6 +16,7 @@ import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import cats.effect.IO
 
+import scala.util.control.NonFatal
 import scala.concurrent.Future
 
 object UserSettingsView {
@@ -27,18 +29,28 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(user)(marginBottom := "50px"),
-          accountSettings(user),
-          Observable.fromFuture(slackButton(user)),
+          accountSettings(user).apply(marginBottom := "50px"),
+          pluginSettings(user),
         )
       }
     )
   }
 
+  private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
+    b("Plugins:"),
+    div(
+      marginLeft := "10px",
+      Observable.fromFuture(slackButton(user))
+    )
+  )
+
   private def accountSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     width := "200px",
-    b("Account settings"),
-    br(),
-    changePassword(user)
+    b("Account:"),
+    div(
+      marginLeft := "10px",
+      changePassword(user)
+    )
   )
 
   private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = {
@@ -130,9 +142,18 @@ object UserSettingsView {
     )
   }
 
+  private def slackPlaceholder = div(
+    "Slack Plugin not enabled",
+  )
+
   private def slackButton(user: UserInfo): Future[VNode] = {
     val syncButton = genConnectButton(freeBrands.faSlack, "Slack") _
-    Client.slackApi.isAuthenticated(user.id).map(activated => syncButton(activated))
+    Client.slackApi.isAuthenticated(user.id)
+      .map(activated => syncButton(activated))
+      .recover { case NonFatal(e) =>
+        scribe.warn("Failed to check authentication from slack api", e)
+        slackPlaceholder
+      }
   }
 
   def linkWithGithub() = {
