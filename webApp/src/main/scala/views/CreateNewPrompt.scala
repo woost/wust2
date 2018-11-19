@@ -106,8 +106,9 @@ object CreateNewPrompt {
         flexWrap.wrap,
         alignItems.center,
 
+        b("Tags:"),
         div(
-          paddingLeft := "5px",
+          paddingLeft := "10px",
           Rx {
             val g = state.graph()
             parentNodes().map(tagId =>
@@ -121,8 +122,8 @@ object CreateNewPrompt {
           paddingLeft := "5px",
           searchInGraph(
             state.graph,
-            placeholder = "Add tag",
-            valid = errorMessages.map(e => !e.contains(Error.MissingTag)),
+            placeholder = "Add an existing tag",
+            valid = parentNodes.map(_.nonEmpty),
             {
               case n: Node.Content => !parentNodes.now.contains(n.id)
               // only allow own user, we do not have public profiles yet
