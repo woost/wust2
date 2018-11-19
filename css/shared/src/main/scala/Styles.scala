@@ -1080,19 +1080,6 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.text
   )
 
-  val nonBookmarkShadowOpts = "0px 2px 10px 0px rgba(0,0,0,0.75)"
-  ".non-bookmarked-page-frame" - (
-    padding(20 px),
-    media.only.screen.maxWidth(640 px) - (
-      padding(7 px)
-    ),
-    boxShadow := "inset " + nonBookmarkShadowOpts
-  )
-
-  ".non-bookmarked-page-frame > *" - (
-    boxShadow := nonBookmarkShadowOpts
-  )
-
   val topBarHeight = 45
   ".topbar" - (
     paddingRight(5 px),
