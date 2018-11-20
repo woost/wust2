@@ -207,7 +207,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
   val edgesIdx = InterleavedArray.create(edges.length)
-  val isPinnedSet: ArraySet = ArraySet.create(n)
 
 
   // TODO: have one big triple nested array for all edge lookups?
@@ -281,7 +280,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             notifyByUserDegree(targetIdx) += 1
           case _: Edge.Pinned   =>
             pinnedNodeDegree(sourceIdx) += 1
-            isPinnedSet.add(targetIdx)
           case _                =>
         }
       }
@@ -392,7 +390,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
 
-  @inline def isPinned(idx: Int): Boolean = isPinnedSet.contains(idx)
+  @inline def isPinned(idx: Int, userIdx:Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
   def beforeOrdering(nodeId: NodeId): Seq[NodeId] = beforeIdx(idToIdx(nodeId)).map(nodes).map(_.id)
   def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
@@ -742,11 +740,20 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     else ancestorsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
   }
 
-  def anyAncestorIsPinned(nodeIds: Iterable[NodeId]): Boolean = {
+  def anyAncestorIsPinned(nodeIds: Iterable[NodeId], userId:NodeId): Boolean = {
+    val userIdx = idToIdx(userId)
+    if(userIdx == -1) return false
+
     val starts = new mutable.ArrayBuilder.ofInt
     nodeIds.foreach { nodeId =>
       val idx = idToIdx(nodeId)
       if(idx != -1) starts += idx
+    }
+
+    val isPinnedSet = {
+      val set = ArraySet.create(n)
+      pinnedNodeIdx.foreachElement(userIdx)(set.add)
+      set
     }
 
     depthFirstSearchExists(starts.result(), notDeletedParentsIdx, isPinnedSet)

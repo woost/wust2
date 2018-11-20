@@ -61,6 +61,7 @@ final class NestedArrayInt(data: Array[Int], sliceArray: InterleavedArray) exten
     }
     false
   }
+  @inline def contains(idx: Int)(elem:Int):Boolean = exists(idx)(_ == elem)
 }
 
 final class NestedArrayIntBuilder(nestedArray: NestedArrayInt){

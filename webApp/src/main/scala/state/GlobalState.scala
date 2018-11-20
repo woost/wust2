@@ -90,7 +90,7 @@ class GlobalState(
   Rx {
     //TODO: userdescendant
 
-    def anyPageParentIsPinned = graph().anyAncestorIsPinned(page().parentId)
+    def anyPageParentIsPinned = graph().anyAncestorIsPinned(page().parentId, user().id)
     def pageIsUnderUser:Boolean = (for {
       pageParentId <- page().parentId
       pageIdx = graph().idToIdx(pageParentId)
