@@ -250,7 +250,7 @@ object SharedViewElements {
 
   val taskButton: VNode =
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "BConvert message into task", Icons.task),
+      div(cls := "fa-fw", UI.popup("bottom right") := "Convert message into task", Icons.task),
       cursor.pointer
     )
 
