@@ -201,13 +201,26 @@ object ThreadView {
       dragTarget(DragItem.Chat.Thread(nodeId :: Nil)),
 
       div(
-        cls := "chat-thread-messages",
-        borderLeft := s"3px solid ${ tagColor(nodeId).toHex }",
-        Rx { renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes) },
-        Rx {
-          if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
-          else threadReplyButton(state, nodeId, showReplyField)
-        }
+        cls := "chat-thread-messages-outer",
+        Styles.flex,
+        div(
+          boxSizing.borderBox,
+          width := "3px",
+          backgroundColor := tagColor(nodeId).toHex,
+          Styles.flexStatic,
+
+          cursor.pointer,
+          title := "Click to collapse",
+          onClick(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
+        ),
+        div(
+          cls := "chat-thread-messages",
+          Rx { renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes) },
+          Rx {
+            if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
+            else threadReplyButton(state, nodeId, showReplyField)
+          }
+        )
       )
     )
   }

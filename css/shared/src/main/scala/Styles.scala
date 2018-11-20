@@ -525,12 +525,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-thread-messages" - (
-    marginLeft(5 px),
     paddingLeft(5 px),
     paddingBottom(5 px),
-    marginBottom(5 px),
   )
 
+  ".chat-thread-messages-outer" - (
+    marginLeft(5 px),
+    marginBottom(5 px),
+  )
 
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
   val nodeCardBackgroundColor = c"#FEFEFE"

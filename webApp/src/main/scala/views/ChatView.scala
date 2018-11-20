@@ -209,7 +209,7 @@ object ChatView {
           dragTarget(DragItem.Chat.Thread(commonParentIds)),
 
           div(
-            cls := "chat-thread-messages",
+            cls := "chat-thread-messages-outer chat-thread-messages",
             state.smallScreen.ifTrue[VDomModifier](marginLeft := "0px"),
             lineColor.map(lineColor => borderLeft := s"3px solid ${ lineColor }"),
 
