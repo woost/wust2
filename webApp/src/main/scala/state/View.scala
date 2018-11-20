@@ -14,6 +14,10 @@ object View {
     def viewKey = "magic"
     def isContent = true
   }
+  case object Split extends View {
+    def viewKey = "split"
+    def isContent = true
+  }
   case object Conversation extends View {
     def viewKey = "conversation"
     def isContent = true

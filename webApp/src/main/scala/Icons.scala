@@ -17,4 +17,7 @@ object Icons {
     })
   )
   val task: IconDefinition = freeRegular.faCheckSquare
+
+  val conversation: IconDefinition = freeRegular.faComments
+  val tasks: IconDefinition = freeSolid.faTasks
 }

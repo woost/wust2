@@ -44,8 +44,8 @@ object ConversationView {
         zIndex := ZIndex.overlayLow-1, // like selectednodes, but still below
 
         right := "0px",
-        padding := "5px",
-        paddingRight := "10px",
+        top := "15px",
+        padding := "0px 15px 5px 5px",
         textAlign.right,
 
         toggle("Threaded") --> threaded,

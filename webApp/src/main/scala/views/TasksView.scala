@@ -38,9 +38,8 @@ object TasksView {
   private def kanbanSwitchBar(kanban:Var[Boolean]):VDomModifier = {
     VDomModifier(
       div(
-        width := "100%",
-        padding := "5px",
-        paddingRight := "10px",
+        marginTop := "15px",
+        padding := "0px 15px 5px 5px",
         textAlign.right,
 
         UI.toggle("Kanban") --> kanban,
