@@ -322,6 +322,7 @@ object SharedViewElements {
         nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
           Styles.flex,
           alignItems.flexEnd,
+          importanceIndicator,
           cls := "drag-feedback",
 
           syncedIcon,
