@@ -13,6 +13,7 @@ import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
+import wust.util.StringOps
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -112,10 +113,19 @@ object GlobalStateFactory {
 
         observable.map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
       }
-        .doOnNext(_ => Task(isLoading() = false))
+        .doOnNext(_ => Task { isLoading() = false })
         .subscribe(eventProcessor.localEvents)
     }
 
+    // switch to View name in title if view switches to non-content
+    Rx {
+      if (view().isContent) {
+        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 15)))
+        window.document.title = channelName.fold("Woost")(name => s"Woost - $name")
+      } else {
+        window.document.title = s"Woost - ${view().toString}"
+      }
+    }
 
     // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
     val appUpdateTrigger = Observable(page.toTailObservable, view.toTailObservable).merge
