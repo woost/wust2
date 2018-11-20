@@ -189,6 +189,10 @@ object ChatView {
 
     val bgColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex)
     val lineColor = NodeColor.mixHues(commonParentIds).map(hue => BaseColors.tag.copy(h = hue).toHex)
+
+
+    var _previousNodeId: Option[NodeId] = None
+
     VDomModifier(
       cls := "chat-group-outer-frame",
       state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(bigAuthorAvatar))),
@@ -217,6 +221,9 @@ object ChatView {
               val nodeId = groupGraph.nodeIds(nodeIdx)
               val parentIds = groupGraph.parentsByIndex(nodeIdx)
 
+              val previousNodeId = _previousNodeId
+              _previousNodeId = Some(nodeId)
+
               div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
                 val isDeletedNow = Rx {
@@ -226,7 +233,7 @@ object ChatView {
 
                 val editMode = Var(false)
 
-                renderMessageRow(state, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)
+                renderMessageRow(state, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               }
             },
           )
@@ -235,7 +242,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -256,12 +263,13 @@ object ChatView {
       inputFieldFocusTrigger.onNext(Unit)
     }
 
-    def messageHeader = Rx {
+    def messageHeader: VDomModifier = if (inReplyGroup) Rx {
       val graph = state.graph()
       val idx = graph.idToIdx(nodeId)
       val author: Option[Node.User] = graph.nodeCreator(idx)
-      chatMessageHeader(author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
-    }
+      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
+      else VDomModifier.empty
+    } else VDomModifier.empty
 
     val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
@@ -278,7 +286,7 @@ object ChatView {
     }
 
     div(
-      inReplyGroup.ifTrue[VDomModifier](messageHeader),
+      messageHeader,
       div(
         cls := "chat-row",
         Styles.flex,
