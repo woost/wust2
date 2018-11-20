@@ -2,7 +2,8 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fontAwesome.freeSolid
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.Observable
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -50,6 +51,9 @@ object ChatView {
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
 
+    val pageCounter = PublishSubject[Int]()
+    val shouldLoadInfinite = Var[Boolean](true)
+
     div(
       keyed,
       Styles.flex,
@@ -61,9 +65,9 @@ object ChatView {
       ),
       div(
         cls := "chat-history",
-        overflow.auto,
+        InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, currentReply, selectedNodes, inputFieldFocusTrigger),
+        chatHistory(state, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite),
         outerDragOptions,
 
         // clicking on background deselects
@@ -135,14 +139,40 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
-    Rx {
+  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val initialPageCounter = 50
+    val pageCounter = Var(initialPageCounter)
+    var _prevMessageSize = -1
+    state.page.foreach { _ =>
+      _prevMessageSize = -1
+      pageCounter() = initialPageCounter
+    }
+
+    val messages = Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
       val graph = state.graph()
-      withLoadingAnimation(state) {
+      val messages = selectChatMessages(page.parentId, graph)
+
+      if(_prevMessageSize != -1 && messages.size > pageCounter.now) {
+        pageCounter.update(c => Math.max(c - _prevMessageSize + messages.size, initialPageCounter))
+      }
+      _prevMessageSize = messages.size
+
+      messages
+    }
+
+    Rx {
+      shouldLoadInfinite() = state.isLoading() || messages().length > pageCounter()
+    }
+
+    VDomModifier(
+      Rx {
+        val graph = state.graph()
+        val page = state.page()
         val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove. It only conntains max one element
-        val groups = calculateMessageGrouping(selectChatMessages(page.parentId, graph), graph, pageParentArraySet)
+        val pageCount = pageCounter()
+        val groups = calculateMessageGrouping(messages().takeRight(pageCount), graph, pageParentArraySet)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
@@ -150,11 +180,13 @@ object ChatView {
             else padding := "50px 0px 5px 20px"
           ),
           groups.map { group =>
-            thunkRxFun(state, graph, group, pageParentArraySet, currentReply, selectedNodes, inputFieldFocusTrigger)
+            thunkRxFun(state, graph, group, graph.createArraySet(page.parentId), currentReply, selectedNodes, inputFieldFocusTrigger)
           }
         )
-      }
-    }
+      },
+
+      emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
+    )
   }
 
   private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], pageParentArraySet:ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
