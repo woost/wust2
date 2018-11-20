@@ -57,7 +57,7 @@ object InfiniteScroll {
         shouldLoad.map {
           case true => VDomModifier(
             div(
-              div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation),
+              div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimationWithFadeIn),
               onIntersectionWithViewport(ignoreInitial = false).foreach { isIntersecting =>
                 if (isIntersecting) {
                   numSteps += 1

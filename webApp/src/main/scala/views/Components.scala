@@ -82,8 +82,10 @@ object Components {
     )
   }
 
+  def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
+
   def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data: Ctx.Data): VDomModifier = {
-    if(state.isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimation(cls := "animated-fadein"))
+    if(state.isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimationWithFadeIn)
     else renderFn
   }
 
