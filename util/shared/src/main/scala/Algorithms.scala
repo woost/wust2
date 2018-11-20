@@ -108,6 +108,36 @@ object algorithm {
     }
   }
 
+  // @inline avoids the function call of append
+  // stops only traversing local branch
+  @inline def depthFirstSearchWithParentSuccessors(starts: Array[Int], size: Int, successors: (Option[Int], Int) => (Int => Unit) => Unit):Unit = {
+    val stack = ArrayStackInt.create(capacity = size)
+    val stackParent = ArrayStackInt.create(capacity = size)
+    val visited = ArraySet.create(size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    starts.foreach { start =>
+      successors(None, start) { succElem =>
+        stack.push(succElem)
+        stackParent.push(start)
+      }
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      val currentParent = stackParent.pop()
+      if(visited.containsNot(current)) {
+        visited += current
+        successors(Some(currentParent), current) { next =>
+          if(visited.containsNot(next)) {
+            stack.push(next)
+            stackParent.push(current)
+          }
+        }
+      }
+    }
+  }
+
+
 
   def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
 

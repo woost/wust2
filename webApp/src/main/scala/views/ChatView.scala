@@ -22,6 +22,7 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
+import scala.collection.immutable
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 
@@ -352,16 +353,23 @@ object ChatView {
     val nodeSet = ArraySet.create(graph.nodes.length)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     val parentsIdx:Array[Int] = (parentIds.map(graph.idToIdx)(breakOut):Array[Int]).filterNot(_ == -1)
-    algorithm.depthFirstSearchAfterStartsWithContinue(starts = parentsIdx, graph.childrenIdx, { childIdx =>
-      val childNode = graph.nodes(childIdx)
-      if(childNode.isInstanceOf[Node.Content]) {
-        if (childNode.role == NodeRole.Message) {
-          nodeSet.add(childIdx)
-          true
-        } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)
-      }
-      else false // don't go further down
-    })
+    algorithm.depthFirstSearchWithParentSuccessors(starts = parentsIdx, size = graph.nodes.length,
+      successors = { (parentIdx, childIdx) =>
+        parentIdx match {
+          case Some(parentIdx) =>
+            val childNode = graph.nodes(childIdx)
+            val continue = if (childNode.role == NodeRole.Message) {
+              nodeSet.add(childIdx)
+              true
+            } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)
+
+            if (continue && !graph.isDeletedNowIdx(childIdx, immutable.BitSet(parentIdx))) graph.childrenIdx(childIdx).foreachElement
+            else _ => ()
+          case None => graph.childrenIdx(childIdx).foreachElement
+        }
+      },
+    )
+
     val nodes = js.Array[Int]()
     nodeSet.foreach(nodes += _)
     sortByCreated(nodes, graph)
