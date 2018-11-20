@@ -482,12 +482,14 @@ object ToastLevel {
   case object Error extends ToastLevel { def value = "error" }
 }
 object Toast {
-  def apply(msg: String, click: () => Unit = () => (), level: ToastLevel = ToastLevel.Info): Unit = {
+  def apply(msg: String, title: js.UndefOr[String] = js.undefined, click: () => Unit = () => (), level: ToastLevel = ToastLevel.Info): Unit = {
+    val _title = title
     import jquery.JQuery._
     `$`(document.body).toast(new ToastOptions {
       `class` = level.value
       onClick = click: js.Function0[Unit]
       position = "bottom right"
+      title = _title
       message = msg
       displayTime = 5000
     })

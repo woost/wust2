@@ -159,13 +159,14 @@ object PageHeader {
             if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
               val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
               state.eventProcessor.changes.onNext(changes)
+              Toast(s"Node '${StringOps.trimToMaxLength(channel.str, 10)}' is now public")
             }
           case _ => ()
         }
 
         val shareTitle = channel.data.str
         val shareUrl = dom.window.location.href
-        val shareDesc = s"Share channel: $shareTitle, $shareUrl"
+        val shareDesc = s"Share channel: $shareTitle"
 
         if(Navigator.share.isDefined) {
           Navigator.share(new ShareData {
@@ -182,7 +183,7 @@ object PageHeader {
           elem.textContent = shareUrl
           elem.select()
           dom.document.execCommand("copy")
-          Notifications.notify("Sharing link copied to clipboard", tag = Some("sharelink"), body = Some(shareDesc))
+          Toast(title = shareDesc, msg = "Link copied to clipboard")
         }
       },
       onClick foreach { Analytics.sendEvent("pageheader", "share") }
@@ -334,14 +335,14 @@ object PageHeader {
         case Success(b) =>
           if(!b) {
             //TODO: display error in modal
-            Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Could not add member: Member does not exist"))
+            Toast(title = "Add Member", msg = "Could not add member: Member does not exist", level = ToastLevel.Error)
             scribe.error("Could not add member: Member does not exist")
           } else {
-            Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Successfully added member to the channel"))
+            Toast(title = "Add Member", msg = "Successfully added member to the channel", level = ToastLevel.Error)
             scribe.info("Added member to channel")
           }
         case Failure(ex) =>
-          Notifications.notify("Add Member", tag = Some("addmember"), body = Some("Could not add member to channel"))
+          Toast(title = "Add Member", msg = "Could not add member to channel", level = ToastLevel.Error)
           scribe.error("Could not add member to channel", ex)
       }
     }
