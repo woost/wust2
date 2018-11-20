@@ -11,24 +11,28 @@ import wust.util._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragItem, DragStatus}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.state.ScreenSize
+
+import scala.collection.breakOut
 
 object SelectedNodes {
   import SharedViewElements.SelectedNodeBase
 
-  def apply[T <: SelectedNodeBase](state: GlobalState, nodeActions:List[T] => List[VNode] = (_:List[T]) => Nil, singleNodeActions:T => List[VNode] = (_:List[T]) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply[T <: SelectedNodeBase](state: GlobalState, nodeActions:(List[T], Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, singleNodeActions:(T, Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodes: Var[Set[T]] = selected.mapRead { selectedNodes =>
       selectedNodes().filter(data => state.graph().lookup.contains(data.nodeId))
     }
 
     div(
+      emitterRx(selected).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> state.selectedNodes,
+
       Rx {
         val graph = state.graph()
         val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(graph.idToIdx(data.nodeId)): Long)
+        val canWriteAll = NodePermission.canWriteAll(graph, sortedNodeIds.map(_.nodeId))
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty
@@ -61,8 +65,8 @@ object SelectedNodes {
               }, // grow, so it can be grabbed
 
               div(marginLeft.auto),
-              (nonEmptyNodeIds.size == 1).ifTrueSeq(singleNodeActions(nonEmptyNodeIds.head).map(_(cls := "actionbutton"))),
-              nodeActions(nonEmptyNodeIds).map(_(cls := "actionbutton")),
+              (nonEmptyNodeIds.size == 1).ifTrueSeq(singleNodeActions(nonEmptyNodeIds.head, canWriteAll).map(_(cls := "actionbutton"))),
+              nodeActions(nonEmptyNodeIds, canWriteAll).map(_(cls := "actionbutton")),
             )
           }
         )

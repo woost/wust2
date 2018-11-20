@@ -57,7 +57,6 @@ object ThreadView {
         position.absolute,
         width := "100%"
       ),
-      emitterRx(selectedNodes).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> state.selectedNodes,
       div(
         cls := "chat-history",
         overflow.auto,
@@ -371,25 +370,25 @@ object ThreadView {
   }
 
 
-  //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
+  //TODO share code with chatview?
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): (SelectedNode, Boolean) => List[VNode] = (selectedNode, canWriteAll) => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
-      editButton(
+      Some(editButton(
         onClick foreach {
           selectedNode.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
-      ),
-      replyButton(
-        onClick foreach {
-          selectedNode.showReplyField() = true
-          selectedNodes() = Set.empty[SelectedNode]
-        }
-      ),
-      zoomButton(onClick foreach {
+      )).filter(_ => canWriteAll),
+      Some(zoomButton(onClick foreach {
         state.page.onNext(Page(selectedNode.nodeId))
         selectedNodes() = Set.empty[SelectedNode]
-      }),
+      })),
+      Some(replyButton(
+        onClick foreach {
+          Var.set(selectedNodes.now.map(s => Var.Assignment(s.showReplyField, true))(breakOut) : _*)
+          selectedNodes() = Set.empty[SelectedNode]
+        }
+      )).filter(_ => canWriteAll)
     )
-  } else Nil
+  }.flatten else Nil
 }

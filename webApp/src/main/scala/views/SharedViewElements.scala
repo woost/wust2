@@ -408,37 +408,37 @@ object SharedViewElements {
       cls := "chatmsg-controls",
       BrowserDetect.isMobile.ifFalse[VDomModifier] {
         Rx {
+          def ifCanWrite(mod: => VDomModifier): VDomModifier = if (canWrite()) mod else VDomModifier.empty
+
           if(isDeletedNow()) {
-            canWrite().ifTrue[VDomModifier](undeleteButton(
+            ifCanWrite(undeleteButton(
               onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
             ))
           }
           else VDomModifier(
-            canWrite().ifTrue[VDomModifier](VDomModifier(
-              if(isDeletedInFuture()) {
-                inactiveStarButton(
-                  onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-                )
-              } else {
-                activeStarButton(
-                  onClick foreach {
-                    state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
-                    ()
-                  }
-                )
-              },
-              replyButton(
-                onClick foreach { replyAction }
-              ),
-              editButton(
-                onClick.mapTo(!editMode.now) --> editMode
-              ),
-              deleteButton(
+            if(isDeletedInFuture()) {
+              ifCanWrite(inactiveStarButton(
+                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+              ))
+            } else {
+              ifCanWrite(activeStarButton(
                 onClick foreach {
-                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
-                  selectedNodes.update(_.filterNot(_.nodeId == nodeId))
-                },
-              ),
+                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
+                  ()
+                }
+              ))
+            },
+            replyButton(
+              onClick foreach { replyAction }
+            ),
+            ifCanWrite(editButton(
+              onClick.mapTo(!editMode.now) --> editMode
+            )),
+            ifCanWrite(deleteButton(
+              onClick foreach {
+                state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+                selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+              },
             )),
             zoomButton(
               onClick(Page(nodeId)) --> state.page,
@@ -509,7 +509,7 @@ object SharedViewElements {
     )
   }
 
-  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], additional:List[VNode] = Nil)(implicit ctx: Ctx.Owner): List[T] => List[VNode] = selected => {
+  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
@@ -526,17 +526,20 @@ object SharedViewElements {
       selected.exists(t => graph.isDeletedInFuture(t.nodeId, t.directParentIds))
     }
 
-    List(
-      starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
-      taskButton(
-        onClick foreach {
-          val change = GraphChanges(addNodes = nodeIdSet.map(nodeId => state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))(breakOut))
-          state.eventProcessor.changes.onNext(change)
-          ()
-        }
-      ),
-      SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted),
-    ) ::: additional
+    val middleActions =
+      if (canWriteAll) List(
+        starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
+        taskButton(
+          onClick foreach {
+            val change = GraphChanges(addNodes = nodeIdSet.map(nodeId => state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))(breakOut))
+            state.eventProcessor.changes.onNext(change)
+            ()
+          }
+        ),
+        SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted)
+      ) else Nil
+
+    prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
   def newChannelButton(state: GlobalState, label: String = "New Workspace", view: View = View.default): VNode = {

@@ -14,7 +14,7 @@ import wust.util.ArraySet
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -163,26 +163,29 @@ object KanbanView {
       graph.messageChildrenIdx.sliceLength(graph.idToIdx(node.id))
     }
 
+    val canWrite = NodePermission.canWrite(state, node.id)
 
     val buttonBar = div(
       cls := "buttonbar",
       Styles.flex,
       Rx {
+        def ifCanWrite(mod: => VDomModifier): VDomModifier = if (canWrite()) mod else VDomModifier.empty
+
         if(editable()) {
           VDomModifier.empty
         } else VDomModifier(
-          div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit"),
+          ifCanWrite(div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, title := "Edit")),
           if(isCollapsed)
             div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Expand")
           else
             div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, title := "Collapse"),
-          div(div(cls := "fa-fw", Icons.delete),
+          ifCanWrite(div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, title := "Delete"
-          ),
+          )),
           div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, title := "Zoom in"),
         )
       }

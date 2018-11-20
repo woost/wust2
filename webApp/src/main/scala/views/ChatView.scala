@@ -54,11 +54,10 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, additional = additionalNodeActions(selectedNodes,currentReply,inputFieldFocusTrigger)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, prependActions = additionalNodeActions(selectedNodes,currentReply,inputFieldFocusTrigger)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
         position.absolute,
         width := "100%"
       ),
-      emitterRx(selectedNodes).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> state.selectedNodes,
       div(
         cls := "chat-history",
         overflow.auto,
@@ -402,7 +401,8 @@ object ChatView {
     groupsBuilder.result()
   }
 
-  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus:PublishSubject[Unit]) = List(
+  //TODO share code with threadview?
+  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus:PublishSubject[Unit]): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClick foreach {
         currentReply() = selectedNodes.now.map(_.nodeId)
@@ -414,18 +414,18 @@ object ChatView {
   )
 
   //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): SelectedNode => List[VNode] = selectedNode => if(state.graph.now.contains(selectedNode.nodeId)) {
+  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): (SelectedNode, Boolean) => List[VNode] = (selectedNode, canWriteAll) => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
-      editButton(
+      Some(editButton(
         onClick foreach {
           selectedNode.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
-      ),
-      zoomButton(onClick foreach {
+      )).filter(_ => canWriteAll),
+      Some(zoomButton(onClick foreach {
         state.page.onNext(Page(selectedNode.nodeId))
         selectedNodes() = Set.empty[SelectedNode]
-      }),
-    )
+      })),
+    ).flatten
   } else Nil
 }
