@@ -117,13 +117,14 @@ object GlobalStateFactory {
         .subscribe(eventProcessor.localEvents)
     }
 
+    val titleSuffix = if(DevOnly.isTrue) "dev" else "Woost"
     // switch to View name in title if view switches to non-content
     Rx {
       if (view().isContent) {
-        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 15)))
-        window.document.title = channelName.fold("Woost")(name => s"Woost - $name")
+        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 30)))
+        window.document.title = channelName.fold(titleSuffix)(name => s"$name - $titleSuffix")
       } else {
-        window.document.title = s"Woost - ${view().toString}"
+        window.document.title = s"${view().toString} - $titleSuffix"
       }
     }
 
