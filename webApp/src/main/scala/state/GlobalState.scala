@@ -127,7 +127,7 @@ class GlobalState(
     if(!view().isContent || page().parentId.nonEmpty)
       view()
     else
-      View.NewChannel
+      View.Welcome
   }
 
   val pageStyle = Rx {

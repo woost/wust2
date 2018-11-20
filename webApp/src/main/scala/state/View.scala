@@ -54,8 +54,8 @@ object View {
     def viewKey = "signup"
     def isContent = false
   }
-  case object NewChannel extends View {
-    def viewKey = "newchannel"
+  case object Welcome extends View {
+    def viewKey = "welcome"
     def isContent = false
   }
   case object UserSettings extends View {
