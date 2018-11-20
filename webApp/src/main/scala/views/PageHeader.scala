@@ -121,13 +121,15 @@ object PageHeader {
         //TODO: ensure that if I am member, my avatar is in the visible list
         val users = graph.usersInNode(channel.id, max = 7)
 
-        users.map(user => Avatar.user(user.id)(
-          svgTag("title")(user.name), //TODO: add svg title tag to scala-dom-types
-          marginLeft := "2px",
-          width := "22px",
-          height := "22px",
-          cls := "avatar",
-          marginBottom := "2px",
+        users.map(user => div(
+          Avatar.user(user.id)(
+            marginLeft := "2px",
+            width := "22px",
+            height := "22px",
+            cls := "avatar",
+            marginBottom := "2px",
+          ),
+          UI.tooltip("bottom center") := user.name
         ))(breakOut) : js.Array[VNode]
       }
     )
@@ -712,7 +714,7 @@ object PageHeader {
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
         )),
-        title := targetView.viewKey
+        UI.tooltip("bottom right") := targetView.toString
       )
     }
 

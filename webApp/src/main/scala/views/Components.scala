@@ -106,7 +106,7 @@ object Components {
     span(
       cls := "node tagdot",
       backgroundColor := tagColor(tag.id).toHex,
-      title := tag.data.str,
+      UI.tooltip := tag.data.str,
       onClick foreach { e =>
         state.page() = Page(tag.id)
         e.stopPropagation()

@@ -9,7 +9,7 @@ import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.views.SemanticUiElements._
+import wust.webApp.views.UI._
 import wust.util._
 
 // Combines linear chat and thread-view into one view with a thread-switch
@@ -48,7 +48,7 @@ object ConversationView {
         paddingRight := "10px",
         textAlign.right,
 
-        uiToggle("Threaded") --> threaded,
+        toggle("Threaded") --> threaded,
       ),
     )
   }

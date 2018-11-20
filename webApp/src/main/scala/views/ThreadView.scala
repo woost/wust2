@@ -210,7 +210,7 @@ object ThreadView {
           Styles.flexStatic,
 
           cursor.pointer,
-          title := "Click to collapse",
+          UI.tooltip := "Click to collapse",
           onClick(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
         ),
         div(
@@ -323,7 +323,7 @@ object ThreadView {
           marginLeft := "10px",
           onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
-          title := "Collapse"
+          UI.tooltip := "Collapse"
         )
       } else {
         if(childrenSize() == 0) VDomModifier.empty
@@ -333,7 +333,7 @@ object ThreadView {
           marginLeft := "10px",
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
-          title := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
+          UI.tooltip := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
         )
       }
     }

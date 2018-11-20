@@ -98,8 +98,8 @@ object SelectedNodes {
       div(
         cls := "fa-fw",
         Rx {
-          if (allSelectedNodesAreDeleted()) Icons.undelete : VNode
-          else Icons.delete : VNode
+          if (allSelectedNodesAreDeleted()) SharedViewElements.undeleteButton
+          else SharedViewElements.deleteButton
         }
       ),
 

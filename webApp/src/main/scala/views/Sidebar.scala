@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import fomanticui.PopupOptions
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -30,6 +31,7 @@ object Sidebar {
       channelIcons(state, smallIconSize),
       newChannelButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
+        UI.popup("right center") := "New Workspace",
         onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
       ),
       onSwipeRight(true) --> state.sidebarOpen,
@@ -157,9 +159,7 @@ object Sidebar {
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
-              title := node.data.str,
-//              data.tooltip := node.data.str,
-//              data.position := "right center",
+              UI.popup("right center") := node.data.str,
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },

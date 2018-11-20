@@ -1,8 +1,10 @@
 package wust.webApp.views
 
 import cats.effect.IO
+
 import concurrent.duration._
 import emojijs.EmojiConvertor
+import fomanticui.PopupOptions
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -14,16 +16,16 @@ import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.{KeyboardEvent, MouseEvent}
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
-import wust.css.Styles
+import outwatch.dom.helpers._
+import wust.css.{Styles, ZIndex}
 import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
 import rx._
 
 import scala.scalajs.js
 
-object SemanticUiElements {
-  def uiToggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
+object UI {
+  def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(
       cls := "ui toggle checkbox",
       input(tpe := "checkbox", onChange.checked --> sink, defaultChecked := initialChecked),
@@ -31,7 +33,7 @@ object SemanticUiElements {
     )}
 
 
-  def uiModal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
+  def modal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
     div(
       keyed,
       cls := "ui basic modal",
@@ -60,4 +62,13 @@ object SemanticUiElements {
     )
   }
 
+  def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip)
+  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(tooltip := str, data.position := position)
+
+  def popup(options: PopupOptions): VDomModifier = VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := ZIndex.tooltip)
+  def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str })
+  def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
+    val _position = position
+    popup(new PopupOptions { content = str; position = _position })
+  }
 }

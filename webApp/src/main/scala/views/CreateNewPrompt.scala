@@ -89,7 +89,7 @@ object CreateNewPrompt {
         },
         marginRight := "30px"
       ),
-      SemanticUiElements.uiToggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels,
+      UI.toggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels,
     )
 
     val description = VDomModifier(
@@ -190,7 +190,7 @@ object CreateNewPrompt {
       },
 
       // TODO: better way to expose element from modal?
-      SemanticUiElements.uiModal(header, description)(
+      UI.modal(header, description)(
         backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
         onDomMount.asJquery.foreach(modalElement = _))
     )

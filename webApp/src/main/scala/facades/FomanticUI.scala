@@ -1,6 +1,7 @@
 package fomanticui
 
 import scala.scalajs.js
+import scala.scalajs.js.|
 
 @js.native
 // fomantic ui is imported globally
@@ -14,6 +15,18 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def search(arg: String, arg1: Any = ???, arg2: Any = ???): String = js.native
 
   def toast(options: ToastOptions): Unit = js.native
+
+  def popup(options: PopupOptions): Unit = js.native
+}
+
+trait PopupOptions extends js.Object {
+  var target: js.UndefOr[String | jquery.JQuerySelection] = js.undefined
+  var inline: js.UndefOr[Boolean] = js.undefined
+  var position: js.UndefOr[String] = js.undefined
+  var variation: js.UndefOr[String] = js.undefined
+  var content: js.UndefOr[String] = js.undefined
+  var title: js.UndefOr[String] = js.undefined
+  var html: js.UndefOr[String] = js.undefined
 }
 
 trait ToastOptions extends js.Object {

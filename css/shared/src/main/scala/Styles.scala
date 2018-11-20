@@ -13,6 +13,7 @@ object ZIndex {
   val draggable = 100
   val overlayLow = 1000
   val overlay = 2000
+  val tooltip = 5000
   val dragging = 10000
 }
 
