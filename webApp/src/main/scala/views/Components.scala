@@ -471,35 +471,6 @@ object Components {
       }
     )
   })
-
-  def modalComponent(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
-    div(
-      keyed,
-      cls := "ui basic modal",
-      i(cls := "close icon"),
-      div(
-        cls := "header",
-        header
-      ),
-      div(
-        cls := "content",
-        div(
-          cls := "ui medium",
-          div(
-            cls := "description",
-            description
-          )
-        ),
-        actions.map { actions =>
-          div(
-            marginLeft := "auto",
-            cls := "actions",
-            actions
-          )
-        }
-      ),
-    )
-  }
 }
 
 

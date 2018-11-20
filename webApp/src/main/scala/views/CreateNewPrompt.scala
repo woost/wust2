@@ -190,7 +190,7 @@ object CreateNewPrompt {
       },
 
       // TODO: better way to expose element from modal?
-      modalComponent(header, description)(
+      SemanticUiElements.uiModal(header, description)(
         backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
         onDomMount.asJquery.foreach(modalElement = _))
     )
