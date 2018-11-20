@@ -2,7 +2,6 @@ package wust.webApp.views
 
 import outwatch.dom.VNode
 import rx._
-import views.SplitView
 import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.graphview.GraphView
 

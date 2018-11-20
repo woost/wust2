@@ -1,13 +1,13 @@
-package views
+package wust.webApp.views
 
 import fontAwesome.{IconLookup, freeSolid}
 import outwatch.dom.dsl._
-import outwatch.dom.{VDomModifier, VNode}
-import rx.{Ctx, Var}
+import outwatch.dom._
+import rx._
 import wust.css.Styles
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
-import wust.webApp.views.{ConversationView, TasksView}
+import wust.webApp.outwatchHelpers._
 
 object SplitView {
   private sealed trait Kind
