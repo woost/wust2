@@ -5,12 +5,13 @@ import jquery.JQuerySelection
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.graph.{Edge, GraphChanges, Node, Page}
-import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.graph._
+import wust.ids.{NodeAccess, NodeData, NodeId, NodeRole}
 import wust.webApp.state.{GlobalState, PageChange, View}
 import Components._
 import cats.effect.IO
 import colorado.{Color, RGB}
+import fomanticui.DropdownEntry
 import monix.execution.Ack
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -19,6 +20,7 @@ import wust.graph.Edge.Pinned
 import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.outwatchHelpers._
 import wust.util._
+import wust.webApp.views
 
 import scala.concurrent.Future
 
@@ -34,16 +36,19 @@ object CreateNewPrompt {
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val errorMessages = Var[List[Error]](Nil)
+    val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
 
     var modalElement: JQuerySelection = null
     var searchElement: JQuerySelection = null
 
     def newMessage(msg: String): Future[Ack] = {
+      println("HI " + nodeAccess.now)
+      println("HI " + nodeAccess.now.getClass)
       if (parentNodes.now.isEmpty) {
         errorMessages.update(errors => (Error.MissingTag :: errors).distinct)
         Ack.Continue
       } else if (errorMessages.now.isEmpty) {
-        val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now)
+        val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
         val changes =
           GraphChanges.addNodeWithParent(newNode, parentNodes.now) merge
           GraphChanges.addToParent(childNodes.now, newNode.id)
@@ -89,50 +94,68 @@ object CreateNewPrompt {
         },
         marginRight := "30px"
       ),
-      UI.toggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels,
+      UI.toggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels
     )
 
     val description = VDomModifier(
-      Styles.flex,
-      flexDirection.column,
-      flexWrap.wrap,
-      alignItems.center,
-
       div(
         padding := "5px",
-
         Styles.flex,
-        flexDirection.row,
         flexWrap.wrap,
-        alignItems.center,
+        justifyContent.spaceBetween,
 
-        b("Tags:"),
         div(
-          paddingLeft := "10px",
-          Rx {
-            val g = state.graph()
-            parentNodes().map(tagId =>
-              g.nodesByIdGet(tagId).map { tag =>
-                removableNodeTagCustom(state, tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
-              }
+          div("Tags:", color := "rgba(0,0,0,0.62)"),
+          div(
+            Styles.flex,
+            flexDirection.row,
+            alignItems.center,
+
+            Rx {
+              val g = state.graph()
+              parentNodes().map(tagId =>
+                g.nodesByIdGet(tagId).map { tag =>
+                  removableNodeTagCustom(state, tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
+                }
+              )
+            },
+            div(
+              paddingLeft := "5px",
+              searchInGraph(
+                state.graph,
+                placeholder = "Add an existing tag",
+                valid = parentNodes.map(_.nonEmpty),
+                {
+                  case n: Node.Content => !parentNodes.now.contains(n.id)
+                  // only allow own user, we do not have public profiles yet
+                  case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
+                }
+              ).foreach { nodeId =>
+                errorMessages.update(_.filterNot(_ == Error.MissingTag))
+                parentNodes() = nodeId :: parentNodes.now
+              },
             )
-          }
+          )
         ),
         div(
-          paddingLeft := "5px",
-          searchInGraph(
-            state.graph,
-            placeholder = "Add an existing tag",
-            valid = parentNodes.map(_.nonEmpty),
-            {
-              case n: Node.Content => !parentNodes.now.contains(n.id)
-              // only allow own user, we do not have public profiles yet
-              case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
-            }
-          ).foreach { nodeId =>
-            errorMessages.update(_.filterNot(_ == Error.MissingTag))
-            parentNodes() = nodeId :: parentNodes.now
-          },
+          div("Permission:", color := "rgba(0,0,0,0.62)"),
+          UI.dropdown(
+            new DropdownEntry {
+              value = NodeAccess.Inherited.str
+              name = "Inherited"
+              selected = nodeAccess.now == NodeAccess.Inherited
+            },
+            new DropdownEntry {
+              value = NodeAccess.ReadWrite.str
+              name = "Public"
+              selected = nodeAccess.now == NodeAccess.ReadWrite
+            },
+            new DropdownEntry {
+              value = NodeAccess.Restricted.str
+              name = "Private"
+              selected = nodeAccess.now == NodeAccess.Restricted
+            },
+          ).collect(NodeAccess.fromString) --> nodeAccess
         )
       ),
 

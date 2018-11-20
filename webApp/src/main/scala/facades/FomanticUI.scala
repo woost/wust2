@@ -17,6 +17,20 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def toast(options: ToastOptions): Unit = js.native
 
   def popup(options: PopupOptions): Unit = js.native
+
+  def dropdown(options: DropdownOptions): Unit = js.native
+}
+
+trait DropdownEntry extends js.Object {
+  var name: js.UndefOr[String] = js.undefined
+  var value: js.UndefOr[String] = js.undefined
+  var selected: js.UndefOr[Boolean] = js.undefined
+}
+
+trait DropdownOptions extends js.Object {
+  var onChange: js.UndefOr[js.Function3[String, String, jquery.JQuerySelection, Unit]] = js.undefined
+  var action: js.UndefOr[String] = js.undefined
+  var values: js.UndefOr[js.Array[DropdownEntry]] = js.undefined
 }
 
 trait PopupOptions extends js.Object {

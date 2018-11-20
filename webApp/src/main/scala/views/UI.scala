@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.PopupOptions
+import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions}
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -14,7 +14,7 @@ import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.{KeyboardEvent, MouseEvent}
-import outwatch.dom._
+import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import wust.css.{Styles, ZIndex}
@@ -22,7 +22,9 @@ import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
 import rx._
 
+import scala.scalajs.js.JSConverters._
 import scala.scalajs.js
+import scala.collection.breakOut
 
 object UI {
   def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
@@ -70,5 +72,23 @@ object UI {
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
     popup(new PopupOptions { content = str; position = _position })
+  }
+
+  def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    div(
+      cls := "ui selection dropdown",
+      onDomMount.asJquery.foreach(_.dropdown(new DropdownOptions {
+        onChange = { (key, text, selectedElement) =>
+          dom.console.log("MEH", key, text, selectedElement)
+          sink.onNext(key)
+        }: js.Function3[String, String, jquery.JQuerySelection, Unit]
+
+        values = options.toJSArray
+      })),
+
+      input(tpe := "hidden", attr("name") := "gender"),
+      i(cls := "dropdown icon"),
+      options.find(_.selected.getOrElse(false)).map(e => div(cls := "default text", e.value))
+    )
   }
 }

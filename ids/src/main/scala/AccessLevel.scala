@@ -35,4 +35,8 @@ object NodeAccess {
 
   val Restricted = Level(AccessLevel.Restricted)
   val ReadWrite = Level(AccessLevel.ReadWrite)
+
+  val fromString: PartialFunction[String, NodeAccess] = AccessLevel.fromString.andThen[NodeAccess](Level(_)) orElse {
+    case Inherited.str => Inherited
+  }
 }
