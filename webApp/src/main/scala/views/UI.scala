@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions}
+import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions}
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -90,5 +90,25 @@ object UI {
       i(cls := "dropdown icon"),
       options.find(_.selected.getOrElse(false)).map(e => div(cls := "default text", e.value))
     )
+  }
+
+  sealed trait ToastLevel { def value: String }
+  object ToastLevel {
+    case object Info extends ToastLevel { def value = "info" }
+    case object Success extends ToastLevel { def value = "success" }
+    case object Warning extends ToastLevel { def value = "warning" }
+    case object Error extends ToastLevel { def value = "error" }
+  }
+  def toast(msg: String, title: js.UndefOr[String] = js.undefined, click: () => Unit = () => (), level: ToastLevel = ToastLevel.Info): Unit = {
+    val _title = title
+    import jquery.JQuery._
+    `$`(dom.window.document.body).toast(new ToastOptions {
+      `class` = level.value
+      onClick = click: js.Function0[Unit]
+      position = "bottom right"
+      title = _title
+      message = msg
+      displayTime = 5000
+    })
   }
 }

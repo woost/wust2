@@ -62,7 +62,7 @@ object CreateNewPrompt {
         }
 
         modalElement.modal("hide")
-        Toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = state.focusNodeViewConfig(newNode.id), level = ToastLevel.Success)
+        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = state.focusNodeViewConfig(newNode.id), level = UI.ToastLevel.Success)
         ack
       } else {
         Ack.Continue

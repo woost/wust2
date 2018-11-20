@@ -159,7 +159,7 @@ object PageHeader {
             if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
               val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
               state.eventProcessor.changes.onNext(changes)
-              Toast(s"Node '${StringOps.trimToMaxLength(channel.str, 10)}' is now public")
+              UI.toast(s"Node '${StringOps.trimToMaxLength(channel.str, 10)}' is now public")
             }
           case _ => ()
         }
@@ -183,7 +183,7 @@ object PageHeader {
           elem.textContent = shareUrl
           elem.select()
           dom.document.execCommand("copy")
-          Toast(title = shareDesc, msg = "Link copied to clipboard")
+          UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         }
       },
       onClick foreach { Analytics.sendEvent("pageheader", "share") }
@@ -335,14 +335,14 @@ object PageHeader {
         case Success(b) =>
           if(!b) {
             //TODO: display error in modal
-            Toast(title = "Add Member", msg = "Could not add member: Member does not exist", level = ToastLevel.Error)
+            UI.toast(title = "Add Member", msg = "Could not add member: Member does not exist", level = UI.ToastLevel.Error)
             scribe.error("Could not add member: Member does not exist")
           } else {
-            Toast(title = "Add Member", msg = "Successfully added member to the channel", level = ToastLevel.Error)
+            UI.toast(title = "Add Member", msg = "Successfully added member to the channel", level = UI.ToastLevel.Error)
             scribe.info("Added member to channel")
           }
         case Failure(ex) =>
-          Toast(title = "Add Member", msg = "Could not add member to channel", level = ToastLevel.Error)
+          UI.toast(title = "Add Member", msg = "Could not add member to channel", level = UI.ToastLevel.Error)
           scribe.error("Could not add member to channel", ex)
       }
     }
@@ -679,7 +679,7 @@ object PageHeader {
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
           state.viewConfig() = ViewConfig.default
-          Toast(s"Deleted Workspace '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig() = state.focusNodeViewConfig(channel.id), level = ToastLevel.Success)
+          UI.toast(s"Deleted Workspace '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig() = state.focusNodeViewConfig(channel.id), level = UI.ToastLevel.Success)
         }
       ))
 

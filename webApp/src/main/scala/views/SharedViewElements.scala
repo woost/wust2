@@ -448,7 +448,7 @@ object SharedViewElements {
                 val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
                 val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
                 state.eventProcessor.changes.onNext(change)
-                Toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 10)}' to a Task", click = () => state.viewConfig() = state.focusNodeViewConfig(nodeId), level = ToastLevel.Success)
+                UI.toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 11)}' to a Task", click = () => state.viewConfig() = state.focusNodeViewConfig(nodeId), level = UI.ToastLevel.Success)
               }
             ))
           )
