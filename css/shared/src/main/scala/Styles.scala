@@ -582,6 +582,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard.node-deleted" - (
+    fontSize.smaller,
     opacity(0.5),
   )
   ".nodecard.node-deleted .nodecard-content" - (

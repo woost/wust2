@@ -312,27 +312,30 @@ object SharedViewElements {
     }
 
 
-    def render(node: Node)(implicit ctx: Ctx.Owner) = {
-      val importanceIndicator = Rx {
-        val unimportant = editMode() || isDeletedNow() || isDeletedInFuture()
-        unimportant.ifFalse[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
-      }
-      nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
-        Styles.flex,
-        alignItems.flexEnd,
-        Rx { isDeletedNow().ifTrue[VDomModifier](cls := "node-deleted") },
-        importanceIndicator,
-        cls := "drag-feedback",
+    def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
+      val baseNode = if (isDeletedNow) nodeCard(node, maxLength = Some(25)).apply(cls := "node-deleted")
+      else {
+        val importanceIndicator = Rx {
+          val unimportant = editMode() || isDeletedInFuture()
+          unimportant.ifFalse[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
+        }
+        nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
+          Styles.flex,
+          alignItems.flexEnd,
+          cls := "drag-feedback",
 
-        syncedIcon,
-        dragHandle(Styles.flexStatic),
-        renderedMessageModifier,
-        (node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)
-      )
+          syncedIcon,
+          dragHandle(Styles.flexStatic),
+          renderedMessageModifier,
+          (node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)
+        )
+      }
+
+      baseNode((node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex))
     }
 
     Rx {
-      node().map(render)
+      node().map(render(_, isDeletedNow()))
     }
   }
 
