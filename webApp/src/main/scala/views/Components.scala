@@ -176,6 +176,12 @@ object Components {
       contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
     )
   }
+  def nodeCardPlain(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    renderNodeCard(
+      node,
+      contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
+    )
+  }
   def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       node,

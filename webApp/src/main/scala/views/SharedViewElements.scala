@@ -313,7 +313,7 @@ object SharedViewElements {
 
 
     def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
-      val baseNode = if (isDeletedNow) nodeCard(node, maxLength = Some(25)).apply(cls := "node-deleted")
+      val baseNode = if (isDeletedNow) nodeCardPlain(node, maxLength = Some(25)).apply(cls := "node-deleted")
       else {
         val importanceIndicator = Rx {
           val unimportant = editMode() || isDeletedInFuture()
