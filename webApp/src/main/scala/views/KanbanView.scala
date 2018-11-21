@@ -14,7 +14,7 @@ import wust.util.ArraySet
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, NodePermission}
+import wust.webApp.state.{GlobalState, NodePermission, View, PageChange}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -239,7 +239,7 @@ object KanbanView {
       Styles.flex,
       color := "gray",
       margin := "5px",
-      div(freeRegular.faComments, marginRight := "5px"),
+      div(Icons.conversation, marginRight := "5px"),
     )
   }
 
@@ -292,7 +292,7 @@ object KanbanView {
       keyed(node.id, parentId),
       cls := "draghandle",
 
-      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)) },
+      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)) },
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),
