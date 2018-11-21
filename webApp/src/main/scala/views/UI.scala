@@ -35,10 +35,10 @@ object UI {
     )}
 
 
-  def modal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None): VNode = {
+  def modal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None, extraModalClasses: List[String] = Nil): VNode = {
     div(
       keyed,
-      cls := "ui basic modal",
+      cls := "ui modal " + extraModalClasses.mkString(" "),
       i(cls := "close icon"),
       div(
         cls := "header",

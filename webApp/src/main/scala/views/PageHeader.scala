@@ -262,11 +262,9 @@ object PageHeader {
         marginRight := "5px",
       ),
       span(cls := "text", "Search", cursor.pointer),
-      div(
-        cls := "ui modal form",
-        i(cls := "close icon"),
-        div(
-          cls := "header",
+
+      UI.modal(
+        header = VDomModifier(
           backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
           div(
             Styles.flex,
@@ -297,24 +295,22 @@ object PageHeader {
             ),
           )
         ),
-        div(
-          cls := "scrolling content",
+        description = VDomModifier(
+          cls := "scrolling",
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
           div(
             cls := "ui fluid search-result",
             searchResult,
-          ),
+          )
         ),
+        extraModalClasses = List("form")
+      ).apply(
         onDomMount.asJquery foreach { elem =>
-          elem.modal(new ModalOptions {
-            //          blurring = true
-            dimmerSettings = new DimmerOptions {
-              opacity = "0.5"
-            }
-          })
+          elem.modal()
           searchModal.onNext(elem)
         },
       ),
+
       onClick(searchModal).foreach(_.modal("toggle"))
     )
   }
@@ -363,11 +359,9 @@ object PageHeader {
         marginRight := "5px",
       ),
       span(cls := "text", "Add Member", cursor.pointer),
-      div(
-        cls := "ui modal mini form",
-        i(cls := "close icon"),
-        div(
-          cls := "header",
+
+      UI.modal(
+        header = VDomModifier(
           backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
           div(
             Styles.flex,
@@ -378,8 +372,7 @@ object PageHeader {
           ),
           div(s"Manage Members"),
         ),
-        div(
-          cls := "content",
+        description = VDomModifier(
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
           div(
             div(
@@ -430,16 +423,14 @@ object PageHeader {
             }
           )
         ),
+        extraModalClasses = List("mini", "form")
+      ).apply(
         onDomMount.asJquery foreach { elem =>
-          elem.modal(new ModalOptions {
-            //          blurring = true
-            dimmerSettings = new DimmerOptions {
-              opacity = "0.5"
-            }
-          })
+          elem.modal()
           addMemberModal.onNext(elem)
-        },
+        }
       ),
+
       onClick(addMemberModal).foreach(_.modal("toggle"))
     )
   }
