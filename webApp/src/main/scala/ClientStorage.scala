@@ -9,6 +9,7 @@ import rx._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
+import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._ //TODO use outwatch.util.Storage(dom.Storage)
 
 class ClientStorage(implicit owner: Ctx.Owner) {
@@ -40,12 +41,12 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       .mapHandler[List[GraphChanges]](changes => Option(toJson(changes)))(_.flatMap(fromJson[List[GraphChanges]]).getOrElse(Nil))
   }
 
-  val sidebarOpen: Var[Boolean] = {
+  val sidebarOpen: Var[Option[Boolean]] = {
     LocalStorage
       .handlerWithoutEvents(keys.sidebarOpen)
       .unsafeRunSync()
-      .mapHandler[Boolean](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]).getOrElse(false))
-      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]).getOrElse(false))
+      .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+      .unsafeToVar(internal(keys.sidebarOpen).flatMap(fromJson[Boolean]))
   }
 
   val backendTimeDelta: Var[Long] = {

@@ -11,7 +11,7 @@ import wust.ids._
 import wust.sdk._
 import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.{Client, DevOnly}
+import wust.webApp.{BrowserDetect, Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
 import wust.util.StringOps
 import wust.util.algorithm
@@ -21,7 +21,7 @@ import scala.concurrent.duration._
 
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
-    val sidebarOpen = Client.storage.sidebarOpen
+    val sidebarOpen = Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
     val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
 
     val eventProcessor = EventProcessor(

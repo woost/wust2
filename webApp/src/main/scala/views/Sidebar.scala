@@ -10,6 +10,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
+import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -76,10 +77,8 @@ object Sidebar {
 
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
-        Rx {
-          if (state.screenSize() == ScreenSize.Small) sidebarWithOverlay
-          else sidebarWithExpand
-        },
+        if (BrowserDetect.isMobile) sidebarWithOverlay
+        else sidebarWithExpand,
         registerDraggableContainer(state)
       )
     }
