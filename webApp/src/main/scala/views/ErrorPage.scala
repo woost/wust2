@@ -16,8 +16,9 @@ object ErrorPage {
       cls := "header",
       Components.woostIcon,
       b(paddingLeft := "5px", paddingRight := "20px", "Oops, an error occurred!"),
-      button(cls := "ui tiny button primary", freeSolid.faAmbulance, " Reload", onClick.foreach { dom.window.location.reload() })
+      button(cls := "ui tiny button positive", freeSolid.faAmbulance, " Reload", onClick.foreach { dom.window.location.reload() })
     ),
-    p(VDomModifier(errorMessage.getOrElse("Something went wrong")))
+    p(VDomModifier(errorMessage.getOrElse("Something went wrong"))),
+    p("If the problem persists, please contact us at ", Components.woostTeamEmailLink)
   )
 }

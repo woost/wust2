@@ -58,7 +58,7 @@ object FeedbackForm {
         )
       ),
       div(textAlign.right, statusText),
-      div("Be aware that your feedback will be publicly accessible. For private feedback, send a mail to ",a(href := "mailto:team@woost.space", "team@woost.space", cursor.pointer), ".")
+      div("Be aware that your feedback will be publicly accessible. For private feedback, send a mail to ", Components.woostTeamEmailLink, ".")
     )
 
     div(
