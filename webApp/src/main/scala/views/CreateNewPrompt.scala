@@ -89,7 +89,7 @@ object CreateNewPrompt {
         },
         marginRight := "30px"
       ),
-      UI.toggle("Bookmark", initialChecked = addToChannels.now) --> addToChannels
+      UI.toggle("Pin to sidebar", initialChecked = addToChannels.now) --> addToChannels
     )
 
     val description = VDomModifier(

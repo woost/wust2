@@ -23,7 +23,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.{Client, Icons}
+import wust.webApp.{BrowserDetect, Client, Icons}
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -518,7 +518,7 @@ object PageHeader {
   private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
     button(
       cls := "ui compact primary button",
-      "Bookmark",
+      if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
       onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
@@ -651,26 +651,26 @@ object PageHeader {
           freeSolid.faSignOutAlt,
           marginRight := "5px",
         ),
-        span(cls := "text", "Leave Workspace", cursor.pointer),
+        span(cls := "text", "Unpin from sidebar", cursor.pointer),
         onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
     val deleteItem =
-      (bookmarked && canWrite).ifTrue[VDomModifier](div(
+      (canWrite).ifTrue[VDomModifier](div(
         cls := "item",
         i(
           cls := "icon fa-fw",
           Icons.delete,
           marginRight := "5px",
         ),
-        span(cls := "text", "Delete Workspace", cursor.pointer),
+        span(cls := "text", "Delete", cursor.pointer),
         onClick foreach {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
           state.viewConfig() = ViewConfig.default
-          UI.toast(s"Deleted Workspace '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig() = state.viewConfig.now.focusNode(channel.id), level = UI.ToastLevel.Success)
+          UI.toast(s"Deleted node '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig() = state.viewConfig.now.focusNode(channel.id), level = UI.ToastLevel.Success)
         }
       ))
 
