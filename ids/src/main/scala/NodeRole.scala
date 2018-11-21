@@ -6,6 +6,7 @@ import wust.util.macros.SubObjects
 sealed trait NodeRole
 object NodeRole {
   case object Message extends NodeRole
+  case object Info extends NodeRole
   case object Task extends NodeRole
 
   @inline def default:NodeRole = Message

@@ -5,7 +5,7 @@ import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
-import wust.ids.NodeId
+import wust.ids.{NodeId, NodeRole, NodeData}
 import wust.graph._
 
 import scala.concurrent.Future
@@ -96,7 +96,16 @@ class EventProcessor private (
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable(enrichedChanges, changes).merge
+    val allChanges = Observable(enrichedChanges, changes).merge.withLatestFrom(rawGraphWithInit) { (changes, graph) =>
+      val editNodes = changes.addNodes.filter(n => graph.contains(n.id))
+      val statusChanges = editNodes.collect { case n if graph.contains(n.id) =>
+        val statusNode = Node.Content(NodeData.Markdown("Edited node"), NodeRole.Info)
+        GraphChanges.addNodeWithParent(statusNode, n.id)
+      }
+
+      statusChanges.foldLeft(changes)(_ merge _)
+
+    }
 
     val localChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
