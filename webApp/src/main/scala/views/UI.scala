@@ -79,7 +79,6 @@ object UI {
       cls := "ui selection dropdown",
       onDomMount.asJquery.foreach(_.dropdown(new DropdownOptions {
         onChange = { (key, text, selectedElement) =>
-          dom.console.log("MEH", key, text, selectedElement)
           sink.onNext(key)
         }: js.Function3[String, String, jquery.JQuerySelection, Unit]
 
