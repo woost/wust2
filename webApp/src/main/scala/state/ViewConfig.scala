@@ -1,6 +1,7 @@
 package wust.webApp.state
 
 import wust.graph._
+import wust.ids.NodeId
 import wust.webApp.parsers.{ViewConfigParser, ViewConfigWriter}
 
 case class ShareOptions(title: String, text: String, url: String)
@@ -14,6 +15,14 @@ case class ViewConfig(view: View, pageChange: PageChange, redirectTo: Option[Vie
   def showViewWithRedirect(newView: View): ViewConfig =
     copy(view = newView, redirectTo = Some(view).filter(canRedirectTo) orElse redirectTo)
   def redirect: ViewConfig = redirectTo.fold(this)(view => copy(view = view, redirectTo = None))
+
+
+  def focusNode(nodeId: NodeId, needsGet: Boolean = true): ViewConfig = {
+    val nextView = if (view.isContent) view else View.default
+    val nextPage = Page(nodeId)
+    copy(pageChange = PageChange(nextPage, needsGet = needsGet), view = nextView)
+  }
+
 }
 object ViewConfig {
   val default = ViewConfig(View.default, PageChange(Page.empty), None, None)

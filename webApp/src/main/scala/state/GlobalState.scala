@@ -75,12 +75,6 @@ class GlobalState(
   val pageChange: Var[PageChange] = viewConfig.zoom(GenLens[ViewConfig](_.pageChange))
   val page: Var[Page] = pageChange.zoom(GenLens[PageChange](_.page))
 
-  def focusNodeViewConfig(nodeId: NodeId, needsGet: Boolean = true): ViewConfig = {
-    val nextView = if (view.now.isContent) view.now else View.default
-    val nextPage = Page(nodeId)
-    viewConfig.now.copy(pageChange = PageChange(nextPage, needsGet = needsGet), view = nextView)
-  }
-
   val pageNotFound:Rx[Boolean] = Rx{ !page().parentId.forall(graph().contains) }
 
   val pageHasParents = Rx {

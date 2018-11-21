@@ -25,17 +25,12 @@ import wust.webApp.views
 import scala.concurrent.Future
 
 object CreateNewPrompt {
-  private sealed trait Error
-  private object Error {
-    case object MissingTag extends Error
-  }
 
   def apply(state: GlobalState, show: Observable[Boolean], defaultView: View, defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
     val parentNodes = Var[List[NodeId]](Nil)
     val childNodes = Var[List[NodeId]](Nil)
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
-    val errorMessages = Var[List[Error]](Nil)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
 
     var modalElement: JQuerySelection = null
@@ -44,30 +39,30 @@ object CreateNewPrompt {
     def newMessage(msg: String): Future[Ack] = {
       println("HI " + nodeAccess.now)
       println("HI " + nodeAccess.now.getClass)
-      if (parentNodes.now.isEmpty) {
-        errorMessages.update(errors => (Error.MissingTag :: errors).distinct)
-        Ack.Continue
-      } else if (errorMessages.now.isEmpty) {
-        val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
-        val changes =
-          GraphChanges.addNodeWithParent(newNode, parentNodes.now) merge
-          GraphChanges.addToParent(childNodes.now, newNode.id)
+      val parents: List[NodeId] = if (parentNodes.now.isEmpty) List(state.user.now.id) else parentNodes.now
 
-        val ack = if (addToChannels.now) {
-          val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
-          state.viewConfig() = state.focusNodeViewConfig(newNode.id, needsGet = false)
-          state.eventProcessor.changes.onNext(changes merge channelChanges)
-        } else {
-          state.eventProcessor.changes.onNext(changes)
-        }
+      val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
+      val changes =
+        GraphChanges.addNodeWithParent(newNode, parents) merge
+        GraphChanges.addToParent(childNodes.now, newNode.id)
 
-        modalElement.modal("hide")
-        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = state.focusNodeViewConfig(newNode.id), level = UI.ToastLevel.Success)
+      val ack = if (addToChannels.now) {
+        val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
+        val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
+        state.viewConfig() = state.viewConfig.now.focusNode(newNode.id, needsGet = false)
         ack
       } else {
-        Ack.Continue
+        val ack = state.eventProcessor.changes.onNext(changes)
+        def newViewConfig = nodeRole.now match {
+          case NodeRole.Message => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Conversation)
+          case NodeRole.Task => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Tasks)
+        }
+        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = newViewConfig, level = UI.ToastLevel.Success)
+        ack
       }
 
+      modalElement.modal("hide")
+      ack
     }
 
     val header = div(
@@ -131,7 +126,6 @@ object CreateNewPrompt {
                   case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
                 }
               ).foreach { nodeId =>
-                errorMessages.update(_.filterNot(_ == Error.MissingTag))
                 parentNodes() = nodeId :: parentNodes.now
               },
             )
@@ -160,18 +154,6 @@ object CreateNewPrompt {
       ),
 
       SharedViewElements.inputField(state, submitAction = newMessage, autoFocus = true).apply(width := "100%", padding := "10px"),
-
-      errorMessages.map {
-        case Nil => VDomModifier.empty
-        case errors =>
-          div(
-            cls := "ui negative message",
-            div(cls := "header", s"Cannot create new ${nodeRole.now}"),
-            errors.map {
-              case Error.MissingTag => p("Missing tag")
-            }
-          )
-      },
 
       div(
         width := "300px",

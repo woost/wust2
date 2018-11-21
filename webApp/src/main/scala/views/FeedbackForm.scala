@@ -91,7 +91,7 @@ object FeedbackForm {
             (Icons.zoom:VNode)(marginLeft := "5px"),
             onClick foreach {
               Var.set(
-                state.viewConfig -> state.focusNodeViewConfig(feedbackNodeId),
+                state.viewConfig -> state.viewConfig.now.focusNode(feedbackNodeId),
                 show -> false
               )
               Analytics.sendEvent("feedback", "show")
