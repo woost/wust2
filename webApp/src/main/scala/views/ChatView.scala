@@ -163,7 +163,7 @@ object ChatView {
     }
 
     Rx {
-      shouldLoadInfinite() = state.isLoading() || messages().length > pageCounter()
+      shouldLoadInfinite() = !state.isLoading() && messages().length > pageCounter()
     }
 
     VDomModifier(
