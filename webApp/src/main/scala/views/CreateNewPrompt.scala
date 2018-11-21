@@ -134,6 +134,7 @@ object CreateNewPrompt {
         div(
           div("Permission:", color := "rgba(0,0,0,0.62)"),
           UI.dropdown(
+            tabIndex := -1, // cannot focus this dropdown via tab
             new DropdownEntry {
               value = NodeAccess.Inherited.str
               name = "Inherited"

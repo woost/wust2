@@ -74,8 +74,10 @@ object UI {
     popup(new PopupOptions { content = str; position = _position })
   }
 
-  def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
+  def dropdown(modifier: VDomModifier, options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier { sink =>
     div(
+      modifier,
       cls := "ui selection dropdown",
       onDomMount.asJquery.foreach(_.dropdown(new DropdownOptions {
         onChange = { (key, text, selectedElement) =>
