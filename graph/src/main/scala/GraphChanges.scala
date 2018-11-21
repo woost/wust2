@@ -5,6 +5,8 @@ import wust.util.collection.RichCollection
 
 import scala.collection.breakOut
 
+//TODO: only Edge.Content and Node.Content?
+//TODO: not sets! what about an addnode with a succeeding edit, who wins?
 case class GraphChanges(
   addNodes: collection.Set[Node] = Set.empty,
   addEdges: collection.Set[Edge] = Set.empty,

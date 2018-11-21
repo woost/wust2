@@ -15,6 +15,7 @@ sealed trait Edge {
 }
 
 object Edge {
+  sealed trait Content extends Edge
 
   case class Member(userId: UserId, data: EdgeData.Member, channelId: NodeId) extends Edge {
     def sourceId = userId
@@ -25,7 +26,7 @@ object Edge {
     def targetId = nodeId
   }
 
-  case class Parent(childId: NodeId, data: EdgeData.Parent, parentId: NodeId) extends Edge {
+  case class Parent(childId: NodeId, data: EdgeData.Parent, parentId: NodeId) extends Content {
     def sourceId = childId
     def targetId = parentId
   }
@@ -40,14 +41,13 @@ object Edge {
     def data = EdgeData.Expanded
   }
 
-  case class Notify(nodeId: NodeId, userId: UserId)
-      extends Edge {
+  case class Notify(nodeId: NodeId, userId: UserId) extends Edge {
     def sourceId = nodeId
     def targetId = userId
     def data = EdgeData.Notify
   }
 
-  case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Edge
+  case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Content
 
   case class Pinned(userId: UserId, nodeId: NodeId) extends Edge {
     def sourceId = userId
@@ -55,7 +55,7 @@ object Edge {
     def data = EdgeData.Pinned
   }
 
-  case class Before(nodeId: NodeId, data: EdgeData.Before, afterId: NodeId) extends Edge {
+  case class Before(nodeId: NodeId, data: EdgeData.Before, afterId: NodeId) extends Content {
     def sourceId = nodeId
     def targetId = afterId
   }
