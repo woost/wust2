@@ -16,6 +16,7 @@ object ZIndex {
   val loading = 1750
   val overlay = 2000
   val dragging = 10000
+  val modal = 15000
 }
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
@@ -241,6 +242,10 @@ object CommonStyles extends StyleSheet.Standalone {
   ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
     animation := s"${Styles.fadeInKf.name.value} 1s, ${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
+  )
+
+  ".ui.dimmer.modals" - (
+    zIndex(ZIndex.modal)
   )
 
   ".sidebar" - (
