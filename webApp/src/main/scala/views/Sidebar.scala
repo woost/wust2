@@ -100,7 +100,7 @@ object Sidebar {
         ),
 
         channelIcon(state, node, selected, 30),
-        renderNodeData(node.data)(cls := "channel-name"),
+        renderNodeData(node.data, maxLength = Some(100))(cls := "channel-name"),
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
