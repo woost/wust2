@@ -29,61 +29,59 @@ object PropertyView {
       padding := "10px",
 
       Rx {
-        withLoadingAnimation(state) {
-          val graph = state.graph()
-          val subjects = state.page().parentId.flatMap(graph.nodesByIdGet)
+        val graph = state.graph()
+        val subjects = state.page().parentId.flatMap(graph.nodesByIdGet)
 
-          // https://fomantic-ui.com/elements/list.html#description
-          val list = div(cls := "ui list")
-          val item = div(cls := "item")
-          val content = div(cls := "content")
-          val header = div(cls := "header")
-          val description = div(cls := "description")
-          list(
-            item(
-              content(
-                header("Data"),
-                description(subjects.map(_.data).mkString(", "))
-              ),
-              content(
-                header("Role"),
-                description(subjects.map(_.role).mkString(", "))
-              ),
-              content(
-                header("Access"),
-                description(subjects.map(_.meta.accessLevel).mkString(", "))
-              ),
-              content(
-                header("Parents"),
-                description(subjects.map { node =>
-                  val parents = graph.parentsIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                  parents.map(p => nodeTag(state, p))
-                })
-              ),
-              content(
-                header("Children"),
-                description(subjects.map { node =>
-                  val parents = graph.childrenIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                  parents.map(p => nodeCard(p)(display.inlineBlock))
-                })
-              ),
-              content(
-                header("Before"),
-                description(subjects.map { node =>
-                  val parents = graph.beforeIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                  parents.map(p => nodeCard(p)(display.inlineBlock))
-                })
-              ),
-              content(
-                header("After"),
-                description(subjects.map { node =>
-                  val parents = graph.afterIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                  parents.map(p => nodeCard(p)(display.inlineBlock))
-                })
-              ),
-            )
+        // https://fomantic-ui.com/elements/list.html#description
+        val list = div(cls := "ui list")
+        val item = div(cls := "item")
+        val content = div(cls := "content")
+        val header = div(cls := "header")
+        val description = div(cls := "description")
+        list(
+          item(
+            content(
+              header("Data"),
+              description(subjects.map(_.data).mkString(", "))
+            ),
+            content(
+              header("Role"),
+              description(subjects.map(_.role).mkString(", "))
+            ),
+            content(
+              header("Access"),
+              description(subjects.map(_.meta.accessLevel).mkString(", "))
+            ),
+            content(
+              header("Parents"),
+              description(subjects.map { node =>
+                val parents = graph.parentsIdx(graph.idToIdx(node.id)).map(graph.nodes)
+                parents.map(p => nodeTag(state, p))
+              })
+            ),
+            content(
+              header("Children"),
+              description(subjects.map { node =>
+                val parents = graph.childrenIdx(graph.idToIdx(node.id)).map(graph.nodes)
+                parents.map(p => nodeCard(p)(display.inlineBlock))
+              })
+            ),
+            content(
+              header("Before"),
+              description(subjects.map { node =>
+                val parents = graph.beforeIdx(graph.idToIdx(node.id)).map(graph.nodes)
+                parents.map(p => nodeCard(p)(display.inlineBlock))
+              })
+            ),
+            content(
+              header("After"),
+              description(subjects.map { node =>
+                val parents = graph.afterIdx(graph.idToIdx(node.id)).map(graph.nodes)
+                parents.map(p => nodeCard(p)(display.inlineBlock))
+              })
+            ),
           )
-        }
+        )
       },
     )
   }

@@ -38,65 +38,63 @@ object KanbanView {
       alignItems.flexStart,
 
       Rx {
-        withLoadingAnimation(state) {
-          val page = state.page()
+        val page = state.page()
 
-          val graph = {
-            val g = state.graph()
-            val transitivePageChildren = page.parentId.toSeq.flatMap(g.notDeletedDescendants)
-            g.filterIds(page.parentId.toSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
-          }
+        val graph = {
+          val g = state.graph()
+          val transitivePageChildren = page.parentId.toSeq.flatMap(g.notDeletedDescendants)
+          g.filterIds(page.parentId.toSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
+        }
 
-          val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove, since it contains max one element
+        val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove, since it contains max one element
 
-          val allTasks:ArraySet = graph.subset { nodeIdx =>
-            val node = graph.nodes(nodeIdx)
+        val allTasks:ArraySet = graph.subset { nodeIdx =>
+          val node = graph.nodes(nodeIdx)
 
-            @inline def isContent = node.isInstanceOf[Node.Content]
-            @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
-            @inline def noPage = pageParentArraySet.containsNot(nodeIdx)
+          @inline def isContent = node.isInstanceOf[Node.Content]
+          @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
+          @inline def noPage = pageParentArraySet.containsNot(nodeIdx)
 
-            isContent && isTask && noPage
-          }
+          isContent && isTask && noPage
+        }
 
-          val (categorizedTasks, uncategorizedTasks) = allTasks.partition { nodeIdx =>
+        val (categorizedTasks, uncategorizedTasks) = allTasks.partition { nodeIdx =>
 
-            @inline def isToplevel = graph.parentsIdx.forall(nodeIdx)(pageParentArraySet.contains)
-            @inline def isExpanded = graph.isExpanded(state.user.now.id, graph.nodeIds(nodeIdx))
-            @inline def hasChildren = graph.hasNotDeletedChildrenIdx(nodeIdx)
+          @inline def isToplevel = graph.parentsIdx.forall(nodeIdx)(pageParentArraySet.contains)
+          @inline def isExpanded = graph.isExpanded(state.user.now.id, graph.nodeIds(nodeIdx))
+          @inline def hasChildren = graph.hasNotDeletedChildrenIdx(nodeIdx)
 
-            isExpanded || !isToplevel || hasChildren
-          }
+          isExpanded || !isToplevel || hasChildren
+        }
 
-          val unsortedForest = graph.filterIdx(categorizedTasks.contains).redundantForestIncludingCycleLeafs
+        val unsortedForest = graph.filterIdx(categorizedTasks.contains).redundantForestIncludingCycleLeafs
 
-          //        scribe.info(s"SORTING FOREST: $unsortedForest")
-          val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
-          //        scribe.info(s"SORTED FOREST: $sortedForest")
+        //        scribe.info(s"SORTING FOREST: $unsortedForest")
+        val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
+        //        scribe.info(s"SORTED FOREST: $sortedForest")
 
-          //        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
-          //        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
-          //
-          //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
-          //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
+        //        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
+        //        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
+        //
+        //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
+        //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
 
-          page.parentId.map { pageParentId =>
-            VDomModifier(
-              renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
-              div(
-                cls := s"kanbancolumnarea",
-                keyed,
-                Styles.flexStatic,
+        page.parentId.map { pageParentId =>
+          VDomModifier(
+            renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
+            div(
+              cls := s"kanbancolumnarea",
+              keyed,
+              Styles.flexStatic,
 
-                Styles.flex,
-                alignItems.flexStart,
-                sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+              Styles.flex,
+              alignItems.flexStart,
+              sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
-                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
-              ),
-              Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) }
-            )
-          }
+              registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
+            ),
+            Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) }
+          )
         }
       },
     )

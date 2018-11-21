@@ -13,7 +13,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import jquery.JQuerySelection
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
@@ -83,6 +83,10 @@ object Components {
   }
 
   def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
+
+  def customLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
+    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, cls := "animated-fadein", woostLoadingAnimation)
+  }
 
   def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data: Ctx.Data): VDomModifier = {
     if(state.isLoading()) div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimationWithFadeIn)

@@ -3,7 +3,7 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph.Page
 import wust.util._
 import wust.webApp.DevOnly
@@ -54,20 +54,23 @@ object MainView {
               ))
             }
           },
+          Rx {
+            if(state.view().isContent) {
+              if (state.isLoading()) Components.customLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor)
+              else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor, Styles.growFull)
+              else VDomModifier.empty
+            } else VDomModifier.empty
+          },
           // It is important that the view rendering is in a separate Rx.
           // This avoids rerendering the whole view when only the screen-size changed
           Rx {
-            if(state.view().isContent && state.pageNotFound() && !state.isLoading()) {
-              PageNotFoundView(state)
-            } else {
-              // we can now assume, that every page parentId is contained in the graph
-              ViewRender(state.view(), state).apply(
-                Styles.growFull,
-                flexGrow := 1
-              ).prepend(
-                overflow.visible
-              )
-            }
+            // we can now assume, that every page parentId is contained in the graph
+            ViewRender(state.view(), state).apply(
+              Styles.growFull,
+              flexGrow := 1
+            ).prepend(
+              overflow.visible
+            )
           },
         )
       )

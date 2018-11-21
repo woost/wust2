@@ -13,6 +13,7 @@ object ZIndex {
   val draggable = 100
   val overlayLow = 1000
   val tooltip = 1500
+  val loading = 1750
   val overlay = 2000
   val dragging = 10000
 }
@@ -173,8 +174,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pagenotfound" - (
     opacity(0),
     animationName(Styles.fadeInKf),
-    animationDuration(1.5 seconds),
-    animationDelay(2000 milliseconds),
+    animationDuration(500 milliseconds),
+    animationDelay(1000 milliseconds),
     animationFillMode.forwards,
   )
 

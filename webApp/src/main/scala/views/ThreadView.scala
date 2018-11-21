@@ -98,9 +98,7 @@ object ThreadView {
     Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
-      withLoadingAnimation(state) {
-        renderThreadGroups(state, directParentIds = page.parentId, transitiveParentIds = page.parentId.toSet, selectedNodes, isTopLevel = true)
-      }
+      renderThreadGroups(state, directParentIds = page.parentId, transitiveParentIds = page.parentId.toSet, selectedNodes, isTopLevel = true)
     }
   }
 
