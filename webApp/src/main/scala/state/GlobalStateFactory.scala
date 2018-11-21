@@ -14,6 +14,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.{Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
 import wust.util.StringOps
+import wust.util.algorithm
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -41,6 +42,34 @@ object GlobalStateFactory {
 
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError)
     import state._
+
+    // automatically pin and notify newly focused nodes
+    {
+      var prevPage: Page = null
+      Rx {
+        //TODO: userdescendant
+
+        def anyPageParentIsPinned = graph().anyAncestorIsPinned(page().parentId, user().id)
+        def pageIsUnderUser:Boolean = (for {
+          pageParentId <- page().parentId
+          pageIdx = graph().idToIdx(pageParentId)
+          if pageIdx != -1
+          userIdx = graph().idToIdx(user().id)
+          if userIdx != -1
+        } yield algorithm.depthFirstSearchExists(start = pageIdx, graph().notDeletedParentsIdx, userIdx)).getOrElse(true)
+
+        page().parentId.foreach { parentId =>
+          if(!isLoading() && prevPage != page() && !anyPageParentIsPinned && !pageIsUnderUser) {
+            prevPage = page() //we do this ONCE per page
+
+            // user probably clicked on a woost-link.
+            // So we pin the page as channels and enable notifications
+            val changes = GraphChanges.connect(Edge.Notify)(parentId, user().id).merge(GraphChanges.connect(Edge.Pinned)(user().id, parentId))
+            eventProcessor.changes.onNext(changes)
+          }
+        }
+      }
+    }
 
     // clear selected nodes on view and page change
     {

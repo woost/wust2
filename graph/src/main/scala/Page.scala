@@ -2,7 +2,7 @@ package wust.graph
 
 import wust.ids._
 
-case class Page(parentId: Option[NodeId]) extends AnyVal {
+case class Page(parentId: Option[NodeId]) {
   @inline def isEmpty: Boolean = parentId.isEmpty
   @inline def isDefined: Boolean = parentId.isDefined
 }
