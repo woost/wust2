@@ -100,7 +100,12 @@ object Sidebar {
         ),
 
         channelIcon(state, node, selected, 30),
-        renderNodeData(node.data, maxLength = Some(100))(cls := "channel-name"),
+
+        {
+          val rendered = renderNodeData(node.data, maxLength = Some(100))(cls := "channel-name")
+          if (state.user.now.id == node.id) b(rendered) else rendered
+        },
+
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
@@ -158,7 +163,7 @@ object Sidebar {
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
-              UI.popup("right center") := node.data.str,
+              UI.popup("right center") := (if (state.user.now.id == node.id) "Your personal Workspace" else node.str),
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
