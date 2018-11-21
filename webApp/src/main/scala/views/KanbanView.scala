@@ -140,7 +140,7 @@ object KanbanView {
       cls := "kanbantoplevelcolumn",
       keyed,
       border := s"1px dashed $columnColor",
-      p(cls := "kanban-uncategorized-title", "Uncategorized"),
+      p(cls := "kanban-uncategorized-title", "Inbox"),
       div(
         cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Uncategorized(parentId)),
