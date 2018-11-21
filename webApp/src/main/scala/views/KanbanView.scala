@@ -214,7 +214,9 @@ object KanbanView {
 
         columnTitle,
 
-        Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)) },
+        Rx{
+          renderMessageCount(if (messageChildrenCount() > 0) messageChildrenCount().toString else "", color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)
+        },
 
         position.relative, // for buttonbar
         buttonBar(position.absolute, top := "0", right := "0"),
@@ -292,7 +294,9 @@ object KanbanView {
       keyed(node.id, parentId),
       cls := "draghandle",
 
-      Rx{ (messageChildrenCount() > 0).ifTrue[VDomModifier](renderMessageCount(messageChildrenCount(), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)) },
+      Rx{
+        renderMessageCount(if (messageChildrenCount() > 0) messageChildrenCount().toString else "", onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
+      },
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),
