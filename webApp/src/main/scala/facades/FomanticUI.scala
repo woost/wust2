@@ -41,6 +41,9 @@ trait PopupOptions extends js.Object {
   var content: js.UndefOr[String] = js.undefined
   var title: js.UndefOr[String] = js.undefined
   var html: js.UndefOr[String] = js.undefined
+  var scrollContext: js.UndefOr[String] = js.undefined
+  var exclusive: js.UndefOr[Boolean] = js.undefined
+  var hideOnScroll: js.UndefOr[Boolean] = js.undefined
 }
 
 trait ToastOptions extends js.Object {

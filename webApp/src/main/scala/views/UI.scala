@@ -68,10 +68,10 @@ object UI {
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(tooltip := str, data.position := position)
 
   def popup(options: PopupOptions): VDomModifier = VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := ZIndex.tooltip)
-  def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str })
+  def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
-    popup(new PopupOptions { content = str; position = _position })
+    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
