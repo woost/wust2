@@ -11,10 +11,7 @@ object NodePermission {
   def canWrite(graph: Graph, nodeId: NodeId): Boolean = {
     if (nodeId == feedbackNodeId) false
     else graph.nodesById(nodeId) match {
-      case n: Node.Content => n.role match {
-        case NodeRole.Message | NodeRole.Task => true
-        case _ => false
-      }
+      case n: Node.Content => true
       case _ => false
     }
   }

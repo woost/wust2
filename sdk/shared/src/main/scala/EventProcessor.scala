@@ -98,16 +98,16 @@ class EventProcessor private (
     val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
     val allChanges = Observable(enrichedChanges, changes).merge.withLatestFrom(rawGraphWithInit) { (changes, graph) =>
       val events = EventInterpreter(graph, changes)
-      val statusChanges = events.collect {
-        case InterpretedEvent.EditNode(id, oldData, newData) =>
-          val statusNode = Node.Content(NodeData.Markdown(s"Edited node from ${oldData} to ${newData}"), NodeRole.Info)
-          graph.parents(id).map(GraphChanges.addNodeWithParent(statusNode, _)).foldLeft(GraphChanges.empty)(_ merge _)
-        case InterpretedEvent.AddParent(id, parentId) =>
-          val statusNode = Node.Content(NodeData.Markdown(s"Add child '${graph.nodesById(id).str}'"), NodeRole.Info)
-          GraphChanges.addNodeWithParent(statusNode, parentId)
-        case InterpretedEvent.RemoveParent(id, parentId) =>
-          val statusNode = Node.Content(NodeData.Markdown(s"Remove child '${graph.nodesById(id).str}'"), NodeRole.Info)
-          GraphChanges.addNodeWithParent(statusNode, parentId)
+      val statusChanges = events.map {
+        case e: NodeData.Info.EditNode =>
+          val statusNode = Node.Info(e)
+          graph.parents(e.id).map(GraphChanges.addNodeWithParent(statusNode, _)).foldLeft(GraphChanges.empty)(_ merge _)
+        case e: NodeData.Info.AddParent =>
+          val statusNode = Node.Info(e)
+          GraphChanges.addNodeWithParent(statusNode, e.parentId)
+        case e: NodeData.Info.RemoveParent =>
+          val statusNode = Node.Info(e)
+          GraphChanges.addNodeWithParent(statusNode, e.parentId)
       }
 
       statusChanges.foldLeft(changes)(_ merge _)

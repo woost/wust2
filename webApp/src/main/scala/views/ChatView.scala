@@ -398,10 +398,10 @@ object ChatView {
         parentIdx match {
           case Some(parentIdx) =>
             val childNode = graph.nodes(childIdx)
-            val continue = if (childNode.role != NodeRole.Task) {
+            val continue = if (childNode.role == NodeRole.Message) {
               nodeSet.add(childIdx)
               true
-            } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role != NodeRole.Task)
+            } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)
 
             if (continue && !graph.isDeletedNowIdx(childIdx, immutable.BitSet(parentIdx))) graph.childrenIdx(childIdx).foreachElement
             else _ => ()

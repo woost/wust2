@@ -62,6 +62,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
         }
         changes.addNodes.forall {
           case node:Node.Content => allPostsWithAuthor.contains(node.id)
+          case node:Node.Info => allPostsWithAuthor.contains(node.id)
           case _                      => false
         }
       }

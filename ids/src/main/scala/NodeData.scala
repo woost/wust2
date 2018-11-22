@@ -26,6 +26,16 @@ object NodeData {
   }
   object PlainText extends Named
 
+  sealed trait Info extends NodeData { def str = "Info" }
+  object Info {
+    case class EditNode(id: NodeId, oldData: NodeData, data: NodeData) extends Named with Info
+    object EditNode extends Named
+    case class  AddParent(id: NodeId, parentId: NodeId) extends Named with Info
+    object AddParent extends Named
+    case class  RemoveParent(id: NodeId, parentId: NodeId) extends Named with Info
+    object RemoveParent extends Named
+  }
+
   object User extends Named
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name

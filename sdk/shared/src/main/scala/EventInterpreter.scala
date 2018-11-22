@@ -8,11 +8,11 @@ import wust.ids.{NodeData, NodeId}
 import scala.collection.mutable
 
 object EventInterpreter {
-  import InterpretedEvent._
+  import NodeData.Info._
 
-  def apply(graph: Graph, changes: GraphChanges): Array[InterpretedEvent] = {
+  def apply(graph: Graph, changes: GraphChanges): Array[NodeData.Info] = {
     val c = changes.consistent
-    val builder = Array.newBuilder[InterpretedEvent]
+    val builder = Array.newBuilder[NodeData.Info]
     val newNodesBuilder = mutable.HashSet.newBuilder[NodeId]
     c.addNodes.foreach {
       case n: Node.Content =>
@@ -40,11 +40,3 @@ object EventInterpreter {
     builder.result()
   }
 }
-
-sealed trait InterpretedEvent
-object InterpretedEvent {
-  case class EditNode(id: NodeId, oldData: NodeData, data: NodeData) extends InterpretedEvent
-  case class AddParent(id: NodeId, parentId: NodeId) extends InterpretedEvent
-  case class RemoveParent(id: NodeId, parentId: NodeId) extends InterpretedEvent
-}
-

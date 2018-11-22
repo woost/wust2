@@ -28,11 +28,25 @@ sealed trait Node {
 }
 
 object Node {
-  // TODO: we cannot set the nodemeta here, but there is changeable data in the db class
+  //TODO: noderole/meta is not changeable for users, but is in db.
   case class User(id: UserId, data: NodeData.User, meta: NodeMeta) extends Node {
     @inline def name: String = data.name
-    def role: NodeRole = NodeRole.default
+    def role: NodeRole = NodeRole.Message
   }
+
+  //TODO: noderole/meta is not changeable for infos, but is in db.
+  case class Info(id: NodeId, data: NodeData.Info, meta: NodeMeta) extends Node {
+    def role: NodeRole = NodeRole.Message
+  }
+  object Info {
+    @inline def apply(data: NodeData.Info): Info = {
+      new Info(NodeId.fresh, data, NodeMeta.default)
+    }
+    @inline def apply(id: NodeId, data: NodeData.Info): Info = {
+      new Info(id, data, NodeMeta.default)
+    }
+  }
+
   case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta) extends Node
   object Content {
     @inline def apply(data: NodeData.Content, role: NodeRole, meta: NodeMeta): Content = {

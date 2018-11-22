@@ -433,7 +433,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           nodes(childIdx).role match {
             case NodeRole.Message => messageCount += 1
             case NodeRole.Task    => taskCount += 1
-            case NodeRole.Info => ()
           }
         }
       }

@@ -56,7 +56,6 @@ object CreateNewPrompt {
         def newViewConfig = nodeRole.now match {
           case NodeRole.Message => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Conversation)
           case NodeRole.Task => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Tasks)
-          case NodeRole.Info => ??? // does not happen
         }
         UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = newViewConfig, level = UI.ToastLevel.Success)
         ack

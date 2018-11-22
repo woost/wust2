@@ -42,6 +42,8 @@ trait Circe {
   implicit val postContentEncoder2: Encoder[NodeData.Content] = deriveEncoder[NodeData.Content]
   implicit val postContentDecoder3: Decoder[NodeData.User] = deriveDecoder[NodeData.User]
   implicit val postContentEncoder3: Encoder[NodeData.User] = deriveEncoder[NodeData.User]
+  implicit val postContentDecoder4: Decoder[NodeData.Info] = deriveDecoder[NodeData.Info]
+  implicit val postContentEncoder4: Encoder[NodeData.Info] = deriveEncoder[NodeData.Info]
   implicit val postContentDecoder: Decoder[NodeData] = deriveDecoder[NodeData]
   implicit val postContentEncoder: Encoder[NodeData] = deriveEncoder[NodeData]
 
