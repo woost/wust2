@@ -50,7 +50,7 @@ object SharedViewElements {
     }
   }
 
-  def inputField(
+  def inputRow(
     state: GlobalState,
     submitAction: String => Future[Ack],
     blurAction: Option[String => Unit] = None,
@@ -166,7 +166,7 @@ object SharedViewElements {
     div(
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
-      alignItems.flexStart,
+      alignItems.center,
       justifyContent.stretch,
       div(
         margin := "3px",

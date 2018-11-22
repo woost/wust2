@@ -334,7 +334,7 @@ object KanbanView {
       keyed(parentId),
       Rx {
         if(active())
-          inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder))
+          inputRow(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder))
         else
           div(
             cls := "kanbanaddnodefieldtext",
@@ -376,7 +376,7 @@ object KanbanView {
       onClick.stopPropagation(true) --> fieldActive,
       Rx {
         if(fieldActive()) {
-          inputField(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder), textAreaModifiers = VDomModifier(
+          inputRow(state, submitAction, autoFocus = true, blurAction = Some(blurAction), placeHolderMessage = Some(placeHolder), textAreaModifiers = VDomModifier(
             fontSize.larger,
             fontWeight.bold,
             minHeight := "50px",

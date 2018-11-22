@@ -131,7 +131,7 @@ object ChatView {
           }
         }
 
-        inputField(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
+        inputRow(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
           Styles.flexStatic,
           Rx{ backgroundColor :=? bgColor()}
         )

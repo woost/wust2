@@ -89,7 +89,7 @@ object ThreadView {
           }
         }
 
-        inputField(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+        inputRow(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
       }
     )
   }
@@ -251,7 +251,7 @@ object ThreadView {
     }
 
 
-    inputField(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true).apply(
+    inputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true).apply(
       closeButton(
         padding := "15px",
         onClick.stopPropagation foreach { showReplyField() = false },

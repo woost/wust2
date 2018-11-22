@@ -150,7 +150,7 @@ object ListView {
       }
     }
 
-    inputField(state, submitAction,
+    inputRow(state, submitAction,
       preFillByShareApi = true,
       autoFocus = !BrowserDetect.isMobile,
       triggerFocus = inputFieldFocusTrigger,
