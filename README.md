@@ -80,7 +80,7 @@ Run sql from vim:
 
 ## Developing database tests
 ```bash
-find dbMigration/core/{sql,tests} | entr bash -c "sbt dbMigration/docker && ./start test.postgres"
+find dbMigration/core/{sql,tests} | entr -ncs 'sbt dbMigration/docker && ./start test.postgres'
 ```
 
 ## watching database content
