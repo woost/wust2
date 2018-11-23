@@ -195,8 +195,10 @@ self.addEventListener('push', e => {
                 if (e.data) {
                     const data = e.data.json();
                     const nodeId = data.nodeId;
-                    const targetId = data.parentId ? data.parentId : nodeId;
-                    const channel = data.parentContent ? `${data.parentContent}` : 'Woost';
+                    const parentId = data.parentId;
+                    const subscribedId = data.subscribedId;
+                    const channelId = parentId ? parentId : subscribedId;
+                    const titleContent = (data.parentContent && parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
                     const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
                     const content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
@@ -205,7 +207,7 @@ self.addEventListener('push', e => {
                         icon: 'favicon.ico',
                         vibrate: [100, 50, 100],
                         renotify: true,
-                        tag: targetId,
+                        tag: subscribedId,
                         // actions: [
                         //     { action: 'explore', title: 'Explore this new world' },
                         //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
@@ -213,7 +215,7 @@ self.addEventListener('push', e => {
                         data: {
                             dateOfArrival: Date.now(),
                             nodeId: nodeId,
-                            targetId: targetId,
+                            channelId: channelId,
                             msgCount: 1
                         },
                     };
@@ -223,7 +225,7 @@ self.addEventListener('push', e => {
 
                         for(let i = 0; i < notifications.length; i++) {
                             if (notifications[i].data &&
-                                notifications[i].data.targetId === targetId) {
+                                notifications[i].data.subscribedId === subscribedId) {
                                 count = notifications[i].data.msgCount + 1;
                                 options.data.msgCount = count;
                                 notifications[i].close();
@@ -232,7 +234,7 @@ self.addEventListener('push', e => {
 
                         log(`number of notifications = ${count}`);
 
-                        const title = (count > 1) ? `${channel} (${count} new messages)` : channel;
+                        const title = (count > 1) ? `${titleContent} (${count} new messages)` : titleContent;
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
@@ -261,7 +263,7 @@ self.addEventListener('notificationclick', e => {
 
             const ndata = e.notification.data;
             const messageId = ndata.nodeId;
-            const channelId = ndata.targetId;
+            const channelId = ndata.channelId;
             const baseLocation = "https://staging.woost.space";
 
             for (const index in windowClients) {
