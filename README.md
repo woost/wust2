@@ -83,6 +83,31 @@ Run sql from vim:
 find dbMigration/core/{sql,tests} | entr -ncs 'sbt dbMigration/docker && ./start test.postgres'
 ```
 
+## Database performance measurement
+function stats (only activated in dev, requires `track_functions=all`)
+```sql
+select funcname, calls, total_time, total_time/calls as total_avg, self_time, self_time/calls as self_avg from pg_stat_user_functions order by self_time DESC;
+```
+
+to clean the stats:
+```sql
+select pg_stat_reset()
+```
+
+function explanation via auto explainer:
+```sql
+LOAD 'auto_explain';
+SET auto_explain.log_min_duration = 0; -- if too many small queries are explained, raise this value
+SET auto_explain.log_nested_statements = ON;
+-- helpful for the visualizer
+set auto_explain.log_format = json;
+set auto_explain.log_verbose = true;
+set auto_explain.log_buffers = true;
+```
+The explanations will appear in the log.
+
+Explanation visualizer: http://tatiyants.com/pev
+
 ## watching database content
 ```bash
 watch 'echo "SELECT * from node; select * from edge;" | docker exec -i devcore_postgres_1 psql -h localhost -U wust -p 5432'
