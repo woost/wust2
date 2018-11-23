@@ -2,6 +2,6 @@ version: '3'
 
 services:
   postgres:
-    command: postgres -c "log_statement=all" -c "log_min_duration_statement=0" -c "log_duration=on"
+    command: postgres -c "log_statement=all" -c "log_min_duration_statement=0" -c "log_duration=on" -c "track_functions=all"
     ports:
       - "127.0.0.1:${SLACK_POSTGRES_PORT-15432}:5432"
