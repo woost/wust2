@@ -70,7 +70,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def determinePushPerUser(nodesOfInterest: Iterable[NodeId]): Future[List[RawPushData]] = {
-    db.notifications.notifyDataByNodes(nodesOfInterest.toList)
+    db.notifications.notifyDataBySubscribedNodes(nodesOfInterest.toList)
   }
 
   private def parentNodeByChildId(graphChanges: GraphChanges): Future[Map[NodeId, Data.Node]] = {
@@ -102,7 +102,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     author: Node.User,
     addNodesByNodeId: Map[NodeId, Node],
     parentNodeByChildId: Map[NodeId, Data.Node],
-    rawPushMeta: List[RawPushData]) = {
+    rawPushMeta: List[RawPushData]): Unit = {
 
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(
@@ -120,12 +120,18 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     parallelRawPushMeta.tasksupport = new ExecutionContextTaskSupport(ec)
 
     val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelRawPushMeta.map {
-      case RawPushData(subscription, notifiedNodes) if subscription.userId != author.id =>
+      case RawPushData(subscription, notifiedNodes, subscribedNodeId, subscribedNodeContent) if subscription.userId != author.id =>
         notifiedNodes.map { nodeId =>
           val node = addNodesByNodeId(nodeId)
-          val parentNode = parentNodeByChildId.get(nodeId)
 
-          val pushData = PushData(author.name, node.data.str.trim, node.id.toBase58, parentNode.map(_.data.str), parentNode.map(_.id.toBase58))
+          val pushData = PushData(author.name,
+            node.data.str.trim,
+            node.id.toBase58,
+            subscribedNodeId.toBase58,
+            subscribedNodeContent,
+            parentNodeByChildId.get(nodeId).map(_.id.toBase58),
+            parentNodeByChildId.get(nodeId).map(_.data.str),
+          )
 
           pushService.send(subscription, pushData).transform {
             case Success(response) =>
@@ -142,7 +148,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                   scribe.error(s"Too many requests.")
                   Success(None)
                 case `payloadTooLargeCode`                                 =>
-                  scribe.error(s"Payload to lagre.")
+                  scribe.error(s"Payload too large.")
                   Success(None)
                 case _                                                     =>
                   val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
