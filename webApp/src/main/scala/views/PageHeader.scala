@@ -589,35 +589,34 @@ object PageHeader {
     }
 
 
-      val nodeRoleItem:VDomModifier = channel match {
-        case channel: Node.Content if canWrite =>
+    val nodeRoleItem:VDomModifier = channel match {
+      case channel: Node.Content if canWrite =>
+        def nodeRoleSubItem(nodeRole: NodeRole) = div(
+          cls := "item",
+          (channel.role == nodeRole).ifTrueOption(i(cls := "check icon")),
+          nodeRole.toString,
+          onClick(GraphChanges.addNode(channel.copy(role = nodeRole))) --> state.eventProcessor.changes,
+          onClick foreach {
+            Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
+          }
+        )
 
-          def nodeRoleSubItem(nodeRole: NodeRole) = div(
-            cls := "item",
-            (channel.role == nodeRole).ifTrueOption(i(cls := "check icon")),
-            nodeRole.toString,
-            onClick(GraphChanges.addNode(channel.copy(role = nodeRole))) --> state.eventProcessor.changes,
-            onClick foreach {
-              Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
-            }
-          )
-
+        div(
+          cls := "item",
+          i(
+            cls := "icon fa-fw",
+            freeSolid.faExchangeAlt,
+            marginRight := "5px",
+          ),
+          span(cls := "text", "Convert", cursor.pointer),
           div(
-            cls := "item",
-            i(
-              cls := "icon fa-fw",
-              freeSolid.faExchangeAlt,
-              marginRight := "5px",
-            ),
-            span(cls := "text", "Convert", cursor.pointer),
-            div(
-              cls := "menu",
-              nodeRoleSubItem(NodeRole.Message),
-              nodeRoleSubItem(NodeRole.Task)
-            )
+            cls := "menu",
+            nodeRoleSubItem(NodeRole.Message),
+            nodeRoleSubItem(NodeRole.Task)
           )
-        case _ => VDomModifier.empty
-      }
+        )
+      case _ => VDomModifier.empty
+    }
 
     val mentionInItem:VDomModifier = {
       div(
