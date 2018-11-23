@@ -437,26 +437,26 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
   }
 
   object graph {
-    private val graphPage = quote { (parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) =>
-      infix"select * from graph_page($parents, $children, $requestingUserId)"
+    private val graphPage = quote { (parents: Seq[NodeId], requestingUserId: UserId) =>
+      infix"select * from graph_page($parents, $requestingUserId)"
         .as[Query[GraphRow]]
     }
-    private val graphPageWithOrphans = quote { (parents: Seq[NodeId], children: Seq[NodeId], requestingUserId: UserId) =>
-      infix"select * from graph_page_with_orphans($parents, $children, $requestingUserId)"
+    private val graphPageWithOrphans = quote { (parents: Seq[NodeId], requestingUserId: UserId) =>
+      infix"select * from graph_page_with_orphans($parents, $requestingUserId)"
         .as[Query[GraphRow]]
     }
 
-    def getPage(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPage(parentIds: Seq[NodeId], requestingUserId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
-        graphPage(lift(parentIds), lift(childIds), lift(requestingUserId))
+        graphPage(lift(parentIds), lift(requestingUserId))
       }.map(Graph.from)
     }
 
-    def getPageWithOrphans(parentIds: Seq[NodeId], childIds: Seq[NodeId], requestingUserId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPageWithOrphans(parentIds: Seq[NodeId], requestingUserId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
-        graphPageWithOrphans(lift(parentIds), lift(childIds), lift(requestingUserId))
+        graphPageWithOrphans(lift(parentIds), lift(requestingUserId))
       }.map(Graph.from)
     }
   }

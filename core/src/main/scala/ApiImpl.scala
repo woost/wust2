@@ -243,7 +243,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
     // TODO: also include the transitive parents of the page-parentId to be able no navigate upwards
-    db.graph.getPage(page.parentId.toSeq, Nil, userId).map(forClient)
+    db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
   }
 }
 
