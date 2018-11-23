@@ -198,13 +198,12 @@ object PageHeader {
 
     }
 
-    val searchModal = Handler.unsafe[jquery.JQuerySelection]
     val searchLocal = PublishSubject[String]
     val searchGlobal = PublishSubject[String]
     val searchInputProcess = PublishSubject[String]
+    val closeModal = PublishSubject[Unit]
 
     def renderSearchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
-      val viewConf = state.viewConfig.now
       val searchRes = Search.byString(needle, haystack, Some(100), 0.2).map( nodeRes =>
         div(
           cls := "ui approve item",
@@ -214,7 +213,7 @@ object PageHeader {
           paddingTop := "3px",
           Components.nodeCard(nodeRes._1, maxLength = Some(60)),
           onClick(Page(nodeRes._1.id)) --> state.page,
-          onClick(searchModal).foreach(_.modal("hide"))
+          onClick(()) --> closeModal
         ),
       )
 
@@ -254,75 +253,67 @@ object PageHeader {
       case _ => VDomModifier.empty
     }
 
+    def header = VDomModifier(
+      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+      div(
+        Styles.flex,
+        alignItems.center,
+        channelAvatar(node, size = 20)(marginRight := "5px"),
+        renderNodeData(node.data)(fontFamily := "Roboto Slab", fontWeight.normal),
+        paddingBottom := "5px",
+      ),
+      div(
+        cls := "ui search",
+        div(
+          cls := "ui input action",
+          input(
+            cls := "prompt",
+            placeholder := "Enter search text",
+            Elements.valueWithEnter --> searchLocal,
+            onChange.value --> searchInputProcess
+          ),
+          div(
+            cls := "ui primary icon button approve",
+            i(
+              cls := "icon",
+              freeSolid.faSearch,
+            ),
+            span(cls := "text", "Search", marginLeft := "5px", cursor.pointer),
+            onClick(searchInputProcess) --> searchLocal
+          ),
+        ),
+      )
+    )
+
+    def description = VDomModifier(
+      cls := "scrolling",
+      backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      div(
+        cls := "ui fluid search-result",
+        searchResult,
+      )
+    )
+
     div(
       cls := "item",
       i(
         cls := "icon fa-fw",
         freeSolid.faSearch,
         marginRight := "5px",
-      ),
+        ),
       span(cls := "text", "Search", cursor.pointer),
 
-      UI.modal(
-        header = VDomModifier(
-          backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-          div(
-            Styles.flex,
-            alignItems.center,
-            channelAvatar(node, size = 20)(marginRight := "5px"),
-            renderNodeData(node.data)(fontFamily := "Roboto Slab", fontWeight.normal),
-            paddingBottom := "5px",
-          ),
-          div(
-            cls := "ui search",
-            div(
-              cls := "ui input action",
-              input(
-                cls := "prompt",
-                placeholder := "Enter search text",
-                Elements.valueWithEnter --> searchLocal,
-                onChange.value --> searchInputProcess
-              ),
-              div(
-                cls := "ui primary icon button approve",
-                i(
-                  cls := "icon",
-                  freeSolid.faSearch,
-                ),
-                span(cls := "text", "Search", marginLeft := "5px", cursor.pointer),
-                onClick(searchInputProcess) --> searchLocal
-              ),
-            ),
-          )
-        ),
-        description = VDomModifier(
-          cls := "scrolling",
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
-          div(
-            cls := "ui fluid search-result",
-            searchResult,
-          )
-        ),
-        extraModalClasses = List("form")
-      ).apply(
-        onDomMount.asJquery foreach { elem =>
-          elem.modal()
-          searchModal.onNext(elem)
-        },
-      ),
-
-      onClick(searchModal).foreach(_.modal("toggle"))
+      onClick(UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = cls := "form")) --> state.modalConfig
     )
   }
 
   private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    val addMemberModal = Handler.unsafe[jquery.JQuerySelection]
     val addMember = PublishSubject[String]
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
 
-    def handleAddMember(name: String) = {
+    def handleAddMember(name: String): Unit = {
       val graphUser = Client.api.getUserId(name)
       graphUser.flatMap {
         case Some(u) => Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
@@ -343,10 +334,73 @@ object PageHeader {
       }
     }
 
-    def handleRemoveMember(membership: Edge.Member) = {
+    def handleRemoveMember(membership: Edge.Member): Unit = {
       val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
       state.eventProcessor.changes.onNext(change)
     }
+
+    def header = VDomModifier(
+      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+      div(
+        Styles.flex,
+        alignItems.center,
+        channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+        renderNodeData(node.data)(cls := "channel-name", fontFamily := "Roboto Slab", fontWeight.normal, marginRight := "15px"),
+        paddingBottom := "5px",
+      ),
+      div(s"Manage Members"),
+    )
+    def description = VDomModifier(
+      backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      div(
+        div(
+          cls := "ui fluid action input",
+          input(
+            placeholder := "Enter username",
+            Elements.valueWithEnter --> addMember,
+            onChange.value --> userNameInputProcess
+          ),
+          div(
+            cls := "ui primary button approve",
+            "Add",
+            onClick(userNameInputProcess) --> addMember
+          ),
+        ),
+      ),
+      div(
+        marginLeft := "10px",
+        Rx {
+          val graph = state.graph()
+          graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
+            val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+            val user = graph.nodesById(membership.userId).asInstanceOf[User]
+            div(
+              marginTop := "10px",
+              Styles.flex,
+              alignItems.center,
+              Avatar.user(user.id)(
+                cls := "avatar",
+                width := "22px",
+                height := "22px",
+                Styles.flexStatic,
+                marginRight := "5px",
+              ),
+              div(
+                user.name,
+                fontSize := "15px",
+                Styles.wordWrap,
+              ),
+              button(
+                cls := "ui tiny compact negative basic button",
+                marginLeft := "10px",
+                "Remove",
+                onClick(membership) --> removeMember
+              )
+            )
+          }
+        }
+      )
+    )
 
     div(
       emitter(addMember).foreach(handleAddMember(_)),
@@ -357,81 +411,10 @@ object PageHeader {
         freeSolid.faUserPlus,
         cls := "icon fa-fw",
         marginRight := "5px",
-      ),
+        ),
       span(cls := "text", "Add Member", cursor.pointer),
 
-      UI.modal(
-        header = VDomModifier(
-          backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-          div(
-            Styles.flex,
-            alignItems.center,
-            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-            renderNodeData(node.data)(cls := "channel-name", fontFamily := "Roboto Slab", fontWeight.normal, marginRight := "15px"),
-            paddingBottom := "5px",
-          ),
-          div(s"Manage Members"),
-        ),
-        description = VDomModifier(
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
-          div(
-            div(
-              cls := "ui fluid action input",
-              input(
-                placeholder := "Enter username",
-                Elements.valueWithEnter --> addMember,
-                onChange.value --> userNameInputProcess
-              ),
-              div(
-                cls := "ui primary button approve",
-                "Add",
-                onClick(userNameInputProcess) --> addMember
-              ),
-            ),
-          ),
-          div(
-            marginLeft := "10px",
-            Rx {
-              val graph = state.graph()
-              graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
-                val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-                val user = graph.nodesById(membership.userId).asInstanceOf[User]
-                div(
-                  marginTop := "10px",
-                  Styles.flex,
-                  alignItems.center,
-                  Avatar.user(user.id)(
-                    cls := "avatar",
-                    width := "22px",
-                    height := "22px",
-                    Styles.flexStatic,
-                    marginRight := "5px",
-                  ),
-                  div(
-                    user.name,
-                    fontSize := "15px",
-                    Styles.wordWrap,
-                  ),
-                  button(
-                    cls := "ui tiny compact negative basic button",
-                    marginLeft := "10px",
-                    "Remove",
-                    onClick(membership) --> removeMember
-                  )
-                )
-              }
-            }
-          )
-        ),
-        extraModalClasses = List("mini", "form")
-      ).apply(
-        onDomMount.asJquery foreach { elem =>
-          elem.modal()
-          addMemberModal.onNext(elem)
-        }
-      ),
-
-      onClick(addMemberModal).foreach(_.modal("toggle"))
+      onClick(UI.ModalConfig(header = header, description = description, modalModifier = cls := "mini form")) --> state.modalConfig
     )
   }
 

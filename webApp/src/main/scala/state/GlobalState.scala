@@ -3,6 +3,7 @@ package wust.webApp.state
 import draggable._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
@@ -18,7 +19,7 @@ import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.Components
+import wust.webApp.views.{UI, Components}
 import wust.css.Styles
 import wust.util.algorithm
 
@@ -39,6 +40,8 @@ class GlobalState(
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
+
+  val modalConfig: PublishSubject[UI.ModalConfig] = PublishSubject()
 
   val graph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)

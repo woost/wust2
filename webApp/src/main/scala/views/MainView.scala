@@ -27,6 +27,7 @@ object MainView {
       cls := "mainview",
       Styles.flex,
 //      DevOnly { DevView(state) },
+      UI.modal(state.modalConfig), // one modal instance for the whole page that can be configured via state.modalConfig
       Topbar(state)(width := "100%", Styles.flexStatic),
       div(
         Styles.flex,

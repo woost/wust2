@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions}
+import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions, ModalOptions}
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -34,35 +34,46 @@ object UI {
       label(labelText)
     )}
 
-
-  def modal(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None, extraModalClasses: List[String] = Nil): VNode = {
-    div(
+  case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty)
+  def modal(config: Observable[ModalConfig]): VDomModifier = div(
       keyed,
-      cls := "ui modal " + extraModalClasses.mkString(" "),
-      i(cls := "close icon"),
-      div(
-        cls := "header",
-        header
-      ),
-      div(
-        cls := "content",
-        div(
-          cls := "ui medium",
+      cls := "ui modal",
+      config.map {
+        case config => VDomModifier(
+          emitter(config.close).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
+          config.modalModifier,
+          onDomMount.asJquery.foreach { e =>
+            // we set detachable to false, so semantic ui does not move the element into the body.
+            // such a dom manipulation does not work well with virtual dom, because the virtual dom
+            // state and the real dom state would diverge and any succeeding patch could lead to an error.
+            e.modal(new ModalOptions { detachable = false })
+            e.modal("show")
+          },
+          i(cls := "close icon"),
           div(
-            cls := "description",
-            description
-          )
-        ),
-        actions.map { actions =>
+            cls := "header",
+            config.header
+          ),
           div(
-            marginLeft := "auto",
-            cls := "actions",
-            actions
+            cls := "content",
+            div(
+              cls := "ui medium",
+              div(
+                cls := "description",
+                config.description
+              )
+            ),
+            config.actions.map { actions =>
+              div(
+                marginLeft := "auto",
+                cls := "actions",
+                actions
+              )
+            }
           )
-        }
-      ),
-    )
-  }
+        )
+    }
+  )
 
   def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip)
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(tooltip := str, data.position := position)
@@ -81,8 +92,10 @@ object UI {
       cls := "ui selection dropdown",
       onDomMount.asJquery.foreach(_.dropdown(new DropdownOptions {
         onChange = { (key, text, selectedElement) =>
-          sink.onNext(key)
-        }: js.Function3[String, String, jquery.JQuerySelection, Unit]
+          for {
+            key <- key
+          } sink.onNext(key)
+        }: js.Function3[js.UndefOr[String], js.UndefOr[String], jquery.JQuerySelection, Unit]
 
         values = options.toJSArray
       })),

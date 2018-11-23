@@ -247,6 +247,9 @@ object CommonStyles extends StyleSheet.Standalone {
   ".ui.dimmer.modals" - (
     zIndex(ZIndex.modal)
   )
+  ".ui.modal" - (
+    zIndex(ZIndex.modal + 1)
+  )
 
   ".sidebar" - (
     color.white,

@@ -11,7 +11,7 @@ import wust.webApp.state.{GlobalState, PageChange, View}
 import Components._
 import cats.effect.IO
 import colorado.{Color, RGB}
-import fomanticui.DropdownEntry
+import fomanticui.{DropdownEntry, ModalOptions}
 import monix.execution.Ack
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -32,13 +32,9 @@ object CreateNewPrompt {
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
-
-    var modalElement: JQuerySelection = null
-    var searchElement: JQuerySelection = null
+    val closeModal = PublishSubject[Unit]()
 
     def newMessage(msg: String): Future[Ack] = {
-      println("HI " + nodeAccess.now)
-      println("HI " + nodeAccess.now.getClass)
       val parents: List[NodeId] = if (parentNodes.now.isEmpty) List(state.user.now.id) else parentNodes.now
 
       val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
@@ -61,11 +57,11 @@ object CreateNewPrompt {
         ack
       }
 
-      modalElement.modal("hide")
+      closeModal.onNext(())
       ack
     }
 
-    val header = div(
+    def header = div(
       Styles.flex,
       flexDirection.row,
       flexWrap.wrap,
@@ -92,7 +88,7 @@ object CreateNewPrompt {
       UI.toggle("Pin to sidebar", initialChecked = addToChannels.now) --> addToChannels
     )
 
-    val description = VDomModifier(
+    def description = VDomModifier(
       div(
         padding := "5px",
         Styles.flex,
@@ -126,7 +122,7 @@ object CreateNewPrompt {
                   case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
                 }
               ).foreach { nodeId =>
-                parentNodes() = nodeId :: parentNodes.now
+                parentNodes() = (parentNodes.now :+ nodeId).distinct
               },
             )
           )
@@ -190,15 +186,13 @@ object CreateNewPrompt {
             childNodes -> state.selectedNodes.now
           )
 
-          modalElement.modal("show")
+          state.modalConfig.onNext(UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = VDomModifier(
+            cls := "basic",
+            backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
+          )))
         }
-        else modalElement.modal("hide")
-      },
-
-      // TODO: better way to expose element from modal?
-      UI.modal(header, description, extraModalClasses = List("basic"))(
-        backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
-        onDomMount.asJquery.foreach(modalElement = _))
+        else closeModal.onNext(())
+      }
     )
   }
 

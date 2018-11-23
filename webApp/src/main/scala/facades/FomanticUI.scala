@@ -6,12 +6,12 @@ import scala.scalajs.js.|
 @js.native
 // fomantic ui is imported globally
 trait JQuerySelectionWithFomanticUI extends js.Object {
-  def dropdown(arg: String = ???):Unit = js.native
+  def dropdown(arg: String = ???): Unit = js.native
 
-  def modal(behavior: String*): Unit = js.native
-  def modal(options: ModalOptions): String = js.native
+  def modal(behavior: String): Unit = js.native
+  def modal(options: ModalOptions): Unit = js.native
 
-  def search(arg: SearchOptions):Unit = js.native
+  def search(arg: SearchOptions): Unit = js.native
   def search(arg: String, arg1: Any = ???, arg2: Any = ???): String = js.native
 
   def toast(options: ToastOptions): Unit = js.native
@@ -28,7 +28,7 @@ trait DropdownEntry extends js.Object {
 }
 
 trait DropdownOptions extends js.Object {
-  var onChange: js.UndefOr[js.Function3[String, String, jquery.JQuerySelection, Unit]] = js.undefined
+  var onChange: js.UndefOr[js.Function3[js.UndefOr[String], js.UndefOr[String], jquery.JQuerySelection, Unit]] = js.undefined
   var action: js.UndefOr[String] = js.undefined
   var values: js.UndefOr[js.Array[DropdownEntry]] = js.undefined
 }
@@ -83,6 +83,7 @@ trait DimmerOptions extends js.Object {
 }
 
 trait ModalOptions extends js.Object {
+  var detachable: js.UndefOr[Boolean] = js.undefined
   var blurring: js.UndefOr[Boolean] = js.undefined
   var dimmerSettings: js.UndefOr[DimmerOptions] = js.undefined
 }
