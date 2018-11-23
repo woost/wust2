@@ -21,6 +21,7 @@ import wust.webApp.views.{Placeholders}
 
 import scala.collection.breakOut
 import scala.scalajs.js
+import org.scalajs.dom.{window}
 
 /// Provides a node with the context that it resides in (i.e. its relevant parents)
 case class NodeContext(val nodeId: NodeId, val directParentIds : Set[NodeId])
@@ -29,13 +30,36 @@ object NodeContext
   implicit def toNodeId(node : NodeContext) = node.nodeId
 }
 
+object Options {
+  /// Whether to show a checkbox for strikethrough behaviour
+  val showCheckbox = false
+  /// Whether to list already deleted nodes
+  val showDeleted = false
+  /// Whether to select entire contents of a just-focused node
+  val selectAllOnEditFocus = false
+  /// Text to fill new (non-saved) nodes with
+  val defaultNewNodeText = ""
+}
+
 /// All state manipulations go through this class.
 /** Mostly used as a safety-abstraction over the ever-changing GlobalState. */
 class WorkflowState(
   val globalState : GlobalState
 )
 {
-  val selectedNodeIds : Var[Set[NodeId]] = Var(Set.empty)
+  //////////////////////////////////////////////////
+  // State
+  val markedNodeIds : Var[Set[NodeId]] = Var(Set.empty)
+  /// Local store of checked node ids
+  /** Will have to be saved in the graph at some point */
+  val checkedNodeIds : Var[Set[NodeId]] = Var(Set.empty)
+
+  /// The only selected node id (where selection also allows editing)
+  val selectedNodeId : Var[Option[NodeId]] = Var(None)
+
+
+  //////////////////////////////////////////////////
+  // Queries
   def parentIds(implicit ctx: Ctx.Owner) = Rx {
     globalState.page().parentIdSet
   }
@@ -47,6 +71,29 @@ class WorkflowState(
 
   def nodeFromId(nodeId : NodeId)(implicit ctx: Ctx.Owner) = Rx {
     globalState.graph().nodesById(nodeId)
+  }
+
+
+  def add(node : Node)(implicit ctx: Ctx.Owner) = {
+    val parents = parentIds.now
+    globalState.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(node, parents))
+  }
+
+  def addAfter(nodeId : NodeId, node : Node)(implicit ctx: Ctx.Owner) = {
+    val parents = parentIds.now
+    globalState.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(node, parents))
+    parents.map { p =>
+      addBeforeEdge(nodeId, node.id, p)
+    }
+  }
+
+  def makeNode(text : String = Options.defaultNewNodeText) = {
+    Node.MarkdownTask(text)
+  }
+
+
+  def addBeforeEdge(before : NodeId, after : NodeId, parent : NodeId) {
+    globalState.eventProcessor.changes.onNext(GraphChanges(addEdges = Set(Edge.Before(before, after, parent))))
   }
 
   /// deletes the node as a child from the passed parents
@@ -66,7 +113,12 @@ class WorkflowState(
   def isDeleted(node : NodeContext)(implicit ctx: Ctx.Owner) = Rx {
     globalState.graph().isDeletedNow(node.nodeId, node.directParentIds)
   }
-  def isSelected(nodeId : NodeId)(implicit ctx: Ctx.Owner) = selectedNodeIds.map(_ contains nodeId)
+
+  /// Checks if the given node is marked by the user
+  /** Marking allows operations on multiple entries */
+  def isMarked(nodeId : NodeId)(implicit ctx: Ctx.Owner) = markedNodeIds.map(_ contains nodeId)
+
+  def isChecked(node : NodeContext)(implicit ctx: Ctx.Owner) = checkedNodeIds.map(_ contains node.nodeId)
 
   /// zooms on a node, effectively changing the page
   def zoomTo(nodeId : NodeId)(implicit ctx: Ctx.Owner) = {
@@ -76,18 +128,19 @@ class WorkflowState(
   def nodes(implicit ctx: Ctx.Owner) = Rx {
     val page = globalState.page()
     val fullGraph = globalState.graph()
-    fullGraph.chronologicalNodesAscending.collect {
+    val nodes = fullGraph.chronologicalNodesAscending.collect {
       case n: Node.Content if (fullGraph.isChildOfAny(n.id, page.parentIds)
-                                 || fullGraph.isDeletedNow(n.id, page.parentIds)) =>
-        n.id
+                                 && (!Options.showDeleted && !fullGraph.isDeletedNow(n.id, page.parentIds))) =>
+        NodeContext(n.id, parentIds(ctx)())
     }
+    val sorted = fullGraph.topologicalSortBy(nodes, (n : NodeContext) => n.nodeId)
+    sorted
   }
 }
 
 
 object WorkflowView {
   // -- display options --
-  val grouping = false
   val lastActiveEditable : Var[Option[NodeId]] = Var(None)
 
   def apply(globalState: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
@@ -104,8 +157,6 @@ object WorkflowView {
       stylesOuterDiv,
       activeEditableControls(state),
       renderTasksWrapper(state, innerRender = { renderTasks(state) }),
-      Rx { inputField(state, state.page().parentIdSet).apply(keyed, Styles.flexStatic, padding := "3px") },
-      // registerDraggableContainer(state),
     )
   }
 
@@ -139,11 +190,138 @@ object WorkflowView {
           nodeId.foreach { nodeId =>
             state.delete(nodeId, from = directParentIds)
           }
-          state.selectedNodeIds.update(_ -- nodeId)
+          state.markedNodeIds.update(_ -- nodeId)
         },
         cursor.pointer,
         )
 
+    def taskCheckbox(state: WorkflowState, nodeCtx: NodeContext)(implicit ctx: Ctx.Owner) = {
+      val isMarked = state.isMarked(nodeCtx)
+      val isChecked = state.isChecked(nodeCtx)
+      div(
+        cls := "ui checkbox fitted",
+        // isMarked.map(_.ifTrueOption(visibility.visible)),
+        input(
+          tpe := "checkbox",
+          checked <-- isChecked,
+          onChange.checked --> sideEffect { checked =>
+            if(checked) state.checkedNodeIds.update(_ + nodeCtx.nodeId)
+            else state.checkedNodeIds.update(_ - nodeCtx.nodeId)
+          }
+        ),
+        label()
+      )
+    }
+
+    def taskContent(state: WorkflowState, nodeCtx: NodeContext)(implicit ctx: Ctx.Owner) = {
+      val nodeRef = state.nodeFromId(nodeCtx)
+      Rx {
+        val node = nodeRef().asInstanceOf[Node.Content]
+
+        div(
+          keyed(node.id),
+          VDomModifier(taskContentEditable(state, node)),
+          onClick --> sideEffect {
+            state.selectedNodeId() = Some(nodeCtx.nodeId)
+          },
+        )
+      }
+    }
+
+    def taskContentEditable(state: WorkflowState,
+                            node: Node.Content,
+                            focusOnMount : Boolean = false)(
+      implicit ctx: Ctx.Owner
+    ): VNode = {
+      import org.scalajs.dom.document
+      import org.scalajs.dom.raw.{HTMLElement}
+      import wust.webApp.BrowserDetect
+
+      def save(contentEditable:HTMLElement): Unit = {
+          val text = contentEditable.textContent
+          val updatedNode = node.copy(data = NodeData.Markdown(text))
+          state.add(updatedNode)
+      }
+
+      def discardChanges(): Unit = {
+      }
+
+      def deleteNode(): Unit = {
+        discardChanges()
+        println(s"Deleting ${node.id}")
+        // FIXME: this will only work for top-level nodes, no?
+        state.delete(node.id, state.parentIds.now)
+      }
+
+      object KeyCode {
+        val Backspace = 8
+        val Enter = 13
+      }
+
+      def isAtBeginningOfEditable = {
+        val range = window.getSelection.getRangeAt(0)
+        range.endOffset == 0
+      }
+
+      def isAtEndOfEditable(inputElement: HTMLElement) = {
+        val range = window.getSelection.getRangeAt(0)
+        val contentLen = inputElement.innerHTML.length
+        val selectionEnd = range.endOffset
+        selectionEnd == contentLen
+      }
+
+      val backspacePressedAtBeginning = onKeyDown
+        .filter(_.keyCode == KeyCode.Backspace)
+        .filter { _ => isAtBeginningOfEditable }
+
+      val enterPressedAtEnd = onKeyDown
+        .filter(_.keyCode == KeyCode.Enter)
+        .filter { _.target match {
+                   case textArea : HTMLElement => isAtEndOfEditable(textArea)
+                   case _ => false
+                 } }
+
+      val deletionEvents = backspacePressedAtBeginning
+      val isSelected = state.selectedNodeId.now == Some(node.id)
+
+      p( // has different line-height than div and is used for text by markdown
+        outline := "none", // hides contenteditable outline
+        keyed, // when updates come in, don't disturb current editing session
+        VDomModifier(
+          node.data.str, // Markdown source code
+          contentEditable := true,
+          whiteSpace.preWrap, // preserve white space in Markdown code
+          backgroundColor := "#FFF",
+          color := "#000",
+          minWidth := "10px",
+          cursor.auto,
+
+          if(BrowserDetect.isMobile) VDomModifier(
+            onBlur foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+            ) else VDomModifier(
+            onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+            onBlur foreach { discardChanges() },
+            ),
+          // FIXME: we need the parents of the current node and have to use the same parents on the new node
+          // FIXME: the new node should come after the current node
+          enterPressedAtEnd foreach { _ =>
+            val newNode = state.makeNode()
+            state.addAfter(node.id, newNode)
+            state.selectedNodeId() = Some(newNode.id)
+          },
+          onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
+        ),
+
+        deletionEvents foreach { deleteNode() },
+        (focusOnMount || isSelected).ifTrue[VDomModifier](onDomMount.asHtml --> inNextAnimationFrame { _.focus() }),
+        Options.selectAllOnEditFocus.ifTrue[VDomModifier](
+          onFocus foreach { e =>
+            document.execCommand("selectAll", false, null)
+          }
+        ),
+      ),
+
+    }
   }
 
   val showDebugInfo = true
@@ -151,7 +329,7 @@ object WorkflowView {
   /// Controls to e.g indent or outdent the last edited entry
   /** TODO: indent/outdent requires an order between entries. */
   def activeEditableControls(state: WorkflowState)(implicit ctx: Ctx.Owner) = Rx {
-    val nodes : Set[NodeId] = state.selectedNodeIds()
+    val nodes : Set[NodeId] = state.markedNodeIds()
     (!nodes.isEmpty).ifTrueSeq[VDomModifier](
       Seq(components.listWrapper(
             cls := "activeEditableControls",
@@ -172,11 +350,7 @@ object WorkflowView {
     Seq(
       padding := "20px 0 20px 20px",
       Rx {
-        val nodes = state.nodes(ctx)()
-        if(nodes.isEmpty)
-          VDomModifier(emptyChatNotice)
-        else
-          VDomModifier(innerRender)
+        VDomModifier(innerRender)
       },
       onUpdate --> sideEffect { (prev, _) =>
         scrolledToBottom
@@ -193,16 +367,22 @@ object WorkflowView {
 
   /// Renders all tasks of the current page via the renderTask fn
   def renderTasks(state: WorkflowState)
-                 (implicit ctx: Ctx.Owner): Seq[VDomModifier] = Seq(Rx {
-    val nodes = state.nodes
-    nodes().map { nodeId =>
-      val nodeCtx = NodeContext(nodeId, state.parentIds(ctx)())
-      renderTask(state, nodeCtx)
-    }
-  })
+                 (implicit ctx: Ctx.Owner): Seq[VDomModifier] = Seq(
+    Rx {
+      val nodes = state.nodes
+      if(nodes().isEmpty)
+        Seq(ghostEntry(state))
+      else
+        nodes().map { nodeCtx =>
+          renderTask(state, nodeCtx)
+        }
+    })
 
-  private def emptyChatNotice: VNode =
-    h3(textAlign.center, "Nothing here yet.", paddingTop := "40%", color := "rgba(0,0,0,0.5)")
+  def ghostEntry(state: WorkflowState)(implicit ctx: Ctx.Owner) = Rx[Seq[VDomModifier]] {
+    Seq(
+      components.taskContentEditable(state, state.makeNode(), focusOnMount = true)
+    )
+  }
 
   def replyField(state: WorkflowState, nodeCtx: NodeContext,
                  path: List[NodeId])
@@ -226,81 +406,25 @@ object WorkflowView {
 
   /// @return the actual body of a chat message
   private def renderTask(state: WorkflowState, nodeCtx : NodeContext)
-                        (implicit ctx: Ctx.Owner) : Seq[VDomModifier] = {
-    val isDeleted = state.isDeleted(nodeCtx)
-    val isSelected = state.isSelected(nodeCtx)
-
+                        (implicit ctx: Ctx.Owner) = Rx[Seq[VDomModifier]] {
+    val isMarked = state.isMarked(nodeCtx)
+    val isChecked = state.isChecked(nodeCtx)
     val editable = Var(false)
-
-    val checkbox = div(
-      cls := "ui checkbox fitted",
-      isSelected.map(_.ifTrueOption(visibility.visible)),
-      input(
-        tpe := "checkbox",
-        checked <-- isSelected,
-        onChange.checked --> sideEffect { checked =>
-          if(checked) state.selectedNodeIds.update(_ + nodeCtx.nodeId)
-          else state.selectedNodeIds.update(_ - nodeCtx.nodeId)
-        }
-      ),
-      label()
-    )
-
-    // val messageCard = workflowEntryEditable(state, node, editable = editable,
-    //                                         state.eventProcessor.changes,
-    //                                         newTagParentIds = directParentIds)(ctx)(
-    //   isDeleted.ifTrueOption(cls := "node-deleted"), // TODO: outwatch: switch classes on and off via Boolean or Rx[Boolean]
-    //   cls := "drag-feedback",
-    //   messageCardInjected,
-    //   onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
-    // )
-
 
     Seq(
       li(
-        isSelected.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
+        isChecked().ifTrue[VDomModifier](
+          textDecoration := "line-through"
+        ),
+        isMarked.map(_.ifTrueOption(backgroundColor := "rgba(65,184,255, 0.5)")),
         cls := "chatmsg-line",
         Styles.flex,
         onClick.stopPropagation(!editable.now) --> editable,
-        onClick --> sideEffect { state.selectedNodeIds.update(_.toggle(nodeCtx.nodeId)) },
 
-        Rx {
-          val node = state.nodeFromId(nodeCtx)
-          // TODO: workflowEntryEditable
-          nodeCard(node(), checkbox)
-        }
+        Options.showCheckbox.ifTrue[VDomModifier](components.taskCheckbox(state, nodeCtx)),
+        components.taskContent(state, nodeCtx)
       ))
   }
-
-  private def editButton(state: GlobalState, editable: Var[Boolean])(implicit ctx: Ctx.Owner) =
-    div(
-      div(cls := "fa-fw", freeRegular.faEdit),
-      onClick.stopPropagation(!editable.now) --> editable,
-      cursor.pointer,
-    )
-
-  private def undeleteButton(state: WorkflowState, nodeId: NodeId, directParentIds: Set[NodeId])
-                            (implicit ctx: Ctx.Owner) =
-    div(
-      div(cls := "fa-fw", fontawesome.layered(
-        fontawesome.icon(freeRegular.faTrashAlt),
-        fontawesome.icon(freeSolid.faMinus, new Params {
-          transform = new Transform {
-            rotate = 45.0
-          }
-
-        })
-      )),
-      onClick.stopPropagation --> sideEffect { _ => state.undelete(nodeId, directParentIds) },
-      cursor.pointer,
-    )
-
-  private def zoomButton(state: WorkflowState, nodeId: NodeId)(implicit ctx: Ctx.Owner) =
-    div(
-      div(cls := "fa-fw", freeRegular.faArrowAltCircleRight),
-      onClick.stopPropagation --> sideEffect { _ => state.zoomTo(nodeId) },
-      cursor.pointer,
-    )
 
   private def inputField(state: WorkflowState, directParentIds: Set[NodeId], blurAction: String => Unit = _ => ())
                         (implicit ctx: Ctx.Owner): VNode = {
