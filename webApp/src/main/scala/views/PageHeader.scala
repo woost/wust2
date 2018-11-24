@@ -129,7 +129,7 @@ object PageHeader {
             cls := "avatar",
             marginBottom := "2px",
           ),
-          UI.tooltip("bottom center") := user.name
+          UI.tooltip("bottom center") := Components.displayUserName(user.data)
         ))(breakOut) : js.Array[VNode]
       }
     )

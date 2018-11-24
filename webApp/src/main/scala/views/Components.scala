@@ -32,8 +32,8 @@ import scala.scalajs.js
 // This file contains woost-related UI helpers.
 
 object Placeholders {
-  val newNode = placeholder := "Create new post. Press Enter to submit."
-  val newTag = placeholder := "Create new tag. Press Enter to submit."
+  val newNode: Attr = placeholder := "Create new post. Press Enter to submit."
+  val newTag: Attr = placeholder := "Create new tag. Press Enter to submit."
 }
 
 object Components {
@@ -41,7 +41,7 @@ object Components {
 
   val woostTeamEmailLink = a(href := "mailto:team@woost.space", "team@woost.space", cursor.pointer)
 
-  def displayUserName(user: NodeData.User) = {
+  def displayUserName(user: NodeData.User): String = {
     if(user.isImplicit) implicitUserName else user.name
   }
 
