@@ -140,8 +140,6 @@ object SelectedNodes {
     ),
       maxLength = Some(20)
     )(
-      cls := "zero-min-width-important", // overwrite .nodecard style
-//      minWidth := "0px !important", // overwrite .nodecard style // TODO: not working because of snabbdom bug https://github.com/snabbdom/snabbdom/issues/125
       draggableAs(DragItem.SelectedNode(node.id)),
       dragTarget(DragItem.SelectedNode(node.id)),
       cls := "draggable drag-feedback"

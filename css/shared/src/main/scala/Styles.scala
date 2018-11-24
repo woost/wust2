@@ -555,11 +555,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
-    minWidth(6 em).important,
-  )
-
-  ".zero-min-width-important" - (
-    minWidth(0 px).important,
   )
 
   ".nodecard a" - (
