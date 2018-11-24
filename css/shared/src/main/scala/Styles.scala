@@ -422,6 +422,13 @@ object CommonStyles extends StyleSheet.Standalone {
     /* border-radius : 3px; */ /* affects graph rendering performance */
   )
 
+  ".graphnode-tag" - (
+    fontWeight.bold,
+    color(c"#FEFEFE"),
+    borderRadius(3 px),
+    border(1 px, solid, transparent), // to have the same size as nodecard
+  )
+
   // FIXME: also generate -moz-selection?
   ".splitpost".selection - (
     color(red),

@@ -137,7 +137,7 @@ object StaticData {
       selection.each[html.Element] { (elem: html.Element, node: Node, i: Int) =>
         if(graph.hasChildren(node.id)) {
           staticData.bgColor(i) = nodeColorWithContext(graph, node.id).toCSS
-          staticData.nodeCssClass(i) = "tag"
+          staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
           staticData.bgColor(i) = "#FEFEFE" // bgcolor of nodecard
           staticData.nodeCssClass(i) = "nodecard"
