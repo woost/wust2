@@ -23,6 +23,8 @@ object GraphView {
     }
 
     div(
+      overflow.auto, // fits graph visualization perfectly into view
+
       backgroundColor <-- state.pageStyle.map(_.bgLightColor),
       controls.ifTrueOption {
         div(
