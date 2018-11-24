@@ -103,29 +103,23 @@ class EulerSet(val parent: NodeId, val children: Array[NodeId], val depth: Int) 
   val allNodes: Array[NodeId] = children :+ parent
 }
 
-class GraphTopology(
-    val graph: Graph,
-    val posts: Array[Node]
-)
-
 object StaticData {
   import ForceSimulation.log
 
   def apply(
-      graphTopology: GraphTopology,
+      graph: Graph,
       selection: Selection[Node],
       transform: Transform,
       labelVisualization: PartialFunction[EdgeData.Type, VisualizationType]
   ): StaticData = {
     time(log(s"calculateStaticData[${selection.size()}]")) {
-      import graphTopology.{graph, posts}
 
       val PartitionedConnections(edges, containments, tags) =
         partitionConnections(graph.edges, labelVisualization)
 //      println("edges: " + edges.mkString(", "))
 //      println("containments: " + containments.mkString(", "))
 
-      val nodeCount = posts.length
+      val nodeCount = graph.nodes.length
       val edgeCount = edges.length
       val containmentCount = containments.length
       val staticData = new StaticData(
@@ -133,16 +127,16 @@ object StaticData {
         edgeCount = edgeCount,
         containmentCount = containmentCount
       )
-      staticData.posts = posts
+      staticData.posts = graph.nodes
       val scale = transform.k
 
       @inline def sq(x: Double) = x * x
 
       var maxRadius = 0.0
       var reservedArea = 0.0
-      selection.each[html.Element] { (node: html.Element, post: Node, i: Int) =>
-        if(graph.hasChildren(post.id)) {
-          staticData.bgColor(i) = nodeColorWithContext(graph, post.id).toCSS
+      selection.each[html.Element] { (elem: html.Element, node: Node, i: Int) =>
+        if(graph.hasChildren(node.id)) {
+          staticData.bgColor(i) = nodeColorWithContext(graph, node.id).toCSS
           staticData.nodeCssClass(i) = "tag"
         } else {
           staticData.bgColor(i) = "#FEFEFE" // bgcolor of nodecard
@@ -151,12 +145,12 @@ object StaticData {
 
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
-        d3.select(node)
+        d3.select(elem)
           .style("background-color", staticData.bgColor(i))
           .asInstanceOf[js.Dynamic].classed("tag nodecard", false)
           .classed(staticData.nodeCssClass(i), true)
 
-        val rect = node.getBoundingClientRect
+        val rect = elem.getBoundingClientRect
         val width = rect.width / scale
         val height = rect.height / scale
         staticData.width(i) = width
@@ -168,7 +162,7 @@ object StaticData {
         staticData.collisionRadius(i) = staticData.radius(i) + nodeSpacing * 0.5
         staticData.containmentRadius(i) = staticData.collisionRadius(i)
 
-        staticData.nodeParentCount(i) = graph.parents(post.id).size //TODO: faster?
+        staticData.nodeParentCount(i) = graph.parents(node.id).size //TODO: faster?
 
         val area = sq(staticData.collisionRadius(i) * 2) // bounding square of bounding circle
         staticData.nodeReservedArea(i) = area
@@ -177,7 +171,7 @@ object StaticData {
       staticData.maxRadius = maxRadius
       staticData.reservedArea = reservedArea
 
-      val nodeIdToIndex = createNodeIdToIndexMap(posts)
+      val nodeIdToIndex = graph.idToIdx
 
       var i = 0
       while (i < edgeCount) {
@@ -258,17 +252,6 @@ object StaticData {
       }
       staticData
     }
-  }
-
-  def createNodeIdToIndexMap(posts: Array[Node]): collection.Map[NodeId, Int] = {
-    var i = 0
-    val n = posts.length
-    val map = new mutable.HashMap[NodeId, Int]()
-    while (i < n) {
-      map(posts(i).id) = i
-      i += 1
-    }
-    map
   }
 
   private case class PartitionedConnections(

@@ -14,11 +14,10 @@ import wust.webApp.state.GlobalState
 import scala.scalajs.LinkingInfo
 
 object GraphView {
-  def apply(state: GlobalState, controls: Boolean = LinkingInfo.developmentMode)(
-      implicit owner: Ctx.Owner
-  ) = {
-    val forceSimulation =
-      new ForceSimulation(state, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
+  def apply(state: GlobalState, controls: Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
+
+    val forceSimulation = new ForceSimulation(state, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
+
     state.jsErrors.foreach { _ =>
       forceSimulation.stop()
     }

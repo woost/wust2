@@ -60,7 +60,7 @@ class ForceSimulation(
   //TODO why partial?
   private var labelVisualization: PartialFunction[EdgeData.Type, VisualizationType] = {
     case EdgeData.Parent.tpe => Containment
-    case e:EdgeData.Label    => Edge
+    case _:EdgeData.Label    => Edge
   }
   private var postSelection: Selection[Node] = _
   private var simData: SimulationData = _
@@ -72,8 +72,8 @@ class ForceSimulation(
   //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
 
   private val backgroundElement = Promise[dom.html.Element]
-  private val postContainerElement = Promise[dom.html.Element]
   private val canvasLayerElement = Promise[dom.html.Canvas]
+  private val postContainerElement = Promise[dom.html.Element]
 
   var isCtrlPressed = false
   
@@ -115,27 +115,26 @@ class ForceSimulation(
 
   for {
     backgroundElement <- backgroundElement.future
-    postContainerElement <- postContainerElement.future
     canvasLayerElement <- canvasLayerElement.future
+    postContainerElement <- postContainerElement.future
   } {
     println(log("-------------------- init simulation"))
     val background = d3.select(backgroundElement)
-    val postContainer = d3.select(postContainerElement)
     val canvasLayer = d3.select(canvasLayerElement)
+    val postContainer = d3.select(postContainerElement)
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
-    val graphTopology: Rx[GraphTopology] = Rx {
+    val graphRx: Rx[Graph] = Rx {
       //val rawGraph = state.rawGraph().consistent
-      println(log("\n") + log(s"---- graph update[${state.graph().nodes.size}] ----"))
+      println(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
       time(log("graph to wrapper arrays")) {
-        val onlyContentGraph = state.graph().pageContent(state.page())
-        println(onlyContentGraph)
-        new GraphTopology(onlyContentGraph, posts = onlyContentGraph.nodes.toArray)
+        state.graph().pageContent(state.page())
       }
     }
 
+    // will be called, when user zoomed the view
     def zoomed(): Unit = {
-      transform = d3.event.transform
+      transform = d3.event.transform // since zoomed is called via d3 event, transform was set by d3
       // println(log(s"zoomed: ${transform.k}"))
       canvasContext.setTransform(transform.k, 0, 0, transform.k, transform.x, transform.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
       postContainer.style(
@@ -159,6 +158,7 @@ class ForceSimulation(
         "click", { () =>
           println("clicked background")
 
+          // if visualization was broken, fix it
           if (transform.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
             // fixes visualization
             resized()
@@ -280,6 +280,7 @@ class ForceSimulation(
       postCreationMenus() = Nil
     }
 
+    // should be called when the size of the visualization changed
     def resized(): Unit = {
       val rect = backgroundElement.getBoundingClientRect()
       import rect.{height, width}
@@ -292,7 +293,7 @@ class ForceSimulation(
           "transform",
           s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
         )
-        staticData = StaticData(graphTopology.now, postSelection, transform, labelVisualization)
+        staticData = StaticData(graphRx.now, postSelection, transform, labelVisualization)
       }
 
       val arbitraryFactor = 1.3
@@ -323,15 +324,15 @@ class ForceSimulation(
     }
 
     //  val t = d3.transition().duration(750) TODO
-    graphTopology.foreach { graphTopology =>
-      import graphTopology._
+    // whenever the graph changes
+    graphRx.foreach { graph =>
 
       // The set of posts has changed,
       // we have to update the indices of the simulation data arrays
 
       println(
         log(
-          s"updating simulation[${Option(simData).fold("_")(_.n.toString)} -> ${posts.length}]..."
+          s"updating simulation[${Option(simData).fold("_")(_.n.toString)} -> ${graph.nodes.length}]..."
         )
       )
       stop()
@@ -341,13 +342,13 @@ class ForceSimulation(
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomPosts(posts.toJSArray, postSelection, onClick) // d3 data join
+      updateDomNodes(graph.nodes.toJSArray, postSelection, onClick) // d3 data join
       postSelection = postContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
-      staticData = StaticData(graphTopology, postSelection, transform, labelVisualization)
+      staticData = StaticData(graph, postSelection, transform, labelVisualization)
       resized() // adjust zoom to possibly changed accumulated node area
       ForceSimulationForces.nanToPhyllotaxis(simData, spacing = 20) // set initial positions for new nodes
 
@@ -429,13 +430,13 @@ class ForceSimulation(
 
   def draw(): Unit = {
     ForceSimulationForces.calculateEulerSetPolygons(simData, staticData) // TODO: separate display polygon from collision polygon?
-    applyPostPositions(simData, staticData, postSelection)
+    applyNodePositions(simData, staticData, postSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = false
+  private val debugDrawEnabled = true
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
@@ -450,7 +451,7 @@ object ForceSimulation {
     calcWidth
   }
 
-  def updateDomPosts(
+  def updateDomNodes(
       posts: js.Array[Node],
       postSelection: Selection[Node],
       onClick: (Node, Int) => Unit
@@ -582,13 +583,13 @@ object ForceSimulation {
 
     rectBound(simData, staticData, planeDimension, strength = 0.1)
     keepDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
-    edgeLength(simData, staticData)
+//    edgeLength(simData, staticData)
 
     eulerSetClustering(simData, staticData, strength = 0.1)
     // pushOutOfWrongEulerSet(simData,staticData)
   }
 
-  def applyPostPositions(
+  def applyNodePositions(
       simData: SimulationData,
       staticData: StaticData,
       postSelection: Selection[Node]
