@@ -278,6 +278,58 @@ object Components {
     )
   }
 
+  def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+    val isChecked:Rx[Boolean] = Rx {
+      val graph = state.graph()
+      val nodeIdx = graph.idToIdx(node.id)
+      @inline def isDoneIn(doneIdx:Int, nodeIdx:Int) = graph.notDeletedChildrenIdx.contains(doneIdx)(nodeIdx)
+      @inline def nodeIsDoneInParent(parentId:NodeId) = {
+        val parentIdx = graph.idToIdx(parentId)
+        graph.doneNodeIdx(parentIdx).exists(doneIdx => isDoneIn(doneIdx, nodeIdx))
+      }
+      directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Status).forall( nodeIsDoneInParent )
+    }
+
+    nodeCard(node).apply(margin := "4px").prepend(
+      Styles.flex,
+      alignItems.flexStart,
+      div(
+        cls := "ui checkbox fitted",
+        marginTop := "5px",
+        marginLeft := "5px",
+        marginRight := "3px",
+        input(
+          tpe := "checkbox",
+          checked <-- isChecked,
+          onChange.checked foreach { checking =>
+            val graph = state.graph.now
+            directParentIds.foreach { pageParentId =>
+              val doneIdx = graph.doneNodeIdx(graph.idToIdx(pageParentId))
+
+              if(checking) {
+                val (doneNodeId, doneNodeAddChange) = doneIdx match {
+                  case None                   =>
+                    val freshDoneNode = Node.MarkdownStatus(Graph.doneText)
+                    val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
+                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, pageParentId) merge expand)
+                  case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
+                }
+                val changes = doneNodeAddChange merge GraphChanges.connect(Edge.Parent)(node.id, doneNodeId)
+                state.eventProcessor.changes.onNext(changes)
+              } else { // unchecking
+                // since it was checked, we know for sure, that a done-node exists
+                val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
+                state.eventProcessor.changes.onNext(changes)
+              }
+            }
+
+          }
+        ),
+        label()
+      )
+    )
+  }
+
   def readDragTarget(elem: dom.html.Element): Option[DragTarget] = {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }

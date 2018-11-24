@@ -13,6 +13,8 @@ import flatland._
 
 object Graph {
   val empty = new Graph(Array.empty, Array.empty)
+  val doneText: String = "Done"
+  val doneTextLower: String = doneText.toLowerCase
 
   def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
     new Graph(nodes.toArray, edges.toArray)
@@ -835,13 +837,19 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           }
           if (hasPrivateLevel) Some(AccessLevel.Restricted) else None
       }
-    }
+  }
 
     // everybody has full access to non-existent nodes
     val nodeIdx = idToIdx(nodeId)
     if(nodeIdx < 0) return Some(AccessLevel.ReadWrite)
     inner(nodeIdx, immutable.BitSet.empty)
   }
+
+  def doneNodeIdx(parentIdx:Int): Option[Int] = graph.childrenIdx(parentIdx).find { nodeIdx =>
+    graph.nodes(nodeIdx).str.trim.toLowerCase == Graph.doneTextLower
+  }
+
+  def doneNode(pageParentIdx:Int):Option[Node] = doneNodeIdx(pageParentIdx) map graph.nodes
 
   //  lazy val containmentNeighbours
   //  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[

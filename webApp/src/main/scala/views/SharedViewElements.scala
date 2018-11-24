@@ -322,7 +322,7 @@ object SharedViewElements {
     )
   }
 
-  def renderMessage(state: GlobalState, nodeId: NodeId, isDeletedNow: Rx[Boolean], isDeletedInFuture: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VNode]] = {
+  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], isDeletedInFuture: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
 
     val node = Rx {
       // we need to get the latest node content from the graph
@@ -350,20 +350,24 @@ object SharedViewElements {
           val unimportant = editMode() || isDeletedInFuture()
           unimportant.ifFalse[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
         }
-        nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
-          Styles.flex,
-          alignItems.flexEnd,
-          importanceIndicator,
-          cls := "drag-feedback",
+        node.role match {
+          case NodeRole.Task =>
+            nodeCardWithCheckbox(state, node, directParentIds)
+          case _ =>
+            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
+              Styles.flex,
+              alignItems.flexEnd,
+              importanceIndicator,
+              cls := "drag-feedback",
 
-          syncedIcon,
-          dragHandle(Styles.flexStatic),
-          renderedMessageModifier,
-          (node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)
-        )
+              syncedIcon,
+              dragHandle(Styles.flexStatic),
+              renderedMessageModifier,
+            )
+        }
       }
 
-      baseNode((node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex))
+      baseNode
     }
 
     Rx {
@@ -414,7 +418,7 @@ object SharedViewElements {
   def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
     BrowserDetect.isMobile.ifFalse[VDomModifier] {
       div(
-        cls := "ui checkbox fitted",
+        cls := "ui nodeselection-checkbox checkbox fitted",
         marginLeft := "5px",
         marginRight := "3px",
         isSelected.map(_.ifTrueOption(visibility.visible)),

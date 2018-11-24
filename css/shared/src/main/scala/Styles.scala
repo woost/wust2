@@ -492,7 +492,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px, 20 px, 2 px, 0 px)
   )
 
-  ".chat-row .checkbox" - (
+  ".chat-row .nodeselection-checkbox.checkbox" - (
     visibility.hidden
   )
 
@@ -535,10 +535,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   //TODO: how to generate this combinatorial explosion with scalacss?
   ".chat-row:hover .chatmsg-controls,"+
-  ".chat-row:hover .checkbox,"+
+  ".chat-row:hover .nodeselection-checkbox.checkbox,"+
   ".chat-row:hover .transitivetag,"+
   ".chat-row:focus .chatmsg-controls,"+
-  ".chat-row:focus .checkbox,"+
+  ".chat-row:focus .nodeselection-checkbox.checkbox,"+
   ".chat-row:focus .transitivetag" - (
     visibility.visible
   )

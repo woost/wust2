@@ -315,7 +315,7 @@ object ThreadView {
       graph.isDeletedInFuture(nodeId, directParentIds)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
       Styles.flex,
       alignItems.center,
       freeSolid.faSyncAlt,

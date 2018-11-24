@@ -1,11 +1,10 @@
 package wust.util
 
+import scala.collection.{IterableLike, breakOut, mutable}
+import math.Ordering
 import flatland._
 
 object algorithm {
-  import scala.collection.{IterableLike, breakOut, mutable}
-  import wust.util.collection._
-  import math.Ordering
 
   @deprecated("Old and slow Graph algorithm. Don't use this.", "")
   def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V, T] = {
@@ -152,7 +151,7 @@ object algorithm {
 
     starts.foreach { start =>
       successors(None, start) { succElem =>
-      stack.push(succElem)
+        stack.push(succElem)
         stackParent.push(start)
       }
     }
@@ -175,39 +174,36 @@ object algorithm {
     None
   }
 
-  def linearInvolmentsOfCycleSearch(starts: Array[Int], successors: NestedArrayInt): Array[Int] = {
 
-    val result = new mutable.ArrayBuilder.ofInt
+  def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
 
-    starts.foreachElement { idx =>
-      successors.foreachElement(idx) { next =>
-        if(successors.exists(next)(_ == idx)) {
-          result += idx
-          result += next
+    val stack = ArrayStackInt.create(capacity = 2 * successors.size)
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+
+    successors.foreachElement(start) { succElem =>
+      stack.push(start)
+      stack.push(succElem)
+    }
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      val previous = stack.pop()
+      if(current == search) return Some(previous)
+      if(visited.containsNot(current)) {
+        visited.add(current)
+
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) {
+            stack.push(current)
+            stack.push(next)
+          }
         }
+
       }
     }
 
-    result.result()
+    None
   }
-
-  def containmentsOfCycle(elements: Array[Int], successors: NestedArrayInt): Array[Int] = {
-    val num = elements.length
-    var i = 0
-    val result = new mutable.ArrayBuilder.ofInt
-
-    while(i < num) {
-      val idx = elements(i)
-      if(depthFirstSearchExistsAfterStart(idx, successors, idx))
-        result += idx
-
-      i += 1
-    }
-
-    result.result()
-  }
-
-
 
   /*
    * DFS starts after the start index and searches for `search`

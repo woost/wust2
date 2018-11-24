@@ -76,7 +76,11 @@ object ChatView {
         cls := "chat-history",
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite),
+        Rx {
+          state.page().parentId map { pageParentId =>
+            chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite)
+          }
+        },
         outerDragOptions,
 
         // clicking on background deselects
@@ -156,7 +160,7 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def chatHistory(state: GlobalState, pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
     state.page.foreach { _ => pageCounter() = initialPageCounter }
@@ -166,7 +170,7 @@ object ChatView {
       val page = state.page()
       val graph = state.graph()
 
-      selectChatMessages(page.parentId, graph)
+      selectChatMessages(pageParentId, graph)
     }
 
     var prevMessageSize = -1
@@ -183,9 +187,8 @@ object ChatView {
       Rx {
         val graph = state.graph()
         val page = state.page()
-        val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove. It only conntains max one element
         val pageCount = pageCounter()
-        val groups = calculateMessageGrouping(messages().takeRight(pageCount), graph, pageParentArraySet)
+        val groups = calculateMessageGrouping(messages().takeRight(pageCount), graph, pageParentId)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
@@ -193,7 +196,7 @@ object ChatView {
             else padding := "50px 0px 5px 20px"
           ),
           groups.map { group =>
-            thunkRxFun(state, graph, group, graph.createArraySet(page.parentId), currentReply, selectedNodes, inputFieldFocusTrigger)
+            thunkRxFun(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger)
           }
         )
       },
@@ -202,15 +205,18 @@ object ChatView {
     )
   }
 
-  private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], pageParentArraySet:ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
+  private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
     val key = nodeIds.head.toString
-    val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).map(graph.nodeIds)
-    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, pageParentArraySet, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+    val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).filter{parentIdx =>
+      val parentNode = graph.nodes(parentIdx)
+        parentNode.role == NodeRole.Message || parentNode.role == NodeRole.Task
+    }.map(graph.nodeIds)
+    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentArraySet: ArraySet, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
@@ -219,7 +225,8 @@ object ChatView {
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
-    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(pageParentArraySet.containsNot).sortBy(idx => groupGraph.nodeCreated(idx))
+    val pageParentIdx = groupGraph.idToIdx(pageParentId)
+    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(_ != pageParentIdx).sortBy(idx => groupGraph.nodeCreated(idx))
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentId.contains)
 
@@ -316,7 +323,7 @@ object ChatView {
       else VDomModifier.empty
     } else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
@@ -402,36 +409,33 @@ object ChatView {
     )
   }
 
-  private def selectChatMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+  private def selectChatMessages(pageParentId: NodeId, graph: Graph): js.Array[Int] = {
+    val pageParentIdx = graph.idToIdx(pageParentId)
     val nodeSet = ArraySet.create(graph.nodes.length)
-    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
-    val parentsIdx:Array[Int] = (parentIds.map(graph.idToIdx)(breakOut):Array[Int]).filterNot(_ == -1)
-    algorithm.depthFirstSearchWithParentSuccessors(starts = parentsIdx, size = graph.nodes.length,
-      successors = { (parentIdx, childIdx) =>
-        parentIdx match {
-          case Some(parentIdx) =>
-            val childNode = graph.nodes(childIdx)
-            val continue = if (childNode.role == NodeRole.Message) {
-              nodeSet.add(childIdx)
-              true
-            } else graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)
+    var nodeCount = 0
+    if(pageParentIdx == -1) return js.Array[Int]()
 
-            if (continue && !graph.isDeletedNowIdx(childIdx, immutable.BitSet(parentIdx))) graph.childrenIdx(childIdx).foreachElement
-            else _ => ()
-          case None => graph.childrenIdx(childIdx).foreachElement
-        }
-      },
-    )
+    algorithm.depthFirstSearchAfterStartsWithContinue(starts = Array(pageParentIdx), graph.childrenIdx, continue = {nodeIdx =>
+      val node = graph.nodes(nodeIdx)
+      node.role match {
+        case NodeRole.Message | NodeRole.Task =>
+          nodeSet.add(nodeIdx)
+          nodeCount += 1
+        case _ =>
+      }
+      true // always continue traversal
+    })
 
-    val nodes = js.Array[Int]()
-    nodeSet.foreach(nodes += _)
+    val nodes = new js.Array[Int](nodeCount)
+    nodeSet.foreachIndexAndElement( (i,nodeIdx) => nodes(i) = nodeIdx)
     sortByCreated(nodes, graph)
     nodes
   }
 
-  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentArraySet: ArraySet): Array[Array[Int]] = {
+  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentId: NodeId): Array[Array[Int]] = {
     if(messages.isEmpty) return Array[Array[Int]]()
 
+    val pageParentIdx = graph.idToIdx(pageParentId)
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
     var lastAuthor: Int = -2 // to distinguish between no author and no previous group
@@ -442,7 +446,7 @@ object ChatView {
 
       @inline def differentParents = lastParents != null && parents != lastParents
       @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
-      @inline def noParents = lastParents != null && parents.forall(pageParentArraySet.contains)
+      @inline def noParents = lastParents != null && parents.forall(_ == pageParentIdx)
       @inline def introduceGroupSplit(): Unit = {
         groupsBuilder += currentGroupBuilder.result()
         currentGroupBuilder.clear()
