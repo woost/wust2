@@ -197,8 +197,8 @@ self.addEventListener('push', e => {
                     const nodeId = data.nodeId;
                     const parentId = data.parentId;
                     const subscribedId = data.subscribedId;
-                    const channelId = parentId ? parentId : subscribedId;
-                    const titleContent = (data.parentContent && parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
+                    const channelId = (!!parentId) ? parentId : subscribedId;
+                    const titleContent = (!!data.parentContent && !!parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
                     const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
                     const content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
 
