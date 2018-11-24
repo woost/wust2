@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(13);
+SELECT plan(14);
 
 create or replace function user_to_uuid(id varchar(2)) returns uuid as $$
     select ('1111' || id || '00-0000-0000-0000-000000000000')::uuid;
@@ -307,6 +307,30 @@ SELECT set_eq( --13
     $$ values
         (user_to_uuid('01'), array[node_to_uuid('01'), node_to_uuid('02'), node_to_uuid('03')], node_to_uuid('01')),
         (user_to_uuid('02'), array[node_to_uuid('01')], node_to_uuid('01'))
+    $$
+);
+
+-- test case 14: respect deleted edges (ignore them)
+select cleanup();
+select usernode('01');
+select usernode('02');
+select node('01');
+select node('02');
+select node('03');
+select parent('01', '02');
+select parent('01', '03', (now_utc() - interval '1' hour)::text);
+select notify('02', '01');
+select notify('03', '02');
+
+SELECT set_eq( --13
+    $$ select userid, array_sort(initial_nodes), subscribed_node from
+            notified_users_search_fast(array[
+                node_to_uuid('01')
+            ])
+    $$
+    ,
+    $$ values
+        (user_to_uuid('01'), array[node_to_uuid('01')], node_to_uuid('02'))
     $$
 );
 
