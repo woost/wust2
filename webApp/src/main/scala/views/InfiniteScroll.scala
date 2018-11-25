@@ -58,13 +58,17 @@ object InfiniteScroll {
           case true => VDomModifier(
             div(
               div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimationWithFadeIn),
-              onIntersectionWithViewport(ignoreInitial = false).foreach { isIntersecting =>
+              onIntersectionWithViewport.foreach { isIntersecting =>
                 if (isIntersecting) {
                   numSteps += 1
                   sink.onNext(numSteps)
                 }
               }
             ),
+            onDomMount.asHtml.foreach { elem =>
+              lastHeight = elem.scrollHeight
+              lastScrollTop = elem.scrollTop
+            },
             onDomPreUpdate.asHtml.foreach { elem =>
               lastScrollTop = elem.scrollTop
             },
