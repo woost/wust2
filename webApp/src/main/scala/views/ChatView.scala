@@ -22,6 +22,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import flatland._
 
 import scala.collection.immutable
 import scala.collection.{breakOut, mutable}
@@ -422,10 +423,10 @@ object ChatView {
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
     var lastAuthor: Int = -2 // to distinguish between no author and no previous group
-    var lastParents: SliceInt = null
+    var lastParents: ArraySliceInt = null
     messages.foreach { message =>
       val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-      val parents: SliceInt = graph.parentsIdx(message)
+      val parents: ArraySliceInt = graph.parentsIdx(message)
 
       @inline def differentParents = lastParents != null && parents != lastParents
       @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor

@@ -18,6 +18,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
+import flatland._
 import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._

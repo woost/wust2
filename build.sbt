@@ -247,6 +247,7 @@ lazy val util = crossProject(JSPlatform, JVMPlatform)
       Deps.cats.core.value ::
       Deps.pureconfig.value ::
       Deps.taggedTypes.value ::
+      Deps.flatland.value ::
       Nil
   )
 lazy val utilJS = util.js

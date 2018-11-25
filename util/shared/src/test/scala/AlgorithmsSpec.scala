@@ -2,6 +2,7 @@ package wust.util
 
 import org.scalatest._
 import wust.util.algorithm._
+import flatland._
 
 class AlgorithmsSpec extends FreeSpec with MustMatchers {
 

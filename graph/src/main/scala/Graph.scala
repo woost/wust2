@@ -9,6 +9,7 @@ import wust.util.time.time
 import scala.collection.{breakOut, mutable}
 import scala.collection.immutable
 import scala.collection
+import flatland._
 
 object Graph {
   val empty = new Graph(Array.empty, Array.empty)
@@ -206,7 +207,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
-  val edgesIdx = InterleavedArray.create(edges.length)
+  val edgesIdx = InterleavedArrayInt.create(edges.length)
 
 
   // TODO: have one big triple nested array for all edge lookups?
@@ -402,7 +403,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val nodeCreator = new Array[Int](n)
     var nodeIdx = 0
     while(nodeIdx < n) {
-      val authorEdgeIndices: SliceInt = authorshipEdgeIdx(nodeIdx)
+      val authorEdgeIndices: ArraySliceInt = authorshipEdgeIdx(nodeIdx)
       if(authorEdgeIndices.nonEmpty) {
         val (createdEdgeIdx, lastModifierEdgeIdx) = authorEdgeIndices.minMax(smallerThan = (a, b) => edges(a).asInstanceOf[Edge.Author].data.timestamp < edges(b).asInstanceOf[Edge.Author].data.timestamp)
         nodeCreated(nodeIdx) = edges(createdEdgeIdx).asInstanceOf[Edge.Author].data.timestamp

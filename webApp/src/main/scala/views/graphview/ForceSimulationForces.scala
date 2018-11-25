@@ -9,6 +9,7 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import wust.util.collection._
+import flatland._
 
 object ForceSimulationForces {
   import Math._
