@@ -131,13 +131,16 @@ function subscribeWebPushAndPersist() {
     });
 }
 
-function focusedClient(windowClients) {
+function focusedClient(windowClients, subscribedId, channelId, messageId) {
     let clientIsFocused = false;
     for (let i = 0; i < windowClients.length; i++) {
         const windowClient = windowClients[i];
         if (windowClient.focused) {
-            clientIsFocused = true;
-            break;
+            const url = windowClient.url;
+            if(url.indexOf(subscribedId) !== -1 || url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
+                clientIsFocused = true;
+                break;
+            }
         }
     }
     return clientIsFocused;
@@ -186,18 +189,19 @@ self.addEventListener('push', e => {
             includeUncontrolled: true
         }).then(windowClients => {
 
-            if (focusedClient(windowClients)) {
-                log("focused client => ignoring push");
-                return;
-            } else {
-                log("no focused client found");
+            if (e.data) {
+                const data = e.data.json();
+                const nodeId = data.nodeId;
+                const parentId = data.parentId;
+                const subscribedId = data.subscribedId;
+                const channelId = (!!parentId) ? parentId : subscribedId;
 
-                if (e.data) {
-                    const data = e.data.json();
-                    const nodeId = data.nodeId;
-                    const parentId = data.parentId;
-                    const subscribedId = data.subscribedId;
-                    const channelId = (!!parentId) ? parentId : subscribedId;
+                if (focusedClient(windowClients, subscribedId, channelId, nodeId)) {
+                    log("focused client => ignoring push");
+                    return;
+                } else {
+                    log("no focused client found");
+
                     const titleContent = (!!data.parentContent && !!parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
                     const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
                     const content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
@@ -238,10 +242,10 @@ self.addEventListener('push', e => {
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
-                } else {
+                }
+            } else {
                     log("push notification without data => ignoring");
                     return;
-                }
             }
         })
     );
