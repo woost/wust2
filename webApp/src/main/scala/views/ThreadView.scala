@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome._
+
 import scala.collection.{breakOut, mutable}
 import monix.execution.Ack
 import monix.execution.Ack.Continue
@@ -19,6 +20,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
 import flatland._
+import monix.reactive.Observable
 import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
@@ -49,6 +51,9 @@ object ThreadView {
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
 
+    val pageCounter = PublishSubject[Int]()
+    val shouldLoadInfinite = Var[Boolean](false)
+
     div(
       keyed,
       Styles.flex,
@@ -60,9 +65,9 @@ object ThreadView {
       ),
       div(
         cls := "chat-history",
-        overflow.auto,
+        InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, selectedNodes),
+        chatHistory(state, selectedNodes, pageCounter, shouldLoadInfinite),
         outerDragOptions,
 
         // clicking on background deselects
@@ -95,29 +100,61 @@ object ThreadView {
     )
   }
 
-  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
-    Rx {
-      state.screenSize() // on screensize change, rerender whole chat history
+  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val initialPageCounter = 30
+    val pageCounter = Var(initialPageCounter)
+    state.page.foreach { _ => pageCounter() = initialPageCounter }
+
+    val messages = Rx {
       val page = state.page()
-      renderThreadGroups(state, directParentIds = page.parentId, transitiveParentIds = page.parentId.toSet, selectedNodes, isTopLevel = true)
+      val graph = state.graph()
+
+      calculateThreadMessages(page.parentId, graph)
     }
+
+    var prevMessageSize = -1
+    messages.foreach { messages =>
+      if (prevMessageSize != messages.length) pageCounter() = initialPageCounter
+      prevMessageSize = messages.length
+    }
+
+    Rx {
+      shouldLoadInfinite() = !state.isLoading() && messages().length > pageCounter()
+    }
+
+    VDomModifier(
+      Rx {
+        state.screenSize() // on screensize change, rerender whole chat history
+        val page = state.page()
+        val pageCount = pageCounter()
+
+        renderThreadGroups(state, messages().takeRight(pageCount), page.parentId, page.parentId.toSet, selectedNodes, true)
+      },
+
+      emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
+    )
   }
 
-  private def renderThreadGroups(state: GlobalState, directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx:Ctx.Data): VDomModifier = {
+  private def renderThreadGroups(state: GlobalState, messages: js.Array[Int], directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = state.graph()
-    val groups = calculateThreadMessageGrouping(calculateThreadMessages(directParentIds, graph), graph)
+    val groups = calculateThreadMessageGrouping(messages, graph)
+
     VDomModifier(
       // large padding-top to have space for selectedNodes bar
       (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
       groups.map { group =>
-        // because of equals check in thunk, we implicitly generate a wrapped array
-        val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
-        val key = nodeIds.head.toString
+        thunkRxFun(state, graph, group, directParentIds, transitiveParentIds, selectedNodes, isTopLevel)
+      },
+    )
+  }
 
-        div.thunkRx(key)(nodeIds, state.screenSize.now)(implicit ctx =>
-          thunkGroup(state, graph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
-        )
-      }
+  private def thunkRxFun(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
+    // because of equals check in thunk, we implicitly generate a wrapped array
+    val nodeIds: Seq[NodeId] = group.map(groupGraph.nodeIds)
+    val key = nodeIds.head.toString
+
+    div.thunkRx(key)(nodeIds, state.screenSize.now)(implicit ctx =>
+      thunkGroup(state, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
     )
   }
 
@@ -214,7 +251,9 @@ object ThreadView {
         ),
         div(
           cls := "chat-thread-messages",
-          Rx { renderThreadGroups(state, directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes) },
+          Rx {
+            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
+          },
           Rx {
             if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
             else threadReplyButton(state, nodeId, showReplyField)
