@@ -18,7 +18,7 @@ object CustomForce {
 }
 
 object ForceUtil {
-  private def forAllNodes[T](n: QuadtreeNode[T])(code: T => Unit): Unit = {
+  @inline private def forAllNodes[T](n: QuadtreeNode[T])(code: T => Unit): Unit = {
     def isLeaf = !n.length.isDefined
     if (isLeaf) {
       var maybeNode: js.UndefOr[QuadtreeNode[T]] = n
@@ -30,7 +30,7 @@ object ForceUtil {
     }
   }
 
-  def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(
+  @inline def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(
       code: Int => Unit
   ): Unit = {
     quadtree.visit { (n: QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
@@ -47,7 +47,7 @@ object ForceUtil {
   }
 
   //noinspection ComparingUnrelatedTypes
-  def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(
+  @inline def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(
       code: Int => Unit
   ): Unit = {
     quadtree.visit { (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>

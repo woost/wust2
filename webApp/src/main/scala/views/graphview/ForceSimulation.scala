@@ -63,7 +63,7 @@ class ForceSimulation(
     case _:EdgeData.Label    => Edge
   }
   private var postSelection: Selection[Node] = _
-  private var simData: SimulationData = _
+  var simData: SimulationData = _
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
   private var canvasContext: CanvasRenderingContext2D = _
@@ -228,7 +228,7 @@ class ForceSimulation(
       simData.y(dragging) = y
 
       ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
-      ForceSimulationForces.eulerSetGeometricCenter(simData, staticData)
+      ForceSimulationForces.eulerSetCenter(simData, staticData)
       drawCanvas(simData, staticData, canvasContext, planeDimension)
 
       hit(dragging, minimumDragHighlightRadius).foreach { target =>
@@ -299,7 +299,7 @@ class ForceSimulation(
       val arbitraryFactor = 1.3
       // TODO: handle cases:
       // - long window with big blob in the middle
-      val scale = Math.sqrt((width * height) / (staticData.reservedArea * arbitraryFactor)) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
+      val scale = Math.sqrt((width * height) / (staticData.totalReservedArea * arbitraryFactor)) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
 //      println(log(s"resized: $width x $height, fromZero: $resizedFromZero, scale: $scale"))
       planeDimension = PlaneDimension(
         xOffset = -width / 2 / scale,
@@ -350,7 +350,7 @@ class ForceSimulation(
       // For each node, we calculate its rendered size, radius etc.
       staticData = StaticData(graph, postSelection, transform, labelVisualization)
       resized() // adjust zoom to possibly changed accumulated node area
-      ForceSimulationForces.nanToPhyllotaxis(simData, spacing = 20) // set initial positions for new nodes
+      ForceSimulationForces.nanToPhyllotaxis(simData, spacing = Math.sqrt(staticData.totalReservedArea / graph.size)/2) // set initial positions for new nodes
 
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
       startAnimated() // this also triggers the initial simulation start
@@ -369,13 +369,13 @@ class ForceSimulation(
     draw()
   }
 
-  def startAnimated(alpha: Double = 1, alphaMin: Double = 0.7): Unit = {
+  def startAnimated(alpha: Double = 1, alphaMin: Double = 0.01): Unit = {
     println(log("started"))
 
-    val ticks = 100 // Default = 300
-    val forceFactor = 0.4
+    val ticks = 150 // Default = 300
+    val forceFactor = 0.3
     simData.alpha = alpha
-    simData.alphaMin = alphaMin // stop simulation earlier (default = 0.001)
+    simData.alphaMin = alphaMin // stop simulation earlier (d3 default = 0.001)
     simData.alphaDecay = 1 - Math.pow(alphaMin, 1.0 / ticks)
     simData.velocityDecay = 1 - forceFactor // (1 - velocityDecay) is multiplied before the velocities get applied to the positions https://github.com/d3/d3-force/issues/100
     if (!running) {
@@ -436,7 +436,7 @@ class ForceSimulation(
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = true
+  private val debugDrawEnabled = false
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
@@ -467,7 +467,7 @@ object ForceSimulation {
     time(log(s"updating staying posts[${node.size()}]")) {
       node
         .html((node: Node) => htmlNodeData(node.data))
-        .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined))
+        .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined)) //TODO: does not update size when editing small node and write a long content
         .on("click", onClick) //TODO: does d3 provide a wrong index?
     }
 
@@ -483,7 +483,6 @@ object ForceSimulation {
             renderNodeData(node.data),
             cls := "graphnode",
             // pointerEvents.auto, // re-enable mouse events
-            cursor.default
           ).render
         })
         .on("click", onClick)
@@ -578,14 +577,15 @@ object ForceSimulation {
 
     //    console.log(staticData.asInstanceOf[js.Any])
     initQuadtree(simData, staticData)
-    eulerSetGeometricCenter(simData, staticData)
+    eulerSetCenter(simData, staticData)
     calculateEulerSetPolygons(simData, staticData)
 
     rectBound(simData, staticData, planeDimension, strength = 0.1)
-    keepDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
+    keepMinimumNodeDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
 //    edgeLength(simData, staticData)
 
     eulerSetClustering(simData, staticData, strength = 0.1)
+    separateOverlappingEulerSets(simData, staticData, strength = 0.1)
     // pushOutOfWrongEulerSet(simData,staticData)
   }
 
@@ -610,7 +610,7 @@ object ForceSimulation {
   ): Unit = {
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
-    val eulerSetCount = simData.eulerSetPolygons.length
+    val eulerSetCount = simData.eulerSetPolygon.length
     val nodeCount = simData.n
     val fullCircle = 2 * Math.PI
 
@@ -636,7 +636,7 @@ object ForceSimulation {
     var i = 0
     //    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
-      val polygon = simData.eulerSetPolygons(i)
+      val polygon = simData.eulerSetPolygon(i)
       assert(polygon.length % 2 == 0)
       val midpoints: Array[Vec2] = polygon.toSeq
         .sliding(2, 2)
@@ -822,7 +822,7 @@ object ForceSimulation {
 
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
-    val eulerSetCount = simData.eulerSetPolygons.length
+    val eulerSetCount = simData.eulerSetPolygon.length
 
     val nodeCount = simData.n
 
@@ -872,10 +872,10 @@ object ForceSimulation {
     i = 0
     val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
     while (i < eulerSetCount) {
-      canvasContext.strokeStyle = "rgba(255,255,255,0.5)"
-      canvasContext.lineWidth = 5
+      canvasContext.strokeStyle = "rgba(255,255,255,0.6)"
+      canvasContext.lineWidth = 2
       canvasContext.beginPath()
-      polyLine(simData.eulerSetPolygons(i).asInstanceOf[js.Array[js.Tuple2[Double, Double]]])
+      polyLine(simData.eulerSetPolygon(i).asInstanceOf[js.Array[js.Tuple2[Double, Double]]])
       canvasContext.stroke()
 
       // eulerSet geometricCenter
@@ -892,22 +892,8 @@ object ForceSimulation {
       canvasContext.stroke()
       canvasContext.closePath()
 
-      // eulerSet radius
-      canvasContext.strokeStyle = staticData.eulerSetColor(i)
-      canvasContext.lineWidth = 3
-      canvasContext.beginPath()
-      canvasContext.arc(
-        simData.eulerSetGeometricCenterX(i),
-        simData.eulerSetGeometricCenterY(i),
-        staticData.eulerSetRadius(i),
-        startAngle = 0,
-        endAngle = fullCircle
-      )
-      canvasContext.stroke()
-      canvasContext.closePath()
-
       // Axis aligned bounding box
-      canvasContext.strokeStyle = "rgba(0,0,0,0.5)"
+      canvasContext.strokeStyle = "rgba(0,0,0,0.2)"
       canvasContext.lineWidth = 3
       canvasContext.beginPath()
       canvasContext.moveTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMinY(i))

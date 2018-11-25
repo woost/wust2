@@ -30,7 +30,10 @@ object GraphView {
         div(
           position := "absolute",
           zIndex := ZIndex.controls,
-          button("start", onClick foreach {
+          button("start", onMouseDown foreach {
+            forceSimulation.startAnimated()
+            forceSimulation.simData.alphaDecay = 0
+          }, onMouseUp foreach {
             forceSimulation.startAnimated()
           }),
           button("start hidden", onClick foreach {

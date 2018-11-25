@@ -21,6 +21,7 @@ import scala.scalajs.js
  * Data, which is only recalculated once per graph update and stays the same during the simulation
  */
 class StaticData(
+    //TODO: many lookups are already provided by GraphLookup. Use them.
     val nodeCount: Int,
     val edgeCount: Int,
     val containmentCount: Int,
@@ -37,8 +38,8 @@ class StaticData(
     val nodeParentCount: Array[Int],
     val bgColor: Array[String],
     val nodeCssClass: Array[String],
-    val nodeReservedArea: Array[Double], //TODO: rename to reservedArea
-    var reservedArea: Double, //TODO: rename to totalReservedArea
+    val nodeReservedArea: Array[Double],
+    var totalReservedArea: Double,
 
     // Edges
     val source: Array[Int], //TODO: Rename to edgeSource
@@ -51,9 +52,9 @@ class StaticData(
     var eulerSetCount: Int,
     var eulerSetParent: Array[Int],
     var eulerSetChildren: Array[Array[Int]],
+    var eulerSetDisjunctSetPairs: Array[(Int,Int)],
     var eulerSetAllNodes: Array[Array[Int]],
     var eulerSetArea: Array[Double],
-    var eulerSetRadius: Array[Double],
     var eulerSetColor: Array[String],
     var eulerSetDepth: Array[Int],
 ) {
@@ -75,7 +76,7 @@ class StaticData(
     bgColor = new Array(nodeCount),
     nodeCssClass = new Array(nodeCount),
     nodeReservedArea = new Array(nodeCount),
-    reservedArea = NaN,
+    totalReservedArea = NaN,
     source = new Array(edgeCount),
     target = new Array(edgeCount),
     containmentChild = new Array(containmentCount),
@@ -84,9 +85,9 @@ class StaticData(
     eulerSetCount = -1,
     eulerSetParent = null,
     eulerSetChildren = null,
+    eulerSetDisjunctSetPairs = null,
     eulerSetAllNodes = null,
     eulerSetArea = null,
-    eulerSetRadius = null,
     eulerSetColor = null,
     eulerSetDepth = null,
   )
@@ -139,16 +140,17 @@ object StaticData {
           staticData.bgColor(i) = nodeColorWithContext(graph, node.id).toCSS
           staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
-          staticData.bgColor(i) = "#FEFEFE" // bgcolor of nodecard
           staticData.nodeCssClass(i) = "nodecard"
         }
 
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
-        d3.select(elem)
-          .style("background-color", staticData.bgColor(i))
-          .asInstanceOf[js.Dynamic].classed("tag nodecard", false)
+        val elemSelection = d3.select(elem)
+          .asInstanceOf[js.Dynamic]
+          .classed("tag nodecard", false)
           .classed(staticData.nodeCssClass(i), true)
+        if(staticData.bgColor(i) != null)
+          elemSelection.style("background-color", staticData.bgColor(i))
 
         val rect = elem.getBoundingClientRect
         val width = rect.width / scale
@@ -169,7 +171,7 @@ object StaticData {
         reservedArea += area
       }
       staticData.maxRadius = maxRadius
-      staticData.reservedArea = reservedArea
+      staticData.totalReservedArea = reservedArea
 
       val nodeIdToIndex = graph.idToIdx
 
@@ -228,7 +230,6 @@ object StaticData {
       staticData.eulerSetChildren = new Array[Array[Int]](eulerSetCount)
       staticData.eulerSetParent = new Array[Int](eulerSetCount)
       staticData.eulerSetArea = new Array[Double](eulerSetCount)
-      staticData.eulerSetRadius = new Array[Double](eulerSetCount)
       staticData.eulerSetColor = new Array[String](eulerSetCount)
       staticData.eulerSetDepth = new Array[Int](eulerSetCount)
       while (i < eulerSetCount) {
@@ -237,19 +238,26 @@ object StaticData {
         staticData.eulerSetParent(i) = nodeIdToIndex(eulerSets(i).parent)
         staticData.eulerSetDepth(i) = eulerSets(i).depth
 
-        val aribtraryFactor = 1.3
+        val arbitraryFactor = 1.3
         staticData.eulerSetArea(i) = eulerSets(i).allNodes.map { pid =>
           val pi = nodeIdToIndex(pid)
           staticData.nodeReservedArea(pi)
-        }.sum * aribtraryFactor
-        staticData.eulerSetRadius(i) = sqrt(staticData.eulerSetArea(i) / PI) // a = pi*r^2 solved by r = sqrt(a/pi)
+        }.sum * arbitraryFactor
 
         val color = d3.lab(eulerBgColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
-        color.opacity = 0.8
+        color.opacity = 0.7
         staticData.eulerSetColor(i) = color.toString
 
         i += 1
       }
+
+      staticData.eulerSetDisjunctSetPairs = (for {
+        i <- 0 until eulerSetCount
+        j <- 0 until eulerSetCount
+        if i > j && staticData.eulerSetChildren(i).intersect(staticData.eulerSetChildren(j)).isEmpty
+      } yield (i,j)).toArray
+
+
       staticData
     }
   }

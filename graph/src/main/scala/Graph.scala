@@ -650,12 +650,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {
-    val allParentsBuilder = new mutable.ArrayBuilder.ofInt
+    val parentSet = ArraySet.create(n)
     edgesIdx.foreachIndexAndTwoElements { (i, _, targetIdx) =>
       if(edges(i).isInstanceOf[Edge.Parent])
-        allParentsBuilder += targetIdx
+        parentSet += targetIdx
     }
-    topologicalSort(allParentsBuilder.result(), childrenIdx)
+    topologicalSort(parentSet.collectAllElements, childrenIdx)
   }
 
   private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] =
