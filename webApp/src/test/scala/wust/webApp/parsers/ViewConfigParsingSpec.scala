@@ -14,22 +14,6 @@ class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
 
   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 
-  "empty String" in {
-    pending
-    val cfg = ViewConfig.fromUrlHash("")
-    val expected = createViewConfig(View.Error(""), Page.empty, None)
-    cfg.pageChange mustEqual expected.pageChange
-    cfg.view.viewKey mustEqual expected.view.viewKey
-  }
-
-  "invalid String" in {
-    pending
-    val cfg = ViewConfig.fromUrlHash("someone said I should write something here")
-    val expected = createViewConfig(View.Error(""), Page.empty, None)
-    cfg.pageChange mustEqual expected.pageChange
-    cfg.view.viewKey mustEqual expected.view.viewKey
-  }
-
   "from string to viewconfig - row" in {
     pending
     val cuid1 = freshNodeId(1)
