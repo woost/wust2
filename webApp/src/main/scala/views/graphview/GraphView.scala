@@ -36,6 +36,10 @@ object GraphView {
           }, onMouseUp foreach {
             forceSimulation.startAnimated()
           }),
+          button("play", onClick foreach {
+            forceSimulation.startAnimated()
+            forceSimulation.simData.alphaDecay = 0
+          }),
           button("start hidden", onClick foreach {
             forceSimulation.startHidden()
           }),
