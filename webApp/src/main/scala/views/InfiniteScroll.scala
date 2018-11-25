@@ -57,7 +57,15 @@ object InfiniteScroll {
         shouldLoad.map {
           case true => VDomModifier(
             div(
-              div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, Components.woostLoadingAnimationWithFadeIn),
+              div(
+                Styles.flex, alignItems.center, flexDirection.column, justifyContent.center, Styles.growFull,
+                button(cls := "ui tiny button", "Load more", marginBottom := "5px", onClick.foreach {
+                  numSteps += 1
+                  sink.onNext(numSteps)
+                  ()
+                }),
+                Components.woostLoadingAnimationWithFadeIn
+              ),
               onIntersectionWithViewport.foreach { isIntersecting =>
                 if (isIntersecting) {
                   numSteps += 1
