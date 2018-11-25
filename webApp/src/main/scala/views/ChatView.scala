@@ -53,7 +53,7 @@ object ChatView {
     )
 
     val pageCounter = PublishSubject[Int]()
-    val shouldLoadInfinite = Var[Boolean](true)
+    val shouldLoadInfinite = Var[Boolean](false)
 
     div(
       keyed,
@@ -141,26 +141,22 @@ object ChatView {
   }
 
   private def chatHistory(state: GlobalState, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val initialPageCounter = 50
+    val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
-    var _prevMessageSize = -1
-    state.page.foreach { _ =>
-      _prevMessageSize = -1
-      pageCounter() = initialPageCounter
-    }
+    state.page.foreach { _ => pageCounter() = initialPageCounter }
 
     val messages = Rx {
       state.screenSize() // on screensize change, rerender whole chat history
       val page = state.page()
       val graph = state.graph()
-      val messages = selectChatMessages(page.parentId, graph)
 
-      if(_prevMessageSize != -1 && messages.size > pageCounter.now) {
-        pageCounter.update(c => Math.max(c - _prevMessageSize + messages.size, initialPageCounter))
-      }
-      _prevMessageSize = messages.size
+      selectChatMessages(page.parentId, graph)
+    }
 
-      messages
+    var prevMessageSize = -1
+    messages.foreach { messages =>
+      if (prevMessageSize != messages.length) pageCounter() = initialPageCounter
+      prevMessageSize = messages.length
     }
 
     Rx {
