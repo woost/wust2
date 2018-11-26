@@ -6,8 +6,7 @@ import java.nio.ByteBuffer
 import wust.util.collection._
 import org.sazabi.base58.Base58
 
-@inline
-final case class Cuid(left: Long, right: Long) {
+@inline final case class Cuid(left: Long, right: Long) {
   import wust.ids.Cuid._
   // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
   assert(

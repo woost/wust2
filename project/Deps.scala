@@ -48,7 +48,7 @@ object Deps {
   val scalaJsDom = dep("org.scala-js" %%% "scalajs-dom" % "0.9.6")
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "08fc8de")
   val fontawesome = dep("com.github.fdietze" % "scala-js-fontawesome" % "599552b")
-  val vectory = dep("com.github.fdietze" % "vectory" % "d0e70f4")
+  val vectory = dep("com.github.fdietze" % "vectory" % "80d654e")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "a15d3ae")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
@@ -74,7 +74,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "14532651")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "a028b3c")
   
 
 

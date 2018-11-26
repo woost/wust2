@@ -207,7 +207,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
-  val edgesIdx = InterleavedArrayInt.create(edges.length)
+  val edgesIdx = InterleavedArray.create[Int](edges.length)
 
 
   // TODO: have one big triple nested array for all edge lookups?
