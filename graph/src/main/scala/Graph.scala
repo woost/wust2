@@ -911,10 +911,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
-    trait Grouping
-    case class Cycle(node: NodeId) extends Grouping
-    case class NoCycle(node: NodeId) extends Grouping
-
     import wust.util.algorithm.dijkstra
     type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
 
