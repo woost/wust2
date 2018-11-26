@@ -268,7 +268,7 @@ self.addEventListener('notificationclick', e => {
             const ndata = e.notification.data;
             const messageId = ndata.nodeId;
             const channelId = ndata.channelId;
-            const baseLocation = "https://staging.woost.space";
+            const baseLocation = "woost.space";
 
             for (const index in windowClients) {
 
