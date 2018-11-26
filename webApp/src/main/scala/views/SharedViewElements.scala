@@ -555,7 +555,7 @@ object SharedViewElements {
 
         val nodeId = NodeId.fresh
         state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id))
-        state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false)
+        state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, view)
       }
     )
   }

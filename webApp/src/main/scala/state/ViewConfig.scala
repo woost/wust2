@@ -17,8 +17,8 @@ case class ViewConfig(view: View, pageChange: PageChange, redirectTo: Option[Vie
   def redirect: ViewConfig = redirectTo.fold(this)(view => copy(view = view, redirectTo = None))
 
 
-  def focusNode(nodeId: NodeId, needsGet: Boolean = true): ViewConfig = {
-    val nextView = if (view.isContent) view else View.default
+  def focusNode(nodeId: NodeId, needsGet: Boolean = true, focusView:View = view): ViewConfig = {
+    val nextView = if (view.isContent) focusView else View.default
     val nextPage = Page(nodeId)
     copy(pageChange = PageChange(nextPage, needsGet = needsGet), view = nextView)
   }

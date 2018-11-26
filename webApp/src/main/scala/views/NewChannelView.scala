@@ -48,7 +48,7 @@ object NewChannelView {
           newChannelButton(state, label = "+ New Chat", view = View.Chat).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:newchannel", "newchat") }
           ),
-          newChannelButton(state, label = "+ New List", view = View.List).apply(padding := "20px", margin := "20px 40px")(
+          newChannelButton(state, label = "+ New List", view = View.Tasks).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:newchannel", "newlist") }
           ),
           newChannelButton(state, label = "+ New Kanban", view = View.Kanban).apply(padding := "20px", margin := "20px 40px")(
