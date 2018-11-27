@@ -152,7 +152,7 @@ object GlobalStateFactory {
     Rx {
       if (view().isContent) {
         val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 30)))
-        window.document.title = channelName.fold(titleSuffix)(name => s"$name - $titleSuffix")
+        window.document.title = channelName.fold(titleSuffix)(name => s"${if(name.contains("unregistered-user")) "Unregistered User" else name} - $titleSuffix")
       } else {
         window.document.title = s"${view().toString} - $titleSuffix"
       }
