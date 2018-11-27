@@ -36,7 +36,7 @@ object WelcomeView {
               div(
                 maxWidth := "80ex",
                 marginBottom := "50px",
-                user.data.isImplicit.ifTrue[VDomModifier](p("You can use Woost without registration. Everything you create is private. If you want to access your data from another device, ", a(href := "#", "create an account",
+                user.data.isImplicit.ifTrue[VDomModifier](p("You can use Woost without registration. Everything you create is private (unless you share it). If you want to access your data from another device, ", a(href := "#", "create an account",
                   onClick.preventDefault(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
                   onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") },
                 ),"."))
