@@ -128,7 +128,7 @@ object GraphChanges {
       NodeRole.Message, //TODO: something different?
       NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
-    GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId)))
+    GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId), Edge.Notify(nodeId, userId)))
   }
 
   def undelete(nodeIds: Iterable[NodeId], parentIds: Iterable[NodeId]): GraphChanges = connect(Edge.Parent)(nodeIds, parentIds)
