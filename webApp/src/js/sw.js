@@ -283,7 +283,7 @@ self.addEventListener('notificationclick', e => {
                     log("Found woost window => opening node");
 
                     const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : (baseLocation + "/#view=conversation&page=" + channelId);
+                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : ("/#view=conversation&page=" + channelId);
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
