@@ -12,7 +12,7 @@ import wust.webApp.views.SharedViewElements._
 import wust.util._
 import wust.webApp.views.Components._
 
-object NewChannelView {
+object WelcomeView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,

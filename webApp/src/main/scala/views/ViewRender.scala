@@ -19,7 +19,7 @@ object ViewRender {
     case View.Graph            => GraphView(state)
     case View.Login            => AuthView.login(state)
     case View.Signup           => AuthView.signup(state)
-    case View.Welcome          => NewChannelView(state)
+    case View.Welcome          => WelcomeView(state)
     case View.UserSettings     => UserSettingsView(state)
     case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(_, state)), state)
   }
