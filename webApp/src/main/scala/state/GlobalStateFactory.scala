@@ -48,19 +48,20 @@ object GlobalStateFactory {
       var prevPage: Page = null
       Rx {
         //TODO: userdescendant
+        val pageChangeCmd = pageChange()
 
-        def anyPageParentIsPinned = graph().anyAncestorIsPinned(page().parentId, user().id)
+        def anyPageParentIsPinned = graph().anyAncestorIsPinned(pageChangeCmd.page.parentId, user().id)
         def pageIsUnderUser:Boolean = (for {
-          pageParentId <- page().parentId
+          pageParentId <- pageChangeCmd.page.parentId
           pageIdx = graph().idToIdx(pageParentId)
           if pageIdx != -1
           userIdx = graph().idToIdx(user().id)
           if userIdx != -1
         } yield algorithm.depthFirstSearchExists(start = pageIdx, graph().notDeletedParentsIdx, userIdx)).getOrElse(true)
 
-        page().parentId.foreach { parentId =>
-          if(!isLoading() && prevPage != page() && !anyPageParentIsPinned && !pageIsUnderUser) {
-            prevPage = page() //we do this ONCE per page
+        pageChangeCmd.page.parentId.foreach { parentId =>
+          if(!isLoading() && pageChangeCmd.needsGet && prevPage != pageChangeCmd.page && !anyPageParentIsPinned && !pageIsUnderUser) {
+            prevPage = pageChangeCmd.page //we do this ONCE per page
 
             // user probably clicked on a woost-link.
             // So we pin the page as channels and enable notifications
