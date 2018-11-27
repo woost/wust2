@@ -25,6 +25,8 @@ object Sidebar {
   def apply(state: GlobalState): VNode = {
     val smallIconSize = 40
 
+    def authStatus(implicit ctx: Ctx.Owner) = SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
+
     def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
@@ -54,7 +56,7 @@ object Sidebar {
       onClick(false) --> state.sidebarOpen,
       div(
         openSidebar,
-        SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px")),
+        authStatus
       )
     )
 
@@ -70,7 +72,7 @@ object Sidebar {
 
     def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
       state.sidebarOpen() match {
-        case true  => VDomModifier(openSidebar, maxWidth := "200px")
+        case true  => VDomModifier(openSidebar, (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](authStatus), maxWidth := "200px")
         case false => closedSidebar
       }
     }
