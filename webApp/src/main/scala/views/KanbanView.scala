@@ -21,6 +21,11 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
+  def filterKanbanGraph(g: Graph, parentId: NodeId): Graph = {
+    val transitivePageChildren = g.notDeletedDescendants(parentId)
+    g.filterIds(transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)) +  parentId)
+  }
+
   private val maxLength = 100
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -38,50 +43,18 @@ object KanbanView {
       alignItems.flexStart,
 
       Rx {
-        val page = state.page()
 
-        val graph = {
-          val g = state.graph()
-          val transitivePageChildren = page.parentId.toSeq.flatMap(g.notDeletedDescendants)
-          g.filterIds(page.parentId.toSet ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
-        }
+          val page = state.page()
 
-        val pageParentArraySet = graph.createArraySet(page.parentId) //TODO: remove, since it contains max one element
+          page.parentId.map { pageParentId =>
 
-        val allTasks:ArraySet = graph.subset { nodeIdx =>
-          val node = graph.nodes(nodeIdx)
+            val kanbanGraph = filterKanbanGraph(state.graph(), pageParentId)
+            //          scribe.info(s"KANBAN GRAPH NODES: ${graph.nodes.map(_.str).mkString(", ")}")
 
-          @inline def isContent = node.isInstanceOf[Node.Content]
-          @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
-          @inline def noPage = pageParentArraySet.containsNot(nodeIdx)
+            val (uncategorizedTasks, sortedForest) = BeforeOrdering.taskGraphToSortedForest(kanbanGraph, state.user.now.id, pageParentId)
 
-          isContent && isTask && noPage
-        }
-
-        val (categorizedTasks, uncategorizedTasks) = allTasks.partition { nodeIdx =>
-
-          @inline def isToplevel = graph.parentsIdx.forall(nodeIdx)(pageParentArraySet.contains)
-          @inline def isExpanded = graph.isExpanded(state.user.now.id, graph.nodeIds(nodeIdx))
-          @inline def hasChildren = graph.hasNotDeletedChildrenIdx(nodeIdx)
-
-          isExpanded || !isToplevel || hasChildren
-        }
-
-        val unsortedForest = graph.filterIdx(categorizedTasks.contains).redundantForestIncludingCycleLeafs
-
-        //        scribe.info(s"SORTING FOREST: $unsortedForest")
-        val sortedForest = graph.topologicalSortBy[Tree](unsortedForest, (t: Tree) => t.node.id)
-        //        scribe.info(s"SORTED FOREST: $sortedForest")
-
-        //        scribe.info(s"\tNodeCreatedIdx: ${graph.nodeCreated.indices.mkString(",")}")
-        //        scribe.info(s"\tNodeCreated: ${graph.nodeCreated.mkString(",")}")
-        //
-        //        scribe.info(s"chronological nodes idx: ${graph.chronologicalNodesAscendingIdx.mkString(",")}")
-        //        scribe.info(s"chronological nodes: ${graph.chronologicalNodesAscending}")
-
-        page.parentId.map { pageParentId =>
           VDomModifier(
-            renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
+              renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(kanbanGraph.nodeIds), activeReplyFields, selectedNodeIds),
             div(
               cls := s"kanbancolumnarea",
               keyed,
@@ -105,9 +78,9 @@ object KanbanView {
       case Tree.Parent(node, children) =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
-            val sortedChildren = state.graph.now.topologicalSortBy[Tree](children, (t: Tree) => t.node.id)
-            //        scribe.info(s"SORTING CHILDREN: $children => $sortedChildren")
-            //        scribe.info(s"\tNodeCreated: ${state.graph.now.nodeCreated}")
+//            val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, node.id), node.id, children, (t: Tree) => t.node.id)
+            scribe.debug(s"Sorting Tree of ${node.str}")
+            val (sortedChildren, _) = BeforeOrdering.sort[Tree](state.graph.now, node.id, children, (t: Tree) => t.node.id)
             renderColumn(state, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
@@ -352,7 +325,6 @@ object KanbanView {
         val newColumnNode = Node.MarkdownTask(str)
         val add = GraphChanges.addNode(newColumnNode)
         val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
-        //                  val addOrder = GraphChanges.connect(Edge.Before)(newColumnNode.id, DataOrdering.getLastInOrder(state.graph.now, state.graph.now.graph. page.parentIds))
         add merge expand
       }
       state.eventProcessor.enriched.changes.onNext(change)
