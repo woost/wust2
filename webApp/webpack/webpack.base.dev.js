@@ -14,6 +14,7 @@ const cssFiles = commons.woost.cssFiles.filter(x => !x.endsWith('scalacss.css'))
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;
+const versionString = commons.woost.versionString;
 module.exports = commons.webpack;
 
 module.exports.mode = 'development';
@@ -35,6 +36,7 @@ const extraAssets = staticIncludeAssets.concat([ loaderJsFile, baseJsFile ]).con
 // html template generate index.html
 ////////////////////////////////////////
 module.exports.plugins.push(new HtmlPlugin({
+    versionString: versionString,
     title: 'dev',
     template: htmlTemplateFile,
     favicon: Path.join(dirs.assets, 'favicon.ico'),

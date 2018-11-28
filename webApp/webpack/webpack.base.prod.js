@@ -29,6 +29,7 @@ const cssFiles = commons.woost.cssFiles;
 const htmlTemplateFile = commons.woost.htmlTemplateFile;
 const staticIncludeAssets = commons.woost.staticIncludeAssets;
 const staticCopyAssets = commons.woost.staticCopyAssets;
+const versionString = commons.woost.versionString;
 const gitBranch = execSync('(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD || echo "") 2> /dev/null').toString().trim() // branch, fallback to commit hash
 module.exports = commons.webpack;
 
@@ -88,6 +89,7 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 ////////////////////////////////////////
 //TODO does not trigger when only changing html template file
 module.exports.plugins.push(new HtmlPlugin({
+    versionString: versionString,
     title: 'Woost',
     template: htmlTemplateFile,
     favicon: Path.join(dirs.assets, 'favicon.ico'),

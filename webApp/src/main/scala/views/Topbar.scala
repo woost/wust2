@@ -1,10 +1,12 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import fontAwesome._
 import googleAnalytics.Analytics
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
@@ -62,7 +64,11 @@ object Topbar {
     fontWeight.bold,
     transform := "rotate(-7deg)",
 
-    marginRight := "5px"
+    marginRight := "5px",
+    Elements.onClickN(desiredClicks = 8).foreach {
+      window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
+    }
+
   )
 
   def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {

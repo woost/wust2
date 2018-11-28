@@ -281,4 +281,23 @@ object Elements {
     wrap.appendChild(text)
     wrap.innerHTML
   }
+
+  def onClickN(desiredClicks: Int) = EmitterBuilder.ofModifier[Unit] { sink =>
+    import scala.concurrent.duration._
+
+    IO {
+      var clickCounter = 0
+
+      VDomModifier(
+        onClick.foreach {
+          clickCounter += 1
+          if (clickCounter == desiredClicks) {
+            sink.onNext(())
+            clickCounter = 0
+          }
+        },
+        onClick.debounce(500 millis).foreach { clickCounter = 0 }
+      )
+    }
+  }
 }

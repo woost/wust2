@@ -1,6 +1,7 @@
 const glob = require("glob");
 const Path = require("path");
 const fs = require("fs");
+const { execSync } = require('child_process');
 
 // directories
 const dirs = {}
@@ -42,6 +43,8 @@ const staticCopyAssets = [
 ];
 const staticIncludeAssets = [ 'jquery.min.js', 'emoji.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
 
+const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
+
 // export
 module.exports.webpack = webpack;
 module.exports.woost = {
@@ -51,5 +54,6 @@ module.exports.woost = {
     cssFiles: cssFiles,
     htmlTemplateFile: htmlTemplateFile,
     staticCopyAssets: staticCopyAssets,
-    staticIncludeAssets: staticIncludeAssets
+    staticIncludeAssets: staticIncludeAssets,
+    versionString: gitCommit
 };

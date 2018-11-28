@@ -31,6 +31,12 @@
 
     <title><%= htmlWebpackPlugin.options.title %></title>
 
+    <script>
+        window.woostConfig = {
+            "versionString": "<%= htmlWebpackPlugin.options.versionString %>"
+        };
+    </script>
+
     <noscript>
         <div id="noscriptmsg">
             <p>Welcome to Woost!</p>
