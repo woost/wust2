@@ -69,6 +69,37 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
     }
   }
 
+  "depth first search cyles" - {
+    "directed cycle" in {
+      val edges = NestedArrayInt(Array(
+        Array(1),
+        Array(2),
+        Array(0, 3),
+        Array[Int]()
+      ))
+
+//      def _foreachSliceAndElement(idxArray: Array[Int])(f:Int => Unit):Unit = {
+//        // fast iteration over sub-array without allocation
+//        var j = 0
+//        val m = idxArray.length
+//        while(j < m) {
+//          edges.foreachElement(idxArray(j))(f)
+//          j += 1
+//        }
+//      }
+//
+//
+//      _foreachSliceAndElement(Array(0,1,2,3)) { elem =>
+//        scribe.warn(s"pushing: $elem")
+//      }
+
+
+      val dfs = dfsInvolmentsOfCycleSearch(Array(0,1,2,3), edges).toList
+      assert(dfs == List(0,1,2))
+    }
+
+  }
+
   "connected components" - {
     "one vertex" in {
       val components = connectedComponents[Int](List(0), _ => Nil)

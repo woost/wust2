@@ -110,6 +110,11 @@ object algorithm {
     }
   }
 
+  /*
+   * DFS starts after the start index and searches for `search`
+   * Choosing start = search results in a cycle search
+   * Returns the index of the preceding element that has been found
+   */
   // @inline avoids the function call of append
   // stops only traversing local branch
   @inline def depthFirstSearchWithParentSuccessors(starts: Array[Int], size: Int, successors: (Option[Int], Int) => (Int => Unit) => Unit):Unit = {
@@ -119,7 +124,7 @@ object algorithm {
 
     starts.foreach { start =>
       successors(None, start) { succElem =>
-        stack.push(succElem)
+      stack.push(succElem)
         stackParent.push(start)
       }
     }
@@ -135,40 +140,65 @@ object algorithm {
             stackParent.push(current)
           }
         }
-      }
-    }
-  }
-
-
-
-  def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search:Int): Option[Int] = {
-
-    val stack = ArrayStackInt.create(capacity = 2 * successors.size)
-    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
-
-    successors.foreachElement(start) { succElem =>
-      stack.push(start)
-      stack.push(succElem)
-    }
-
-    while(!stack.isEmpty) {
-      val current = stack.pop()
-      val previous = stack.pop()
-      if(current == search) return Some(previous)
-      if(visited.containsNot(current)) {
-        visited.add(current)
-
-        successors.foreachElement(current) { next =>
-          if(visited.containsNot(next)) {
-            stack.push(current)
-            stack.push(next)
-          }
-        }
 
       }
     }
 
     None
+  }
+
+  def linearInvolmentsOfCycleSearch(starts: Array[Int], successors: NestedArrayInt): Array[Int] = {
+
+    val result = new mutable.ArrayBuilder.ofInt
+
+    starts.foreachElement { idx =>
+      successors.foreachElement(idx) { next =>
+        if(successors.exists(next)(_ == idx)) {
+          result += idx
+          result += next
+        }
+      }
+    }
+
+    result.result()
+  }
+
+  def dfsInvolmentsOfCycleSearch(start: Array[Int], successors: NestedArrayInt): Array[Int] = {
+
+    scribe.warn(s"start.length = ${start.length}, successors.length = ${successors.length}")
+    val stack = ArrayStackInt.create(start.length + successors.length)
+    val visited = ArraySet.create(start.length + successors.length)
+
+    val inCycle = new mutable.ArrayBuilder.ofInt
+
+    start.foreachElement(stack.push)
+    successors.foreachSliceAndElement(start)(stack.push)
+//    successors.foreachSliceAndElement(visited.marked)(visited.add)
+
+    while(!stack.isEmpty) {
+      val current = stack.pop()
+      scribe.warn(s"current: $current")
+      if(visited.containsNot(current)) {
+        visited.add(current)
+
+        scribe.warn(s"searching successors of $current: ${successors(current).mkString(", ")}")
+        successors.foreachElement(current) { next =>
+          if(visited.containsNot(next)) {
+            stack.push(next)
+          } else {
+            inCycle += next
+            scribe.warn(s"successor($next) of current($current) in cycle")
+          }
+        }
+        scribe.warn(s"finished $current")
+
+//      } else {
+//        inCycle += current
+//        scribe.warn(s"current($current) in cycle")
+      }
+    }
+
+    inCycle.result()
   }
 
   /*

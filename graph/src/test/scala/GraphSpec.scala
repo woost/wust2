@@ -403,6 +403,23 @@ class GraphSpec extends FreeSpec with MustMatchers {
         )
         assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A"))
       }
+
+      "root that is also child" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D", "E", "F"),
+          edges = Set(
+            parent("B", "A"),
+            parent("F", "B"),
+
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("F", "D"),
+
+          )
+        )
+        assert(g.rootNodes.map(g.lookup.nodes).toSet == Set[Node]("A", "B", "E"))
+
+      }
     }
 
     "redundant tree - including cycle leafs" - {
@@ -440,6 +457,33 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = Set(parent("B", "A"), parent("C", "B"), parent("C", "A"))
         )
         assert(redundantTree(g, "A") == Parent("A", List(Parent("B", List(Leaf("C"))), Leaf("C"))))
+      }
+
+      "different depth diamond" in {
+        val g = Graph(
+          nodes = Set[Node]("A", "B", "C", "D", "E", "F"),
+          edges = Set(
+            parent("B", "A"),
+            parent("F", "B"),
+
+            parent("C", "A"),
+            parent("D", "C"),
+            parent("F", "D"),
+
+          )
+        )
+        assert(redundantTree(g, "A") ==
+          Parent("A", List(
+            Parent("B", List(
+              Leaf("F")
+            )),
+            Parent("C", List(
+              Parent("D", List(
+                Leaf("F"))
+              ))
+            ))
+          )
+        )
       }
 
       "cycle" in {
