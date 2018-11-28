@@ -393,8 +393,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def isPinned(idx: Int, userIdx:Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
+  def beforeOrderingByParent(parentId: NodeId) = edges.filter(e => e.isInstanceOf[Edge.Before] && e.asInstanceOf[Edge.Before].data.parent == parentId)
   def beforeOrdering(nodeId: NodeId): Seq[NodeId] = beforeIdx(idToIdx(nodeId)).map(nodes).map(_.id)
   def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
+//  def beforeByParent(nodeId: NodeId)(parentId: NodeId) = beforeOrdering(nodeId).filter(_)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli], nodeCreatorIdx:Array[Int]) = {
@@ -617,29 +619,41 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalSort(chronologicalNodesAscendingIdx, beforeIdx)
   }
 
-  def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
-    if(seq.isEmpty || nodes.isEmpty) return seq
+  def topologicalSortByIdx[T](seq: Seq[T], sortIdx: NestedArrayInt, extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
+    if(seq.isEmpty || nodes.isEmpty || sortIdx.isEmpty) return seq
 
     @inline def idSeq: Seq[Int] = seq.map(extractIdx)
-
     @inline def idArray: Array[Int] = idSeq.toArray
 
     val chronological: Array[Int] = idArray.sortBy(nodeCreated)
 
     def c = chronological.map(nodes).toSeq
 
-    val topological: Array[Int] = topologicalLassoSort(c).map(n => idToIdx(n.id)).toArray
+//    scribe.debug("Lasso Sort")
+    val topological: Array[Int] = topologicalLassoSort(c, sortIdx).map(n => idToIdx(n.id)).toArray
 
+//    scribe.debug("Lift result")
     val res = topological.map(liftIdx).toSeq.flatten
     res
   }
-  def topologicalSortBy[T](seq: Seq[T], extract: T => NodeId): Seq[T] = {
-    if(seq.nonEmpty) topologicalSortByIdx[T](seq, idToIdx compose extract, (i: Int) => seq.find(t => extract(t) == nodeIds(i)))
-    else seq
-  }
+//  def topologicalSortBy[T](seq: Seq[T], extract: T => NodeId): Seq[T] = {
+//    if(seq.nonEmpty) topologicalSortByIdx[T](seq, idToIdx compose extract, (i: Int) => seq.find(t => extract(t) == nodeIds(i)))
+//    else seq
+//  }
 
-  def topologicalLassoSort(seq: Seq[Node]): Seq[Node] = {
-    if(!algorithm.containsCycle(seq.map(n => idToIdx(n.id)).toArray, beforeIdx)) {
+  def topologicalLassoSort(seq: Seq[Node], sortIdx: NestedArrayInt): Seq[Node] = {
+//    val cycles = seq.map(n => algorithm.linearInvolmentsOfCycleSearch(seq.map(n => idToIdx(n.id)).toArray, beforeIdx))
+//    val cyclesIdx = algorithm.linearInvolmentsOfCycleSearch(seq.map(n => idToIdx(n.id)).toArray, beforeIdx)
+//    val breakCyclesGraphChanges = if(cyclesIdx.nonEmpty) {
+//      cyclesIdx.sliding(2).map(pair => GraphChanges.disconnect(Edge.Before.apply)(graph.nodes(pair.head).id, graph.nodes(pair.last).id))
+//    } else GraphChanges.empty
+
+
+//    scribe.debug(s"Sorting nodes: ${seq.map(e => (graph.idToIdx(e.id), e.str))}")
+//    scribe.debug(s"Sorting edges: ${sortIdx.foreachIndexAndElement((i, slice) => s"$i, ${slice.mkString(",")}")}")
+//    scribe.debug(s"Sorting edges: ${sortIdx.mkString(",")}")
+    if(!algorithm.containsCycle(seq.map(n => idToIdx(n.id)).toArray, sortIdx)) {
+
 
       algorithm.topologicalLassoSort[Node, Seq](
         seq.map(n => idToIdx(n.id)).toArray.sortBy(nodeCreated).map(nodes),
@@ -647,7 +661,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
       )
 
-    } else seq
+    } else {
+      scribe.warn("Ignoring sorting because of cycle")
+      scribe.warn(s"${seq.map(_.str)}")
+      seq
+    }
   }
 
   lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {

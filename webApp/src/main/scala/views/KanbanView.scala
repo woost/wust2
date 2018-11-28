@@ -53,21 +53,21 @@ object KanbanView {
 
             val (uncategorizedTasks, sortedForest) = BeforeOrdering.taskGraphToSortedForest(kanbanGraph, state.user.now.id, pageParentId)
 
-          VDomModifier(
+            VDomModifier(
               renderUncategorizedColumn(state, pageParentId, uncategorizedTasks.map(kanbanGraph.nodeIds), activeReplyFields, selectedNodeIds),
-            div(
-              cls := s"kanbancolumnarea",
-              keyed,
-              Styles.flexStatic,
+              div(
+                cls := s"kanbancolumnarea",
+                keyed,
+                Styles.flexStatic,
 
-              Styles.flex,
-              alignItems.flexStart,
-              sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+                Styles.flex,
+                alignItems.flexStart,
+                sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
-              registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
-            ),
-            Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) }
-          )
+                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
+              ),
+              Rx{ newColumnArea(state, newColumnFieldActive).apply(Styles.flexStatic) }
+            )
         }
       },
     )
