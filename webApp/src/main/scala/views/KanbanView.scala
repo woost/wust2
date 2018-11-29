@@ -81,6 +81,7 @@ object KanbanView {
 //            val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, node.id), node.id, children, (t: Tree) => t.node.id)
             scribe.debug(s"Sorting Tree of ${node.str}")
             val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, parentId), node.id, children, (t: Tree) => t.node.id)
+            // val (sortedChildren, _) = BeforeOrdering.sort[Tree](state.graph.now, node.id, children, (t: Tree) => t.node.id)
             renderColumn(state, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else

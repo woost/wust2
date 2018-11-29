@@ -39,7 +39,7 @@ object BeforeOrdering {
     nested
   }
 
-  private def breakCyclesGraphChanges(graph: Graph, beforeIdx: NestedArrayInt, parentId: NodeId, container: Seq[Int]): GraphChanges = {
+  def breakCyclesGraphChanges(graph: Graph, beforeIdx: NestedArrayInt, parentId: NodeId, container: Seq[Int]): GraphChanges = {
     //    val cyclesIdx = algorithm.linearInvolmentsOfCycleSearch(container.toArray, graph.beforeIdx).map(graph.nodeIds)
     scribe.info(s"BREAKING CYCLES")
     if(container.isEmpty) return GraphChanges.empty
@@ -86,28 +86,30 @@ object BeforeOrdering {
     //    scribe.debug(s"PARENT = ${graph.nodesById(parentId).str} (id = $parentId)")
     val beforeIdx = parentBeforeIdx(graph, parentId)
     val gc = if(breakCycles) breakCyclesGraphChanges(graph, beforeIdx, parentId, container.map(extractIdx)) else GraphChanges.empty
-    val g = if(gc.nonEmpty) {
+    val sortGraph = if(gc.nonEmpty) {
       scribe.info(s"NON-EMPTY BREAK CYCLES: $gc")
       scribe.info(s"NODES: ${container.map(extractIdx).map(graph.nodes).map(_.str)}")
       graph.applyChanges(gc)
     } else graph
-//    scribe.info("sorting")
-    val sorted = g.topologicalSortByIdx[T](container, beforeIdx, extractIdx, liftIdx)
-//    scribe.info("sorted")
+    scribe.info("sorting")
+    val sorted = sortGraph.topologicalSortByIdx[T](container, extractIdx, liftIdx)
+    scribe.info("sorted")
     (sorted, gc)
   }
 
-  def constructOrderingIdx(graph: Graph, pageParentId: NodeId, userId: UserId, parentId: NodeId): (Seq[Int], GraphChanges) = {
-
+  def nodesOfInterest(graph: Graph, pageParentId: NodeId, userId: UserId, parentId: NodeId): Seq[Int] = {
     val parentIdx = graph.idToIdx(parentId)
     val pageParentIdx = graph.idToIdx(pageParentId)
 
     val nodesOfInterest: Seq[Int] = graph.notDeletedChildrenIdx(parentIdx) // nodes in container
-//    val toplevel = graph.notDeletedChildrenIdx(pageParentIdx)
-    val taskNodes = nodesOfInterest.filter(idx => {
+    //    val toplevel = graph.notDeletedChildrenIdx(pageParentIdx)
+    nodesOfInterest.filter(idx => {
       taskFilter(graph.nodes(idx)) && categorizationFilter(graph, (idx: Int) => idx == pageParentIdx, idx, userId)
     })
-    sortIdx(graph, parentId, taskNodes, true)
+  }
+
+  def constructOrderingIdx(graph: Graph, pageParentId: NodeId, userId: UserId, parentId: NodeId): (Seq[Int], GraphChanges) = {
+    sortIdx(graph, parentId, nodesOfInterest(graph, pageParentId, userId, parentId))
   }
 
   def getBeforeAndAfter(g: Graph, index: Int, orderedNodes: Seq[Int]): (Option[NodeId], Option[NodeId]) = {

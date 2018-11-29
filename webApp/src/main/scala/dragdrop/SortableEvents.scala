@@ -36,7 +36,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   //  draggable.on("sortable:stop", () => console.log("sortable:stop"))
 
   // TODO: Generalize and outsource to DataOrdering
-  def beforeChanges(g: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area): GraphChanges = {
+  def beforeChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area): GraphChanges = {
     // Hints:
     // - Most outer container contains unclassified nodes as well
     // - Only one "big" sortable => container always the same (oldContainer == newContainer)
@@ -79,12 +79,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         scribe.info("SORTING PREBUILDS\n" +
           //      s"in graph: ${g.toPrettyString}\n\t" +
-          s"dragged node: ${g.nodesById(sortNode.nodeId).str}\n\t" +
+          s"dragged node: ${graph.nodesById(sortNode.nodeId).str}\n\t" +
           s"from index $oldSortIndex / ${oldContChilds.length - 1}\n\t" +
           s"to index $newSortIndex / ${newContChilds.length - 1}")
 
+        val cycleDeletionGraphChanges = BeforeOrdering.breakCyclesGraphChanges(graph, graph.beforeIdx, into.parentId, BeforeOrdering.nodesOfInterest(graph, pageParentId, userId, into.parentId))
+        val g = graph.applyChanges(cycleDeletionGraphChanges)
+//        return GraphChanges.empty
         // Reconstruct ordering
-        val (oldOrderedNodes, cycleDeletionGraphChanges) = BeforeOrdering.constructOrderingIdx(g, pageParentId, userId, from.parentId)
+        val oldOrderedNodes = BeforeOrdering.constructOrderingIdx(g, pageParentId, userId, from.parentId)._1
         //    val oldOrderedNodes: Seq[Int] = BeforeOrdering.taskGraphToSortedForest(g, userId, from.parentIds)
 
 
@@ -93,7 +96,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           // console.log("Kanban elements by sortable: ", oldContChilds)
           scribe.error(s"Kanban elements by orderedNodes: ${ getNodeStr(g, oldOrderedNodes) }")
           scribe.error(s"oldOrderedNodes.size(${ oldOrderedNodes.size }) != oldContChilds.length(${ oldContChilds.length }) => Kanban item dropped at an edge of a container")
-          return GraphChanges.empty
+          return GraphChanges.empty merge cycleDeletionGraphChanges
         }
 
         val oldIndex = oldOrderedNodes.indexOf(g.idToIdx(sortedNodeId))
@@ -101,7 +104,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         // Kanban data and node data diverge
         if(oldIndex != oldSortIndex) {
           scribe.error(s"index of reconstruction and sort must match, oldPosition(${ oldIndex + 1 }) != oldSortPosition(${ oldSortIndex + 1 })")
-          return GraphChanges.empty
+          return GraphChanges.empty merge cycleDeletionGraphChanges
         }
 
         // Cleanup previous edges
@@ -123,7 +126,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val newOrderedNodes: Seq[Int] = BeforeOrdering.constructOrderingIdx(g, pageParentId, userId, into.parentId)._1
 
         if(newOrderedNodes.isEmpty)
-          return GraphChanges.empty
+          return GraphChanges.empty merge cycleDeletionGraphChanges
 
         // Kanban item dropped at an edge of a container
         if(newOrderedNodes.size + 1 < newContChilds.length) {
@@ -131,7 +134,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           // console.log("Kanban elements by sortable: ", newContChilds)
           scribe.warn(s"Kanban elements by orderedNodes: ${ getNodeStr(g, newOrderedNodes) }")
           scribe.warn(s"newOrderedNodes.size(${ newOrderedNodes.size }) != newContChilds.length(${ newContChilds.length }) => Kanban item dropped at an edge of a container")
-          return GraphChanges.empty
+          return GraphChanges.empty merge cycleDeletionGraphChanges
         }
 
         val gcProposal: GraphChanges = if(containerChanged && newSortIndex == newOrderedNodes.size) {
@@ -185,7 +188,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
               // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
               if(b == oldSortIndex || a == oldSortIndex) {
                 scribe.error(s"Index conflict: old position ${ oldSortIndex + 1 }, before: ${ b + 1 }, after: ${ a + 1 }")
-                return GraphChanges.empty
+                return GraphChanges.empty merge cycleDeletionGraphChanges
               }
 
               (b, a)
@@ -227,6 +230,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 //          s"to position ${ newSortIndex + 1 } / ${ newOrderedNodes.length }")
 
 //        GraphChanges.log(gc, Some(state.graph.now))
+        scribe.info("SUCCESS: Calculated new before edges!")
         gc
 
       case _ =>

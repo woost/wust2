@@ -619,20 +619,20 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalSort(chronologicalNodesAscendingIdx, beforeIdx)
   }
 
-  def topologicalSortByIdx[T](seq: Seq[T], sortIdx: NestedArrayInt, extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
-    if(seq.isEmpty || nodes.isEmpty || sortIdx.isEmpty) return seq
+  def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
+    if(seq.isEmpty || nodes.isEmpty || beforeIdx.isEmpty) return seq
 
     @inline def idSeq: Seq[Int] = seq.map(extractIdx)
     @inline def idArray: Array[Int] = idSeq.toArray
 
     val chronological: Array[Int] = idArray.sortBy(nodeCreated)
 
-    def c = chronological.map(nodes).toSeq
+    // def c = chronological.map(nodes).toSeq
 
-//    scribe.debug("Lasso Sort")
-    val topological: Array[Int] = topologicalLassoSort(c, sortIdx).map(n => idToIdx(n.id)).toArray
+   scribe.debug("Lasso Sort")
+    val topological: Array[Int] = topologicalLassoSort(chronological).map(n => idToIdx(n.id)).toArray
 
-//    scribe.debug("Lift result")
+   // scribe.debug("Lift result")
     val res = topological.map(liftIdx).toSeq.flatten
     res
   }
@@ -641,30 +641,34 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 //    else seq
 //  }
 
-  def topologicalLassoSort(seq: Seq[Node], sortIdx: NestedArrayInt): Seq[Node] = {
-//    val cycles = seq.map(n => algorithm.linearInvolmentsOfCycleSearch(seq.map(n => idToIdx(n.id)).toArray, beforeIdx))
-//    val cyclesIdx = algorithm.linearInvolmentsOfCycleSearch(seq.map(n => idToIdx(n.id)).toArray, beforeIdx)
+  def topologicalLassoSort(elements: Array[Int]): Seq[Node] = {
+//    val cycles = elements.map(n => algorithm.linearInvolmentsOfCycleSearch(elements.map(n => idToIdx(n.id)).toArray, beforeIdx))
+//    val cyclesIdx = algorithm.linearInvolmentsOfCycleSearch(elements.map(n => idToIdx(n.id)).toArray, beforeIdx)
 //    val breakCyclesGraphChanges = if(cyclesIdx.nonEmpty) {
 //      cyclesIdx.sliding(2).map(pair => GraphChanges.disconnect(Edge.Before.apply)(graph.nodes(pair.head).id, graph.nodes(pair.last).id))
 //    } else GraphChanges.empty
 
 
-//    scribe.debug(s"Sorting nodes: ${seq.map(e => (graph.idToIdx(e.id), e.str))}")
+//    scribe.debug(s"Sorting nodes: ${elements.map(e => (graph.idToIdx(e.id), e.str))}")
 //    scribe.debug(s"Sorting edges: ${sortIdx.foreachIndexAndElement((i, slice) => s"$i, ${slice.mkString(",")}")}")
 //    scribe.debug(s"Sorting edges: ${sortIdx.mkString(",")}")
-    if(!algorithm.containsCycle(seq.map(n => idToIdx(n.id)).toArray, sortIdx)) {
+    // if(!algorithm.containsCycle(elements.map(n => idToIdx(n.id)).toArray, sortIdx)) {
+
+    // scribe.debug(s"Sorting nodes: ${sortIdx.flatMap(ids => ids.map(graph.nodes)).map(_.str)}")
+    // scribe.debug(s"Before nodes: ${beforeIdx.flatMap(ids => ids.map(graph.nodes)).map(_.str).mkString(",")}")
+   if(!algorithm.containsCycle(elements, beforeIdx)) {
 
 
-      algorithm.topologicalLassoSort[Node, Seq](
-        seq.map(n => idToIdx(n.id)).toArray.sortBy(nodeCreated).map(nodes),
-        (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
-        (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
-      )
+     algorithm.topologicalLassoSort[Node, Seq](
+       elements.map(nodes),
+       (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
+       (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
+       )
 
-    } else {
+   } else {
       scribe.warn("Ignoring sorting because of cycle")
-      scribe.warn(s"${seq.map(_.str)}")
-      seq
+      scribe.warn(s"${elements.map(nodes).map(_.str).mkString(",")}")
+      elements.map(nodes)
     }
   }
 
