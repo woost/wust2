@@ -163,43 +163,23 @@ object algorithm {
     result.result()
   }
 
-  def dfsInvolmentsOfCycleSearch(start: Array[Int], successors: NestedArrayInt): Array[Int] = {
+  def containmentsOfCycle(elements: Array[Int], successors: NestedArrayInt): Array[Int] = {
+    val num = elements.length
+    var i = 0
+    val result = new mutable.ArrayBuilder.ofInt
 
-    scribe.warn(s"start.length = ${start.length}, successors.length = ${successors.length}")
-    val stack = ArrayStackInt.create(start.length + successors.length)
-    val visited = ArraySet.create(start.length + successors.length)
+    while(i < num) {
+      val idx = elements(i)
+      if(depthFirstSearchExistsAfterStart(idx, successors, idx))
+        result += idx
 
-    val inCycle = new mutable.ArrayBuilder.ofInt
-
-    start.foreachElement(stack.push)
-    successors.foreachSliceAndElement(start)(stack.push)
-//    successors.foreachSliceAndElement(visited.marked)(visited.add)
-
-    while(!stack.isEmpty) {
-      val current = stack.pop()
-      scribe.warn(s"current: $current")
-      if(visited.containsNot(current)) {
-        visited.add(current)
-
-        scribe.warn(s"searching successors of $current: ${successors(current).mkString(", ")}")
-        successors.foreachElement(current) { next =>
-          if(visited.containsNot(next)) {
-            stack.push(next)
-          } else {
-            inCycle += next
-            scribe.warn(s"successor($next) of current($current) in cycle")
-          }
-        }
-        scribe.warn(s"finished $current")
-
-//      } else {
-//        inCycle += current
-//        scribe.warn(s"current($current) in cycle")
-      }
+      i += 1
     }
 
-    inCycle.result()
+    result.result()
   }
+
+
 
   /*
    * DFS starts after the start index and searches for `search`

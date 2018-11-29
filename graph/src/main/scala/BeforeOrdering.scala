@@ -45,7 +45,7 @@ object BeforeOrdering {
     if(container.isEmpty) return GraphChanges.empty
 
 
-    val cyclesIdx = algorithm.dfsInvolmentsOfCycleSearch(container.toArray, beforeIdx)
+    val cyclesIdx = algorithm.containmentsOfCycle(container.toArray, beforeIdx)
 
     val breakCyclesGraphChanges = if(cyclesIdx.nonEmpty) {
       scribe.info(s"NONEMPTY: ${cyclesIdx.mkString(", ")}")

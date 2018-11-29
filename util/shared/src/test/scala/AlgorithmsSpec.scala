@@ -94,7 +94,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
 //      }
 
 
-      val dfs = dfsInvolmentsOfCycleSearch(Array(0,1,2,3), edges).toList
+      val dfs = containmentsOfCycle(Array(0,1,2,3), edges).toList
       assert(dfs == List(0,1,2))
     }
 
