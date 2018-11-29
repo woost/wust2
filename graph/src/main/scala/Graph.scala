@@ -785,7 +785,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   // IMPORTANT:
   // exactly the same as in the stored procedure
   // when changing things, make sure to change them for the stored procedure as well.
-  def can_access_node(userId: NodeId, nodeId: NodeId): Boolean = {
+  def can_access_node(userId: UserId, nodeId: NodeId): Boolean = {
     def can_access_node_recursive(
       userId: NodeId,
       nodeId: NodeId,
@@ -816,6 +816,35 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     // everybody has full access to non-existent nodes
     if(!(nodeIds contains nodeId)) return true
     can_access_node_recursive(userId, nodeId)
+  }
+
+  def accessLevelOfNode(nodeId: NodeId): Option[AccessLevel] = {
+    def inner(
+      nodeIdx: Int,
+      visited: immutable.BitSet
+    ): Option[AccessLevel] = {
+      if(visited(nodeIdx)) return None // prevent inheritance cycles and just disallow
+
+      nodes(nodeIdx).meta.accessLevel match {
+        case NodeAccess.Level(level) => Some(level)
+        case NodeAccess.Inherited    =>
+          // recursively inherit permissions from parents. minimum one parent needs to allow access.
+          var hasPrivateLevel = false
+          parentsIdx.foreachElement(nodeIdx) { parentIdx =>
+            inner(parentIdx, visited + nodeIdx) match {
+              case Some(AccessLevel.ReadWrite) => return Some(AccessLevel.ReadWrite) // return outer method, there is at least one public parent
+              case Some(AccessLevel.Restricted) => hasPrivateLevel = true
+              case None => ()
+            }
+          }
+          if (hasPrivateLevel) Some(AccessLevel.Restricted) else None
+      }
+    }
+
+    // everybody has full access to non-existent nodes
+    val nodeIdx = idToIdx(nodeId)
+    if(nodeIdx < 0) return Some(AccessLevel.ReadWrite)
+    inner(nodeIdx, immutable.BitSet.empty)
   }
 
   //  lazy val containmentNeighbours

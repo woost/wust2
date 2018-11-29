@@ -71,6 +71,13 @@ object PageHeader {
         val hasBigScreen = state.screenSize() != ScreenSize.Small
         hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px"))
       },
+      Rx {
+        val level = state.graph().accessLevelOfNode(channel.id)
+        val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
+        isPublic.ifTrue[VDomModifier](
+          div(freeSolid.faGlobeAmericas, UI.tooltip("bottom center") := "This post is publicly available for everyone with whom you share the URL.")
+        )
+      },
       menu(state, channel).apply(marginLeft.auto),
     )
   }
@@ -748,10 +755,9 @@ object PermissionSelection {
     PermissionSelection(
       access = NodeAccess.Inherited,
       name = { (nodeId, graph) =>
-        val canAccess = graph
-          .parents(nodeId) //TODO: incorrect need to traverse all ancestors and stop at private nodes
-          .exists(nid => graph.nodesById(nid).meta.accessLevel == NodeAccess.ReadWrite)
-        val inheritedLevel = if(canAccess) "Public" else "Private"
+        val level = graph.accessLevelOfNode(nodeId)
+        val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
+        val inheritedLevel = if(isPublic) "Public" else "Private"
         s"Inherited ($inheritedLevel)"
       },
       value = "Inherited",
