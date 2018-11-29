@@ -69,7 +69,7 @@ object PageHeader {
       channelTitle.map(_(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px")),
       Rx {
         val hasBigScreen = state.screenSize() != ScreenSize.Small
-        hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px"))
+        hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
       },
       Rx {
         val level = state.graph().accessLevelOfNode(channel.id)
