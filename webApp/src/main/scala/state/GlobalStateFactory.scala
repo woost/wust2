@@ -59,13 +59,34 @@ object GlobalStateFactory {
           if userIdx != -1
         } yield algorithm.depthFirstSearchExists(start = pageIdx, graph().notDeletedParentsIdx, userIdx)).getOrElse(true)
 
+
+        def userIsMemberOfPage:Option[Boolean] = for {
+          pageParentId <- pageChangeCmd.page.parentId
+          pageIdx = graph().idToIdx(pageParentId)
+          if pageIdx != -1
+          userIdx = graph().idToIdx(user().id)
+          if userIdx != -1
+        } yield graph().membershipEdgeIdx.exists(pageIdx)(edgeIdx => graph().edgesIdx.a(edgeIdx) == userIdx)
+
+        userIsMemberOfPage.foreach { userIsMemberOfPage =>
+          if(!userIsMemberOfPage) {
+            val pageId = pageChangeCmd.page.parentId.get
+            Client.api.addMember(pageId, user().id, AccessLevel.ReadWrite)
+            // locally add the edge, since a user does not receive its own events
+            val event = ApiEvent.NewGraphChanges(user().toNode, GraphChanges(addEdges = Set(Edge.Member(user().id, EdgeData.Member(AccessLevel.ReadWrite), pageId))))
+            eventProcessor.localEvents.onNext(event)
+          }
+        }
+
         pageChangeCmd.page.parentId.foreach { parentId =>
           if(!isLoading() && pageChangeCmd.needsGet && prevPage != pageChangeCmd.page && !anyPageParentIsPinned && !pageIsUnderUser) {
             prevPage = pageChangeCmd.page //we do this ONCE per page
 
             // user probably clicked on a woost-link.
-            // So we pin the page as channels and enable notifications
-            val changes = GraphChanges.connect(Edge.Notify)(parentId, user().id).merge(GraphChanges.connect(Edge.Pinned)(user().id, parentId))
+            // So we pin the page and enable notifications, and add the user as member
+            val changes =
+              GraphChanges.connect(Edge.Notify)(parentId, user().id)
+              .merge(GraphChanges.connect(Edge.Pinned)(user().id, parentId))
             eventProcessor.changes.onNext(changes)
           }
         }

@@ -51,7 +51,7 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
       def validAddEdges = changes.addEdges.forall {
         case Edge.Author(authorId, _, nodeId) =>
           authorId == user.id && changes.addNodes.map(_.id).contains(nodeId)
-        case _: Edge.Member => false
+        case _: Edge.Member => false //TODO: map to addMember API call
         case _              => true
       }
 
