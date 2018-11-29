@@ -117,12 +117,12 @@ object Deps {
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
-    val marked = "marked" -> "0.5.0"
+    val marked = "marked" -> "0.5.2"
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
-    val highlight = "highlight.js" -> "9.12.0"
-    val dateFns = "date-fns" -> "v2.0.0-alpha.23"
+    val highlight = "highlight.js" -> "9.13.1"
+    val dateFns = "date-fns" -> "v2.0.0-alpha.25"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
-    val fomanticUi = "fomantic-ui-css" -> "2.6.3"
+    val fomanticUi = "fomantic-ui-css" -> "2.6.4"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
     val hammerjs = "hammerjs" -> "2.0.8"
