@@ -49,9 +49,13 @@ object BeforeOrdering {
 
     val breakCyclesGraphChanges = if(cyclesIdx.nonEmpty) {
       scribe.info(s"NONEMPTY: ${cyclesIdx.mkString(", ")}")
-      val delBeforeEdges = cyclesIdx.map(graph.nodeIds).sliding(2).map(pair =>
-        Edge.Before(pair.head, wust.ids.EdgeData.Before(parentId), pair.last)
-      ).toIterable
+//      val delBeforeEdges = cyclesIdx.map(graph.nodeIds).sliding(2).map(pair =>
+//        Edge.Before(pair.head, wust.ids.EdgeData.Before(parentId), pair.last)
+//      ).toIterable
+      val beforeEdgesIds: Iterable[(NodeId, NodeId)] = cyclesIdx.flatMap(idx => beforeIdx(idx).map(succIdx => (graph.nodeIds(idx), graph.nodeIds(succIdx))))
+      val delBeforeEdges = beforeEdgesIds.map(pair =>
+          Edge.Before(pair._1, wust.ids.EdgeData.Before(parentId), pair._2)
+        ).toIterable
       GraphChanges.from(delEdges = delBeforeEdges)
     } else GraphChanges.empty
 
@@ -103,7 +107,7 @@ object BeforeOrdering {
     val taskNodes = nodesOfInterest.filter(idx => {
       taskFilter(graph.nodes(idx)) && categorizationFilter(graph, (idx: Int) => idx == pageParentIdx, idx, userId)
     })
-    sortIdx(graph, parentId, taskNodes)
+    sortIdx(graph, parentId, taskNodes, true)
   }
 
   def getBeforeAndAfter(g: Graph, index: Int, orderedNodes: Seq[Int]): (Option[NodeId], Option[NodeId]) = {
