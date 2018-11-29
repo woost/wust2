@@ -487,20 +487,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   @inline def members(nodeId: NodeId): Seq[Node.User] = membersByIndex(idToIdx(nodeId))
 
-  def usersInNode(id: NodeId, max: Int): collection.Set[Node.User] = {
+  def usersInNode(id: NodeId): collection.Set[Node.User] = {
     val builder = new mutable.LinkedHashSet[Node.User]
     val nodeIdx = idToIdx(id)
     val members = membersByIndex(nodeIdx)
     builder ++= members
-    var counter = members.size
-    depthFirstSearchWithManualAppendStopIfAppendFalse(nodeIdx, childrenIdx, append = { idx =>
-      val authors = authorsByIndex(idx)
-      builder ++= authors
-      counter += authors.size
-      counter <= max
+    depthFirstSearchWithManualAppend(nodeIdx, childrenIdx, append = { idx =>
+      builder ++= authorsByIndex(idx)
     })
 
-    builder.result().take(max)
+    builder.result()
   }
 
   def combinedDeletedAt(subjectIdx: Int): Option[EpochMilli] = {

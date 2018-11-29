@@ -126,7 +126,7 @@ object PageHeader {
         val graph = state.graph()
         //TODO: possibility to show more
         //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = graph.usersInNode(channel.id, max = 7)
+        val users = graph.usersInNode(channel.id)
 
         users.map(user => div(
           Avatar.user(user.id)(
