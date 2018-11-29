@@ -21,6 +21,7 @@ docker push "$DOCKER_REGISTRY/woost/slack:production"
 
 if [[ -n "$PRODUCTION_URL" ]]; then
     echo "Triggering production deploy..."
+    sleep 3
     curl "$PRODUCTION_URL"
 else
     echo "Not triggering deploy, since no PRODUCTION_URL given"

@@ -21,4 +21,5 @@ docker push "$DOCKER_REGISTRY/woost/slack:latest"
 
 [[ -n "$STAGING_URL" ]] || exit 0
 echo "Triggering staging deploy..."
+sleep 3
 curl "$STAGING_URL"
