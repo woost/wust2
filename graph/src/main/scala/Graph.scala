@@ -477,7 +477,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       descendantsIdx(idx).foreach { idx =>
         builder ++= authorsByIndex(idx)
       }
-      builder.result()
+      builder.result().distinct
     }
   }
   @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = authorsInByIndex(idToIdx(nodeId))

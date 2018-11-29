@@ -124,11 +124,10 @@ object PageHeader {
       flexWrap.wrap,
       Rx {
         val graph = state.graph()
-        //TODO: possibility to show more
-        //TODO: ensure that if I am member, my avatar is in the visible list
-        val users = graph.usersInNode(channel.id)
+        val nodeIdx = graph.idToIdx(channel.id)
+        val members = graph.membersByIndex(nodeIdx)
 
-        users.map(user => div(
+        members.map(user => div(
           Avatar.user(user.id)(
             marginLeft := "2px",
             width := "22px",
@@ -317,7 +316,7 @@ object PageHeader {
     )
   }
 
-  private def addMemberButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def manageMembers(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
 
     val addMember = PublishSubject[String]
     val removeMember = PublishSubject[Edge.Member]
@@ -360,6 +359,27 @@ object PageHeader {
       ),
       div(s"Manage Members"),
     )
+
+    def userLine(user:Node.User):VNode = {
+      div(
+        marginTop := "10px",
+        Styles.flex,
+        alignItems.center,
+        Avatar.user(user.id)(
+          cls := "avatar",
+          width := "22px",
+          height := "22px",
+          Styles.flexStatic,
+          marginRight := "5px",
+        ),
+        div(
+          user.name,
+          fontSize := "15px",
+          Styles.wordWrap,
+        ),
+      )
+    }
+
     def description = VDomModifier(
       div(
         div(
@@ -380,33 +400,20 @@ object PageHeader {
         marginLeft := "10px",
         Rx {
           val graph = state.graph()
-          graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
-            val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-            val user = graph.nodesById(membership.userId).asInstanceOf[User]
-            div(
-              marginTop := "10px",
-              Styles.flex,
-              alignItems.center,
-              Avatar.user(user.id)(
-                cls := "avatar",
-                width := "22px",
-                height := "22px",
-                Styles.flexStatic,
-                marginRight := "5px",
-              ),
-              div(
-                user.name,
-                fontSize := "15px",
-                Styles.wordWrap,
-              ),
-              button(
-                cls := "ui tiny compact negative basic button",
-                marginLeft := "10px",
-                "Remove",
-                onClick(membership) --> removeMember
+          VDomModifier(
+            graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
+              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+              val user = graph.nodesById(membership.userId).asInstanceOf[User]
+              userLine(user)(
+                button(
+                  cls := "ui tiny compact negative basic button",
+                  marginLeft := "10px",
+                  "Remove",
+                  onClick(membership) --> removeMember
+                )
               )
-            )
-          }
+            },
+          )
         }
       )
     )
@@ -417,11 +424,11 @@ object PageHeader {
 
       cls := "item",
       i(
-        freeSolid.faUserPlus,
+        freeSolid.faUsers,
         cls := "icon fa-fw",
         marginRight := "5px",
         ),
-      span(cls := "text", "Add Member", cursor.pointer),
+      span(cls := "text", "Manage Members", cursor.pointer),
 
       onClick(UI.ModalConfig(header = header, description = description, modalModifier =
         cls := "mini form",
@@ -669,7 +676,7 @@ object PageHeader {
       ))
 
 
-    val addMemberItem = canWrite.ifTrue[VDomModifier](addMemberButton(state, channel))
+    val addMemberItem = canWrite.ifTrue[VDomModifier](manageMembers(state, channel))
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
 
