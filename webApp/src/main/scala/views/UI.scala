@@ -34,7 +34,7 @@ object UI {
       label(labelText)
     )}
 
-  case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty)
+  case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
   def modal(config: Observable[ModalConfig]): VDomModifier = div(
       keyed,
       cls := "ui modal",
@@ -56,6 +56,7 @@ object UI {
           ),
           div(
             cls := "content",
+            config.contentModifier,
             div(
               cls := "ui medium",
               div(

@@ -310,7 +310,10 @@ object PageHeader {
         ),
       span(cls := "text", "Search", cursor.pointer),
 
-      onClick(UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = cls := "form")) --> state.modalConfig
+      onClick(UI.ModalConfig(header = header, description = description, close = closeModal,
+        modalModifier = cls := "form",
+        contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      )) --> state.modalConfig
     )
   }
 
@@ -358,7 +361,6 @@ object PageHeader {
       div(s"Manage Members"),
     )
     def description = VDomModifier(
-      backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       div(
         div(
           cls := "ui fluid action input",
@@ -421,7 +423,10 @@ object PageHeader {
         ),
       span(cls := "text", "Add Member", cursor.pointer),
 
-      onClick(UI.ModalConfig(header = header, description = description, modalModifier = cls := "mini form")) --> state.modalConfig
+      onClick(UI.ModalConfig(header = header, description = description, modalModifier =
+        cls := "mini form",
+        contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      )) --> state.modalConfig
     )
   }
 
