@@ -7,9 +7,10 @@ import rx._
 import wust.api.{AuthResult, AuthUser}
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, View}
+import wust.webApp.state.{GlobalState, PageChange, View}
 import wust.webApp.views.Elements._
 import cats.effect.IO
+import wust.graph.Page
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -109,6 +110,7 @@ object AuthView {
                 "Discard content",
                 onClick.preventDefault foreach {
                   Client.auth.logout()
+                  state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty, needsGet = false), redirectTo = None)
                   ()
                 }
               )
