@@ -2,7 +2,7 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
-import fontAwesome.{IconLookup, freeRegular}
+import fontAwesome.{IconLookup, freeRegular, freeSolid}
 import monix.execution.Cancelable
 import monix.reactive.Observer
 import org.scalajs.dom
@@ -314,25 +314,29 @@ object Components {
     val initialRender: Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
 
     def save(contentEditable:HTMLElement): Unit = {
+      println("RUNNING SAVE")
       if(editMode.now) {
         val text = contentEditable.textContent
-        val updatedNode = node.copy(data = NodeData.Markdown(text))
+        if (text.nonEmpty) {
+          val newData = NodeData.Markdown(text)
+          if (newData != node.data) {
+            val updatedNode = node.copy(data = newData)
 
-        Var.set(
-          initialRender -> renderNodeData(updatedNode.data, maxLength),
-          editMode -> false
-        )
+            Var.set(
+              initialRender -> renderNodeData(updatedNode.data, maxLength),
+              editMode -> false
+            )
 
-        val changes = GraphChanges.addNode(updatedNode)
-        submit.onNext(changes)
+            val changes = GraphChanges.addNode(updatedNode)
+            submit.onNext(changes)
+          } else {
+            editMode() = false
+          }
+        }
       }
     }
 
-    def discardChanges(): Unit = {
-      if(editMode.now) {
-        editMode() = false
-      }
-    }
+    import scala.concurrent.duration._
 
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
@@ -348,13 +352,12 @@ object Components {
           cursor.auto,
 
           onFocus foreach { e => document.execCommand("selectAll", false, null) },
-
-          if(BrowserDetect.isMobile) VDomModifier(
-            onBlur foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-          ) else VDomModifier(
+          onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
+          BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
             onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-            onBlur foreach { discardChanges() },
-          ),
+            onEscape foreach { editMode() = false }
+            //TODO how to revert back if you wrongly edited something on mobile?
+          )),
           onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
         ) else initialRender()
       },
@@ -405,7 +408,7 @@ object Components {
             })
 
 
-            elem.search("search local", "") // enfoce autocomplete on focus, otherwise it does not work for the initial focus
+            elem.search("search local", "") // enforce autocomplete on focus, otherwise it does not work for the initial focus
           },
 
           valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
