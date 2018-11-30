@@ -115,17 +115,11 @@ class QueuedLogstashWriter(
     }
   }
 
-  private def retryWithBackoff[A](source: Task[A], maxRetries: Int, initialDelay: FiniteDuration): Task[A] = source
-    .onErrorHandleWith { case ex: Exception =>
-      if (maxRetries > 0) retryWithBackoff(source, maxRetries - 1, initialDelay * 2).delayExecution(initialDelay)
-      else Task.raiseError(ex)
-    }
-
   def start(): Cancelable = logSubject
     .bufferTimedAndCounted(timespan = 10.seconds, maxCount = 100)
     .subscribe(
       { logs =>
-        retryWithBackoff(sendLogs(logs), maxRetries = 3, initialDelay = 5.seconds).runAsync {
+        MonixUtils.retryWithBackoff(sendLogs(logs), maxRetries = 3, initialDelay = 5.seconds).runAsync {
           case Right(_) => ()
           case Left(t) => println(s"Failed to send logs to logstash, dropping ${logs.size} log records: $t")
         }

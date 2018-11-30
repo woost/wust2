@@ -6,7 +6,7 @@ import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.api.{Authentication, PluginUserAuthentication}
+import wust.api.{Authentication, PluginUserAuthentication, UserDetail}
 import wust.css.Styles
 import wust.ids._
 import wust.webApp._
@@ -15,9 +15,12 @@ import Elements._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import cats.effect.IO
+import org.scalajs.dom
 
 import scala.util.control.NonFatal
 import scala.concurrent.Future
+import scala.scalajs.js
+import scala.util.{Failure, Success}
 
 object UserSettingsView {
 
@@ -29,7 +32,7 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(user)(marginBottom := "50px"),
-          accountSettings(user).apply(marginBottom := "50px"),
+          accountSettings(state, user).apply(marginBottom := "50px"),
           pluginSettings(user),
         )
       }
@@ -38,29 +41,138 @@ object UserSettingsView {
 
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     b("Plugins:"),
+    br,
     div(
       marginLeft := "10px",
       Observable.fromFuture(slackButton(user))
     )
   )
 
-  private def accountSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
-    width := "200px",
-    b("Account:"),
+  private def accountSettings(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+
     div(
-      marginLeft := "10px",
-      changePassword(user)
+      width := "300px",
+      b("Account settings:"),
+      br,
+      changeEmail(state).apply(
+        marginLeft := "10px",
+      ),
+      br,
+      changePassword(user).apply(
+        marginLeft := "10px",
+      )
     )
-  )
+  }
+
+  private def changeEmail(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val userDetail = Var[Option[UserDetail]](None)
+    val detailsUnavailable = Var(true)
+    state.user.foreach { user =>
+      Client.auth.getUserDetail(user.id).onComplete {
+        case Success(detail) =>
+          Var.set(
+            detailsUnavailable -> false,
+            userDetail -> detail
+          )
+        case Failure(err) =>
+          scribe.info("Cannot get UserDetail", err)
+          Var.set(
+            detailsUnavailable -> false,
+            userDetail -> None
+          )
+      }
+    }
+
+    var element: dom.html.Form = null
+    val email = Handler.unsafe[String]
+    val errorHandler = Handler.unsafe[Option[String]](None)
+    val actionSink = { email: String =>
+      userDetail.now match {
+        case Some(detail) if email.nonEmpty && detail.email.fold(true)(_ != email) => Client.auth.updateUserEmail(detail.userId, email).onComplete {
+          case Success(success) =>
+            if (success) {
+              userDetail() = Some(detail.copy(email = Some(email), verified = false))
+              UI.toast("Successfully changed Email address. Please check your email inbox to verify the address. ", level = UI.ToastLevel.Success)
+            }
+
+            val error = if (success) None else Some("Email address already taken")
+            errorHandler.onNext(error)
+          case Failure(err) =>
+            errorHandler.onNext(Some(s"Unexpected error: $err"))
+        }
+        case _ => ()
+      }
+    }
+    form(
+      onDomMount.foreach(e => element = e.asInstanceOf[dom.html.Form]),
+      onSubmit.foreach(_.preventDefault()),
+      div(
+        cls := "ui fluid input",
+        input(
+          placeholder := "Email address",
+          tpe := "email",
+          disabled <-- detailsUnavailable,
+          value <-- userDetail.map(_.fold("")(_.email.getOrElse(""))),
+          onChange.value --> email,
+          onEnter.value foreach actionSink)
+      ),
+      errorHandler.map {
+        case None => VDomModifier(userDetail.map(_.collect { case UserDetail(userId, Some(email), false) => div(
+          cls := "ui yellow message",
+          div(
+            cls := "header", s"Email address is unverified. Check your inbox for the verification email. Or ",
+            a(
+              href := "#",
+              marginLeft := "auto",
+              "resend verification email",
+              onClick.preventDefault foreach {
+                Client.auth.resendEmailVerification(userId).foreach { case () =>
+                  UI.toast(s"Send out verification email to '${email}'", level = UI.ToastLevel.Success)
+                }
+              }
+            )
+          )
+        )}))
+        case Some(problem) => div(
+          cls := "ui negative message",
+          div(cls := "header", problem)
+        )
+      },
+      button(
+        "Change Email",
+        cls := "ui fluid primary button",
+        display.block,
+
+        onClick(email).foreach { email =>
+          if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+            actionSink(email)
+          }
+        }
+      )
+    )
+  }
 
   private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = {
+    var element: dom.html.Form = null
     val password = Handler.unsafe[String]
-    val successHandler = Handler.unsafe(true)
-    val clearHandler = successHandler.collect { case true => "" }
+    val errorHandler = Handler.unsafe[Option[String]]
+    val clearHandler = errorHandler.collect { case None => "" }
     val actionSink = { password: String =>
-      if (password.nonEmpty) Client.auth.changePassword(password).foreach(successHandler.onNext)
+      if (password.nonEmpty) Client.auth.changePassword(password).onComplete {
+        case Success(success) =>
+          if (success) {
+            UI.toast("Successfully changed password", level = UI.ToastLevel.Success)
+          }
+
+          val error = if (success) None else Some("Something went wrong")
+          errorHandler.onNext(error)
+        case Failure(err) =>
+          errorHandler.onNext(Some(s"Unexpected error: $err"))
+      }
     }
-    VDomModifier(
+    form(
+      onDomMount.foreach(e => element = e.asInstanceOf[dom.html.Form]),
+      onSubmit.foreach(_.preventDefault()),
       div(
         emitter(clearHandler) --> password,
         cls := "ui fluid input",
@@ -71,18 +183,22 @@ object UserSettingsView {
           onChange.value --> password,
           onEnter.value foreach actionSink)
       ),
-      successHandler.map {
-        case true => VDomModifier.empty
-        case false => div(
+      errorHandler.map {
+        case None => VDomModifier.empty
+        case Some(problem) => div(
           cls := "ui negative message",
-          div(cls := "header", s"Changing password failed.")
+          div(cls := "header", problem)
         )
       },
       button(
         "Change Password",
         cls := "ui fluid primary button",
         display.block,
-        onClick(password) foreach actionSink
+        onClick(password).foreach { email =>
+          if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+            actionSink(email)
+          }
+        }
       )
     )
   }

@@ -47,18 +47,29 @@ trait PushApi[Result[_]] {
 trait AuthApi[Result[_]] {
   def changePassword(password: String): Result[Boolean]
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
-  def register(name: String, password: String): Result[AuthResult]
+  def register(name: String, email: String, password: String): Result[AuthResult]
   def login(name: String, password: String): Result[AuthResult]
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
   def issuePluginToken(): Result[Authentication.Verified]
   def createImplicitUserForApp(): Result[Option[Authentication.Verified]]
+
+  def getUserDetail(id: UserId): Result[Option[UserDetail]]
+  def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
+  def resendEmailVerification(id: UserId): Result[Unit]
 }
+
+case class UserDetail(
+  userId: UserId,
+  email: Option[String],
+  verified: Boolean
+)
 
 sealed trait AuthResult
 object AuthResult {
   case object BadUser extends AuthResult
+  case object BadEmail extends AuthResult
   case object BadPassword extends AuthResult
   case object Success extends AuthResult
 }

@@ -1,6 +1,6 @@
 package wust.backend
 
-import wust.api.{AuthUser, WebPushSubscription}
+import wust.api.{AuthUser, UserDetail, WebPushSubscription}
 import wust.db.Data
 import wust.graph._
 import wust.ids._
@@ -20,6 +20,9 @@ object DbConversions {
       case data: NodeData.Content => new Node.Content(node.id, data, node.role, nodeMeta(node))
       case data: NodeData.User    => new Node.User(UserId(node.id), data, nodeMeta(node))
     }
+  }
+  implicit def forClient(userDetail: Data.UserDetail): UserDetail = {
+    UserDetail(userDetail.userId, userDetail.email, userDetail.verified)
   }
   implicit def forClient(node: Data.User): Node.User =
     new Node.User(node.id, node.data, nodeMeta(node))

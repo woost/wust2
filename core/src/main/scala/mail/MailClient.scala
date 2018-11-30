@@ -1,15 +1,14 @@
 package wust.backend.mail
 
 import java.util.{Date, Properties}
+
 import javax.mail._
 import javax.mail.internet._
-
+import monix.eval.Task
 import wust.backend.config.SmtpConfig
 
-import scala.util.Try
-
 trait MailClient {
-  def sendMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Unit]
+  def sendMessage(from: String, mail: MailMessage): Task[Unit]
 }
 
 class JavaMailClient(config: SmtpConfig) extends MailClient {
@@ -18,18 +17,21 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
       new PasswordAuthentication(config.username, config.password)
   }
 
-  private def createMessage(
-      from: String,
-      recipient: MailRecipient,
-      mail: MailMessage
-  ): Try[Message] = Try {
+  private def createMessage(from: String, mail: MailMessage): Task[Message] = Task {
     import mail._
 
     val properties = new Properties()
-    properties.put("mail.smtp.host", config.endpoint)
-    properties.put("mail.smtp.auth", "true");
+    val (host, port) = {
+      val arr = config.endpoint.split(":")
+      if (arr.size > 1) (arr(0), Some(arr(1))) else (config.endpoint, None)
+    }
+    properties.put("mail.smtp.host", host)
+    port.foreach(properties.put("mail.smtp.port", _))
 
-    val session = Session.getDefaultInstance(properties, authenticator);
+    properties.put("mail.smtp.ssl.enable", "true")
+    properties.put("mail.smtp.auth", "true")
+
+    val session = Session.getDefaultInstance(properties, authenticator)
     // session.setDebug(true)
 
     val message = new MimeMessage(session)
@@ -45,11 +47,11 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
 
     message.setSentDate(new Date())
     message.setSubject(subject)
-    message.setText(content)
+    message.setText(body)
     message
   }
 
-  def sendMessage(from: String, recipient: MailRecipient, mail: MailMessage): Try[Unit] = {
-    createMessage(from, recipient, mail).flatMap(message => Try(Transport.send(message)))
+  def sendMessage(from: String, mail: MailMessage): Task[Unit] = {
+    createMessage(from, mail).flatMap(message => Task(Transport.send(message)))
   }
 }

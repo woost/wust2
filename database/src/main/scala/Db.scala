@@ -11,6 +11,7 @@ import wust.ids.serialize.Circe._
 import wust.util._
 
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
 
 object Db {
   def apply(config: Config): Db = {
@@ -281,7 +282,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     // TODO share code with createimplicit?
-    def create(userId: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[User] = {
+    def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[User] = {
       val userData = NodeData.User(name = name, isImplicit = false, revision = 0)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
@@ -289,8 +290,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
         with insert_user as (insert into node (id,data,accesslevel) values(${lift(user.id)}, ${lift(user.data)}, ${lift(user.accessLevel)})),
-             insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)}))
-             insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(digest)})
+             insert_user_member as (insert into edge (sourceid, data, targetid) values(${lift(userId)}, ${lift(membership)}, ${lift(userId)})),
+             insert_user_detail as (insert into userdetail (userid, email, verified) values(${lift(userId)}, ${lift(email)}, ${lift(false)}))
+             insert into password(userid, digest) VALUES(${lift(userId)}, ${lift(passwordDigest)})
       """.as[Insert[Node]]
       }
 
@@ -319,7 +321,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     //TODO one query
-    def activateImplicitUser(userId: UserId, name: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext ): Future[Option[User]] = {
+    def activateImplicitUser(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext ): Future[Option[User]] = {
       ctx.run(queryUser.filter(u => u.id == lift(userId) && u.data ->> "isImplicit" == "true")) //TODO: type safe
         .flatMap(_.headOption.fold(Future.successful(Option.empty[User])) { user =>
           val userData = user.data
@@ -329,24 +331,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
           for {
             numberUserInserts <- ctx.run(queryUser.filter(_.id == lift(userId)).update(lift(updatedUser)))
             numberPWInserts <- ctx.run(query[Password].insert(lift(Password(userId, passwordDigest))))
-            u <- checkUnexpected(numberPWInserts == 1 && numberUserInserts == 1, Option(updatedUser), s"Unexpected number of user/pw inserts ${userId.toUuid}: $numberUserInserts / 1, $numberPWInserts / 1")
+            numberUserDetailInserts <- ctx.run(query[UserDetail].insert(lift(UserDetail(userId, Some(email), verified = false))))
+            u <- checkUnexpected(numberPWInserts == 1 && numberUserInserts == 1 && numberUserDetailInserts == 1, Option(updatedUser), s"Unexpected number of user/pw inserts ${userId.toUuid}: $numberUserInserts / 1, $numberPWInserts / 1, $numberUserDetailInserts / 1")
           } yield u
         })
     }
-    //TODO: one query.
-    // def activateImplicitUser(id: UserId, name: String, digest: Array[Byte])(implicit ec: ExecutionContext): Future[Option[User]] = {
-    //    val user = newRealUser(name)
-    //    val q = quote { s"""
-    //      with existingUser as (
-    //        UPDATE "user" SET isimplicit = true, revision = revision + 1 WHERE id = ${lift(id)} and isimplicit = true RETURNING revision
-    //      )
-    //      INSERT INTO password(id, digest) values(${lift(id)}, ${lift(digest)}) RETURNING existingUser.revision;
-    //    """}
-
-    //    ctx.executeActionReturning(q, identity, _(0).asInstanceOf[Int], "revision")
-    //      .map(rev => Option(user.copy(revision = rev)))
-    //      // .recoverValue(None)
-    // }
 
     def mergeImplicitUser(implicitId: UserId, userId: UserId)(implicit ec: TransactionalExecutionContext ): Future[Boolean] = {
       if (implicitId == userId) Future.successful(true)
@@ -367,7 +356,44 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def get(id: UserId)(implicit ec: ExecutionContext): Future[Option[User]] = {
       ctx.run(
         queryUser
-          .filter(p => p.id == lift(id) && p.data.jsonType == lift(NodeData.User.tpe))
+          .filter(p => p.id == lift(id))
+          .take(1)
+      ).map(_.headOption)
+    }
+
+    def verifyEmailAddress(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val q = quote {
+        query[UserDetail]
+          .filter(detail => detail.userId == lift(userId) && detail.email.exists(_ == lift(email)) && !detail.verified)
+          .update(_.verified -> lift(true))
+      }
+
+      ctx.run(q).map(_ == 1)
+    }
+    def existsEmail(email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val q = quote {
+        query[UserDetail]
+          .filter(_.email.exists(_ == lift(email)))
+          .take(1)
+      }
+
+      ctx.run(q).map(_.nonEmpty).recover { case _ => false }
+    }
+
+    def updateUserEmail(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val q = quote {
+        query[UserDetail]
+          .filter(_.userId == lift(userId))
+          .update(_.email -> Some(lift(email)), _.verified -> lift(false))
+      }
+
+      ctx.run(q).map(_ == 1).recover { case _ => false }
+    }
+
+    def getUserDetail(id: UserId)(implicit ec: ExecutionContext): Future[Option[UserDetail]] = {
+      ctx.run(
+        query[UserDetail]
+          .filter(p => p.userId == lift(id))
           .take(1)
       ).map(_.headOption)
     }

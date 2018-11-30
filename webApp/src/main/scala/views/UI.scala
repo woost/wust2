@@ -114,7 +114,7 @@ object UI {
     case object Warning extends ToastLevel { def value = "warning" }
     case object Error extends ToastLevel { def value = "error" }
   }
-  def toast(msg: String, title: js.UndefOr[String] = js.undefined, click: () => Unit = () => (), level: ToastLevel = ToastLevel.Info): Unit = {
+  def toast(msg: String, title: js.UndefOr[String] = js.undefined, click: () => Unit = () => (), autoclose: Boolean = true, level: ToastLevel = ToastLevel.Info): Unit = {
     val _title = title
     import jquery.JQuery._
     `$`(dom.window.document.body).toast(new ToastOptions {
@@ -123,7 +123,7 @@ object UI {
       position = "bottom right"
       title = _title
       message = msg
-      displayTime = 5000
+      displayTime = if (autoclose) 10000 else 0
     })
   }
 }

@@ -51,7 +51,7 @@ trait ToastOptions extends js.Object {
   var message: js.UndefOr[String] = js.undefined
   var position: js.UndefOr[String] = js.undefined
   var `class`: js.UndefOr[String] = js.undefined
-  var displayTime: js.UndefOr[Double] = js.undefined
+  var displayTime: js.UndefOr[Double | Int] = js.undefined
   var showIcon: js.UndefOr[Boolean] = js.undefined
   var closeIcon: js.UndefOr[Boolean] = js.undefined
   var showProgess: js.UndefOr[Boolean] = js.undefined

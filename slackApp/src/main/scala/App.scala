@@ -332,7 +332,7 @@ object WustReceiver {
 
     // TODO: failsave and only initially assume
     highPriorityClient.auth.assumeLogin(Constants.wustUser)
-    highPriorityClient.auth.register(config.user, config.password)
+    highPriorityClient.auth.register(config.user, config.email, config.password)
     wustClient.observable.connected.foreach { _ =>
       highPriorityClient.auth.login(config.user, config.password)
     }

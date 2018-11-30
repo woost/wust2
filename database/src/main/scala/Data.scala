@@ -22,6 +22,12 @@ object Data {
       accessLevel: NodeAccess
   )
 
+  case class UserDetail(
+      userId: UserId,
+      email: Option[String],
+      verified: Boolean
+  )
+
   case class SimpleUser(id: UserId, data: NodeData.User)
 
   case class Edge(sourceId: NodeId, data: EdgeData, targetId: NodeId)

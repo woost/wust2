@@ -15,7 +15,7 @@ import wust.backend.config.Config
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
-import wust.db.Db
+import wust.db.{Db, SuccessResult}
 import covenant.ws._
 import covenant.http._
 import sloth._
@@ -29,13 +29,20 @@ import io.circe.generic.extras.auto._
 import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler
+import wust.backend.mail.MailService
 
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object Server {
   import akka.http.scaladsl.server.RouteResult._
   import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
+
+  object paths {
+    val health = "health"
+    val emailVerify = "email-verify"
+  }
 
   def run(config: Config) = {
     implicit val system = ActorSystem("server")
@@ -54,16 +61,17 @@ object Server {
     }
   }
 
-  private def createRoute(
-      config: Config
-  )(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
+  private def createRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
     import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val guardDsl = new GuardDsl(jwt, db)
+    val mailService = MailService(config.email)
+    val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
+    val cancelable = emailFlow.start()
 
     val apiImpl = new ApiImpl(guardDsl, db)
-    val authImpl = new AuthApiImpl(guardDsl, db, jwt)
+    val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 
     val jsonRouter = Router[String, ApiFunction]
@@ -98,8 +106,28 @@ object Server {
           }
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
-    } ~ (path("health") & get) {
+    } ~ (path(paths.health) & get) {
       complete("ok")
+    } ~ (path(paths.emailVerify) & get) { // needs
+      cors(corsSettings) {
+        parameters('token.as[String]) { token =>
+          def link =  s"""<a href="https://${config.server.host}">Go back to app</a>"""
+          def successMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Your email address has been verified. Thank you! $link"))
+          def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot verify email address. This email verification token was already used or is invalid or expired. $link"))
+          def errorMessage = complete(StatusCodes.InternalServerError -> s"Sorry, we cannot verify your email address. Please try again later.")
+          jwt.emailActivationFromToken(token) match {
+           case Some(activation) if !JWT.isExpired(activation) =>
+             onComplete(db.user.verifyEmailAddress(activation.userId, activation.email)) {
+               case Success(true) => successMessage
+               case Success(false) => invalidMessage
+               case Failure(t) =>
+                 scribe.error("There was an error when verifying an email address", t)
+                 errorMessage
+             }
+           case _ => invalidMessage
+         }
+        }
+      }
     }
   }
 }

@@ -15,9 +15,11 @@ import wust.webApp.{BrowserDetect, Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
 import wust.util.StringOps
 import wust.util.algorithm
+import wust.webApp.views.UI
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
+import scala.util.{Failure, Success}
 
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
@@ -42,6 +44,19 @@ object GlobalStateFactory {
 
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError)
     import state._
+
+    // TODO: we need this for the migration from username to email can go away afterwards
+    user.foreach {
+      case user: AuthUser.Real =>
+        Client.auth.getUserDetail(user.id).onComplete {
+          case Success(Some(detail)) =>
+            if(detail.email.isEmpty)
+              UI.toast("You do not have an Email setup, please update your Profile.", click = () => state.view() = View.UserSettings, level = UI.ToastLevel.Warning)
+          case err                   =>
+            scribe.info(s"Cannot get User Details: ${ err }")
+        }
+      case _                   => ()
+    }
 
     // automatically pin and notify newly focused nodes
     {
