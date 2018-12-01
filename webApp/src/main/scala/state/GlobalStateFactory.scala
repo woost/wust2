@@ -51,7 +51,7 @@ object GlobalStateFactory {
         Client.auth.getUserDetail(user.id).onComplete {
           case Success(Some(detail)) =>
             if(detail.email.isEmpty)
-              UI.toast("You do not have an Email setup, please update your Profile.", click = () => state.view() = View.UserSettings, level = UI.ToastLevel.Warning)
+              UI.toast("You do not have an Email setup, please update your Profile.", click = () => state.view() = View.UserSettings, autoclose = false, level = UI.ToastLevel.Warning)
           case err                   =>
             scribe.info(s"Cannot get User Details: ${ err }")
         }
