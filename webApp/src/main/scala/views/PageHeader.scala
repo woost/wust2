@@ -481,38 +481,36 @@ object PageHeader {
     }
   }
 
-  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
-    div.thunkRx(keyValue)(channel.id) { implicit ctx =>
-      Rx {
-        val graph = state.graph()
-        val user = state.user()
-        val channelIdx = graph.idToIdx(channel.id)
-        val userIdx = graph.idToIdx(user.id)
-        val permissionState = state.permissionState()
-        val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
+  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+    Rx {
+      val graph = state.graph()
+      val user = state.user()
+      val channelIdx = graph.idToIdx(channel.id)
+      val userIdx = graph.idToIdx(user.id)
+      val permissionState = state.permissionState()
+      val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
 
-        if(hasNotifyEdge) decorateNotificationIcon(state, permissionState)(
-          freeSolid.faBell,
-          description = "You are watching this node and will be notified about changes. Click to stop watching.",
-          changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
-          changesOnSuccessPrompt = false
-        ) else {
-          val canNotifyParents = graph
-            .ancestorsIdx(channelIdx)
-            .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
+      if(hasNotifyEdge) decorateNotificationIcon(state, permissionState)(
+        freeSolid.faBell,
+        description = "You are watching this node and will be notified about changes. Click to stop watching.",
+        changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
+        changesOnSuccessPrompt = false
+      ) else {
+        val canNotifyParents = graph
+          .ancestorsIdx(channelIdx)
+          .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
 
-          if (canNotifyParents) decorateNotificationIcon(state, permissionState)(
-            freeRegular.faBell,
-            description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
-            changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
-            changesOnSuccessPrompt = true
-          ) else decorateNotificationIcon(state, permissionState)(
-            freeRegular.faBellSlash,
-            description = "You are not watching this node and will not be notified. Click to start watching.",
-            changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
-            changesOnSuccessPrompt = true
-          )
-        }
+        if (canNotifyParents) decorateNotificationIcon(state, permissionState)(
+          freeRegular.faBell,
+          description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
+          changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
+          changesOnSuccessPrompt = true
+        ) else decorateNotificationIcon(state, permissionState)(
+          freeRegular.faBellSlash,
+          description = "You are not watching this node and will not be notified. Click to start watching.",
+          changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
+          changesOnSuccessPrompt = true
+        )
       }
     }
   }
@@ -562,15 +560,10 @@ object PageHeader {
       }
 
     val notificationItem:VDomModifier = {
-      var notifyControlElement:html.Element = null
       (!isOwnUser).ifTrue[VDomModifier](div(
         cls := "item",
-        notifyControl(state,channel).apply(
-          display.inline,
-          cls := "icon fa-fw",
-          marginRight := "5px",
-          onDomMount.asHtml.foreach ( notifyControlElement = _ )
-        ),
+        notifyControl(state,channel),
+
         Rx {
           val graph = state.graph()
           val user = state.user()
@@ -579,13 +572,7 @@ object PageHeader {
           @inline def permissionGranted = state.permissionState() == PermissionState.granted
           @inline def hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
           val text = if(permissionGranted && hasNotifyEdge) "Mute" else "Unmute"
-          span(cls := "text", text, cursor.pointer)
-        },
-
-        onClick.foreach {
-          //TODO: when this is a simple hack, so that we can still switch back to a Notification Icon-Button
-          if(notifyControlElement != null)
-            notifyControlElement.click()
+          span(marginLeft := "7px", cls := "text", text, cursor.pointer)
         }
       ))
     }
