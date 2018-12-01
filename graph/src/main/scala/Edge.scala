@@ -41,6 +41,12 @@ object Edge {
     def data = EdgeData.Expanded
   }
 
+  case class Assigned(userId: UserId, nodeId: NodeId) extends Edge {
+    def sourceId = userId
+    def targetId = nodeId
+    def data = EdgeData.Assigned
+  }
+
   case class Notify(nodeId: NodeId, userId: UserId)
       extends Edge {
     def sourceId = nodeId
@@ -75,6 +81,7 @@ object Edge {
     case data: EdgeData.Label         => new Edge.Label(sourceId, data, targetId)
     case EdgeData.Notify              => new Edge.Notify(sourceId, UserId(targetId))
     case EdgeData.Expanded            => new Edge.Expanded(UserId(sourceId), targetId)
+    case EdgeData.Assigned            => new Edge.Assigned(UserId(sourceId), targetId)
     case EdgeData.Pinned              => new Edge.Pinned(UserId(sourceId), targetId)
     case data: EdgeData.Before        => new Edge.Before(sourceId, data, targetId)
   }
