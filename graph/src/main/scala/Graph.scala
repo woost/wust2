@@ -232,6 +232,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
+  private val assignedNodesDegree = new Array[Int](n)
+  private val assignedUsersDegree = new Array[Int](n)
 
   private val now = EpochMilli.now
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(now - (24 * 3600 * 1000))
@@ -277,6 +279,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                   deletedParentsDegree(sourceIdx) += 1
                 } //TODO everything deleted further in the past should already be filtered in backend
             }
+          case _: Edge.Assigned =>
+            assignedNodesDegree(sourceIdx) += 1
+            assignedUsersDegree(targetIdx) += 1
           case _: Edge.Expanded =>
             expandedNodesDegree(sourceIdx) += 1
           case _: Edge.Notify   =>
@@ -306,6 +311,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
+  private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
+  private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
 
   consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
@@ -349,6 +356,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         }
       case _: Edge.Expanded =>
         expandedNodesIdxBuilder.add(sourceIdx, targetIdx)
+      case _: Edge.Assigned =>
+        assignedNodesIdxBuilder.add(sourceIdx, targetIdx)
+        assignedUsersIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Notify   =>
         notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Pinned   =>
@@ -374,6 +384,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
   val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
+  val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result()
+  val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result()
 
   val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) expandedNodesIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet

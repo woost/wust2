@@ -6,7 +6,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.ids.{NodeData, NodeId, NodeRole, UserId}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -14,7 +14,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, NodePermission, View, PageChange}
+import wust.webApp.state.{GlobalState, NodePermission, PageChange, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -229,6 +229,12 @@ object KanbanView {
       submit = state.eventProcessor.changes
     )
 
+    val assignment = Rx {
+      val graph = state.graph()
+      val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
+      nodeUsers.map(userIdx => graph.nodes(userIdx))
+    }
+
 
     val buttonBar = div(
       cls := "buttonbar",
@@ -240,6 +246,14 @@ object KanbanView {
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
           div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
+          Rx {
+            val userid = state.user().id
+            if(assignment().exists(_.id == userid)) {
+              div(div(cls := "fa-fw", freeSolid.faUserTimes), onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Remove Yourself")
+            } else {
+              div(div(cls := "fa-fw", freeSolid.faUserCheck), onClick.stopPropagation(GraphChanges.connect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Assign Yourself")
+            }
+          },
           div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
@@ -267,6 +281,17 @@ object KanbanView {
       dragTarget(DragItem.Kanban.Card(node.id)),
       keyed(node.id, parentId),
       cls := "draghandle",
+
+      assignment.map(_.map(userNode => div(
+          Avatar.user(userNode.id.asInstanceOf[UserId])(
+            marginLeft := "2px",
+            width := "22px",
+            height := "22px",
+            cls := "avatar",
+            marginBottom := "2px",
+          ),
+          UI.popup := s"Assigned to ${userNode.str}"
+        ))),
 
       Rx{
         renderMessageCount(if (messageChildrenCount() > 0) messageChildrenCount().toString else "", onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
