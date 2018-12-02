@@ -1,5 +1,8 @@
 BEGIN;
-SELECT plan(4);
+SELECT plan(5);
+
+-- suppress cascade notices from cleanup()
+SET client_min_messages TO WARNING;
 
 create or replace function user_to_uuid(id varchar(2)) returns uuid as $$
     select ('05e200' || id || '-0000-0000-0000-000000000000')::uuid;
@@ -38,6 +41,14 @@ begin
 end
 $$ language plpgsql;
 
+CREATE or replace FUNCTION member(userid varchar(2), nodeid uuid, level accesslevel default 'readwrite') RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), nodeid)
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
+
 CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
@@ -54,18 +65,18 @@ begin
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), deletedAt text default null) RETURNS void AS $$
+CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', deletedAt), node_to_uuid(parentid))
+        VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(parentid))
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt text default null) RETURNS void AS $$
+CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', deletedAt), parentid)
+        VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), parentid)
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -210,6 +221,24 @@ select set_eq(
 );
 
 
+
+
+-- children of current user
+select cleanup();
+select usernode('0A');
+select member('0A', user_to_uuid('0A'));
+select node('11', 'readwrite'); select parent(node_to_uuid('11'), user_to_uuid('0A'));
+
+select set_eq(
+    $$ select * from
+            graph_page( array[ user_to_uuid('0A') ]::uuid[], user_to_uuid('0A'))
+    $$,
+    -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
+    $$ values
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[user_to_uuid('0A')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('11'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('11')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[user_to_uuid('0A')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[])
+    $$
+);
 
 
 
