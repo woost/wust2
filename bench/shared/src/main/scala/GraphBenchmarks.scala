@@ -2,7 +2,8 @@ package bench
 
 import scala.concurrent.duration._
 import Util._
-import wust.util.{NestedArrayInt, algorithm}
+import wust.util.algorithm
+import flatland._
 
 object GraphBenchmarks {
   val algorithms = Comparison("Algorithms", {
