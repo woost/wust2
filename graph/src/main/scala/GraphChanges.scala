@@ -33,12 +33,14 @@ case class GraphChanges(
       delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
     )
 
-  def filterWithWhitelist(p: NodeId => Boolean, edgeWhitelist: Edge => Boolean): GraphChanges =
+  def filterWithWhitelist(p: NodeId => Boolean, edgeWhitelist: Edge => Boolean): GraphChanges = {
+    // if both nodes are accessible via p, any edge is allowed. Else check Whitelist
     GraphChanges(
       addNodes = addNodes.filter(n => p(n.id)),
       addEdges = addEdges.filter(e => if(!edgeWhitelist(e)) p(e.sourceId) && p(e.targetId) else true),
       delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
     )
+  }
 
   lazy val consistent: GraphChanges = copy(addEdges = addEdges -- delEdges)
 
