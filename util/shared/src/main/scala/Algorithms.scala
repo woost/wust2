@@ -205,6 +205,22 @@ object algorithm {
     None
   }
 
+  def containmentsOfCycle(elements: Array[Int], successors: NestedArrayInt): Array[Int] = {
+    val num = elements.length
+    var i = 0
+    val result = new mutable.ArrayBuilder.ofInt
+
+    while(i < num) {
+      val idx = elements(i)
+      if(depthFirstSearchExistsAfterStart(idx, successors, idx))
+        result += idx
+
+      i += 1
+    }
+
+    result.result()
+  }
+
   /*
    * DFS starts after the start index and searches for `search`
    * Choosing start = search results in a cycle search
