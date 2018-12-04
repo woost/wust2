@@ -119,26 +119,53 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 
-  //TODO: error handling
   override def addMember(
       nodeId: NodeId,
-      newMemberId: UserId,
+      subjectUserId: UserId,
       accessLevel: AccessLevel
   ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
     db.ctx.transaction { implicit ec =>
       canAccessNode(user.id, nodeId) {
         for {
-          Some(user) <- db.user.get(newMemberId)
-          added <- db.node.addMember(nodeId, newMemberId, accessLevel)
+          Some(_) <- db.user.get(subjectUserId) // check that user exists
+          added <- db.node.addMember(nodeId, subjectUserId, accessLevel)
         } yield
           Returns(
-            added,
+            added, // return value of api call
             if (added)
               Seq(
                 NewGraphChanges(
-                  user,
+                  user.toNode,
                   GraphChanges(
-                    addEdges = Set(Edge.Member(newMemberId, EdgeData.Member(accessLevel), nodeId)),
+                    addEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
+                  )
+                )
+              )
+            else Nil
+          )
+      }
+    }
+  }
+
+  override def removeMember(
+      nodeId: NodeId,
+      subjectUserId: UserId,
+      accessLevel:AccessLevel, // TODO: this should not be necessary. We only pass accesslevel to emit the GraphChanges event
+  ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
+    db.ctx.transaction { implicit ec =>
+      canAccessNode(user.id, nodeId) {
+        for {
+          Some(_) <- db.user.get(subjectUserId) // check that user exists
+          removed <- db.node.removeMember(nodeId, subjectUserId)
+        } yield
+          Returns(
+            removed,
+            if (removed)
+              Seq(
+                NewGraphChanges(
+                  user.toNode,
+                  GraphChanges(
+                    delEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
                   )
                 )
               )

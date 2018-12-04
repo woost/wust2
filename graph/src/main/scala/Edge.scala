@@ -16,9 +16,10 @@ sealed trait Edge {
 
 object Edge {
 
-  case class Member(userId: UserId, data: EdgeData.Member, channelId: NodeId) extends Edge {
+  case class Member(userId: UserId, data: EdgeData.Member, nodeId: NodeId) extends Edge {
     def sourceId = userId
-    def targetId = channelId
+    def targetId = nodeId
+    def level = data.level
   }
   case class Author(userId: UserId, data: EdgeData.Author, nodeId: NodeId) extends Edge {
     def sourceId = userId

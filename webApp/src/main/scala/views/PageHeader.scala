@@ -11,6 +11,7 @@ import org.scalajs.dom.html
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.ApiEvent.NewGraphChanges
 import wust.css.{Styles, ZIndex}
 import wust.graph.Node.User
 import wust.graph._
@@ -259,7 +260,7 @@ object PageHeader {
       case _ => VDomModifier.empty
     }
 
-    def header = VDomModifier(
+    val header = VDomModifier(
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
@@ -291,7 +292,7 @@ object PageHeader {
       )
     )
 
-    def description = VDomModifier(
+    val description = VDomModifier(
       cls := "scrolling",
       backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       div(
@@ -322,7 +323,7 @@ object PageHeader {
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
 
-    def handleAddMember(name: String): Unit = {
+    def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserId(name)
       graphUser.flatMap {
         case Some(u) => Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
@@ -343,12 +344,13 @@ object PageHeader {
       }
     }
 
-    def handleRemoveMember(membership: Edge.Member): Unit = {
+    def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
       val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
-      state.eventProcessor.changes.onNext(change)
+      state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, change))
+      Client.api.removeMember(membership.nodeId,membership.userId,membership.level)
     }
 
-    def header = VDomModifier(
+    val header = VDomModifier(
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
@@ -360,7 +362,8 @@ object PageHeader {
       div(s"Manage Members"),
     )
 
-    def userLine(user:Node.User):VNode = {
+    def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {
+      import concurrent.duration._
       div(
         marginTop := "10px",
         Styles.flex,
@@ -380,7 +383,7 @@ object PageHeader {
       )
     }
 
-    def description = VDomModifier(
+    val description = VDomModifier(
       div(
         div(
           cls := "ui fluid action input",
@@ -400,20 +403,18 @@ object PageHeader {
         marginLeft := "10px",
         Rx {
           val graph = state.graph()
-          VDomModifier(
-            graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
-              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-              val user = graph.nodesById(membership.userId).asInstanceOf[User]
-              userLine(user)(
-                button(
-                  cls := "ui tiny compact negative basic button",
-                  marginLeft := "10px",
-                  "Remove",
-                  onClick(membership) --> removeMember
-                )
+          graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
+            val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+            val user = graph.nodesById(membership.userId).asInstanceOf[User]
+            userLine(user).apply(
+              button(
+                cls := "ui tiny compact negative basic button",
+                marginLeft := "10px",
+                "Remove",
+                onClick(membership) --> removeMember
               )
-            },
-          )
+            )
+          }
         }
       )
     )

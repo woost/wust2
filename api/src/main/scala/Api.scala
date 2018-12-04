@@ -15,6 +15,7 @@ trait Api[Result[_]] {
 
   def getGraph(selection: Page): Result[Graph]
   def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
+  def removeMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
 
   def getNode(nodeId: NodeId): Result[Option[Node]]
   @PathName("getNodeOnBehalf")
@@ -134,7 +135,7 @@ object ApiEvent {
 
   sealed trait NewGraphChanges extends GraphContent {
     val changes: GraphChanges
-    val user: User
+    val user: User // the user who initiated the change
   }
   object NewGraphChanges {
     def unapply(event: ApiEvent): Option[(User, GraphChanges)] = event match {

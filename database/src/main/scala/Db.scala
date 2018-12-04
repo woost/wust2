@@ -111,7 +111,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         x
       }
     }
+
+    def removeMember(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+      ctx.run(query[Edge].filter(e => e.sourceId == lift(userId) && e.targetId == lift(nodeId) && e.data.jsonType == lift(EdgeData.Member.tpe)).delete).flatMap { touched =>
+        checkUnexpected(touched <= 1, success = touched == 1, s"Unexpected number of edge deletes: $touched <= 1")
+      }
+    }
   }
+
 
   object notifications {
     def notifiedNodesForUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
