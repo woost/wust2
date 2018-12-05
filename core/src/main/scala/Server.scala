@@ -30,6 +30,7 @@ import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler
 import wust.backend.mail.MailService
+import wust.core.aws.S3FileUploader
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -67,10 +68,11 @@ object Server {
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val guardDsl = new GuardDsl(jwt, db)
     val mailService = MailService(config.email)
+    val fileUploader = config.aws.map(new S3FileUploader(_, config.server))
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
 
-    val apiImpl = new ApiImpl(guardDsl, db)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 

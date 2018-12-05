@@ -1,11 +1,13 @@
 package wust.backend
 
 import io.getquill.context.async.TransactionalExecutionContext
-import monix.reactive.Observable
+import monix.eval.Task
+import monix.execution.Scheduler
 import scribe.writer.file.LogPath
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
+import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
@@ -14,7 +16,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -207,6 +209,40 @@ class ApiImpl(dsl: GuardDsl, db: Db)(implicit ec: ExecutionContext) extends Api[
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
     getPage(user.id, page)
+  }
+
+  override def fileDownloadBaseUrl: ApiFunction[Option[StaticFileUrl]] = Action {
+    fileUploader.fold(Task.pure(Option.empty[StaticFileUrl]))(_.getFileDownloadBaseUrl.map(Some(_))).runToFuture
+  }
+  // only real users can upload files
+  override def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): ApiFunction[FileUploadConfiguration] = Action.requireRealUser { (_, user) =>
+    fileUploader.fold(Task.pure[FileUploadConfiguration](FileUploadConfiguration.ServiceUnavailable))(_.getFileUploadConfiguration(user.id, key, fileSize = fileSize, fileName = fileName, fileContentType = fileContentType)).runToFuture
+  }
+  override def deleteFileUpload(key: String): ApiFunction[Boolean] = Action.requireRealUser { (_, user) =>
+    fileUploader.fold(Task.pure(false))(_.deleteFileUpload(user.id, key)).runToFuture
+  }
+  override def getUploadedFiles: ApiFunction[Seq[UploadedFile]] = Action.requireRealUser { (_, user) =>
+    fileUploader.fold(Task.pure(Seq.empty[UploadedFile])) { fileUploader =>
+      // TODO: this should be done better and more performant. own upload table? kind of a duplicate of NodeData.File
+      // we first check which files are in s3 and then we get the corresponding node data for these files.
+      // This way, we have a filename, a content type and so on...alternative: store uploads in own db or get s3 metadata for each key
+      val allFiles = fileUploader.getAllObjectSummariesForUser(user.id)
+      allFiles.flatMap { files =>
+        Task.fromFuture(db.node.getFileNodes(files.map(_.getKey)(breakOut))).map { fileNodes =>
+          val fileNodeMap = fileNodes.groupBy(_._2.key)
+          files.flatMap { file =>
+            fileNodeMap.get(file.getKey).map(_.maxBy(_._1)) match {
+              case Some((nodeId, data)) => Some(UploadedFile(nodeId, file.getSize, data))
+              case None =>
+                // Somehow we do not have a node for this upload, we just delete it. Seems, as if it is not needed
+                scribe.warn(s"Found uploaded file with key '${file.getKey}' without any corresponding node. Will delete this file.")
+                fileUploader.deleteKeyInS3Bucket(file.getKey).runAsyncAndForget
+                None
+            }
+          }.sortBy(_.nodeId).reverse
+        }
+      }
+    }.runToFuture
   }
 
 //  override def importGithubUrl(url: String): ApiFunction[Boolean] = Action.assureDbUser { (_, user) =>

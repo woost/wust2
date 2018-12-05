@@ -13,6 +13,11 @@ trait Api[Result[_]] {
   @PathName("changeGraphOnBehalf")
   def changeGraph(changes: List[GraphChanges], onBehalf: Authentication.Token): Result[Boolean]
 
+  def fileDownloadBaseUrl: Result[Option[StaticFileUrl]]
+  def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): Result[FileUploadConfiguration]
+  def deleteFileUpload(key: String): Result[Boolean]
+  def getUploadedFiles: Result[Seq[UploadedFile]]
+
   def getGraph(selection: Page): Result[Graph]
   def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
   def removeMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
@@ -179,6 +184,20 @@ object ApiEvent {
       case (ev: AuthContent, (gs, as))  => (gs, ev :: as)
     }
 }
+
+sealed trait FileUploadConfiguration
+object FileUploadConfiguration {
+  case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String) extends FileUploadConfiguration
+  case class KeyExists(key: String) extends FileUploadConfiguration
+  case object QuotaExceeded extends FileUploadConfiguration
+  case object ServiceUnavailable extends FileUploadConfiguration
+
+  val maxUploadBytesPerFile = 5 * 1024 * 1024 // 5 mb
+  val maxUploadBytesPerUser = 100 * 1024 * 1024 // 100 mb
+  val cacheMaxAgeSeconds = 365 * 24 * 60 * 60 // 1 year
+}
+case class StaticFileUrl(url: String)
+case class UploadedFile(nodeId: NodeId, size: Long, file: NodeData.File)
 
 case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
 

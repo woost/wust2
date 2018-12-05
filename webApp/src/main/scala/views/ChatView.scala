@@ -19,14 +19,22 @@ import wust.util.collection._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{GlobalState, ScreenSize, UploadingFile}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import flatland._
+import monix.eval.Task
+import monix.execution.Ack
+import wust.api.ApiEvent
+import wust.webApp
+import wust.webApp.views.UI.ToastLevel.Success
 
 import scala.collection.immutable
 import scala.collection.{breakOut, mutable}
+import scala.concurrent.Future
 import scala.scalajs.js
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 
 object ChatView {
@@ -109,6 +117,7 @@ object ChatView {
       },
       {
         val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
+        val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
         def submitAction(str:String) = {
 
@@ -117,12 +126,19 @@ object ChatView {
             else state.page.now.parentId.toSet
           }
 
-          currentReply() = Set.empty[NodeId]
-          scrollHandler.scrollToBottomInAnimationFrame()
           // we treat new chat messages as noise per default, so we set a future deletion date
-          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), replyNodes, deletedAt = noiseFutureDeleteDate)
-          state.eventProcessor.changes.onNext(changes)
+          val ack = fileUploadHandler.now match {
+            case None =>
+              state.eventProcessor.changes.onNext(GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), replyNodes, deletedAt = noiseFutureDeleteDate))
+            case Some(uploadFile) =>
+              uploadFileAndCreateNode(state, str, replyNodes, uploadFile)
+          }
 
+          currentReply() = Set.empty[NodeId]
+          fileUploadHandler() = None
+          scrollHandler.scrollToBottomInAnimationFrame()
+
+          ack
         }
 
         if(!BrowserDetect.isMobile) {
@@ -132,7 +148,7 @@ object ChatView {
           }
         }
 
-        inputRow(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
           Styles.flexStatic,
           Rx{ backgroundColor :=? bgColor()}
         )

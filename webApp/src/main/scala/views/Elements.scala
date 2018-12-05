@@ -228,7 +228,7 @@ object Elements {
           elem = textAreaElem.asInstanceOf[HTMLInputElement]
         },
         value <-- writeValue,
-        onEnter.stopPropagation.value.filter(_.nonEmpty) foreach { trigger() },
+        onEnter.stopPropagation.value foreach { trigger() },
         emitter(userInput) --> sink
       )
     }

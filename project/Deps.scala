@@ -107,6 +107,11 @@ object Deps {
   val slackClient = dep("com.github.GRBurst" % "slack-scala-client" % "65cd560") //b88f22e
   val javaMail = dep("com.sun.mail" % "javax.mail" % "1.6.2")
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.1")
+  val awsSdk = new {
+    //dep("software.amazon.awssdk" % "aws-sdk-java" % "2.1.3") // TODO: Does not work because of newer netty dependency than postgres-async => runtime error.
+    private val version = "1.11.461"
+    val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
+  }
 
   // NLP
   val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
@@ -129,6 +134,7 @@ object Deps {
     val propagatingHammerjs = "propagating-hammerjs" -> "1.4.6"
     val immediate = "immediate" -> "3.2.3"
     val mobileDetect = "mobile-detect" -> "1.4.3"
+    val jsSha256 = "js-sha256" -> "0.9.0"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47

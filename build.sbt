@@ -406,6 +406,7 @@ lazy val core = project
         Deps.monix.value ::
         Deps.stringmetric.value ::
         Deps.webPush.value ::
+        Deps.awsSdk.s3.value ::
         Nil,
     javaOptions in reStart += "-Xmx50m"
   )
@@ -450,6 +451,7 @@ lazy val webApp = project
       Deps.npm.hammerjs ::
       Deps.npm.propagatingHammerjs ::
       Deps.npm.mobileDetect ::
+      Deps.npm.jsSha256 ::
       Nil
   )
 

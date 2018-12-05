@@ -14,15 +14,25 @@ object NodeData {
     val tpe = Type(name.value)
   }
 
-  sealed trait Content extends NodeData
+  sealed trait Content extends NodeData {
+    def updateStr(str: String): Content
+  }
+
+  case class File(key: String, fileName: String, contentType: String, description: String) extends Named with Content {
+    def str = description
+    override def updateStr(str: String): Content = copy(description = str)
+  }
+  object File extends Named
 
   case class Markdown(content: String) extends Named with Content {
     def str = content
+    override def updateStr(str: String): Content = copy(content = str)
   }
   object Markdown extends Named
 
   case class PlainText(content: String) extends Named with Content {
     def str = content
+    override def updateStr(str: String): Content = copy(content = str)
   }
   object PlainText extends Named
 

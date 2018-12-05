@@ -2,6 +2,7 @@ package wust.webApp.state
 
 import draggable._
 import googleAnalytics.Analytics
+import monix.eval.Task
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
@@ -19,14 +20,21 @@ import wust.util.time.time
 import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{UI, Components}
+import wust.webApp.views.{AWS, Components, UI}
 import wust.css.Styles
 import wust.util.algorithm
 
 import scala.collection.mutable
 import scala.collection.breakOut
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.scalajs.js
+
+sealed trait UploadingFile
+object UploadingFile {
+  case class Waiting(dataUrl: String) extends UploadingFile
+  case class Error(dataUrl: String, retry: Task[Unit]) extends UploadingFile
+}
 
 class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
@@ -36,10 +44,13 @@ class GlobalState(
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
   val hasError: Rx[Boolean],
+  val fileDownloadBaseUrl: Rx[Option[String]]
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
+
+  val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
   val modalConfig: PublishSubject[UI.ModalConfig] = PublishSubject()
 
@@ -69,9 +80,15 @@ class GlobalState(
   val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
   val channels: Rx[Seq[(Node,Int)]] = Rx { channelForest().flatMap(_.flattenWithDepth()).distinct }
 
-  val addNodesInTransit: Rx[Set[NodeId]] = eventProcessor.changesInTransit
-    .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
-    .unsafeToRx(Set.empty)
+  val addNodesInTransit: Rx[Set[NodeId]] = {
+    val changesAddNodes = eventProcessor.changesInTransit
+      .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
+      .unsafeToRx(Set.empty)
+
+    Rx {
+      changesAddNodes() ++ uploadingFiles().keySet
+    }
+  }
 
   val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 

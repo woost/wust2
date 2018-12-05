@@ -20,10 +20,13 @@ case class SmtpConfig(endpoint: String, username: String, password: String) {
 }
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
+case class AwsConfig(uploadBucketName: String, region: String, accessKey: String, secretKey: String)
+
 case class ServerConfig(host: String, port: Int, clientBufferSize: Int, allowedOrigins: List[String])
 
 case class Config(
     server: ServerConfig,
+    aws: Option[AwsConfig],
     pushNotification: Option[PushNotificationConfig],
     auth: AuthConfig,
     email: Option[EmailConfig],

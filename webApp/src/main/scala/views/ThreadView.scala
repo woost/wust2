@@ -53,6 +53,7 @@ object ThreadView {
 
     val pageCounter = PublishSubject[Int]()
     val shouldLoadInfinite = Var[Boolean](false)
+    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
     div(
       keyed,
@@ -82,8 +83,12 @@ object ThreadView {
         def submitAction(str:String) = {
           // we treat new chat messages as noise per default, so we set a future deletion date
           scrollHandler.scrollToBottomInAnimationFrame()
-          val changes = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentId, deletedAt = noiseFutureDeleteDate)
-          state.eventProcessor.changes.onNext(changes)
+          val ack = fileUploadHandler.now match {
+            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentId, deletedAt = noiseFutureDeleteDate))
+            case Some(uploadFile) => uploadFileAndCreateNode(state, str, state.page.now.parentId, uploadFile)
+          }
+
+          ack
         }
 
         val inputFieldFocusTrigger = PublishSubject[Unit]
@@ -95,7 +100,7 @@ object ThreadView {
           }
         }
 
-        inputRow(state, submitAction, scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
       }
     )
   }

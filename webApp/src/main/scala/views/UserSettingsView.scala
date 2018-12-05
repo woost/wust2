@@ -6,7 +6,7 @@ import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.api.{Authentication, PluginUserAuthentication, UserDetail}
+import wust.api._
 import wust.css.Styles
 import wust.ids._
 import wust.webApp._
@@ -33,9 +33,66 @@ object UserSettingsView {
         VDomModifier(
           header(user)(marginBottom := "50px"),
           accountSettings(state, user).apply(marginBottom := "50px"),
-          pluginSettings(user),
+          pluginSettings(user).apply(marginBottom := "50px"),
+          uploadSettings(state, user)
         )
       }
+    )
+  }
+
+
+  private def uploadSettings(state: GlobalState, ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+    val fileUploads = Var[Option[Seq[UploadedFile]]](None)
+    div(
+      b("Uploaded Files:"),
+      br,
+      div(
+        marginLeft := "10px",
+        width := "500px",
+        Rx {
+          if (fileUploads().isDefined) VDomModifier.empty
+          else button(cls := "ui button", "Show all", onClick.foreach {
+            Client.api.getUploadedFiles.onComplete {
+              case Success(files) =>
+                fileUploads() = Some(files)
+              case Failure(t) =>
+                scribe.warn("Cannot list file uploads for user", t)
+                UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
+            }
+          })
+        },
+        fileUploads.map(_.map { allUploads =>
+          val fullSize = allUploads.map(_.size).sum
+          val fullSizeMb = fullSize.toDouble / 1024 / 1024
+          val freeSize = FileUploadConfiguration.maxUploadBytesPerUser - fullSize
+          val maxSizeMb = FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024
+
+          VDomModifier(
+            div(f"Used ${fullSizeMb}%1.1f MB out of ${maxSizeMb} MB.", if (freeSize < FileUploadConfiguration.maxUploadBytesPerFile) color := "tomato" else VDomModifier.empty),
+            allUploads.map { case UploadedFile(nodeId, size, file) =>
+              div(
+                marginTop := "5px",
+                marginBottom := "5px",
+                backgroundColor := "rgba(255, 255, 255, 0.3)",
+                Styles.flex,
+                flexDirection.row,
+                justifyContent.spaceBetween,
+                alignItems.center,
+                Components.renderUploadedFile(state, nodeId, file),
+                div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
+                button(cls := "ui negative button", "Delete file", onClick.foreach {
+                  val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
+                  if(shouldDelete) {
+                    Client.api.deleteFileUpload(file.key.split("/")(1)).foreach { success =>
+                      if(success) fileUploads.update(_.map(_.filterNot(_.file.key == file.key)))
+                    }
+                  }
+                })
+              )
+            }
+          )
+        })
+      )
     )
   }
 

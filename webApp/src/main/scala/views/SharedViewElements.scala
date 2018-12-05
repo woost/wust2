@@ -3,16 +3,18 @@ package wust.webApp.views
 import cats.effect.IO
 import fontAwesome._
 import googleAnalytics.Analytics
+import monix.eval.Task
 import monix.execution.Ack
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
-import outwatch.dom._
+import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.api.AuthUser
+import wust.api.{ApiEvent, AuthUser}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -21,7 +23,7 @@ import wust.sdk.NodeColor
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View, NodePermission}
+import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
@@ -50,9 +52,36 @@ object SharedViewElements {
     }
   }
 
+  def uploadFileAndCreateNode(state: GlobalState, str: String, replyNodes: Iterable[NodeId], uploadFile: AWS.UploadableFile): Future[Ack] = {
+    val fileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
+    val fileNode = Node.Content(fileNodeData, NodeRole.Message)
+
+    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges(state.user.now.toNode, GraphChanges.addNodeWithParent(fileNode, replyNodes).withAuthor(state.user.now.id)))
+
+    var uploadTask: Task[Unit] = null
+    uploadTask = Task.defer{
+      state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Waiting(uploadFile.dataUrl)))
+
+      uploadFile.uploadKey.map {
+        case Some(key) =>
+          state.uploadingFiles.update(_ - fileNode.id)
+          state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(fileNode.copy(data = fileNodeData.copy(key = key)), replyNodes))
+          ()
+        case None      =>
+          state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Error(uploadFile.dataUrl, uploadTask)))
+          ()
+      }
+    }
+
+    uploadTask.runAsyncAndForget
+
+    ack
+  }
+
   def inputRow(
     state: GlobalState,
     submitAction: String => Future[Ack],
+    fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
     blurAction: Option[String => Unit] = None,
     scrollHandler:Option[ScrollBottomHandler] = None,
     triggerFocus:Observable[Unit] = Observable.empty,
@@ -79,7 +108,7 @@ object SharedViewElements {
     )
 
     var currentTextArea: dom.html.TextArea = null
-    def handleInput(str: String): Unit = if (str.nonEmpty) {
+    def handleInput(str: String): Unit = if (str.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       val submitted = submitAction(str)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
 
@@ -166,8 +195,10 @@ object SharedViewElements {
     div(
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
-      alignItems.center,
+
+        alignItems.center,
       justifyContent.stretch,
+      fileUploadHandler.map(uploadField(state, _)),
       div(
         margin := "3px",
         BrowserDetect.isMobile.ifTrue[VDomModifier](marginRight := "0"),
@@ -313,7 +344,7 @@ object SharedViewElements {
 
 
     def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
-      val baseNode = if (isDeletedNow) nodeCardPlain(node, maxLength = Some(25)).apply(cls := "node-deleted")
+      val baseNode = if (isDeletedNow) nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
       else {
         val importanceIndicator = Rx {
           val unimportant = editMode() || isDeletedInFuture()

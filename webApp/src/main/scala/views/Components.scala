@@ -2,17 +2,18 @@ package wust.webApp.views
 
 import cats.effect.IO
 import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
-import fontAwesome.{IconLookup, freeRegular, freeSolid}
+import fontAwesome._
 import monix.execution.Cancelable
-import monix.reactive.Observer
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
+import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import rx._
 import jquery.JQuerySelection
+import wust.api.UploadedFile
 import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids.{NodeData, _}
@@ -21,10 +22,11 @@ import wust.util.StringOps._
 import wust.util._
 import wust.webApp.BrowserDetect
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
-import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
+import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, UploadingFile}
 import wust.webApp.views.Elements._
+import wust.webApp.views.UI.ModalConfig
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -49,12 +51,90 @@ object Components {
     case NodeData.Markdown(content)  => markdownString(content)
     case NodeData.PlainText(content) => escapeHtml(content)
     case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
+    case file: NodeData.File         => s"File: ${ escapeHtml(file.key) }"
   }
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
+    case file: NodeData.File         => div(trimToMaxLength(file.fileName, maxLength))
+  }
+
+  def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = nodeData match {
+    case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
+    case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
+    case user: NodeData.User         => div(displayUserName(user))
+    case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
+  }
+
+  def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
+    import file._
+
+    val maxImageHeight = "250px"
+
+    def downloadUrl(attr: AttributeBuilder[String, VDomModifier]): VDomModifier = state.fileDownloadBaseUrl.map(_.map(baseUrl => attr := baseUrl + "/" + key))
+    def preview(dataUrl: String) = {
+      file.contentType match {
+        case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
+        case _                           => VDomModifier.empty
+      }
+    }
+    def centerStyle = VDomModifier(
+      Styles.flex,
+      Styles.flexStatic,
+      alignItems.center,
+      flexDirection.column,
+      justifyContent.spaceEvenly
+    )
+    def overlay = VDomModifier(
+      background := "rgba(255, 255, 255, 0.8)",
+      position.absolute,
+      Styles.growFull
+    )
+
+    div(
+      file.description.nonEmpty.ifTrue[VDomModifier](b(file.description)),
+      p(file.fileName),
+      if (file.key.isEmpty) { // this only happens for currently-uploading files
+        VDomModifier(Rx {
+          val uploadingFiles = state.uploadingFiles()
+          uploadingFiles.get(nodeId) match {
+            case Some(UploadingFile.Error(dataUrl, retry)) => div(
+              preview(dataUrl),
+              position.relative,
+              centerStyle,
+              div(
+                overlay,
+                centerStyle,
+                div(freeSolid.faExclamationTriangle, " Error Uploading File"),
+                button(cls := "ui button", "Retry upload", onClick.foreach { retry.runAsyncAndForget }, cursor.pointer)
+              )
+            )
+            case Some(UploadingFile.Waiting(dataUrl)) => div(
+              preview(dataUrl),
+              position.relative,
+              centerStyle,
+              woostLoadingAnimation.apply(overlay, centerStyle)
+            )
+            case None => div(
+              centerStyle,
+              woostLoadingAnimation
+            )
+          }
+        })
+      } else contentType match {
+        case t if t.startsWith("image/") =>
+          val image = img(alt := fileName, downloadUrl(src))
+          image(maxHeight := "250px", cursor.pointer, onClick.foreach {
+            state.modalConfig.onNext(ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic")) //TODO: better size settings
+            ()
+          })
+        case _                           => VDomModifier(
+          a(downloadUrl(href), attr("download") := fileName, "Download")
+        )
+      }
+    )
   }
 
   private val woostPathCurve = "m51.843 221.96c81.204 0-6.6913-63.86 18.402 13.37 25.093 77.23 58.666-26.098-7.029 21.633-65.695 47.73 42.949 47.73-22.746 0-65.695-47.731-32.122 55.597-7.029-21.633 25.093-77.23-62.802-13.37 18.402-13.37z"
@@ -177,7 +257,13 @@ object Components {
       contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
     )
   }
-  def nodeCardPlain(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+  def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    renderNodeCard(
+      node,
+      contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength), contentInject)
+    )
+  }
+  def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
     renderNodeCard(
       node,
       contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
@@ -303,7 +389,7 @@ object Components {
   ): VNode = {
     node match {
       case contentNode: Node.Content => editableNodeContent(state, contentNode, editMode, submit, maxLength)
-      case _                         => renderNodeData(node.data, maxLength)
+      case _                         => renderNodeDataWithFile(state, node.id, node.data, maxLength)
     }
   }
 
@@ -311,19 +397,18 @@ object Components {
     implicit ctx: Ctx.Owner
   ): VNode = {
 
-    val initialRender: Var[VDomModifier] = Var(renderNodeData(node.data, maxLength))
+    val initialRender: Var[VDomModifier] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
 
     def save(contentEditable:HTMLElement): Unit = {
-      println("RUNNING SAVE")
       if(editMode.now) {
         val text = contentEditable.textContent
         if (text.nonEmpty) {
-          val newData = NodeData.Markdown(text)
+          val newData = node.data.updateStr(text)
           if (newData != node.data) {
             val updatedNode = node.copy(data = newData)
 
             Var.set(
-              initialRender -> renderNodeData(updatedNode.data, maxLength),
+              initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
               editMode -> false
             )
 
@@ -422,5 +507,57 @@ object Components {
       }
     )
   })
+
+  def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val fileUploadIcon = freeSolid.faFileUpload
+
+    val iconAndPopup = selected.map {
+      case None =>
+        (fontawesome.icon(fileUploadIcon), div("Upload your own file!"))
+      case Some(selected) =>
+        val popupNode = selected.file.`type` match {
+          case t if t.startsWith("image/") => img(src := selected.dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
+          case _ => div(selected.file.name)
+        }
+        val icon = fontawesome.layered(
+          fontawesome.icon(fileUploadIcon),
+          fontawesome.icon(
+            freeSolid.faFolder,
+            new Params {
+              transform = new Transform {size = 20.0; x = 7.0; y = 7.0; }
+              styles = scalajs.js.Dictionary[String]("color" -> "orange")
+            }
+          )
+        )
+
+        (icon, popupNode)
+    }
+
+    div(
+      padding := "3px",
+      input(display.none, tpe := "file", id := "upload-file-field",
+        onChange.foreach { e =>
+          val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
+          if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
+          else selected() = None
+        }
+      ),
+      label(
+        forId := "upload-file-field", // label for input will trigger input element on click.
+        iconAndPopup.map { case (icon, popup) =>
+          VDomModifier(
+            UI.popupHtml("top left") := popup,
+            icon
+          )
+        },
+        margin := "0px",
+        Styles.flexStatic,
+        cls := "ui circular icon button",
+        fontSize := "1.1rem",
+        backgroundColor := "steelblue",
+        color := "white",
+      )
+    )
+  }
 }
 

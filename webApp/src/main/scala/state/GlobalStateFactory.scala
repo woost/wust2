@@ -1,5 +1,7 @@
 package wust.webApp.state
 
+import java.util.concurrent.TimeUnit
+
 import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom.window
@@ -42,8 +44,28 @@ object GlobalStateFactory {
 
     val hasError = OutwatchTracing.error.map(_ => true).unsafeToRx(false)
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError)
+    val fileDownloadBaseUrl = Var[Option[String]](None)
+
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl)
     import state._
+
+    // would be better to statically have this base url from the index.html or something.
+    def renewFileDownloadBaseUrl(): Unit = {
+      def scheduleRenewal(seconds: Int): Unit = {
+        Task(renewFileDownloadBaseUrl()).delayExecution(FiniteDuration(seconds, TimeUnit.SECONDS)).runToFuture
+      }
+
+      Client.api.fileDownloadBaseUrl.onComplete {
+        case Success(Some(fileUrl)) =>
+          fileDownloadBaseUrl() = Some(fileUrl.url)
+        case Success(None) =>
+          () // nothing to do, not file url available at backend
+        case Failure(err) =>
+          scribe.warn("Error getting file download base url, will retry in 30 seconds", err)
+          scheduleRenewal(seconds = 30)
+      }
+    }
+    renewFileDownloadBaseUrl()
 
     // TODO: we need this for the migration from username to email can go away afterwards
     user.foreach {

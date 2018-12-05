@@ -85,6 +85,11 @@ object UI {
     val _position = position
     popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
+  def popupHtml: AttributeBuilder[BasicVNode, VDomModifier] = node => popup(new PopupOptions { html = node.render.outerHTML; hideOnScroll = true; exclusive = true; })
+  def popupHtml(position: String): AttributeBuilder[BasicVNode, VDomModifier] = node => {
+    val _position = position
+    popup(new PopupOptions { html = node.render.outerHTML; position = _position; hideOnScroll = true; exclusive = true; })
+  }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
   def dropdown(modifier: VDomModifier, options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = EmitterBuilder.ofModifier { sink =>

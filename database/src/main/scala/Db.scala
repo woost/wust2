@@ -84,6 +84,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(q)
     }
 
+    def getFileNodes(keys: Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
+      ctx.run {
+        query[Node].filter(node =>
+          node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys.toList).contains(node.data->>"key")
+        )
+      }.map(_.map(n => n.id -> n.data.asInstanceOf[NodeData.File]))
+    }
+
     def getMembers(nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[User]] = {
       ctx.run {
         for {
