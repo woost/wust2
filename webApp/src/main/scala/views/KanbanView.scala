@@ -171,12 +171,12 @@ object KanbanView {
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       keyed(node.id, parentId),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
-      Rx{ if(editable()) draggableAs(DragItem.DisableDrag) else { // prevents dragging when selecting text
+      Rx{ if(editable()) sortableAs(DragItem.DisableDrag) else { // prevents dragging when selecting text
         if(isTopLevel) VDomModifier(
-          draggableAs(DragItem.Kanban.Column(node.id)),
+          sortableAs(DragItem.Kanban.Column(node.id)),
           dragTarget(DragItem.Kanban.Column(node.id)),
         ) else VDomModifier(
-          draggableAs(DragItem.Kanban.Column(node.id)),
+          sortableAs(DragItem.Kanban.Column(node.id)),
           dragTarget(DragItem.Kanban.Column(node.id))
         )
       }},
@@ -232,7 +232,7 @@ object KanbanView {
     val assignment = Rx {
       val graph = state.graph()
       val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
-      nodeUsers.map(userIdx => graph.nodes(userIdx))
+      nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
     }
 
 
@@ -277,20 +277,21 @@ object KanbanView {
       justifyContent.spaceBetween,
 
       // sortable: draggable needs to be direct child of container
-      Rx { if(editable()) draggableAs(DragItem.DisableDrag) else draggableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
+      Rx { if(editable()) sortableAs(DragItem.DisableDrag) else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
+//      registerDraggableContainer(state),
       keyed(node.id, parentId),
       cls := "draghandle",
 
       assignment.map(_.map(userNode => div(
-          Avatar.user(userNode.id.asInstanceOf[UserId])(
+          Avatar.user(userNode.id)(
             marginLeft := "2px",
             width := "22px",
             height := "22px",
             cls := "avatar",
             marginBottom := "2px",
           ),
-          UI.popup := s"Assigned to ${userNode.str}"
+          UI.popup := s"Assigned to ${displayUserName(userNode.data)}"
         ))),
 
       Rx{

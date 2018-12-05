@@ -17,7 +17,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
 import wust.webApp.{BrowserDetect, Icons}
-import wust.webApp.dragdrop.DragItem
+import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, UploadingFile}
 import wust.webApp.views.Components._
@@ -53,9 +53,9 @@ object ChatView {
       inputFieldFocusTrigger.onNext(())
     }
 
-    val outerDragOptions = VDomModifier(
+    def outerDragOptions(pageId: NodeId) = VDomModifier(
       draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { state.page().parentId.map(parentId => dragTarget(DragItem.Chat.Page(parentId))) },
+      dragTarget(DragItem.Chat.Page(pageId)),
       registerDraggableContainer(state),
       cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
@@ -78,10 +78,12 @@ object ChatView {
         backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         Rx {
           state.page().parentId map { pageParentId =>
-            chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite)
+            VDomModifier(
+              chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite),
+              outerDragOptions(pageParentId)
+            )
           }
         },
-        outerDragOptions,
 
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },

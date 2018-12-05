@@ -682,7 +682,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(7 px)
   )
 
-  ".kanbannewcolumnarea.draggable-container--over" - (
+  ".kanbannewcolumnarea.sortable-container--over" - (
     backgroundColor(transparent),
   )
 
@@ -974,7 +974,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  ".draggable-container .node.draggable--over," +
+  ".sortable-container .node.draggable--over," +
   ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // threadview
   ".chat-expanded-thread.draggable--over .chat-common-parents," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview

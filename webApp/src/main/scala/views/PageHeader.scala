@@ -19,6 +19,7 @@ import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util._
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
@@ -120,9 +121,17 @@ object PageHeader {
   }
 
   private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
+    val outerDragOptions = VDomModifier(
+      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
+      Rx { state.page().parentId.map(pageParentId => dragTarget(DragItem.Chat.Page(pageParentId))) },
+      registerDraggableContainer(state),
+      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
+    )
+
     div(
       Styles.flex,
       flexWrap.wrap,
+      outerDragOptions,
       Rx {
         val graph = state.graph()
         val nodeIdx = graph.idToIdx(channel.id)
@@ -137,6 +146,9 @@ object PageHeader {
             marginBottom := "2px",
           ),
           UI.tooltip("bottom center") := Components.displayUserName(user.data)
+        )(
+          draggableAs(DragItem.AvatarNode(user.id)),
+          cls := "draghandle",
         ))(breakOut) : js.Array[VNode]
       }
     )

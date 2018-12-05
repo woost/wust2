@@ -330,6 +330,14 @@ object Components {
     )
   }
 
+  def readDragDisableSort(elem: dom.html.Element): Option[Boolean] = {
+    readPropertyFromElement[Boolean](elem, DragItem.disableSortPropName)
+  }
+
+  def writeDragDisableSort(elem: dom.html.Element, disableSort: => Boolean): Unit = {
+    writePropertyIntoElement(elem, DragItem.disableSortPropName, disableSort)
+  }
+
   def readDragTarget(elem: dom.html.Element): Option[DragTarget] = {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }
@@ -363,11 +371,20 @@ object Components {
   }
 
 
-  def draggableAs(payload: => DragPayload): VDomModifier = {
+  def sortableAs(payload: => DragPayload): VDomModifier = {
     VDomModifier(
       cls := "draggable", // makes this element discoverable for the Draggable library
       onDomMount.asHtml foreach { elem =>
         writeDragPayload(elem, payload)
+      }
+    )
+  }
+
+  def draggableAs(payload: => DragPayload): VDomModifier = {
+    VDomModifier(
+      sortableAs(payload),
+      onDomMount.asHtml foreach { elem =>
+        writeDragDisableSort(elem, true)
       }
     )
   }
@@ -394,12 +411,10 @@ object Components {
     VDomModifier(
       //    border := "2px solid blue",
       outline := "none", // hides focus outline
-      cls := "draggable-container",
+      cls := "sortable-container",
       managedElement.asHtml { elem =>
-        state.draggable.addContainer(elem)
-        Cancelable { () =>
-          state.draggable.removeContainer(elem)
-        }
+        state.sortable.addContainer(elem)
+        Cancelable { () => state.sortable.removeContainer(elem) }
       }
     )
   }
@@ -412,9 +427,7 @@ object Components {
       managedElement.asHtml { elem =>
         writeDragContainer(elem, container)
         state.sortable.addContainer(elem)
-        Cancelable { () =>
-          state.sortable.removeContainer(elem)
-        }
+        Cancelable { () => state.sortable.removeContainer(elem) }
       }
     )
   }

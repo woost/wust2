@@ -9,7 +9,7 @@ import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.Icons
-import wust.webApp.dragdrop.{DragItem, DragStatus}
+import wust.webApp.dragdrop.{DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
@@ -36,23 +36,6 @@ object SelectedNodes {
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty
-//              state.draggableEvents.status.map {
-//              case DragStatus.None =>
-//                VDomModifier.empty
-//              case DragStatus.Dragging => VDomModifier(
-//                cls := "selectednodes",
-//                Styles.flex,
-//                alignItems.center,
-//                justifyContent.spaceAround,
-//                div("drag here to select", margin.auto),
-//                clearSelectionButton(selectedNodes).apply(visibility.hidden), // to provide the correct height for the bar
-//                // height := "37px",
-//                width := "100%",
-//                textAlign.center,
-//                draggableAs(state, DragItem.DisableDrag),
-//                dragTarget(DragItem.SelectedNodesBar),
-//              )
-//            }
             case nonEmptyNodeIds => VDomModifier(
               cls := "selectednodes",
               Styles.flex,

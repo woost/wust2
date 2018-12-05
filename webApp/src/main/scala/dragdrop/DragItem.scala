@@ -2,7 +2,7 @@ package wust.webApp.dragdrop
 
 import io.circe._
 import io.circe.generic.semiauto._
-import wust.ids.NodeId
+import wust.ids.{NodeId, UserId}
 
 sealed trait DragPayload extends Product
 sealed trait DragTarget extends Product
@@ -17,6 +17,7 @@ object DragItem extends wust.ids.serialize.Circe {
 
   case class Tag(nodeId: NodeId) extends ParentNode
   case class Channel(nodeId: NodeId) extends ParentNode
+  case class AvatarNode(userId: UserId) extends SingleNode { @inline def nodeId = userId.asInstanceOf[NodeId] }
   case class SelectedNode(nodeId: NodeId) extends SingleNode
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload
   case object SelectedNodesBar extends DragTarget
@@ -36,6 +37,7 @@ object DragItem extends wust.ids.serialize.Circe {
 
   val payloadPropName = "_wust_dragpayload"
   val targetPropName = "_wust_dragtarget"
+  val disableSortPropName = "_wust_disableSort"
   val draggedActionPropName = "_wust_draggedaction"
 
   implicit val payloadDecoder: Decoder[DragPayload] = deriveDecoder[DragPayload]
@@ -53,6 +55,8 @@ object DragContainer extends wust.ids.serialize.Circe {
     case class ColumnArea(parentId:NodeId) extends Area
     case class Uncategorized(parentId:NodeId) extends Area
   }
+
+  case class AvatarHolder(nodeId: NodeId) extends DragContainer
 
   val propName = "_wust_dragcontainer"
 

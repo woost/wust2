@@ -6,25 +6,21 @@ import monix.eval.Task
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
-import org.scalajs.dom
 import org.scalajs.dom.experimental.permissions.PermissionState
-import org.scalajs.dom.raw.{HTMLElement, VisibilityState}
-import outwatch.dom._
+import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom.dsl._
 import rx._
 import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.util.time.time
-import wust.webApp.dragdrop.{DraggableEvents, SortableEvents}
+import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.{AWS, Components, UI}
 import wust.css.Styles
 import wust.util.algorithm
 
-import scala.collection.mutable
 import scala.collection.breakOut
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -137,14 +133,6 @@ class GlobalState(
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
   @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large
 
-  val draggable = new Draggable(js.Array[HTMLElement](), new Options {
-    draggable = ".draggable"
-    handle = ".draghandle"
-    delay = 200.0
-    mirror = new MirrorOptions {
-      constrainDimensions = true
-    }
-  })
   val sortable = new Sortable(js.Array[HTMLElement](), new Options {
     draggable = ".draggable"
     handle = ".draghandle"
@@ -153,7 +141,6 @@ class GlobalState(
       constrainDimensions = true
     }
   })
-  val draggableEvents = new DraggableEvents(this, draggable)
   val sortableEvents = new SortableEvents(this, sortable)
 }
 
