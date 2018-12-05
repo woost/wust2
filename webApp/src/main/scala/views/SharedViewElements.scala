@@ -354,7 +354,7 @@ object SharedViewElements {
           case NodeRole.Task =>
             nodeCardWithCheckbox(state, node, directParentIds)
           case _ =>
-            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = cls := "enable-text-selection").apply(
+            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = BrowserDetect.isMobile.ifFalse[VDomModifier](cls := "enable-text-selection")).apply(
               Styles.flex,
               alignItems.flexEnd,
               importanceIndicator,
