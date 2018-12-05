@@ -121,7 +121,7 @@ package object outwatchHelpers extends KeyHash {
       VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
     }
     def render: org.scalajs.dom.Element = {
-      val elem = document.createElement("div")
+      val elem = document.createElement(vNode.nodeType)
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()
       elem
     }
