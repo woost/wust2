@@ -117,10 +117,7 @@ object Components {
               centerStyle,
               woostLoadingAnimation.apply(overlay, centerStyle)
             )
-            case None => div(
-              centerStyle,
-              woostLoadingAnimation
-            )
+            case None => VDomModifier.empty
           }
         })
       } else contentType match {
