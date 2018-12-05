@@ -74,10 +74,10 @@ object Components {
     val maxImageHeight = "250px"
 
     def downloadUrl(attr: AttributeBuilder[String, VDomModifier]): VDomModifier = state.fileDownloadBaseUrl.map(_.map(baseUrl => attr := baseUrl + "/" + key))
-    def preview(dataUrl: String) = {
+    def preview(dataUrl: String): VDomModifier = {
       file.contentType match {
         case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
-        case _                           => VDomModifier.empty
+        case _                           => VDomModifier(height := "150px", width := "300px")
       }
     }
     def centerStyle = VDomModifier(
