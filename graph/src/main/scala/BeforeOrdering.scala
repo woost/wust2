@@ -148,9 +148,8 @@ object BeforeOrdering {
   def taskGraphToSortedForest(graph: Graph, userId: UserId, pageParentId: NodeId): (ArraySet, Seq[Tree]) = {
 
     val (categorizedTasks, uncategorizedTasks) = extractAndPartitionTasks(graph, pageParentId, userId)
-    val taskGraph = graph.filterIdx(categorizedTasks.contains)
+    val taskGraph = graph.filterIdx(idx => categorizedTasks.contains(idx) || idx == graph.idToIdx(pageParentId))
     val toplevelIds = taskGraph.notDeletedChildrenIdx(taskGraph.idToIdx(pageParentId))
-
 
     val unsortedForest = (toplevelIds.map(idx => taskGraph.redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree])
       .sortBy(_.node.id)
