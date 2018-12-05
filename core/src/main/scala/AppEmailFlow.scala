@@ -54,6 +54,6 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       }
       .subscribe(
         _ => Ack.Continue,
-        err => println(s"Error while sending email, will not continue: $err")
+        err => scribe.error(s"Error while sending email, will not continue", err)
       )
 }
