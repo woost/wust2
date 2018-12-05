@@ -35,18 +35,13 @@ object UI {
     )}
 
   case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
-  def modal(config: Observable[ModalConfig]): VDomModifier = div(
-      keyed,
+  def modal(config: Observable[ModalConfig]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
       cls := "ui modal",
       config.map {
         case config => VDomModifier(
           emitter(config.close).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
           config.modalModifier,
           onDomMount.asJquery.foreach { e =>
-            // we set detachable to false, so semantic ui does not move the element into the body.
-            // such a dom manipulation does not work well with virtual dom, because the virtual dom
-            // state and the real dom state would diverge and any succeeding patch could lead to an error.
-            e.modal(new ModalOptions { detachable = false })
             e.modal("show")
           },
           i(cls := "close icon"),
@@ -74,7 +69,7 @@ object UI {
           )
         )
     }
-  )
+  ))
 
   def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip)
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(tooltip := str, data.position := position)
