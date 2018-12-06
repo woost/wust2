@@ -287,7 +287,7 @@ object Components {
         val parentIdx = graph.idToIdx(parentId)
         graph.doneNodeIdx(parentIdx).exists(doneIdx => isDoneIn(doneIdx, nodeIdx))
       }
-      directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Status).forall( nodeIsDoneInParent )
+      directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Stage).forall( nodeIsDoneInParent )
     }
 
     nodeCard(node).apply(margin := "4px").prepend(
@@ -309,7 +309,7 @@ object Components {
               if(checking) {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
-                    val freshDoneNode = Node.MarkdownStatus(Graph.doneText)
+                    val freshDoneNode = Node.MarkdownStage(Graph.doneText)
                     val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, pageParentId) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)

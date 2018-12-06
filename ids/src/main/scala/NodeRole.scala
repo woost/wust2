@@ -7,7 +7,7 @@ sealed trait NodeRole
 object NodeRole {
   case object Message extends NodeRole
   case object Task extends NodeRole
-  case object Status extends NodeRole
+  case object Stage extends NodeRole
 
   @inline def default:NodeRole = Message
 
