@@ -22,6 +22,7 @@ object WelcomeView {
         height := "100%",
         Styles.flex,
         justifyContent.spaceAround,
+        overflow.auto,
         div(
           Rx{
             val user = state.user().toNode
