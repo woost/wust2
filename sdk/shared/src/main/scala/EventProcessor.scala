@@ -76,6 +76,7 @@ class EventProcessor private (
 
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
+  @deprecated("use GraphChanges.addNodeWithParent instead.", "")
   object enriched {
     val changes = PublishSubject[GraphChanges]
   }
