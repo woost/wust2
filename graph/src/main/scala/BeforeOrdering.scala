@@ -69,8 +69,8 @@ object BeforeOrdering {
     isContent && isTask
   }
 
-  private def categorizationFilter(graph: Graph, parents: Int => Boolean, nodeIdx: Int, userId: UserId) = {
-    @inline def isOnlyToplevel = graph.parentsIdx.forall(nodeIdx)(parents)
+  private def categorizationFilter(graph: Graph, parentIdx: Int, nodeIdx: Int, userId: UserId) = {
+    @inline def isOnlyToplevel = graph.parentsIdx.contains(nodeIdx)(parentIdx)
     @inline def isExpanded = graph.isExpanded(userId, graph.nodeIds(nodeIdx))
     @inline def hasChildren = graph.hasNotDeletedChildrenIdx(nodeIdx)
     !isOnlyToplevel || isExpanded || hasChildren
@@ -104,7 +104,7 @@ object BeforeOrdering {
     val nodesOfInterest: Seq[Int] = graph.notDeletedChildrenIdx(parentIdx) // nodes in container
     //    val toplevel = graph.notDeletedChildrenIdx(pageParentIdx)
     nodesOfInterest.filter(idx => {
-      taskFilter(graph.nodes(idx)) && categorizationFilter(graph, (idx: Int) => idx == pageParentIdx, idx, userId)
+      taskFilter(graph.nodes(idx)) && categorizationFilter(graph, pageParentIdx, idx, userId)
     })
   }
 
@@ -136,7 +136,7 @@ object BeforeOrdering {
   def partitionTasks(graph: Graph, userId: UserId, pageParentId: NodeId)(allTasks: ArraySet): (ArraySet, ArraySet) = {
     val pageParentIdx = graph.idToIdx(pageParentId)
     val (categorizedTasks, uncategorizedTasks) = allTasks.partition { nodeIdx =>
-      categorizationFilter(graph, (idx: Int) => idx == pageParentIdx, nodeIdx, userId)
+      categorizationFilter(graph, pageParentIdx, nodeIdx, userId)
     }
 
     (categorizedTasks, uncategorizedTasks)
@@ -147,16 +147,17 @@ object BeforeOrdering {
   // TODO: Empty toplevel crashes
   def taskGraphToSortedForest(graph: Graph, userId: UserId, pageParentId: NodeId): (ArraySet, Seq[Tree]) = {
 
-    val (categorizedTasks, uncategorizedTasks) = extractAndPartitionTasks(graph, pageParentId, userId)
-    val taskGraph = graph.filterIdx(idx => categorizedTasks.contains(idx) || idx == graph.idToIdx(pageParentId))
+    val (categorizedTasks, inboxTasks) = extractAndPartitionTasks(graph, pageParentId, userId)
+    val pageParentIdx = graph.idToIdx(pageParentId)
+    val taskGraph = graph.filterIdx(idx => categorizedTasks.contains(idx) || idx == pageParentIdx)
     val toplevelIds = taskGraph.notDeletedChildrenIdx(taskGraph.idToIdx(pageParentId))
 
     val unsortedForest = (toplevelIds.map(idx => taskGraph.redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree])
       .sortBy(_.node.id)
 
-    val (sortedForest, _) = sort[Tree](taskGraph, pageParentId, unsortedForest, (t: Tree) => t.node.id)
+    val (sortedColumnForest, _) = sort[Tree](taskGraph, pageParentId, unsortedForest, (t: Tree) => t.node.id)
 
-    (uncategorizedTasks, sortedForest)
+    (inboxTasks, sortedColumnForest)
   }
 
 }
