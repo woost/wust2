@@ -339,7 +339,10 @@ object PageHeader {
     def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserId(name)
       graphUser.flatMap {
-        case Some(u) => Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
+        case Some(u) =>
+          val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Member(u, EdgeData.Member(AccessLevel.ReadWrite), node.id)))
+          state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, change))
+          Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
         case _       => Future.successful(false)
       }.onComplete {
         case Success(b) =>
