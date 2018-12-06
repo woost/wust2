@@ -291,7 +291,10 @@ object KanbanView {
             cls := "avatar",
             marginBottom := "2px",
           ),
-          UI.popup := s"Assigned to ${displayUserName(userNode.data)}"
+          keyed(userNode.id),
+          UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+          cursor.pointer,
+          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
         ))),
 
       Rx{

@@ -10,6 +10,7 @@ import wust.backend.Dsl._
 import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
+import wust.ids
 import wust.ids._
 
 import scala.collection.mutable
@@ -35,7 +36,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object: we need an api for multiple.
   private def changeGraphInternal(
-      changes: List[GraphChanges],
+      allChanges: List[GraphChanges],
       user: AuthUser.Persisted
   ): Future[ApiData.Effect[Boolean]] = {
 
@@ -44,18 +45,20 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
     //  delEdges // needs permissions on all involved nodeids
 
     // TODO: Workaround since userid is not accessible but is needed for assignments
-    var allWhitelistedEdges = mutable.ArrayBuffer[Edge]()
-    val changesAreAllowed = changes.forall { allChanges =>
-
-      val (whitelistedEdges, remainingEdges) = allChanges.addEdges.partition {
+    val (changes, allWhitelistedAddEdges, allWhitelistedDelEdges) = allChanges.map { gc =>
+      val (whitelistedAddEdges, remainingAddEdges) = gc.addEdges.partition {
         case _: Edge.Assigned => true
-        case _ => false
+        case _                => false
+      }
+      val (whitelistedDelEdges, remainingDelEdges) = gc.delEdges.partition {
+        case _: Edge.Assigned => true
+        case _                => false
       }
 
-      allWhitelistedEdges ++= whitelistedEdges
+      (gc.copy(addEdges = remainingAddEdges, delEdges = remainingDelEdges), whitelistedAddEdges, whitelistedDelEdges)
+    }.unzip3
 
-      val changes = allChanges.copy(addEdges = remainingEdges)
-
+    val changesAreAllowed = changes.forall { changes =>
 
       //TODO check conns
       // addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
@@ -92,11 +95,20 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
 
     // TODO: task instead of this function
     val checkAllChanges: () => Future[SuccessResult.type] = () => {
-      val usedIdsFromDb = changes.flatMap(_.involvedNodeIds) diff changes.flatMap(
+      val a: List[NodeId] = changes.flatMap(_.involvedNodeIds)
+      val b: List[NodeId] = changes.flatMap(
         _.addNodes
           .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
+        // TODO: This bypasses updates of nodes.
+        // I can send an updated node with an edge and the id of the updated node won't be checked
       )
+      val usedIdsFromDb: List[NodeId] = a diff b
+
+      scribe.info(s"involved ids = ${a}")
+      scribe.info(s"add nodes ids = ${a}")
+      scribe.info(s"used ids = ${usedIdsFromDb}")
       db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
+        scribe.info(s"confliting ids = $conflictingIds")
         if (conflictingIds.isEmpty) Future.successful(SuccessResult)
         else {
           Future.failed(new Exception(
@@ -120,11 +132,9 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
 
     if (changesAreAllowed) {
       val result: Future[SuccessResult.type] = db.ctx.transaction { implicit ec =>
-        (checkAllChanges +: changes.map(applyChangesToDb)).foldLeft(Future.successful(SuccessResult)) {
+        ((checkAllChanges +: changes.map(applyChangesToDb)) ++ List(() => db.edge.create(allWhitelistedAddEdges.flatten[Edge].map(forDb)), () => db.edge.delete(allWhitelistedDelEdges.flatten[Edge].map(forDb)))).foldLeft(Future.successful(SuccessResult)) {
           (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
         }
-
-        db.edge.create(allWhitelistedEdges.map(forDb))
       }
 
       result.map { _ =>
