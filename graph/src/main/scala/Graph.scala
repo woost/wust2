@@ -900,15 +900,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   lazy val rootNodes: Array[Int] = {
     // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)
-    val coveredChildren = {
-      val a = ArraySet.create(n)
+    val coveredChildren = ArraySet.create(n)
       nodes.foreachIndex { i =>
         if(!hasNotDeletedParentsIdx(i)) {
-          a.add(notDeletedDescendantsIdx(i))
+        coveredChildren ++= notDeletedDescendantsIdx(i)
         }
       }
-      a
-    }
 
     // val rootNodes = nodes.filter(n => coveredChildren(idToIdx(n.id)) == 0 && (!hasParents(n.id) || involvedInContainmentCycle(n.id))).toSet
     val rootNodesIdx = new mutable.ArrayBuilder.ofInt
@@ -934,6 +931,19 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       } else {
         Tree.Parent(nodes(root), (notDeletedChildrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
       }
+    }
+    else
+      Tree.Leaf(nodes(root))
+  }
+
+  def roleTree(root: Int, role:NodeRole, visited: ArraySet = ArraySet.create(n)): Tree = {
+    if(visited.containsNot(root) && nodes(root).role == role) {
+      visited.add(root)
+      Tree.Parent(nodes(root), (
+        notDeletedChildrenIdx(root)
+          .map(idx => roleTree(idx, role, visited))(breakOut): List[Tree]
+        ).sortBy(_.node.id)
+      )
     }
     else
       Tree.Leaf(nodes(root))
