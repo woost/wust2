@@ -213,7 +213,6 @@ object KanbanView {
     div(
       Styles.flexStatic,
       Styles.flex,
-      color := "gray",
       margin := "5px",
       div(Icons.conversation, marginRight := "5px"),
     )
@@ -298,7 +297,7 @@ object KanbanView {
         ))),
 
       Rx{
-        renderMessageCount(if (messageChildrenCount() > 0) messageChildrenCount().toString else "", onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
+          renderMessageCount(if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount().toString, color := "gray") else VDomModifier(color := "#b9b9b9"), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
       },
 
       position.relative, // for buttonbar
