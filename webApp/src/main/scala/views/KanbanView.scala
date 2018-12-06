@@ -271,10 +271,6 @@ object KanbanView {
     }
 
     rendered(
-      Styles.flex,
-      alignItems.flexEnd,
-      justifyContent.spaceBetween,
-
       // sortable: draggable needs to be direct child of container
       Rx { if(editable()) sortableAs(DragItem.DisableDrag) else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
@@ -282,23 +278,37 @@ object KanbanView {
       keyed(node.id, parentId),
       cls := "draghandle",
 
-      assignment.map(_.map(userNode => div(
-          Avatar.user(userNode.id)(
-            marginLeft := "2px",
-            width := "22px",
-            height := "22px",
-            cls := "avatar",
-            marginBottom := "2px",
-          ),
-          keyed(userNode.id),
-          UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
-          cursor.pointer,
-          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
-        ))),
+      div(
+        Styles.flex,
+        justifyContent.spaceBetween,
+        alignItems.flexEnd,
 
-      Rx{
-          renderMessageCount(if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount().toString, color := "gray") else VDomModifier(color := "#b9b9b9"), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
-      },
+        div(
+          Styles.flex,
+          flexWrap.wrap,
+          assignment.map(_.map(userNode => div(
+            Styles.flexStatic,
+            Avatar.user(userNode.id)(
+              marginLeft := "2px",
+              width := "22px",
+              height := "22px",
+              cls := "avatar",
+              marginBottom := "2px",
+            ),
+            keyed(userNode.id),
+            UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+            cursor.pointer,
+            onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
+          ))),
+        ),
+
+        div(
+          Styles.flexStatic,
+          Rx{
+            renderMessageCount(if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount().toString, color := "gray") else VDomModifier(color := "#b9b9b9"), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
+          },
+        ),
+      ),
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),
