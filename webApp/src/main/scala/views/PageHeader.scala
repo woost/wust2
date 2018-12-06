@@ -351,7 +351,7 @@ object PageHeader {
             UI.toast(title = "Add Member", msg = "Could not add member: Member does not exist", level = UI.ToastLevel.Error)
             scribe.error("Could not add member: Member does not exist")
           } else {
-            UI.toast(title = "Add Member", msg = "Successfully added member to the channel", level = UI.ToastLevel.Error)
+            UI.toast(title = "Add Member", msg = "Successfully added member to the channel", level = UI.ToastLevel.Success)
             scribe.info("Added member to channel")
           }
         case Failure(ex) =>
