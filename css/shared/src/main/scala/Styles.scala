@@ -330,6 +330,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".channelIcons" - (
     overflowY.auto,
+    overflowX.hidden, // needed for firefox
     paddingBottom(5 px), // fix overflow (unnecessary scrollbar) in firefox
     Styles.flex,
     flexDirection.column,
