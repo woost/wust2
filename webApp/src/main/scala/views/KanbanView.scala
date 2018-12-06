@@ -43,13 +43,13 @@ object KanbanView {
       alignItems.flexStart,
 
       Rx {
-          val page = state.page()
+        val page = state.page()
         val graph = state.graph()
-          page.parentId.map { pageParentId =>
+        page.parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
 
           //            val kanbanGraph = filterKanbanGraph(state.graph(), pageParentId)
-            //          scribe.info(s"KANBAN GRAPH NODES: ${graph.nodes.map(_.str).mkString(", ")}")
+          //          scribe.info(s"KANBAN GRAPH NODES: ${graph.nodes.map(_.str).mkString(", ")}")
 
           // inboxTasks: all tasks which are direct children of pageParentId
           // column: trees of all stages which are direct children of pageParentId.
@@ -104,10 +104,10 @@ object KanbanView {
       case Tree.Leaf(node)             =>
         if(node.role == NodeRole.Stage)
           renderColumn(state, graph, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
-          else
-            renderCard(state, node, parentId, selectedNodeIds)
-        }
+        else
+          renderCard(state, node, parentId, selectedNodeIds)
     }
+  }
 
 
   private def renderInboxColumn(
@@ -241,6 +241,15 @@ object KanbanView {
     )
   }
 
+  private val renderTaskCount = {
+    div(
+      Styles.flexStatic,
+      Styles.flex,
+      margin := "5px",
+      div(Icons.tasks, marginRight := "5px"),
+    )
+  }
+
 
   private def renderCard(state: GlobalState, node: Node, parentId: NodeId, selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
@@ -293,6 +302,11 @@ object KanbanView {
       graph.messageChildrenIdx.sliceLength(graph.idToIdx(node.id))
     }
 
+    val taskChildrenCount = Rx {
+      val graph = state.graph()
+      graph.taskChildrenIdx.sliceLength(graph.idToIdx(node.id))
+    }
+
     rendered(
       // sortable: draggable needs to be direct child of container
       Rx { if(editable()) sortableAs(DragItem.DisableDrag) else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
@@ -326,9 +340,22 @@ object KanbanView {
         ),
 
         div(
+          cls := "childstats",
+          Styles.flex,
           Styles.flexStatic,
           Rx{
-            renderMessageCount(if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount().toString, color := "gray") else VDomModifier(color := "#b9b9b9"), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer)
+            VDomModifier(
+              renderTaskCount(
+                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
+                else VDomModifier(cls := "emptystat"),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig, cursor.pointer
+              ),
+              renderMessageCount(
+                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+                else VDomModifier(cls := "emptystat"),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer
+              ),
+            )
           },
         ),
       ),

@@ -769,6 +769,15 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgb(71, 71, 71)")
   )
 
+  ".childstats" - (
+    color.gray
+  )
+  ".childstats .emptystat" - (
+    visibility.hidden,
+  )
+  ".nodecard:hover .childstats .emptystat" - (
+    visibility.visible
+  )
 
   ".kanbancolumnheader .buttonbar" - (
     padding(kanbanColumnPadding),
