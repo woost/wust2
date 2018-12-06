@@ -68,6 +68,7 @@ object FeedbackForm {
         cls := "ui positive tiny compact button",
         onClick.stopPropagation foreach{
           Analytics.sendEvent("feedback", if(show.now) "close" else "open")
+          if(BrowserDetect.isMobile && !show.now) state.sidebarOpen() = false // else feedback form is hidden behind sidebar
           show.update(!_)
         },
         onGlobalEscape(false) --> show,
