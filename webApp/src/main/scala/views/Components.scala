@@ -584,7 +584,7 @@ object Components {
         val icon = fontawesome.layered(
           fontawesome.icon(fileUploadIcon),
           fontawesome.icon(
-            freeSolid.faFolder,
+            freeSolid.faPaperclip,
             new Params {
               transform = new Transform {size = 20.0; x = 7.0; y = 7.0; }
               styles = scalajs.js.Dictionary[String]("color" -> "orange")
