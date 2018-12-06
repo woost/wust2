@@ -12,6 +12,7 @@ import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
 
+import scala.collection.mutable
 import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
@@ -42,7 +43,20 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
     //  addEdges // needs permissions on all involved nodeids, or nodeids are in addNodes
     //  delEdges // needs permissions on all involved nodeids
 
-    val changesAreAllowed = changes.forall { changes =>
+    // TODO: Workaround since userid is not accessible but is needed for assignments
+    var allWhitelistedEdges = mutable.ArrayBuffer[Edge]()
+    val changesAreAllowed = changes.forall { allChanges =>
+
+      val (whitelistedEdges, remainingEdges) = allChanges.addEdges.partition {
+        case _: Edge.Assigned => true
+        case _ => false
+      }
+
+      allWhitelistedEdges ++= whitelistedEdges
+
+      val changes = allChanges.copy(addEdges = remainingEdges)
+
+
       //TODO check conns
       // addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
 
@@ -109,6 +123,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
         (checkAllChanges +: changes.map(applyChangesToDb)).foldLeft(Future.successful(SuccessResult)) {
           (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
         }
+
+        db.edge.create(allWhitelistedEdges.map(forDb))
       }
 
       result.map { _ =>

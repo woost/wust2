@@ -57,6 +57,14 @@ begin
 end
 $$ language plpgsql;
 
+CREATE or replace FUNCTION assigned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Assigned'), node_to_uuid(nodeid))
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
+
 CREATE or replace FUNCTION expanded(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
@@ -199,6 +207,7 @@ select usernode('0B');
 select node('01');
 
 select author(  '0B', '01'); -- will be induced
+select assigned(  '0B', '01'); -- will be induced
 select expanded('0B', '01');
 select member(  '0B', '01'); -- will be induced
 select pinned(  '0B', '01');
@@ -213,10 +222,27 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[]::uuid[], array[]::text[]),
-        (user_to_uuid('0B'), jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel,
-            array[node_to_uuid('01'),node_to_uuid('01'),node_to_uuid('01')]::uuid[], array_sort(array['{"type": "Member", "level": "readwrite"}','{"type": "Author"}', '{"type": "Parent", "deletedAt": null}'])::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[user_to_uuid('0B')]::uuid[], array['{"type": "Notify"}']::text[])
+        (user_to_uuid('0A'),
+            jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0),
+            '{"type": "Message"}'::jsonb,
+            'restricted'::accesslevel,
+            array[]::uuid[],
+            array[]::text[]
+        ),
+        (user_to_uuid('0B'),
+            jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0),
+            '{"type": "Message"}'::jsonb,
+            'restricted'::accesslevel,
+            array[node_to_uuid('01'),node_to_uuid('01'),node_to_uuid('01'),node_to_uuid('01')]::uuid[],
+            array_sort(array['{"type": "Member", "level": "readwrite"}','{"type": "Author"}', '{"type": "Parent", "deletedAt": null}', '{"type": "Assigned"}']::text[])
+        ),
+        (node_to_uuid('01'),
+            jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')),
+            '{"type": "Message"}'::jsonb,
+            'readwrite'::accesslevel,
+            array[user_to_uuid('0B')]::uuid[],
+            array['{"type": "Notify"}']::text[]
+        )
     $$
 );
 

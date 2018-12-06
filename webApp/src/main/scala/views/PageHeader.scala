@@ -145,6 +145,7 @@ object PageHeader {
             cls := "avatar",
             marginBottom := "2px",
           ),
+          cursor.grab,
           UI.tooltip("bottom center") := Components.displayUserName(user.data)
         )(
           draggableAs(DragItem.AvatarNode(user.id)),

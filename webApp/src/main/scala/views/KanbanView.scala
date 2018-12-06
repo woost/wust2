@@ -62,7 +62,7 @@ object KanbanView {
 
                 Styles.flex,
                 alignItems.flexStart,
-                sortedForest.map(tree => renderTree(state, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+                sortedForest.map(tree => renderTree(state, kanbanGraph, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
                 registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
               ),
@@ -73,24 +73,24 @@ object KanbanView {
     )
   }
 
-  private def renderTree(state: GlobalState, tree: Tree, parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderTree(state: GlobalState, kanbanGraph: Graph, tree: Tree, parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, children) =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
 //            val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, node.id), node.id, children, (t: Tree) => t.node.id)
             scribe.debug(s"Sorting Tree of ${node.str}")
-            val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, parentId), node.id, children, (t: Tree) => t.node.id)
+            val (sortedChildren, _) = BeforeOrdering.sort[Tree](kanbanGraph, node.id, children, (t: Tree) => t.node.id)
             // val (sortedChildren, _) = BeforeOrdering.sort[Tree](state.graph.now, node.id, children, (t: Tree) => t.node.id)
-            renderColumn(state, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+            renderColumn(state, kanbanGraph, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
-            renderColumn(state, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
+            renderColumn(state, kanbanGraph, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
         }
       case Tree.Leaf(node)             =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id))
-            renderColumn(state, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+            renderColumn(state, kanbanGraph, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           else
             renderCard(state, node, parentId, selectedNodeIds)
         }
@@ -125,7 +125,7 @@ object KanbanView {
     )
   }
 
-  private def renderColumn(state: GlobalState, node: Node, children: Seq[Tree], parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isCollapsed: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, kanbanGraph: Graph, node: Node, children: Seq[Tree], parentId: NodeId, path: List[NodeId], activeReplyFields: Var[Set[List[NodeId]]], selectedNodeIds:Var[Set[NodeId]], isTopLevel: Boolean = false, isCollapsed: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
     val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.enriched.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -201,7 +201,7 @@ object KanbanView {
           cls := "kanbancolumnchildren",
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
           keyed(node.id, parentId),
-          children.map(tree => renderTree(state, tree, parentId = node.id, path = node.id :: path, activeReplyFields, selectedNodeIds)),
+          children.map(tree => renderTree(state, kanbanGraph, tree, parentId = node.id, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
         addNodeField(state, node.id, path, activeReplyFields, scrollHandler)
