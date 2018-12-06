@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions, ModalOptions}
+import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions, ToastClassNameOptions, ModalOptions}
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -119,6 +119,10 @@ object UI {
     import jquery.JQuery._
     `$`(dom.window.document.body).toast(new ToastOptions {
       `class` = level.value
+      className = new ToastClassNameOptions {
+        toast = "ui message"
+        title = "ui header"
+      }
       onClick = click: js.Function0[Unit]
       position = "bottom right"
       title = _title

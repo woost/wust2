@@ -51,6 +51,7 @@ trait ToastOptions extends js.Object {
   var message: js.UndefOr[String] = js.undefined
   var position: js.UndefOr[String] = js.undefined
   var `class`: js.UndefOr[String] = js.undefined
+  var className : js.UndefOr[ToastClassNameOptions] = js.undefined
   var displayTime: js.UndefOr[Double | Int] = js.undefined
   var showIcon: js.UndefOr[Boolean] = js.undefined
   var closeIcon: js.UndefOr[Boolean] = js.undefined
@@ -68,6 +69,11 @@ trait ToastOptions extends js.Object {
   var onHide: js.UndefOr[js.Function0[Boolean]] = js.undefined
   var onHidden: js.UndefOr[js.Function0[Unit]] = js.undefined
   var onRemove: js.UndefOr[js.Function0[Unit]] = js.undefined
+}
+
+trait ToastClassNameOptions extends js.Object {
+  var toast: js.UndefOr[String] = js.undefined
+  var title: js.UndefOr[String] = js.undefined
 }
 
 trait ToastTransitionOptions extends js.Object {
