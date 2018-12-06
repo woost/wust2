@@ -48,12 +48,12 @@ object Sidebar {
         cls := "newChannelButton-large " + buttonStyles,
         onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
       ),
-      onSwipeLeft(false) --> state.sidebarOpen,
     )
 
     def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "overlay-sidebar",
       onClick(false) --> state.sidebarOpen,
+      onSwipeLeft(false) --> state.sidebarOpen,
       div(
         openSidebar,
         authStatus
