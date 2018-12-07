@@ -742,7 +742,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumntitle" - (
     width(100 %%),
     maxWidth(kanbanCardWidth),
-    // TODO: separate style for word-breaking in nodes
+    fontSize.large,
     Styles.wordWrap,
     minHeight(3 em), // if title is empty. and provide space for message stat icon
     letterSpacing(0.5 px), // more aesthetic
@@ -835,13 +835,11 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbanisolatednodes > .nodecard" - (
     width(kanbanCardWidth),
     borderRadius(3 px),
-    fontSize.medium,
   )
 
   ".kanbancolumn" - (
     color(c"#FEFEFE"),
     fontWeight.bold,
-    fontSize.large,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
   )
