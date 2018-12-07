@@ -831,10 +831,8 @@ object CommonStyles extends StyleSheet.Standalone {
     color(white)
   )
 
-  ".kanbancolumnchildren > .nodecard," +
-  ".kanbanisolatednodes > .nodecard" - (
+  ".kanbancolumnchildren > .nodecard" - (
     width(kanbanCardWidth),
-    borderRadius(3 px),
   )
 
   ".kanbancolumn" - (
@@ -896,21 +894,6 @@ object CommonStyles extends StyleSheet.Standalone {
     opacity(1),
   )
 
-  ".kanbanisolatednodes" - (
-    Styles.flex,
-    flexWrap.wrap,
-    alignItems.flexStart,
-    marginBottom(5 px),
-    minHeight(2 em),
-    maxHeight(200 px),
-    overflowY.auto,
-    padding(2 px) // prevents card shadow from being cut off by scrolling
-  )
-
-  ".kanbanisolatednodes > .nodecard" - (
-    marginRight(5 px),
-    marginTop(5 px),
-  )
 
 
 
