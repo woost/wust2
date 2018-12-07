@@ -611,7 +611,8 @@ object PageHeader {
           div(
             cls := "menu",
             nodeRoleSubItem(NodeRole.Message),
-            nodeRoleSubItem(NodeRole.Task)
+            nodeRoleSubItem(NodeRole.Task),
+            nodeRoleSubItem(NodeRole.Stage)
           )
         )
       case _ => VDomModifier.empty
