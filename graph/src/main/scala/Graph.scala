@@ -866,7 +866,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def doneNodeIdx(parentIdx:Int): Option[Int] = graph.childrenIdx(parentIdx).find { nodeIdx =>
-    graph.nodes(nodeIdx).str.trim.toLowerCase == Graph.doneTextLower
+    val node = nodes(nodeIdx)
+    node.role == NodeRole.Stage &&
+    node.str.trim.toLowerCase == Graph.doneTextLower
   }
 
   def doneNode(pageParentIdx:Int):Option[Node] = doneNodeIdx(pageParentIdx) map graph.nodes
