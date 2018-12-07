@@ -17,6 +17,8 @@ import wust.webUtil.macros.KeyHash
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
+case class Ownable[T](get: Ctx.Owner => T)
+
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
 //TODO: outwatch: onInput.target foreach { elem => ... }
 //TODO: outwatch: Emitterbuilder.timeOut or delay
@@ -80,6 +82,10 @@ package object outwatchHelpers extends KeyHash {
   }
 
   def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
+  def withManualOwner(f: Ctx.Owner => VDomModifier): VDomModifier = {
+    val ctx = createManualOwner()
+    VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
+  }
 
   @inline implicit def obsToCancelable(obs: Obs): Cancelable = {
     Cancelable(() => obs.kill())
@@ -112,14 +118,8 @@ package object outwatchHelpers extends KeyHash {
   }
 
   implicit class RichVNode(val vNode: BasicVNode) extends AnyVal {
-    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key) {
-      val ctx = createManualOwner()
-      VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
-    }
-    def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args) {
-      val ctx = createManualOwner()
-      VDomModifier(renderFn(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
-    }
+    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key)(withManualOwner(renderFn))
+    def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args)(withManualOwner(renderFn))
     def render: org.scalajs.dom.Element = {
       val elem = document.createElement(vNode.nodeType)
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()

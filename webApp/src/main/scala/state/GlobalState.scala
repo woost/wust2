@@ -20,6 +20,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views.{AWS, Components, UI}
 import wust.css.Styles
 import wust.util.algorithm
+import wust.webApp.Ownable
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -48,7 +49,7 @@ class GlobalState(
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val modalConfig: PublishSubject[UI.ModalConfig] = PublishSubject()
+  val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
 
   val graph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)

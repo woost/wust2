@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, PopupOptions, ToastOptions, ToastClassNameOptions, ModalOptions}
+import fomanticui.{DropdownEntry, DropdownOptions, ModalOptions, PopupOptions, ToastClassNameOptions, ToastOptions}
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -18,7 +18,7 @@ import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import wust.css.{Styles, ZIndex}
-import wust.webApp.BrowserDetect
+import wust.webApp.{BrowserDetect, Ownable}
 import wust.webApp.outwatchHelpers._
 import rx._
 
@@ -35,10 +35,12 @@ object UI {
     )}
 
   case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
-  def modal(config: Observable[ModalConfig]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
-      cls := "ui modal",
-      config.map {
-        case config => VDomModifier(
+  def modal(config: Observable[Ownable[ModalConfig]]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
+    cls := "ui modal",
+    config.map { configRx =>
+      withManualOwner { implicit ctx =>
+        val config = configRx.get(ctx)
+        VDomModifier(
           emitter(config.close).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
           config.modalModifier,
           onDomMount.asJquery.foreach { e =>
@@ -68,6 +70,7 @@ object UI {
             }
           )
         )
+      }
     }
   ))
 

@@ -20,7 +20,7 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.BrowserDetect
+import wust.webApp.{BrowserDetect, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
@@ -124,7 +124,7 @@ object Components {
         case t if t.startsWith("image/") =>
           val image = img(alt := fileName, downloadUrl(src))
           image(maxHeight := "250px", cursor.pointer, onClick.foreach {
-            state.modalConfig.onNext(ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic")) //TODO: better size settings
+            state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
             ()
           })
         case _                           => VDomModifier(

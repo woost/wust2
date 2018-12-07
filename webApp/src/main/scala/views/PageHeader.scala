@@ -25,7 +25,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.{BrowserDetect, Client, Icons}
+import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -273,7 +273,7 @@ object PageHeader {
       case _ => VDomModifier.empty
     }
 
-    val header = VDomModifier(
+    def header(implicit ctx: Ctx.Owner) = VDomModifier(
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
@@ -305,7 +305,7 @@ object PageHeader {
       )
     )
 
-    val description = VDomModifier(
+    def description(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "scrolling",
       backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       div(
@@ -323,10 +323,10 @@ object PageHeader {
         ),
       span(cls := "text", "Search", cursor.pointer),
 
-      onClick(UI.ModalConfig(header = header, description = description, close = closeModal,
+      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal,
         modalModifier = cls := "form",
         contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
-      )) --> state.modalConfig
+      ))) --> state.modalConfig
     )
   }
 
@@ -366,7 +366,7 @@ object PageHeader {
       Client.api.removeMember(membership.nodeId,membership.userId,membership.level)
     }
 
-    val header = VDomModifier(
+    def header(implicit ctx: Ctx.Owner) = VDomModifier(
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
@@ -399,7 +399,7 @@ object PageHeader {
       )
     }
 
-    val description = VDomModifier(
+    def description(implicit ctx: Ctx.Owner) = VDomModifier(
       div(
         div(
           cls := "ui fluid action input",
@@ -447,10 +447,10 @@ object PageHeader {
         ),
       span(cls := "text", "Manage Members", cursor.pointer),
 
-      onClick(UI.ModalConfig(header = header, description = description, modalModifier =
+      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier =
         cls := "mini form",
         contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
-      )) --> state.modalConfig
+      ))) --> state.modalConfig
     )
   }
 

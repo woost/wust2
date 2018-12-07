@@ -20,7 +20,7 @@ import wust.graph.Edge.Pinned
 import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.outwatchHelpers._
 import wust.util._
-import wust.webApp.views
+import wust.webApp.{Ownable, views}
 
 import scala.concurrent.Future
 
@@ -61,7 +61,7 @@ object CreateNewPrompt {
       ack
     }
 
-    def header = div(
+    def header(implicit ctx: Ctx.Owner) = div(
       Styles.flex,
       flexDirection.row,
       flexWrap.wrap,
@@ -88,7 +88,7 @@ object CreateNewPrompt {
       UI.toggle("Pin to sidebar", initialChecked = addToChannels.now) --> addToChannels
     )
 
-    def description = VDomModifier(
+    def description(implicit ctx: Ctx.Owner) = VDomModifier(
       div(
         padding := "5px",
         Styles.flex,
@@ -186,10 +186,10 @@ object CreateNewPrompt {
             childNodes -> state.selectedNodes.now
           )
 
-          state.modalConfig.onNext(UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = VDomModifier(
+          state.modalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = VDomModifier(
             cls := "basic",
             backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
-          )))
+          ))))
         }
         else closeModal.onNext(())
       }
