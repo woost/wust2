@@ -34,6 +34,17 @@ object UI {
       label(labelText)
     )}
 
+  def toggle(labelText:String, isChecked: Var[Boolean]):VNode =
+    div(
+      cls := "ui toggle checkbox",
+      input(tpe := "checkbox",
+        onChange.checked --> isChecked,
+        checked <-- isChecked,
+        defaultChecked := isChecked.now
+      ),
+      label(labelText)
+    )
+
   case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
   def modal(config: Observable[Ownable[ModalConfig]]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
     cls := "ui modal",

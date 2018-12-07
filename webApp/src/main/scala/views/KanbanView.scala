@@ -335,7 +335,7 @@ object KanbanView {
               renderTaskCount(
                 if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
                 else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig,
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
                 cursor.pointer,
                 UI.popup := "Zoom to show subtasks",
               ),

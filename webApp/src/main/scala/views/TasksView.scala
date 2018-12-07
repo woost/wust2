@@ -5,25 +5,39 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.{Styles, ZIndex}
+import wust.graph.Graph
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.util._
 
-// Combines linear chat and thread-view into one view with a thread-switch
+// Combines task list and kanban-view into one view with a kanban-switch
 object TasksView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val kanban = Var(false)
+    val topLevelStageExists = Rx {
+      val page = state.page()
+      page.parentId.fold(false) { parentId =>
+        val graph = state.graph.now
+        val parentIdx = graph.idToIdx(parentId)
+        state.graph.now.childrenIdx.exists(parentIdx) { childIdx =>
+          val node = graph.nodes(childIdx)
+          node.role == NodeRole.Stage && node.str.toLowerCase != Graph.doneTextLower
+        }
+      }
+    }
+    val kanbanSwitch = Var(false)
+    topLevelStageExists.foreach{kanbanSwitch() = _}
+
     div(
       Styles.flex,
       flexDirection.column,
       keyed,
 
-      kanbanSwitchBar(kanban),
+      kanbanSwitchBar(kanbanSwitch),
 
       Rx{
-        if(kanban()) KanbanView(state).apply(
+        if(kanbanSwitch()) KanbanView(state).apply(
           Styles.growFull,
           flexGrow := 1
         )
@@ -35,14 +49,14 @@ object TasksView {
     )
   }
 
-  private def kanbanSwitchBar(kanban:Var[Boolean]):VDomModifier = {
+  private def kanbanSwitchBar(kanbanSwitch:Var[Boolean]):VDomModifier = {
     VDomModifier(
       div(
         marginTop := "15px",
         padding := "0px 15px 5px 5px",
         textAlign.right,
 
-        UI.toggle("Kanban") --> kanban,
+        UI.toggle("Kanban", kanbanSwitch),
       ),
     )
   }
