@@ -104,11 +104,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
       )
       val usedIdsFromDb: List[NodeId] = a diff b
 
-      scribe.info(s"involved ids = ${a}")
-      scribe.info(s"add nodes ids = ${a}")
-      scribe.info(s"used ids = ${usedIdsFromDb}")
       db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
-        scribe.info(s"confliting ids = $conflictingIds")
         if (conflictingIds.isEmpty) Future.successful(SuccessResult)
         else {
           Future.failed(new Exception(
