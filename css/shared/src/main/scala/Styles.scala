@@ -744,7 +744,7 @@ object CommonStyles extends StyleSheet.Standalone {
     maxWidth(kanbanCardWidth),
     // TODO: separate style for word-breaking in nodes
     Styles.wordWrap,
-    minHeight(2 em), // if title is empty
+    minHeight(3 em), // if title is empty. and provide space for message stat icon
     letterSpacing(0.5 px), // more aesthetic
   )
 
@@ -769,15 +769,31 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgb(71, 71, 71)")
   )
 
-  ".childstats" - (
-    color.gray
+
+  // Childstats
+  ".nodecard .childstats" - (
+    color.gray,
   )
+  ".kanbancolumnheader .childstat" - (
+      fontWeight.normal,
+      color(c"rgba(255, 255, 255, 0.81)"),
+    )
   ".childstats .emptystat" - (
     visibility.hidden,
   )
+  ".kanbancolumnheader:hover.childstats .emptystat," +
   ".nodecard:hover .childstats .emptystat" - (
-    visibility.visible
+    visibility.visible,
   )
+
+  ".nodecard .childstat:hover" - (
+    color(c"rgb(71, 71, 71)")
+  )
+  ".kanbancolumnheader .childstat:hover" - (
+    color.white
+  )
+
+
 
   ".kanbancolumnheader .buttonbar" - (
     padding(kanbanColumnPadding),

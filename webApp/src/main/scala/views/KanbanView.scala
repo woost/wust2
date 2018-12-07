@@ -208,11 +208,17 @@ object KanbanView {
         isCollapsed.ifTrue[VDomModifier](cls := "kanbancolumncollapsed"),
         keyed(node.id, parentId),
         cls := "draghandle",
+        cls := "childstats",
 
         columnTitle,
 
         Rx{
-          renderMessageCount(if (messageChildrenCount() > 0) messageChildrenCount().toString else "", color := "rgba(255, 255, 255, 0.81)", marginBottom := "10px", onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer)
+          renderMessageCount(
+            if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+            else VDomModifier(cls := "emptystat"),
+            onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+            cursor.pointer
+          )
         },
 
         position.relative, // for buttonbar
@@ -234,6 +240,7 @@ object KanbanView {
 
   private val renderMessageCount = {
     div(
+      cls := "childstat",
       Styles.flexStatic,
       Styles.flex,
       margin := "5px",
@@ -243,6 +250,7 @@ object KanbanView {
 
   private val renderTaskCount = {
     div(
+      cls := "childstat",
       Styles.flexStatic,
       Styles.flex,
       margin := "5px",
@@ -348,12 +356,14 @@ object KanbanView {
               renderTaskCount(
                 if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
                 else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig, cursor.pointer
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig,
+                cursor.pointer
               ),
               renderMessageCount(
                 if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
                 else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                cursor.pointer
               ),
             )
           },
