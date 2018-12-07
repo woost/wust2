@@ -313,7 +313,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       case (dragging: SelectedNode, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
-      case (dragging: SelectedNodes, SelectedNodesBar, false, false) => // do nothing, since already selected
 
       case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, target.nodeId)
       case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)

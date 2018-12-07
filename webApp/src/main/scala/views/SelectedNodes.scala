@@ -64,7 +64,7 @@ object SelectedNodes {
     div(
       cls := "nodelist drag-feedback",
       draggableAs(DragItem.SelectedNodes(selectedNodeIds)),
-      dragTarget(DragItem.SelectedNodesBar),
+      cls := "draghandle",
 
       Styles.flex,
 //      alignItems.center,

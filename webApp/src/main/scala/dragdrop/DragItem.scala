@@ -20,7 +20,6 @@ object DragItem extends wust.ids.serialize.Circe {
   case class AvatarNode(userId: UserId) extends SingleNode { @inline def nodeId = userId.asInstanceOf[NodeId] }
   case class SelectedNode(nodeId: NodeId) extends SingleNode
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload
-  case object SelectedNodesBar extends DragTarget
 
   object Chat {
     case class Messages(nodeIds: Seq[NodeId]) extends AnyNodes
