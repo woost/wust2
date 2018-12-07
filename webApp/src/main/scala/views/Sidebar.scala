@@ -81,7 +81,8 @@ object Sidebar {
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay
         else sidebarWithExpand,
-        registerDraggableContainer(state)
+        registerDraggableContainer(state),
+        dragTargetOnly(DragItem.Sidebar),
       )
     }
   }

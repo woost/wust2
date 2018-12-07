@@ -34,6 +34,8 @@ object DragItem extends wust.ids.serialize.Circe {
     case class Card(nodeId: NodeId) extends ChildNode with Item
   }
 
+  case object Sidebar extends DragTarget
+
   val payloadPropName = "_wust_dragpayload"
   val targetPropName = "_wust_dragtarget"
   val disableSortPropName = "_wust_disableSort"

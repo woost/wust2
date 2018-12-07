@@ -278,7 +278,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   private def moveInto(nodeIds:Iterable[NodeId], newParentIds:Iterable[NodeId]):Unit = {
     submit(GraphChanges.moveInto(state.graph.now, nodeIds, newParentIds))
   }
-  private def moveChannel(channelId:NodeId, targetChannelId:NodeId):Unit = {
+  private def moveChannel(channelId:NodeId, targetChannelId:Option[NodeId]):Unit = {
 
     def filterParents(nodeId:NodeId, tree:Tree):Set[NodeId] = {
       tree match {
@@ -291,10 +291,11 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
     val topologicalChannelParents = state.channelForest.now.flatMap(filterParents(channelId, _))
     val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
-    val connect:GraphChanges = GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
+    val connect:GraphChanges = targetChannelId.fold(GraphChanges.empty){ (targetChannelId) => GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)}
     submit(disconnect merge connect)
 
   }
+
 
   private def assign(userId: UserId, nodeId: NodeId) = {
     submit(
@@ -314,9 +315,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: SelectedNode, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
 
-      case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, target.nodeId)
+      case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, Some(target.nodeId))
       case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)
       case (dragging: Channel, target: SingleNode, false, false) => addTag(dragging.nodeId, target.nodeId)
+      case (dragging: Channel, target: Sidebar.type, false, false) => moveChannel(dragging.nodeId, None)
 
       case (dragging: ChildNode, target: ParentNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: ChildNode, target: MultiParentNodes, false, false) => moveInto(dragging.nodeId, target.nodeIds)
