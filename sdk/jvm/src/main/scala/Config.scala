@@ -1,7 +1,7 @@
 package wust.sdk
 
 case class WustConfig(host: String, port: Int, user: String, email: String, password: String) {
-  override def toString = s"WustConfig($host, $port, $user, ***)"
+  override def toString = s"WustConfig($host, $port, $user, $email, ***)"
 }
 case class ServerConfig(
                          host: String,
