@@ -352,11 +352,18 @@ object SharedViewElements {
         }
         node.role match {
           case NodeRole.Task =>
-            nodeCardWithCheckbox(state, node, directParentIds)
+            nodeCardWithCheckbox(state, node, directParentIds).apply(
+              Styles.flex,
+              alignItems.flexStart,
+              cls := "drag-feedback",
+
+              dragHandle(Styles.flexStatic),
+              renderedMessageModifier,
+            )
           case _ =>
             nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = BrowserDetect.isMobile.ifFalse[VDomModifier](cls := "enable-text-selection")).apply(
               Styles.flex,
-              alignItems.flexEnd,
+              alignItems.flexEnd, // keeps syncIcon at bottom
               importanceIndicator,
               cls := "drag-feedback",
 

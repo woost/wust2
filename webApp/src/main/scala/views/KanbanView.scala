@@ -51,14 +51,33 @@ object KanbanView {
           //            val kanbanGraph = filterKanbanGraph(state.graph(), pageParentId)
           //          scribe.info(s"KANBAN GRAPH NODES: ${graph.nodes.map(_.str).mkString(", ")}")
 
-          // inboxTasks: all tasks which are direct children of pageParentId
-          // column: trees of all stages which are direct children of pageParentId.
-          val inboxTasks = graph.childrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Task)
-          val topLevelStages = graph.childrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
+
+          val topLevelStages = graph.notDeletedChildrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
+          val allStages:ArraySet = {
+            val stages = ArraySet.create(graph.size)
+            topLevelStages.foreachElement(stages.add)
+            algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.notDeletedChildrenIdx, {idx =>
+              val isStage = graph.nodes(idx).role == NodeRole.Stage
+              if(isStage) stages += idx
+              isStage
+            })
+            stages
+          }
+
+          val inboxTasks:ArraySet = {
+            val inboxTasks = ArraySet.create(graph.size)
+            graph.notDeletedChildrenIdx.foreachElement(pageParentIdx){childIdx =>
+              if(graph.nodes(childIdx).role == NodeRole.Task) {
+                @inline def hasStageParentInPage = graph.notDeletedParentsIdx(childIdx).exists(allStages.contains)
+                if(!hasStageParentInPage) inboxTasks += childIdx
+              }
+            }
+            inboxTasks
+          }
           val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage))
 
             VDomModifier(
-              renderInboxColumn(state, pageParentId, inboxTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
+              renderInboxColumn(state, pageParentId, pageParentId, inboxTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
               div(
                 cls := s"kanbancolumnarea",
                 keyed,
@@ -66,7 +85,7 @@ object KanbanView {
 
                 Styles.flex,
                 alignItems.flexStart,
-                topLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+                topLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
                 registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
               ),
@@ -82,26 +101,28 @@ object KanbanView {
     graph: Graph,
     tree: Tree,
     parentId: NodeId,
+    pageParentId: NodeId,
     path: List[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
+    val pageParentIdx = graph.idToIdx(pageParentId)
     tree match {
       case Tree.Parent(node, children) if node.role == NodeRole.Stage =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
             val sortedChildren = TaskOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
-            renderColumn(state, graph, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+            renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
-            renderColumn(state, graph, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
+            renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
         }
-      case Tree.Leaf(node)             =>
-        if(node.role == NodeRole.Stage)
-          renderColumn(state, graph, node, Nil, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
-        else
+      case Tree.Leaf(node) if node.role == NodeRole.Stage =>
+          renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
+      case Tree.Leaf(node) if node.role == NodeRole.Task && graph.notDeletedParentsIdx.contains(graph.idToIdx(node.id))(pageParentIdx) =>
           renderCard(state, node, parentId, selectedNodeIds)
+      case _ => VDomModifier.empty // if card is not also direct child of page, it is probably a mistake
     }
   }
 
@@ -109,6 +130,7 @@ object KanbanView {
   private def renderInboxColumn(
     state: GlobalState,
     parentId:NodeId,
+    pageParentId:NodeId,
     children: Seq[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     selectedNodeIds: Var[Set[NodeId]],
@@ -129,7 +151,7 @@ object KanbanView {
         children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, selectedNodeIds)),
         scrollHandler.modifier,
       ),
-      addNodeField(state, parentId, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
+      addNodeField(state, parentId, pageParentId, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
     )
   }
 
@@ -139,6 +161,7 @@ object KanbanView {
     node: Node,
     children: Seq[Tree],
     parentId: NodeId,
+    pageParentId: NodeId,
     path: List[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     selectedNodeIds:Var[Set[NodeId]],
@@ -226,10 +249,10 @@ object KanbanView {
           cls := "kanbancolumnchildren",
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
           keyed(node.id, parentId),
-          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, path = node.id :: path, activeReplyFields, selectedNodeIds)),
+          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
-        addNodeField(state, node.id, path, activeReplyFields, scrollHandler)
+        addNodeField(state, node.id, pageParentId, path, activeReplyFields, scrollHandler)
       ))
     )
   }
@@ -379,6 +402,7 @@ object KanbanView {
   private def addNodeField(
     state: GlobalState,
     parentId: NodeId,
+    pageParentId: NodeId,
     path:List[NodeId],
     activeReplyFields: Var[Set[List[NodeId]]],
     scrollHandler: ScrollBottomHandler,
@@ -391,7 +415,7 @@ object KanbanView {
     }
 
     def submitAction(str:String) = {
-      val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId)
+      val change = GraphChanges.addNodeWithParent(Node.MarkdownTask(str), parentId :: pageParentId :: Nil)
       state.eventProcessor.changes.onNext(change)
     }
 
@@ -421,9 +445,9 @@ object KanbanView {
   private def newColumnArea(state: GlobalState, pageParentId:NodeId, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     def submitAction(str:String) = {
       val change = {
-        val newColumnNode = Node.MarkdownStage(str)
-        val add = GraphChanges.addNodeWithParent(newColumnNode, pageParentId)
-        val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newColumnNode.id)
+        val newStageNode = Node.MarkdownStage(str)
+        val add = GraphChanges.addNodeWithParent(newStageNode, pageParentId)
+        val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newStageNode.id)
         add merge expand
       }
       state.eventProcessor.changes.onNext(change)

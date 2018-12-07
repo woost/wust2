@@ -51,10 +51,11 @@ object DragItem extends wust.ids.serialize.Circe {
 sealed trait DragContainer
 object DragContainer extends wust.ids.serialize.Circe {
   object Kanban {
-    sealed trait Area extends DragContainer { def parentId: NodeId }
-    case class Column(nodeId:NodeId) extends Area { @inline def parentId = nodeId }
-    case class ColumnArea(parentId:NodeId) extends Area
-    case class Inbox(parentId:NodeId) extends Area
+    sealed trait AreaForColumns extends DragContainer { def parentId: NodeId }
+    sealed trait AreaForCards extends DragContainer { def parentId: NodeId }
+    case class Column(nodeId:NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId }
+    case class ColumnArea(parentId:NodeId) extends AreaForColumns
+    case class Inbox(parentId:NodeId) extends AreaForCards
   }
 
   case class AvatarHolder(nodeId: NodeId) extends DragContainer

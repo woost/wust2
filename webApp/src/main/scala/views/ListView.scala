@@ -68,7 +68,7 @@ object ListView {
           VDomModifier(
             div(todoTasks.map { nodeIdx =>
               val node = graph.nodes(nodeIdx)
-              nodeCardWithCheckbox(state, node, pageParentId :: Nil)
+              nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px")
             }),
 
             doneTasks.calculateNonEmpty.ifTrue[VDomModifier](hr(border := "1px solid black", opacity := 0.4, margin := "15px")),
@@ -77,7 +77,7 @@ object ListView {
               opacity := 0.5,
               doneTasks.map { nodeIdx =>
                 val node = graph.nodes(nodeIdx)
-                nodeCardWithCheckbox(state, node, pageParentId :: Nil)
+                nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px")
               })
           )
         }

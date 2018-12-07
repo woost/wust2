@@ -9,7 +9,7 @@ import org.scalajs.dom.ext.KeyCode
 import wust.util._
 import org.scalajs.dom.raw.HTMLElement
 import wust.graph.{Edge, GraphChanges, Tree, _}
-import wust.ids.{EdgeData, NodeId, UserId}
+import wust.ids.{EdgeData, NodeId, NodeRole, UserId}
 import wust.webApp.{BrowserDetect, DevOnly}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -53,7 +53,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   @inline def getNodeIdStr(graph: Graph, nodeId: NodeId) = graph.nodesById(nodeId).str
   @inline def getNodeIdxStr(graph: Graph, indices: Seq[Int]) = indices.map(idx => graph.nodes(idx).str)
   @inline def getNodeIdxStr(graph: Graph, idx: Int) = graph.nodes(idx).str
-
+ 
   @inline private def abortSorting(errorMsg: String) = {
     scribe.error(errorMsg)
     GraphChanges.empty
@@ -74,7 +74,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     (previousContChilds.indexOf(origElem), newContChilds.indexOf(sourceElem))
   }
 
-  @inline def checkContainerChanged(from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area) = from != into
+  @inline def checkContainerChanged(from: DragContainer.Kanban.ColumnArea, into: DragContainer.Kanban.ColumnArea) = from != into
   @inline def checkPositionChanged(previousPosition: Position, newPosition: Position) = previousPosition != newPosition
   @inline def checkMovedDownwards(previousPosition: Position, newPosition: Position) = previousPosition < newPosition
 
@@ -83,14 +83,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   // - Only one "big" sortable => container always the same (oldContainer == newContainer)
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
-  def beforeChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area): GraphChanges = {
+  def beforeChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.ColumnArea, into: DragContainer.Kanban.ColumnArea): GraphChanges = {
 
     // This is WIP
     GraphChanges.empty
   }
 
   private def submit(changes:GraphChanges) = {
-    state.eventProcessor.enriched.changes.onNext(changes)
+    state.eventProcessor.changes.onNext(changes)
   }
   private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
   private def addTag(nodeIds:Iterable[NodeId], tagId:NodeId):Unit = addTag(nodeIds, tagId :: Nil)
@@ -183,20 +183,25 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     def userId = state.user.now.id
 
     {
-      case (e, dragging: DragItem.Kanban.Column, from: Kanban.Area, into: Kanban.ColumnArea, false, false) =>
+      case (e, dragging: DragItem.Kanban.Column, from: Kanban.AreaForColumns, into: Kanban.AreaForColumns, false, false) =>
         val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
-        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
+//        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
+        state.eventProcessor.changes.onNext(move)
 
-      case (e, dragging: DragItem.Kanban.Item, from: Kanban.Area, into: Kanban.Column, false, false) =>
-        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
-        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.AreaForCards, into: Kanban.Column, false, false) =>
+        val graph = state.graph.now
+        val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(dragging.nodeId)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
+        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
+//        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
+        state.eventProcessor.changes.onNext(move)
 
-      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Area, into: Kanban.Inbox, false, false) =>
-        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
-        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
-        state.eventProcessor.enriched.changes.onNext(move merge beforeEdges)
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Column, into: Kanban.Inbox, false, false) =>
+        // disconnect from all stage parents
+        val graph = state.graph.now
+        val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(dragging.nodeId)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
+        val move = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, stageParents)
+//        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
+        state.eventProcessor.changes.onNext(move)
     }
   }
 

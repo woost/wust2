@@ -290,7 +290,7 @@ object Components {
       directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Stage).forall( nodeIsDoneInParent )
     }
 
-    nodeCard(node).apply(margin := "4px").prepend(
+    nodeCard(node).prepend(
       Styles.flex,
       alignItems.flexStart,
       div(
@@ -314,7 +314,8 @@ object Components {
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, pageParentId) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
-                val changes = doneNodeAddChange merge GraphChanges.connect(Edge.Parent)(node.id, doneNodeId)
+                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
+                val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
                 state.eventProcessor.changes.onNext(changes)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node exists

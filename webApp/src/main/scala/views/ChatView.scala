@@ -52,6 +52,7 @@ object ChatView {
     currentReply.foreach{ _ =>
       inputFieldFocusTrigger.onNext(())
     }
+    val pinReply = Var(false)
 
     def outerDragOptions(pageId: NodeId) = VDomModifier(
       dragTargetOnly(DragItem.Chat.Page(pageId)),
@@ -226,7 +227,7 @@ object ChatView {
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
     val pageParentIdx = groupGraph.idToIdx(pageParentId)
-    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(_ != pageParentIdx).sortBy(idx => groupGraph.nodeCreated(idx))
+    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(idx => idx != pageParentIdx && groupGraph.nodes(idx).role != NodeRole.Stage).sortBy(idx => groupGraph.nodeCreated(idx))
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentId.contains)
 
@@ -386,12 +387,21 @@ object ChatView {
               opacity := 0.7,
               Styles.flex,
               paddingLeft := "0.5em",
-              div(
-                cls := "nodecard-content",
-                cls := "enable-text-selection",
-                fontSize.smaller,
-                renderNodeData(node.data, maxLength = Some(100))((node.role == NodeRole.Task).ifTrue[VDomModifier](backgroundColor := NodeColor.eulerBgColor(node.id).toHex)),
-              ),
+              node.role match {
+                case NodeRole.Task =>
+                  Rx {
+                    val graph = state.graph()
+                    val directNonStageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
+                    nodeCardWithCheckbox(state, node, directNonStageParents).apply(backgroundColor := "transparent", boxShadow := "none")
+                  }
+                case _ =>
+                  div(
+                    cls := "nodecard-content",
+                    cls := "enable-text-selection",
+                    fontSize.smaller,
+                    renderNodeData(node.data, maxLength = Some(100))
+                  )
+              },
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
                 Var.set(
@@ -437,10 +447,10 @@ object ChatView {
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
     var lastAuthor: Int = -2 // to distinguish between no author and no previous group
-    var lastParents: ArraySliceInt = null
+    var lastParents: IndexedSeq[Int] = null
     messages.foreach { message =>
       val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-      val parents: ArraySliceInt = graph.parentsIdx(message)
+      val parents: IndexedSeq[Int] = graph.parentsIdx(message).filter(idx => graph.nodes(idx).role != NodeRole.Stage) // is there a more efficient way to ignore certain kinds of parent roles?
 
       @inline def differentParents = lastParents != null && parents != lastParents
       @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
