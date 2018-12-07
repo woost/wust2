@@ -45,10 +45,8 @@ object ThreadView {
     val scrollHandler = new ScrollBottomHandler
 
     val outerDragOptions = VDomModifier(
-      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { state.page().parentId.map(pageParentId => dragTarget(DragItem.Chat.Page(pageParentId))) },
       registerDraggableContainer(state),
-      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
+      Rx { state.page().parentId.map(pageParentId => dragTargetOnly(DragItem.Chat.Page(pageParentId))) },
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -180,9 +178,7 @@ object ThreadView {
       div(
         cls := "chat-group-inner-frame",
 
-        draggableAs(DragItem.DisableDrag),
-        cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-        dragTarget(DragItem.Chat.Message(firstNodeId)),
+        dragTargetOnly(DragItem.Chat.Message(firstNodeId)),
 
         author.map(author => chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
@@ -237,9 +233,7 @@ object ThreadView {
       cls := "chat-expanded-thread",
       backgroundColor := bgColor,
 
-      draggableAs(DragItem.DisableDrag),
-      cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-      dragTarget(DragItem.Chat.Thread(nodeId :: Nil)),
+      dragTargetOnly(DragItem.Chat.Thread(nodeId :: Nil)),
 
       div(
         cls := "chat-thread-messages-outer",

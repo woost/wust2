@@ -121,17 +121,10 @@ object PageHeader {
   }
 
   private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
-    val outerDragOptions = VDomModifier(
-      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      Rx { state.page().parentId.map(pageParentId => dragTarget(DragItem.Chat.Page(pageParentId))) },
-      registerDraggableContainer(state),
-      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
-    )
-
     div(
       Styles.flex,
       flexWrap.wrap,
-      outerDragOptions,
+      registerDraggableContainer(state),
       Rx {
         val graph = state.graph()
         val nodeIdx = graph.idToIdx(channel.id)

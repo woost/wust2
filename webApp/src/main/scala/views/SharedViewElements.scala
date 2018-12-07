@@ -395,7 +395,7 @@ object SharedViewElements {
     // This is currently a limit in the draggable library
     editMode.map { editMode =>
       if(editMode)
-        draggableAs(DragItem.DisableDrag) // prevents dragging when selecting text
+        dragDisabled // prevents dragging when selecting text
       else {
         def payload = {
           val selection = selectedNodes.now

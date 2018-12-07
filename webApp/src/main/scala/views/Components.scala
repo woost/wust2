@@ -395,6 +395,25 @@ object Components {
     }
   }
 
+  val dragDisabled: VDomModifier = {
+    VDomModifier(
+      cls := "draggable", // makes this element discoverable for the Draggable library
+      onDomMount.asHtml foreach { elem =>
+        writeDragPayload(elem, DragItem.DisableDrag)
+      }
+    )
+  }
+
+  def dragTargetOnly(dragTarget: DragTarget): VDomModifier = {
+    VDomModifier(
+      cursor.auto, // overwrites cursor set by .draggable class
+      dragDisabled,
+      onDomMount.asHtml foreach { elem =>
+        writeDragTarget(elem, dragTarget)
+      }
+    )
+  }
+
   def onDraggableDragged: EmitterBuilder[Unit, VDomModifier] =
     EmitterBuilder.ofModifier[Unit] { sink =>
       IO {

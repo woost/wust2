@@ -169,8 +169,7 @@ object Sidebar {
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              draggableAs(DragItem.DisableDrag),
-              dragTarget(DragItem.Channel(node.id)),
+              dragTargetOnly(DragItem.Channel(node.id)),
               cls := "node drag-feedback",
               // for each indent, steal padding on left and right
               // and reduce the width, so that the icon keeps its size

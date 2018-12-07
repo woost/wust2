@@ -54,10 +54,8 @@ object ChatView {
     }
 
     def outerDragOptions(pageId: NodeId) = VDomModifier(
-      draggableAs(DragItem.DisableDrag), // chat history is not draggable, only its elements
-      dragTarget(DragItem.Chat.Page(pageId)),
+      dragTargetOnly(DragItem.Chat.Page(pageId)),
       registerDraggableContainer(state),
-      cursor.auto, // draggable sets cursor.move, but drag is disabled on page background
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -262,9 +260,7 @@ object ChatView {
 
           inReplyGroup.ifTrue[VDomModifier](renderCommonParents),
 
-          draggableAs(DragItem.DisableDrag),
-          cursor.auto, // draggable sets cursor.move, but drag is disabled on thread background
-          dragTarget(DragItem.Chat.Thread(commonParentIds)),
+          dragTargetOnly(DragItem.Chat.Thread(commonParentIds)),
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",
