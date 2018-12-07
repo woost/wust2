@@ -280,23 +280,24 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
-          div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
-          Rx {
-            val userid = state.user().id
-            if(assignment().exists(_.id == userid)) {
-              div(div(cls := "fa-fw", freeSolid.faUserTimes), onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Remove Yourself")
-            } else {
-              div(div(cls := "fa-fw", freeSolid.faUserCheck), onClick.stopPropagation(GraphChanges.connect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Assign Yourself")
-            }
-          },
-          div(div(cls := "fa-fw", Icons.delete),
+//          div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
+//          Rx {
+//            val userid = state.user().id
+//            if(assignment().exists(_.id == userid)) {
+//              div(div(cls := "fa-fw", freeSolid.faUserTimes), onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Remove Yourself")
+//            } else {
+//              div(div(cls := "fa-fw", freeSolid.faUserCheck), onClick.stopPropagation(GraphChanges.connect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Assign Yourself")
+//            }
+//          },
+          div(
+            div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, UI.popup := "Delete"
           ),
-          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+//          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
         )
       }
     )
@@ -322,16 +323,39 @@ object KanbanView {
 
       div(
         Styles.flex,
-        justifyContent.spaceBetween,
+        justifyContent.flexEnd,
         alignItems.flexEnd,
 
+        div(
+          cls := "childstats",
+          Styles.flex,
+          Styles.flexStatic,
+          Rx{
+            VDomModifier(
+              renderTaskCount(
+                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
+                else VDomModifier(cls := "emptystat"),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig,
+                cursor.pointer,
+                UI.popup := "Zoom to show subtasks",
+              ),
+              renderMessageCount(
+                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+                else VDomModifier(cls := "emptystat"),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                cursor.pointer,
+                UI.popup := "Zoom to show comments",
+              ),
+            )
+          },
+        ),
         div(
           Styles.flex,
           flexWrap.wrap,
           assignment.map(_.map(userNode => div(
             Styles.flexStatic,
             Avatar.user(userNode.id)(
-              marginLeft := "2px",
+              marginRight := "2px",
               width := "22px",
               height := "22px",
               cls := "avatar",
@@ -344,27 +368,6 @@ object KanbanView {
           ))),
         ),
 
-        div(
-          cls := "childstats",
-          Styles.flex,
-          Styles.flexStatic,
-          Rx{
-            VDomModifier(
-              renderTaskCount(
-                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
-                else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Kanban)) --> state.viewConfig,
-                cursor.pointer
-              ),
-              renderMessageCount(
-                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
-                else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
-                cursor.pointer
-              ),
-            )
-          },
-        ),
       ),
 
       position.relative, // for buttonbar
