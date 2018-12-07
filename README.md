@@ -83,6 +83,15 @@ Run sql from vim:
 find dbMigration/core/{sql,tests} | entr -ncs 'sbt dbMigration/docker && ./start test.postgres'
 ```
 
+## Watching and running particular tests
+```sbt
+~[project]/testOnly *[Suite or Pattern]* -- -z [name]
+```
+e.g.
+```sbt
+~graphJVM/testOnly *GraphSpec* -- -z "topological before"
+```
+
 ## Database performance measurement
 function stats (only activated in dev, requires `track_functions=all`)
 ```sql
