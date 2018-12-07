@@ -85,7 +85,56 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
   def beforeChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.ColumnArea, into: DragContainer.Kanban.ColumnArea): GraphChanges = {
 
-    // This is WIP
+    return GraphChanges.empty
+
+    val (previousDomPosition, newDomPosition) = parseDomPositions(e)
+    val containerChanged = checkContainerChanged(from, into)
+
+    // Kanban item dropped on the previous / same place
+    if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition)) abortSorting("item dropped on same place (no movement)")
+
+    val sortedNodeId = sortNode.nodeId
+
+    // Reconstruct order of nodes in the `from` container
+    val previousOrderedNodes = TaskOrdering.constructOrdering(graph, from.parentId, userId)
+    if(previousOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${getNodeIdStr(graph, from.parentId)}")
+    val previousPosition = previousOrderedNodes.indexOf(sortedNodeId)
+
+    if(previousPosition == -1) return abortSorting(s"Could not determine position of sorted node")
+
+    // Data of dom and internal structure diverge
+    if(previousPosition != previousDomPosition) return abortSorting(s"index of reconstruction and sort must match, oldPosition in parent ($previousPosition) != oldPosition in dom ($previousDomPosition)")
+
+    // Reconstruct order of nodes in the `into` container
+    val newOrderedNodes = if(containerChanged) TaskOrdering.constructOrdering(graph, into.parentId, userId)
+                          else previousOrderedNodes
+
+    if(newOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${graph.nodesById(into.parentId).str}")
+
+
+
+    val previousOrderingValue = TaskOrdering.getValueOfNodeId(graph, sortedNodeId)
+
+
+
+
+//    val newOrderingValue = if(containerChanged) {
+//
+//      // very last element
+//      val movedToLastPosition = newDomPosition == newOrderedNodes.size + 1
+//
+//      val orderingValueOfBeforeElement = 1
+//      val orderingValueOfAfterElement = 1
+//
+//
+//    } else {
+//      //TODO: Check if that is necessary or if this is handled by Sortable
+//      val offset = if(checkMovedDownwards(previousDomPosition, newDomPosition)) -1 else 0
+//
+//    }
+
+
+    scribe.info("SUCCESS: Calculated new before edges!")
     GraphChanges.empty
   }
 
@@ -99,7 +148,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       val graph = state.graph.now
       val subjectIdx = graph.idToIdx(nodeId)
       val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
-      currentChange merge GraphChanges.connect((s,d,t) => new Edge.Parent(s,d,t))(nodeIds, EdgeData.Parent(deletedAt), tagIds)
+      currentChange merge GraphChanges.connect((s,d,t) => new Edge.Parent(s,d,t))(nodeIds, EdgeData.Parent(deletedAt, None), tagIds)
     }
     submit(changes)
   }

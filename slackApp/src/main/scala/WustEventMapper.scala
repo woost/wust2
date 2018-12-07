@@ -28,14 +28,14 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
   def filterDeleteEvents(gc: GraphChanges) = {
     (gc.addEdges ++ gc.delEdges).filter {
-      case Edge.Parent(_, EdgeData.Parent(Some(_)), _) => true
+      case Edge.Parent(_, EdgeData.Parent(Some(_), _), _) => true
       case _ => false
     }
   }
 
   def filterUndeleteEvents(gc: GraphChanges) = {
     if(gc.addNodes.collect{case n : Node.Content => n}.isEmpty){
-      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None), _) => e}
+      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None, _), _) => e}
     } else
         Set.empty[Edge]
   }
@@ -46,7 +46,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     Future.sequence(for {
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
-        case Edge.Parent(childId, EdgeData.Parent(None), _) => if(childId == node.id) true else false
+        case Edge.Parent(childId, EdgeData.Parent(None, _), _) => if(childId == node.id) true else false
         case _                                                     => false
       }
     } yield {
@@ -66,7 +66,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     Future.sequence(for {
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
-        case Edge.Parent(childId, EdgeData.Parent(None), _) =>
+        case Edge.Parent(childId, EdgeData.Parent(None, _), _) =>
             if(childId == node.id) true else false
         case _ => false
       }

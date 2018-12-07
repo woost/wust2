@@ -108,7 +108,7 @@ object GraphChanges {
   def addNodeWithParent(node: Node, parentIds: Iterable[NodeId]) =
     GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, parentId))(breakOut))
   def addNodeWithDeletedParent(node: Node, parentIds: Iterable[NodeId], deletedAt: EpochMilli) =
-    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, EdgeData.Parent(Some(deletedAt)), parentId))(breakOut))
+    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Parent(node.id, EdgeData.Parent(Some(deletedAt), None), parentId))(breakOut))
 
   def addToParent(nodeId: NodeId, parentId: NodeId): GraphChanges = addToParent(List(nodeId), parentId)
   def addToParent(nodeIds: Iterable[NodeId], parentId: NodeId): GraphChanges= GraphChanges(
@@ -197,7 +197,7 @@ object GraphChanges {
         val subjectIdx = graph.idToIdx(subjectId)
         val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
 
-        Edge.Parent(subjectId, EdgeData.Parent(deletedAt), newParentId)
+        Edge.Parent(subjectId, EdgeData.Parent(deletedAt, None), newParentId)
       }(breakOut)
 
     val cycleFreeSubjects: Iterable[NodeId] = subjectIds.filterNot(subject => subject == newParentId || (graph.ancestors(newParentId) contains subject)) // avoid self loops and cycles

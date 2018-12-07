@@ -111,7 +111,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addEdges = Set(
         Edge.Parent(
           TestConstants.messageNodeId,
-          EdgeData.Parent(None),
+          EdgeData.Parent(None, None),
           TestConstants.channelNodeId
         ),
         Edge.Author(
@@ -153,7 +153,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addEdges = Set(
         Edge.Parent(
           TestConstants.channelNodeId,
-          EdgeData.Parent(None),
+          EdgeData.Parent(None, None),
           TestConstants.workspaceId,
         ),
         Edge.Author(
@@ -188,7 +188,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addEdges = Set(
         Edge.Parent(
           TestConstants.messageNodeId,
-          EdgeData.Parent(Some(EpochMilli.now)),
+          EdgeData.Parent(Some(EpochMilli.now), None),
           TestConstants.channelNodeId,
         ),
       ),
@@ -218,7 +218,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addEdges = Set(
         Edge.Parent(
           TestConstants.channelNodeId,
-          EdgeData.Parent(Some(EpochMilli.now)),
+          EdgeData.Parent(Some(EpochMilli.now), None),
           TestConstants.workspaceId,
         ),
       ),
@@ -329,7 +329,7 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       addEdges = Set(
         Edge.Parent(
           NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25"),
-          EdgeData.Parent(None),
+          EdgeData.Parent(None, None),
           NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK")
         ),
       )

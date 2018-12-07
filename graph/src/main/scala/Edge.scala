@@ -31,7 +31,7 @@ object Edge {
     def targetId = parentId
   }
   object Parent extends ((NodeId, NodeId) => Parent) {
-    def delete(childId: NodeId, parentId: NodeId, deletedAt: EpochMilli = EpochMilli.now): Parent = Parent(childId, EdgeData.Parent(deletedAt), parentId)
+    def delete(childId: NodeId, parentId: NodeId, deletedAt: EpochMilli = EpochMilli.now): Parent = Parent(childId, EdgeData.Parent(Some(deletedAt), None), parentId)
     def apply(childId: NodeId, parentId: NodeId): Parent = Parent(childId, EdgeData.Parent, parentId)
   }
 
