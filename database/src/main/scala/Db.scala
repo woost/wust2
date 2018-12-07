@@ -110,7 +110,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${lift(userId)}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${nodeId})
-          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data
+          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.targetId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_))).map { x =>
@@ -199,18 +199,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
   object edge {
 
     // Remember to use unique edge filter
-//    private val uniqueEdgeFilter: String = "(data ->> 'type'::text) <> ALL (ARRAY['Author'::text, 'Before'::text])"
-
     private val upsert = quote { e: Edge =>
       val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data"
-        .as[Insert[Edge]]
-    }
-
-    private val insertBefore = quote { e: Edge =>
-      val q = query[Edge].insert(e)
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),(data->>'parent'),targetid) WHERE data->>'type'='Before' DO NOTHING"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
@@ -218,20 +210,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def create(edges: Seq[Edge])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       if (edges.isEmpty) return Future.successful(SuccessResult)
 
-      val (beforeEdges, remainingEdges) = edges.partition(e => e.data.isInstanceOf[EdgeData.Before])
-
       for {
-        numBefore <- if(beforeEdges.nonEmpty) {
+        touched <- if(edges.nonEmpty) {
           ctx.run {
-            liftQuery(beforeEdges.toList).foreach(insertBefore(_))
+            liftQuery(edges.toList).foreach(upsert(_))
           }
         } else Future.successful(Nil)
-        numRemain <- if(remainingEdges.nonEmpty) {
-          ctx.run {
-            liftQuery(remainingEdges.toList).foreach(upsert(_))
-          }
-        } else Future.successful(Nil)
-        touched = numBefore ++ numRemain
         // Ignored insert (on conflict do nothing) do not count as touched
         r <- checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of edge inserts: ${touched.sum} / ${edges.size} - ${edges.zip(touched)}")
       } yield r
@@ -242,33 +226,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def delete(edges: Seq[Edge])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       if (edges.isEmpty) return Future.successful(SuccessResult)
 
-      val beforeEdges = edges.collect{case e if e.data.isInstanceOf[EdgeData.Before] =>
-        val beforeData = e.data.asInstanceOf[EdgeData.Before]
-        (e.sourceId, beforeData.parent, e.targetId)
-      }
-
-      val remainingEdges = edges.collect { case e if !e.data.isInstanceOf[EdgeData.Before] =>
-        (e.sourceId, e.data.tpe, e.targetId)
-      }
+      val dbEdges = edges.map(e => (e.sourceId, e.data.tpe, e.targetId))
 
       for {
-        numBefore <- if(beforeEdges.nonEmpty) {
+        touched <- if(dbEdges.nonEmpty) {
           ctx.run {
-            liftQuery(beforeEdges.toList)
-              .foreach { case (sourceId, parent, targetId) =>
-                val q = query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonParent == parent).delete
-                infix"$q AND data->>'type' = 'Before'".as[Delete[Edge]]
-              }
-          }
-        } else Future.successful(Nil)
-        numRemain <- if(remainingEdges.nonEmpty) {
-          ctx.run {
-            liftQuery(remainingEdges.toList).foreach { case (sourceId, tpe, targetId) =>
+            liftQuery(dbEdges.toList).foreach { case (sourceId, tpe, targetId) =>
               query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe).delete
             }
           }
         } else Future.successful(Nil)
-        touched = numBefore ++ numRemain
         r <- checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of edge deletes: ${touched.sum} <= ${edges.size} - ${edges.zip(touched)}")
       } yield r
     }

@@ -41,10 +41,6 @@ object EdgeData {
 
   case object Assigned extends Named with EdgeData
 
-  // ordering types
-  case class Before(parent: NodeId) extends Named with EdgeData
-  object Before extends Named
-
   // case class Number(content: String, weight: Double) extends Named with ConnectionData
   // object Number extends Named
 }

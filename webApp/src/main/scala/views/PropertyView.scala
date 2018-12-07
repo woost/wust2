@@ -66,20 +66,6 @@ object PropertyView {
                 parents.map(p => nodeCard(p)(display.inlineBlock))
               })
             ),
-            content(
-              header("Before"),
-              description(subjects.map { node =>
-                val parents = graph.beforeIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                parents.map(p => nodeCard(p)(display.inlineBlock))
-              })
-            ),
-            content(
-              header("After"),
-              description(subjects.map { node =>
-                val parents = graph.afterIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                parents.map(p => nodeCard(p)(display.inlineBlock))
-              })
-            ),
           )
         )
       },

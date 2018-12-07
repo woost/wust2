@@ -37,7 +37,7 @@ CREATE or replace FUNCTION member(userid varchar(2), nodeid varchar(2), level ac
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), node_to_uuid(nodeid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -45,7 +45,7 @@ CREATE or replace FUNCTION member(userid varchar(2), nodeid uuid, level accessle
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), nodeid)
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -54,7 +54,7 @@ CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS 
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Author'), node_to_uuid(nodeid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -62,7 +62,7 @@ CREATE or replace FUNCTION expanded(userid varchar(2), nodeid varchar(2)) RETURN
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Expanded'), node_to_uuid(nodeid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' NOT IN('Author', 'Before') DO UPDATE set data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -70,7 +70,7 @@ CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), delet
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(parentid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -78,7 +78,7 @@ CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt timesta
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), parentid)
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -86,7 +86,7 @@ CREATE or replace FUNCTION notify(nodeid varchar(2), userid varchar(2)) RETURNS 
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (node_to_uuid(nodeid), jsonb_build_object('type', 'Notify'), user_to_uuid(userid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
@@ -94,15 +94,7 @@ CREATE or replace FUNCTION pinned(userid varchar(2), nodeid varchar(2)) RETURNS 
 begin
     INSERT INTO edge (sourceid, data, targetid)
         VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Pinned'), node_to_uuid(nodeid))
-        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> ALL (ARRAY['Author'::text, 'Before'::text]) DO UPDATE SET data = EXCLUDED.data;
-end
-$$ language plpgsql;
-
-CREATE or replace FUNCTION before(beforeid varchar(2), parentid varchar(2), afterid varchar(2)) RETURNS void AS $$
-begin
-    INSERT INTO edge (sourceid, data, targetid)
-        VALUES (node_to_uuid(beforeid), jsonb_build_object('type', 'Before', 'parent', node_to_uuid(parentid)), node_to_uuid(afterid))
-        ON CONFLICT(sourceid,(data->>'type'),(data->>'parent'),targetid) WHERE data->>'type'='Before' DO NOTHING;
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 

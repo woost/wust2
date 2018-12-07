@@ -1,7 +1,6 @@
 package wust.util
 
 import scala.collection.{IterableLike, breakOut, mutable}
-import math.Ordering
 import flatland._
 
 object algorithm {
@@ -628,90 +627,6 @@ object algorithm {
     }
 
     while (unmarked.nonEmpty) visit(unmarked.head)
-
-    sorted
-  }
-
-  def topologicalLassoSort[V, COLL[V]](
-    vertices: IterableLike[V, COLL[V]],
-    predecessors: V => Iterable[V],
-    successors: V => Iterable[V])
-  : List[V] = {
-    var sorted: List[V] = Nil
-    val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
-
-    if(vertices.isEmpty){
-      return vertices.toList
-    }
-
-    def visit(n: V): Unit = {
-
-
-      if(sorted.contains(n)) return
-
-      // successors are nodes that have to be sorted before n
-      val succs = successors(n)
-      if(succs.nonEmpty) {
-        for(s <- successors(n) if unmarked.contains(s)) {
-          // if there is node s that comes before n, we requeue n and return
-            unmarked.enqueue(n)
-            return
-        }
-      }
-
-      // no nodes that comes before => add to sorted
-      sorted ::= n
-
-      // predecessors are nodes that come directly after n
-      for (m <- predecessors(n) if unmarked.contains(m)) {
-        unmarked.dequeueFirst(v => v == m).foreach(visit)
-      }
-
-    }
-
-    while (unmarked.nonEmpty) {
-      visit(unmarked.dequeue())
-    }
-
-    sorted
-  }
-
-  def topologicalSortWithHeuristic[V, COLL[V]](
-    vertices: IterableLike[V, COLL[V]],
-    predecessors: V => Iterable[V],
-    successors: V => Iterable[V],
-    heuristic: (V, V) => Boolean,
-  ): List[V] = {
-    var sorted: List[V] = Nil
-    val unmarked = mutable.Queue.empty[V] ++ vertices.toList.reverse
-
-    def visit(n: V): Unit = {
-
-      if(sorted.contains(n)) return
-
-      // successors are nodes that come before n
-      val succs = successors(n)
-      if(succs.nonEmpty) {
-        for(s <- successors(n).toIndexedSeq.sortWith(heuristic) if unmarked.contains(s)) {
-          // if there is node s that comes before n, we requeue n and return
-          unmarked.enqueue(n)
-          return
-        }
-      }
-
-      // no nodes that comes before => add to sorted
-      sorted ::= n
-
-      // predecessors are nodes that come directly after n
-      for (m <- predecessors(n).toIndexedSeq.sortWith(heuristic) if unmarked.contains(m)) {
-        unmarked.dequeueFirst(v => v == m).foreach(visit)
-      }
-
-    }
-
-    while (unmarked.nonEmpty) {
-      visit(unmarked.dequeue())
-    }
 
     sorted
   }

@@ -117,7 +117,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.collect {
       // we filter out edges without a unique constraint.
       // this needs to correspond how it is defined in the database.
-      case e if !e.isInstanceOf[Edge.Author] && !e.isInstanceOf[Edge.Before] => (e.sourceId, e.data.tpe, e.targetId)
+      case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, e.targetId)
     }(breakOut)
     val deleteEdgeIds: Set[(NodeId, String, NodeId)] = deleteEdges.map { e => (e.sourceId, e.data.tpe, e.targetId) }(breakOut)
     val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
@@ -228,8 +228,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
   private val membershipDegree = new Array[Int](n)
-  private val beforeDegree = new Array[Int](n)
-  private val afterDegree = new Array[Int](n)
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
@@ -253,9 +251,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             authorshipDegree(targetIdx) += 1
           case _: Edge.Member   =>
             membershipDegree(targetIdx) += 1
-          case _: Edge.Before   =>
-            beforeDegree(sourceIdx) += 1
-            afterDegree(targetIdx) += 1
           case e: Edge.Parent   =>
             val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
             val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -310,8 +305,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val membershipEdgeIdxBuilder = NestedArrayInt.builder(membershipDegree)
-  private val beforeIdxBuilder = NestedArrayInt.builder(beforeDegree)
-  private val afterIdxBuilder = NestedArrayInt.builder(afterDegree)
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
@@ -329,9 +322,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         authorIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Member   =>
         membershipEdgeIdxBuilder.add(targetIdx, edgeIdx)
-      case _: Edge.Before   =>
-        beforeIdxBuilder.add(sourceIdx, targetIdx)
-        afterIdxBuilder.add(targetIdx, sourceIdx)
       case e: Edge.Parent   =>
         val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
         val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -386,8 +376,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
   val membershipEdgeIdx: NestedArrayInt = membershipEdgeIdxBuilder.result()
-  val beforeIdx: NestedArrayInt = beforeIdxBuilder.result()
-  val afterIdx: NestedArrayInt = afterIdxBuilder.result()
   val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
@@ -415,10 +403,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def isPinned(idx: Int, userIdx:Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
-  def beforeOrderingByParent(parentId: NodeId) = edges.filter(e => e.isInstanceOf[Edge.Before] && e.asInstanceOf[Edge.Before].data.parent == parentId)
-  def beforeOrdering(nodeId: NodeId): Seq[NodeId] = beforeIdx(idToIdx(nodeId)).map(nodes).map(_.id)
-  def afterOrdering(nodeId: NodeId): Seq[NodeId] = afterIdx(idToIdx(nodeId)).map(nodes).map(_.id)
-//  def beforeByParent(nodeId: NodeId)(parentId: NodeId) = beforeOrdering(nodeId).filter(_)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli], nodeCreatorIdx:Array[Int]) = {
@@ -633,61 +617,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     chronologicalNodesAscendingIdx.map(nodes)
   }
 
-  lazy val chronologicalBeforeOrdering: Array[Int] = {
-    topologicalSort(chronologicalNodesAscendingIdx, beforeIdx)
-  }
-
   def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
-    if(seq.isEmpty || nodes.isEmpty || beforeIdx.isEmpty) return seq
+    if(seq.isEmpty || nodes.isEmpty) return seq
 
     @inline def idSeq: Seq[Int] = seq.map(extractIdx)
     @inline def idArray: Array[Int] = idSeq.toArray
 
     val chronological: Array[Int] = idArray.sortBy(nodeCreated)
-
-    // def c = chronological.map(nodes).toSeq
-
-   scribe.debug("Lasso Sort")
-    val topological: Array[Int] = topologicalLassoSort(chronological).map(n => idToIdx(n.id)).toArray
-
-   // scribe.debug("Lift result")
-    val res = topological.map(liftIdx).toSeq.flatten
+    //TODO: Sort by ordering idx
+    val res: Seq[T] = chronological.map(liftIdx).toSeq.flatten
     res
-  }
-//  def topologicalSortBy[T](seq: Seq[T], extract: T => NodeId): Seq[T] = {
-//    if(seq.nonEmpty) topologicalSortByIdx[T](seq, idToIdx compose extract, (i: Int) => seq.find(t => extract(t) == nodeIds(i)))
-//    else seq
-//  }
-
-  def topologicalLassoSort(elements: Array[Int]): Seq[Node] = {
-//    val cycles = elements.map(n => algorithm.linearInvolmentsOfCycleSearch(elements.map(n => idToIdx(n.id)).toArray, beforeIdx))
-//    val cyclesIdx = algorithm.linearInvolmentsOfCycleSearch(elements.map(n => idToIdx(n.id)).toArray, beforeIdx)
-//    val breakCyclesGraphChanges = if(cyclesIdx.nonEmpty) {
-//      cyclesIdx.sliding(2).map(pair => GraphChanges.disconnect(Edge.Before.apply)(graph.nodes(pair.head).id, graph.nodes(pair.last).id))
-//    } else GraphChanges.empty
-
-
-//    scribe.debug(s"Sorting nodes: ${elements.map(e => (graph.idToIdx(e.id), e.str))}")
-//    scribe.debug(s"Sorting edges: ${sortIdx.foreachIndexAndElement((i, slice) => s"$i, ${slice.mkString(",")}")}")
-//    scribe.debug(s"Sorting edges: ${sortIdx.mkString(",")}")
-    // if(!algorithm.containsCycle(elements.map(n => idToIdx(n.id)).toArray, sortIdx)) {
-
-    // scribe.debug(s"Sorting nodes: ${sortIdx.flatMap(ids => ids.map(graph.nodes)).map(_.str)}")
-    // scribe.debug(s"Before nodes: ${beforeIdx.flatMap(ids => ids.map(graph.nodes)).map(_.str).mkString(",")}")
-   if(!algorithm.containsCycle(elements, beforeIdx)) {
-
-
-     algorithm.topologicalLassoSort[Node, Seq](
-       elements.map(nodes),
-       (n: Node) => afterOrdering(n.id).map(n => nodesById(n)),
-       (n: Node) => beforeOrdering(n.id).map(n => nodesById(n)),
-       )
-
-   } else {
-      scribe.warn("Ignoring sorting because of cycle")
-      scribe.warn(s"${elements.map(nodes).map(_.str).mkString(",")}")
-      elements.map(nodes)
-    }
   }
 
   lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {

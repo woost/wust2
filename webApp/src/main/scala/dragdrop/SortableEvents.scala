@@ -20,7 +20,8 @@ import scala.scalajs.js
 
 
 class SortableEvents(state: GlobalState, draggable: Draggable) {
-  type PositionIndex = Int
+
+  import TaskOrdering.Position
 
   private val dragStartEvent = PublishSubject[DragStartEvent]
   private val dragOverEvent = PublishSubject[DragOverEvent]
@@ -49,213 +50,43 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   draggable.on[DragOverEvent]("drag:over", dragOverEvent.onNext _)
   draggable.on[DragOutEvent]("drag:out", dragOutEvent.onNext _)
 
-  //  draggable.on("sortable:start", (e:SortableEvent) => console.log("sortable:start", e))
-//    draggable.on("sortable:sort", () => console.log("sortable:sort"))
-  //  draggable.on("sortable:sorted", () => console.log("sortable:sorted"))
-  //  draggable.on("sortable:stop", () => console.log("sortable:stop"))
+  @inline def getNodeIdStr(graph: Graph, nodeId: NodeId) = graph.nodesById(nodeId).str
+  @inline def getNodeIdxStr(graph: Graph, indices: Seq[Int]) = indices.map(idx => graph.nodes(idx).str)
+  @inline def getNodeIdxStr(graph: Graph, idx: Int) = graph.nodes(idx).str
 
-  // TODO: Generalize and outsource to DataOrdering
+  @inline private def abortSorting(errorMsg: String) = {
+    scribe.error(errorMsg)
+    GraphChanges.empty
+  }
+
+  def parseDomPositions(e: SortableStopEvent): (Position, Position) = {
+
+    // Get index of moved node in previous container
+    val origElem = e.dragEvent.originalSource
+
+    // Get index of moved node in new container
+    val sourceElem = e.dragEvent.source
+
+    // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
+    val previousContChilds = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
+    val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
+
+    (previousContChilds.indexOf(origElem), newContChilds.indexOf(sourceElem))
+  }
+
+  @inline def checkContainerChanged(from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area) = from != into
+  @inline def checkPositionChanged(previousPosition: Position, newPosition: Position) = previousPosition != newPosition
+  @inline def checkMovedDownwards(previousPosition: Position, newPosition: Position) = previousPosition < newPosition
+
+  // Hints:
+  // - Most outer container contains unclassified nodes as well
+  // - Only one "big" sortable => container always the same (oldContainer == newContainer)
+  // - A container corresponds to a parent node
+  // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
   def beforeChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer.Kanban.Area, into: DragContainer.Kanban.Area): GraphChanges = {
-    // Hints:
-    // - Most outer container contains unclassified nodes as well
-    // - Only one "big" sortable => container always the same (oldContainer == newContainer)
-    // - A container corresponds to a parent node
-    // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
 
-    def getNodeStr(graph: Graph, indices: Seq[Int]) = {
-      indices.map(idx => graph.nodes(idx).str)
-    }
-
-    state.page.now.parentId match {
-      case Some(pageParentId) =>
-
-        // Get index of moved node in previous container
-        @inline def origElem = e.dragEvent.originalSource
-
-        // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-        val oldContChilds = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
-        val oldSortIndex = oldContChilds.indexOf(origElem)
-
-        // Get index of moved node in new container
-        @inline def sourceElem = e.dragEvent.source
-
-        // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-        val newContChilds = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
-        val newSortIndex = newContChilds.indexOf(sourceElem)
-
-        //    val containerChanged = from.parentIds != into.parentIds
-        val containerChanged = from != into
-        val movedDownwards = oldSortIndex < newSortIndex
-
-        // Kanban item dropped on the previous / same place
-        if(!containerChanged && oldSortIndex == newSortIndex) {
-          scribe.info("item dropped on same place (no movement)")
-          return GraphChanges.empty
-        }
-
-        // Node id of sorted node
-        val sortedNodeId = sortNode.nodeId
-
-        scribe.info("SORTING PREBUILDS\n" +
-          //      s"in graph: ${g.toPrettyString}\n\t" +
-          s"dragged node: ${graph.nodesById(sortNode.nodeId).str}\n\t" +
-          s"from index $oldSortIndex / ${oldContChilds.length - 1}\n\t" +
-          s"to index $newSortIndex / ${newContChilds.length - 1}")
-
-        val cycleDeletionGraphChanges = BeforeOrdering.breakCyclesGraphChanges(graph, graph.beforeIdx, into.parentId, BeforeOrdering.nodesOfInterest(graph, pageParentId, userId, into.parentId))
-        val g = graph.applyChanges(cycleDeletionGraphChanges)
-//        return GraphChanges.empty
-        // Reconstruct ordering
-        val oldOrderedNodes = BeforeOrdering.constructOrderingIdx(g, pageParentId, userId, from.parentId)._1
-        //    val oldOrderedNodes: Seq[Int] = BeforeOrdering.taskGraphToSortedForest(g, userId, from.parentIds)
-
-
-        // Kanban item dropped at an edge of a container
-        if(oldOrderedNodes.size != oldContChilds.length) {
-          // console.log("Kanban elements by sortable: ", oldContChilds)
-          scribe.error(s"Kanban elements by orderedNodes: ${ getNodeStr(g, oldOrderedNodes) }")
-          scribe.error(s"oldOrderedNodes.size(${ oldOrderedNodes.size }) != oldContChilds.length(${ oldContChilds.length }) => Kanban item dropped at an edge of a container")
-          return GraphChanges.empty merge cycleDeletionGraphChanges
-        }
-
-        val oldIndex = oldOrderedNodes.indexOf(g.idToIdx(sortedNodeId))
-
-        // Kanban data and node data diverge
-        if(oldIndex != oldSortIndex) {
-          scribe.error(s"index of reconstruction and sort must match, oldPosition(${ oldIndex + 1 }) != oldSortPosition(${ oldSortIndex + 1 })")
-          return GraphChanges.empty merge cycleDeletionGraphChanges
-        }
-
-        // Cleanup previous edges
-        val (previousBefore, previousAfter) = BeforeOrdering.getBeforeAndAfter(g, oldIndex, oldOrderedNodes)
-
-        val previousEdges: Set[Option[Edge]] = Set(
-          previousBefore match {
-            case Some(b) => Some(Edge.Before(b, sortedNodeId, from.parentId))
-            case _       => None
-          },
-          previousAfter match {
-            case Some(a) => Some(Edge.Before(sortedNodeId, a, from.parentId))
-            case _       => None
-          }
-        )
-
-        @inline def relinkEdges = if(previousBefore.isDefined && previousAfter.isDefined) Set(Some(Edge.Before(previousBefore.get, previousAfter.get, into.parentId))) else Set.empty[Option[Edge]]
-
-        val newOrderedNodes: Seq[Int] = BeforeOrdering.constructOrderingIdx(g, pageParentId, userId, into.parentId)._1
-
-        if(newOrderedNodes.isEmpty)
-          return GraphChanges.empty merge cycleDeletionGraphChanges
-
-        // Kanban item dropped at an edge of a container
-        if(newOrderedNodes.size + 1 < newContChilds.length) {
-          //TODO: what is the difference to the similar if-block before: if(oldOrderedNodes.size != oldContChilds.length)
-          // console.log("Kanban elements by sortable: ", newContChilds)
-          scribe.warn(s"Kanban elements by orderedNodes: ${ getNodeStr(g, newOrderedNodes) }")
-          scribe.warn(s"newOrderedNodes.size(${ newOrderedNodes.size }) != newContChilds.length(${ newContChilds.length }) => Kanban item dropped at an edge of a container")
-          return GraphChanges.empty merge cycleDeletionGraphChanges
-        }
-
-        val gcProposal: GraphChanges = if(containerChanged && newSortIndex == newOrderedNodes.size) {
-          // very end !!! special case of before semantic !!!
-
-          //      scribe.debug("!!!handling special case of before semantic in CHANGED container!!!")
-
-          val chronologicalOverwrites = newOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
-
-          val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toSeq.map(l => {
-            Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, into.parentId)
-          })(breakOut):Set[Edge]) + Edge.Before(g.nodeIds(newOrderedNodes.last), sortedNodeId, into.parentId)
-
-          GraphChanges(
-            addEdges = newBeforeEdges ++ relinkEdges.flatten,
-            delEdges = previousEdges.flatten
-          )
-        } else  if(!containerChanged && newSortIndex == newOrderedNodes.size - 1) {
-
-          //      scribe.debug("!!!handling special case of before semantic in SAME container!!!")
-
-          val chronologicalOverwrites = oldOrderedNodes.reverse.takeWhile(g.chronologicalNodesAscending(_).id != sortedNodeId)
-
-          val newBeforeEdges: Set[Edge] = (chronologicalOverwrites.sliding(2).toSeq.map(l => {
-            Edge.Before(g.nodes(l.last).id, g.nodes(l.head).id, into.parentId)
-          })(breakOut):Set[Edge]) + Edge.Before(g.nodeIds(oldOrderedNodes.last), sortedNodeId, into.parentId)
-
-          GraphChanges(
-            addEdges = newBeforeEdges ++ relinkEdges.flatten,
-            delEdges = previousEdges.flatten
-          )
-
-        } else {
-          val (nowBefore, nowMiddle, nowAfter) = {
-
-            val (newBefore, newAfter) = if(containerChanged) {
-
-              val (b, a) = (newSortIndex - 1, newSortIndex)
-
-              (b, a)
-            } else {
-              //      scribe.debug(s"Container not changed")
-
-              val downCorrection = if(movedDownwards) 1 else 0 // before correction
-              val upCorrection = if(!movedDownwards) -1 else 0 // after correction
-              val beforeIndexShift = if((newSortIndex - 1 + downCorrection) == oldSortIndex) -2 else -1
-              val afterIndexShift = if((newSortIndex + 1 + upCorrection) == oldSortIndex) 2 else 1
-
-              val (b, a) = (newSortIndex + beforeIndexShift + downCorrection, newSortIndex + afterIndexShift + upCorrection)
-
-              // If newBefore or newAfter equals oldSortIndex in the same container (outer if condition), we would create a selfloop
-              if(b == oldSortIndex || a == oldSortIndex) {
-                scribe.error(s"Index conflict: old position ${ oldSortIndex + 1 }, before: ${ b + 1 }, after: ${ a + 1 }")
-                return GraphChanges.empty merge cycleDeletionGraphChanges
-              }
-
-              (b, a)
-            }
-
-            val b = if(newBefore > -1) Some(g.nodeIds(newOrderedNodes(newBefore))) else None
-            val a = if(newAfter < newOrderedNodes.size) Some(g.nodeIds(newOrderedNodes(newAfter))) else None
-            val m = Some(sortedNodeId)
-            (b, m, a)
-          }
-
-          val cleanupBeforeEdges = if(nowBefore.isDefined && nowAfter.isDefined) Set(Some(Edge.Before(nowBefore.get, nowAfter.get, from.parentId))) else Set.empty[Option[Edge]]
-
-          val newBeforeEdges = Set(
-            if(nowBefore.isDefined && nowMiddle.isDefined)
-              Some(Edge.Before(nowBefore.get, nowMiddle.get, into.parentId))
-            else
-              None
-            ,
-            if(nowAfter.isDefined && nowMiddle.isDefined)
-              Some(Edge.Before(nowMiddle.get, nowAfter.get, into.parentId))
-            else
-              None
-          )
-
-          GraphChanges(
-            addEdges = (newBeforeEdges ++ relinkEdges).flatten,
-            delEdges = (previousEdges ++ cleanupBeforeEdges).flatten
-          )
-        }
-
-        val gc = (gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId)) merge cycleDeletionGraphChanges).consistent
-//        val gc = (gcProposal.copy(addEdges = gcProposal.addEdges.filterNot(e => e.sourceId == e.targetId))).consistent
-//        scribe.debug("SORTING\n" +
-//          s"dragged node: ${ g.nodesById(sortedNodeId).str }\n\t" +
-//          s"from ${ g.nodesById(from.parentId).str } containing ${ getNodeStr(g, oldOrderedNodes) }\n\t" +
-//          s"from position ${ oldIndex + 1 } / ${ oldOrderedNodes.length }\n\t" +
-//          s"into ${ g.nodesById(into.parentId).str } containing ${ getNodeStr(g, newOrderedNodes) }\n\t" +
-//          s"to position ${ newSortIndex + 1 } / ${ newOrderedNodes.length }")
-
-//        GraphChanges.log(gc, Some(state.graph.now))
-        scribe.info("SUCCESS: Calculated new before edges!")
-        gc
-
-      case _ =>
-        scribe.warn("Sortable need a page to determine toplevel elements")
-        GraphChanges.empty
-    }
+    // This is WIP
+    GraphChanges.empty
   }
 
   private def submit(changes:GraphChanges) = {

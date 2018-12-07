@@ -53,7 +53,6 @@ object KanbanView {
 
           // inboxTasks: all tasks which are direct children of pageParentId
           // column: trees of all stages which are direct children of pageParentId.
-//          val (inboxTasks, columns) = BeforeOrdering.taskGraphToSortedForest(kanbanGraph, state.user.now.id, pageParentId)
           val inboxTasks = graph.childrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Task)
           val topLevelStages = graph.childrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
           val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage))
@@ -92,10 +91,7 @@ object KanbanView {
       case Tree.Parent(node, children) if node.role == NodeRole.Stage =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
-//            val (sortedChildren, _) = BeforeOrdering.sort[Tree](filterKanbanGraph(state.graph.now, node.id), node.id, children, (t: Tree) => t.node.id)
-//            scribe.debug(s"Sorting Tree of ${node.str}")
-            val (sortedChildren, _) = BeforeOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
-            // val (sortedChildren, _) = BeforeOrdering.sort[Tree](state.graph.now, node.id, children, (t: Tree) => t.node.id)
+            val sortedChildren = TaskOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
             renderColumn(state, graph, node, sortedChildren, parentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
