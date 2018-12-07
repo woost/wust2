@@ -322,6 +322,7 @@ object KanbanView {
 //      registerDraggableContainer(state),
       keyed(node.id, parentId),
       cls := "draghandle",
+      overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       div(
         Styles.flex,
