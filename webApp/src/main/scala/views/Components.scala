@@ -108,7 +108,7 @@ object Components {
                 overlay,
                 centerStyle,
                 div(freeSolid.faExclamationTriangle, " Error Uploading File"),
-                button(cls := "ui button", "Retry upload", onClick.foreach { retry.runAsyncAndForget }, cursor.pointer)
+                button(cls := "ui button", "Retry upload", onClick.stopPropagation.foreach { retry.runAsyncAndForget }, cursor.pointer)
               )
             )
             case Some(UploadingFile.Waiting(dataUrl)) => div(
@@ -123,7 +123,7 @@ object Components {
       } else contentType match {
         case t if t.startsWith("image/") =>
           val image = img(alt := fileName, downloadUrl(src))
-          image(maxHeight := "250px", cursor.pointer, onClick.foreach {
+          image(maxHeight := "250px", cursor.pointer, onClick.stopPropagation.foreach {
             state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
             ()
           })
