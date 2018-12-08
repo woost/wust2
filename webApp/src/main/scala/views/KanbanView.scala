@@ -191,7 +191,7 @@ object KanbanView {
             },
             cursor.pointer, UI.popup := "Delete"
           )),
-          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+//          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
         )
       }
     )
