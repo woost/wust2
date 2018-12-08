@@ -159,7 +159,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   "body" - (
-    fontFamily :=! "'Roboto Slab', serif",
+    fontFamily :=! "Roboto, serif",
     overflow.hidden
   )
 
