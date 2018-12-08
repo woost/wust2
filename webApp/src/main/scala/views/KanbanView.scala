@@ -121,7 +121,7 @@ object KanbanView {
       case Tree.Leaf(node) if node.role == NodeRole.Stage =>
           renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
       case Tree.Leaf(node) if node.role == NodeRole.Task && graph.notDeletedParentsIdx.contains(graph.idToIdx(node.id))(pageParentIdx) =>
-          renderCard(state, node, parentId, selectedNodeIds)
+          renderCard(state, node, parentId, pageParentId, selectedNodeIds)
       case _ => VDomModifier.empty // if card is not also direct child of page, it is probably a mistake
     }
   }
@@ -148,7 +148,7 @@ object KanbanView {
       div(
         cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Inbox(parentId)),
-        children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, selectedNodeIds)),
+        children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, selectedNodeIds)),
         scrollHandler.modifier,
       ),
       addNodeField(state, parentId, pageParentId, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
@@ -278,7 +278,13 @@ object KanbanView {
   }
 
 
-  private def renderCard(state: GlobalState, node: Node, parentId: NodeId, selectedNodeIds:Var[Set[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderCard(
+    state: GlobalState,
+    node: Node,
+    parentId: NodeId, // is either a column (stage) or else, if the card is in inbox equal to pageParentId
+    pageParentId: NodeId,
+    selectedNodeIds:Var[Set[NodeId]]
+  )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
     val rendered = nodeCardEditable(
       state, node,
@@ -315,7 +321,8 @@ object KanbanView {
           div(
             div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
+              val changes = GraphChanges.delete(node.id, parentId) merge GraphChanges.delete(node.id, pageParentId)
+              state.eventProcessor.changes.onNext(changes)
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, UI.popup := "Delete"
