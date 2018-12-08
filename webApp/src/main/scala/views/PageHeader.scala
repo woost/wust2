@@ -327,6 +327,7 @@ object PageHeader {
     val addMember = PublishSubject[String]
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
+    val modalCloseTrigger = PublishSubject[Unit]
 
     def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserId(name)
@@ -353,8 +354,16 @@ object PageHeader {
     }
 
     def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
-      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
+      if(membership.userId == state.user.now.id) {
+        if(dom.window.confirm("Do you really want to remove yourself from this workspace?")) {
+          state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty))
+          modalCloseTrigger.onNext(())
+        } else return
+      }
+      // optimistic UI, since removeMember does not send an event itself:
+      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership)) merge GraphChanges.disconnect(Edge.Pinned)(membership.userId, membership.nodeId)
       state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, change))
+      
       Client.api.removeMember(membership.nodeId,membership.userId,membership.level)
     }
 
@@ -411,19 +420,23 @@ object PageHeader {
         marginLeft := "10px",
         Rx {
           val graph = state.graph()
-          graph.membershipEdgeIdx(graph.idToIdx(node.id)).map { membershipIdx =>
-            val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-            val user = graph.nodesById(membership.userId).asInstanceOf[User]
-            userLine(user).apply(
-              button(
-                cls := "ui tiny compact negative basic button",
-                marginLeft := "10px",
-                "Remove",
-                onClick(membership) --> removeMember
+          val nodeIdx = graph.idToIdx(node.id)
+          if(nodeIdx != -1) {
+            graph.membershipEdgeIdx(nodeIdx).map { membershipIdx =>
+              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+              val user = graph.nodesById(membership.userId).asInstanceOf[User]
+              userLine(user).apply(
+                button(
+                  cls := "ui tiny compact negative basic button",
+                  marginLeft := "10px",
+                  "Remove",
+                  onClick(membership) --> removeMember
+                )
               )
-            )
-          }
-        }
+            }:VDomModifier
+          } else VDomModifier.empty
+        },
+        if(true) VDomModifier.empty else List(div)
       )
     )
 
@@ -439,7 +452,7 @@ object PageHeader {
         ),
       span(cls := "text", "Manage Members", cursor.pointer),
 
-      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier =
+      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger, modalModifier =
         cls := "mini form",
         contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       ))) --> state.modalConfig
