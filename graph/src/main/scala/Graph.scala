@@ -804,13 +804,42 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     inner(nodeIdx, immutable.BitSet.empty)
   }
 
-  def doneNodeIdx(parentIdx:Int): Option[Int] = graph.childrenIdx(parentIdx).find { nodeIdx =>
+  def doneNodeForWorkspace(workspaceIdx:Int): Option[Int] = graph.notDeletedChildrenIdx(workspaceIdx).find { nodeIdx =>
     val node = nodes(nodeIdx)
     node.role == NodeRole.Stage &&
     node.str.trim.toLowerCase == Graph.doneTextLower
   }
 
-  def doneNode(pageParentIdx:Int):Option[Node] = doneNodeIdx(pageParentIdx) map graph.nodes
+  def workspacesForNode(nodeIdx:Int):Array[Int] = {
+    (notDeletedParentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut):Array[Int]).distinct
+  }
+
+  def workspacesForParent(parentIdx:Int): Array[Int] = {
+    val parentNode = nodes(parentIdx)
+    parentNode.role match {
+      case NodeRole.Stage =>
+        val workspacesBuilder = new mutable.ArrayBuilder.ofInt
+        // search for first transitive parents which are not stages
+        depthFirstSearchAfterStartsWithContinue(Array(parentIdx),notDeletedParentsIdx, {idx =>
+          nodes(idx).role match {
+            case NodeRole.Stage => true
+            case _ =>
+              workspacesBuilder += idx
+              false
+          }
+        })
+        workspacesBuilder.result()
+      case _ =>
+        Array(parentIdx)
+    }
+  }
+
+  def isDoneInAllWorkspaces(nodeIdx:Int, workspaces:Array[Int]):Boolean = {
+    @inline def isDoneIn(doneIdx:Int, nodeIdx:Int) = notDeletedChildrenIdx.contains(doneIdx)(nodeIdx)
+    workspaces.forall{ workspaceIdx =>
+      doneNodeForWorkspace(workspaceIdx).exists(doneIdx => isDoneIn(doneIdx, nodeIdx))
+    }
+  }
 
   //  lazy val containmentNeighbours
   //  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[

@@ -31,37 +31,48 @@ object ListView {
       addListItemInputField(state),
 
       Rx {
+        println("reloading listview")
+        val graph = state.graph()
         state.page().parentId.map { pageParentId =>
-          val graph = {
-            val g = state.graph()
-            val transitivePageChildren = g.notDeletedDescendants(pageParentId)
-            g.filterIds(Set(pageParentId) ++ transitivePageChildren.toSet ++ transitivePageChildren.flatMap(id => g.authors(id).map(_.id)))
-          }
-
           val pageParentIdx = graph.idToIdx(pageParentId)
+          val workspaces = graph.workspacesForParent(pageParentIdx)
 
-          val doneIdx = graph.doneNodeIdx(pageParentIdx).getOrElse(-1)
-          val allTasks: ArraySet = graph.subset { nodeIdx =>
-            val node = graph.nodes(nodeIdx)
+          val allTasks: ArraySet = {
+            val taskSet = ArraySet.create(graph.size)
+            // we go down from workspaces, since tasks which only live in stages have an invalid encoding and should be ignored
+//            println("listview workspaces: " + workspaces.map(i => graph.nodes(i).str).mkString(", "))
+            algorithm.depthFirstSearchAfterStartsWithContinue(workspaces,graph.notDeletedChildrenIdx, {nodeIdx =>
+              val node = graph.nodes(nodeIdx)
+//              println("  listview " + node.str)
+              node.role match {
+                case NodeRole.Task =>
+                  @inline def isCorrectlyEncodedTask = graph.notDeletedParentsIdx.exists(nodeIdx)(parentIdx => workspaces.contains(parentIdx)) //  || taskSet.contains(parentIdx) taskSet.contains activates subtasks
+//                  println("    listview is Task, correctly encoded: " + isCorrectlyEncodedTask)
+                  if(isCorrectlyEncodedTask) {
+                    taskSet += nodeIdx
+                    false // true goes deeper and also shows subtasks
+                  } else false
+                case NodeRole.Stage =>
+//                  println("    listview is Stage")
+                  true
+                case _ => false
+              }
+            })
 
-            @inline def isDoneNode = nodeIdx == doneIdx
-            @inline def isContent = node.isInstanceOf[Node.Content]
-            @inline def isTask = node.role.isInstanceOf[NodeRole.Task.type]
-            @inline def noPage = nodeIdx != pageParentIdx
-
-            !isDoneNode && isContent && isTask && noPage
+            taskSet
           }
 
+//          println("listview allTasks: " + allTasks.collectAllElements.map(i => graph.nodes(i).str).mkString(", "))
 
-          val (todoTasks, doneTasks) = {
-            doneIdx match {
-              case -1      => (allTasks, ArraySet.create(graph.nodes.length))
-              case doneIdx =>
-                allTasks.partition { nodeIdx =>
-                  @inline def isDone = graph.parentsIdx.exists(nodeIdx)(_ == doneIdx)
 
-                  !isDone
-                }
+          val (doneTasks, todoTasks) = {
+//            println("listview separating done/todo")
+            allTasks.partition { nodeIdx =>
+              val node = graph.nodes(nodeIdx)
+//              println("  listview " + node.str)
+              val workspaces = graph.workspacesForNode(nodeIdx)
+//              println("  listview workspaces: " + workspaces.map(i => graph.nodes(i).str).mkString(", "))
+              graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
             }
           }
 
