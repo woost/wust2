@@ -21,11 +21,6 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
-//  def filterKanbanGraph(g: Graph, parentId: NodeId): Graph = {
-//    val transitivePageChildren = g.notDeletedDescendants(parentId)
-//    g.filterIds(transitivePageChildren.toSet + parentId)
-//  }
-
   private val maxLength = 100
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -47,10 +42,6 @@ object KanbanView {
         val graph = state.graph()
         page.parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
-
-          //            val kanbanGraph = filterKanbanGraph(state.graph(), pageParentId)
-          //          scribe.info(s"KANBAN GRAPH NODES: ${graph.nodes.map(_.str).mkString(", ")}")
-
 
           val topLevelStages = graph.notDeletedChildrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
           val allStages:ArraySet = {
