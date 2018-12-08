@@ -216,18 +216,8 @@ object KanbanView {
         cls := "kanbancolumnheader",
         keyed(node.id, parentId),
         cls := "draghandle",
-        cls := "childstats",
 
         columnTitle,
-
-        Rx{
-          renderMessageCount(
-            if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
-            else VDomModifier(cls := "emptystat"),
-            onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
-            cursor.pointer
-          )
-        },
 
         position.relative, // for buttonbar
         buttonBar(position.absolute, top := "0", right := "0"),
@@ -262,7 +252,28 @@ object KanbanView {
           scrollHandler.modifier,
         ),
       ),
-      addNodeField(state, node.id, pageParentId, path, activeReplyFields, scrollHandler)
+      div(
+        cls := "kanbancolumnfooter",
+        Styles.flex,
+        justifyContent.spaceBetween,
+        addNodeField(state, node.id, pageParentId, path, activeReplyFields, scrollHandler).apply(width := "100%"),
+        Rx{
+          // hide comment zoom, when addNodeField is active
+          val fullPath = node.id :: path
+          val active = activeReplyFields() contains fullPath
+          active.ifFalse[VDomModifier](
+            div(
+              cls := "childstats",
+              renderMessageCount(
+                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+                else VDomModifier(cls := "emptystat"),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                cursor.pointer
+              )
+            )
+          )
+        },
+      )
     )
   }
 

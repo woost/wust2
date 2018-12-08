@@ -744,7 +744,7 @@ object CommonStyles extends StyleSheet.Standalone {
     maxWidth(kanbanCardWidth),
     fontSize.large,
     Styles.wordWrap,
-    minHeight(3 em), // if title is empty. and provide space for message stat icon
+    minHeight(1.5 em),
     letterSpacing(0.5 px), // more aesthetic
   )
 
@@ -774,14 +774,14 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard .childstats" - (
     color.gray,
   )
-  ".kanbancolumnheader .childstat" - (
+  ".kanbancolumnfooter .childstats" - (
       fontWeight.normal,
       color(c"rgba(255, 255, 255, 0.81)"),
     )
   ".childstats .emptystat" - (
     visibility.hidden,
   )
-  ".kanbancolumnheader:hover.childstats .emptystat," +
+  ".kanbancolumnfooter:hover .childstats .emptystat," +
   ".nodecard:hover .childstats .emptystat" - (
     visibility.visible,
   )
@@ -789,7 +789,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard .childstat:hover" - (
     color(c"rgb(71, 71, 71)")
   )
-  ".kanbancolumnheader .childstat:hover" - (
+  ".kanbancolumnfooter .childstats:hover" - (
     color.white
   )
 
@@ -873,7 +873,7 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(kanbanColumnPadding),
     marginBottom(0 px)
   )
-  ".kanbancolumn > .kanbanaddnodefield" - (
+  ".kanbancolumn .kanbanaddnodefield" - (
     padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),
     overflowBehavior.contain
   )
