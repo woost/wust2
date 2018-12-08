@@ -98,6 +98,14 @@ begin
 end
 $$ language plpgsql;
 
+CREATE or replace FUNCTION assigned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Assigned'), node_to_uuid(nodeid))
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
+
 
 CREATE or replace FUNCTION cleanup() RETURNS void AS $$
 begin
