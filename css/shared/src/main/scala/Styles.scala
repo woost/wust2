@@ -865,10 +865,6 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
   )
 
-  ".kanbancolumnheader.kanbancolumncollapsed" - (
-    padding(kanbanColumnPadding),
-  )
-
   ".kanbancolumnchildren > .nodecard," +
   ".kanbancolumnchildren > .kanbantoplevelcolumn," + // when dragging top-level column into column
   ".kanbancolumnchildren > .kanbancolumn" - (

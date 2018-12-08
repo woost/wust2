@@ -204,18 +204,16 @@ object KanbanView {
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       keyed(node.id, parentId),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
-      Rx{ if(editable()) dragDisabled else { // prevents dragging when selecting text
-        if(isTopLevel) VDomModifier(
-          sortableAs(DragItem.Kanban.Column(node.id)),
-          dragTarget(DragItem.Kanban.Column(node.id)),
-        ) else VDomModifier(
-          sortableAs(DragItem.Kanban.Column(node.id)),
-          dragTarget(DragItem.Kanban.Column(node.id))
-        )
+      Rx{
+        if(editable()) dragDisabled
+        else { // prevents dragging when selecting text
+          VDomModifier(
+            sortableAs(DragItem.Kanban.Column(node.id)),
+            dragTarget(DragItem.Kanban.Column(node.id)),
+          )
       }},
       div(
         cls := "kanbancolumnheader",
-        isCollapsed.ifTrue[VDomModifier](cls := "kanbancolumncollapsed"),
         keyed(node.id, parentId),
         cls := "draghandle",
         cls := "childstats",
@@ -235,7 +233,27 @@ object KanbanView {
         buttonBar(position.absolute, top := "0", right := "0"),
 //        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
-      isCollapsed.ifFalse[VDomModifier](VDomModifier(
+      if(isCollapsed) VDomModifier(
+        div(
+          Styles.flex,
+          flexDirection.column,
+          alignItems.stretch,
+
+          padding := "7px",
+
+          fontSize.xLarge,
+          opacity := 0.5,
+          div(
+            Styles.flex,
+            justifyContent.center,
+            div(cls := "fa-fw", freeRegular.faPlusSquare, UI.popup := "Expand"),
+            onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes,
+            cursor.pointer,
+            paddingBottom := "7px",
+          ),
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id)), // allows to drop cards on collapsed columns
+        )
+      ) else VDomModifier(
         div(
           cls := "kanbancolumnchildren",
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
@@ -243,8 +261,8 @@ object KanbanView {
           children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
-        addNodeField(state, node.id, pageParentId, path, activeReplyFields, scrollHandler)
-      ))
+      ),
+      addNodeField(state, node.id, pageParentId, path, activeReplyFields, scrollHandler)
     )
   }
 
