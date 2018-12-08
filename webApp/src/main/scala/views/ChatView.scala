@@ -110,7 +110,7 @@ object ChatView {
               backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
               div(
                 Styles.flex,
-                renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply),
+                renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
                 closeButton(
                   marginLeft.auto,
                   onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -139,7 +139,7 @@ object ChatView {
               uploadFileAndCreateNode(state, str, replyNodes, uploadFile)
           }
 
-          currentReply() = Set.empty[NodeId]
+          if(!pinReply.now) currentReply() = Set.empty[NodeId]
           fileUploadHandler() = None
           scrollHandler.scrollToBottomInAnimationFrame()
 
@@ -236,7 +236,7 @@ object ChatView {
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
-        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply)
+        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply, inputFieldFocusTrigger)
       }
     )
 
@@ -352,7 +352,15 @@ object ChatView {
     )
   }
 
-  private def renderParentMessage(state: GlobalState, parentId: NodeId, isDeletedNow: Boolean, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def renderParentMessage(
+    state: GlobalState,
+    parentId: NodeId,
+    isDeletedNow: Boolean,
+    selectedNodes: Var[Set[SelectedNode]],
+    currentReply: Var[Set[NodeId]],
+    inputFieldFocusTrigger:PublishSubject[Unit],
+    pinReply: Option[Var[Boolean]] = None
+  )(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
       val idx = graph.idToIdx(parentId)
@@ -409,6 +417,7 @@ object ChatView {
                   selectedNodes -> Set.empty[SelectedNode]
                 )
               }, cursor.pointer),
+              pinReply.map{pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4)}, padding := "3px 20px 3px 5px", onClick foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer)},
             )
           )
         )
