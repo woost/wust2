@@ -229,7 +229,7 @@ object ChatView {
     val pageParentIdx = groupGraph.idToIdx(pageParentId)
     val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(idx => idx != pageParentIdx && groupGraph.nodes(idx).role != NodeRole.Stage).sortBy(idx => groupGraph.nodeCreated(idx))
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
-    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds).filterNot(state.page.now.parentId.contains)
+    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds)
 
     def renderCommonParents(implicit ctx: Ctx.Owner) = div(
       cls := "chat-common-parents",
