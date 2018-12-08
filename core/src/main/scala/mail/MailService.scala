@@ -12,7 +12,7 @@ trait MailService {
 
 object LoggingMailService extends MailService {
   override def sendMail(message: MailMessage): Task[Unit] = Task {
-    scribe.info(s"logging mail:\n\t $message")
+    scribe.info(s"MailService not activated, just logging the mail:\n\t $message")
     ()
   }
 }
@@ -21,7 +21,7 @@ class SendingMailService(fromAddress: String, client: MailClient) extends MailSe
   override def sendMail(message: MailMessage): Task[Unit] = {
     client.sendMessage(fromAddress, message)
       .doOnFinish {
-        case None => Task(scribe.info(s"Successfully send out email: $message"))
+        case None => Task(scribe.info(s"Successfully sent out email: $message"))
         case Some(err) => Task(scribe.error(s"Failed to send out email: $message", err))
       }
   }
