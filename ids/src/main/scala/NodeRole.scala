@@ -1,6 +1,5 @@
 package wust.ids
 
-import com.sun.org.apache.xerces.internal.xs.datatypes.ObjectList
 import wust.util.macros.SubObjects
 
 sealed trait NodeRole
