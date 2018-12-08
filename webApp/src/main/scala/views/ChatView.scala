@@ -19,7 +19,7 @@ import wust.util.collection._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize, UploadingFile}
+import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import flatland._
@@ -405,7 +405,7 @@ object ChatView {
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
                 Var.set(
-                  state.page -> Page(parentId),
+                  state.viewConfig -> state.viewConfig.now.copy(pageChange = PageChange(Page(node.id))),
                   selectedNodes -> Set.empty[SelectedNode]
                 )
               }, cursor.pointer),
