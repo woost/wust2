@@ -202,6 +202,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val move = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, stageParents)
 //        val beforeEdges = beforeChanges(graph, userId, e, dragging, from, into)
         state.eventProcessor.changes.onNext(move)
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Inbox, into: Kanban.Inbox, false, false) => // needed to allow dragging from inbox into column, not dropping and then dropping it back in inbox
     }
   }
 
