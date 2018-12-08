@@ -1,17 +1,19 @@
 package wust.webApp.views
 
 import cats.effect.IO
+
 import concurrent.duration._
 import emojijs.EmojiConvertor
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
 import org.scalajs.dom.window.{clearTimeout, setTimeout}
 import org.scalajs.dom.{KeyboardEvent, MouseEvent}
+import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
@@ -207,11 +209,11 @@ object Elements {
     }
   }
 
-  final class ValueWithEnter(overrideValue: ValueObservable[String] = ValueObservable.empty) {
+  final class ValueWithEnter(overrideValue: ValueObservable[String] = ValueObservable.empty, clearValue: Boolean = true) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
-    private val clearInput = Handler.unsafe[Unit].mapObservable(_ => "")
+    private val clearInput = if (clearValue) Handler.unsafe[Unit].mapObservable(_ => "") else ProHandler(Observer.empty, Observable.empty)
     private val writeValue = ValueObservable(clearInput, overrideValue).merge
 
     def trigger(): Unit = {
@@ -235,8 +237,9 @@ object Elements {
   }
 
 
-  def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: ValueObservable[String]): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue).emitterBuilder
+  def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
+  def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue)).emitterBuilder
+  def valueWithEnterWithInitial(overrideValue: ValueObservable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue = overrideValue, clearValue = clearValue).emitterBuilder
 
   final class TextAreaAutoResizer {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277

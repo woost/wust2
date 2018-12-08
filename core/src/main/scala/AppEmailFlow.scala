@@ -21,7 +21,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     s"https://core.${serverConfig.host}/${Server.paths.emailVerify}?token=$token"
   }
 
-  private def mailMessage(userId: UserId, email: String): MailMessage = {
+  private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
     val secretLink = generateRandomVerificationLink(userId, email)
     val recipient = MailRecipient(to = email :: Nil)
     val subject = "Woost - Please verify your email address"
@@ -42,8 +42,28 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, body = body)
   }
 
+  private def feedbackMailMessage(userId: UserId, msg: String): MailMessage = {
+    val recipient = MailRecipient(to = "team@woost.space" :: Nil)
+    val subject = s"Woost - Feedback on ${serverConfig.host}"
+    val body =
+      s"""
+        |Feedback:
+        |  UserId: ${userId.toCuidString}
+        |  Instance: ${serverConfig.host}
+        |
+        |$msg
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, body = body)
+  }
+
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
-    val message = mailMessage(userId, email)
+    val message = verificationMailMessage(userId, email)
+    emailSubject.onNext(message)
+  }
+
+  def sendEmailFeedback(userId: UserId, msg: String)(implicit ec: ExecutionContext): Unit = {
+    val message = feedbackMailMessage(userId, msg)
     emailSubject.onNext(message)
   }
 

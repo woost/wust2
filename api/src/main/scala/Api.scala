@@ -40,6 +40,8 @@ trait Api[Result[_]] {
 
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
+
+  def feedback(message: String): Result[Unit]
 }
 
 @PathName("Push")

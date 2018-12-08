@@ -10,15 +10,15 @@ import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids
 import wust.ids._
-import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.{BrowserDetect, Client, Icons}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageChange, ScreenSize, View, NodePermission}
 import wust.webApp.views.Elements._
 import wust.util._
 
-object FeedbackForm {
+import scala.util.{Success, Failure}
 
-  def feedbackNodeId = NodePermission.feedbackNodeId
+object FeedbackForm {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
@@ -32,12 +32,20 @@ object FeedbackForm {
 
     var timeout:Option[Int] = None
     def submit():Unit = {
-      val newNode = Node.MarkdownMessage(feedbackText.now)
-      state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, feedbackNodeId))
-      statusText() = "Thank you!"
-      timeout.foreach(clearTimeout)
-      timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
-            Analytics.sendEvent("feedback", "submit")
+      Client.api.feedback(feedbackText.now).onComplete {
+        case Success(()) =>
+          statusText() = "Thank you!"
+          timeout.foreach(clearTimeout)
+          timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+          clear.onNext(())
+        case Failure(t) =>
+          scribe.warn("Error sending feedback to backend", t)
+          statusText() = "Failed to send feedback, please try again!"
+          timeout.foreach(clearTimeout)
+          timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+      }
+
+      Analytics.sendEvent("feedback", "submit")
     }
 
     val feedbackForm = div(
@@ -49,7 +57,7 @@ object FeedbackForm {
         cls := "ui form",
         textArea(
           cls := "field",
-          valueWithEnter foreach { submit() },
+          valueWithEnter(clearValue = false) foreach { submit() },
           onInput.value --> feedbackText,
           value <-- clear,
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
@@ -58,7 +66,7 @@ object FeedbackForm {
         )
       ),
       div(textAlign.right, statusText),
-      div("Be aware that your feedback will be publicly accessible. For private feedback, send a mail to ", Components.woostTeamEmailLink, ".")
+      div("Or send us an email: ", Components.woostTeamEmailLink, ".")
     )
 
     div(
@@ -83,27 +91,13 @@ object FeedbackForm {
         div(
           marginTop := "20px",
           Styles.flex,
-          justifyContent.spaceBetween,
-          button(
-            Styles.flexStatic,
-            tpe := "button",
-            cls := "ui tiny compact button",
-            "Show all Feedback",
-            (Icons.zoom:VNode)(marginLeft := "5px"),
-            onClick foreach {
-              Var.set(
-                state.viewConfig -> state.viewConfig.now.focusNode(feedbackNodeId),
-                show -> false
-              )
-              Analytics.sendEvent("feedback", "show")
-            }
-          ),
+          justifyContent.flexEnd,
           button(
             Styles.flexStatic,
             tpe := "button",
             cls := "ui tiny compact primary button",
             "Submit",
-            onClick foreach { submit(); clear.onNext(Unit); () },
+            onClick foreach { submit() },
             onClick(false) --> show,
           ),
         ),

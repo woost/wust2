@@ -18,7 +18,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(implicit ec: Scheduler) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow)(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -320,6 +320,10 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader])(impli
     val msgId = state.auth.fold("anonymous")(_.user.id.toCuidString)
     ApiLogger.client.info(s"[$msgId] $message")
     Future.successful(true)
+  }
+
+  override def feedback(message: String): ApiFunction[Unit] = Action.requireUser { (_, user) =>
+    Future.successful(emailFlow.sendEmailFeedback(user.id, msg = message))
   }
 
   // def getComponent(id: Id): Graph = {

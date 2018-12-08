@@ -72,7 +72,7 @@ object Server {
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
 
-    val apiImpl = new ApiImpl(guardDsl, db, fileUploader)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 
