@@ -77,7 +77,7 @@ object PageHeader {
         val level = state.graph().accessLevelOfNode(channel.id)
         val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
         isPublic.ifTrue[VDomModifier](
-          div(freeSolid.faGlobeAmericas, UI.tooltip("bottom center") := "This post is publicly available for everyone with whom you share the URL.")
+          div(freeSolid.faGlobeAmericas, UI.tooltip("bottom center") := "Anyone can join via URL")
         )
       },
       menu(state, channel).apply(marginLeft.auto),
