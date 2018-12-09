@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(5);
+SELECT plan(8);
 
 -- suppress cascade notices from cleanup()
 SET client_min_messages TO WARNING;
@@ -189,6 +189,75 @@ select set_eq(
     $$
 );
 
+
+-- single unpinned but membership of node and user
+select cleanup();
+
+select node('A1', NULL);
+select node('B1', NULL); select parent('B1', 'A1');
+select node('C1', NULL); select parent('C1', 'B1');
+select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
+
+select usernode('A2');
+select member('A2', 'A1', 'readwrite');
+
+
+select set_eq(
+    $$ select * from
+            graph_page( array[]::uuid[], user_to_uuid('A2'))
+    $$,
+    -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
+    $$ values
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, array[]::uuid[], array[]::text[])
+    $$
+);
+
+
+-- single unpinned and restricted membership of node and user
+select cleanup();
+
+select node('A1', NULL);
+select node('B1', NULL); select parent('B1', 'A1');
+select node('C1', NULL); select parent('C1', 'B1');
+select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
+
+select usernode('A2');
+select member('A2', 'A1', 'restricted');
+
+
+select set_eq(
+    $$ select * from
+            graph_page( array[]::uuid[], user_to_uuid('A2'))
+    $$,
+    -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
+    $$ values
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[]::uuid[], array[]::text[])
+    $$
+);
+
+-- transitive (accessible) parents of unpinned memberships
+select cleanup();
+
+select usernode('0A');
+select node('01'); select member('0A', '01');
+    select node('02', 'readwrite'); select parent('01', '02');
+        select node('03', 'readwrite'); select parent('02', '03');
+        select node('04', 'restricted'); select parent('02', '04');
+    select node('05', 'restricted'); select parent('01', '05');
+
+select set_eq(
+    $$ select * from
+            graph_page( array[]::uuid[], user_to_uuid('0A'))
+    $$,
+    -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
+    $$ values
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[]::uuid[], array[]::text[])
+    $$
+);
 
 
 
