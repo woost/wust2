@@ -131,8 +131,10 @@ object AuthView {
                 marginLeft := "auto",
                 "Discard content",
                 onClick.preventDefault foreach {
-                  Client.auth.logout()
-                  state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty, needsGet = false), redirectTo = None)
+                  if(dom.window.confirm("This will make all your created content inaccessible. Do you want to continue?")) {
+                    Client.auth.logout()
+                    state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty, needsGet = false), redirectTo = None)
+                  }
                   ()
                 }
               )
