@@ -227,7 +227,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val deletedParentsDegree = new Array[Int](n)
   private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
-  private val membershipDegree = new Array[Int](n)
+  private val membershipsForNodeDegree = new Array[Int](n)
+  private val membershipsForUserDegree = new Array[Int](n)
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
@@ -250,7 +251,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case _: Edge.Author   =>
             authorshipDegree(targetIdx) += 1
           case _: Edge.Member   =>
-            membershipDegree(targetIdx) += 1
+            membershipsForNodeDegree(targetIdx) += 1
+            membershipsForUserDegree(sourceIdx) += 1
           case e: Edge.Parent   =>
             val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
             val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -304,7 +306,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val futureDeletedParentsIdxBuilder = NestedArrayInt.builder(futureDeletedParentsDegree)
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
-  private val membershipEdgeIdxBuilder = NestedArrayInt.builder(membershipDegree)
+  private val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
+  private val membershipEdgeForUserIdxBuilder = NestedArrayInt.builder(membershipsForUserDegree)
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
@@ -321,7 +324,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         authorshipEdgeIdxBuilder.add(targetIdx, edgeIdx)
         authorIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Member   =>
-        membershipEdgeIdxBuilder.add(targetIdx, edgeIdx)
+        membershipEdgeForNodeIdxBuilder.add(targetIdx, edgeIdx)
+        membershipEdgeForUserIdxBuilder.add(sourceIdx, edgeIdx)
       case e: Edge.Parent   =>
         val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
         val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -375,7 +379,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val deletedParentsIdx: NestedArrayInt = deletedParentsIdxBuilder.result()
   val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
-  val membershipEdgeIdx: NestedArrayInt = membershipEdgeIdxBuilder.result()
+  val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
+  val membershipEdgeForUserIdx: NestedArrayInt = membershipEdgeForUserIdxBuilder.result()
   val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
@@ -490,7 +495,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = authorsInByIndex(idToIdx(nodeId))
 
   val membersByIndex: Int => Seq[Node.User] = Memo.arrayMemo[Seq[Node.User]](n).apply { idx =>
-    membershipEdgeIdx(idx).map(edgeIdx => nodesById(edges(edgeIdx).asInstanceOf[Edge.Member].userId).asInstanceOf[Node.User])
+    membershipEdgeForNodeIdx(idx).map(edgeIdx => nodesById(edges(edgeIdx).asInstanceOf[Edge.Member].userId).asInstanceOf[Node.User])
   }
   @inline def members(nodeId: NodeId): Seq[Node.User] = membersByIndex(idToIdx(nodeId))
 
@@ -752,7 +757,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       if(visited(nodeId)) return false // prevent inheritance cycles
 
       // is there a membership?
-      val levelFromMembership = membershipEdgeIdx(idToIdx(nodeId)).map(edges).collectFirst {
+      val levelFromMembership = membershipEdgeForNodeIdx(idToIdx(nodeId)).map(edges).collectFirst {
         case Edge.Member(`userId`, EdgeData.Member(level), _) => level
       }
       levelFromMembership match {

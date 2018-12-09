@@ -103,7 +103,7 @@ object GlobalStateFactory {
           if pageIdx != -1
           userIdx = graph().idToIdx(user().id)
           if userIdx != -1
-        } yield graph().membershipEdgeIdx.exists(pageIdx)(edgeIdx => graph().edgesIdx.a(edgeIdx) == userIdx)
+        } yield graph().membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph().edgesIdx.a(edgeIdx) == userIdx)
 
         userIsMemberOfPage.foreach { userIsMemberOfPage =>
           if(!userIsMemberOfPage) {

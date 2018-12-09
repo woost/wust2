@@ -18,7 +18,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.views.Elements._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 
 object Sidebar {
 
@@ -132,6 +132,20 @@ object Sidebar {
       )
     }
 
+    val orphans:Rx[Array[Node]] = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      val userIdx = graph.idToIdx(user.id)
+      val nodes = mutable.ArrayBuilder.make[Node]()
+      nodes.sizeHint(graph.membershipEdgeForUserIdx.sliceLength(userIdx))
+      graph.membershipEdgeForUserIdx.foreachElement(userIdx){edgeIdx =>
+        val node = graph.nodes(graph.edgesIdx.b(edgeIdx))
+        if(node.id != user.id && !graph.anyAncestorIsPinned(node.id :: Nil, user.id))
+          nodes += node
+      }
+      nodes.result()
+    }
+
     div(
       cls := "channels",
       Rx {
@@ -144,7 +158,15 @@ object Sidebar {
           channelLine(user.toNode, page.parentId, pageStyle),
           channelForest.map { channelTree =>
             channelList(channelTree, page.parentId, pageStyle)
-          }
+          },
+        )
+      },
+      Rx{
+        val page = state.page()
+        val pageStyle = state.pageStyle()
+        VDomModifier(
+          orphans().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
+          orphans().map(node => channelLine(node, page.parentId, pageStyle))
         )
       }
     )

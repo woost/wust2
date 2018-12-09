@@ -144,4 +144,6 @@ object UI {
       displayTime = if (autoclose) 10000 else 0
     })
   }
+
+  def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 }

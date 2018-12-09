@@ -422,7 +422,7 @@ object PageHeader {
           val graph = state.graph()
           val nodeIdx = graph.idToIdx(node.id)
           if(nodeIdx != -1) {
-            graph.membershipEdgeIdx(nodeIdx).map { membershipIdx =>
+            graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
               val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
               val user = graph.nodesById(membership.userId).asInstanceOf[User]
               userLine(user).apply(
