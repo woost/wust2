@@ -173,14 +173,14 @@ object ThreadView {
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(_.map(bigAuthorAvatar))),
+      topLevelAndLargeScreen.ifTrue[VDomModifier](author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage(state, user))))),
 
       div(
         cls := "chat-group-inner-frame",
 
         dragTargetOnly(DragItem.Chat.Message(firstNodeId)),
 
-        author.map(author => chatMessageHeader(author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
+        author.map(author => chatMessageHeader(state, author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
           val nodeId = groupGraph.nodeIds(nodeIdx)
 

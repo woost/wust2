@@ -16,7 +16,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.{BrowserDetect, Client, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -25,6 +25,7 @@ import wust.webApp.views.Elements._
 import flatland._
 import monix.eval.Task
 import monix.execution.Ack
+import org.scalajs.dom
 import wust.api.ApiEvent
 import wust.webApp
 import wust.webApp.views.UI.ToastLevel.Success
@@ -248,11 +249,11 @@ object ChatView {
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(bigAuthorAvatar))),
+      state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage(state, user))))),
       div(
         cls := "chat-group-inner-frame",
-        inReplyGroup.ifFalse[VDomModifier](author.map(author => chatMessageHeader(author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
-          state.smallScreen.ifTrue[VDomModifier](paddingLeft := "0")
+        inReplyGroup.ifFalse[VDomModifier](author.map(author => chatMessageHeader(state, author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
+          state.smallScreen.ifTrue[VDomModifier](VDomModifier(paddingLeft := "0")),
         ))),
 
         div(
@@ -318,7 +319,7 @@ object ChatView {
       val graph = state.graph()
       val idx = graph.idToIdx(nodeId)
       val author: Option[Node.User] = graph.nodeCreator(idx)
-      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
+      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
       else VDomModifier.empty
     } else VDomModifier.empty
 
@@ -382,7 +383,7 @@ object ChatView {
         parent().map(node =>
           div(
             keyed(node.id),
-            chatMessageHeader(author, author.map(smallAuthorAvatar))(
+            chatMessageHeader(state, author, author.map(smallAuthorAvatar))(
               padding := "2px",
               opacity := 0.7,
             ),

@@ -381,18 +381,18 @@ object SharedViewElements {
     }
   }
 
-  def chatMessageHeader(author: Option[Node.User], avatar: VDomModifier) = div(
+  def chatMessageHeader(state:GlobalState, author: Option[Node.User], avatar: VDomModifier) = div(
     cls := "chatmsg-header",
     Styles.flex,
     avatar,
-    author.map(authorName),
+    author.map(author => VDomModifier(authorName(author), onClickDirectMessage(state, author))),
   )
 
-  def chatMessageHeader(author: Option[Node.User], creationEpochMillis: EpochMilli, avatar: VDomModifier) = div(
+  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, avatar: VDomModifier) = div(
     cls := "chatmsg-header",
     Styles.flex,
     avatar,
-    author.map(authorName),
+    author.map(author => VDomModifier(authorName(author), onClickDirectMessage(state, author))),
     creationDate(creationEpochMillis)
   )
 

@@ -20,11 +20,11 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.{BrowserDetect, Ownable}
+import wust.webApp.{BrowserDetect, Client, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, UploadingFile}
+import wust.webApp.state.{GlobalState, UploadingFile, View}
 import wust.webApp.views.Elements._
 import wust.webApp.views.UI.ModalConfig
 
@@ -157,6 +157,24 @@ object Components {
         )
       ),
       p("Loading", dsl.color := "rgba(0,0,0,0.4)", textAlign.center)
+    )
+  }
+
+  def onClickDirectMessage(state:GlobalState, user:Node.User): VDomModifier = {
+    (state.user.now.id != user.id).ifTrue[VDomModifier](
+      VDomModifier(
+        onClick.foreach{
+          // create a new channel, add user as member
+          val nodeId = NodeId.fresh
+          state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = s"${displayUserName(state.user.now.toNode.data)}, ${displayUserName(user.data)}"))
+          state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, View.Chat)
+          //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
+          dom.window.setTimeout({() => Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)}, 3000)
+          ()
+        },
+        cursor.pointer,
+        UI.popup := s"Start Conversation with ${displayUserName(user.data)}"
+      )
     )
   }
 
