@@ -45,6 +45,11 @@ function postgres_core_psqlbatch() {
     # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
     PGOPTIONS='--client-min-messages=warning' postgres_core_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 --single-transaction "$@"
 }
+function postgres_core_psqlbatch_without_transaction() {
+    # Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
+    # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
+    PGOPTIONS='--client-min-messages=warning' postgres_core_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 "$@"
+}
 function postgres_slack_psqlbatch() {
     # Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
     # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
@@ -293,8 +298,8 @@ function self() {
         docker_compose core dev up -d --no-recreate
         docker_compose webApp dev up -d
         docker_compose core dev run db-migration
-        postgres_core_psqlbatch -U $POSTGRES_USER --command="DROP DATABASE IF EXISTS wust_template"
-        postgres_core_psqlbatch -U $POSTGRES_USER --command="CREATE DATABASE wust_template TEMPLATE wust"
+        postgres_core_psqlbatch_without_transaction -U $POSTGRES_USER --command="DROP DATABASE IF EXISTS wust_template"
+        postgres_core_psqlbatch_without_transaction -U $POSTGRES_USER --command="CREATE DATABASE wust_template TEMPLATE wust"
         # sbt_with_args coverage it:test coverageReport
         sbt_with_args it:test
         docker_compose core dev down -v
