@@ -250,6 +250,7 @@ object ThreadView {
         ),
         div(
           cls := "chat-thread-messages",
+          width := "100%",
           Rx {
             renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
           },

@@ -196,8 +196,7 @@ object SharedViewElements {
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
 
-        alignItems.center,
-      justifyContent.stretch,
+      alignItems.center,
       fileUploadHandler.map(uploadField(state, _)),
       div(
         margin := "3px",
