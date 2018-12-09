@@ -15,12 +15,13 @@ import wust.webApp.views.Components._
 object BreadCrumbs {
 
   /** options */
-  private val showOwn = false
+  private val showOwn = true
 
   private def intersperse[T](list: List[T], co: T): List[T] = list match {
     case one :: two :: rest => one :: co :: intersperse(two :: rest, co)
-    case one :: Nil         => one :: co :: Nil
-    case Nil                => Nil
+//    case one :: Nil         => one :: co :: Nil
+//    case Nil                => Nil
+    case short => short
   }
 
   private def cycleIndicator(rotate : Boolean) = {

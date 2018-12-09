@@ -42,7 +42,7 @@ object MainView {
           overflow.auto,
           {
             val breadCrumbs = Rx {
-              BreadCrumbs(state)(Styles.flexStatic)
+              state.pageHasParents().ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic))
             }
             val viewIsContent = Rx {
               state.view().isContent
