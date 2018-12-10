@@ -66,6 +66,7 @@ object KanbanView {
             inboxTasks
           }
           val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage))
+          val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
 
             VDomModifier(
               renderInboxColumn(state, pageParentId, pageParentId, inboxTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
@@ -76,7 +77,7 @@ object KanbanView {
 
                 Styles.flex,
                 alignItems.flexStart,
-                topLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
+                sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
                 registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
               ),
@@ -103,7 +104,8 @@ object KanbanView {
       case Tree.Parent(node, children) if node.role == NodeRole.Stage =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
-            val sortedChildren = TaskOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
+//            val sortedChildren = TaskOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
+            val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, children, (t: Tree) => t.node.id)
             renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
