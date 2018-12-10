@@ -15,5 +15,7 @@ object JQuery extends js.Object {
 }
 
 @js.native
-trait JQuerySelection extends js.Object with JQuerySelectionWithFomanticUI
+trait JQuerySelection extends js.Object with JQuerySelectionWithFomanticUI {
+  def text():String = js.native
+}
 

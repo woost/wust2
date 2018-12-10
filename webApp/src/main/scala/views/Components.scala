@@ -505,7 +505,7 @@ object Components {
 
     def save(contentEditable:HTMLElement): Unit = {
       if(editMode.now) {
-        val text = contentEditable.textContent
+        val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
         if (text.nonEmpty) {
           val newData = node.data.updateStr(text)
           if (newData != node.data) {

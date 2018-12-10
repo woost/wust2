@@ -589,11 +589,6 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
-  ".nodecard-content > p," +
-  ".nodecard-content > p > div > div > p" - ( 
-    margin(0 px) // avoid default p margin. p usually comes from markdown rendering
-  )
-
   ".nodecard.node-deleted" - (
     fontSize.smaller,
     opacity(0.5),
