@@ -81,8 +81,10 @@ class JWT(secret: String, tokenLifetime: Duration) {
           expires <- claim.expiration
           user <- parser.decode[CustomClaim](claim.content)
             .right.toOption.collect { case CustomClaim.UserAuth(user) => user }
-          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
-          if user.id == subject
+            .orElse(parser.decode[AuthUser.Persisted](claim.content).right.toOption) // be backwards-compatible. TODO: Remove when all clients have updated
+          //TODO: check subject or do we even need to? just makes sense. but to be backwards-compatible, we cannot do this.
+//          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
+//          if user.id == subject
         } yield Authentication.Verified(user, expires, token)
       case _ => None
     }
