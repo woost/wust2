@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import googleAnalytics.Analytics
 import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -170,7 +171,9 @@ object AuthView {
           case AuthResult.BadPassword => Some("Wrong Password")
           case AuthResult.BadUser     => Some("Username does not exist")
           case AuthResult.BadEmail    => None
-          case AuthResult.Success     => None
+          case AuthResult.Success     =>
+            Analytics.sendEvent("auth", "login")
+            None
         },
       alternativeHeader = "New to Woost?",
       alternativeView = View.Signup,
@@ -188,7 +191,9 @@ object AuthView {
           case AuthResult.BadPassword => Some("Insufficient password")
           case AuthResult.BadUser     => Some("Username already taken")
           case AuthResult.BadEmail    => Some("Email address already taken")
-          case AuthResult.Success     => None
+          case AuthResult.Success     => 
+            Analytics.sendEvent("auth", "signup")
+            None
         },
       alternativeHeader = "Already have an account?",
       alternativeView = View.Login,
