@@ -5,7 +5,7 @@ import wust.graph.{Graph, Node}
 
 object Search {
 
-  def weightedLevenshtein(d: Double, i: Double, s: Double)(needle: String, haystack: String): Double = {
+  private def weightedLevenshtein(d: Double, i: Double, s: Double)(needle: String, haystack: String): Double = {
     val n: Array[Char] = needle.toCharArray
     val h: Array[Char] = haystack.toCharArray
 
@@ -29,7 +29,7 @@ object Search {
     1 - dist/h.length
   }
 
-  def ratcliffObershelp(needle: String, haystack: String): Double = {
+  private def ratcliffObershelp(needle: String, haystack: String): Double = {
 
     def longestCommonSubsequence(first: Array[Char], second: Array[Char]) = {
       val m = Array.ofDim[Int](first.length + 1, second.length + 1)
@@ -83,7 +83,7 @@ object Search {
       val sim = if (needle.length == 0 || nodeStr.length == 0) 0.0
                 else if (needle.trim == nodeStr.trim) 1.0
                 else if (needle.trim.toLowerCase == nodeStr.trim.toLowerCase) 0.99999
-                else f(needle, nodeStr)
+                else f(needle.toLowerCase, nodeStr.toLowerCase)
 
       if(sim >= boundary) Some(node -> sim)
       else None
