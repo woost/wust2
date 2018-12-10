@@ -233,7 +233,10 @@ object PageHeader {
         s"Found ${searchRes.length} result(s) in ${if(globalSearchScope) "all channels" else "the current channel"} ",
         padding := "5px 0",
         fontWeight.bold,
+        height := s"${dom.window.innerHeight/2}px",
         div(
+          height := "60%",
+          overflow.auto,
           searchRes,
         ),
         button(
