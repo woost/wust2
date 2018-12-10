@@ -331,6 +331,7 @@ object PageHeader {
     val removeMember = PublishSubject[Edge.Member]
     val userNameInputProcess = PublishSubject[String]
     val modalCloseTrigger = PublishSubject[Unit]
+    val errorMessageHandler = PublishSubject[Option[(String, VDomModifier)]]
 
     def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserId(name)
@@ -345,16 +346,16 @@ object PageHeader {
       }.onComplete {
         case Success(b) =>
           if(!b) {
-            //TODO: display error in modal
-            UI.toast(title = "Add Member", msg = "Could not add member: Member does not exist", level = UI.ToastLevel.Error)
-            scribe.error("Could not add member: Member does not exist")
+            errorMessageHandler.onNext(Some("Add Member" -> "Member does not exist"))
+            scribe.info("Could not add member: Member does not exist")
           } else {
-            UI.toast(title = "Add Member", msg = "Successfully added member to the channel", level = UI.ToastLevel.Success)
+            errorMessageHandler.onNext(None)
             scribe.info("Added member to channel")
           }
         case Failure(ex) =>
-          UI.toast(title = "Add Member", msg = "Could not add member to channel", level = UI.ToastLevel.Error)
-          scribe.error("Could not add member to channel", ex)
+          UI.toast(title = "Adding Member", msg = "", level = UI.ToastLevel.Error)
+          errorMessageHandler.onNext(Some("Add Member" -> "Unexpected error"))
+          scribe.warn("Could not add member to channel", ex)
       }
     }
 
@@ -369,7 +370,7 @@ object PageHeader {
       val change:GraphChanges = GraphChanges.from(delEdges = Set(membership)) merge GraphChanges.disconnect(Edge.Pinned)(membership.userId, membership.nodeId)
       state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, change))
       
-      Client.api.removeMember(membership.nodeId,membership.userId,membership.level)
+      Client.api.removeMember(membership.nodeId,membership.userId,membership.level) //TODO: handle error...
     }
 
     def header(implicit ctx: Ctx.Owner) = VDomModifier(
@@ -420,6 +421,14 @@ object PageHeader {
             onClick(userNameInputProcess) --> addMember
           ),
         ),
+        errorMessageHandler.map {
+          case Some((title, errorMessage)) => div(
+            cls := "ui negative message",
+            div(cls := "header", s"$title failed"),
+            p(errorMessage)
+          )
+          case None => VDomModifier.empty
+        },
       ),
       div(
         marginLeft := "10px",
