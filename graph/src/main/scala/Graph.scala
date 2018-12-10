@@ -522,6 +522,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
+
+  def getRoleParents(nodeId: NodeId, nodeRole: NodeRole): Iterable[NodeId] =
+    notDeletedParentsIdx(idToIdx(nodeId)).collect{case idx if nodes(idx).role == nodeRole => nodeIds(idx)}
+
   def isDeletedNow(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
     val nodeIdx = idToIdx(nodeId)
     if(nodeIdx == -1) return false
