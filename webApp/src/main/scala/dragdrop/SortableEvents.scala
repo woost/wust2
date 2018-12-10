@@ -198,9 +198,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (e, dragging: DragItem.Kanban.Column, from: Kanban.AreaForColumns, into: Kanban.AreaForColumns, false, false) =>
 //        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
-        val fullChange = if(sortChanges.nonEmpty && from.parentId != into.parentId) {
-          val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentId)
-          unstageChanges  merge sortChanges
+        val fullChange = if(sortChanges.nonEmpty) {
+          val unstageChanges: GraphChanges = if(from.parentId != into.parentId) GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.parentId) else GraphChanges.empty
+          unstageChanges merge sortChanges
         } else GraphChanges.empty
 
         state.eventProcessor.changes.onNext(fullChange)
