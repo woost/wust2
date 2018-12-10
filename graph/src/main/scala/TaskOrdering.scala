@@ -92,6 +92,13 @@ object TaskOrdering {
 //    ???
 //  }
 
+  @inline private def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
+    index >= 0 && (
+      (containerChanged && index <= containerSize) ||
+        (!containerChanged && index < containerSize)
+      )
+  }
+
   def constructGraphChangesByContainer(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId, fromItems: Seq[NodeId], intoItems: Seq[NodeId]): GraphChanges = {
 
     // Reconstruct order of nodes in the `from` container
@@ -107,17 +114,11 @@ object TaskOrdering {
     // Reconstruct order of nodes in the `into` container
     val newOrderedNodes: Seq[NodeId] = intoItems
 
-    if(newOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${graph.nodesById(into).str}")
+    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Parent)(nodeId, into)
 
     // Get corresponding nodes that are before and after the dragged node
     val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
 
-    @inline def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
-      index >= 0 && (
-        (containerChanged && index <= containerSize) ||
-          (!containerChanged && index < containerSize)
-        )
-    }
     // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
     val beforeNodeIndex = newDomPosition - 1 + indexOffset
     val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
@@ -181,17 +182,11 @@ object TaskOrdering {
     val newOrderedNodes: Seq[NodeId] = if(containerChanged) TaskOrdering.constructOrdering(graph, into)
                                        else previousOrderedNodes
 
-    if(newOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${graph.nodesById(into).str}")
+    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Parent)(nodeId, into)
 
     // Get corresponding nodes that are before and after the dragged node
     val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
 
-    @inline def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
-      index > 0 && (
-        (containerChanged && index <= containerSize) ||
-        (!containerChanged && index < containerSize)
-      )
-    }
     // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
     val beforeNodeIndex = newDomPosition - 1 + indexOffset
     val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
