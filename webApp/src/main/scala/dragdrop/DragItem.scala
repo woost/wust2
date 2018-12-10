@@ -55,7 +55,7 @@ object DragContainer extends wust.ids.serialize.Circe {
     sealed trait AreaForCards extends DragContainer
     case class Column(nodeId:NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId }
     case class ColumnArea(parentId:NodeId) extends AreaForColumns
-    case class Inbox(parentId:NodeId) extends AreaForCards
+    case class Inbox(parentId:NodeId, items: Seq[NodeId]) extends AreaForCards
   }
 
   case class AvatarHolder(nodeId: NodeId) extends DragContainer { @inline def parentId = nodeId }

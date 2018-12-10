@@ -82,6 +82,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
   def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer, into: DragContainer): GraphChanges = {
 
+    import DragContainer._
     scribe.info("Computing sorting change")
     //TODO: Is a SortEvent triggered when a new card is created?
     parseDomPositions(e) match {
@@ -90,10 +91,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition))
                    TaskOrdering.abortSorting("item dropped on same place (no movement)")
+                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
+                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
                  else
                    TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
 
-        scribe.info("SUCCESS: Calculated new sorting graph change!")
+        scribe.info("Calculated new sorting graph change!")
         GraphChanges.log(gc)
         gc
       case _ =>
@@ -227,7 +230,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         state.eventProcessor.changes.onNext(fullChange)
 
-      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Inbox, into: Kanban.Inbox, false, false) => // needed to allow dragging from inbox into column, not dropping and then dropping it back in inbox
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Inbox, into: Kanban.Inbox, false, false) => // needed to allow dragging from inbox into column, not dropping and then dropping it back in inbox or sorting within Inbox
+        val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
+        state.eventProcessor.changes.onNext(sortChanges)
     }
   }
 

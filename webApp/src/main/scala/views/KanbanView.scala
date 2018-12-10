@@ -130,6 +130,7 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VNode = {
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(parentId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
+    val sortedChildren = TaskOrdering.constructOrderingOf[NodeId](state.graph.now, parentId, children, identity)
 
     div(
       // sortable: draggable needs to be direct child of container
@@ -140,8 +141,8 @@ object KanbanView {
       p(cls := "kanban-uncategorized-title", "Inbox"),
       div(
         cls := "kanbancolumnchildren",
-        registerSortableContainer(state, DragContainer.Kanban.Inbox(parentId)),
-        children.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, selectedNodeIds)),
+        registerSortableContainer(state, DragContainer.Kanban.Inbox(parentId, sortedChildren)),
+        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, selectedNodeIds)),
         scrollHandler.modifier,
       ),
       addNodeField(state, parentId, pageParentId, path = Nil, activeReplyFields, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
