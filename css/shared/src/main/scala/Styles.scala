@@ -849,11 +849,16 @@ object CommonStyles extends StyleSheet.Standalone {
     justifyContent.spaceBetween,
   )
 
+  ".kanbancolumnfooter" - (
+    Styles.flexStatic
+  )
+
   ".kanbancolumnchildren" - (
     minHeight(50 px), // enough vertical area to drag cards in
     minWidth(kanbanColumnWidth), // enough horizontal area to not flicker width when adding cards
     cursor.default,
     overflowY.auto,
+    overflowX.hidden, // needed for firefox
     paddingBottom(5 px) // prevents column shadow from being cut off by scrolling
   )
 
@@ -862,16 +867,16 @@ object CommonStyles extends StyleSheet.Standalone {
   // the column, instead of sorting the top-level-columns.
   // therefore, instead setting a padding on the column, we set a margin/padding on the inner elements.
   ".kanbancolumn > .kanbancolumnheader" - (
-    padding(kanbanColumnPadding, kanbanColumnPadding, 0 px, kanbanColumnPadding),
+    padding(kanbanColumnPadding),
   )
 
   ".kanbancolumnchildren > .nodecard," +
   ".kanbancolumnchildren > .kanbantoplevelcolumn," + // when dragging top-level column into column
   ".kanbancolumnchildren > .kanbancolumn" - (
-    marginTop(kanbanRowSpacing),
+    marginTop(0 px),
     marginRight(kanbanColumnPadding),
     marginLeft(kanbanColumnPadding),
-    marginBottom(0 px)
+    marginBottom(kanbanColumnPadding)
   )
   ".kanbancolumn .kanbanaddnodefield" - (
     padding(kanbanRowSpacing, kanbanColumnPadding, kanbanColumnPadding, kanbanColumnPadding),
