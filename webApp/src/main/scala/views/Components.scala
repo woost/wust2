@@ -169,7 +169,11 @@ object Components {
           state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = s"${displayUserName(state.user.now.toNode.data)}, ${displayUserName(user.data)}"))
           state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, View.Chat)
           //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
-          dom.window.setTimeout({() => Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)}, 3000)
+          dom.window.setTimeout({() =>
+            Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)
+            val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(user.id, nodeId)))
+            state.eventProcessor.changes.onNext(change)
+          }, 3000)
           ()
         },
         cursor.pointer,

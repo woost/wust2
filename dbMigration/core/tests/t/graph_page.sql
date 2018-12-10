@@ -49,6 +49,13 @@ begin
 end
 $$ language plpgsql;
 
+CREATE or replace FUNCTION invite(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Invite'), node_to_uuid(nodeid))
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
 
 CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
 begin
@@ -190,7 +197,7 @@ select set_eq(
 );
 
 
--- single unpinned but membership of node and user
+-- single unpinned but membership and invite of node and user
 select cleanup();
 
 select node('A1', NULL);
@@ -200,6 +207,7 @@ select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
 
 select usernode('A2');
 select member('A2', 'A1', 'readwrite');
+select invite('A2', 'A1');
 
 
 select set_eq(
@@ -208,7 +216,7 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('A1'), node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
         (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, array[]::uuid[], array[]::text[])
     $$
 );
@@ -236,11 +244,11 @@ select set_eq(
     $$
 );
 
--- transitive (accessible) parents of unpinned memberships
+-- transitive (accessible) parents of invitations
 select cleanup();
 
 select usernode('0A');
-select node('01'); select member('0A', '01');
+select node('01'); select member('0A', '01'); select invite('0A', '01');
     select node('02', 'readwrite'); select parent('01', '02');
         select node('03', 'readwrite'); select parent('02', '03');
         select node('04', 'restricted'); select parent('02', '04');
@@ -252,7 +260,7 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01'), node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
         (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
         (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
         (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[]::uuid[], array[]::text[])

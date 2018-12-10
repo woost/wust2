@@ -228,9 +228,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
   private val membershipsForNodeDegree = new Array[Int](n)
-  private val membershipsForUserDegree = new Array[Int](n)
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
+  private val inviteNodeDegree = new Array[Int](n)
   private val expandedNodesDegree = new Array[Int](n)
   private val assignedNodesDegree = new Array[Int](n)
   private val assignedUsersDegree = new Array[Int](n)
@@ -252,7 +252,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             authorshipDegree(targetIdx) += 1
           case _: Edge.Member   =>
             membershipsForNodeDegree(targetIdx) += 1
-            membershipsForUserDegree(sourceIdx) += 1
           case e: Edge.Parent   =>
             val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
             val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -288,6 +287,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             notifyByUserDegree(targetIdx) += 1
           case _: Edge.Pinned   =>
             pinnedNodeDegree(sourceIdx) += 1
+          case _: Edge.Invite   =>
+            inviteNodeDegree(sourceIdx) += 1
           case _                =>
         }
       }
@@ -307,9 +308,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
-  private val membershipEdgeForUserIdxBuilder = NestedArrayInt.builder(membershipsForUserDegree)
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
+  private val inviteNodeIdxBuilder = NestedArrayInt.builder(inviteNodeDegree)
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
   private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
   private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
@@ -325,7 +326,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         authorIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Member   =>
         membershipEdgeForNodeIdxBuilder.add(targetIdx, edgeIdx)
-        membershipEdgeForUserIdxBuilder.add(sourceIdx, edgeIdx)
       case e: Edge.Parent   =>
         val childIsMessage = nodes(sourceIdx).role == NodeRole.Message
         val childIsTask = nodes(sourceIdx).role == NodeRole.Task
@@ -364,6 +364,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.Pinned   =>
         pinnedNodeIdxBuilder.add(sourceIdx, targetIdx)
+      case _: Edge.Invite   =>
+        inviteNodeIdxBuilder.add(sourceIdx, targetIdx)
       case _                =>
     }
   }
@@ -380,10 +382,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
   val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
-  val membershipEdgeForUserIdx: NestedArrayInt = membershipEdgeForUserIdxBuilder.result()
   val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
+  val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
   val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
   val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result()
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result()

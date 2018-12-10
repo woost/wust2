@@ -48,10 +48,12 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     val (changes, allWhitelistedAddEdges, allWhitelistedDelEdges) = allChanges.map { gc =>
       val (whitelistedAddEdges, remainingAddEdges) = gc.addEdges.partition {
         case _: Edge.Assigned => true
+        case _: Edge.Invite => true
         case _                => false
       }
       val (whitelistedDelEdges, remainingDelEdges) = gc.delEdges.partition {
         case _: Edge.Assigned => true
+        case _: Edge.Invite => true
         case _                => false
       }
 

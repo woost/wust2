@@ -61,6 +61,11 @@ object Edge {
     def targetId = nodeId
     def data = EdgeData.Pinned
   }
+  case class Invite(userId: UserId, nodeId: NodeId) extends Edge {
+    def sourceId = userId
+    def targetId = nodeId
+    def data = EdgeData.Invite
+  }
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
@@ -71,5 +76,6 @@ object Edge {
     case EdgeData.Expanded            => new Edge.Expanded(UserId(sourceId), targetId)
     case EdgeData.Assigned            => new Edge.Assigned(UserId(sourceId), targetId)
     case EdgeData.Pinned              => new Edge.Pinned(UserId(sourceId), targetId)
+    case EdgeData.Invite              => new Edge.Invite(UserId(sourceId), targetId)
   }
 }

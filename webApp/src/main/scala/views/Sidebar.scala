@@ -132,18 +132,11 @@ object Sidebar {
       )
     }
 
-    val orphans:Rx[Array[Node]] = Rx {
+    val invites:Rx[Array[Node]] = Rx {
       val graph = state.graph()
       val user = state.user()
       val userIdx = graph.idToIdx(user.id)
-      val nodes = mutable.ArrayBuilder.make[Node]()
-      nodes.sizeHint(graph.membershipEdgeForUserIdx.sliceLength(userIdx))
-      graph.membershipEdgeForUserIdx.foreachElement(userIdx){edgeIdx =>
-        val node = graph.nodes(graph.edgesIdx.b(edgeIdx))
-        if(node.id != user.id && !graph.anyAncestorIsPinned(node.id :: Nil, user.id))
-          nodes += node
-      }
-      nodes.result()
+      graph.inviteNodeIdx(userIdx).map(graph.nodes)(breakOut)
     }
 
     div(
@@ -165,8 +158,8 @@ object Sidebar {
         val page = state.page()
         val pageStyle = state.pageStyle()
         VDomModifier(
-          orphans().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
-          orphans().map(node => channelLine(node, page.parentId, pageStyle))
+          invites().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
+          invites().map(node => channelLine(node, page.parentId, pageStyle))
         )
       }
     )

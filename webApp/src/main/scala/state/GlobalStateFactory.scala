@@ -124,6 +124,7 @@ object GlobalStateFactory {
             val changes =
               GraphChanges.connect(Edge.Notify)(parentId, user().id)
               .merge(GraphChanges.connect(Edge.Pinned)(user().id, parentId))
+              .merge(GraphChanges.disconnect(Edge.Invite)(user().id, parentId))
             eventProcessor.changes.onNext(changes)
           }
         }

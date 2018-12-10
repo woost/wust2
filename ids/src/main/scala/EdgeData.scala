@@ -39,6 +39,8 @@ object EdgeData {
 
   case object Pinned extends Named with EdgeData
 
+  case object Invite extends Named with EdgeData
+
   case object Expanded extends Named with EdgeData
 
   case object Assigned extends Named with EdgeData
