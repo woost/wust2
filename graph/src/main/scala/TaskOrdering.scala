@@ -113,10 +113,22 @@ object TaskOrdering {
     // Get corresponding nodes that are before and after the dragged node
     val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
 
+    @inline def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
+      index > 0 && (
+        (containerChanged && index <= containerSize) ||
+        (!containerChanged && index < containerSize)
+      )
+    }
     // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
-    val beforeNode = Try(newOrderedNodes(newDomPosition-1 + indexOffset)).toOption
-    val afterNode = Try(newOrderedNodes(newDomPosition + indexOffset)).toOption
+    val beforeNodeIndex = newDomPosition - 1 + indexOffset
+    val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
+                       Try(newOrderedNodes(beforeNodeIndex)).toOption
+                     else None
 
+    val afterNodeIndex = newDomPosition + indexOffset
+    val afterNode = if(checkBounds(newOrderedNodes.size, afterNodeIndex, containerChanged))
+                       Try(newOrderedNodes(afterNodeIndex)).toOption
+                     else None
 
 //    if(beforeNode.isDefined && afterNode.isDefined)
 //      TaskOrdering.getValueBetween()
