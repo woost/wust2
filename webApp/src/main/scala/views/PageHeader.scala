@@ -346,15 +346,14 @@ object PageHeader {
       }.onComplete {
         case Success(b) =>
           if(!b) {
-            errorMessageHandler.onNext(Some("Add Member" -> "Member does not exist"))
+            errorMessageHandler.onNext(Some("Adding Member" -> "Member does not exist"))
             scribe.info("Could not add member: Member does not exist")
           } else {
             errorMessageHandler.onNext(None)
             scribe.info("Added member to channel")
           }
         case Failure(ex) =>
-          UI.toast(title = "Adding Member", msg = "", level = UI.ToastLevel.Error)
-          errorMessageHandler.onNext(Some("Add Member" -> "Unexpected error"))
+          errorMessageHandler.onNext(Some("Adding Member" -> "Unexpected error"))
           scribe.warn("Could not add member to channel", ex)
       }
     }
