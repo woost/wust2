@@ -446,9 +446,6 @@ object PageHeader {
     )
 
     div(
-      emitter(addMember).foreach(handleAddMember(_)),
-      emitter(removeMember).foreach(handleRemoveMember(_)),
-
       cls := "item",
       i(
         freeSolid.faUsers,
@@ -457,9 +454,15 @@ object PageHeader {
         ),
       span(cls := "text", "Manage Members", cursor.pointer),
 
-      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger, modalModifier =
-        cls := "mini form",
-        contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
+        modalModifier = VDomModifier(
+          cls := "mini form",
+          emitter(addMember).foreach(handleAddMember(_)),
+          emitter(removeMember).foreach(handleRemoveMember(_))
+        ),
+        contentModifier = VDomModifier(
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
+        )
       ))) --> state.modalConfig
     )
   }
