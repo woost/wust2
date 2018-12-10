@@ -48,17 +48,17 @@ object DragItem extends wust.ids.serialize.Circe {
   implicit val targetEncoder: Encoder[DragTarget] = deriveEncoder[DragTarget]
 }
 
-sealed trait DragContainer
+sealed trait DragContainer { def parentId: NodeId }
 object DragContainer extends wust.ids.serialize.Circe {
   object Kanban {
-    sealed trait AreaForColumns extends DragContainer { def parentId: NodeId }
-    sealed trait AreaForCards extends DragContainer { def parentId: NodeId }
+    sealed trait AreaForColumns extends DragContainer
+    sealed trait AreaForCards extends DragContainer
     case class Column(nodeId:NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId }
     case class ColumnArea(parentId:NodeId) extends AreaForColumns
     case class Inbox(parentId:NodeId) extends AreaForCards
   }
 
-  case class AvatarHolder(nodeId: NodeId) extends DragContainer
+  case class AvatarHolder(nodeId: NodeId) extends DragContainer { @inline def parentId = nodeId }
 
   val propName = "_wust_dragcontainer"
 
