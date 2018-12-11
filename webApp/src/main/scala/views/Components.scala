@@ -93,9 +93,11 @@ object Components {
       Styles.growFull
     )
 
+    def downloadLink = a(downloadUrl(href), attr("download") := fileName, "Download")
+
     div(
       file.description.nonEmpty.ifTrue[VDomModifier](b(file.description)),
-      p(file.fileName),
+      p(downloadLink),
       if (file.key.isEmpty) { // this only happens for currently-uploading files
         VDomModifier(Rx {
           val uploadingFiles = state.uploadingFiles()
@@ -123,13 +125,14 @@ object Components {
       } else contentType match {
         case t if t.startsWith("image/") =>
           val image = img(alt := fileName, downloadUrl(src))
-          image(maxHeight := "250px", cursor.pointer, onClick.stopPropagation.foreach {
+          image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
             state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
             ()
           })
-        case _                           => VDomModifier(
-          a(downloadUrl(href), attr("download") := fileName, "Download")
-        )
+        case "application/pdf"           =>
+          val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf", downloadLink)
+          embeddedPdf(maxHeight := maxImageHeight, width := "100%")
+        case _                           => downloadLink
       }
     )
   }
