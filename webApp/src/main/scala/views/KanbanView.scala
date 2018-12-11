@@ -377,7 +377,7 @@ object KanbanView {
           val progress = taskProgress()
           div(
             height := "3px",
-            width := s"$progress%",
+            width := s"${math.max(progress, 1)}%",
             backgroundColor := s"${if(progress < 33) "#8B0000" else if(progress < 66) "#FFD700" else "#32CD32"}",
             UI.popup := s"$progress% Progress"
           )
