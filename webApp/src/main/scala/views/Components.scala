@@ -315,7 +315,8 @@ object Components {
         val workspaces = graph.workspacesForParent(parentIdx)
         graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
       }
-      directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Stage).forall( nodeIsDoneInParent )
+      val parentIdsWithDone = directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Stage)
+      parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
     }
 
     nodeCard(node).prepend(
