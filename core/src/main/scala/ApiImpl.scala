@@ -137,7 +137,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       }
 
       result.map { _ =>
-        val compactChanges = changes.foldLeft(GraphChanges.empty)(_ merge _).consistent
+        val whiteListedChanges = GraphChanges.from(addEdges = allWhitelistedAddEdges.flatMap(identity)(breakOut):Set[Edge], delEdges = allWhitelistedDelEdges.flatMap(identity)(breakOut))
+        val compactChanges = (changes :+ whiteListedChanges).foldLeft(GraphChanges.empty)(_ merge _).consistent
         Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
       }.recover { case NonFatal(e) =>
         scribe.warn("Cannot apply changes", e)
