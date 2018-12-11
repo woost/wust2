@@ -153,7 +153,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     db.ctx.transaction { implicit ec =>
       canAccessNode(user.id, nodeId) {
         for {
-          Some(_) <- db.user.get(subjectUserId) // check that user exists
+          Some(subjectUser) <- db.user.get(subjectUserId) // check that user exists
           added <- db.node.addMember(nodeId, subjectUserId, accessLevel)
         } yield
           Returns(
@@ -163,6 +163,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
                 NewGraphChanges(
                   user.toNode,
                   GraphChanges(
+                    addNodes = Set(forClient(subjectUser)),
                     addEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
                   )
                 )
