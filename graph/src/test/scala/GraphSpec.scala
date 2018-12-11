@@ -110,6 +110,48 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.parents(12:NodeId) mustEqual Set[NodeId](1, 13)
     }
 
+    "change graph" - {
+
+      "replace parent edge in graph" in {
+        val graph = Graph(
+          nodes = List(1, 2),
+          edges = Set(Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(5)), 1: NodeId))
+        )
+
+        graph.parents(1: NodeId) mustEqual Set.empty
+        graph.parents(2: NodeId) mustEqual Set[NodeId](1)
+        assert(graph.edges.head.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 5)
+
+        val newParent = Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(7)), 1: NodeId)
+        val newGraph = graph.applyChanges(GraphChanges(addEdges = Set(newParent)))
+
+        assert(newGraph.edges.head.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 7)
+      }
+
+      "replace parent edge in graph multiple parents" in {
+        val graph = Graph(
+          nodes = List(1, 2, 3),
+          edges = Set(
+            Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(5)), 1: NodeId),
+            Edge.Parent(3: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(4)), 1: NodeId)
+          )
+        )
+
+        graph.parents(1: NodeId) mustEqual Set.empty
+        graph.parents(2: NodeId) mustEqual Set[NodeId](1)
+        graph.parents(3: NodeId) mustEqual Set[NodeId](1)
+
+        assert(graph.edges.find(e => e.sourceId == (2: NodeId) && e.targetId == (1: NodeId)).get.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 5)
+        assert(graph.edges.find(e => e.sourceId == (3: NodeId) && e.targetId == (1: NodeId)).get.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 4)
+
+        val newParent = Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(7)), 1: NodeId)
+        val newGraph = graph.applyChanges(GraphChanges(addEdges = Set(newParent)))
+
+        assert(newGraph.edges.find(e => e.sourceId == (2: NodeId) && e.targetId == (1: NodeId)).get.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 7)
+      }
+
+    }
+
     "permissions" - {
       // IMPORTANT:
       // exactly the same test cases as for stored procedure `can_access_node()`
