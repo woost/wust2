@@ -97,7 +97,6 @@ object Components {
 
     div(
       file.description.nonEmpty.ifTrue[VDomModifier](b(file.description)),
-      p(downloadLink),
       if (file.key.isEmpty) { // this only happens for currently-uploading files
         VDomModifier(Rx {
           val uploadingFiles = state.uploadingFiles()
@@ -122,18 +121,21 @@ object Components {
             case None => VDomModifier.empty
           }
         })
-      } else contentType match {
-        case t if t.startsWith("image/") =>
-          val image = img(alt := fileName, downloadUrl(src))
-          image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-            state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
-            ()
-          })
-        case "application/pdf"           =>
-          val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf", downloadLink)
-          embeddedPdf(maxHeight := maxImageHeight, width := "100%")
-        case _                           => downloadLink
-      }
+      } else VDomModifier(
+        p(downloadLink),
+        contentType match {
+          case t if t.startsWith("image/") =>
+            val image = img(alt := fileName, downloadUrl(src))
+            image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
+              state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
+              ()
+            })
+          case "application/pdf"           =>
+            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf", downloadLink)
+            embeddedPdf(maxHeight := maxImageHeight, width := "100%")
+          case _                           => VDomModifier.empty
+        }
+      )
     )
   }
 
