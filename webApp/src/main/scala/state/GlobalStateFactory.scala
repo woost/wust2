@@ -3,6 +3,7 @@ package wust.webApp.state
 import java.util.concurrent.TimeUnit
 
 import colorado.HCL
+import emojijs.EmojiConvertor
 import org.scalajs.dom.console
 import monix.eval.Task
 import monix.reactive.Observable
@@ -33,7 +34,7 @@ object GlobalStateFactory {
     val eventProcessor = EventProcessor(
       Client.observable.event,
       (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
-      Client.api.changeGraph _,
+      changes => Client.api.changeGraph(changes.map(EmojiReplacer.replaceChangesToColons)),
       Client.currentAuth
     )
 
@@ -285,6 +286,21 @@ object GlobalStateFactory {
     state
   }
 
+  object EmojiReplacer {
+    val emojiTextConvertor = new EmojiConvertor()
+    emojiTextConvertor.colons_mode = true
+    emojiTextConvertor.text_mode = true
+    private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.collect {
+      case n: Node.Content =>
+        scribe.info(s"replacing node emoji: ${n.str}")
+        val emojiData = n.data.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str)))
+        scribe.info(s"New representation: ${emojiData.str}")
+        n.copy(data = emojiData)
+      case n => n
+    }(breakOut)
+    def replaceChangesToColons(graphChanges: GraphChanges) = graphChanges.copy(addNodes = replaceToColons(graphChanges.addNodes))
+  }
+
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(
       changes: GraphChanges
   ): GraphChanges = {
@@ -297,6 +313,7 @@ object GlobalStateFactory {
     val toContain = addNodes
       .filterNot(p => containedNodes(p.id))
       .flatMap(p => toParentConnections(viewConfig.pageChange.page, p.id))
+
 
     changes.consistent merge GraphChanges(addEdges = toContain)
   }
