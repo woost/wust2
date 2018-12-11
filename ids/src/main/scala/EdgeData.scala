@@ -23,7 +23,12 @@ object EdgeData {
   object Member extends Named
 
   case class Parent(deletedAt: Option[EpochMilli], ordering: Option[BigDecimal]) extends Named with EdgeData {
-    override def toString: String = s"Parent(${if(deletedAt.nonEmpty) s"deleted at = ${deletedAt.get.humanReadable}" else ""}, ${if(ordering.nonEmpty) s"ordering = $ordering" else ""})"
+    override def toString: String = s"Parent(${
+      List(
+        deletedAt.map(deletedAt => s"deletedAt=${deletedAt.humanReadable}"),
+        ordering.map(ordering => s"ordering=$ordering")
+      ).flatten.mkString(", ")
+    })"
   }
   object Parent extends Parent(None, None) {
     def apply(timestamp: EpochMilli): Parent = Parent(Some(timestamp), None)

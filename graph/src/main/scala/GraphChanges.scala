@@ -66,7 +66,7 @@ case class GraphChanges(
 }
 object GraphChanges {
 
-  def log(changes: GraphChanges, graph: Option[Graph] = None, premsg: String = ""): Unit = {
+  def log(changes: GraphChanges, graph: Option[Graph] = None, premsg: String = ""): String = {
     import changes._
     val addNodeLookup = changes.addNodes.by(_.id)
 
@@ -78,11 +78,14 @@ object GraphChanges {
       s"$str[${ nid.toBase58.takeRight(3) }]"
     }
 
-    scribe.info(s"${ premsg }GraphChanges(")
-    if(addNodes.nonEmpty) scribe.info(s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }").mkString(" ") }")
-    if(addEdges.nonEmpty) scribe.info(s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString(" ") }")
-    if(delEdges.nonEmpty) scribe.info(s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString(" ") }")
-    scribe.info(")")
+    val sb = new StringBuilder
+    sb ++= s"${ premsg }GraphChanges(\n"
+    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }").mkString(" ") }\n"
+    if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
+    if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
+    sb ++= ")"
+
+    sb.result()
   }
 
   val empty = new GraphChanges()

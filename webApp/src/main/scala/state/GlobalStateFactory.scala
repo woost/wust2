@@ -2,6 +2,8 @@ package wust.webApp.state
 
 import java.util.concurrent.TimeUnit
 
+import colorado.HCL
+import org.scalajs.dom.console
 import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom.window
@@ -266,7 +268,7 @@ object GlobalStateFactory {
 
     DevOnly {
 
-     graph.debug((g: Graph) => s"graph: ${g.toString}")
+     graph.debug((g: Graph) => s"graph: ${g.toSummaryString}")
 //      perspective.debug("perspective")
 //      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
       //      focusedNodeId.debug("focusedNodeId")

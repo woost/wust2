@@ -7,7 +7,7 @@ import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
-import org.scalajs.dom.document
+import org.scalajs.dom.{document,console}
 import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, ManagedSubscriptions, ObservableWithInitialValue, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
 import rx._
@@ -69,12 +69,16 @@ package object outwatchHelpers extends KeyHash {
     @inline def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
     @inline def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
 
-    def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
-    def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => scribe.info(s"$name: $x"))
+    @inline def debug(implicit ctx: Ctx.Owner): Obs = { debug() }
+    @inline def debug(name: String = "")(implicit ctx: Ctx.Owner): Obs = {
+      rx.debug(x => s"$name: $x")
     }
-    def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
-      rx.foreach(x => scribe.info(print(x)))
+    @inline def debug(print: T => String)(implicit ctx: Ctx.Owner): Obs = {
+      val boxBgColor = "#000" // HCL(baseHue, 50, 63).toHex
+      val boxStyle =
+        s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
+//      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
+      rx.foreach(x => console.log(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent"))
     }
 
     //TODO: add to scala-rx in an efficient macro

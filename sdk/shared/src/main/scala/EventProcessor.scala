@@ -33,7 +33,7 @@ object SyncStatus {
 
 object EventProcessor {
 
-  //TODO factory and constructor shared responibility
+  //TODO factory and constructor shared responsibility
   def apply(
       eventStream: Observable[Seq[ApiEvent]],
       enrichChanges: (GraphChanges, Graph) => GraphChanges,

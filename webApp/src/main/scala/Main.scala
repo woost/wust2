@@ -1,5 +1,7 @@
 package wust.webApp
 
+import org.scalajs.dom.console
+import colorado.HCL
 import emojijs.EmojiConvertor
 import highlight.Highlight
 import marked.{Marked, MarkedOptions}
@@ -7,6 +9,8 @@ import monix.reactive.Observable
 import org.scalajs.dom.document
 import outwatch.dom._
 import rx._
+import wust.api.ApiEvent
+import wust.graph.GraphChanges
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalStateFactory
@@ -27,6 +31,23 @@ object Main {
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
+
+    DevOnly {
+      val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
+      val boxStyle =
+        s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
+      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
+      Client.observable.event.foreach { events =>
+        events.foreach { event =>
+          event match {
+            case ApiEvent.NewGraphChanges(user, change) =>
+              console.log( s"%c ➙ from User:${user.name} %c ${GraphChanges.log(change,Some(state.graph.now))}", boxStyle, s"background: $color")
+            case other => console.log( s"%c ➙ %c ${other}", boxStyle, s"background: $color")
+          }
+        }
+      }
+    }
+
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }
