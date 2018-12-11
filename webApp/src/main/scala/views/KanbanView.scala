@@ -299,7 +299,6 @@ object KanbanView {
     )
   }
 
-
   private def renderCard(
     state: GlobalState,
     node: Node,
@@ -364,6 +363,21 @@ object KanbanView {
       graph.taskChildrenIdx.sliceLength(graph.idToIdx(node.id))
     }
 
+    val taskProgress = Rx {
+      val graph = state.graph()
+      val nodeIdx = graph.idToIdx(node.id)
+      val taskChildren = graph.taskChildrenIdx(nodeIdx)
+      val numTaskChildren = taskChildren.length
+      val doneTasks = taskChildren.fold(0) { (count, childIdx) =>
+        val workspaces = graph.workspacesForNode(childIdx)
+        if (graph.isDoneInAllWorkspaces(childIdx, workspaces)) count + 1
+        else count
+      }
+      val progress = (100 * doneTasks) / numTaskChildren
+      progress
+    }
+
+
     rendered(
       // sortable: draggable needs to be direct child of container
       Rx { if(editable()) dragDisabled else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
@@ -385,7 +399,7 @@ object KanbanView {
           Rx{
             VDomModifier(
               renderTaskCount(
-                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
+                if (taskChildrenCount() > 0) VDomModifier(s"${taskProgress()}%")
                 else VDomModifier(cls := "emptystat"),
                 onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
                 cursor.pointer,
