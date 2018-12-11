@@ -926,12 +926,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       Tree.Leaf(nodes(root))
   }
 
-  def roleTree(root: Int, role:NodeRole, visited: ArraySet = ArraySet.create(n)): Tree = {
+  def roleTree(root: Int, role:NodeRole, pageParentIdx: Int, visited: ArraySet = ArraySet.create(n)): Tree = {
     if(visited.containsNot(root) && nodes(root).role == role) {
       visited.add(root)
       Tree.Parent(nodes(root), (
         notDeletedChildrenIdx(root)
-          .map(idx => roleTree(idx, role, visited))(breakOut): List[Tree]
+          .collect{case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) => roleTree(idx, role, pageParentIdx, visited)}(breakOut): List[Tree]
         ).sortBy(_.node.id)
       )
     }

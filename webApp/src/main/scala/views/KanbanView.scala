@@ -65,7 +65,7 @@ object KanbanView {
             }
             inboxTasks
           }
-          val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage))
+          val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx))
           val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
 
             VDomModifier(
@@ -79,7 +79,7 @@ object KanbanView {
                 alignItems.flexStart,
                 sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeReplyFields, selectedNodeIds, isTopLevel = true)),
 
-                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId)),
+                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
               ),
               newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic)
             )
@@ -104,7 +104,6 @@ object KanbanView {
       case Tree.Parent(node, children) if node.role == NodeRole.Stage =>
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
-//            val sortedChildren = TaskOrdering.sort[Tree](graph, node.id, children, (t: Tree) => t.node.id)
             val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, children, (t: Tree) => t.node.id)
             renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
@@ -113,7 +112,7 @@ object KanbanView {
         }
       case Tree.Leaf(node) if node.role == NodeRole.Stage =>
           renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeReplyFields, selectedNodeIds, isTopLevel = isTopLevel)
-      case Tree.Leaf(node) if node.role == NodeRole.Task && graph.notDeletedParentsIdx.contains(graph.idToIdx(node.id))(pageParentIdx) =>
+      case Tree.Leaf(node) if node.role == NodeRole.Task =>
           renderCard(state, node, parentId, pageParentId, selectedNodeIds)
       case _ => VDomModifier.empty // if card is not also direct child of page, it is probably a mistake
     }
@@ -244,12 +243,12 @@ object KanbanView {
             cursor.pointer,
             paddingBottom := "7px",
           ),
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id)), // allows to drop cards on collapsed columns
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id))), // allows to drop cards on collapsed columns
         )
       ) else VDomModifier(
         div(
           cls := "kanbancolumnchildren",
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id)),
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id))),
           keyed(node.id, parentId),
           children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,

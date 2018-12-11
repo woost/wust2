@@ -109,6 +109,7 @@ object TaskOrdering {
     if(previousPosition == -1) return abortSorting(s"Could not determine position of sorted node")
 
     // Data of dom and internal structure diverge
+    scribe.warn(s"previous nodes: ${previousOrderedNodes.map(graph.nodesById(_).str)}")
     if(previousPosition != previousDomPosition) return abortSorting(s"index of reconstruction and sort must match, oldPosition in parent ($previousPosition) != oldPosition in dom ($previousDomPosition)")
 
     // Reconstruct order of nodes in the `into` container
@@ -166,73 +167,73 @@ object TaskOrdering {
     //    val newOrderingValue = TaskOrdering.computeOrderingValue(graph, into, nodeId, containerChanged, previousDomPosition, newDomPosition, newOrderedNodes.size)
   }
 
-  def constructGraphChangesByOrdering(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId): GraphChanges = {
-
-    // Reconstruct order of nodes in the `from` container
-    val previousOrderedNodes = TaskOrdering.constructOrdering(graph, from)
-    if(previousOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${getNodeIdStr(graph, from)}")
-
-    val previousPosition = previousOrderedNodes.indexOf(nodeId)
-    if(previousPosition == -1) return abortSorting(s"Could not determine position of sorted node")
-
-    // Data of dom and internal structure diverge
-    if(previousPosition != previousDomPosition) return abortSorting(s"index of reconstruction and sort must match, oldPosition in parent ($previousPosition) != oldPosition in dom ($previousDomPosition)")
-
-    // Reconstruct order of nodes in the `into` container
-    val newOrderedNodes: Seq[NodeId] = if(containerChanged) TaskOrdering.constructOrdering(graph, into)
-                                       else previousOrderedNodes
-
-    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Parent)(nodeId, into)
-
-    // Get corresponding nodes that are before and after the dragged node
-    val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
-
-    // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
-    val beforeNodeIndex = newDomPosition - 1 + indexOffset
-    val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
-                       Try(newOrderedNodes(beforeNodeIndex)).toOption
-                     else None
-
-    val afterNodeIndex = newDomPosition + indexOffset
-    val afterNode = if(checkBounds(newOrderedNodes.size, afterNodeIndex, containerChanged))
-                       Try(newOrderedNodes(afterNodeIndex)).toOption
-                     else None
-
-//    if(beforeNode.isDefined && afterNode.isDefined)
-//      TaskOrdering.getValueBetween()
-//    else if(beforeNode.isDefined)
-
-    val beforeParentData = beforeNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
-    val afterParentData = afterNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
-    val beforeNodeOrderingValue = beforeParentData.map(_._2)
-    val afterNodeOrderingValue = afterParentData.map(_._2)
-
-    val newOrderingValue = {
-      val (before: BigDecimal, after: BigDecimal) = if(beforeNodeOrderingValue.isDefined && afterNodeOrderingValue.isDefined) {
-        (beforeNodeOrderingValue.get, afterNodeOrderingValue.get)
-      } else if(beforeNodeOrderingValue.isDefined) {
-        val before = beforeNodeOrderingValue.get
-        val after = before.setScale(before.scale-1, RoundingMode.CEILING)
-        (before, after)
-      } else {
-        val after = afterNodeOrderingValue.get
-        val before = after.setScale(after.scale-1, RoundingMode.FLOOR)
-        (before, after)
-      }
-      if(before < after) before + (after - before)/2
-      else after + (before - after)/2
-    }
-
-    val newParentEdge = if(containerChanged) Edge.Parent(nodeId, EdgeData.Parent(newOrderingValue), into)
-                        else {
-      val keepedDeletedAt = getParentEdge(graph, from, nodeId).flatMap(_.data.deletedAt)
-      Edge.Parent(nodeId, new EdgeData.Parent(keepedDeletedAt, Some(newOrderingValue)), into)
-    }
-
-    GraphChanges(addEdges = Set(newParentEdge))
-
-//    val newOrderingValue = TaskOrdering.computeOrderingValue(graph, into, nodeId, containerChanged, previousDomPosition, newDomPosition, newOrderedNodes.size)
-  }
+//  def constructGraphChangesByOrdering(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId): GraphChanges = {
+//
+//    // Reconstruct order of nodes in the `from` container
+//    val previousOrderedNodes = TaskOrdering.constructOrdering(graph, from)
+//    if(previousOrderedNodes.isEmpty) return abortSorting(s"Could not reconstruct ordering in node ${getNodeIdStr(graph, from)}")
+//
+//    val previousPosition = previousOrderedNodes.indexOf(nodeId)
+//    if(previousPosition == -1) return abortSorting(s"Could not determine position of sorted node")
+//
+//    // Data of dom and internal structure diverge
+//    if(previousPosition != previousDomPosition) return abortSorting(s"index of reconstruction and sort must match, oldPosition in parent ($previousPosition) != oldPosition in dom ($previousDomPosition)")
+//
+//    // Reconstruct order of nodes in the `into` container
+//    val newOrderedNodes: Seq[NodeId] = if(containerChanged) TaskOrdering.constructOrdering(graph, into)
+//                                       else previousOrderedNodes
+//
+//    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Parent)(nodeId, into)
+//
+//    // Get corresponding nodes that are before and after the dragged node
+//    val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
+//
+//    // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
+//    val beforeNodeIndex = newDomPosition - 1 + indexOffset
+//    val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
+//                       Try(newOrderedNodes(beforeNodeIndex)).toOption
+//                     else None
+//
+//    val afterNodeIndex = newDomPosition + indexOffset
+//    val afterNode = if(checkBounds(newOrderedNodes.size, afterNodeIndex, containerChanged))
+//                       Try(newOrderedNodes(afterNodeIndex)).toOption
+//                     else None
+//
+////    if(beforeNode.isDefined && afterNode.isDefined)
+////      TaskOrdering.getValueBetween()
+////    else if(beforeNode.isDefined)
+//
+//    val beforeParentData = beforeNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
+//    val afterParentData = afterNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
+//    val beforeNodeOrderingValue = beforeParentData.map(_._2)
+//    val afterNodeOrderingValue = afterParentData.map(_._2)
+//
+//    val newOrderingValue = {
+//      val (before: BigDecimal, after: BigDecimal) = if(beforeNodeOrderingValue.isDefined && afterNodeOrderingValue.isDefined) {
+//        (beforeNodeOrderingValue.get, afterNodeOrderingValue.get)
+//      } else if(beforeNodeOrderingValue.isDefined) {
+//        val before = beforeNodeOrderingValue.get
+//        val after = before.setScale(before.scale-1, RoundingMode.CEILING)
+//        (before, after)
+//      } else {
+//        val after = afterNodeOrderingValue.get
+//        val before = after.setScale(after.scale-1, RoundingMode.FLOOR)
+//        (before, after)
+//      }
+//      if(before < after) before + (after - before)/2
+//      else after + (before - after)/2
+//    }
+//
+//    val newParentEdge = if(containerChanged) Edge.Parent(nodeId, EdgeData.Parent(newOrderingValue), into)
+//                        else {
+//      val keepedDeletedAt = getParentEdge(graph, from, nodeId).flatMap(_.data.deletedAt)
+//      Edge.Parent(nodeId, new EdgeData.Parent(keepedDeletedAt, Some(newOrderingValue)), into)
+//    }
+//
+//    GraphChanges(addEdges = Set(newParentEdge))
+//
+////    val newOrderingValue = TaskOrdering.computeOrderingValue(graph, into, nodeId, containerChanged, previousDomPosition, newDomPosition, newOrderedNodes.size)
+//  }
 
 
 
@@ -322,7 +323,6 @@ object TaskOrdering {
 
 //  def extractAndPartitionTasks(graph: Graph, pageId: NodeId, userId: UserId): (ArraySet, ArraySet) =  partitionTasks(graph, userId, pageId)(extractTasksWithParents(graph))
 
-  // TODO: Empty toplevel crashes
 //  def taskGraphToSortedForest(graph: Graph, userId: UserId, pageParentId: NodeId): (ArraySet, Seq[Tree]) = {
 //
 //    val (categorizedTasks, inboxTasks) = extractAndPartitionTasks(graph, pageParentId, userId)

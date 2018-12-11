@@ -17,7 +17,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
 import wust.webApp.{BrowserDetect, Client, Icons}
-import wust.webApp.dragdrop.{DragContainer, DragItem}
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
