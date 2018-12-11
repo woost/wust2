@@ -44,6 +44,8 @@ import org.sazabi.base58.Base58
     Base58(toByteArray).str
   }
 
+  def shortHumanReadable: String = toBase58.takeRight(3)
+
   def toHex:String = s"${left.toHexString}|${right.toHexString}"
 
   @inline def isEqual(that: Cuid): Boolean = left == that.left && right == that.right
