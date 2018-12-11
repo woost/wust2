@@ -217,35 +217,36 @@ object PageHeader {
     val closeModal = PublishSubject[Unit]
 
     def renderSearchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
-      val searchRes = Search.byString(needle, haystack, Some(100), 0.2).map( nodeRes =>
+      val searchRes = Search.byString(needle, haystack, Some(100), 0.75).map( nodeRes =>
         div(
           cls := "ui approve item",
           fontWeight.normal,
           cursor.pointer,
-          paddingTop := "3px",
-          Components.nodeCard(nodeRes._1, maxLength = Some(60)),
+          padding := "3px",
+          Components.nodeCard(nodeRes._1),
           onClick(Page(nodeRes._1.id)) --> state.page,
           onClick(()) --> closeModal
         ),
       )
 
       div(
-        s"Found ${searchRes.length} result(s) in ${if(globalSearchScope) "all channels" else "the current channel"} ",
+        s"Found ${searchRes.length} result(s) in ${if(globalSearchScope) "all channels" else "the current workspace"} ",
         padding := "5px 0",
         fontWeight.bold,
         height := s"${dom.window.innerHeight/2}px",
         div(
-          height := "60%",
+          height := "100%",
           overflow.auto,
           searchRes,
         ),
-        button(
-          cls := "ui button",
-          marginTop := "10px",
-          display := (if(globalSearchScope) "none" else "block"),
-          "Search in all channels",
-          onClick(needle) --> searchGlobal
-        )
+        //TODO: Implement backend search
+//        button(
+//          cls := "ui button",
+//          marginTop := "10px",
+//          display := (if(globalSearchScope) "none" else "block"),
+//          "Search in all channels",
+//          onClick(needle) --> searchGlobal
+//        )
       )
     }
 

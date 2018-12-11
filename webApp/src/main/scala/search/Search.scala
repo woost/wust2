@@ -79,14 +79,26 @@ object Search {
 
     val res = nodes.flatMap { node =>
 
-      val nodeStr = node.str
-      val sim = if (needle.length == 0 || nodeStr.length == 0) 0.0
-                else if (needle.trim == nodeStr.trim) 1.0
-                else if (needle.trim.toLowerCase == nodeStr.trim.toLowerCase) 0.99999
-                else f(needle.toLowerCase, nodeStr.toLowerCase)
+      val nodeStr = node.str.trim
+      val trimmedNeedle = needle.trim
+      val nodeStrLowered = nodeStr.toLowerCase
+      val trimmedLoweredNeedle = trimmedNeedle.toLowerCase
 
-      if(sim >= boundary) Some(node -> sim)
-      else None
+      val nodeRes = if (trimmedNeedle.length == 0 || nodeStr.length == 0) None
+                else if (trimmedNeedle == nodeStr) Some(node -> 1.0)
+                else if (trimmedLoweredNeedle == nodeStrLowered) Some(node -> 0.99999)
+                else if (nodeStrLowered.contains(trimmedLoweredNeedle) || trimmedLoweredNeedle.contains(nodeStrLowered)) Some(node -> 0.99)
+                else {
+                  val sim_1 = f(trimmedLoweredNeedle, nodeStrLowered)
+                  if(sim_1 > boundary)
+                    Some(node -> sim_1)
+                  else {
+                    val sim_2 = (for(n <- trimmedLoweredNeedle.split(" "); h <- nodeStr.split(" ")) yield f(n, h)).max
+                    if(sim_2 > boundary) Some(node -> (sim_2 - boundary)) else None
+                  }
+                }
+
+      nodeRes
 
     }.sortBy(_._2)
 
