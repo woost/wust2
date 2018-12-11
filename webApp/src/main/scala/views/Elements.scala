@@ -275,7 +275,7 @@ object Elements {
 
 
   def markdownVNode(str: String) = div(div(prop("innerHTML") := markdownString(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def markdownString(str: String): String = EmojiConvertor.replace_unified(EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
+  def markdownString(str: String): String = EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
 
   def escapeHtml(content: String): String = {
     // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.
