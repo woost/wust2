@@ -26,7 +26,7 @@ trait Api[Result[_]] {
   @PathName("getNodeOnBehalf")
   def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
 //  def addMemberByName(nodeId: NodeId, userName: String): Result[Boolean]
-  def getUserId(name: String): Result[Option[UserId]]
+  def getUserByName(name: String): Result[Option[Node.User]]
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]

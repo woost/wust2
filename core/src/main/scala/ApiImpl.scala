@@ -157,6 +157,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
         for {
           Some(subjectUser) <- db.user.get(subjectUserId) // check that user exists
           added <- db.node.addMember(nodeId, subjectUserId, accessLevel)
+          List(node) <- db.node.get(Set(nodeId))
         } yield
           Returns(
             added, // return value of api call
@@ -165,8 +166,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
                 NewGraphChanges(
                   user.toNode,
                   GraphChanges(
-                    addNodes = Set(forClient(subjectUser)),
-                    addEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
+                    addNodes = Set(forClient(node), subjectUser), // subjectUser is for other users, the node is for the subjectuser
+                    addEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)), // member edge is for subjectUser and other users
                   )
                 )
               )
@@ -227,11 +228,11 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       getNodeInternal(user, nodeId)
     }
 
-  private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient(_)))
+  private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient))
 
 
-  override def getUserId(name: String): ApiFunction[Option[UserId]] = Action {
-    db.user.byName(name).map(_.map(_.id))
+  override def getUserByName(name: String): ApiFunction[Option[Node.User]] = Action {
+    db.user.byName(name).map(_.map(forClient))
   }
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>

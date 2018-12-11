@@ -335,14 +335,14 @@ object PageHeader {
     val errorMessageHandler = PublishSubject[Option[(String, VDomModifier)]]
 
     def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
-      val graphUser = Client.api.getUserId(name)
+      val graphUser = Client.api.getUserByName(name)
       graphUser.flatMap {
         case Some(u) =>
-          val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(u, node.id)))
+          val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(u.id, node.id)))
           state.eventProcessor.changes.onNext(change)
-          val localChange:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Member(u, EdgeData.Member(AccessLevel.ReadWrite), node.id)))
+          val localChange:GraphChanges = GraphChanges.from(addNodes = Set(u), addEdges = Set(Edge.Member(u.id, EdgeData.Member(AccessLevel.ReadWrite), node.id)))
           state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, localChange))
-          Client.api.addMember(node.id, u, AccessLevel.ReadWrite)
+          Client.api.addMember(node.id, u.id, AccessLevel.ReadWrite)
         case _       => Future.successful(false)
       }.onComplete {
         case Success(b) =>
