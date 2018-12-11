@@ -307,12 +307,6 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]]
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
-    val rendered = nodeCardEditable(
-      state, node,
-      maxLength = Some(maxLength),
-      editMode = editable,
-      submit = state.eventProcessor.changes
-    )
 
     val assignment = Rx {
       val graph = state.graph()
@@ -377,6 +371,27 @@ object KanbanView {
       progress
     }
 
+    val taskProgressDiv = VDomModifier(
+      Rx{
+        if (taskChildrenCount() > 0) {
+          val progress = taskProgress()
+          div(
+            height := "3px",
+            width := s"$progress%",
+            backgroundColor := s"${if(progress < 33) "#8B0000" else if(progress < 66) "#FFD700" else "#32CD32"}",
+            UI.popup := s"$progress% Progress"
+          )
+        } else div(display.none)
+      },
+    )
+
+    val rendered = nodeCardEditable(
+      state, node,
+      maxLength = Some(maxLength),
+      editMode = editable,
+      submit = state.eventProcessor.changes,
+      prependInject = taskProgressDiv
+    )
 
     rendered(
       // sortable: draggable needs to be direct child of container
@@ -399,7 +414,7 @@ object KanbanView {
           Rx{
             VDomModifier(
               renderTaskCount(
-                if (taskChildrenCount() > 0) VDomModifier(s"${taskProgress()}%")
+                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
                 else VDomModifier(cls := "emptystat"),
                 onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
                 cursor.pointer,

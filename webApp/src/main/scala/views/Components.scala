@@ -293,13 +293,14 @@ object Components {
       contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
     )
   }
-  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       node,
       contentInject = VDomModifier(
+        prependInject,
         editableNode(state, node, editMode, submit, maxLength),
         contentInject
-      )
+      ),
     ).apply(
       Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
     )
