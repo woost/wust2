@@ -931,7 +931,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       visited.add(root)
       Tree.Parent(nodes(root), (
         notDeletedChildrenIdx(root)
-          .collect{case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) => roleTree(idx, role, pageParentIdx, visited)}(breakOut): List[Tree]
+          .collect{
+            case idx if nodes(idx).role == role => roleTree(idx, role, pageParentIdx, visited)
+            case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) => roleTree(idx, role, pageParentIdx, visited)
+          }(breakOut): List[Tree]
         ).sortBy(_.node.id)
       )
     }
