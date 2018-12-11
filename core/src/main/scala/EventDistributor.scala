@@ -51,7 +51,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     author: Node.User,
     graphChanges: GraphChanges,
     origin: Option[NotifiableClient[ApiEvent, State]]
-  ): Unit = {
+  ): Unit = if (graphChanges.nonEmpty) {
     // send out notifications to websocket subscribers
     subscribers.foreach { client =>
       if (origin.fold(true)(_ != client)) client.notify(state =>
@@ -70,6 +70,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def determinePushPerUser(nodesOfInterest: Iterable[NodeId]): Future[List[RawPushData]] = {
+    // since the push data is coming from the database, the contained nodes are already checked for permissions for each user
     db.notifications.notifyDataBySubscribedNodes(nodesOfInterest.toList)
   }
 
@@ -84,12 +85,16 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   private def sendWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
     state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
       db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
-        .map(permittedNodeIds => NewGraphChanges(author, graphChanges.filterWithWhitelist(permittedNodeIds.toSet, {
-          case _: Edge.Author => true
-          case _: Edge.Member => true
-          case _: Edge.Notify => true
-          case _ => false
-        })) :: Nil)
+        .map{ permittedNodeIds =>
+          val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
+            case e: Edge.Author => List(e.nodeId)
+            case e: Edge.Member => List(e.nodeId)
+            case e: Edge.Notify => List(e.nodeId)
+            case e => List(e.sourceId, e.targetId)
+          })
+          if(filteredChanges.isEmpty) Nil
+          else NewGraphChanges(author, filteredChanges) :: Nil
+        }
     }
   }
 

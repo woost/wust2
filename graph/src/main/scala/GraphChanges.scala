@@ -33,11 +33,12 @@ case class GraphChanges(
       delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
     )
 
-  def filterWithWhitelist(p: NodeId => Boolean, edgeWhitelist: Edge => Boolean): GraphChanges = {
-    // if both nodes are accessible via p, any edge is allowed. Else check Whitelist
+  def filterCheck(p: NodeId => Boolean, checkIdsFromEdge: Edge => List[NodeId]): GraphChanges = {
+    // for each edge we need to check a certain number of ids.
+    // checkIdsFromEdge returns exactly the ids we need to have permissions for (checked via p)
     GraphChanges(
       addNodes = addNodes.filter(n => p(n.id)),
-      addEdges = addEdges.filter(e => if(!edgeWhitelist(e)) p(e.sourceId) && p(e.targetId) else true),
+      addEdges = addEdges.filter(e => checkIdsFromEdge(e).forall(p)),
       delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
     )
   }

@@ -45,15 +45,16 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     //  delEdges // needs permissions on all involved nodeids
 
     // TODO: Workaround since userid is not accessible but is needed for assignments
+    //TODO: check like in eventdistributor instead of whitelist
     val (changes, allWhitelistedAddEdges, allWhitelistedDelEdges) = allChanges.map { gc =>
       val (whitelistedAddEdges, remainingAddEdges) = gc.addEdges.partition {
         case _: Edge.Assigned => true
-        case _: Edge.Invite => true
+        case _: Edge.Invite => true // TODO: only allow to invite users to a node you have permission to
         case _                => false
       }
       val (whitelistedDelEdges, remainingDelEdges) = gc.delEdges.partition {
         case _: Edge.Assigned => true
-        case _: Edge.Invite => true
+        case _: Edge.Invite => true // TODO: only allow to invite users to a node you have permission to
         case _                => false
       }
 
