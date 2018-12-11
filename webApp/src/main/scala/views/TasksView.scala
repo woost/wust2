@@ -17,10 +17,10 @@ object TasksView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val topLevelStageExists = Rx {
       val page = state.page()
+      val graph = state.graph()
       page.parentId.fold(false) { parentId =>
-        val graph = state.graph.now
         val parentIdx = graph.idToIdx(parentId)
-        state.graph.now.childrenIdx.exists(parentIdx) { childIdx =>
+        graph.childrenIdx.exists(parentIdx) { childIdx =>
           val node = graph.nodes(childIdx)
           node.role == NodeRole.Stage && node.str.toLowerCase != Graph.doneTextLower
         }
