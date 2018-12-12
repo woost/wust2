@@ -76,10 +76,35 @@ object ListView {
             }
           }
 
+
+          def renderUserAvatar(assignments: Seq[Node.User], nodeId: NodeId)= div(
+            flexGrow := 1,
+            Styles.flex,
+            flexWrap.wrap,
+            flexDirection.rowReverse,
+            assignments.map(userNode => div(
+              Styles.flexStatic,
+              Avatar.user(userNode.id)(
+                marginRight := "2px",
+                width := "22px",
+                height := "22px",
+                cls := "avatar",
+                marginBottom := "2px",
+              ),
+              keyed(userNode.id),
+              UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+              cursor.pointer,
+              onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, nodeId)) --> state.eventProcessor.changes,
+            )),
+          )
+
           VDomModifier(
             div(todoTasks.map { nodeIdx =>
+              val nodeUsers = graph.assignedUsersIdx(nodeIdx)
+              val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
+              val userAvatar = renderUserAvatar(assignments, graph.nodeIds(nodeIdx))
               val node = graph.nodes(nodeIdx)
-              nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px")
+              nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px").apply(userAvatar)
             }),
 
             doneTasks.calculateNonEmpty.ifTrue[VDomModifier](hr(border := "1px solid black", opacity := 0.4, margin := "15px")),
