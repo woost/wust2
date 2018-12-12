@@ -18,15 +18,15 @@ import org.sazabi.base58.Base58
     s"right part of Cuid needs to be positive and less or equal than $maxLong, value is: $right."
   )
 
-  def toUuid: UUID = new UUID(left, right)
+  @inline def toUuid: UUID = new UUID(left, right)
 
-   @inline override def hashCode: Int = (left ^ (left >> 32)).toInt ^ (right ^ (right >> 32)).toInt
-   @inline override def equals(that: Any): Boolean = that match {
-     case that: Cuid => isEqual(that)
-     case _              => false
-   }
+  @inline override def hashCode: Int = (left ^ (left >> 32)).toInt ^ (right ^ (right >> 32)).toInt
+  @inline override def equals(that: Any): Boolean = that match {
+    case that: Cuid => isEqual(that)
+    case _              => false
+  }
 
-  def toCuidString: String = {
+  @inline def toCuidString: String = {
     val base = 36
     val leftCuid: String = java.lang.Long.toString(left, base).leftPadTo(12, '0')
     val rightCuid: String = java.lang.Long.toString(right, base).leftPadTo(12, '0')
@@ -40,13 +40,36 @@ import org.sazabi.base58.Base58
     bb.array
   }
 
-  def toBase58: String = {
-    Base58(toByteArray).str
-  }
+  @inline def toBase58: String = Base58(toByteArray).str
 
   def shortHumanReadable: String = toBase58.takeRight(3)
 
-  def toHex:String = s"${left.toHexString}|${right.toHexString}"
+
+  @inline def hi(x:Long):Int = (x >> 32).toInt
+  @inline def lo(x:Long):Int = (x & 0x7FFFFFFF).toInt
+  @inline def lefthi: Int = hi(left)
+  @inline def leftlo: Int = lo(left)
+  @inline def righthi: Int = hi(right)
+  @inline def rightlo: Int = lo(right)
+
+  @inline def toHex:String = f"$left%016x$right%016x"
+
+  @inline def toStringFast:String = {
+    // the fastest tostring found so far (by benchmarks)
+    // faster than:
+    //    s"${left.toHexString}|${right.toHexString}"
+    //    s"${left.toString}|${right.toString}"
+
+    // Cuid_serialization                1           1000
+    // toCuidString                   1336        1306551
+    // toUuid                         1381        1470059
+    // toBase58                       9577        9358585
+    // toHex                          2087        2062539
+    // toStringFast                    391         283274
+    // (times in us)
+
+    s"$lefthi$leftlo$righthi$rightlo"
+  }
 
   @inline def isEqual(that: Cuid): Boolean = left == that.left && right == that.right
   @inline def <(that: Cuid): Boolean = left < that.left || (left == that.left && right < that.right)
@@ -56,7 +79,7 @@ import org.sazabi.base58.Base58
     else 1
   }
 
-  override def toString: String = toHex
+  @inline override def toString: String = toStringFast // needs to be as fast as possible, so it can be used as snabbdom key
 }
 object Cuid {
   def fromUuid(uuid: UUID): Cuid =
