@@ -9,6 +9,7 @@ import wust.api.UserDetail
 import wust.backend.auth.JWT
 import wust.ids.UserId
 import wust.serviceUtil.MonixUtils
+import scala.util.control.NonFatal
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -71,6 +72,10 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       .mapEval { message =>
         // retry? MonixUtils.retryWithBackoff(mailService.sendMail(message), maxRetries = 3, initialDelay = 1.minute)
         mailService.sendMail(message)
+          .onErrorRecover { case NonFatal(t) =>
+            scribe.warn(s"Failed to send email message: $message", t)
+            ()
+          }
       }
       .subscribe(
         _ => Ack.Continue,
