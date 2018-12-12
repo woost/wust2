@@ -4,7 +4,10 @@ set -o pipefail
 
 git_branch=$(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD) # branch, or fall back to commit hash
 
-[[ "$git_branch" == "production" ]] || echo "Please switch to production branch to deploy production." && exit 0
+if [[ "$git_branch" != "production" ]]; then
+    echo "Please switch to production branch to deploy production."
+    exit 0
+fi
 
 OVERRIDE_BRANCH=production ci/build-docker
 
