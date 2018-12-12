@@ -116,7 +116,7 @@ function subscribeWebPushAndPersist() {
                             log("publicKey: ", publicKeyJson);
                             // we unsubscribe first, because you cannot subscribe with a new public key if there is an old subscription active.
                             // for now, we always unsubscribe first before subscribing to webpush.
-                            return self.registration.pushManager.getSubscribtion().then(subscription => {
+                            return self.registration.pushManager.getSubscription().then(subscription => {
                                 let unsubscribePromise = subscription ? subscription.unsubscribe() : Promise.resolve(true);
                                 return unsubscribePromise.then(successful => {
                                     return self.registration.pushManager.subscribe({
