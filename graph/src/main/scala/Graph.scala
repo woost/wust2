@@ -387,8 +387,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
   val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
   val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
-  val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result()
-  val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result()
+  val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
+  val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
 
   val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) expandedNodesIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
@@ -948,8 +948,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       Tree.Parent(nodes(root), (
         notDeletedChildrenIdx(root)
           .collect{
-            case idx if nodes(idx).role == role => roleTree(idx, role, pageParentIdx, visited)
-            case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) && userNodeIdx.contains(idx) => roleTree(idx, role, pageParentIdx, visited)
+            case idx if nodes(idx).role == role => roleTreeWithUserFilter(userNodeIdx, idx, role, pageParentIdx, visited)
+            case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) && userNodeIdx.contains(idx) => roleTreeWithUserFilter(userNodeIdx, idx, role, pageParentIdx, visited)
           }(breakOut): List[Tree]
         ).sortBy(_.node.id)
       )
