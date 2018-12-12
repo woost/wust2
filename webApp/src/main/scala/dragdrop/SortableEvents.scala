@@ -258,20 +258,20 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   sortableSortEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
 
     val disableSort = readDragDisableSort(e.dragEvent.originalSource).getOrElse(false)
-    dom.console.log(e.dragEvent)
+    // dom.console.log(e.dragEvent)
 
     if(disableSort) {
-      println("sort is disabled")
+      // println("sort is disabled")
       e.cancel()
     } else {
-      println("sorting....")
+      // println("sorting....")
       val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[dom.html.Element] // https://github.com/Shopify/draggable/issues/256
       val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
       val draggingOpt = readDragPayload(e.dragEvent.source)
       val overContainerOpt = readDragContainer(overContainerWorkaround)
       val sourceContainerOpt = readDragContainer(sourceContainerWorkaround) // will be written by registerSortableContainer
 
-      println(s"$draggingOpt, $overContainerOpt, $sourceContainerOpt")
+      // println(s"$draggingOpt, $overContainerOpt, $sourceContainerOpt")
       // white listing allowed sortable actions
       (draggingOpt, sourceContainerOpt, overContainerOpt) match {
         case (Some(dragging), Some(sourceContainer), Some(overContainer)) if sortableActions.isDefinedAt((null, dragging, sourceContainer, overContainer, ctrl, shift)) => // allowed
