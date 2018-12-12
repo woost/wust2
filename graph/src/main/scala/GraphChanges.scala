@@ -64,25 +64,21 @@ case class GraphChanges(
     ).flatten.mkString(", ")
     s"GraphChanges($members)"
   }
-}
-object GraphChanges {
 
-  def log(changes: GraphChanges, graph: Option[Graph] = None, premsg: String = ""): String = {
-    import changes._
-    val addNodeLookup = changes.addNodes.by(_.id)
+  def toPrettyString(graph:Graph = Graph.empty) = {
+    val addNodeLookup = addNodes.by(_.id)
 
     def id(nid: NodeId): String = {
       val str = (
         for {
-          g <- graph
-          node <- addNodeLookup.get(nid).orElse(g.lookup.nodesByIdGet(nid))
+          node <- addNodeLookup.get(nid).orElse(graph.lookup.nodesByIdGet(nid))
         } yield node.str
       ).fold("")(str => s"${ "\"" }$str${ "\"" }")
       s"$str[${ nid.shortHumanReadable }]"
     }
 
     val sb = new StringBuilder
-    sb ++= s"${ premsg }GraphChanges(\n"
+    sb ++= s"GraphChanges(\n"
     if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }").mkString("\n            ") }\n"
     if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
     if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
@@ -90,6 +86,8 @@ object GraphChanges {
 
     sb.result()
   }
+}
+object GraphChanges {
 
   val empty = new GraphChanges()
 

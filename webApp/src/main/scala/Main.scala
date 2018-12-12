@@ -41,7 +41,7 @@ object Main {
         events.foreach { event =>
           event match {
             case ApiEvent.NewGraphChanges(user, change) =>
-              console.log( s"%c ➙ from User:${user.name} %c ${GraphChanges.log(change,Some(state.graph.now))}", boxStyle, s"background: $color")
+              console.log( s"%c ➙ from User:${user.name} %c ${change.toPrettyString(state.graph.now)}", boxStyle, s"background: $color")
             case other => console.log( s"%c ➙ %c ${other}", boxStyle, s"background: $color")
           }
         }

@@ -100,8 +100,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 //                 else
 //                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
 
-        scribe.info("Calculated new sorting graph change!")
-        GraphChanges.log(gc)
+        scribe.debug("Calculated new sorting graph change!")
+        scribe.debug(gc.toPrettyString(graph))
         gc
       case _ =>
         TaskOrdering.abortSorting("Could not determine position of elements")
