@@ -13,7 +13,7 @@ import wust.api.ApiEvent
 import wust.graph.GraphChanges
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalStateFactory
+import wust.webApp.state.{GlobalState, GlobalStateFactory}
 import wust.webApp.views.MainView
 
 import scala.scalajs.js.JSON
@@ -32,24 +32,23 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
-    DevOnly {
-      val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
-      val boxStyle =
-        s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
-      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
-      Client.observable.event.foreach { events =>
-        events.foreach { event =>
-          event match {
-            case ApiEvent.NewGraphChanges(user, change) =>
-              console.log( s"%c ➙ from User:${user.name} %c ${change.toPrettyString(state.graph.now)}", boxStyle, s"background: $color")
-            case other => console.log( s"%c ➙ %c ${other}", boxStyle, s"background: $color")
-          }
-        }
-      }
-    }
-
+    DevOnly { enableEventLogging(state) }
 
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
+  }
+
+  private def enableEventLogging(state:GlobalState) {
+    val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
+    val boxStyle =
+      s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
+    val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
+    Client.observable.event.foreach { events =>
+      events.foreach {
+        case ApiEvent.NewGraphChanges(user, change) =>
+          console.log(s"%c ➙ from User:${ user.name } %c ${ change.toPrettyString(state.graph.now) }", boxStyle, s"background: $color")
+        case other                                  => console.log(s"%c ➙ %c ${ other }", boxStyle, s"background: $color")
+      }
+    }
   }
 
   private def setupDom(): Unit = {
