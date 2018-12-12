@@ -171,7 +171,12 @@ object UserSettingsView {
           disabled <-- detailsUnavailable,
           value <-- userDetail.map(_.fold("")(_.email.getOrElse(""))),
           onChange.value --> email,
-          onEnter.value foreach actionSink)
+          onEnter.value foreach { email =>
+            if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+              actionSink(email)
+            }
+          }
+        )
       ),
       errorHandler.map {
         case None => VDomModifier(userDetail.map(_.collect { case UserDetail(userId, Some(email), false) => div(
