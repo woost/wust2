@@ -215,7 +215,7 @@ object ChatView {
       val parentNode = graph.nodes(parentIdx)
         parentNode.role == NodeRole.Message || parentNode.role == NodeRole.Task
     }.map(graph.nodeIds)
-    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
