@@ -291,9 +291,9 @@ object KanbanView {
   private val renderMessageCount = {
     div(
       cls := "childstat",
-      Styles.flexStatic,
       Styles.flex,
-      margin := "5px",
+      Styles.flexStatic,
+      margin := "5px 5px 5px auto",
       div(Icons.conversation, marginRight := "5px"),
     )
   }
@@ -301,8 +301,8 @@ object KanbanView {
   private val renderTaskCount = {
     div(
       cls := "childstat",
-      Styles.flexStatic,
       Styles.flex,
+      Styles.flexStatic,
       margin := "5px",
       div(Icons.tasks, marginRight := "5px"),
     )
@@ -316,6 +316,13 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]]
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
+
+    val rendered = nodeCardEditable(
+      state, node,
+      maxLength = Some(maxLength),
+      editMode = editable,
+      submit = state.eventProcessor.changes,
+    )
 
     val assignment = Rx {
       val graph = state.graph()
@@ -356,51 +363,51 @@ object KanbanView {
       }
     )
 
-    val messageChildrenCount = Rx {
-      val graph = state.graph()
-      graph.messageChildrenIdx.sliceLength(graph.idToIdx(node.id))
-    }
-
-    val taskChildrenCount = Rx {
-      val graph = state.graph()
-      graph.taskChildrenIdx.sliceLength(graph.idToIdx(node.id))
-    }
-
-    val taskProgress = Rx {
+    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int)
+    val taskStats = Rx {
       val graph = state.graph()
       val nodeIdx = graph.idToIdx(node.id)
+
+      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+
       val taskChildren = graph.taskChildrenIdx(nodeIdx)
-      val numTaskChildren = taskChildren.length
-      val doneTasks = taskChildren.fold(0) { (count, childIdx) =>
+      val taskChildrenCount = taskChildren.length
+
+      val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
         val workspaces = graph.workspacesForNode(childIdx)
         if (graph.isDoneInAllWorkspaces(childIdx, workspaces)) count + 1
         else count
       }
-      val progress = (100 * doneTasks) / numTaskChildren
-      progress
+
+      TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount)
     }
 
-    val taskProgressDiv = VDomModifier(
-      Rx{
-        if (taskChildrenCount() > 0) {
-          val progress = taskProgress()
-          div(
-            height := "3px",
-            width := s"${math.max(progress, 1)}%",
-            backgroundColor := s"${if(progress < 33) "#8B0000" else if(progress < 66) "#FFD700" else "#32CD32"}",
-            UI.popup := s"$progress% Progress"
-          )
-        } else div(display.none)
-      },
-    )
 
-    val rendered = nodeCardEditable(
-      state, node,
-      maxLength = Some(maxLength),
-      editMode = editable,
-      submit = state.eventProcessor.changes,
-      prependInject = taskProgressDiv
-    )
+
+    val renderTaskProgress = Rx {
+      if (taskStats().taskChildrenCount > 0) {
+        val progress = (100 * taskStats().taskDoneCount) / taskStats().taskChildrenCount
+
+        VDomModifier(
+          div(
+            cls := "childstat",
+            Styles.flex,
+            flexGrow := 1,
+            backgroundColor := "#eee",
+            borderRadius := "2px",
+            margin := "3px 10px",
+            alignItems.flexEnd,
+            div(
+              height := "3px",
+              padding := "0",
+              width := s"${math.max(progress, 1)}%",
+              backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
+              UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
+            )
+          )
+        )
+      } else VDomModifier(cls := "emptystat")
+    }
 
     rendered(
       // sortable: draggable needs to be direct child of container
@@ -415,22 +422,26 @@ object KanbanView {
         Styles.flex,
         justifyContent.flexEnd,
         alignItems.flexEnd,
+        width := "100%",
 
         div(
           cls := "childstats",
           Styles.flex,
-          Styles.flexStatic,
+          flexDirection.row,
+          alignItems.center,
+          width := "100%",
           Rx{
             VDomModifier(
               renderTaskCount(
-                if (taskChildrenCount() > 0) VDomModifier(taskChildrenCount())
+                if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
                 else VDomModifier(cls := "emptystat"),
                 onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
                 cursor.pointer,
                 UI.popup := "Zoom to show subtasks",
               ),
+              renderTaskProgress(),
               renderMessageCount(
-                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+                if (taskStats().messageChildrenCount > 0) VDomModifier(taskStats().messageChildrenCount)
                 else VDomModifier(cls := "emptystat"),
                 onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
                 cursor.pointer,
@@ -449,7 +460,6 @@ object KanbanView {
               width := "22px",
               height := "22px",
               cls := "avatar",
-              marginBottom := "2px",
             ),
             keyed(userNode.id),
             UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
