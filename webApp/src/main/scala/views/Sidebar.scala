@@ -112,7 +112,10 @@ object Sidebar {
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
-        draggableAs(DragItem.Channel(node.id)),
+        node match {
+          case _:Node.Content => draggableAs(DragItem.Channel(node.id))
+          case _:Node.User => dragDisabled
+        },
         cls := "draghandle",
         dragTarget(DragItem.Channel(node.id)),
       ),
