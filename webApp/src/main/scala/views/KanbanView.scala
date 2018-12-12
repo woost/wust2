@@ -55,7 +55,7 @@ object KanbanView {
             stages
           }
 
-          val inboxTasks:ArraySet = {
+          val inboxTasks: ArraySet  = {
             val inboxTasks = ArraySet.create(graph.size)
             graph.notDeletedChildrenIdx.foreachElement(pageParentIdx){childIdx =>
               if(graph.nodes(childIdx).role == NodeRole.Task) {
@@ -74,9 +74,10 @@ object KanbanView {
           }
 
           val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
+          val assigneInbox = if(!filterAssigned) inboxTasks.map(graph.nodeIds) else inboxTasks.mapToArray(identity).filter(idx => graph.assignedNodesIdx.contains(graph.idToIdx(state.user().id))(idx)).map(graph.nodeIds)
 
             VDomModifier(
-              renderInboxColumn(state, pageParentId, pageParentId, inboxTasks.map(graph.nodeIds), activeReplyFields, selectedNodeIds),
+              renderInboxColumn(state, pageParentId, pageParentId, assigneInbox, activeReplyFields, selectedNodeIds),
               div(
                 cls := s"kanbancolumnarea",
                 keyed,
