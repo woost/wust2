@@ -112,7 +112,7 @@ object ThreadView {
       val page = state.page()
       val graph = state.graph()
 
-      calculateThreadMessages(page.parentId, graph)
+      calculateThreadMessages(page.parentId, graph, false)
     }
 
     var prevMessageSize = -1
@@ -252,7 +252,7 @@ object ThreadView {
           cls := "chat-thread-messages",
           width := "100%",
           Rx {
-            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
+            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph(), true), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
           },
           Rx {
             if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
@@ -351,7 +351,7 @@ object ThreadView {
   private def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
       val graph = state.graph()
-      graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId))
+      graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdx(nodeId))
     }
     Rx {
       if(isExpanded()) {
@@ -377,18 +377,19 @@ object ThreadView {
     }
   }
 
-  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph, expanded: Boolean): js.Array[Int] = {
     // most nodes don't have any children, so we skip the expensive accumulation
     if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
 
     val nodeSet = ArraySet.create(graph.nodes.length)
+    val expandedFilter = if(expanded) IndexedSeq(NodeRole.Message, NodeRole.Task) else IndexedSeq(NodeRole.Message)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
         graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || graph.childrenIdx(childIdx).exists(idx => graph.nodes(idx).role == NodeRole.Message)))
+          if(childNode.isInstanceOf[Node.Content] && IndexedSeq(NodeRole.Message, NodeRole.Task).contains(childNode.role) || graph.childrenIdx(childIdx).exists(idx => IndexedSeq(NodeRole.Message).contains(graph.nodes(idx).role)))
             nodeSet.add(childIdx)
         }
       }
