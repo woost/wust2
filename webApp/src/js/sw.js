@@ -109,21 +109,35 @@ function subscribeWebPushAndPersist() {
     log("Subscribing to web push");
     currentAuth().then(currentAuth => {
         if (currentAuth) {
-            getPublicKey().then(publicKey => publicKey.json().then ( publicKeyJson => {
-                if (publicKeyJson) {
-                    log("publicKey: ", publicKeyJson);
-                    return self.registration.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
-                    }).then(sub => {
-                        log("Success. Sending subscription to backend");
-                        sendSubscriptionToBackend(sub, currentAuth)
-                    });
-                } else {
-                    log("Cannot subscribe, no public key.");
-                    return Promise.reject("Cannot subscribe, no public key.");
-                }
-            }));
+            getPublicKey().then(
+                publicKey => publicKey.json().then (
+                    publicKeyJson => {
+                        if (publicKeyJson) {
+                            log("publicKey: ", publicKeyJson);
+                            return self.registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
+                            }).then(
+                                sub => {
+                                    log("Success. Sending subscription to backend");
+                                    sendSubscriptionToBackend(sub, currentAuth)
+                                },
+                                err => {
+                                    logToBackend(`Subscribing failed with: ${err}`);
+                                    error(`Subscribing failed with: ${err}`);
+                                }
+                            );
+                        } else {
+                            log("Cannot subscribe, no public key.");
+                            return Promise.reject("Cannot subscribe, no public key.");
+                        }
+                    },
+                    err => {
+                        logToBackend(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                        error(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                    }
+                )
+            );
         } else {
             log("Cannot subscribe, no authentication.");
             return Promise.reject("Cannot subscribe, no authentication.");
