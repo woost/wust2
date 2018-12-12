@@ -114,19 +114,26 @@ function subscribeWebPushAndPersist() {
                     publicKeyJson => {
                         if (publicKeyJson) {
                             log("publicKey: ", publicKeyJson);
-                            return self.registration.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
-                            }).then(
-                                sub => {
-                                    log("Success. Sending subscription to backend");
-                                    sendSubscriptionToBackend(sub, currentAuth)
-                                },
-                                err => {
-                                    logToBackend(`Subscribing failed with: ${err}`);
-                                    error(`Subscribing failed with: ${err}`);
-                                }
-                            );
+                            // we unsubscribe first, because you cannot subscribe with a new public key if there is an old subscription active.
+                            // for now, we always unsubscribe first before subscribing to webpush.
+                            return self.registration.pushManager.getSubscribtion().then(subscription => {
+                                let unsubscribePromise = subscription ? subscription.unsubscribe() : Promise.resolve(true);
+                                return unsubscribePromise.then(successful => {
+                                    return self.registration.pushManager.subscribe({
+                                        userVisibleOnly: true,
+                                        applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
+                                    }).then(
+                                        sub => {
+                                            log("Success. Sending subscription to backend");
+                                            sendSubscriptionToBackend(sub, currentAuth)
+                                        },
+                                        err => {
+                                            logToBackend(`Subscribing failed with: ${err}`);
+                                            error(`Subscribing failed with: ${err}`);
+                                        }
+                                    );
+                                });
+                            });
                         } else {
                             log("Cannot subscribe, no public key.");
                             return Promise.reject("Cannot subscribe, no public key.");
