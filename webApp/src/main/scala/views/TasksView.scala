@@ -27,6 +27,7 @@ object TasksView {
       }
     }
     val kanbanSwitch = Var(false)
+    val filterAssigned = Var(false)
     topLevelStageExists.foreach{kanbanSwitch() = _}
 
     div(
@@ -34,18 +35,36 @@ object TasksView {
       flexDirection.column,
       keyed,
 
-      kanbanSwitchBar(kanbanSwitch),
+      div(
+        Styles.flex,
+        flexDirection.row,
+        justifyContent.flexEnd,
+        filterAssignedBar(filterAssigned),
+        kanbanSwitchBar(kanbanSwitch),
+      ),
 
       Rx{
-        if(kanbanSwitch()) KanbanView(state).apply(
+        if(kanbanSwitch()) KanbanView(state, filterAssigned()).apply(
           Styles.growFull,
           flexGrow := 1
         )
-        else ListView(state).apply(
+        else ListView(state, filterAssigned()).apply(
           Styles.growFull,
           flexGrow := 1
         )
       }
+    )
+  }
+
+  private def filterAssignedBar(filterAssigned: Var[Boolean]):VDomModifier = {
+    VDomModifier(
+      div(
+        marginTop := "15px",
+        padding := "0px 15px 5px 5px",
+        textAlign.right,
+
+        UI.toggle("Filter assigned", filterAssigned),
+      ),
     )
   }
 

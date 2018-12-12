@@ -22,7 +22,7 @@ object KanbanView {
   import SharedViewElements._
 
   private val maxLength = 100
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, filterAssigned: Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
 
     val activeReplyFields = Var(Set.empty[List[NodeId]])
@@ -65,7 +65,14 @@ object KanbanView {
             }
             inboxTasks
           }
-          val topLevelColumns:Seq[Tree] = topLevelStages.map(stageIdx => graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx))
+
+          val topLevelColumns: Seq[Tree] = topLevelStages.map { stageIdx =>
+            if(!filterAssigned)
+              graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx)
+            else
+              graph.roleTreeWithUserFilter(graph.assignedNodesIdx(graph.idToIdx(state.user().id)), stageIdx, NodeRole.Stage, pageParentIdx)
+          }
+
           val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
 
             VDomModifier(
