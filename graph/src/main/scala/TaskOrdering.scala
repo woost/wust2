@@ -35,7 +35,7 @@ object TaskOrdering {
 
 //    scribe.info(s"${sorted.map(graph.nodesById).map(n => s"${n.str}${getValueOfNodeId(graph, parentId, n.id)}")}")
 
-    scribe.info(s"Elements in sorting sequence: ${container.size}")
+//    scribe.info(s"Elements in sorting sequence: ${container.size}")
     sorted
   }
 
@@ -109,7 +109,7 @@ object TaskOrdering {
     if(previousPosition == -1) return abortSorting(s"Could not determine position of sorted node")
 
     // Data of dom and internal structure diverge
-    scribe.warn(s"previous nodes: ${previousOrderedNodes.map(graph.nodesById(_).str)}")
+//    scribe.warn(s"previous nodes: ${previousOrderedNodes.map(graph.nodesById(_).str)}")
     if(previousPosition != previousDomPosition) return abortSorting(s"index of reconstruction and sort must match, oldPosition in parent ($previousPosition) != oldPosition in dom ($previousDomPosition)")
 
     // Reconstruct order of nodes in the `into` container

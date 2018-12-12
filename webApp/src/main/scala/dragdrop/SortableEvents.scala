@@ -83,7 +83,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer, into: DragContainer): GraphChanges = {
 
     import DragContainer._
-    scribe.info("Computing sorting change")
+    scribe.debug("Computing sorting change")
     //TODO: Is a SortEvent triggered when a new card is created?
     parseDomPositions(e) match {
       case Some((previousDomPosition, newDomPosition)) =>
@@ -187,7 +187,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   dragOverEvent.map(_.over).map { over =>
     val target = readDragTarget(over)
     DevOnly {
-      target.foreach{target => scribe.info(s"Dragging over: $target")}
+      target.foreach{target => scribe.debug(s"Dragging over: $target")}
     }
     target
   }.subscribe(lastDragTarget)
