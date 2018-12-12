@@ -116,7 +116,7 @@ function subscribeWebPushAndPersist() {
                             log("publicKey: ", publicKeyJson);
                             return self.registration.pushManager.subscribe({
                                 userVisibleOnly: true,
-                                applicationServerKey: Uint8Array.from(atob(publicKeyJson), c => c.charCodeAt(0))
+                                applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
                             }).then(
                                 sub => {
                                     log("Success. Sending subscription to backend");
