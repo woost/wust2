@@ -337,6 +337,11 @@ object ChatView {
       }
     }
 
+    val stageParents = Rx {
+      val stages = state.graph().getRoleParents(nodeId, NodeRole.Stage).filterNot(_ == state.page().parentId).toList
+      directParentIds.filterNot(stages.contains)
+    }
+
     div(
       messageHeader,
       div(
@@ -347,6 +352,7 @@ object ChatView {
         selectByClickingOnRow,
         checkbox,
         Rx { renderedMessage() },
+        messageTags(state, nodeId, stageParents.now),
         controls,
         messageRowDragOptions(nodeId, selectedNodes, editMode)
       )
