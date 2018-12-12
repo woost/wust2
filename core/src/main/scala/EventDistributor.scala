@@ -122,6 +122,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val invalidHeaderCodes = Set(
       400, 401, // invalid auth headers
     )
+    val mismatchSenderIdCode = 403
     val tooManyRequestsCode = 429
     val payloadTooLargeCode = 413
     val successStatusCode = 201
@@ -150,10 +151,13 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                 case `successStatusCode`                                   =>
                   Success(None)
                 case statusCode if expiryStatusCodes.contains(statusCode)  =>
-                  scribe.info(s"Subscription expired")
+                  scribe.info(s"Subscription expired. Deleting subscription.")
                   Success(Some(subscription))
                 case statusCode if invalidHeaderCodes.contains(statusCode) =>
-                  scribe.error(s"Invalid headers")
+                  scribe.error(s"Invalid headers. Deleting subscription.")
+                  Success(Some(subscription))
+                case `mismatchSenderIdCode`                                 =>
+                  scribe.error(s"Mismatch sender id error. Deleting subscription.")
                   Success(Some(subscription))
                 case `tooManyRequestsCode`                                 =>
                   scribe.error(s"Too many requests.")
