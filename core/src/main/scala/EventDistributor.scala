@@ -99,12 +99,12 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     }
   }
 
-  private def deleteExpiredSubscriptions(subscriptions: Seq[Data.WebPushSubscription]): Unit = if(subscriptions.nonEmpty) {
+  private def deleteSubscriptions(subscriptions: Seq[Data.WebPushSubscription]): Unit = if(subscriptions.nonEmpty) {
     db.notifications.delete(subscriptions).onComplete {
       case Success(res) =>
-        scribe.info(s"Deleted expired subscriptions ($subscriptions): $res")
+        scribe.info(s"Deleted subscriptions ($subscriptions): $res")
       case Failure(res) =>
-        scribe.info(s"Failed to delete expired subscriptions ($subscriptions), due to exception: $res")
+        scribe.error(s"Failed to delete subscriptions ($subscriptions), due to exception: $res")
     }
   }
 
@@ -180,7 +180,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
     Future.sequence(expiredSubscriptions.seq.flatten)
       .map(_.flatten)
-      .foreach(deleteExpiredSubscriptions)
+      .foreach(deleteSubscriptions)
   }
 
 }
