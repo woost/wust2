@@ -83,7 +83,7 @@ object Topbar {
           betaSign,
         ))
       },
-      syncStatus(state)(ctx)(fontSize := "12px"),
+      syncStatus(state)(ctx)(fontSize := "20px"),
     )
   }
 
