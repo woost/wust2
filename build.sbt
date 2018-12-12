@@ -93,13 +93,14 @@ lazy val commonSettings = Seq(
   //    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files
 
 
+  // scalaxy disabled, since it produces a bug since commit 199ae8ce747e0
   // Scalaxy/Streams makes your Scala collections code faster
   // Fuses collection streams down to while loops
   // Only use it in production
-  scalacOptions += {if (isDevRun.?.value.getOrElse(false)) "-Xplugin-disable:scalaxy-streams" else "-Xplugin-require:scalaxy-streams"},
-  scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
-  scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
-  addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
+  // scalacOptions += {if (isDevRun.?.value.getOrElse(false)) "-Xplugin-disable:scalaxy-streams" else "-Xplugin-require:scalaxy-streams"},
+  // scalacOptions in Test ~= (_ filterNot (_ == "-Xplugin-require:scalaxy-streams")),
+  // scalacOptions in Test += "-Xplugin-disable:scalaxy-streams",
+  // addCompilerPlugin("com.github.fdietze" % "scalaxy-streams" % "2.12-819f13722a-1"), //TODO: https://github.com/nativelibs4java/scalaxy-streams/pull/13
 )
 
 lazy val commonWebSettings = Seq(
