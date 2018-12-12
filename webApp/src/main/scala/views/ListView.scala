@@ -31,7 +31,6 @@ object ListView {
       addListItemInputField(state),
 
       Rx {
-        println("reloading listview")
         val graph = state.graph()
         state.page().parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
