@@ -15,7 +15,7 @@ object Logging {
     if (LinkingInfo.developmentMode)
       Logger.root
         .clearHandlers()
-        .withMinimumLevel(Level.Debug)
+        .withMinimumLevel(Level.Info)
         .withHandler(
           formatter = logFormatter,
           writer = ConsoleWriter
