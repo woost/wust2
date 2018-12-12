@@ -131,7 +131,7 @@ object Components {
               ()
             })
           case "application/pdf"           =>
-            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf", downloadLink)
+            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf")
             embeddedPdf(maxHeight := maxImageHeight, width := "100%")
           case _                           => VDomModifier.empty
         }
