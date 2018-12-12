@@ -27,6 +27,8 @@ import scala.scalajs.js
 import scala.collection.breakOut
 
 object UI {
+  val divider = div(cls := "ui divider")
+
   def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(
       cls := "ui toggle checkbox",

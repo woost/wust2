@@ -152,6 +152,7 @@ object Sidebar {
 
         VDomModifier(
           channelLine(user.toNode, page.parentId, pageStyle),
+          UI.divider,
           channelForest.map { channelTree =>
             channelList(channelTree, page.parentId, pageStyle)
           },
