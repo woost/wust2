@@ -154,7 +154,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                   Success(Some(subscription))
                 case statusCode if invalidHeaderCodes.contains(statusCode) =>
                   scribe.error(s"Invalid headers")
-                  Success(None)
+                  Success(Some(subscription))
                 case `tooManyRequestsCode`                                 =>
                   scribe.error(s"Too many requests.")
                   Success(None)
