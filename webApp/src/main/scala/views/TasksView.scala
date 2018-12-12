@@ -63,7 +63,7 @@ object TasksView {
         padding := "0px 15px 5px 5px",
         textAlign.right,
 
-        UI.toggle("Filter assigned", filterAssigned),
+        UI.toggle("Only my tasks", filterAssigned),
       ),
     )
   }
