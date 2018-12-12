@@ -56,16 +56,11 @@ case class GraphChanges(
   def nonEmpty: Boolean = !isEmpty
   lazy val size: Int = allProps.foldLeft(0)(_ + _.size)
 
-  override def toString = {
-    val members = List(
-      if(addNodes.nonEmpty) Some(s"addNodes = $addNodes") else None,
-      if(addEdges.nonEmpty) Some(s"addEdges = $addEdges") else None,
-      if(delEdges.nonEmpty) Some(s"delEdges = $delEdges") else None,
-    ).flatten.mkString(", ")
-    s"GraphChanges($members)"
-  }
+  override def toString = toPrettyString()
 
   def toPrettyString(graph:Graph = Graph.empty) = {
+    // the graph can provide additional information about the edges
+
     val addNodeLookup = addNodes.by(_.id)
 
     def id(nid: NodeId): String = {
@@ -74,14 +69,14 @@ case class GraphChanges(
           node <- addNodeLookup.get(nid).orElse(graph.lookup.nodesByIdGet(nid))
         } yield node.str
       ).fold("")(str => s"${ "\"" }$str${ "\"" }")
-      s"$str[${ nid.shortHumanReadable }]"
+      s"[${ nid.shortHumanReadable }]$str"
     }
 
     val sb = new StringBuilder
     sb ++= s"GraphChanges(\n"
-    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }").mkString("\n            ") }\n"
-    if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
-    if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) }-${ e.data }->${ id(e.targetId) }").mkString("\n            ") }\n"
+    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }/${n.role}  ${n.id.toBase58}  ${n.id.toUuid}").mkString("\n            ") }\n"
+    if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
+    if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
     sb ++= ")"
 
     sb.result()

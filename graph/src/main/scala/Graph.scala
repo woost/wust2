@@ -36,33 +36,35 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   def size: Int = nodes.size
   def length: Int = size
 
-  override def toString: String = {
-    def nodeStr(node: Node) =
-      s"${ node.data.tpe }(${ node.data.str }:${ node.id.toBase58.takeRight(3) })"
-
-    s"Graph(${ nodes.map(nodeStr).mkString(" ") }, " +
-      s"${
-        edges
-          .map(c => s"${ c.sourceId.toBase58.takeRight(3) }-${ c.data }->${ c.targetId.toBase58.takeRight(3) }")
-          .mkString(", ")
-      })"
+  @inline def nodeStr(nodeIdx: Int):String = {
+    val node = nodes(nodeIdx)
+    s"""[${ node.id.shortHumanReadable }]"${ node.str }\""""
+  }
+  @inline def nodeStrDetail(nodeIdx: Int):String = {
+    val node = nodes(nodeIdx)
+    s"""${nodeStr(nodeIdx)}:${ node.tpe }/${ node.role }"""
   }
 
-  def toPrettyString: String = {
-    def nodeStr(node: Node) =
-      s"${ node.data.tpe.take(5) }(${ node.id.toBase58.takeRight(3) }): ${ node.data.str }"
+  @inline def edgeStr(edgeIdx: Int):String = {
+    val edge = edges(edgeIdx)
+    val sourceIdx = lookup.edgesIdx.a(edgeIdx)
+    val targetIdx = lookup.edgesIdx.b(edgeIdx)
+    s"""${nodeStr(sourceIdx)} -${ edge.data.toString }-> ${nodeStr(targetIdx)}"""
+  }
 
-    def edgeStr(edge: Edge) =
-      s"${ edge.sourceId.toBase58.takeRight(3) }-${ edge.data.toString.takeRight(6).dropRight(1) }->${ edge.targetId.toBase58.takeRight(3) }"
+  override def toString: String = {
+    def nodeStr(nodeIdx:Int):String = {
+      s"${nodeStrDetail(nodeIdx)}  ${nodes(nodeIdx).id.toBase58}  ${nodes(nodeIdx).id.toUuid}"
+    }
 
     s"Graph(\n" +
-      s"${ nodes.map(nodeStr).mkString("\t", ",\n\t", "\n") }\n" +
-      s"${ edges.map(edgeStr).mkString("\t", ",\n\t", "\n") }\n" +
+      s"${ nodes.indices.map(nodeStr).mkString("\t", "\n\t", "\n") }\n" +
+      s"${ edges.indices.map(edgeStr).mkString("\t", "\n\t", "\n") }" +
       ")"
   }
 
   def toSummaryString: String = {
-    s"Graph(nodes: ${ nodes.length }, ${ edges.length })"
+    s"Graph(nodes: ${ nodes.length }, edges: ${ edges.length })"
   }
 
   def subset(p: Int => Boolean):ArraySet = {

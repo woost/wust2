@@ -24,6 +24,7 @@ import wust.webApp.views.UI
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
+import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object GlobalStateFactory {
@@ -253,14 +254,6 @@ object GlobalStateFactory {
     // eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
 
     //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
-    // TODO: Analytics
-    // if (compactChanges.addPosts.nonEmpty) Analytics.sendEvent("graphchanges", "addPosts", "success", compactChanges.addPosts.size)
-    // if (compactChanges.addConnections.nonEmpty) Analytics.sendEvent("graphchanges", "addConnections", "success", compactChanges.addConnections.size)
-    // if (compactChanges.updatePosts.nonEmpty) Analytics.sendEvent("graphchanges", "updatePosts", "success", compactChanges.updatePosts.size)
-    // if (compactChanges.delPosts.nonEmpty) Analytics.sendEvent("graphchanges", "delPosts", "success", compactChanges.delPosts.size)
-    // if (compactChanges.delConnections.nonEmpty) Analytics.sendEvent("graphchanges", "delConnections", "success", compactChanges.delConnections.size)
-    // Analytics.sendEvent("graphchanges", "flush", "returned-false", changes.size)
-    // Analytics.sendEvent("graphchanges", "flush", "future-failed", changes.size)
 
     // we send client errors from javascript to the backend
     jsErrors.foreach { msg =>
@@ -269,18 +262,11 @@ object GlobalStateFactory {
 
     DevOnly {
 
-     graph.debug((g: Graph) => s"graph: ${g.toSummaryString}")
-//      perspective.debug("perspective")
-//      displayGraphWithoutParents.debug { dg => s"displayGraph: ${dg.graph.toString}" }
-      //      focusedNodeId.debug("focusedNodeId")
-      //      selectedGroupId.debug("selectedGroupId")
-      // rawPage.debug("rawPage")
+     graph.debugWithDetail((g: Graph) => s"graph: ${g.toSummaryString}", (g:Graph) => g.toString)
+
       page.debug("page")
       view.debug("view")
       user.debug("auth")
-      // viewConfig.debug("viewConfig")
-      //      currentUser.debug("\ncurrentUser")
-
     }
 
     state

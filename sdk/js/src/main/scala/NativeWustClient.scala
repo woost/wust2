@@ -76,9 +76,8 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
                 case (node,idx) =>
                   val es = graph.outgoingEdgeIdx(idx).map{ edgeIdx =>
                     val edge = graph.edges(edgeIdx)
-                    s"${edge.data.tpe.take(1)} ${edge.targetId.toBase58
-                      .takeRight(3)} ${graph.nodes(graph.edgesIdx.b(edgeIdx)).data.str}"}(breakOut): List[String]
-                  val id = node.id.toBase58.takeRight(3)
+                    s"${edge.data.tpe.take(1)} ${edge.targetId.shortHumanReadable} ${graph.nodes(graph.edgesIdx.b(edgeIdx)).data.str}"}(breakOut): List[String]
+                  val id = node.id.shortHumanReadable
                   val tpe = node.data.tpe.take(1)
                   val content = node.data.str
                   (s"$tpe $id" :: content :: es).toJSArray

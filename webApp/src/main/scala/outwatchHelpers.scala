@@ -78,7 +78,20 @@ package object outwatchHelpers extends KeyHash {
       val boxStyle =
         s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
 //      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
-      rx.foreach(x => console.log(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent"))
+      rx.foreach(x => console.log(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent; font-weight: normal"))
+    }
+
+    @inline def debugWithDetail(print: T => String, detail: T => String)(implicit ctx: Ctx.Owner): Obs = {
+      val boxBgColor = "#000" // HCL(baseHue, 50, 63).toHex
+      val boxStyle =
+        s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold; font-size:larger;"
+      //      val color = HCL(0, 0, 93).toHex // HCL(baseHue, 20, 93).toHex
+      rx.foreach{x =>
+        console.asInstanceOf[js.Dynamic]
+          .groupCollapsed(s"%c ⟳ %c ${print(x)}", boxStyle, "background-color: transparent; font-weight: normal")
+        console.log(detail(x))
+        console.asInstanceOf[js.Dynamic].groupEnd()
+      }
     }
 
     //TODO: add to scala-rx in an efficient macro
