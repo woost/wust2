@@ -115,7 +115,9 @@ object ListView {
               opacity := 0.5,
               doneTasks.map { nodeIdx =>
                 val node = graph.nodes(nodeIdx)
-                nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px")
+                val nodeUsers = graph.assignedUsersIdx(nodeIdx)
+                val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
+                nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px").apply(renderUserAvatar(assignments, graph.nodeIds(nodeIdx)))
               })
           )
         }
