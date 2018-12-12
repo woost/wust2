@@ -234,15 +234,16 @@ object KanbanView {
       ),
       if(isCollapsed) VDomModifier(
         div(
+          cls := "kanbancolumncollapsed",
           Styles.flex,
           flexDirection.column,
           alignItems.stretch,
 
           padding := "7px",
 
-          fontSize.xLarge,
-          opacity := 0.5,
           div(
+            fontSize.xLarge,
+            opacity := 0.5,
             Styles.flex,
             justifyContent.center,
             div(cls := "fa-fw", freeRegular.faPlusSquare, UI.popup := "Expand"),

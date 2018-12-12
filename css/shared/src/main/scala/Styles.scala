@@ -694,12 +694,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgba(0, 0, 0, 0.62)"),
   )
 
-  ".kanbannewcolumnarea > .nodecard" - ( // this constellation appears, when dragging card over NewColumnArea to create a new column
-    width(kanbanColumnWidth),
-    height(100 px),
-    margin(0 px).important,
-  )
-
   ".kanbannewcolumnarea .kanbancolumn" - (
     margin(0 px).important
   )
@@ -721,14 +715,6 @@ object CommonStyles extends StyleSheet.Standalone {
     flexDirection.column,
     maxHeight(100 %%)
   )
-
-  ".kanbancolumnarea > .nodecard" - (
-    minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
-    marginTop(0 px),
-    marginLeft(0 px),
-    marginRight(10 px),
-  )
-
 
   ".kanbansubcolumn" - (
     border(1 px, solid, white)
@@ -826,7 +812,8 @@ object CommonStyles extends StyleSheet.Standalone {
     color(white)
   )
 
-  ".kanbancolumnchildren > .nodecard" - (
+  ".kanbancolumnchildren > .nodecard," +
+  ".kanbancolumncollapsed > .nodecard" - (
     width(kanbanCardWidth),
   )
 
