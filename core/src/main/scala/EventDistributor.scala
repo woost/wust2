@@ -90,6 +90,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
             case e: Edge.Author => List(e.nodeId)
             case e: Edge.Member => List(e.nodeId)
             case e: Edge.Notify => List(e.nodeId)
+            case e: Edge.Assigned => List(e.nodeId)
             case e => List(e.sourceId, e.targetId)
           })
           if(filteredChanges.isEmpty) Nil
