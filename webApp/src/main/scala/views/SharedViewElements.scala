@@ -108,7 +108,7 @@ object SharedViewElements {
     )
 
     var currentTextArea: dom.html.TextArea = null
-    def handleInput(str: String): Unit = if (str.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
+    def handleInput(str: String): Unit = if (str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       val submitted = submitAction(str)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
 

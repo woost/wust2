@@ -32,17 +32,19 @@ object FeedbackForm {
 
     var timeout:Option[Int] = None
     def submit():Unit = {
-      Client.api.feedback(feedbackText.now).onComplete {
-        case Success(()) =>
-          statusText() = "Thank you!"
-          timeout.foreach(clearTimeout)
-          timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
-          clear.onNext(())
-        case Failure(t) =>
-          scribe.warn("Error sending feedback to backend", t)
-          statusText() = "Failed to send feedback, please try again!"
-          timeout.foreach(clearTimeout)
-          timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+      if(feedbackText.now.trim.nonEmpty) {
+        Client.api.feedback(feedbackText.now).onComplete {
+          case Success(()) =>
+            statusText() = "Thank you!"
+            timeout.foreach(clearTimeout)
+            timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+            clear.onNext(())
+          case Failure(t) =>
+            scribe.warn("Error sending feedback to backend", t)
+            statusText() = "Failed to send feedback, please try again!"
+            timeout.foreach(clearTimeout)
+            timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+        }
       }
 
       Analytics.sendEvent("feedback", "submit")
