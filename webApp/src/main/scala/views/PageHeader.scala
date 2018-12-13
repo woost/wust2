@@ -719,6 +719,7 @@ object PageHeader {
         div(cls := "header", "Settings", cursor.default),
         items
       ),
+      UI.tooltip("bottom right") := "Settings",
         // revert default passive events, else dropdown is not working
       Elements.withoutDefaultPassiveEvents,
       // https://semantic-ui.com/modules/dropdown.html#/usage
