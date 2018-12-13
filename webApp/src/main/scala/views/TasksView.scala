@@ -63,7 +63,10 @@ object TasksView {
         padding := "0px 15px 5px 5px",
         textAlign.right,
 
+        UI.tooltip("bottom right") := "Show only tasks that are assigned to me.",
         UI.toggle("Only my tasks", filterAssigned),
+
+        zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
       ),
     )
   }
@@ -75,7 +78,10 @@ object TasksView {
         padding := "0px 15px 5px 5px",
         textAlign.right,
 
+        UI.tooltip("bottom right") := "Show tasks in a kanban or as list.",
         UI.toggle("Kanban", kanbanSwitch),
+
+        zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
       ),
     )
   }

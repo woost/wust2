@@ -9,7 +9,6 @@ import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.views.UI._
 import wust.util._
 
 // Combines linear chat and thread-view into one view with a thread-switch
@@ -41,14 +40,16 @@ object ConversationView {
       position.relative, // for absolute positioning of the bar
       div(
         position.absolute,
-        zIndex := ZIndex.overlayLow-1, // like selectednodes, but still below
 
         right := "0px",
         top := "15px",
         padding := "0px 15px 5px 5px",
         textAlign.right,
 
-        toggle("Threaded") --> threaded,
+        UI.tooltip("bottom right") := "Show messages chronologically or threaded.",
+        UI.toggle("Threaded") --> threaded,
+
+        zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
       ),
     )
   }
