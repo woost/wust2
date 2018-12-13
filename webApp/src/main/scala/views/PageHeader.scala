@@ -582,11 +582,16 @@ object PageHeader {
               PermissionSelection.all.map { selection =>
                 div(
                   cls := "item",
-                  (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon")),
+                  i(
+                    cls := "icon fa-fw",
+                    marginRight := "5px",
+                    selection.icon
+                  ),
                   // value := selection.value,
                   Rx {
                     selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
                   },
+                  (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
                   onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes,
                   onClick foreach {
                     Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
@@ -809,7 +814,7 @@ object PermissionSelection {
         name = (_, _) => "Public",
         value = "Public",
         description = "Anyone can access this page via the URL",
-        icon = freeSolid.faUserPlus
+        icon = freeSolid.faGlobeAmericas
       ) ::
       PermissionSelection(
         access = NodeAccess.Level(AccessLevel.Restricted),
