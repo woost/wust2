@@ -54,7 +54,8 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   override def toString: String = {
     def nodeStr(nodeIdx:Int):String = {
-      s"${nodeStrDetail(nodeIdx)}  ${nodes(nodeIdx).id.toBase58}  ${nodes(nodeIdx).id.toUuid}"
+      val node = nodes(nodeIdx)
+      s"${nodeStrDetail(nodeIdx)}:${node.meta.accessLevel}  ${node.id.toBase58}  ${node.id.toUuid}"
     }
 
     s"Graph(\n" +
