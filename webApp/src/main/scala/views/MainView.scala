@@ -1,15 +1,20 @@
 package wust.webApp.views
 
+import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.AuthUser
 import wust.css.{Styles, ZIndex}
 import wust.graph.Page
 import wust.util._
-import wust.webApp.DevOnly
+import wust.webApp.{Client, DevOnly, WoostNotification}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.Components._
+
+import scala.concurrent.Future
+import scala.util.Success
 
 object MainView {
 
@@ -22,12 +27,18 @@ object MainView {
     )
   }
 
+
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       cls := "mainview",
       Styles.flex,
 //      DevOnly { DevView(state) },
       UI.modal(state.modalConfig), // one modal instance for the whole page that can be configured via state.modalConfig
+      div(
+        cls := "topBanner",
+        Rx { WoostNotification.banner(state, state.permissionState()) }
+      ),
+
       Topbar(state)(width := "100%", Styles.flexStatic),
       div(
         Styles.flex,

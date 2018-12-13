@@ -41,7 +41,8 @@ object PageHeader {
         Rx {
           val graph = state.graph()
           val page = state.page()
-          page.parentId.flatMap(graph.nodesByIdGet).map { parentNode => channelRow(state, parentNode) }
+          val parentNode = page.parentId.flatMap(graph.nodesByIdGet)
+          parentNode.map { channel => channelRow (state, channel) }
         },
       )
     )
@@ -472,76 +473,6 @@ object PageHeader {
     )
   }
 
-  private def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
-    fontawesome.icon(icon),
-    fontawesome.icon(
-      indicator,
-      new Params {
-        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
-        styles = scalajs.js.Dictionary[String]("color" -> color)
-      }
-    )
-  )
-
-  private def decorateNotificationIcon(state: GlobalState, permissionState: PermissionState)(icon: IconLookup, description: String, changes: GraphChanges, changesOnSuccessPrompt: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val default = "default".asInstanceOf[PermissionState]
-    permissionState match {
-      case PermissionState.granted => VDomModifier(
-        (icon: VNode) (cls := "fa-fw"),
-        title := description,
-        onClick(changes) --> state.eventProcessor.changes
-      )
-      case PermissionState.prompt | `default`  => VDomModifier(
-        iconWithIndicator(icon, freeRegular.faQuestionCircle, "black")(cls := "fa-fw"),
-        title := "Notifications are currently disabled. Click to enable.",
-        onClick foreach {
-          Notifications.requestPermissionsAndSubscribe {
-            if (changesOnSuccessPrompt) state.eventProcessor.changes.onNext(changes)
-          }
-        },
-      )
-      case PermissionState.denied  => VDomModifier(
-        iconWithIndicator(icon, freeRegular.faTimesCircle, "tomato")(cls := "fa-fw"),
-        title := s"$description (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-        onClick(changes) --> state.eventProcessor.changes
-      )
-    }
-  }
-
-  private def notifyControl(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
-    Rx {
-      val graph = state.graph()
-      val user = state.user()
-      val channelIdx = graph.idToIdx(channel.id)
-      val userIdx = graph.idToIdx(user.id)
-      val permissionState = state.permissionState()
-      val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
-
-      if(hasNotifyEdge) decorateNotificationIcon(state, permissionState)(
-        Icons.notificationsEnabled,
-        description = "You are watching this node and will be notified about changes. Click to stop watching.",
-        changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
-        changesOnSuccessPrompt = false
-      ) else {
-        val canNotifyParents = graph
-          .ancestorsIdx(channelIdx)
-          .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
-
-        if (canNotifyParents) decorateNotificationIcon(state, permissionState)(
-          Icons.notificationsEnabled,
-          description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
-          changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
-          changesOnSuccessPrompt = true
-        ) else decorateNotificationIcon(state, permissionState)(
-          Icons.notificationsDisabled,
-          description = "You are not watching this node and will not be notified. Click to start watching.",
-          changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
-          changesOnSuccessPrompt = true
-        )
-      }
-    }
-  }
-
   private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
     button(
       cls := "ui compact primary button",
@@ -582,25 +513,6 @@ object PageHeader {
           )
         case _ => VDomModifier.empty
       }
-
-    val notificationItem:VDomModifier = {
-      (!isOwnUser).ifTrue[VDomModifier](div(
-        cls := "item",
-        notifyControl(state,channel),
-
-        Rx {
-          val graph = state.graph()
-          val user = state.user()
-          val channelIdx = graph.idToIdx(channel.id)
-          val userIdx = graph.idToIdx(user.id)
-          @inline def permissionGranted = state.permissionState() == PermissionState.granted
-          @inline def hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
-          val text = if(permissionGranted && hasNotifyEdge) "Mute" else "Unmute"
-          span(marginLeft := "7px", cls := "text", text, cursor.pointer)
-        }
-      ))
-    }
-
 
     val nodeRoleItem:VDomModifier = channel match {
       case channel: Node.Content if canWrite =>
@@ -674,6 +586,7 @@ object PageHeader {
     val addMemberItem = canWrite.ifTrue[VDomModifier](manageMembers(state, channel))
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
+    val notificationItem = VDomModifier(Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel, isOwnUser) })
 
     val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, mentionInItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
 
