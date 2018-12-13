@@ -363,7 +363,9 @@ object KanbanView {
       }
     )
 
-    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int)
+    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int) {
+      @inline def progress = (100 * taskDoneCount) / taskChildrenCount
+    }
     val taskStats = Rx {
       val graph = state.graph()
       val nodeIdx = graph.idToIdx(node.id)
@@ -386,8 +388,8 @@ object KanbanView {
 
     val renderTaskProgress = Rx {
       if (taskStats().taskChildrenCount > 0) {
-        val progress = (100 * taskStats().taskDoneCount) / taskStats().taskChildrenCount
 
+        val progress = taskStats().progress
         VDomModifier(
           div(
             cls := "childstat",
