@@ -79,6 +79,7 @@ object PageHeader {
           level match {
             case Some(AccessLevel.Restricted) => VDomModifier(Permission.`private`.icon, UI.tooltip("bottom center") := Permission.`private`.description)
             case Some(AccessLevel.ReadWrite) => VDomModifier(Permission.public.icon, UI.tooltip("bottom center") := Permission.public.description)
+            case _ => VDomModifier.empty
           }
         )
       },
