@@ -393,10 +393,11 @@ object KanbanView {
             cls := "childstat",
             Styles.flex,
             flexGrow := 1,
+            alignItems.flexEnd,
+            minWidth := "40px",
             backgroundColor := "#eee",
             borderRadius := "2px",
             margin := "3px 10px",
-            alignItems.flexEnd,
             div(
               height := "3px",
               padding := "0",
@@ -422,14 +423,14 @@ object KanbanView {
         Styles.flex,
         justifyContent.flexEnd,
         alignItems.flexEnd,
-        width := "100%",
+        flexGrow := 1,
 
         div(
           cls := "childstats",
           Styles.flex,
           flexDirection.row,
           alignItems.center,
-          width := "100%",
+          flexGrow := 1,
           Rx{
             VDomModifier(
               renderTaskCount(
