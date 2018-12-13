@@ -223,6 +223,7 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
+    cursor.text,
   )
 
   ".avatar" - (
