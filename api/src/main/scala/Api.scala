@@ -103,7 +103,7 @@ object AuthUser {
       Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
   }
   case class Assumed(id: UserId) extends AuthUser {
-    def name = s"unregistered-user-${id.toCuidString.takeRight(4)}"
+    def name = s"unregistered-user-${id.toBase58}"
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0), NodeMeta.User)
   }
 
