@@ -128,7 +128,7 @@ object SharedViewElements {
 
     val placeHolderString = placeHolderMessage.getOrElse {
       if(BrowserDetect.isMobile || state.screenSize.now == ScreenSize.Small) "Write a message"
-      else "Write a message and press Enter to submit."
+      else "Write a message and press Enter to submit (use markdown to format)."
     }
 
     val immediatelyFocus = {
