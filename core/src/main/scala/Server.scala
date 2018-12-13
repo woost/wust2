@@ -68,7 +68,7 @@ object Server {
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val guardDsl = new GuardDsl(jwt, db)
     val mailService = MailService(config.email)
-    val fileUploader = config.aws.map(new S3FileUploader(_, config.server))
+    val fileUploader = config.aws.map(new S3FileUploader(_, config.server)) //TODO local file uploader stub for dev?
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
 

@@ -9,7 +9,6 @@ import rx._
 import wust.api.Authentication
 import wust.api.serialize.Circe._
 import wust.graph.GraphChanges
-import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._ //TODO use outwatch.util.Storage(dom.Storage)
 
 class ClientStorage(implicit owner: Ctx.Owner) {

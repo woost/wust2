@@ -401,8 +401,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.headOption)
     }
 
-    //TODO: we should update the revision of the user here, too. something
-    //changed and we could thereby invalidate existing tokens
+    //TODO: we should update the revision of the user here, too. something changed and we could therefore invalidate existing tokens
     def changePassword(userId: UserId, digest: Array[Byte])(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
       ctx.run(
         query[Password].filter(_.userId == lift(userId)).update(_.digest -> lift(digest))
