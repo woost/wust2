@@ -59,16 +59,18 @@ import org.sazabi.base58.Base58
     // faster than:
     //    s"${left.toHexString}|${right.toHexString}"
     //    s"${left.toString}|${right.toString}"
+    //    s"$lefthi$leftlo$righthi$rightlo"
 
-    // Cuid_serialization                1           1000
-    // toCuidString                   1336        1306551
-    // toUuid                         1381        1470059
-    // toBase58                       9577        9358585
-    // toHex                          2087        2062539
-    // toStringFast                    391         283274
+    //  Cuid_serialization            10000
+    //  toCuidString               13550108
+    //  toUuid                     15924428
+    //  toBase58                  113950249
+    //  toHex                      33991233
+    //  toStringFast                4959399
     // (times in us)
 
-    s"$lefthi$leftlo$righthi$rightlo"
+    import perfolation._
+    p"$lefthi$leftlo$righthi$rightlo"
   }
 
   @inline def isEqual(that: Cuid): Boolean = left == that.left && right == that.right
