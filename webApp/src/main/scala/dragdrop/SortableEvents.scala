@@ -33,12 +33,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   val filteredDragStartEvent = dragStartEvent.filter { e =>
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
-    val payload:Option[DragPayload] = readDragPayload(e.originalSource)
-    payload.foreach ( writeDragPayload(e.mirror, _) )
+    val payload: Option[DragPayload] = readDragPayload(e.originalSource)
+    payload.foreach(writeDragPayload(e.mirror, _))
 
     payload match {
       case Some(DragItem.DisableDrag) => e.cancel(); false
-      case _ => true
+      case _                          => true
     }
   }
 
@@ -46,7 +46,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   draggable.on[SortableSortEvent]("sortable:sort", sortableSortEvent.onNext _)
   draggable.on[SortableStopEvent]("sortable:stop", (e: SortableStopEvent) => {
     sortableStopEvent.onNext(e)
-    scribe.debug(s"moved from position ${e.oldIndex} to new position ${e.newIndex}")
+    scribe.debug(s"moved from position ${ e.oldIndex } to new position ${ e.newIndex }")
   })
 
   draggable.on[DragStartEvent]("drag:start", dragStartEvent.onNext _)
@@ -62,8 +62,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val sourceElem = e.dragEvent.source
 
     // workaround: use classList to explicitly filter elements (dragEvent.mirror does not work reliable)
-    val previousContChildren: js.Array[HTMLElement] = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
-    val newContChildren: js.Array[HTMLElement] = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror") )
+    val previousContChildren: js.Array[HTMLElement] = e.oldContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.source || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror"))
+    val newContChildren: js.Array[HTMLElement] = e.newContainer.children.asInstanceOf[js.Array[HTMLElement]].filterNot(f => f == e.dragEvent.originalSource || f == e.dragEvent.mirror || f.classList.contains("draggable-mirror"))
 
     val prevPos = previousContChildren.indexOf(origElem)
     val nextPos = newContChildren.indexOf(sourceElem)
@@ -89,61 +89,56 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case Some((previousDomPosition, newDomPosition)) =>
         val containerChanged = checkContainerChanged(from, into)
 
-        val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition))
-                   {scribe.debug("item dropped on same place (no movement)");GraphChanges.empty}
+        val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition)) { scribe.debug("item dropped on same place (no movement)"); GraphChanges.empty }
                  else
                    TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
 
 
-//                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
-//                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
-//                 else
-//                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
+        //                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
+        //                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
+        //                 else
+        //                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
 
         scribe.debug("Calculated new sorting graph change!")
         scribe.debug(gc.toPrettyString(graph))
         gc
-      case _ =>
+      case _                                           =>
         TaskOrdering.abortSorting("Could not determine position of elements")
     }
   }
 
-  private def submit(changes:GraphChanges) = {
+  private def submit(changes: GraphChanges) = {
     state.eventProcessor.changes.onNext(changes)
   }
-  private def addTag(nodeId:NodeId, tagId:NodeId):Unit = addTag(nodeId :: Nil, tagId)
-  private def addTag(nodeIds:Iterable[NodeId], tagId:NodeId):Unit = addTag(nodeIds, tagId :: Nil)
-  private def addTag(nodeIds:Iterable[NodeId], tagIds:Iterable[NodeId]):Unit = {
-    val changes = nodeIds.foldLeft(GraphChanges.empty) {(currentChange, nodeId) =>
+  private def addTag(nodeId: NodeId, tagId: NodeId): Unit = addTag(nodeId :: Nil, tagId)
+  private def addTag(nodeIds: Iterable[NodeId], tagId: NodeId): Unit = addTag(nodeIds, tagId :: Nil)
+  private def addTag(nodeIds: Iterable[NodeId], tagIds: Iterable[NodeId]): Unit = {
+    val changes = nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
       val graph = state.graph.now
       val subjectIdx = graph.idToIdx(nodeId)
       val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
-      currentChange merge GraphChanges.connect((s,d,t) => new Edge.Parent(s,d,t))(nodeIds, EdgeData.Parent(deletedAt, None), tagIds)
+      currentChange merge GraphChanges.connect((s, d, t) => new Edge.Parent(s, d, t))(nodeIds, EdgeData.Parent(deletedAt, None), tagIds)
     }
     submit(changes)
   }
 
-  private def moveInto(nodeId:NodeId, newParentId:NodeId):Unit = moveInto(nodeId :: Nil, newParentId :: Nil)
-  private def moveInto(nodeId:NodeId, newParentIds:Iterable[NodeId]):Unit = moveInto(nodeId :: Nil, newParentIds)
-  private def moveInto(nodeIds:Iterable[NodeId], newParentIds:Iterable[NodeId]):Unit = {
+  private def moveInto(nodeId: NodeId, newParentId: NodeId): Unit = moveInto(nodeId :: Nil, newParentId :: Nil)
+  private def moveInto(nodeId: NodeId, newParentIds: Iterable[NodeId]): Unit = moveInto(nodeId :: Nil, newParentIds)
+  private def moveInto(nodeIds: Iterable[NodeId], newParentIds: Iterable[NodeId]): Unit = {
     submit(GraphChanges.moveInto(state.graph.now, nodeIds, newParentIds))
   }
-  private def moveChannel(channelId:NodeId, targetChannelId:Option[NodeId]):Unit = {
-
-    def filterParents(nodeId:NodeId, tree:Tree):Set[NodeId] = {
-      tree match {
-        case _:Tree.Leaf => Set.empty
-        case Tree.Parent(parentNode, children) =>
-          val parent = if( children.exists(_.node.id == nodeId) ) Set(parentNode.id) else Set.empty
-          parent ++ children.flatMap(child => filterParents(nodeId, child))
-      }
+  private def movePinnedChannel(channelId: NodeId, targetChannelId: Option[NodeId]): Unit = {
+    val graph = state.graph.now
+    val channelIdx = graph.idToIdx(channelId)
+    val directParentsInChannelTree = graph.notDeletedParentsIdx(channelIdx).collect {
+      case parentIdx if graph.anyAncestorIsPinned(graph.nodeIds(parentIdx) :: Nil, state.user.now.id) => graph.nodeIds(parentIdx)
     }
 
-    val topologicalChannelParents = state.channelForest.now.flatMap(filterParents(channelId, _))
-    val disconnect:GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, topologicalChannelParents)
-    val connect:GraphChanges = targetChannelId.fold(GraphChanges.empty){ (targetChannelId) => GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)}
+    val disconnect: GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, directParentsInChannelTree)
+    val connect: GraphChanges = targetChannelId.fold(GraphChanges.empty) {
+      targetChannelId => GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
+    }
     submit(disconnect merge connect)
-
   }
 
 
@@ -153,32 +148,32 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     )
   }
 
-  val dragActions:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit] = {
+  val dragActions: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), Unit] = {
     // The booleans: Ctrl is dow, Shift is down
     import DragItem._
     {
       case (dragging: Chat.Message, target: Chat.Thread, false, false) => moveInto(dragging.nodeId, target.nodeIds)
 
-      case (dragging: Kanban.Card, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: Kanban.Card, target: SingleNode, false, false)   => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: Kanban.Column, target: SingleNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
 
-      case (dragging: SelectedNode, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
+      case (dragging: SelectedNode, target: SingleNode, false, false)  => addTag(dragging.nodeIds, target.nodeId)
       case (dragging: SelectedNodes, target: SingleNode, false, false) => addTag(dragging.nodeIds, target.nodeId)
 
-      case (dragging: Channel, target: Channel, false, false) => moveChannel(dragging.nodeId, Some(target.nodeId))
-      case (dragging: AnyNodes, target: Channel, false, false) => moveInto(dragging.nodeIds, target.nodeId :: Nil)
-      case (dragging: Channel, target: SingleNode, false, false) => addTag(dragging.nodeId, target.nodeId)
-      case (dragging: Channel, target: Sidebar.type, false, false) => moveChannel(dragging.nodeId, None)
+      case (dragging: Channel, target: Channel, false, false)      => movePinnedChannel(dragging.nodeId, Some(target.nodeId))
+      case (dragging: AnyNodes, target: Channel, false, false)     => moveInto(dragging.nodeIds, target.nodeId :: Nil)
+      case (dragging: Channel, target: SingleNode, false, false)   => addTag(dragging.nodeId, target.nodeId)
+      case (dragging: Channel, target: Sidebar.type, false, false) => movePinnedChannel(dragging.nodeId, None)
 
-      case (dragging: ChildNode, target: ParentNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ChildNode, target: ParentNode, false, false)       => moveInto(dragging.nodeId, target.nodeId)
       case (dragging: ChildNode, target: MultiParentNodes, false, false) => moveInto(dragging.nodeId, target.nodeIds)
-      case (dragging: ChildNode, target: ChildNode, false, false) => moveInto(dragging.nodeId, target.nodeId)
-      case (dragging: ParentNode, target: SingleNode, false, false) => addTag(target.nodeId, dragging.nodeId)
+      case (dragging: ChildNode, target: ChildNode, false, false)        => moveInto(dragging.nodeId, target.nodeId)
+      case (dragging: ParentNode, target: SingleNode, false, false)      => addTag(target.nodeId, dragging.nodeId)
 
       case (dragging: AvatarNode, target: DragContainer.AvatarHolder, _, _) => assign(dragging.userId, target.nodeId)
-      case (dragging: AvatarNode, target: Kanban.Card, _, _) => assign(dragging.userId, target.nodeId)
+      case (dragging: AvatarNode, target: Kanban.Card, _, _)                => assign(dragging.userId, target.nodeId)
 
-      case (dragging: AnyNodes, target: AnyNodes, true, _) => addTag(dragging.nodeIds, target.nodeIds)
+      case (dragging: AnyNodes, target: AnyNodes, true, _)  => addTag(dragging.nodeIds, target.nodeIds)
       case (dragging: AnyNodes, target: AnyNodes, false, _) => moveInto(dragging.nodeIds, target.nodeIds)
 
     }
@@ -187,7 +182,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   dragOverEvent.map(_.over).map { over =>
     val target = readDragTarget(over)
     DevOnly {
-      target.foreach{target => scribe.debug(s"Dragging over: $target")}
+      target.foreach { target => scribe.debug(s"Dragging over: $target") }
     }
     target
   }.subscribe(lastDragTarget)
@@ -196,9 +191,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // This partial function describes what happens, but also what is allowed to drag from where to where
   val
-  sortableActions: PartialFunction[(SortableStopEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean),Unit] = {
+  sortableActions: PartialFunction[(SortableStopEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean), Unit] = {
     import DragContainer._
     def graph = state.graph.now
+
     def userId = state.user.now.id
 
     {
@@ -223,7 +219,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         // the card changes its workspace from from:Card to into:Kanban.Column.workspace
         //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
-        val changeWorkspace:GraphChanges = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), from.parentId :: Nil, Some(into.workspace))
+        val changeWorkspace: GraphChanges = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), from.parentId :: Nil, Some(into.workspace))
         // TODO: adding stageParents to fullChange results in a graphchange where the same parentedge
         // is introduced by sortChanges, but with an ordering. Graphchanges does NOT squash the edges. This is a bug in GraphChanges.
         // val stageParents: GraphChanges = GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.parentId)
@@ -244,7 +240,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
         val stageParents = graph.getRoleParents(dragging.nodeId, NodeRole.Stage)
         val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, stageParents)
-        val changeWorkspace:GraphChanges = if(from.workspace != into.parentId) GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.workspace :: Nil) else GraphChanges.empty
+        val changeWorkspace: GraphChanges = if(from.workspace != into.parentId) GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.workspace :: Nil) else GraphChanges.empty
         val fullChange = unstageChanges merge sortChanges merge changeWorkspace
 
         state.eventProcessor.changes.onNext(fullChange)
@@ -260,7 +256,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     }
   }
 
-//  val ctrlDown = keyDown(KeyCode.Ctrl)
+  //  val ctrlDown = keyDown(KeyCode.Ctrl)
   val ctrlDown = if(BrowserDetect.isMobile) Observable.now(false) else keyDown(KeyCode.Ctrl)
   //  ctrlDown.foreach(down => println(s"ctrl down: $down"))
 
@@ -272,16 +268,16 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   sortableStartEvent.foreachTry { e =>
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
-    val payload:Option[DragPayload] = readDragPayload(e.dragEvent.originalSource)
-    payload.foreach ( writeDragPayload(e.dragEvent.source, _) )
+    val payload: Option[DragPayload] = readDragPayload(e.dragEvent.originalSource)
+    payload.foreach(writeDragPayload(e.dragEvent.source, _))
 
     payload match {
       case Some(DragItem.DisableDrag) => e.cancel()
-      case _ =>
+      case _                          =>
     }
   }
 
-  sortableSortEvent.withLatestFrom2(ctrlDown,shiftDown)((e,ctrl,shift) => (e,ctrl,shift)).foreachTry { case (e,ctrl,shift) =>
+  sortableSortEvent.withLatestFrom2(ctrlDown, shiftDown)((e, ctrl, shift) => (e, ctrl, shift)).foreachTry { case (e, ctrl, shift) =>
 
     val disableSort = readDragDisableSort(e.dragEvent.originalSource).getOrElse(false)
     // dom.console.log(e.dragEvent)
@@ -301,8 +297,8 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       // white listing allowed sortable actions
       (draggingOpt, sourceContainerOpt, overContainerOpt) match {
         case (Some(dragging), Some(sourceContainer), Some(overContainer)) if sortableActions.isDefinedAt((null, dragging, sourceContainer, overContainer, ctrl, shift)) => // allowed
-        case (Some(dragging), Some(sourceContainer), Some(overContainer)) => println(s"not allowed: $sourceContainer -> $dragging -> $overContainer"); e.cancel()
-        case _ =>
+        case (Some(dragging), Some(sourceContainer), Some(overContainer))                                                                                               => println(s"not allowed: $sourceContainer -> $dragging -> $overContainer"); e.cancel()
+        case _                                                                                                                                                          =>
           println(s"not allowed: $sourceContainerOpt -> $draggingOpt -> $overContainerOpt")
           e.cancel()
       }
@@ -317,13 +313,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     if(disableSort) {
       (readDraggableDraggedAction(e.dragEvent.originalSource), readDragPayload(e.dragEvent.originalSource), target, ctrl, shift) match {
         case (afterDraggedAction, Some(payload), Some(target), ctrl, shift) =>
-          scribe.debug(s"Dropped: $payload -> $target${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-          dragActions.andThen{ _ =>
-            Analytics.sendEvent("drag", "dropped", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-          }.applyOrElse((payload, target, ctrl, shift), { case (payload:DragPayload, target:DragTarget, ctrl:Boolean, shift:Boolean) =>
-            Analytics.sendEvent("drag", "nothandled", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-            scribe.debug(s"drag combination not handled.")
-          }:PartialFunction[(DragPayload, DragTarget, Boolean, Boolean),Unit]
+          scribe.debug(s"Dropped: $payload -> $target${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+          dragActions.andThen { _ =>
+            Analytics.sendEvent("drag", "dropped", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+          }.applyOrElse((payload, target, ctrl, shift), {
+            case (payload: DragPayload, target: DragTarget, ctrl: Boolean, shift: Boolean) =>
+              Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+              scribe.debug(s"drag combination not handled.")
+          }: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), Unit]
           )
           afterDraggedAction.foreach(_.apply())
         case other                                                          => scribe.debug(s"incomplete drag action: $other")
