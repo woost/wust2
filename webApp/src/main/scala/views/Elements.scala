@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fontAwesome.{IconDefinition, IconLookup, freeSolid}
+import fontAwesome._
 import marked.Marked
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
@@ -236,7 +236,18 @@ object Elements {
     }
   }
 
-  @inline def icon(icon: IconLookup) = i(
+  def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
+    fontawesome.icon(icon),
+    fontawesome.icon(
+      indicator,
+      new Params {
+        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
+        styles = scalajs.js.Dictionary[String]("color" -> color)
+      }
+    )
+  )
+
+  def icon(icon: IconLookup) = i(
     cls := "icon fa-fw",
     icon
   )

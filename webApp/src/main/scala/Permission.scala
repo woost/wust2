@@ -39,7 +39,7 @@ object Permission {
         name = (_, _) => "Private",
         value = "Private",
         description = "Only you and explicit members can access this page",
-        icon = Icons.permissionPrivat
+        icon = Icons.permissionPrivate
       )
 
   val all = inherit :: public :: `private` :: Nil
