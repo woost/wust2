@@ -636,7 +636,7 @@ object PageHeader {
             freeSolid.faExchangeAlt,
             marginRight := "5px",
           ),
-          span(cls := "text", "Convert", cursor.pointer),
+          span(cls := "text", "Convert to ...", cursor.pointer),
           div(
             cls := "menu",
             nodeRoleSubItem(NodeRole.Message),
