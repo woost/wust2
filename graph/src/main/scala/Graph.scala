@@ -106,34 +106,30 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   @deprecated("Be aware that you are constructing a new graph here.", "")
   def filterNot(p: Node => Boolean): Graph = filter(node => !p(node))
 
-  def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes ++ Set(user), addEdges = c.addEdges, deleteEdges = c.delEdges)
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+  def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(c.copy(addNodes = c.addNodes + user))
+  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(c)
 
-  private def changeGraphInternal(addNodes: collection.Set[Node], addEdges: collection.Set[Edge], deleteEdges: collection.Set[Edge] = Set.empty): Graph = {
+  private def changeGraphInternal(c:GraphChanges): Graph = {
+
     val nodesBuilder = mutable.ArrayBuilder.make[Node]()
     val edgesBuilder = mutable.ArrayBuilder.make[Edge]()
-    // nodesBuilder.sizeHint(nodes.length + addNodes.size)
-    // edgesBuilder.sizeHint(edges.length + addEdges.size)
 
-    val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
-    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.collect {
-      // we filter out edges without a unique constraint.
-      // this needs to correspond how it is defined in the database.
-      case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, e.targetId)
-    }(breakOut)
-    val deleteEdgeIds: Set[(NodeId, String, NodeId)] = deleteEdges.map { e => (e.sourceId, e.data.tpe, e.targetId) }(breakOut)
-    val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
+    val addNodeIds: Set[NodeId] = c.addNodes.map(_.id)(breakOut)
+    val deleteEdgeTriples: Set[(NodeId, String, NodeId)] = c.delEdges.map { e => (e.sourceId, e.data.tpe, e.targetId) }(breakOut)
+    val updatedEdgeTriples = c.addEdgeTriples ++ deleteEdgeTriples
 
     nodes.foreach { node =>
       if(!addNodeIds(node.id)) nodesBuilder += node
     }
-    addNodes.foreach { node =>
+    c.addNodes.foreach { node =>
       nodesBuilder += node
     }
     edges.foreach { edge =>
-      if(!updatedEdgeIds((edge.sourceId, edge.data.tpe, edge.targetId))) edgesBuilder += edge
+      // keep all edges in the graph which will not be updated
+      @inline def edgeWillNotbeUpdated = !updatedEdgeTriples((edge.sourceId, edge.data.tpe, edge.targetId))
+      if(edgeWillNotbeUpdated) edgesBuilder += edge
     }
-    addEdges.foreach { edge =>
+    c.addEdges.foreach { edge =>
       edgesBuilder += edge
     }
 

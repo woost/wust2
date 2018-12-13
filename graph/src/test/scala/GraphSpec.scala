@@ -128,6 +128,20 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(newGraph.edges.head.asInstanceOf[Edge.Parent].data.ordering.get.toInt == 7)
       }
 
+      "replace parent edge (with ordering) in graph by empty parent edge" in {
+        val graph = Graph(
+          nodes = List(1, 2),
+          edges = Set()
+        )
+
+        val oldParent = Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(5)), 1: NodeId)
+        val newParent = Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = None), 1: NodeId)
+        val newGraph = graph.applyChanges(GraphChanges(addEdges = Set(oldParent,newParent)))
+
+        assert(newGraph.edges.size == 1)
+        assert(newGraph.edges.head.asInstanceOf[Edge.Parent].data.ordering == None)
+      }
+
       "replace parent edge in graph multiple parents" in {
         val graph = Graph(
           nodes = List(1, 2, 3),

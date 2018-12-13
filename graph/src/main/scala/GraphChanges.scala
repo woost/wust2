@@ -8,8 +8,9 @@ import scala.collection.breakOut
 case class GraphChanges(
   addNodes: collection.Set[Node] = Set.empty,
   addEdges: collection.Set[Edge] = Set.empty,
-  // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
   delEdges: collection.Set[Edge] = Set.empty
+  // we do not really need a connection for deleting (a ConnectionId would be enough),
+  // but it allows us to calculate a reverse change
 ) {
   def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges =
     copy(
@@ -22,7 +23,6 @@ case class GraphChanges(
       addNodes = addNodes ++ other.addNodes,
       addEdges = addEdges ++ other.addEdges,
       delEdges = delEdges -- other.addEdges ++ other.delEdges
-      //FIXME: why was i here? inconsistent changes? .filter(c => !otherAddNodeIds(c.sourceId) && !otherAddNodeIds(c.targetId))
     )
   }
 
@@ -44,6 +44,14 @@ case class GraphChanges(
   }
 
   lazy val consistent: GraphChanges = copy(addEdges = addEdges -- delEdges)
+
+
+  def addEdgeTriples: Set[(NodeId, String, NodeId)] = addEdges.collect {
+    // we filter out edges without a unique constraint.
+    // this needs to correspond how it is defined in the database.
+    case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, e.targetId)
+  }(breakOut)
+
 
   def involvedNodeIds: collection.Set[NodeId] =
     addNodes.map(_.id) ++
