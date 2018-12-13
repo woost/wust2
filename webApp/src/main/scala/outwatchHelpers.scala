@@ -16,6 +16,7 @@ import wust.webUtil.macros.KeyHash
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import wust.util._
 
 case class Ownable[T](get: Ctx.Owner => T)
 
@@ -28,6 +29,13 @@ package object outwatchHelpers extends KeyHash {
 //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
       Scheduler.global
 //    Scheduler.trampoline(executionModel=AlwaysAsyncExecution)
+
+  implicit object EmptyVDM extends Empty[VDomModifier] {
+    @inline def empty: VDomModifier = VDomModifier.empty
+  }
+
+  @inline def when(condition:Boolean)(modifier: => VDomModifier):VDomModifier = condition.ifTrue[VDomModifier](modifier)
+  @inline def whenNot(condition:Boolean)(modifier: => VDomModifier):VDomModifier = condition.ifFalse[VDomModifier](modifier)
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
     @inline def empty[T: Empty]: Var[T] = Var(Empty[T])
@@ -207,10 +215,6 @@ package object outwatchHelpers extends KeyHash {
 
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
-
-  implicit object EmptyVDM extends Empty[VDomModifier] {
-    @inline def empty: VDomModifier = VDomModifier.empty
-  }
 
   //TODO: add to fontawesome
   implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
