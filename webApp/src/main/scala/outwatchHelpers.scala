@@ -1,5 +1,6 @@
 package wust.webApp
 
+import cats.Functor
 import cats.effect.IO
 import fontAwesome._
 import jquery.JQuerySelection
@@ -7,7 +8,8 @@ import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
-import org.scalajs.dom.{document,console}
+import org.scalajs.dom.{console, document}
+import outwatch.AsVDomModifier
 import outwatch.dom.{AsObserver, AsValueObservable, BasicVNode, CompositeModifier, ConditionalVNode, Handler, Key, ManagedSubscriptions, ObservableWithInitialValue, OutWatch, ThunkVNode, VDomModifier, VNode, ValueObservable, dsl}
 import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
 import rx._
@@ -17,8 +19,18 @@ import wust.webUtil.macros.KeyHash
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import wust.util._
+import scala.util.control.NonFatal
 
-case class Ownable[T](get: Ctx.Owner => T)
+class Ownable[T](val get: Ctx.Owner => T) {
+  @inline final def map[R](f: T => R): Ownable[R] = Ownable(get andThen f)
+  @inline final def mapWithOwner[R](f: Ctx.Owner => T => R): Ownable[R] = Ownable(ctx => f(ctx)(get(ctx)))
+  @inline final def flatMap[R](f: T => Ownable[R]): Ownable[R] = Ownable(ctx => f(get(ctx)).get(ctx))
+}
+object Ownable {
+  @inline def apply[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get)
+
+  implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable.get(_))
+}
 
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
 //TODO: outwatch: onInput.target foreach { elem => ... }
