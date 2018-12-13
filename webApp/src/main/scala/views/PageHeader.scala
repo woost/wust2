@@ -25,7 +25,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
+import wust.webApp._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -75,9 +75,11 @@ object PageHeader {
       },
       Rx {
         val level = state.graph().accessLevelOfNode(channel.id)
-        val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
-        isPublic.ifTrue[VDomModifier](
-          div(Icons.permissionPublic, UI.tooltip("bottom center") := "Anyone can join via URL")
+        div(
+          level match {
+            case Some(AccessLevel.Restricted) => VDomModifier(Permission.`private`.icon, UI.tooltip("bottom center") := Permission.`private`.description)
+            case Some(AccessLevel.ReadWrite) => VDomModifier(Permission.public.icon, UI.tooltip("bottom center") := Permission.public.description)
+          }
         )
       },
       menu(state, channel).apply(marginLeft.auto),
@@ -560,18 +562,18 @@ object PageHeader {
             span(cls := "text", "Set Permissions", cursor.pointer),
             div(
               cls := "menu",
-              PermissionSelection.all.map { selection =>
+              Permission.all.map { item =>
                 div(
                   cls := "item",
-                  Elements.icon(selection.icon)(marginRight := "5px"),
+                  Elements.icon(item.icon)(marginRight := "5px"),
                   // value := selection.value,
                   Rx {
-                    selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+                    item.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
                   },
-                  (channel.meta.accessLevel == selection.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-                  onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = selection.access)))) --> state.eventProcessor.changes,
+                  (channel.meta.accessLevel == item.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
+                  onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access)))) --> state.eventProcessor.changes,
                   onClick foreach {
-                    Analytics.sendEvent("pageheader", "changepermission", selection.access.str)
+                    Analytics.sendEvent("pageheader", "changepermission", item.access.str)
                   }
                 )
               }
@@ -746,44 +748,6 @@ object PageHeader {
 
   }
 
-}
-
-case class PermissionSelection(
-  access: NodeAccess,
-  value: String,
-  name: (NodeId, Graph) => String,
-  description: String,
-  icon: IconLookup
-)
-object PermissionSelection {
-  val all =
-    PermissionSelection(
-      access = NodeAccess.Inherited,
-      name = { (nodeId, graph) =>
-        val level = graph.accessLevelOfNode(nodeId)
-        val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
-        val inheritedLevel = if(isPublic) "Public" else "Private"
-        s"Inherited ($inheritedLevel)"
-      },
-      value = "Inherited",
-      description = "The permissions for this page are the same as for its parents", // TODO: write name of parent page. Notion did permission UI very well.
-      icon = Icons.permissionInherit,
-    ) ::
-      PermissionSelection(
-        access = NodeAccess.Level(AccessLevel.ReadWrite),
-        name = (_, _) => "Public",
-        value = "Public",
-        description = "Anyone can access this page via the URL",
-        icon = Icons.permissionPublic,
-      ) ::
-      PermissionSelection(
-        access = NodeAccess.Level(AccessLevel.Restricted),
-        name = (_, _) => "Private",
-        value = "Private",
-        description = "Only you and explicit members can access this page",
-        icon = Icons.permissionPrivat
-      ) ::
-      Nil
 }
 
 case class ConvertSelection(
