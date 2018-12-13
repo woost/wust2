@@ -32,6 +32,7 @@ object Node {
   case class User(id: UserId, data: NodeData.User, meta: NodeMeta) extends Node {
     @inline def name: String = data.name
     def role: NodeRole = NodeRole.default
+    override def toString = s"""User([${id.shortHumanReadable}]"$name"${if(data.isImplicit) ":implicit" else ""}${if(meta.accessLevel != NodeAccess.Restricted) s":$meta" else ""}  ${id.toBase58}  ${id.toUuid})"""
   }
   case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta) extends Node
   object Content {
