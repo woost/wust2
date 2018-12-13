@@ -39,6 +39,27 @@ object MainView {
         Rx { WoostNotification.banner(state, state.permissionState()) }
       ),
 
+      // TODO: we need this for the migration from username to email can go away afterwards
+      div(Rx {
+        Observable.fromFuture(
+          state.user() match {
+            case user: AuthUser.Real =>
+              Client.auth.getUserDetail(user.id).map {
+                case Some(detail) =>
+                  when(detail.email.isEmpty)(Elements.topBanner(
+                    "You do not have an e-mail setup.",
+                    span("please update your Profile.", paddingLeft := "1ch", textDecoration.underline),
+                    onClick foreach { state.view() = View.UserSettings },
+                  ))
+                case err                   =>
+                  scribe.info(s"Cannot get User Details: ${ err }")
+                  VDomModifier.empty
+              }
+            case _                   =>
+              Future.successful(VDomModifier.empty)
+          }
+        )
+      }),
       Topbar(state)(width := "100%", Styles.flexStatic),
       div(
         Styles.flex,
