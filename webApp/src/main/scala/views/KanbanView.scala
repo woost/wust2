@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome.{freeRegular, freeSolid}
+import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -252,12 +253,12 @@ object KanbanView {
             cursor.pointer,
             paddingBottom := "7px",
           ),
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id))), // allows to drop cards on collapsed columns
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)), // allows to drop cards on collapsed columns
         )
       ) else VDomModifier(
         div(
           cls := "kanbancolumnchildren",
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id))),
+          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)),
           keyed(node.id, parentId),
           children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeReplyFields, selectedNodeIds)),
           scrollHandler.modifier,
@@ -339,8 +340,11 @@ object KanbanView {
           //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
           VDomModifier.empty
         } else VDomModifier(
+          if(state.graph().isExpanded(state.user.now.id, node.id))
+            div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
+          else
+            div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
           div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
-//          div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
 //          Rx {
 //            val userid = state.user().id
 //            if(assignment().exists(_.id == userid)) {
@@ -352,7 +356,12 @@ object KanbanView {
           div(
             div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
-              val changes = GraphChanges.delete(node.id, parentId) merge GraphChanges.delete(node.id, pageParentId)
+              val graph = state.graph()
+              val nodeIdx = graph.idToIdx(node.id)
+              val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
+              val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+
+              val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
               state.eventProcessor.changes.onNext(changes)
               selectedNodeIds.update(_ - node.id)
             },
@@ -384,6 +393,15 @@ object KanbanView {
       TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount)
     }
 
+    val taskChildren:Rx[Array[Node.Content]] = Rx {
+      val graph = state.graph()
+      val nodeIdx = graph.idToIdx(node.id)
+
+      if(graph.isExpanded(state.user().id, node.id) && graph.taskChildrenIdx.sliceNonEmpty(nodeIdx)) {
+        val taskChildren = graph.taskChildrenIdx(nodeIdx)
+        taskChildren.map(i => graph.nodes(i).asInstanceOf[Node.Content])(breakOut)
+      } else Array.empty[Node.Content]
+    }
 
 
     val renderTaskProgress = Rx {
@@ -406,8 +424,8 @@ object KanbanView {
               width := s"${math.max(progress, 1)}%",
               backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
               UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
-            )
-          )
+            ),
+          ),
         )
       } else VDomModifier(cls := "emptystat")
     }
@@ -422,6 +440,7 @@ object KanbanView {
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       div(
+        cls := "cardfooter",
         Styles.flex,
         justifyContent.flexEnd,
         alignItems.flexEnd,
@@ -444,11 +463,16 @@ object KanbanView {
               ),
               renderTaskProgress(),
               renderMessageCount(
-                if (taskStats().messageChildrenCount > 0) VDomModifier(taskStats().messageChildrenCount)
-                else VDomModifier(cls := "emptystat"),
+                if (taskStats().messageChildrenCount > 0) VDomModifier(
+                  taskStats().messageChildrenCount,
+                  UI.popup := "Zoom to show comments",
+                )
+                else VDomModifier(
+                  cls := "emptystat",
+                  UI.popup := "Start conversation about this card"
+                ),
                 onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
                 cursor.pointer,
-                UI.popup := "Zoom to show comments",
               ),
             )
           },
@@ -472,6 +496,25 @@ object KanbanView {
         ),
 
       ),
+
+      Rx {
+        when(state.graph().isExpanded(state.user().id, node.id))(VDomModifier(
+          div(
+            boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
+            margin := "5px",
+            padding := "1px 5px 6px 5px",
+            minHeight := "50px",
+            borderRadius := "3px",
+            backgroundColor := "#EFEFEF",
+            taskChildren().map{ childNode =>
+              renderCard(state,childNode,pageParentId = node.id, parentId = node.id,selectedNodeIds = selectedNodeIds).apply(
+                marginTop := "5px",
+              )
+            },
+            registerSortableContainer(state, DragContainer.Kanban.Card(node.id, taskChildren().map(_.id))),
+          )
+        ))
+      },
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),

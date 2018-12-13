@@ -90,7 +90,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val containerChanged = checkContainerChanged(from, into)
 
         val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition))
-                   TaskOrdering.abortSorting("item dropped on same place (no movement)")
+                   {scribe.debug("item dropped on same place (no movement)");GraphChanges.empty}
                  else
                    TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
 
@@ -210,7 +210,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         state.eventProcessor.changes.onNext(fullChange)
 
-      case (e, dragging: DragItem.Kanban.Card, from: Kanban.AreaForCards, into: Kanban.Column, false, false) =>
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Column, into: Kanban.Column, false, false) =>
         //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
         val stageParents = graph.getRoleParents(dragging.nodeId, NodeRole.Stage).filterNot(_ == into.parentId)
@@ -219,18 +219,44 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         state.eventProcessor.changes.onNext(fullChange)
 
-      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Column, into: Kanban.Inbox, false, false) =>
-        // disconnect from all stage parents
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Card, into: Kanban.Column, false, false) =>
+        // the card changes its workspace from from:Card to into:Kanban.Column.workspace
+        //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
-        val stageParents = graph.getRoleParents(dragging.nodeId, NodeRole.Stage).filterNot(_ == into.parentId)
-        val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, stageParents)
-        val fullChange = unstageChanges merge sortChanges
+        val changeWorkspace:GraphChanges = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), from.parentId :: Nil, Some(into.workspace))
+        // TODO: adding stageParents to fullChange results in a graphchange where the same parentedge
+        // is introduced by sortChanges, but with an ordering. Graphchanges does NOT squash the edges. This is a bug in GraphChanges.
+        // val stageParents: GraphChanges = GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.parentId)
+        val fullChange = sortChanges merge changeWorkspace //merge stageParents
 
         state.eventProcessor.changes.onNext(fullChange)
 
-      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Inbox, into: Kanban.Inbox, false, false) => // needed to allow dragging from inbox into column, not dropping and then dropping it back in inbox or sorting within Inbox
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Inbox, into: Kanban.Column, false, false) =>
+        //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
-        state.eventProcessor.changes.onNext(sortChanges)
+        val stageParents = graph.getRoleParents(dragging.nodeId, NodeRole.Stage).filterNot(_ == into.parentId)
+        val fullChange = sortChanges
+
+        state.eventProcessor.changes.onNext(fullChange)
+
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Column, into: Kanban.Workspace, false, false) =>
+        // disconnect from all stage parents
+        val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
+        val stageParents = graph.getRoleParents(dragging.nodeId, NodeRole.Stage)
+        val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, stageParents)
+        val changeWorkspace:GraphChanges = if(from.workspace != into.parentId) GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, from.workspace :: Nil) else GraphChanges.empty
+        val fullChange = unstageChanges merge sortChanges merge changeWorkspace
+
+        state.eventProcessor.changes.onNext(fullChange)
+
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Workspace, into: Kanban.Workspace, false, false) =>
+        // disconnect from all stage parents
+        val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
+        val oldParents = graph.parents(dragging.nodeId).filterNot(_ == into.parentId)
+        val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(dragging.nodeId, oldParents)
+        val fullChange = unstageChanges merge sortChanges
+
+        state.eventProcessor.changes.onNext(fullChange)
     }
   }
 

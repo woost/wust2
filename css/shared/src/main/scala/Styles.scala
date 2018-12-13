@@ -765,7 +765,7 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden,
   )
   ".kanbancolumnfooter:hover .childstats .emptystat," +
-  ".nodecard:hover .childstats .emptystat" - (
+  ".nodecard:hover > .cardfooter > .childstats .emptystat" - (
     visibility.visible,
   )
 
@@ -792,7 +792,7 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden.important // hide buttons when dragging over column
   )
 
-  ".nodecard:hover .buttonbar," +
+  ".nodecard:hover > .buttonbar," +
   ".kanbancolumnheader:hover .buttonbar" - (
     visibility.visible
   )
@@ -926,16 +926,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable selectednodes
-  ".selectednodes .nodelist.draggable--over," +
-  ".selectednodes.draggable--over" - (
-    backgroundColor(c"rgba(65,184,255, 1)").important,
-    )
-
-  ".selectednodes .nodelist.draggable-source--is-dragging" - (
-    backgroundColor(selectedNodesBgColor).important,
-    border(3 px, dashed, c"#48A4D4")
-  )
-
   ".selectednodes.draggable-mirror .actionbutton" - (
     display.none
     )

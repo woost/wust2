@@ -30,8 +30,8 @@ object DragItem extends wust.ids.serialize.Circe {
 
   object Kanban {
     sealed trait Item { def nodeId: NodeId }
-    case class Column(nodeId: NodeId) extends ParentNode with Item
-    case class Card(nodeId: NodeId) extends ChildNode with Item
+    case class Column(nodeId: NodeId) extends ParentNode with Item { override def toString = s"Column(${nodeId.shortHumanReadable})"}
+    case class Card(nodeId: NodeId) extends ChildNode with Item { override def toString = s"Card(${nodeId.shortHumanReadable})"}
   }
 
   case object Sidebar extends DragTarget
@@ -53,9 +53,11 @@ object DragContainer extends wust.ids.serialize.Circe {
   object Kanban {
     sealed trait AreaForColumns extends DragContainer
     sealed trait AreaForCards extends DragContainer
-    case class Column(nodeId:NodeId, items: Seq[NodeId]) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId }
-    case class ColumnArea(parentId:NodeId, items: Seq[NodeId]) extends AreaForColumns
-    case class Inbox(parentId:NodeId, items: Seq[NodeId]) extends AreaForCards
+    sealed trait Workspace extends DragContainer { def parentId: NodeId }
+    case class Column(nodeId:NodeId, items: Seq[NodeId], workspace:NodeId) extends AreaForColumns with AreaForCards { @inline def parentId = nodeId; override def toString = s"Column(${parentId.shortHumanReadable})" }
+    case class ColumnArea(parentId:NodeId, items: Seq[NodeId]) extends AreaForColumns { override def toString = s"ColumnArea(${parentId.shortHumanReadable})"}
+    case class Inbox(parentId:NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Inbox(${parentId.shortHumanReadable})"}
+    case class Card(parentId:NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})"}
   }
 
   // Fixme: items workaround. Differentiate what is parent and what are the items
