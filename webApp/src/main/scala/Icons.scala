@@ -19,13 +19,13 @@ object Icons {
 
   val conversation: IconDefinition = freeRegular.faComments
   val tasks: IconDefinition = freeSolid.faTasks
-  val stage: IconDefinition = freeSolid.faCodeBranch
+  val stage: IconDefinition = freeSolid.faColumns
 
   val task: IconDefinition = freeRegular.faCheckSquare
 
   val userPermission: IconDefinition = freeSolid.faUserLock
   val permissionInherit: IconDefinition = freeSolid.faArrowUp
-  val permissionPrivat: IconDefinition = freeSolid.faLock
+  val permissionPrivate: IconDefinition = freeSolid.faLock
   val permissionPublic: IconDefinition = freeSolid.faGlobeAmericas
 
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
