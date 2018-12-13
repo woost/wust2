@@ -7,8 +7,12 @@ import scala.scalajs.LinkingInfo
 
 object Logging {
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
-  val logFormatter: Formatter =
-    formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
+  val logFormatter: Formatter = {
+    if(LinkingInfo.developmentMode)
+      formatter"$message$newLine"
+    else
+      formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
+  }
 
   //TODO setup api-logging as logwriter
   def setup(): Unit = {
