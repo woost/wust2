@@ -986,7 +986,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".draggable-mirror" - (
-    opacity(1).important,
+    opacity(0.8).important,
     zIndex(ZIndex.dragging).important, // needs to overlap everything else
   )
 
