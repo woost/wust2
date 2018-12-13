@@ -156,7 +156,6 @@ object CommonStyles extends StyleSheet.Standalone {
     userDrag.element
   )
 
-
   "html, body" - (
     Styles.slim,
     width(100 %%),
@@ -1092,6 +1091,12 @@ object CommonStyles extends StyleSheet.Standalone {
     flexDirection.row,
     justifyContent.spaceBetween,
     alignItems.center,
+  )
+
+  ".topBanner" - (
+    width(100%%),
+    Styles.flex,
+    Styles.flexStatic
   )
 
   ".viewbar label" - (

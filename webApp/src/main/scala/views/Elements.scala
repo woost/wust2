@@ -17,6 +17,7 @@ import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
+import wust.css
 import wust.css.Styles
 import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
@@ -145,6 +146,21 @@ object Elements {
         eventProp("touchcancel") foreach {cancel()},
       )
     }}
+
+  val topBanner = div(
+    Styles.flex,
+    Styles.flexStatic,
+    alignItems.center,
+    justifyContent.center,
+    cursor.pointer,
+    fontSize.larger,
+    fontWeight.bold,
+    width := "100%",
+    height := "40px",
+    backgroundColor := css.Woost.color,
+    color := "white",
+    borderBottom := "1px solid black",
+  )
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
     import hammerjs._
