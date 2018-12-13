@@ -332,48 +332,11 @@ object KanbanView {
     }
 
 
-    val buttonBar = div(
-      cls := "buttonbar",
-      Styles.flex,
-      Rx {
-        if(editable()) {
-          //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
-          VDomModifier.empty
-        } else VDomModifier(
-          if(state.graph().isExpanded(state.user.now.id, node.id))
-            div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
-          else
-            div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
-          div(div(cls := "fa-fw", freeSolid.faPen), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
-//          Rx {
-//            val userid = state.user().id
-//            if(assignment().exists(_.id == userid)) {
-//              div(div(cls := "fa-fw", freeSolid.faUserTimes), onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Remove Yourself")
-//            } else {
-//              div(div(cls := "fa-fw", freeSolid.faUserCheck), onClick.stopPropagation(GraphChanges.connect(Edge.Assigned)(userid, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Assign Yourself")
-//            }
-//          },
-          div(
-            div(cls := "fa-fw", Icons.delete),
-            onClick.stopPropagation foreach {
-              val graph = state.graph()
-              val nodeIdx = graph.idToIdx(node.id)
-              val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
-              val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
-
-              val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
-              state.eventProcessor.changes.onNext(changes)
-              selectedNodeIds.update(_ - node.id)
-            },
-            cursor.pointer, UI.popup := "Delete"
-          ),
-//          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
-        )
-      }
-    )
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
+      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0
+      @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
       val graph = state.graph()
@@ -392,6 +355,43 @@ object KanbanView {
 
       TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount)
     }
+
+
+    val buttonBar = div(
+      cls := "buttonbar",
+      Styles.flex,
+      Rx {
+        if(editable()) {
+          //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
+          VDomModifier.empty
+        } else VDomModifier(
+          when(taskStats().isEmpty)(VDomModifier(
+            div(div(cls := "fa-fw", Icons.tasks), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"),
+            div(div(cls := "fa-fw", Icons.conversation), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"),
+          )),
+          if(state.graph().isExpanded(state.user.now.id, node.id))
+            div(div(cls := "fa-fw", freeRegular.faMinusSquare), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
+          else
+            div(div(cls := "fa-fw", freeRegular.faPlusSquare), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
+          div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
+          div(
+            div(cls := "fa-fw", Icons.delete),
+            onClick.stopPropagation foreach {
+              val graph = state.graph()
+              val nodeIdx = graph.idToIdx(node.id)
+              val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
+              val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+
+              val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
+              state.eventProcessor.changes.onNext(changes)
+              selectedNodeIds.update(_ - node.id)
+            },
+            cursor.pointer, UI.popup := "Delete"
+          ),
+          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+        )
+      }
+    )
 
     val taskChildren:Rx[Array[Node.Content]] = Rx {
       val graph = state.graph()
@@ -439,63 +439,67 @@ object KanbanView {
       cls := "draghandle",
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
-      div(
-        cls := "cardfooter",
-        Styles.flex,
-        justifyContent.flexEnd,
-        alignItems.flexEnd,
-        flexGrow := 1,
+      Rx {
+        when(taskStats().nonEmpty)(
+          div(
+            cls := "cardfooter",
+            Styles.flex,
+            justifyContent.flexEnd,
+            alignItems.flexEnd,
+            flexGrow := 1,
 
-        div(
-          cls := "childstats",
-          Styles.flex,
-          flexDirection.row,
-          alignItems.center,
-          flexGrow := 1,
-          Rx{
-            VDomModifier(
-              renderTaskCount(
-                if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
-                else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
-                cursor.pointer,
-                UI.popup := "Zoom to show subtasks",
-              ),
-              renderTaskProgress(),
-              renderMessageCount(
-                if (taskStats().messageChildrenCount > 0) VDomModifier(
-                  taskStats().messageChildrenCount,
-                  UI.popup := "Zoom to show comments",
+            div(
+              cls := "childstats",
+              Styles.flex,
+              flexDirection.row,
+              alignItems.center,
+              flexGrow := 1,
+              Rx{
+                VDomModifier(
+                  renderTaskCount(
+                    if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
+                    else VDomModifier(cls := "emptystat"),
+                    onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
+                    cursor.pointer,
+                    UI.popup := "Zoom to show subtasks",
+                  ),
+                  renderTaskProgress(),
+                  renderMessageCount(
+                    if (taskStats().messageChildrenCount > 0) VDomModifier(
+                      taskStats().messageChildrenCount,
+                      UI.popup := "Zoom to show comments",
+                    )
+                    else VDomModifier(
+                      cls := "emptystat",
+                      UI.popup := "Start conversation about this card"
+                    ),
+                    onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                    cursor.pointer,
+                  ),
                 )
-                else VDomModifier(
-                  cls := "emptystat",
-                  UI.popup := "Start conversation about this card"
-                ),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
-                cursor.pointer,
-              ),
-            )
-          },
-        ),
-        div(
-          Styles.flex,
-          flexWrap.wrap,
-          assignment.map(_.map(userNode => div(
-            Styles.flexStatic,
-            Avatar.user(userNode.id)(
-              marginRight := "2px",
-              width := "22px",
-              height := "22px",
-              cls := "avatar",
+              },
             ),
-            keyed(userNode.id),
-            UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
-            cursor.pointer,
-            onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
-          ))),
-        ),
+            div(
+              Styles.flex,
+              flexWrap.wrap,
+              assignment.map(_.map(userNode => div(
+                Styles.flexStatic,
+                Avatar.user(userNode.id)(
+                  marginRight := "2px",
+                  width := "22px",
+                  height := "22px",
+                  cls := "avatar",
+                ),
+                keyed(userNode.id),
+                UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+                cursor.pointer,
+                onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
+              ))),
+            ),
 
-      ),
+          ),
+        )
+      },
 
       Rx {
         when(state.graph().isExpanded(state.user().id, node.id))(VDomModifier(
