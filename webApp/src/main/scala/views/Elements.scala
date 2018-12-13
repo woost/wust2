@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fontAwesome.freeSolid
+import fontAwesome.{IconDefinition, IconLookup, freeSolid}
 import marked.Marked
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
@@ -236,6 +236,10 @@ object Elements {
     }
   }
 
+  @inline def icon(icon: IconLookup) = i(
+    cls := "icon fa-fw",
+    icon
+  )
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
   def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue)).emitterBuilder

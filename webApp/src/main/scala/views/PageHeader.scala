@@ -77,7 +77,7 @@ object PageHeader {
         val level = state.graph().accessLevelOfNode(channel.id)
         val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
         isPublic.ifTrue[VDomModifier](
-          div(freeSolid.faGlobeAmericas, UI.tooltip("bottom center") := "Anyone can join via URL")
+          div(Icons.permissionPublic, UI.tooltip("bottom center") := "Anyone can join via URL")
         )
       },
       menu(state, channel).apply(marginLeft.auto),
@@ -156,11 +156,7 @@ object PageHeader {
 
     div(
       cls := "item",
-      i(
-        cls := "icon fa-fw",
-        freeSolid.faShareAlt,
-        marginRight := "5px",
-      ),
+      Elements.icon(Icons.share)(marginRight := "5px"),
       span(cls := "text", "Share Link", cursor.pointer),
       urlHolder,
       onClick foreach {
@@ -290,10 +286,7 @@ object PageHeader {
           ),
           div(
             cls := "ui primary icon button approve",
-            i(
-              cls := "icon",
-              freeSolid.faSearch,
-            ),
+            Elements.icon(Icons.search),
             span(cls := "text", "Search", marginLeft := "5px", cursor.pointer),
             onClick(searchInputProcess) --> searchLocal
           ),
@@ -312,11 +305,7 @@ object PageHeader {
 
     div(
       cls := "item",
-      i(
-        cls := "icon fa-fw",
-        freeSolid.faSearch,
-        marginRight := "5px",
-        ),
+      Elements.icon(Icons.search)(marginRight := "5px"),
       span(cls := "text", "Search", cursor.pointer),
 
       onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal,
@@ -456,11 +445,7 @@ object PageHeader {
 
     div(
       cls := "item",
-      i(
-        freeSolid.faUsers,
-        cls := "icon fa-fw",
-        marginRight := "5px",
-        ),
+      Elements.icon(Icons.user)(marginRight := "5px"),
       span(cls := "text", "Manage Members", cursor.pointer),
 
       onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
@@ -530,7 +515,7 @@ object PageHeader {
       val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
 
       if(hasNotifyEdge) decorateNotificationIcon(state, permissionState)(
-        freeSolid.faBell,
+        Icons.notificationsEnabled,
         description = "You are watching this node and will be notified about changes. Click to stop watching.",
         changes = GraphChanges.disconnect(Edge.Notify)(channel.id, user.id),
         changesOnSuccessPrompt = false
@@ -540,12 +525,12 @@ object PageHeader {
           .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
 
         if (canNotifyParents) decorateNotificationIcon(state, permissionState)(
-          freeRegular.faBell,
+          Icons.notificationsEnabled,
           description = "You are not watching this node explicitly, but you watch a parent and will be notified about changes. Click to start watching this node explicitly.",
           changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
           changesOnSuccessPrompt = true
         ) else decorateNotificationIcon(state, permissionState)(
-          freeRegular.faBellSlash,
+          Icons.notificationsDisabled,
           description = "You are not watching this node and will not be notified. Click to start watching.",
           changes = GraphChanges.connect(Edge.Notify)(channel.id, user.id),
           changesOnSuccessPrompt = true
@@ -571,22 +556,14 @@ object PageHeader {
         case channel: Node.Content if canWrite =>
           div(
             cls := "item",
-            i(
-              cls := "icon fa-fw",
-              freeSolid.faUserLock,
-              marginRight := "5px",
-            ),
+            Elements.icon(Icons.userPermission)(marginRight := "5px"),
             span(cls := "text", "Set Permissions", cursor.pointer),
             div(
               cls := "menu",
               PermissionSelection.all.map { selection =>
                 div(
                   cls := "item",
-                  i(
-                    cls := "icon fa-fw",
-                    marginRight := "5px",
-                    selection.icon
-                  ),
+                  Elements.icon(selection.icon)(marginRight := "5px"),
                   // value := selection.value,
                   Rx {
                     selection.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
@@ -624,10 +601,11 @@ object PageHeader {
 
     val nodeRoleItem:VDomModifier = channel match {
       case channel: Node.Content if canWrite =>
-        def nodeRoleSubItem(nodeRole: NodeRole) = div(
+        def nodeRoleSubItem(nodeRole: NodeRole, roleIcon: IconLookup) = div(
           cls := "item",
-          (channel.role == nodeRole).ifTrueOption(i(cls := "check icon")),
+          Elements.icon(roleIcon)(marginRight := "5px"),
           nodeRole.toString,
+          (channel.role == nodeRole).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
           onClick(GraphChanges.addNode(channel.copy(role = nodeRole))) --> state.eventProcessor.changes,
           onClick foreach {
             Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
@@ -636,17 +614,11 @@ object PageHeader {
 
         div(
           cls := "item",
-          i(
-            cls := "icon fa-fw",
-            freeSolid.faExchangeAlt,
-            marginRight := "5px",
-          ),
+          Elements.icon(Icons.convertItem)(marginRight := "5px"),
           span(cls := "text", "Convert to ...", cursor.pointer),
           div(
             cls := "menu",
-            nodeRoleSubItem(NodeRole.Message),
-            nodeRoleSubItem(NodeRole.Task),
-            nodeRoleSubItem(NodeRole.Stage)
+            ConvertSelection.all.map { convert => nodeRoleSubItem(convert.role, convert.icon) }
           )
         )
       case _ => VDomModifier.empty
@@ -655,11 +627,7 @@ object PageHeader {
     val mentionInItem:VDomModifier = {
       div(
         cls := "item",
-        i(
-          cls := "icon fa-fw",
-          freeSolid.faCopy,
-          marginRight := "5px",
-        ),
+        Elements.icon(Icons.mentionIn)(marginRight := "5px"),
         span(cls := "text", "Mention in", cursor.pointer),
         div(
           cls := "menu",
@@ -679,11 +647,7 @@ object PageHeader {
     val leaveItem:VDomModifier =
       (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
         cls := "item",
-        i(
-          cls := "icon fa-fw",
-          freeSolid.faSignOutAlt,
-          marginRight := "5px",
-        ),
+        Elements.icon(Icons.signOut)(marginRight := "5px"),
         span(cls := "text", "Unpin from sidebar", cursor.pointer),
         onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
@@ -691,11 +655,7 @@ object PageHeader {
     val deleteItem =
       (canWrite).ifTrue[VDomModifier](div(
         cls := "item",
-        i(
-          cls := "icon fa-fw",
-          Icons.delete,
-          marginRight := "5px",
-        ),
+        Elements.icon(Icons.delete)(marginRight := "5px"),
         span(cls := "text", "Delete", cursor.pointer),
         onClick foreach {
           state.eventProcessor.changes.onNext(
@@ -718,7 +678,7 @@ object PageHeader {
       // https://semantic-ui.com/modules/dropdown.html#pointing
       cls := "ui icon top left labeled pointing dropdown",
       zIndex := ZIndex.overlay,
-      freeSolid.faCog,
+      Icons.menu,
       div(
         cls := "menu",
         div(cls := "header", "Settings", cursor.default),
@@ -807,21 +767,46 @@ object PermissionSelection {
       },
       value = "Inherited",
       description = "The permissions for this page are the same as for its parents", // TODO: write name of parent page. Notion did permission UI very well.
-      icon = freeSolid.faArrowUp
+      icon = Icons.permissionInherit,
     ) ::
       PermissionSelection(
         access = NodeAccess.Level(AccessLevel.ReadWrite),
         name = (_, _) => "Public",
         value = "Public",
         description = "Anyone can access this page via the URL",
-        icon = freeSolid.faGlobeAmericas
+        icon = Icons.permissionPublic,
       ) ::
       PermissionSelection(
         access = NodeAccess.Level(AccessLevel.Restricted),
         name = (_, _) => "Private",
         value = "Private",
         description = "Only you and explicit members can access this page",
-        icon = freeSolid.faLock
+        icon = Icons.permissionPrivat
+      ) ::
+      Nil
+}
+
+case class ConvertSelection(
+  role: NodeRole,
+  icon: IconLookup,
+  description: String,
+)
+object ConvertSelection {
+  val all =
+    ConvertSelection(
+      role = NodeRole.Message,
+      icon = Icons.conversation,
+      description = "Message of a workspace or chat.",
+    ) ::
+      ConvertSelection(
+        role = NodeRole.Task,
+        icon = Icons.task,
+        description = "Task item of a list or kanban.",
+      ) ::
+      ConvertSelection(
+        role = NodeRole.Stage,
+        icon = Icons.stage,
+        description = "Stage, a period in a structure / progress, e.g. column in a kanban",
       ) ::
       Nil
 }
