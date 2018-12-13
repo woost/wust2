@@ -72,19 +72,8 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
         case Success(response) =>
           response match {
             case graph: Graph => // graph is always grouped and logged as table
-              val rows = (graph.nodes.zipWithIndex.map {
-                case (node,idx) =>
-                  val es = graph.outgoingEdgeIdx(idx).map{ edgeIdx =>
-                    val edge = graph.edges(edgeIdx)
-                    s"${edge.data.tpe.take(1)} ${edge.targetId.shortHumanReadable} ${graph.nodes(graph.edgesIdx.b(edgeIdx)).data.str}"}(breakOut): List[String]
-                  val id = node.id.shortHumanReadable
-                  val tpe = node.data.tpe.take(1)
-                  val content = node.data.str
-                  (s"$tpe $id" :: content :: es).toJSArray
-              }(breakOut): List[js.Array[String]]).sortBy(_(0)).toJSArray
-
               logInGroup {
-                console.asInstanceOf[js.Dynamic].table(rows)
+                console.log(graph.toString)
               }
             case _ if response.toString.length < 80 => // short data is displayed without grouping
               console.log(
