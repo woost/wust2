@@ -7,7 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.ids.{NodeData, NodeId, NodeRole, UserId}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -28,7 +28,7 @@ object ListView {
       overflow.auto,
       padding := "10px",
 
-      addListItemInputField(state),
+      addListItemInputField(state, filterAssigned),
 
       Rx {
         val graph = state.graph()
@@ -99,20 +99,31 @@ object ListView {
             )),
           )
 
+          val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, pageParentId, todoTasks.map(identity), graph.nodeIds)
+
           VDomModifier(
-            div(todoTasks.map { nodeIdx =>
-              val nodeUsers = graph.assignedUsersIdx(nodeIdx)
-              val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
-              val userAvatar = renderUserAvatar(assignments, graph.nodeIds(nodeIdx))
-              val node = graph.nodes(nodeIdx)
-              nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(margin := "4px").apply(userAvatar)
-            }),
+            div(
+              registerSortableContainer(state, DragContainer.List(pageParentId, sortedTodoTasks.map(graph.nodeIds))),
+              sortedTodoTasks.map { nodeIdx =>
+                val nodeUsers = graph.assignedUsersIdx(nodeIdx)
+                val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
+                val userAvatar = renderUserAvatar(assignments, graph.nodeIds(nodeIdx))
+                val node = graph.nodes(nodeIdx)
+                nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(
+                  cls := "draghandle",
+                  margin := "4px",
+                  userAvatar,
+                  sortableAs(DragItem.List.Item(node.id)),
+                  dragTarget(DragItem.List.Item(node.id)),
+                )
+              }
+            ),
 
             doneTasks.calculateNonEmpty.ifTrue[VDomModifier](hr(border := "1px solid black", opacity := 0.4, margin := "15px")),
 
             div(
               opacity := 0.5,
-              doneTasks.map { nodeIdx =>
+              TaskOrdering.constructOrderingOf[Int](graph, pageParentId, doneTasks.map(identity), graph.nodeIds).map { nodeIdx =>
                 val node = graph.nodes(nodeIdx)
                 val nodeUsers = graph.assignedUsersIdx(nodeIdx)
                 val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
@@ -126,9 +137,11 @@ object ListView {
   }
 
 
-  private def addListItemInputField(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    def submitAction(str: String) = {
-      val change = GraphChanges.addMarkdownTask(str)
+  private def addListItemInputField(state: GlobalState, filterAssigned: Boolean)(implicit ctx: Ctx.Owner) = {
+    def submitAction(userId: UserId, filterAssigned: Boolean)(str: String) = {
+      val createdNode = Node.MarkdownTask(str)
+      val change = GraphChanges.addNode(createdNode)
+      val assignments = if(filterAssigned) GraphChanges.connect(Edge.Assigned)(userId, createdNode.id) else GraphChanges.empty
       state.eventProcessor.enriched.changes.onNext(change)
     }
 
@@ -143,13 +156,17 @@ object ListView {
       }
     }
 
-    inputRow(state, submitAction,
-      preFillByShareApi = true,
-      autoFocus = !BrowserDetect.isMobile,
-      triggerFocus = inputFieldFocusTrigger,
-      placeHolderMessage = Some(placeHolder),
-      submitIcon = freeSolid.faPlus
-    )(ctx)(Styles.flexStatic)
+    div(
+      Rx {
+        inputRow(state, submitAction(state.user().id, filterAssigned),
+          preFillByShareApi = true,
+          autoFocus = !BrowserDetect.isMobile,
+          triggerFocus = inputFieldFocusTrigger,
+          placeHolderMessage = Some(placeHolder),
+          submitIcon = freeSolid.faPlus
+        )(ctx)(Styles.flexStatic)
+      }
+    )
   }
 
 }

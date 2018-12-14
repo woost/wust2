@@ -80,7 +80,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   // - Only one "big" sortable => container always the same (oldContainer == newContainer)
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
-  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.Kanban.Item, from: DragContainer, into: DragContainer): GraphChanges = {
+  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.TaskItem, from: DragContainer, into: DragContainer): GraphChanges = {
 
     import DragContainer._
     scribe.debug("Computing sorting change")
@@ -172,9 +172,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
       case (dragging: AvatarNode, target: DragContainer.AvatarHolder, _, _) => assign(dragging.userId, target.nodeId)
       case (dragging: AvatarNode, target: Kanban.Card, _, _)                => assign(dragging.userId, target.nodeId)
+      case (dragging: AvatarNode, target: List.Item, _, _)                  => assign(dragging.userId, target.nodeId)
 
       case (dragging: AnyNodes, target: AnyNodes, true, _)  => addTag(dragging.nodeIds, target.nodeIds)
       case (dragging: AnyNodes, target: AnyNodes, false, _) => moveInto(dragging.nodeIds, target.nodeIds)
+
+      case (_,_,_,_) => scribe.debug(s"no drag function defined for this action")
 
     }
   }
@@ -253,6 +256,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val fullChange = unstageChanges merge sortChanges
 
         state.eventProcessor.changes.onNext(fullChange)
+
+      case (e, dragging: DragItem.List.Item, from: DragContainer.List, into: DragContainer.List, false, false) =>
+        val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
+        val fullChange = sortChanges
+
+        state.eventProcessor.changes.onNext(fullChange)
+
+      case (_,_,_,_,_,_) => scribe.debug(s"no drag function defined for this action")
+
     }
   }
 

@@ -28,10 +28,14 @@ object DragItem extends wust.ids.serialize.Circe {
     case class Page(nodeId: NodeId) extends ParentNode
   }
 
+  sealed trait TaskItem { def nodeId: NodeId }
   object Kanban {
-    sealed trait Item { def nodeId: NodeId }
-    case class Column(nodeId: NodeId) extends ParentNode with Item { override def toString = s"Column(${nodeId.shortHumanReadable})"}
-    case class Card(nodeId: NodeId) extends ChildNode with Item { override def toString = s"Card(${nodeId.shortHumanReadable})"}
+    case class Column(nodeId: NodeId) extends ParentNode with TaskItem { override def toString = s"Column(${nodeId.shortHumanReadable})"}
+    case class Card(nodeId: NodeId) extends ChildNode with TaskItem { override def toString = s"Card(${nodeId.shortHumanReadable})"}
+  }
+
+  object List {
+    case class Item(nodeId: NodeId) extends ChildNode with TaskItem { override def toString = s"List Item(${nodeId.shortHumanReadable})"}
   }
 
   case object Sidebar extends DragTarget
@@ -60,6 +64,7 @@ object DragContainer extends wust.ids.serialize.Circe {
     case class Card(parentId:NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})"}
   }
 
+  case class List(parentId: NodeId, items: Seq[NodeId]) extends DragContainer
   // Fixme: items workaround. Differentiate what is parent and what are the items
   case class AvatarHolder(nodeId: NodeId) extends DragContainer { @inline def parentId = nodeId; @inline def items = Seq(nodeId); }
 
