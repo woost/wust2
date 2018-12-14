@@ -92,12 +92,13 @@ object TaskOrdering {
 //    ???
 //  }
 
-  @inline private def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
-    index >= 0 && (
-      (containerChanged && index <= containerSize) ||
-        (!containerChanged && index < containerSize)
-      )
-  }
+//  @inline private def checkBounds(containerSize: Int, index: Int, containerChanged: Boolean) = {
+//    index >= 0 && (
+//      (containerChanged && index <= containerSize) ||
+//        (!containerChanged && index < containerSize)
+//      )
+//  }
+  @inline private def checkBounds(containerSize: Int, index: Int) =  index >= 0 &&  index < containerSize
 
   def constructGraphChangesByContainer(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId, fromItems: Seq[NodeId], intoItems: Seq[NodeId]): GraphChanges = {
 
@@ -122,13 +123,13 @@ object TaskOrdering {
 
     // Instead of differentiate between multiple cases (container, move direction, {first,last} position, ...) just try to get the index
     val beforeNodeIndex = newDomPosition - 1 + indexOffset
-    val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex, containerChanged))
-                       Try(newOrderedNodes(beforeNodeIndex)).toOption
+    val beforeNode = if(checkBounds(newOrderedNodes.size, beforeNodeIndex))
+                       Some(newOrderedNodes(beforeNodeIndex))
                      else None
 
     val afterNodeIndex = newDomPosition + indexOffset
-    val afterNode = if(checkBounds(newOrderedNodes.size, afterNodeIndex, containerChanged))
-                      Try(newOrderedNodes(afterNodeIndex)).toOption
+    val afterNode = if(afterNodeIndex < newOrderedNodes.size && checkBounds(newOrderedNodes.size, afterNodeIndex))
+                      Some(newOrderedNodes(afterNodeIndex))
                     else None
 
     //    if(beforeNode.isDefined && afterNode.isDefined)
@@ -141,19 +142,14 @@ object TaskOrdering {
     val afterNodeOrderingValue = afterParentData.map(_._2)
 
     val newOrderingValue = {
-      val (before: BigDecimal, after: BigDecimal) = if(beforeNodeOrderingValue.isDefined && afterNodeOrderingValue.isDefined) {
-        (beforeNodeOrderingValue.get, afterNodeOrderingValue.get)
+      if(beforeNodeOrderingValue.isDefined && afterNodeOrderingValue.isDefined) {
+        val (before, after) = (beforeNodeOrderingValue.get, afterNodeOrderingValue.get)
+        before + (after - before)/2
       } else if(beforeNodeOrderingValue.isDefined) {
-        val before = beforeNodeOrderingValue.get
-        val after = before.setScale(before.scale-1, RoundingMode.CEILING)
-        (before, after)
+        BigDecimal(beforeNodeOrderingValue.get.toBigInt + 1)
       } else {
-        val after = afterNodeOrderingValue.get
-        val before = after.setScale(after.scale-1, RoundingMode.FLOOR)
-        (before, after)
+        BigDecimal(afterNodeOrderingValue.get.toBigInt - 1)
       }
-      if(before < after) before + (after - before)/2
-      else after + (before - after)/2
     }
 
     val newParentEdge = if(containerChanged) Edge.Parent(nodeId, EdgeData.Parent(newOrderingValue), into)
