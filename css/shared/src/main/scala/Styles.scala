@@ -17,8 +17,8 @@ object ZIndex {
   val overlayLow = 1000
   val tooltip = 1500
   val loading = 1750
-  val overlay = 2000
   val dragging = 10000
+  val overlay = 12000
   val modal = 15000
 }
 

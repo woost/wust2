@@ -557,7 +557,6 @@ object PageHeader {
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
       cls := "ui icon top left labeled pointing dropdown",
-      zIndex := ZIndex.overlay,
       Icons.menu,
       div(
         cls := "menu",
@@ -565,10 +564,9 @@ object PageHeader {
         items
       ),
       UI.tooltip("bottom right") := "Settings",
-        // revert default passive events, else dropdown is not working
-      Elements.withoutDefaultPassiveEvents,
-      // https://semantic-ui.com/modules/dropdown.html#/usage
-      onDomMount.asJquery.foreach(_.dropdown("hide")),
+      zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
+      Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
+      onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
     )
   }
 
