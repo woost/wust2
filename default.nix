@@ -6,6 +6,7 @@ in
   pkgs.stdenv.mkDerivation {
     name = "Woost";
     buildInputs = with pkgs; [
+      awscli
       git zsh
       scala sbt
       docker
