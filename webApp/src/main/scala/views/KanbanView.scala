@@ -440,7 +440,7 @@ object KanbanView {
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       Rx {
-        when(taskStats().nonEmpty)(
+        when(taskStats().nonEmpty || assignment().nonEmpty)(
           div(
             cls := "cardfooter",
             Styles.flex,
