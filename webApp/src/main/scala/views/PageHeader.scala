@@ -1,13 +1,10 @@
 package wust.webApp.views
 
-import fomanticui.{DimmerOptions, ModalOptions}
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.experimental.permissions.PermissionState
-import org.scalajs.dom.html
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -19,13 +16,13 @@ import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util._
+import wust.webApp._
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.jsdom.{Navigator, Notifications, ShareData}
+import wust.webApp.jsdom.{Navigator, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp._
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -75,14 +72,8 @@ object PageHeader {
         hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
       },
       Rx {
-        val level = state.graph().accessLevelOfNode(channel.id)
-        div(
-          level match {
-            case Some(AccessLevel.Restricted) => VDomModifier(Permission.`private`.icon, UI.tooltip("bottom center") := Permission.`private`.description)
-            case Some(AccessLevel.ReadWrite) => VDomModifier(Permission.public.icon, UI.tooltip("bottom center") := Permission.public.description)
-            case _ => VDomModifier.empty
-          }
-        )
+        val level = Permission.resolveInherited(state.graph(),channel.id)
+        div(level.icon, UI.tooltip("bottom center") := level.description)
       },
       menu(state, channel).apply(marginLeft.auto),
     )
@@ -379,7 +370,6 @@ object PageHeader {
     )
 
     def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {
-      import concurrent.duration._
       div(
         marginTop := "10px",
         Styles.flex,
@@ -485,35 +475,9 @@ object PageHeader {
   //TODO move menu to own file, makes up for a lot of code in this file
   //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazily?
   private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    val canWrite = NodePermission.canWrite(state, channel.id).now //TODO reactive? but settingsmenu is anyhow rerendered
-    val permissionItem:VDomModifier = channel match {
-        case channel: Node.Content if canWrite =>
-          div(
-            cls := "item",
-            Elements.icon(Icons.userPermission)(marginRight := "5px"),
-            span(cls := "text", "Set Permissions", cursor.pointer),
-            div(
-              cls := "menu",
-              Permission.all.map { item =>
-                div(
-                  cls := "item",
-                  Elements.icon(item.icon)(marginRight := "5px"),
-                  // value := selection.value,
-                  Rx {
-                    item.name(channel.id, state.graph()) //TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
-                  },
-                  (channel.meta.accessLevel == item.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-                  onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access)))) --> state.eventProcessor.changes,
-                  onClick foreach {
-                    Analytics.sendEvent("pageheader", "changepermission", item.access.str)
-                  }
-                )
-              }
-            )
-          )
-        case _ => VDomModifier.empty
-      }
 
+    val canWrite = Permission.canWrite(state, channel)
+    val permissionItem = Permission.permissionItem(state, channel)
     val nodeRoleItem:VDomModifier = channel match {
       case channel: Node.Content if canWrite =>
         def nodeRoleSubItem(nodeRole: NodeRole, roleIcon: IconLookup) = div(
