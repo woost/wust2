@@ -44,7 +44,7 @@ object UserSettingsView {
   private def uploadSettings(state: GlobalState, ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
     val fileUploads = Var[Option[Seq[UploadedFile]]](None)
     div(
-      b("Uploaded Files:"),
+      b("Uploaded files:"),
       br,
       div(
         marginLeft := "10px",
@@ -149,7 +149,7 @@ object UserSettingsView {
           case Success(success) =>
             if (success) {
               userDetail() = Some(detail.copy(email = Some(email), verified = false))
-              UI.toast("Successfully changed Email address. Please check your email inbox to verify the address. ", level = UI.ToastLevel.Success)
+              UI.toast("Successfully changed email address. Please check your email inbox to verify the address. ", level = UI.ToastLevel.Success)
             }
 
             val error = if (success) None else Some("Email address already taken")
@@ -201,7 +201,7 @@ object UserSettingsView {
         )
       },
       button(
-        "Change Email",
+        "Add or change email",
         cls := "ui fluid primary button",
         display.block,
 
@@ -253,7 +253,7 @@ object UserSettingsView {
         )
       },
       button(
-        "Change Password",
+        "Change password",
         cls := "ui fluid primary button",
         display.block,
         onClick(password).foreach { email =>
@@ -321,7 +321,7 @@ object UserSettingsView {
   }
 
   private def slackPlaceholder = div(
-    "Slack Plugin not enabled",
+    "Slack plugin not enabled",
   )
 
   private def slackButton(user: UserInfo): Future[VNode] = {
@@ -329,7 +329,7 @@ object UserSettingsView {
     Client.slackApi.isAuthenticated(user.id)
       .map(activated => syncButton(activated))
       .recover { case NonFatal(e) =>
-        scribe.warn("Failed to check authentication from slack api", e)
+        scribe.warn("Failed to check authentication from Slack api", e)
         slackPlaceholder
       }
   }
