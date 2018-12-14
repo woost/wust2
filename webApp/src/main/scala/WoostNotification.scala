@@ -4,7 +4,7 @@ import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx.Ctx
+import rx.{Ctx, Var}
 import wust.css
 import wust.graph.Node.User
 import wust.graph._
@@ -132,17 +132,19 @@ object WoostNotification {
   }
 
   def banner(state: GlobalState, permissionState: PermissionState): VDomModifier = {
-    //        "Notifications are blocked by your browser. Please reconfigure your browser settings for this site.",
-    if(permissionState == PermissionState.prompt)
-      Elements.topBanner(
-        "Woost needs your permission to",
-        span("enable notifications.", paddingLeft := "1ch", textDecoration.underline),
-        onClick foreach {
-          Notifications.requestPermissionsAndSubscribe { }
-        },
+    if(permissionState == PermissionState.prompt) {
+      val text = div(
+        "Woost needs your permission to ",
+        span("enable notifications.", textDecoration.underline),
       )
+
+      Elements.topBanner(text)(
+        onClick foreach { Notifications.requestPermissionsAndSubscribe { } }
+      )
+    }
     else
       VDomModifier.empty
+    //        "Notifications are blocked by your browser. Please reconfigure your browser settings for this site.",
   }
 
 }

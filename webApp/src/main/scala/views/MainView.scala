@@ -35,31 +35,35 @@ object MainView {
 //      DevOnly { DevView(state) },
       UI.modal(state.modalConfig), // one modal instance for the whole page that can be configured via state.modalConfig
       div(
-        cls := "topBanner",
-        Rx { WoostNotification.banner(state, state.permissionState()) }
-      ),
+        cls := "topBannerContainer",
+        Rx { WoostNotification.banner(state, state.permissionState()) },
 
-      // TODO: we need this for the migration from username to email can go away afterwards
-      div(Rx {
-        Observable.fromFuture(
-          state.user() match {
-            case user: AuthUser.Real =>
-              Client.auth.getUserDetail(user.id).map {
-                case Some(detail) =>
-                  when(detail.email.isEmpty)(Elements.topBanner(
-                    "You do not have an e-mail setup.",
-                    span("please update your Profile.", paddingLeft := "1ch", textDecoration.underline),
-                    onClick foreach { state.view() = View.UserSettings },
-                  ))
-                case err                   =>
-                  scribe.info(s"Cannot get User Details: ${ err }")
-                  VDomModifier.empty
-              }
-            case _                   =>
-              Future.successful(VDomModifier.empty)
-          }
-        )
-      }),
+          // TODO: we need this for the migration from username to email can go away afterwards
+        Rx {
+          Observable.fromFuture(
+            state.user() match {
+              case user: AuthUser.Real =>
+                Client.auth.getUserDetail(user.id).map {
+                  case Some(detail) =>
+                    when(detail.email.isEmpty) {
+                      val text = div(
+                        "You do not have an email setup. ",
+                        span("Please update your profile.", textDecoration.underline),
+                      )
+                      Elements.topBanner(text)(
+                        onClick foreach { state.view() = View.UserSettings },
+                      )
+                    }
+                  case err                   =>
+                    scribe.info(s"Cannot get user details: ${ err }")
+                    VDomModifier.empty
+                }
+              case _                   =>
+                Future.successful(VDomModifier.empty)
+            }
+          )
+        },
+      ),
       Topbar(state)(width := "100%", Styles.flexStatic),
       div(
         Styles.flex,

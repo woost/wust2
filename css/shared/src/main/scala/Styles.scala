@@ -3,14 +3,12 @@ package wust.css
 import scalacss.DevDefaults._
 import scalacss.internal.{Attr, CanIUse, Literal, Transform}
 import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
+import wust.css.Styles.Woost
+
 import scala.concurrent.duration._
 
 // TODO: generate by sbt:
 // https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
-
-object Woost {
-  val color = "#6636b7"
-}
 
 object ZIndex {
   val controls = 10
@@ -121,6 +119,11 @@ object Styles extends StyleSheet.Inline {
     (0 %%) -> style(opacity(0)),
     (100 %%) -> style(opacity(1))
   )
+
+  object Woost {
+    val color = c"#6636b7"
+  }
+
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -1093,10 +1096,26 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.center,
   )
 
-  ".topBanner" - (
-    width(100%%),
+  ".topBannerContainer" - (
+    width(100 %%),
     Styles.flex,
-    Styles.flexStatic
+    Styles.flexStatic,
+    flexDirection.column,
+  )
+
+  ".topBanner" - (
+    Styles.flex,
+    Styles.flexStatic,
+    alignItems.center,
+    justifyContent.center,
+    cursor.pointer,
+    fontSize.larger,
+    fontWeight.bold,
+    width(100 %%),
+    height(40 px),
+    color.white,
+    backgroundColor(Woost.color),
+    borderBottom(1 px, solid, black)
   )
 
   ".viewbar label" - (

@@ -147,20 +147,17 @@ object Elements {
       )
     }}
 
-  val topBanner = div(
-    Styles.flex,
-    Styles.flexStatic,
-    alignItems.center,
-    justifyContent.center,
-    cursor.pointer,
-    fontSize.larger,
-    fontWeight.bold,
-    width := "100%",
-    height := "40px",
-    backgroundColor := css.Woost.color,
-    color := "white",
-    borderBottom := "1px solid black",
-  )
+  def topBanner(innerMessage: VNode): VNode = {
+    val displayHandler = Var("flex")
+    div(
+      cls := "topBanner",
+      display <-- displayHandler,
+      innerMessage,
+      onClick foreach {
+        displayHandler() = "none"
+      },
+    )
+  }
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
     import hammerjs._

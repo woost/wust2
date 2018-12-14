@@ -149,7 +149,7 @@ object UserSettingsView {
           case Success(success) =>
             if (success) {
               userDetail() = Some(detail.copy(email = Some(email), verified = false))
-              UI.toast("Successfully changed email address. Please check your email inbox to verify the address. ", level = UI.ToastLevel.Success)
+              UI.toast("Successfully changed email address. Please check your email inbox to verify the address.", level = UI.ToastLevel.Success)
             }
 
             val error = if (success) None else Some("Email address already taken")
