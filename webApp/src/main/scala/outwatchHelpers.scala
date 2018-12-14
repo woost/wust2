@@ -189,7 +189,7 @@ package object outwatchHelpers extends KeyHash {
       try {
         callback(value)
       } catch {
-        case e:Throwable => scribe.error(e.getMessage, e)
+        case NonFatal(e) => scribe.error(e.getMessage, e)
       }
     }
 
