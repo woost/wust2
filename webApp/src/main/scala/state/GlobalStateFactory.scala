@@ -201,7 +201,7 @@ object GlobalStateFactory {
     // switch to View name in title if view switches to non-content
     Rx {
       if (view().isContent) {
-        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 30)))
+        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 30))).map(EmojiTitleConverter.emojiTitleConvertor.replace_colons)
         window.document.title = channelName.fold(titleSuffix)(name => s"${if(name.contains("unregistered-user")) "Unregistered User" else name} - $titleSuffix")
       } else {
         window.document.title = s"${view().toString} - $titleSuffix"
@@ -257,6 +257,12 @@ object GlobalStateFactory {
     }
 
     state
+  }
+
+  object EmojiTitleConverter {
+    val emojiTitleConvertor = new EmojiConvertor()
+    emojiTitleConvertor.replace_mode = "unified"
+    emojiTitleConvertor.allow_native = true
   }
 
   object EmojiReplacer {
