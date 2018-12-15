@@ -597,6 +597,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
+  ".kanbancolumn .nodecard-content" - (
+    width(100 %%) // needed so that the footer gets a new line
+  )
+
   ".nodecard.node-deleted" - (
     fontSize.smaller,
     opacity(0.5),

@@ -314,7 +314,7 @@ object Components {
     )
   }
 
-  def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  def taskCheckbox(state:GlobalState, node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
     val isChecked:Rx[Boolean] = Rx {
       val graph = state.graph()
       val nodeIdx = graph.idToIdx(node.id)
@@ -327,44 +327,48 @@ object Components {
       parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
     }
 
+    div(
+      cls := "ui checkbox fitted",
+      marginTop := "5px",
+      marginLeft := "5px",
+      marginRight := "3px",
+      input(
+        tpe := "checkbox",
+        checked <-- isChecked,
+        onChange.checked foreach { checking =>
+          val graph = state.graph.now
+          directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
+            val doneIdx = graph.doneNodeForWorkspace(workspaceIdx)
+
+            if(checking) {
+              val (doneNodeId, doneNodeAddChange) = doneIdx match {
+                case None                   =>
+                  val freshDoneNode = Node.MarkdownStage(Graph.doneText)
+                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
+                  (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
+                case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
+              }
+              val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
+              val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
+              state.eventProcessor.changes.onNext(changes)
+            } else { // unchecking
+              // since it was checked, we know for sure, that a done-node for every workspace exists
+              val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
+              state.eventProcessor.changes.onNext(changes)
+            }
+          }
+
+        }
+      ),
+      label()
+    )
+  }
+
+  def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     nodeCard(node).prepend(
       Styles.flex,
       alignItems.flexStart,
-      div(
-        cls := "ui checkbox fitted",
-        marginTop := "5px",
-        marginLeft := "5px",
-        marginRight := "3px",
-        input(
-          tpe := "checkbox",
-          checked <-- isChecked,
-          onChange.checked foreach { checking =>
-            val graph = state.graph.now
-            directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
-              val doneIdx = graph.doneNodeForWorkspace(workspaceIdx)
-
-              if(checking) {
-                val (doneNodeId, doneNodeAddChange) = doneIdx match {
-                  case None                   =>
-                    val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                    val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
-                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
-                  case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
-                }
-                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
-                val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
-                state.eventProcessor.changes.onNext(changes)
-              } else { // unchecking
-                // since it was checked, we know for sure, that a done-node for every workspace exists
-                val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
-                state.eventProcessor.changes.onNext(changes)
-              }
-            }
-
-          }
-        ),
-        label()
-      )
+      taskCheckbox(state, node, directParentIds)
     )
   }
 

@@ -315,9 +315,10 @@ object KanbanView {
   private def renderCard(
     state: GlobalState,
     node: Node,
-    parentId: NodeId, // is either a column (stage) or else, if the card is in inbox equal to pageParentId
+    parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to pageParentId
     pageParentId: NodeId,
-    selectedNodeIds:Var[Set[NodeId]]
+    selectedNodeIds:Var[Set[NodeId]],
+    showCheckbox:Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
 
@@ -325,7 +326,15 @@ object KanbanView {
       state, node,
       maxLength = Some(maxLength),
       editMode = editable,
-      submit = state.eventProcessor.changes,
+      submit = state.eventProcessor.changes).prepend(
+      if(showCheckbox)
+        VDomModifier(
+          Styles.flex,
+          alignItems.flexStart,
+          flexWrap.wrap,
+          taskCheckbox(state, node, parentId :: Nil)
+        )
+      else VDomModifier.empty
     )
 
     val assignment = Rx {
@@ -395,17 +404,6 @@ object KanbanView {
       }
     )
 
-    val taskChildren:Rx[Array[Node.Content]] = Rx {
-      val graph = state.graph()
-      val nodeIdx = graph.idToIdx(node.id)
-
-      if(graph.isExpanded(state.user().id, node.id) && graph.taskChildrenIdx.sliceNonEmpty(nodeIdx)) {
-        val taskChildren = graph.taskChildrenIdx(nodeIdx)
-        taskChildren.map(i => graph.nodes(i).asInstanceOf[Node.Content])(breakOut)
-      } else Array.empty[Node.Content]
-    }
-
-
     val renderTaskProgress = Rx {
       if (taskStats().taskChildrenCount > 0) {
 
@@ -430,6 +428,11 @@ object KanbanView {
           ),
         )
       } else VDomModifier(cls := "emptystat")
+    }
+
+    def partitionedTaskChildren(nodeId:NodeId, graph:Graph):(Seq[Int], Seq[Int]) = {
+      val nodeIdx = graph.idToIdx(nodeId)
+      graph.taskChildrenIdx(nodeIdx).partition(graph.isDone)
     }
 
     rendered(
@@ -504,22 +507,43 @@ object KanbanView {
       },
 
       Rx {
-        when(state.graph().isExpanded(state.user().id, node.id))(VDomModifier(
+        val graph = state.graph()
+        when(graph.isExpanded(state.user().id, node.id))(
           div(
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
+            width := "100%",
             margin := "5px",
             padding := "1px 5px 6px 5px",
-            minHeight := "50px",
             borderRadius := "3px",
             backgroundColor := "#EFEFEF",
-            taskChildren().map{ childNode =>
-              renderCard(state,childNode,pageParentId = node.id, parentId = node.id,selectedNodeIds = selectedNodeIds).apply(
-                marginTop := "5px",
-              )
+            partitionedTaskChildren(node.id, graph) match {
+              case (doneTasks, todoTasks) =>
+                val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, pageParentId, todoTasks, graph.nodeIds)
+                VDomModifier(
+                  div(
+                    minHeight := "50px",
+                    sortedTodoTasks.map{ childIdx =>
+                      val childNode = graph.nodes(childIdx)
+                      renderCard(state,childNode,pageParentId = node.id, parentId = node.id,selectedNodeIds = selectedNodeIds, showCheckbox = true).apply(
+                        marginTop := "5px",
+                      )
+                    },
+                    registerSortableContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
+                  ),
+                  div(
+                    doneTasks.map{ childIdx =>
+                      val childNode = graph.nodes(childIdx)
+                      renderCard(state,childNode,pageParentId = node.id, parentId = node.id,selectedNodeIds = selectedNodeIds, showCheckbox = true).apply(
+                        marginTop := "5px",
+                        opacity := 0.5,
+                        textDecoration.lineThrough,
+                      )
+                    }
+                  )
+                )
             },
-            registerSortableContainer(state, DragContainer.Kanban.Card(node.id, taskChildren().map(_.id))),
           )
-        ))
+        )
       },
 
       position.relative, // for buttonbar

@@ -257,7 +257,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         state.eventProcessor.changes.onNext(fullChange)
 
-      case (e, dragging: DragItem.List.Item, from: DragContainer.List, into: DragContainer.List, false, false) =>
+      case (e, dragging: DragItem.List.Item, from: List, into: List, false, false) =>
+        val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
+        val fullChange = sortChanges
+
+        state.eventProcessor.changes.onNext(fullChange)
+
+      case (e, dragging: DragItem.Kanban.Card, from: Kanban.Card, into: Kanban.Card, false, false) =>
         val sortChanges = sortingChanges(graph, userId, e, dragging, from, into)
         val fullChange = sortChanges
 
