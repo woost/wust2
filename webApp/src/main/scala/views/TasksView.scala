@@ -17,18 +17,22 @@ object TasksView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val topLevelStageExists = Rx {
       val page = state.page()
-      val graph = state.graph()
+      val graph = state.graph.now
       page.parentId.fold(false) { parentId =>
         val parentIdx = graph.idToIdx(parentId)
-        graph.childrenIdx.exists(parentIdx) { childIdx =>
+        val workspacesIdx = graph.workspacesForParent(parentIdx)
+        val doneNodes:Array[Int] = workspacesIdx.flatMap(workspaceIdx => graph.doneNodeForWorkspace(workspaceIdx))
+        graph.notDeletedChildrenIdx.exists(parentIdx) { childIdx =>
           val node = graph.nodes(childIdx)
-          node.role == NodeRole.Stage && node.str.toLowerCase != Graph.doneTextLower
+          val res = node.role == NodeRole.Stage && !doneNodes.contains(childIdx)
+          res
         }
       }
     }
+    
     val kanbanSwitch = Var(false)
     val filterAssigned = Var(false)
-    topLevelStageExists.foreach{kanbanSwitch() = _}
+    state.page.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
 
     div(
       Styles.flex,
