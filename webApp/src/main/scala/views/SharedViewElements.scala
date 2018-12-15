@@ -296,11 +296,12 @@ object SharedViewElements {
     authorAvatar(author, avatarSize = 40, avatarPadding = 3)
   }
 
-  def authorName(author: Node.User): VNode = {
+  def authorName(state: GlobalState, author: Node.User): VNode = {
     div(
       cls := "chatmsg-author",
       Styles.flexStatic,
       Components.displayUserName(author.data),
+      onClickDirectMessage(state, author),
     )
   }
 
@@ -385,15 +386,15 @@ object SharedViewElements {
     cls := "chatmsg-header",
     Styles.flex,
     avatar,
-    author.map(author => VDomModifier(authorName(author), onClickDirectMessage(state, author))),
+    author.map(author => VDomModifier(authorName(state, author))),
   )
 
   def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, avatar: VDomModifier) = div(
     cls := "chatmsg-header",
     Styles.flex,
     avatar,
-    author.map(author => VDomModifier(authorName(author), onClickDirectMessage(state, author))),
-    creationDate(creationEpochMillis)
+    author.map(author => VDomModifier(authorName(state, author))),
+    creationDate(creationEpochMillis),
   )
 
   def messageRowDragOptions[T <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
