@@ -68,6 +68,11 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     s"Graph(nodes: ${ nodes.length }, edges: ${ edges.length })"
   }
 
+  def debug(nodeId:NodeId):String = lookup.idToIdxGet(nodeId).map(debug).toString
+  def debug(nodeIds:Iterable[NodeId]): String = nodeIds.map(debug).mkString(", ")
+  def debug(nodeIdx:Int): String = nodeStr(nodeIdx)
+  def debug(nodesIdx:Seq[Int]): String = nodesIdx.map(debug).mkString(", ")
+
   def subset(p: Int => Boolean):ArraySet = {
     val set = ArraySet.create(nodes.length)
     nodes.foreachIndex{i =>
@@ -198,7 +203,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
 
-  @inline val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
+  val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
+  @inline def idToIdxGet(nodeId:NodeId): Option[Int]  = {
+    val idx = idToIdx(nodeId)
+    if(idx == -1) None
+    else Some(idx)
+  }
   @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
   @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
     val idx = idToIdx(nodeId)
