@@ -165,26 +165,34 @@ object Components {
     )
   }
 
+  // FIXME: Ensure unique DM node that may be renamed.
   def onClickDirectMessage(state:GlobalState, user:Node.User): VDomModifier = {
-    (state.user.now.id != user.id).ifTrue[VDomModifier](
+    (state.user.now.id != user.id).ifTrue[VDomModifier]({
+      val dmName = IndexedSeq[String](displayUserName(state.user.now.toNode.data), displayUserName(user.data)).sorted.mkString(", ")
       VDomModifier(
         onClick.foreach{
           // create a new channel, add user as member
-          val nodeId = NodeId.fresh
-          state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = s"${displayUserName(state.user.now.toNode.data)}, ${displayUserName(user.data)}"))
-          state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, View.Chat)
-          //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
-          dom.window.setTimeout({() =>
-            Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)
-            val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(user.id, nodeId)))
-            state.eventProcessor.changes.onNext(change)
-          }, 3000)
-          ()
+          val previousDmNode = state.graph.now.nodes.find(_.str == dmName) // Max 1 dm node with this name
+          previousDmNode match {
+            case Some(dmNode) if state.graph.now.can_access_node(user.id, dmNode.id) =>
+              state.viewConfig() = state.viewConfig.now.focusNode(dmNode.id, needsGet = false, View.Chat)
+            case _ =>
+              val nodeId = NodeId.fresh
+              state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = dmName))
+              state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, View.Chat)
+              //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
+              dom.window.setTimeout({() =>
+                Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)
+                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(user.id, nodeId)))
+                state.eventProcessor.changes.onNext(change)
+              }, 3000)
+              ()
+          }
         },
         cursor.pointer,
         UI.popup := s"Start Conversation with ${displayUserName(user.data)}"
       )
-    )
+    })
   }
 
   def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
