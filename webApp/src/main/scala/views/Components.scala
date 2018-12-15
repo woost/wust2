@@ -171,12 +171,12 @@ object Components {
       val dmName = IndexedSeq[String](displayUserName(state.user.now.toNode.data), displayUserName(user.data)).sorted.mkString(", ")
       VDomModifier(
         onClick.foreach{
-          // create a new channel, add user as member
-          val previousDmNode = state.graph.now.nodes.find(_.str == dmName) // Max 1 dm node with this name
+          val graph = state.graph.now
+          val previousDmNode = graph.chronologicalNodesAscending.find(n => n.str == dmName && graph.pinnedNodeIdx.contains(graph.idToIdx(user.id))(graph.idToIdx(n.id))) // Max 1 dm node with this name
           previousDmNode match {
-            case Some(dmNode) if state.graph.now.can_access_node(user.id, dmNode.id) =>
+            case Some(dmNode) if graph.can_access_node(user.id, dmNode.id) =>
               state.viewConfig() = state.viewConfig.now.focusNode(dmNode.id, needsGet = false, View.Chat)
-            case _ =>
+            case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
               state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = dmName))
               state.viewConfig() = state.viewConfig.now.focusNode(nodeId, needsGet = false, View.Chat)
