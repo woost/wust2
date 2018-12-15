@@ -148,6 +148,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     )
   }
 
+  // Beware: Other functions rely on its partiality (isDefinedAt), therefore do not make it a full function
   val dragActions: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), Unit] = {
     // The booleans: Ctrl is dow, Shift is down
     import DragItem._
@@ -177,8 +178,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (dragging: AnyNodes, target: AnyNodes, true, _)  => addTag(dragging.nodeIds, target.nodeIds)
       case (dragging: AnyNodes, target: AnyNodes, false, _) => moveInto(dragging.nodeIds, target.nodeIds)
 
-      case (_,_,_,_) => scribe.debug(s"no drag function defined for this action")
-
     }
   }
 
@@ -193,6 +192,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   dragOutEvent.map(_ => None).subscribe(lastDragTarget)
 
   // This partial function describes what happens, but also what is allowed to drag from where to where
+  // Beware: Other functions rely on its partiality (isDefinedAt), therefore do not make it a full function
   val
   sortableActions: PartialFunction[(SortableStopEvent, DragPayload, DragContainer, DragContainer, Boolean, Boolean), Unit] = {
     import DragContainer._
@@ -262,8 +262,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val fullChange = sortChanges
 
         state.eventProcessor.changes.onNext(fullChange)
-
-      case (_,_,_,_,_,_) => scribe.debug(s"no drag function defined for this action")
 
     }
   }
