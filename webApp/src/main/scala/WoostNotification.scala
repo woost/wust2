@@ -133,12 +133,16 @@ object WoostNotification {
 
   def banner(state: GlobalState, permissionState: PermissionState): VDomModifier = {
     if(permissionState == PermissionState.prompt) {
-      val text = div(
+      val mobileText = div(
+        "Allow Woost to ",
+        span("send notifications.", textDecoration.underline),
+      )
+      val desktopText = div(
         "Woost needs your permission to ",
         span("enable notifications.", textDecoration.underline),
       )
 
-      Elements.topBanner(text)(
+      Elements.topBanner(desktopText, mobileText)(
         onClick foreach { Notifications.requestPermissionsAndSubscribe { } }
       )
     }

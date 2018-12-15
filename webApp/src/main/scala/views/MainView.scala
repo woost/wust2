@@ -46,11 +46,15 @@ object MainView {
                 Client.auth.getUserDetail(user.id).map {
                   case Some(detail) =>
                     when(detail.email.isEmpty) {
-                      val text = div(
+                      val desktopText = div(
                         "You do not have an email setup. ",
                         span("Please update your profile.", textDecoration.underline),
                       )
-                      Elements.topBanner(text)(
+                      val mobileText = div(
+                        "Please setup an email in ",
+                        span("your profile.", textDecoration.underline),
+                      )
+                      Elements.topBanner(desktopText, mobileText)(
                         onClick foreach { state.view() = View.UserSettings },
                       )
                     }

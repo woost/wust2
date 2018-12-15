@@ -147,12 +147,12 @@ object Elements {
       )
     }}
 
-  def topBanner(innerMessage: VNode): VNode = {
+  def topBanner(destopText: VNode, mobileText: VNode): VNode = {
     val displayHandler = Var("flex")
     div(
       cls := "topBanner",
       display <-- displayHandler,
-      innerMessage,
+      VDomModifier(if(BrowserDetect.isPhone) mobileText else destopText),
       onClick foreach {
         displayHandler() = "none"
       },
