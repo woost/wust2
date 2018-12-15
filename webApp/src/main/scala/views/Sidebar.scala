@@ -1,11 +1,10 @@
 package wust.webApp.views
 
-import fomanticui.PopupOptions
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
+import wust.css.CommonStyles
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -15,10 +14,10 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.SharedViewElements._
 import wust.webApp.views.Elements._
+import wust.webApp.views.SharedViewElements._
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.breakOut
 
 object Sidebar {
 

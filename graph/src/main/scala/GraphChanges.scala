@@ -125,7 +125,7 @@ object GraphChanges {
   def newChannel(nodeId: NodeId, userId: UserId, title: String = "Untitled Workspace"): GraphChanges = {
     val post = new Node.Content(
       nodeId,
-      NodeData.PlainText(title),
+      NodeData.Markdown(title),
       NodeRole.Message, //TODO: something different?
       NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
