@@ -60,10 +60,12 @@ object BreadCrumbs {
                     span(
                       cls := "breadcrumb",
                       if(gId != -1) cycleIndicator(false) else "",
-                      sortedNodes.map { (n: NodeId) =>
-                        graph.nodesByIdGet(n) match {
-                          case Some(node) if (showOwn || n != parentId) => nodeTag(state, node)(cursor.pointer)
-                          case _                                        => VDomModifier.empty
+                      sortedNodes.map { (nid: NodeId) =>
+                        graph.nodesByIdGet(nid) match {
+                          // hiding the stage prevents accidental zooming into stages, which in turn prevents to create inconsistent state.
+                          // example of unwanted inconsistent state: task is only child of stage, but child of nothing else.
+                          case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage => nodeTag(state, node)(cursor.pointer)
+                          case _                                                  => VDomModifier.empty
                         }
                       },
                       if(gId != -1) cycleIndicator(true) else "",
