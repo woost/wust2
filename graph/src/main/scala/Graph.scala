@@ -869,6 +869,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
+  def isDone(nodeIdx:Int):Boolean = isDoneInAllWorkspaces(nodeIdx, workspacesForNode(nodeIdx))
+
   //  lazy val containmentNeighbours
   //  : collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ adjacencyList[
   //    NodeId,

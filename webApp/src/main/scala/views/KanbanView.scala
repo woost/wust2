@@ -351,8 +351,7 @@ object KanbanView {
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
-        val workspaces = graph.workspacesForNode(childIdx)
-        if (graph.isDoneInAllWorkspaces(childIdx, workspaces)) count + 1
+        if (graph.isDone(childIdx)) count + 1
         else count
       }
 

@@ -66,16 +66,7 @@ object ListView {
 //          println("listview allTasks: " + allTasks.collectAllElements.map(i => graph.nodes(i).str).mkString(", "))
 
 
-          val (doneTasks, todoTasks) = {
-//            println("listview separating done/todo")
-            allTasks.partition { nodeIdx =>
-              val node = graph.nodes(nodeIdx)
-//              println("  listview " + node.str)
-              val workspaces = graph.workspacesForNode(nodeIdx)
-//              println("  listview workspaces: " + workspaces.map(i => graph.nodes(i).str).mkString(", "))
-              graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
-            }
-          }
+          val (doneTasks, todoTasks) = allTasks.partition (graph.isDone)
 
 
           def renderUserAvatar(assignments: Seq[Node.User], nodeId: NodeId)= div(
