@@ -59,11 +59,12 @@ function db() {
 }
 
 function currentAuth() {
-    return db().then(db => {
-        let transaction = db.transaction(["auth"], "readwrite");
-        let store = transaction.objectStore("auth");
-        return requestPromise(store.get(0));
-    });
+    return userAuth;
+    // return db().then(db => {
+    //     let transaction = db.transaction(["auth"], "readwrite");
+    //     let store = transaction.objectStore("auth");
+    //     return requestPromise(store.get(0));
+    // });
 }
 
 function getPublicKey() {
@@ -107,49 +108,49 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 // case the app will do this when request notification permissions.
 function subscribeWebPushAndPersist() {
     log("Subscribing to web push");
-    currentAuth().then(currentAuth => {
-        if (currentAuth) {
-            getPublicKey().then(
-                publicKey => publicKey.json().then (
-                    publicKeyJson => {
-                        if (publicKeyJson) {
-                            log("publicKey: ", publicKeyJson);
-                            // we unsubscribe first, because you cannot subscribe with a new public key if there is an old subscription active.
-                            // for now, we always unsubscribe first before subscribing to webpush.
-                            return self.registration.pushManager.getSubscription().then(subscription => {
-                                let unsubscribePromise = subscription ? subscription.unsubscribe() : Promise.resolve(true);
-                                return unsubscribePromise.then(successful => {
-                                    return self.registration.pushManager.subscribe({
-                                        userVisibleOnly: true,
-                                        applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
-                                    }).then(
-                                        sub => {
-                                            log("Success. Sending subscription to backend");
-                                            sendSubscriptionToBackend(sub, currentAuth)
-                                        },
-                                        err => {
-                                            logToBackend(`Subscribing failed with: ${err}`);
-                                            error(`Subscribing failed with: ${err}`);
-                                        }
-                                    );
-                                });
+    let currentAuth = userAuth
+    if (typeof currentAuth !== 'undefined') {
+        getPublicKey().then(
+            publicKey => publicKey.json().then (
+                publicKeyJson => {
+                    if (publicKeyJson) {
+                        log("publicKey: ", publicKeyJson);
+                        // we unsubscribe first, because you cannot subscribe with a new public key if there is an old subscription active.
+                        // for now, we always unsubscribe first before subscribing to webpush.
+                        return self.registration.pushManager.getSubscription().then(subscription => {
+                            //TODO: Test if this is still necessary
+                            let unsubscribePromise = subscription ? subscription.unsubscribe() : Promise.resolve(true);
+                            return unsubscribePromise.then(successful => {
+                                return self.registration.pushManager.subscribe({
+                                    userVisibleOnly: true,
+                                    applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
+                                }).then(
+                                    sub => {
+                                        log("Success. Sending subscription to backend");
+                                        sendSubscriptionToBackend(sub, currentAuth)
+                                    },
+                                    err => {
+                                        logToBackend(`Subscribing failed with: ${err}`);
+                                        error(`Subscribing failed with: ${err}`);
+                                    }
+                                );
                             });
-                        } else {
-                            log("Cannot subscribe, no public key.");
-                            return Promise.reject("Cannot subscribe, no public key.");
-                        }
-                    },
-                    err => {
-                        logToBackend(`Decoding of json public key ${publicKey} failed with: ${err}`);
-                        error(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                        });
+                    } else {
+                        log("Cannot subscribe, no public key.");
+                        return Promise.reject("Cannot subscribe, no public key.");
                     }
-                )
-            );
-        } else {
-            log("Cannot subscribe, no authentication.");
-            return Promise.reject("Cannot subscribe, no authentication.");
-        }
-    });
+                },
+                err => {
+                    logToBackend(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                    error(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                }
+            )
+        );
+    } else {
+        log("Cannot subscribe, no authentication.");
+        return Promise.reject("Cannot subscribe, no authentication.");
+    }
 }
 
 function focusedClient(windowClients, subscribedId, channelId, messageId) {
@@ -184,13 +185,25 @@ pushEmojis.allow_native = true;
 pushEmojis.wrap_native = false;
 pushEmojis.avoid_ms_emoji = true;
 pushEmojis.replace_mode = "unified";
+var userAuth;
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
-    log("Trying to subcribe to webpush");
-    e.waitUntil(
-        subscribeWebPushAndPersist()
-    );
+    return self.registration.pushManager.getSubscription().then(subscription => {
+        subscription ? subscription.unsubscribe() : Promise.resolve(true)
+    });
+});
+
+self.addEventListener('message', e => {
+    if(e.data) {
+        const messageObject = JSON.parse(e.data);
+        if(messageObject.type === "AuthMessage") {
+            log("Received Auth");
+            userAuth = messageObject.token;
+            subscribeWebPushAndPersist();
+        } else
+            log("Received Message");
+    }
 });
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html

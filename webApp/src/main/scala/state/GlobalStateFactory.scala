@@ -14,7 +14,7 @@ import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications}
+import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications, ServiceWorker}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
@@ -138,7 +138,7 @@ object GlobalStateFactory {
     authWithPrev.foreach { case (prev, auth) =>
       if (prev != auth) {
         Client.storage.auth() = Some(auth)
-        IndexedDbOps.storeAuth(auth)
+        ServiceWorker.sendAuth(auth)
       }
 
       // first subscription is send by the serviceworker. we do the one when the user changes
