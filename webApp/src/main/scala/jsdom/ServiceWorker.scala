@@ -23,7 +23,7 @@ object ServiceWorker {
             registration.onupdatefound = { event =>
               val installingWorker = registration.installing
               installingWorker.onstatechange = { event =>
-                val activeServiceworker = Navigator.serviceWorker.get.controller
+                val activeServiceworker = sw.controller
                 if (installingWorker.state == "installed" && activeServiceworker != null) {
                   console.log("New SW installed, can update.")
                   subject.onNext(())
