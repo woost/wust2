@@ -1118,7 +1118,8 @@ object CommonStyles extends StyleSheet.Standalone {
     width(100 %%),
     height(40 px),
     color.white,
-    backgroundColor(Woost.color),
+//    backgroundColor(Woost.color),
+    backgroundColor(c"#ff0266"),
     borderBottom(1 px, solid, black)
   )
 
