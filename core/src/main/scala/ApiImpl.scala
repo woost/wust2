@@ -70,10 +70,12 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       // TODO: memberships can only be added / deleted if the user hat the rights to do so, currently not possible. maybe allow?
       //TODO: consistent timestamps (not in future...)
       //TODO: white-list instead of black-list what a user can do?
-      def validAddEdges = changes.addEdges.forall {
+      def validAddEdges = changes.addEdges.filter {
+        case _: Edge.Member => false // filter out members, just ignore these changes.
+        case _              => true
+      }.forall {
         case Edge.Author(authorId, _, nodeId) =>
           authorId == user.id && changes.addNodes.map(_.id).contains(nodeId)
-        case _: Edge.Member => false //TODO: map to addMember API call
         case _              => true
       }
 
@@ -84,11 +86,14 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
         }
         changes.addNodes.forall {
           case node:Node.Content => allPostsWithAuthor.contains(node.id)
-          case _                      => false
+          case _                 => false
         }
       }
 
-      def validDeleteEdges = changes.delEdges.forall {
+      def validDeleteEdges = changes.delEdges.filter {
+        case _: Edge.Member => false // filter out members, just ignore these changes.
+        case _ => true
+      }.forall {
         case _: Edge.Author => false
         case _ => true
       }
