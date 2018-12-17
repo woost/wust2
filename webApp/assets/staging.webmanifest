@@ -20,7 +20,7 @@
   ],
   "related_applications": [],
   "share_target": {
-    "action": "/#view=chat",
+    "action": "/#",
     "params": {
       "title": "title",
       "text": "text",
