@@ -39,7 +39,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     events: List[ApiEvent],
     origin: Option[NotifiableClient[ApiEvent, State]]
   ): Unit = if (events.nonEmpty) Future {
-    scribe.info(s"Event distributor (${ subscribers.size } clients): $events from $origin")
+    scribe.info(s"Event distributor (${ subscribers.size } clients): $events from $origin.")
 
     val groupedEvents = events.collect { case a: ApiEvent.NewGraphChanges => a }.groupBy(_.user)
     groupedEvents.foreach { case (user, changes) =>
@@ -102,9 +102,9 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   private def deleteSubscriptions(subscriptions: Seq[Data.WebPushSubscription]): Unit = if(subscriptions.nonEmpty) {
     db.notifications.delete(subscriptions).onComplete {
       case Success(res) =>
-        scribe.info(s"Deleted subscriptions ($subscriptions): $res")
+        scribe.info(s"Deleted subscriptions ($subscriptions): $res.")
       case Failure(res) =>
-        scribe.error(s"Failed to delete subscriptions ($subscriptions), due to exception: $res")
+        scribe.error(s"Failed to delete subscriptions ($subscriptions), due to exception: $res.")
     }
   }
 
@@ -167,11 +167,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
                   Success(None)
                 case _                                                     =>
                   val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
-                  scribe.error(s"Unexpected success code: $response body: $body")
+                  scribe.error(s"Unexpected success code: $response body: $body.")
                   Success(None)
               }
             case Failure(t)        =>
-              scribe.error(s"Cannot send push notification, due to unexpected exception: $t")
+              scribe.error(s"Cannot send push notification, due to unexpected exception: $t.")
               Success(None)
           }
         }

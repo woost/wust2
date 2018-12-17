@@ -65,7 +65,7 @@ object GlobalStateFactory {
         case Success(None) =>
           () // nothing to do, not file url available at backend
         case Failure(err) =>
-          scribe.warn("Error getting file download base url, will retry in 30 seconds", err)
+          scribe.warn("Error getting file download base url, will retry in 30 seconds...", err)
           scheduleRenewal(seconds = 30)
       }
     }
@@ -220,16 +220,16 @@ object GlobalStateFactory {
       .throttleFirst(maxCheckUpdateInterval)
       .foreach { _ =>
         Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
-          scribe.info("Requesting updating from SW")
+          scribe.info("Requesting updating from SW.")
           reg.update().toFuture.onComplete { res =>
-            scribe.info(s"Result of update request: ${if(res.isSuccess) "Success" else "Failure"}")
+            scribe.info(s"Result of update request: ${if(res.isSuccess) "Success" else "Failure"}.")
           }
         }))
       }
 
     // if there is a page change and we got an sw update, we want to reload the page
     appUpdateTrigger.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
-      scribe.info("Going to reload page, due to SW update")
+      scribe.info("Going to reload page, due to SW update.")
       // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
       window.location.reload(flag = false)
     }
@@ -244,7 +244,7 @@ object GlobalStateFactory {
 
     // we send client errors from javascript to the backend
     jsErrors.foreach { msg =>
-      Client.api.log(s"Javascript Error: $msg")
+      Client.api.log(s"Javascript Error: $msg.")
     }
 
     DevOnly {
@@ -271,9 +271,9 @@ object GlobalStateFactory {
     emojiTextConvertor.text_mode = true
     private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.collect {
       case n: Node.Content =>
-        scribe.info(s"replacing node emoji: ${n.str}")
+        scribe.debug(s"replacing node emoji: ${n.str}.")
         val emojiData = n.data.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str)))
-        scribe.info(s"New representation: ${emojiData.str}")
+        scribe.debug(s"New representation: ${emojiData.str}.")
         n.copy(data = emojiData)
       case n => n
     }(breakOut)
