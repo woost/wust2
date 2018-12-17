@@ -42,8 +42,23 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     scribe.info(s"Event distributor (${ subscribers.size } clients): $events from $origin.")
 
     val groupedEvents = events.collect { case a: ApiEvent.NewGraphChanges => a }.groupBy(_.user)
+    val replacements = events.collect { case a: ApiEvent.ReplaceNode => a }
     groupedEvents.foreach { case (user, changes) =>
       publishPerAuthor(user, changes.foldLeft(GraphChanges.empty)(_ merge _.changes), origin)
+    }
+
+    publishReplacements(replacements, origin)
+  }
+
+  //TODO do not send replacements to everybody, this leaks information. We use replacenodes primarily for merging users.
+  // checking whether a user is of interest for a client would need to check whether two users are somehow in one workspace together.
+  private def publishReplacements(
+    replacements: List[ApiEvent.ReplaceNode],
+    origin: Option[NotifiableClient[ApiEvent, State]]
+  ): Unit = {
+    // send out notifications to websocket subscribers
+    if (replacements.nonEmpty) subscribers.foreach { client =>
+      if (origin.fold(true)(_ != client)) client.notify(_ => Future.successful(replacements))
     }
   }
 
@@ -51,16 +66,16 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     author: Node.User,
     graphChanges: GraphChanges,
     origin: Option[NotifiableClient[ApiEvent, State]]
-  ): Unit = if (graphChanges.nonEmpty) {
+  ): Unit = {
     // send out notifications to websocket subscribers
-    subscribers.foreach { client =>
+    if (graphChanges.nonEmpty) subscribers.foreach { client =>
       if (origin.fold(true)(_ != client)) client.notify(state =>
-        state.flatMap(sendWebsocketNotifications(author, graphChanges))
+        state.flatMap(getWebsocketNotifications(author, graphChanges))
       )
     }
 
     // send out push notifications
-    pushService.foreach { pushService =>
+    if (graphChanges.nonEmpty) pushService.foreach { pushService =>
       val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.map(node => node.id -> node)(breakOut)
       for {
         parentNodeByChildId <- parentNodeByChildId(graphChanges)
@@ -82,10 +97,10 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     } else Future.successful(Map.empty[NodeId, Data.Node])
   }
 
-  private def sendWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
+  private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
     state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
       db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
-        .map{ permittedNodeIds =>
+        .map { permittedNodeIds =>
           val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
             case e: Edge.Author => List(e.nodeId)
             case e: Edge.Member => List(e.nodeId)
@@ -93,8 +108,11 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
             case e: Edge.Assigned => List(e.nodeId)
             case e => List(e.sourceId, e.targetId)
           })
+
+          // we send replacements without a check, because they are normally only about users
+          // TODO: actually check whether we have access to the replaced nodes
           if(filteredChanges.isEmpty) Nil
-          else NewGraphChanges(author, filteredChanges) :: Nil
+          else NewGraphChanges.forPrivate(author, filteredChanges) :: Nil
         }
     }
   }

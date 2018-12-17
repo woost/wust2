@@ -5,11 +5,14 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import wust.backend.config.{EmailConfig, ServerConfig}
 import wust.backend.mail.{MailMessage, MailRecipient, MailService}
-import wust.api.UserDetail
+import wust.api.{AuthUser, Authentication, UserDetail}
 import wust.backend.auth.JWT
-import wust.ids.UserId
+import wust.graph.Node
+import wust.ids.{NodeId, UserId}
 import wust.serviceUtil.MonixUtils
+
 import scala.util.control.NonFatal
+import wust.util.StringOps
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
@@ -21,6 +24,17 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val token = jwt.generateEmailActivationToken(userId, email)
     s"https://core.${serverConfig.host}/${Server.paths.emailVerify}?token=$token"
   }
+
+  private def workspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
+    s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=$token"
+  }
+
+  private val signature =
+    """
+      |Your Woost Team
+      |
+      |Woost - c/o DigitalHUB Aachen e.V. - Jülicher Straße 72a - 52070 Aachen
+    """.stripMargin
 
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
     val secretLink = generateRandomVerificationLink(userId, email)
@@ -35,27 +49,51 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |Thank you!
         |
-        |The Woost Team
-        |
-        |Woost - Kackertstr. 7 - 52072 Aachen - Germany
+        |$signature
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, body = body)
+    MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
   }
 
-  private def feedbackMailMessage(userId: UserId, msg: String): MailMessage = {
+  private def feedbackMailMessage(userId: UserId, userName: String, msg: String): MailMessage = {
+    //TODO: show name and email in message
+    // pass User and Option[UserDetail] to this function
     val recipient = MailRecipient(to = "team@woost.space" :: Nil)
-    val subject = s"Woost - Feedback on ${serverConfig.host}"
+    val subject = s"Feedback on ${serverConfig.host}"
     val body =
       s"""
         |Feedback:
         |  UserId: ${userId.toCuidString}
+        |  UserName: ${userName}
         |  Instance: ${serverConfig.host}
         |
         |$msg
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, body = body)
+    MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
+  }
+
+  private def inviteEMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
+    //TODO: email from field with username
+    // we assume that the node we share is already public and just send a link
+    // in reality we want something smarter, bind email adress to permission
+    //TODO: description of what woost is
+    val recipient = MailRecipient(to = email :: Nil)
+    val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
+    val body =
+      s"""
+        | $inviterEmail has invited you to collaborate on a workspace in Woost.
+        |
+        | Click the following link to accept the invitation:
+        |
+        | ${workspaceLink(node.id, invitedJwt)}
+        |
+        | "${StringOps.trimToMaxLength(node.str, 200)}"
+        |
+        | $signature
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, body = body, fromPersonal = s"$inviterName via Woost")
   }
 
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
@@ -63,8 +101,13 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     emailSubject.onNext(message)
   }
 
-  def sendEmailFeedback(userId: UserId, msg: String)(implicit ec: ExecutionContext): Unit = {
-    val message = feedbackMailMessage(userId, msg)
+  def sendEmailFeedback(userId: UserId, userName: String, msg: String)(implicit ec: ExecutionContext): Unit = {
+    val message = feedbackMailMessage(userId, userName = userName, msg = msg)
+    emailSubject.onNext(message)
+  }
+
+  def sendEmailInvitation(email: String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+    val message = inviteEMailMessage(email = email, invitedJwt = invitedJwt, inviterName = inviterName, inviterEmail = inviterEmail, node = node)
     emailSubject.onNext(message)
   }
 

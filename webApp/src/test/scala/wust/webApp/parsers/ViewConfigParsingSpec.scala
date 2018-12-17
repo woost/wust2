@@ -7,7 +7,7 @@ import wust.ids.{Cuid, NodeId}
 import wust.webApp.state.{PageChange, View, ViewConfig, ViewOperator}
 
 class ViewConfigParsingSpec extends FreeSpec with MustMatchers {
-  def createViewConfig(view: View, page: Page, prevView: Option[View]) = ViewConfig(view, PageChange(page), prevView, None)
+  def createViewConfig(view: View, page: Page, prevView: Option[View]) = ViewConfig(view, PageChange(page), prevView, None, None)
 
   def toStringAndBack(viewConfig: ViewConfig): ViewConfig =
     ViewConfig.fromUrlHash(ViewConfig.toUrlHash(viewConfig))

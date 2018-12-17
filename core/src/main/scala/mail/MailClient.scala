@@ -8,7 +8,7 @@ import monix.eval.Task
 import wust.backend.config.SmtpConfig
 
 trait MailClient {
-  def sendMessage(from: String, mail: MailMessage): Task[Unit]
+  def sendMessage(fromEmail: String, mail: MailMessage): Task[Unit]
 }
 
 class JavaMailClient(config: SmtpConfig) extends MailClient {
@@ -17,7 +17,8 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
       new PasswordAuthentication(config.username, config.password)
   }
 
-  private def createMessage(from: String, mail: MailMessage): Task[Message] = Task {
+  private def createMessage(fromEmail: String, mail: MailMessage): Task[Message] = Task {
+    //TODO: Introduce tagged type for Email(String)
     import mail._
 
     val properties = new Properties()
@@ -36,7 +37,7 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
 
     val message = new MimeMessage(session)
 
-    message.setFrom(new InternetAddress(from))
+    message.setFrom(new InternetAddress(fromEmail, mail.fromPersonal))
 
     val to: Array[Address] = recipient.to.map(addr => new InternetAddress(addr)).toArray
     message.setRecipients(Message.RecipientType.TO, to)
@@ -51,7 +52,7 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
     message
   }
 
-  def sendMessage(from: String, mail: MailMessage): Task[Unit] = {
-    createMessage(from, mail).flatMap(message => Task(Transport.send(message)))
+  def sendMessage(fromEmail: String, mail: MailMessage): Task[Unit] = {
+    createMessage(fromEmail, mail).flatMap(message => Task(Transport.send(message)))
   }
 }

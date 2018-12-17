@@ -4,7 +4,7 @@ import monix.eval.Task
 import wust.backend.config._
 
 case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
-case class MailMessage(recipient: MailRecipient, subject: String, body: String)
+case class MailMessage(recipient: MailRecipient, subject: String, body: String, fromPersonal:String)
 
 trait MailService {
   def sendMail(message: MailMessage): Task[Unit]

@@ -139,7 +139,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       result.map { _ =>
         val whiteListedChanges = GraphChanges.from(addEdges = allWhitelistedAddEdges.flatMap(identity)(breakOut):Set[Edge], delEdges = allWhitelistedDelEdges.flatMap(identity)(breakOut))
         val compactChanges = (changes :+ whiteListedChanges).foldLeft(GraphChanges.empty)(_ merge _).consistent
-        Returns(true, Seq(NewGraphChanges(user.toNode, compactChanges)))
+        Returns(true, Seq(NewGraphChanges.forPublic(user.toNode, compactChanges)))
       }.recover { case NonFatal(e) =>
         scribe.warn("Cannot apply changes", e)
         Returns(false)
@@ -163,7 +163,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
             added, // return value of api call
             if (added)
               Seq(
-                NewGraphChanges(
+                NewGraphChanges.forAll(
                   user.toNode,
                   GraphChanges(
                     addNodes = Set(forClient(node), subjectUser), // subjectUser is for other users, the node is for the subjectuser
@@ -192,7 +192,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
             removed,
             if (removed)
               Seq(
-                NewGraphChanges(
+                NewGraphChanges.forAll(
                   user.toNode,
                   GraphChanges(
                     delEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
@@ -204,17 +204,6 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       }
     }
   }
-
-//  override def addMemberByName(nodeId: NodeId, userName: String): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-//    db.ctx.transaction { implicit ec =>
-//      isPostMember(nodeId, user.id) {
-//        for {
-//          Some(user) <- db.user.byName(userName)
-//          Some((_, dbMembership)) <- db.post.addMember(nodeId, user.id)
-//        } yield Returns(true, Seq(NewMembership(dbMembership), NewUser(user)))
-//      }
-//    }
-//  }
 
   override def getNode(
                             nodeId: NodeId,
@@ -231,8 +220,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   private def getNodeInternal(user: AuthUser, nodeId: NodeId): Future[Option[Node]] = db.node.get(user.id, nodeId).map(_.map(forClient))
 
 
-  override def getUserByName(name: String): ApiFunction[Option[Node.User]] = Action {
-    db.user.byName(name).map(_.map(forClient))
+  override def getUserByEMail(email: String): ApiFunction[Option[Node.User]] = Action {
+    db.user.getUserByMail(email).map(_.map(forClient))
   }
 
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
@@ -329,7 +318,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   }
 
   override def feedback(message: String): ApiFunction[Unit] = Action.requireUser { (_, user) =>
-    Future.successful(emailFlow.sendEmailFeedback(user.id, msg = message))
+    Future.successful(emailFlow.sendEmailFeedback(user.id, user.name, msg = message))
   }
 
   // def getComponent(id: Id): Graph = {

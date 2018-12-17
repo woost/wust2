@@ -44,7 +44,12 @@ object Components {
   val woostTeamEmailLink = a(href := "mailto:team@woost.space", "team@woost.space", cursor.pointer)
 
   def displayUserName(user: NodeData.User): String = {
-    if(user.isImplicit) implicitUserName else user.name
+    if(user.isImplicit) {
+      if (user.name.contains(" ")) { //hack for showing invite user by email with their email address
+        val email = user.name.split(" ")(0)
+        s"$email (unregistered)"
+      } else implicitUserName
+    } else user.name
   }
 
   val htmlNodeData: NodeData => String = {
@@ -575,7 +580,7 @@ object Components {
     )
   }
 
-  def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+  def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
     var elem: JQuerySelection = null
     div(
       keyed,
@@ -583,23 +588,32 @@ object Components {
       div(
         cls := "ui icon input",
         input(
+          inputModifiers,
           cls := "prompt",
           tpe := "text",
           dsl.placeholder := placeholder,
 
           onFocus.foreach { _ =>
             elem.search(arg = new SearchOptions {
-              `type` = "category"
+              `type` = if (showParents) "category" else js.undefined
 
               cache = false
               searchOnFocus = true
               minCharacters = 0
 
               source = graph.now.nodes.collect { case node: Node if filter(node) =>
-                val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
-                val cat = if (parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+                val cat: js.UndefOr[String] = if (showParents) {
+                  val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
+                  if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+                } else js.undefined
+
+                val str = node match {
+                  case user: Node.User => Components.displayUserName(user.data)
+                  case _ => node.str
+                }
+
                 new SearchSourceEntry {
-                  title = node.str
+                  title = str
                   category = cat
                   data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
                 }
@@ -616,7 +630,7 @@ object Components {
             })
 
 
-            elem.search("search local", "") // enforce autocomplete on focus, otherwise it does not work for the initial focus
+            if (completeOnInit) elem.search("search local", "")
           },
 
           valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))

@@ -18,6 +18,7 @@ object Boopickle extends wust.ids.serialize.Boopickle {
 
   implicit val authenticationPickler: Pickler[Authentication] = generatePickler[Authentication]
 
+  implicit val apiEventScopePickler: Pickler[ApiEvent.Scope] = generatePickler[ApiEvent.Scope]
   implicit val apiEventPickler: Pickler[ApiEvent] = generatePickler[ApiEvent]
 
   implicit val apiErrorPickler: Pickler[ApiError] = generatePickler[ApiError]

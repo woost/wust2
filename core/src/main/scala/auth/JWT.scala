@@ -89,6 +89,28 @@ class JWT(secret: String, tokenLifetime: Duration) {
       case _ => None
     }
   }
+
+  def generateInvitationToken(user: AuthUser.Implicit): Authentication.Token = {
+    val thisTokenLifetimeSeconds: Long = implicitTokenLifeTimeSeconds
+
+    val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
+    val claim = generateClaim(CustomClaim.Invitation(user), user.id, expires)
+    val token = JwtCirce.encode(claim, secret, algorithm)
+    token
+  }
+
+  def invitationUserFromToken(token: Authentication.Token): Option[AuthUser.Implicit] = {
+    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
+      case claim if claim.isValid(issuer, audience) =>
+        for {
+          user <- parser.decode[CustomClaim](claim.content)
+            .right.toOption.collect { case CustomClaim.Invitation(user) => user }
+          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
+          if user.id == subject
+        } yield user
+      case _ => None
+    }
+  }
 }
 object JWT {
   def isExpired(auth: Authentication.Verified): Boolean = auth.expires <= Instant.now.getEpochSecond
@@ -97,6 +119,7 @@ object JWT {
   sealed trait CustomClaim
   object CustomClaim {
     case class UserAuth(user: AuthUser.Persisted) extends CustomClaim
+    case class Invitation(user: AuthUser.Implicit) extends CustomClaim
     case class EmailVerify(userId: UserId, email: String) extends CustomClaim
 
     import io.circe._, io.circe.generic.extras.semiauto._

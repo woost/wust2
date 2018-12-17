@@ -21,7 +21,7 @@ import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
 import scala.concurrent.duration._
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -103,13 +103,14 @@ class EventProcessor private (
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
 
-    val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges(gc._2.toNode, gc._1)))
+    val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges.forPrivate(gc._2.toNode, gc._1)))
     val graphEvents = Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge
 
     val graphWithChanges: Observable[Graph] = {
       var lastGraph = Graph.empty
       graphEvents.map { events =>
         var lastChanges: GraphChanges = null
+        val replacements = new mutable.ArrayBuffer[ApiEvent.ReplaceNode]
         events.foreach {
           case ApiEvent.NewGraphChanges(user, changes) =>
             val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
@@ -118,8 +119,11 @@ class EventProcessor private (
           case ApiEvent.ReplaceGraph(graph) =>
             lastChanges = null
             lastGraph = graph
+          case r: ApiEvent.ReplaceNode =>
+            replacements += r
         }
         if (lastChanges != null) lastGraph = lastGraph.applyChanges(lastChanges)
+        lastGraph = replacements.foldLeft[Graph](lastGraph) { case (g, ReplaceNode(oldNodeId, newNode)) => g.replaceNode(oldNodeId, newNode) }
         lastGraph
       }
     }

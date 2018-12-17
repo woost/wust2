@@ -6,6 +6,8 @@ import wust.ids.{EdgeData, _}
 import cats.data.NonEmptyList
 import wust.graph.Node.User
 
+import scala.collection.mutable
+
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]
   @PathName("changeGraphSingle")
@@ -25,8 +27,7 @@ trait Api[Result[_]] {
   def getNode(nodeId: NodeId): Result[Option[Node]]
   @PathName("getNodeOnBehalf")
   def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
-//  def addMemberByName(nodeId: NodeId, userName: String): Result[Boolean]
-  def getUserByName(name: String): Result[Option[Node.User]]
+  def getUserByEMail(email: String): Result[Option[Node.User]]
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
@@ -62,10 +63,12 @@ trait AuthApi[Result[_]] {
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
   def issuePluginToken(): Result[Authentication.Verified]
   def createImplicitUserForApp(): Result[Option[Authentication.Verified]]
+  def acceptInvitation(token: Authentication.Token): Result[Unit]
 
   def getUserDetail(id: UserId): Result[Option[UserDetail]]
   def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
   def resendEmailVerification(id: UserId): Result[Unit]
+  def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
 }
 
 case class UserDetail(
@@ -133,58 +136,74 @@ object ApiError {
   case object Forbidden extends HandlerFailure
 }
 
-sealed trait ApiEvent extends Any
+sealed trait ApiEvent extends Any {
+  def scope: ApiEvent.Scope
+}
 object ApiEvent {
-  sealed trait Public extends Any with ApiEvent
-  sealed trait Private extends Any with ApiEvent
-  sealed trait GraphContent extends Any with ApiEvent
-  sealed trait AuthContent extends Any with ApiEvent
-
-  sealed trait NewGraphChanges extends GraphContent {
-    val changes: GraphChanges
-    val user: User // the user who initiated the change
+  sealed trait Scope
+  object Scope {
+    case object Public extends Scope
+    case object Private extends Scope
+    case object All extends Scope
   }
+
+  sealed trait GraphContent extends Any with ApiEvent
+  sealed trait AuthContent extends Any with ApiEvent {
+    def scope = Scope.Private
+  }
+
+  case class NewGraphChanges(user: User, changes: GraphChanges, scope: ApiEvent.Scope) extends GraphContent
   object NewGraphChanges {
     def unapply(event: ApiEvent): Option[(User, GraphChanges)] = event match {
       case gc: NewGraphChanges => Some(gc.user -> gc.changes)
       case _                   => None
     }
 
-    def apply(user: User, changes: GraphChanges) = ForPublic(user, changes)
-    case class ForPublic(user: User, changes: GraphChanges) extends NewGraphChanges with Public
-    case class ForPrivate(user: User, changes: GraphChanges) extends NewGraphChanges with Private
-    case class ForAll(user: User, changes: GraphChanges) extends NewGraphChanges with Public with Private
+    def forPublic(user: User, changes: GraphChanges) = new NewGraphChanges(user, changes, Scope.Public)
+    def forPrivate(user: User, changes: GraphChanges) = new NewGraphChanges(user, changes, Scope.Private)
+    def forAll(user: User, changes: GraphChanges) = new NewGraphChanges(user, changes, Scope.All)
   }
 
-  case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent with Private {
+  case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent {
+    def scope = Scope.Private
     override def toString = s"ReplaceGraph(#nodes: ${graph.nodes.size})"
   }
 
-  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent with Private
-  case class AssumeLoggedIn(auth: Authentication.Assumed)
-      extends AnyVal
-      with AuthContent
-      with Private
+  case class ReplaceNode(oldNodeId: NodeId, newNode: Node) extends GraphContent {
+    def scope = Scope.Public
+  }
 
-  def separateByScope(events: Seq[ApiEvent]): (List[Private], List[Public]) =
-    events.foldRight((List.empty[Private], List.empty[Public])) {
-      case (ev, (privs, pubs)) =>
-        val newPrivs = ev match {
-          case ev: Private => ev :: privs
-          case _           => privs
-        }
-        val newPubs = ev match {
-          case ev: Public => ev :: pubs
-          case _          => pubs
-        }
-        (newPrivs, newPubs)
+  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent
+  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent
+
+  def separateToPrivateAndPublicEvents(events: Seq[ApiEvent]): (List[ApiEvent], List[ApiEvent]) = {
+    val privs = List.newBuilder[ApiEvent]
+    val pubs = List.newBuilder[ApiEvent]
+    events.foreach { event =>
+      event.scope match {
+        case Scope.Private =>
+          privs += event
+        case Scope.Public =>
+          pubs += event
+        case Scope.All =>
+          privs += event
+          pubs += event
+      }
     }
 
-  def separateByContent(events: Seq[ApiEvent]): (List[GraphContent], List[AuthContent]) =
-    events.foldRight((List.empty[GraphContent], List.empty[AuthContent])) {
-      case (ev: GraphContent, (gs, as)) => (ev :: gs, as)
-      case (ev: AuthContent, (gs, as))  => (gs, ev :: as)
+    (privs.result(), pubs.result())
+  }
+
+  def separateToGraphAndAuthContent(events: Seq[ApiEvent]): (List[GraphContent], List[AuthContent]) = {
+    val graphs = List.newBuilder[GraphContent]
+    val auths = List.newBuilder[AuthContent]
+    events.foreach {
+      case ev: GraphContent => graphs += ev
+      case ev: AuthContent  => auths += ev
     }
+
+    (graphs.result(), auths.result())
+  }
 }
 
 sealed trait FileUploadConfiguration

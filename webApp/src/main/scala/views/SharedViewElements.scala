@@ -56,7 +56,7 @@ object SharedViewElements {
     val fileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
     val fileNode = Node.Content(fileNodeData, NodeRole.Message)
 
-    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges(state.user.now.toNode, GraphChanges.addNodeWithParent(fileNode, replyNodes).withAuthor(state.user.now.id)))
+    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, GraphChanges.addNodeWithParent(fileNode, replyNodes).withAuthor(state.user.now.id)))
 
     var uploadTask: Task[Unit] = null
     uploadTask = Task.defer{

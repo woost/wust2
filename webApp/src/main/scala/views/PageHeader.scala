@@ -316,36 +316,60 @@ object PageHeader {
     )
   }
 
-  private def manageMembers(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def manageMembers(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
 
-    val addMember = PublishSubject[String]
-    val removeMember = PublishSubject[Edge.Member]
+    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
     val userNameInputProcess = PublishSubject[String]
     val modalCloseTrigger = PublishSubject[Unit]
-    val errorMessageHandler = PublishSubject[Option[(String, VDomModifier)]]
+    val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
 
-    def handleAddMember(name: String)(implicit ctx: Ctx.Owner): Unit = {
-      val graphUser = Client.api.getUserByName(name)
-      graphUser.flatMap {
-        case Some(u) =>
-          val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(u.id, node.id)))
-          state.eventProcessor.changes.onNext(change)
-          val localChange:GraphChanges = GraphChanges.from(addNodes = Set(u), addEdges = Set(Edge.Member(u.id, EdgeData.Member(AccessLevel.ReadWrite), node.id)))
-          state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, localChange))
-          Client.api.addMember(node.id, u.id, AccessLevel.ReadWrite)
-        case _       => Future.successful(false)
-      }.onComplete {
+    def addUserMember(userId: UserId): Unit = {
+      val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(userId, node.id)))
+      state.eventProcessor.changes.onNext(change)
+      Client.api.addMember(node.id, userId, AccessLevel.ReadWrite).onComplete {
         case Success(b) =>
           if(!b) {
-            errorMessageHandler.onNext(Some("Adding Member" -> "Member does not exist"))
+            statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Member does not exist")))
             scribe.info("Could not add member: Member does not exist")
           } else {
-            errorMessageHandler.onNext(None)
-            scribe.info("Added member to channel")
+            statusMessageHandler.onNext(None)
+            clear.onNext(())
           }
         case Failure(ex) =>
-          errorMessageHandler.onNext(Some("Adding Member" -> "Unexpected error"))
+          statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
           scribe.warn("Could not add member to channel", ex)
+      }
+    }
+    def handleAddMember(email: String)(implicit ctx: Ctx.Owner): Unit = {
+      val graphUser = Client.api.getUserByEMail(email)
+      graphUser.onComplete {
+        case Success(Some(u)) if state.graph.now.members(node.id).exists(_.id == u.id) => // user exists and is already member
+          statusMessageHandler.onNext(None)
+          clear.onNext(())
+          ()
+        case Success(Some(u)) => // user exists with this email
+          addUserMember(u.id)
+        case Success(None)       => // user does not exist with this email
+          Client.auth.getUserDetail(state.user.now.id).onComplete {
+            case Success(Some(userDetail)) if userDetail.verified =>
+              Client.auth.invitePerMail(address = email, node.id).onComplete {
+                case Success(()) =>
+                  statusMessageHandler.onNext(Some(("positive", "New member was invited", s"Invitation mail has been sent to '$email'.")))
+                  clear.onNext(())
+                case Failure(ex) =>
+                  statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
+                  scribe.warn("Could not add member to channel because invite failed", ex)
+              }
+            case Success(_) =>
+              statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Please verify your own email address to send out invitation emails.")))
+              scribe.warn("Could not add member to channel because user email is not verified")
+            case Failure(ex) =>
+              statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
+              scribe.warn("Could not add member to channel", ex)
+          }
+        case Failure(ex)       =>
+          statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
+          scribe.warn("Could not add member to channel because get userdetails failed", ex)
       }
     }
 
@@ -356,10 +380,7 @@ object PageHeader {
           modalCloseTrigger.onNext(())
         } else return
       }
-      // optimistic UI, since removeMember does not send an event itself:
-      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership)) merge GraphChanges.disconnect(Edge.Pinned)(membership.userId, membership.nodeId)
-      state.eventProcessor.localEvents.onNext(NewGraphChanges(state.user.now.toNode, change))
-      
+
       Client.api.removeMember(membership.nodeId,membership.userId,membership.level) //TODO: handle error...
     }
 
@@ -388,60 +409,91 @@ object PageHeader {
           marginRight := "5px",
         ),
         div(
-          user.name,
+          Components.displayUserName(user.data),
           fontSize := "15px",
           Styles.wordWrap,
         ),
       )
     }
 
-    def description(implicit ctx: Ctx.Owner) = VDomModifier(
-      div(
-        div(
-          cls := "ui fluid action input",
-          input(
-            placeholder := "Enter username",
-            Elements.valueWithEnter --> addMember,
-            onChange.value --> userNameInputProcess
-          ),
-          div(
-            cls := "ui primary button approve",
-            "Add",
-            onClick(userNameInputProcess) --> addMember
-          ),
+    def description(implicit ctx: Ctx.Owner) = {
+      var element: dom.html.Element = null
+      val showEmailInvite = Var(false)
+      val inputSizeMods = VDomModifier(width := "250px", height := "30px")
+      VDomModifier(
+        form(
+          onDomMount.asHtml.foreach { element = _ },
+
+          input(tpe := "text", style := "position: fixed; left: -10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
+
+          showEmailInvite.map {
+            case true => VDomModifier(
+              div(
+                cls := "ui fluid action input",
+                inputSizeMods,
+                input(
+                  tpe := "email",
+                  placeholder := "Invite by email address",
+                  value <-- clear,
+                  Elements.valueWithEnter(clearValue = false) foreach { str =>
+                    if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                      handleAddMember(str)
+                    }
+                  },
+                  onChange.value --> userNameInputProcess
+                ),
+                div(
+                  cls := "ui primary button approve",
+                  "Add",
+                  onClick(userNameInputProcess) foreach { str =>
+                    if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                      handleAddMember(str)
+                    }
+                  }
+                ),
+              ),
+              a(href := "#", padding := "5px", onClick.preventDefault(false) --> showEmailInvite, "Invite user by username")
+            )
+            case false => VDomModifier(
+              searchInGraph(state.graph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), showParents = false, inputModifiers = inputSizeMods).foreach { userId =>
+                addUserMember(UserId(userId))
+              },
+              a(href := "#", padding := "5px", onClick.preventDefault(true) --> showEmailInvite, "Invite user by email address")
+            )
+          },
+          statusMessageHandler.map {
+            case Some((statusCls, title, errorMessage)) => div(
+              cls := s"ui $statusCls message",
+              div(cls := "header", title),
+              p(errorMessage)
+            )
+            case None => VDomModifier.empty
+          },
         ),
-        errorMessageHandler.map {
-          case Some((title, errorMessage)) => div(
-            cls := "ui negative message",
-            div(cls := "header", s"$title failed"),
-            p(errorMessage)
-          )
-          case None => VDomModifier.empty
-        },
-      ),
-      div(
-        marginLeft := "10px",
-        Rx {
-          val graph = state.graph()
-          val nodeIdx = graph.idToIdx(node.id)
-          if(nodeIdx != -1) {
-            graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
-              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-              val user = graph.nodesById(membership.userId).asInstanceOf[User]
-              userLine(user).apply(
-                button(
-                  cls := "ui tiny compact negative basic button",
-                  marginLeft := "10px",
-                  "Remove",
-                  onClick(membership) --> removeMember
+        div(
+          marginLeft := "10px",
+          Rx {
+            val graph = state.graph()
+            val nodeIdx = graph.idToIdx(node.id)
+            if(nodeIdx != -1) {
+              graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
+                val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+                val user = graph.nodesById(membership.userId).asInstanceOf[User]
+                userLine(user).apply(
+                  button(
+                    cls := "ui tiny compact negative basic button",
+                    marginLeft := "10px",
+                    "Remove",
+                    onClick(membership).foreach(handleRemoveMember(_))
+                  )
                 )
-              )
-            }:VDomModifier
-          } else VDomModifier.empty
-        },
-        if(true) VDomModifier.empty else List(div)
+              }:VDomModifier
+            } else VDomModifier.empty
+          },
+          if(true) VDomModifier.empty else List(div)
+        )
       )
-    )
+    }
 
     div(
       cls := "item",
@@ -451,8 +503,6 @@ object PageHeader {
       onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
         modalModifier = VDomModifier(
           cls := "mini form",
-          emitter(addMember).foreach(handleAddMember(_)),
-          emitter(removeMember).foreach(handleRemoveMember(_))
         ),
         contentModifier = VDomModifier(
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
@@ -461,7 +511,6 @@ object PageHeader {
     )
   }
 
-
   private def channelAvatar(node: Node, size: Int) = {
     Avatar(node)(
       width := s"${ size }px",
@@ -469,13 +518,34 @@ object PageHeader {
     )
   }
 
-  private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
-    button(
-      cls := "ui compact primary button",
-      if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-      onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
-      onClick foreach { Analytics.sendEvent("pageheader", "join") }
+  // private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode =
+  //   button(
+  //     cls := "ui compact primary button",
+  //     if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
+  //     onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
+  //     onClick foreach { Analytics.sendEvent("pageheader", "join") }
+  //   )
+
+  private def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val isInvited = Rx {
+      val graph = state.graph()
+      val user = state.user()
+
+      graph.inviteNodeIdx(graph.idToIdx(user.id)).contains(graph.idToIdx(channel.id))
+    }
+
+    div(
+      div(
+        Styles.flex,
+        button(
+          cls := "ui compact primary button",
+          if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
+          onClick(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, channel.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, channel.id)))) --> state.eventProcessor.changes,
+          onClick foreach { Analytics.sendEvent("pageheader", "join") }
+        )
+      )
     )
+  }
 
   //TODO make this reactive by itself and never rerender, because the modal stuff is quite expensive.
   //TODO move menu to own file, makes up for a lot of code in this file
@@ -553,7 +623,7 @@ object PageHeader {
       ))
 
 
-    val addMemberItem = canWrite.ifTrue[VDomModifier](manageMembers(state, channel))
+    val addMemberItem = canWrite.ifTrue[VDomModifier](manageMembers(state, channel.asInstanceOf[Node.Content]))
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
     val notificationItem = VDomModifier(Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel, isOwnUser) })

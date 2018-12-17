@@ -27,6 +27,8 @@ object Circe extends wust.ids.serialize.Circe {
   implicit val UserAssumedEncoder: Encoder[AuthUser.Assumed] = deriveEncoder[AuthUser.Assumed]
   implicit val UserVerifiedDecoder: Decoder[AuthUser.Persisted] = deriveDecoder[AuthUser.Persisted]
   implicit val UserVerifiedEncoder: Encoder[AuthUser.Persisted] = deriveEncoder[AuthUser.Persisted]
+  implicit val UserImplicitDecoder: Decoder[AuthUser.Implicit] = deriveDecoder[AuthUser.Implicit]
+  implicit val UserImplicitEncoder: Encoder[AuthUser.Implicit] = deriveEncoder[AuthUser.Implicit]
   implicit val userDecoder: Decoder[AuthUser] = deriveDecoder[AuthUser]
   implicit val userEncoder: Encoder[AuthUser] = deriveEncoder[AuthUser]
   implicit val AuthenticationDecoder: Decoder[Authentication] = deriveDecoder[Authentication]

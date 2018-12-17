@@ -32,7 +32,7 @@ class ApiConfiguration(
   override def dsl: ApiDsl[ApiEvent, ApiError, State] = Dsl
 
   override def scopeOutgoingEvents(events: List[ApiEvent]): ScopedEvents[ApiEvent] = {
-    val (privateEvents, publicEvents) = ApiEvent.separateByScope(events)
+    val (privateEvents, publicEvents) = ApiEvent.separateToPrivateAndPublicEvents(events)
     ScopedEvents(privateEvents = privateEvents, publicEvents = publicEvents)
   }
   override def adjustIncomingEvents(state: State, events: List[ApiEvent]): Future[List[ApiEvent]] =

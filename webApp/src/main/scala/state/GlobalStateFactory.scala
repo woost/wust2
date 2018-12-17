@@ -7,9 +7,10 @@ import emojijs.EmojiConvertor
 import org.scalajs.dom.console
 import monix.eval.Task
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import rx._
-import wust.api.ApiEvent.ReplaceGraph
+import wust.api.ApiEvent.{NewGraphChanges, ReplaceGraph}
 import wust.api._
 import wust.graph._
 import wust.ids._
@@ -71,54 +72,58 @@ object GlobalStateFactory {
     }
     renewFileDownloadBaseUrl()
 
-    // automatically pin and notify newly focused nodes
-    {
-      var prevPage: Page = null
-      Rx {
-        //TODO: userdescendant
-        val pageChangeCmd = pageChange()
+    // automatically notify visited nodes and add self as member
+    def enrichVisitedGraphWithSideEffects(page: Page, graph: Graph): Graph = {
+      //TODO: userdescendant
+      val user = state.user.now
 
-        def anyPageParentIsPinned = graph().anyAncestorIsPinned(pageChangeCmd.page.parentId, user().id)
-        def pageIsUnderUser:Boolean = (for {
-          pageParentId <- pageChangeCmd.page.parentId
-          pageIdx = graph().idToIdx(pageParentId)
-          if pageIdx != -1
-          userIdx = graph().idToIdx(user().id)
-          if userIdx != -1
-        } yield algorithm.depthFirstSearchExists(start = pageIdx, graph().notDeletedParentsIdx, userIdx)).getOrElse(true)
+      page.parentId.fold(graph) { parentId =>
+        val userIdx = graph.idToIdx(user.id)
+        val pageIdx = graph.idToIdx(parentId)
+        println("PAGE " + userIdx + pageIdx)
+        if (userIdx >= 0 && pageIdx >= 0) {
+          def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
+          def pageIsInvited = graph.inviteNodeIdx.contains(userIdx)(pageIdx)
+          def pageIsUnderUser: Boolean = algorithm.depthFirstSearchExists(start = pageIdx, graph.notDeletedParentsIdx, userIdx)
+          def userIsMemberOfPage: Boolean = graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.a(edgeIdx) == userIdx)
 
+          println("PAGE " + anyPageParentIsPinned + pageIsInvited + pageIsUnderUser + userIsMemberOfPage)
 
-        def userIsMemberOfPage:Option[Boolean] = for {
-          pageParentId <- pageChangeCmd.page.parentId
-          pageIdx = graph().idToIdx(pageParentId)
-          if pageIdx != -1
-          userIdx = graph().idToIdx(user().id)
-          if userIdx != -1
-        } yield graph().membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph().edgesIdx.a(edgeIdx) == userIdx)
-
-        userIsMemberOfPage.foreach { userIsMemberOfPage =>
           if(!userIsMemberOfPage) {
-            val pageId = pageChangeCmd.page.parentId.get
-            Client.api.addMember(pageId, user().id, AccessLevel.ReadWrite)
-            // locally add the edge, since a user does not receive its own events
-            val event = ApiEvent.NewGraphChanges(user().toNode, GraphChanges(addEdges = Set(Edge.Member(user().id, EdgeData.Member(AccessLevel.ReadWrite), pageId))))
-            eventProcessor.localEvents.onNext(event)
+            Client.api.addMember(parentId, user.id, AccessLevel.ReadWrite)
           }
-        }
 
-        pageChangeCmd.page.parentId.foreach { parentId =>
-          if(!isLoading() && pageChangeCmd.needsGet && prevPage != pageChangeCmd.page && !anyPageParentIsPinned && !pageIsUnderUser) {
-            prevPage = pageChangeCmd.page //we do this ONCE per page
+          if(!anyPageParentIsPinned && !pageIsUnderUser && !pageIsInvited) {
+            val changes = GraphChanges.connect(Edge.Notify)(parentId, user.id)
+             .merge(GraphChanges.connect(Edge.Pinned)(user.id, parentId))
+             .merge(GraphChanges.disconnect(Edge.Invite)(user.id, parentId))
 
-            // user probably clicked on a woost-link.
-            // So we pin the page and enable notifications, and add the user as member
-            val changes =
-              GraphChanges.connect(Edge.Notify)(parentId, user().id)
-              .merge(GraphChanges.connect(Edge.Pinned)(user().id, parentId))
-              .merge(GraphChanges.disconnect(Edge.Invite)(user().id, parentId))
             eventProcessor.changes.onNext(changes)
+
+            graph.applyChanges(changes)
+          } else graph
+        } else graph
+      }
+    }
+
+    def getNewGraph(page: Page) = for {
+      graph <- Client.api.getGraph(page)
+    } yield enrichVisitedGraphWithSideEffects(page, graph)
+
+
+    // if we have a invitation token, we merge this invited user into our account and get the graph again.
+    viewConfig.foreach { viewConfig =>
+      viewConfig.invitation match {
+        case Some(inviteToken) => Client.auth.acceptInvitation(inviteToken).foreach { case () =>
+          //clear the invitation from the viewconfig and url
+          state.viewConfig.update(_.copy(invitation = None))
+
+          // get a new graph with new right after the accepted invitation
+          getNewGraph(viewConfig.pageChange.page).foreach { graph =>
+            eventProcessor.localEvents.onNext(ReplaceGraph(graph))
           }
         }
+        case None => ()
       }
     }
 
@@ -166,11 +171,11 @@ object GlobalStateFactory {
         val observable: Observable[Graph] =
           if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
             isLoading() = true
-            Observable.fromFuture(Client.api.getGraph(pageChange.page))
+            Observable.fromFuture(getNewGraph(pageChange.page))
           } else if (prevPage == null || prevPage != pageChange) {
             if (pageChange.needsGet && (!pageChange.page.isEmpty || isFirstGraphRequest)) {
               isLoading() = true
-              Observable.fromFuture(Client.api.getGraph(pageChange.page))
+              Observable.fromFuture(getNewGraph(pageChange.page))
             } else Observable.empty
           } else {
             Observable.empty

@@ -40,6 +40,7 @@ import org.sazabi.base58.Base58
     bb.array
   }
 
+  // provde urlsafe method
   @inline def toBase58: String = Base58(toByteArray).str
 
   def shortHumanReadable: String = toBase58.takeRight(3)

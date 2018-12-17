@@ -380,6 +380,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_.headOption)
     }
 
+    def getUserByMail(email: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      ctx.run(
+        (for{
+         userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))
+         user <- query[User].filter(_.id == userDetail.userId)
+        } yield user)
+          .take(1)
+      ).map(_.headOption)
+    }
+
     def getUserAndDigest(name: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
       ctx.run {
         queryUser

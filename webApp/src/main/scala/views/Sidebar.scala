@@ -1,10 +1,11 @@
 package wust.webApp.views
 
+import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.CommonStyles
+import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
@@ -138,7 +139,7 @@ object Sidebar {
       val graph = state.graph()
       val user = state.user()
       val userIdx = graph.idToIdx(user.id)
-      graph.inviteNodeIdx(userIdx).map(graph.nodes)(breakOut)
+      graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodes(idx) } (breakOut)
     }
 
     div(
@@ -151,7 +152,7 @@ object Sidebar {
 
         VDomModifier(
           channelLine(user.toNode, page.parentId, pageStyle),
-          UI.divider,
+          channelForest.nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("workspaces")(cls := "inverted")),
           channelForest.map { channelTree =>
             channelList(channelTree, page.parentId, pageStyle)
           },
@@ -162,7 +163,28 @@ object Sidebar {
         val pageStyle = state.pageStyle()
         VDomModifier(
           invites().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
-          invites().map(node => channelLine(node, page.parentId, pageStyle))
+          invites().map(node => channelLine(node, page.parentId, pageStyle).apply(
+            div(
+              cls := "ui icon buttons",
+              height := "22px",
+              marginRight := "4px",
+              marginLeft := "auto",
+              button(
+                cls := "ui mini compact inverted green button",
+                padding := "4px",
+                freeSolid.faCheck,
+                onClick(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, node.id), Edge.Notify(node.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
+                onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
+              ),
+              button(
+                cls := "ui mini compact inverted button",
+                padding := "4px",
+                freeSolid.faTimes,
+                onClick(GraphChanges(delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
+                onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
+              )
+            )
+          ))
         )
       }
     )

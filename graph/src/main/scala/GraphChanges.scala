@@ -39,7 +39,7 @@ case class GraphChanges(
     GraphChanges(
       addNodes = addNodes.filter(n => p(n.id)),
       addEdges = addEdges.filter(e => checkIdsFromEdge(e).forall(p)),
-      delEdges = delEdges.filter(e => p(e.sourceId) && p(e.targetId))
+      delEdges = delEdges.filter(e => checkIdsFromEdge(e).forall(p))
     )
   }
 

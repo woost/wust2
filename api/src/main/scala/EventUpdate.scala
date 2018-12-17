@@ -9,6 +9,8 @@ object EventUpdate {
     case NewGraphChanges(user, changes) => graph.applyChangesWithUser(user, changes)
 
     case ReplaceGraph(newGraph) => newGraph
+
+    case ReplaceNode(oldNodeId, newNode) => graph.replaceNode(oldNodeId, newNode)
   }
 
   def createAuthFromEvent(event: ApiEvent.AuthContent): Authentication = event match {

@@ -59,7 +59,7 @@ private object UrlOption {
   object page extends UrlOption {
     val key = "page"
 
-    val regex = Regex[String](rx"^(\w+)$$")
+      val regex = Regex[String](rx"^(\w+)$$")
       .map(_.map { case parentId =>
           Page(NodeId(Cuid.fromBase58(parentId)))
       })
@@ -87,6 +87,16 @@ private object UrlOption {
         config.copy(shareOptions = Some(shareOptions))
       }
   }
+  object invitation extends UrlOption {
+    val key = "invitation"
+
+    val regex = Regex[String](rx"^(.+)$$")
+
+    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+      parseSingle(regex, text).map { invitation =>
+        config.copy(invitation = Some(invitation))
+      }
+  }
 }
 
 object ViewConfigParser {
@@ -97,6 +107,7 @@ object ViewConfigParser {
     UrlOption.page.key -> UrlOption.page,
     UrlOption.redirectTo.key -> UrlOption.redirectTo,
     UrlOption.share.key -> UrlOption.share,
+    UrlOption.invitation.key -> UrlOption.invitation,
   )
 
   def parse(text: String): ViewConfig = {

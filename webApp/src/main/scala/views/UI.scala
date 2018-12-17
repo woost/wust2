@@ -27,7 +27,6 @@ import scala.scalajs.js
 import scala.collection.breakOut
 
 object UI {
-  val divider = div(cls := "ui divider")
 
   def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(
@@ -149,5 +148,6 @@ object UI {
     })
   }
 
+  val horizonalDivider = div(cls := "ui divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 }

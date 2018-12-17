@@ -25,6 +25,7 @@ object Graph {
 
 //TODO: this is only a case class because julius is too  lazy to write a custom encoder/decoder for boopickle and circe
 final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
+
   // because it is a case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
   override def equals(that: Any): Boolean = super.equals(that)
@@ -114,6 +115,25 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes ++ Set(user), addEdges = c.addEdges, deleteEdges = c.delEdges)
   def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+
+  def replaceNode(oldNodeId: NodeId, newNode: Node): Graph = {
+    val newNodes = Array.newBuilder[Node]
+    newNodes += newNode
+    this.nodes.foreach { n =>
+      if (n.id != oldNodeId && n.id != newNode.id) {
+        newNodes += n
+      }
+    }
+
+    val newEdges = this.edges.map { e =>
+      if (e.sourceId == oldNodeId && e.targetId == oldNodeId) e.copyId(sourceId = newNode.id, targetId = newNode.id)
+      else if (e.sourceId == oldNodeId) e.copyId(sourceId = newNode.id, targetId = e.targetId)
+      else if (e.targetId == oldNodeId) e.copyId(sourceId = e.sourceId, targetId = newNode.id)
+      else e
+    }
+
+    Graph(newNodes.result(), newEdges)
+  }
 
   private def changeGraphInternal(addNodes: collection.Set[Node], addEdges: collection.Set[Edge], deleteEdges: collection.Set[Edge] = Set.empty): Graph = {
     val nodesBuilder = mutable.ArrayBuilder.make[Node]()
