@@ -142,7 +142,8 @@ object WoostNotification {
         span("enable notifications.", textDecoration.underline),
       )
 
-      Elements.topBanner(desktopText, mobileText)(
+      div(
+        Elements.topBanner(Some(desktopText), Some(mobileText)),
         onClick foreach { Notifications.requestPermissionsAndSubscribe { } }
       )
     }

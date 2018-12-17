@@ -9,6 +9,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api.ApiEvent.NewGraphChanges
+import wust.api.AuthUser
 import wust.css.{Styles, ZIndex}
 import wust.graph.Node.User
 import wust.graph._
@@ -57,6 +58,17 @@ object PageHeader {
       node(cls := "pageheader-channeltitle")
     }
 
+
+    val channelMembersList = Rx {
+      val hasBigScreen = state.screenSize() != ScreenSize.Small
+      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
+    }
+
+    val permissionIndicator = Rx {
+      val level = Permission.resolveInherited(state.graph(),channel.id)
+      div(level.icon, UI.tooltip("bottom center") := level.description)
+    }
+
     div(
       padding := "5px",
       paddingRight := "20px",
@@ -67,14 +79,8 @@ object PageHeader {
 
       channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
       channelTitle.map(_(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px")),
-      Rx {
-        val hasBigScreen = state.screenSize() != ScreenSize.Small
-        hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
-      },
-      Rx {
-        val level = Permission.resolveInherited(state.graph(),channel.id)
-        div(level.icon, UI.tooltip("bottom center") := level.description)
-      },
+      channelMembersList,
+      permissionIndicator,
       menu(state, channel).apply(marginLeft.auto),
     )
   }

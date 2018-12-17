@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import googleAnalytics.Analytics
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -29,6 +30,61 @@ object MainView {
 
 
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
+
+    val notificationBanner = Rx { WoostNotification.banner(state, state.permissionState()) }
+
+    val emailBanner = Rx { // TODO: we need this for the migration from username to email - can go away afterwards
+      Observable.fromFuture(
+        state.user() match {
+          case user: AuthUser.Real =>
+            Client.auth.getUserDetail(user.id).map {
+              case Some(detail) =>
+                when(detail.email.isEmpty) {
+                  val desktopText = div(
+                    "You do not have an email setup. ",
+                    span("Please update your profile.", textDecoration.underline),
+                  )
+                  val mobileText = div(
+                    "Please setup an email in ",
+                    span("your profile.", textDecoration.underline),
+                  )
+
+                  div(
+                    Elements.topBanner(Some(desktopText), Some(mobileText)),
+                    onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+                  )
+                }
+              case err                   =>
+                scribe.info(s"Cannot get user details: ${ err }")
+                VDomModifier.empty
+            }
+          case _                   =>
+            Future.successful(VDomModifier.empty)
+        }
+      )
+    }
+
+    val registerBanner = Rx {
+      state.page().parentId.map{ pageParentId =>
+        state.user() match {
+          case _: AuthUser.Real                => VDomModifier.empty
+          case user if user.id == pageParentId =>
+            val mobileText = div(
+              "Signup",
+            )
+
+            div(
+              Elements.topBanner(None, Some(mobileText)),
+              onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+              onClick foreach {
+                Analytics.sendEvent("banner", "signup")
+              },
+            )
+          case _ => VDomModifier.empty
+        }
+      }
+    }
+
     VDomModifier(
       cls := "mainview",
       Styles.flex,
@@ -36,37 +92,9 @@ object MainView {
       UI.modal(state.modalConfig), // one modal instance for the whole page that can be configured via state.modalConfig
       div(
         cls := "topBannerContainer",
-        Rx { WoostNotification.banner(state, state.permissionState()) },
-
-          // TODO: we need this for the migration from username to email can go away afterwards
-        Rx {
-          Observable.fromFuture(
-            state.user() match {
-              case user: AuthUser.Real =>
-                Client.auth.getUserDetail(user.id).map {
-                  case Some(detail) =>
-                    when(detail.email.isEmpty) {
-                      val desktopText = div(
-                        "You do not have an email setup. ",
-                        span("Please update your profile.", textDecoration.underline),
-                      )
-                      val mobileText = div(
-                        "Please setup an email in ",
-                        span("your profile.", textDecoration.underline),
-                      )
-                      Elements.topBanner(desktopText, mobileText)(
-                        onClick foreach { state.view() = View.UserSettings },
-                      )
-                    }
-                  case err                   =>
-                    scribe.info(s"Cannot get user details: ${ err }")
-                    VDomModifier.empty
-                }
-              case _                   =>
-                Future.successful(VDomModifier.empty)
-            }
-          )
-        },
+        notificationBanner,
+        registerBanner,
+        emailBanner,
       ),
       Topbar(state)(width := "100%", Styles.flexStatic),
       div(

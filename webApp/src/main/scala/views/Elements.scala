@@ -147,16 +147,22 @@ object Elements {
       )
     }}
 
-  def topBanner(destopText: VNode, mobileText: VNode): VNode = {
+  def topBanner(desktopText: Option[VNode], mobileText: Option[VNode]): VDomModifier = {
     val displayHandler = Var("flex")
-    div(
-      cls := "topBanner",
-      display <-- displayHandler,
-      VDomModifier(if(BrowserDetect.isPhone) mobileText else destopText),
-      onClick foreach {
-        displayHandler() = "none"
-      },
-    )
+    val text = if(BrowserDetect.isPhone && mobileText.isDefined) mobileText else if(desktopText.isDefined) desktopText else None
+    text match {
+      case Some(bannerText) =>
+        VDomModifier(
+          cls := "topBanner",
+          display <-- displayHandler,
+          bannerText,
+          onClick foreach {
+            displayHandler() = "none"
+          },
+        )
+      case _                =>
+        VDomModifier.empty
+    }
   }
 
   def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
