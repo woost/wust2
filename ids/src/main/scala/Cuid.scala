@@ -88,6 +88,10 @@ object Cuid {
   def fromUuid(uuid: UUID): Cuid =
     Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
 
+  // TODO: these factories should return an option, or either. they can fail!
+  // you can still do an explicit `.get` on the client side if you are so sure.
+  // note to self: never be sure.
+
   def fromCuidString(cuid: String): Cuid = {
     require(cuid.startsWith("c"), "Cuid string needs to start with letter c.")
     require(cuid.length == 25, "Cuid string needs to have length of 25.")

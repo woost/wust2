@@ -33,6 +33,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
   val emailVerificationTokenLifeTimeSeconds = 24 * 60 * 60 // 24 hours, TODO: configure
 
   private def generateClaim(custom: CustomClaim, userId: UserId, expires: Long) = {
+    //TODO we are writing content into the root of the object, we should put our custom claim object into a field. Or should we not do this in jwt?
     JwtClaim(content = custom.asJson.noSpaces, subject = Some(userId.toBase58))
       .by(issuer)
       .to(audience)
@@ -56,7 +57,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
           expires <- claim.expiration
           emailVerify <- parser.decode[CustomClaim](claim.content)
             .right.toOption.collect { case verify: CustomClaim.EmailVerify => verify }
-          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
+          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption)
           if emailVerify.userId == subject
         } yield auth.VerifiedEmailActivationToken(emailVerify.userId, emailVerify.email, expires)
       case _ => None
@@ -84,7 +85,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
             .right.toOption.collect { case CustomClaim.UserAuth(user) => user }
             .orElse(parser.decode[AuthUser.Persisted](claim.content).right.toOption) // be backwards-compatible. TODO: Remove when all clients have updated
           //TODO: check subject or do we even need to? just makes sense. but to be backwards-compatible, we cannot do this.
-//          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
+//          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption)
 //          if user.id == subject
         } yield Authentication.Verified(user, expires, token)
       case _ => None
