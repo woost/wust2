@@ -185,9 +185,9 @@ var userAuth;
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
-    return self.registration.pushManager.getSubscription().then(subscription => {
-        subscription ? subscription.unsubscribe() : Promise.resolve(true)
-    });
+    e.waitUntil(self.registration.pushManager.getSubscription().then(subscription => {
+        return subscription ? subscription.unsubscribe() : Promise.resolve(true);
+    }));
 });
 
 self.addEventListener('message', e => {
@@ -196,7 +196,7 @@ self.addEventListener('message', e => {
         if(messageObject.type === "AuthMessage") {
             log("Received auth message.");
             userAuth = messageObject.token;
-            subscribeWebPushAndPersist();
+            e.waitUntil(subscribeWebPushAndPersist());
         } else if(messageObject.type === "Message") {
             log("Received worker message.");
         } else
