@@ -709,7 +709,8 @@ object PageHeader {
       Elements.icon(Icons.delete)(marginRight := "5px"),
       span(cls := "text", "Show only deleted items", cursor.pointer),
       onClick.mapTo({
-        ViewFilter.Parents.onlyDeletedParents(state.page.now.parentId.get)(_)
+        val nextTransform: Graph => Graph = ViewFilter.Parents.onlyDeletedParents(state.page.now.parentId.get)(_)
+        state.graphTransformation.now :+ nextTransform
       }) --> state.graphTransformation
     )
 
@@ -718,7 +719,8 @@ object PageHeader {
       Elements.icon(Icons.undelete)(marginRight := "5px"),
       span(cls := "text", "Do not show deleted items", cursor.pointer),
       onClick.mapTo({
-        ViewFilter.Parents.withoutDeletedParents(state.page.now.parentId.get)(_)
+        val nextTransform: Graph => Graph = ViewFilter.Parents.withoutDeletedParents(state.page.now.parentId.get)(_)
+        state.graphTransformation.now :+ nextTransform
       }) --> state.graphTransformation
     )
 
@@ -727,7 +729,8 @@ object PageHeader {
       Elements.icon(Icons.task)(marginRight := "5px"),
       span(cls := "text", "Show my tasks", cursor.pointer),
       onClick.mapTo({
-        ViewFilter.Assignments.onlyAssignedTo(state.user.now.id)(_)
+        val nextTransform: Graph => Graph = ViewFilter.Assignments.onlyAssignedTo(state.user.now.id)(_)
+        state.graphTransformation.now :+ nextTransform
       }) --> state.graphTransformation
     )
 
@@ -736,15 +739,16 @@ object PageHeader {
       Elements.icon(Icons.task)(marginRight := "5px"),
       span(cls := "text", "Show not assigned tasks", cursor.pointer),
       onClick.mapTo({
-        ViewFilter.Assignments.onlyNotAssigned(_)
+        val nextTransform: Graph => Graph = ViewFilter.Assignments.onlyNotAssigned(_)
+        state.graphTransformation.now :+ nextTransform
       }) --> state.graphTransformation
     )
 
     val noFilters = div(
       cls := "item",
       Elements.icon(Icons.nofilter)(marginRight := "5px"),
-      span(cls := "text", "Show all items", cursor.pointer),
-      onClick(identity[Graph] _) --> state.graphTransformation
+      span(cls := "text", "Reset ALL filters", cursor.pointer),
+      onClick(Seq.empty[Graph => Graph]) --> state.graphTransformation
     )
 
     val filterItems: List[VDomModifier] = List(withoutDeletedParents, onlyDeletedParents, myAssignments, notAssigned, noFilters)

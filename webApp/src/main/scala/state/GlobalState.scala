@@ -73,13 +73,13 @@ class GlobalState(
   }
 
   // Allow filtering / transformation of the graph on globally
-  val graphTransformation: Var[Graph => Graph] = Var(identity[Graph])
+  val graphTransformation: Var[Seq[Graph => Graph]] = Var(Seq(identity[Graph]))
 
   // Always transform graph - using identity on default
   val graph: Rx[Graph] = Rx {
     val currGraph: Graph = rawGraph()
-    val transformation: Graph => Graph = graphTransformation()
-    transformation(currGraph)
+    val transformation: Seq[Graph => Graph] = graphTransformation()
+    transformation.foldLeft(currGraph)((g, gt) => gt(g))
   }
 
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
