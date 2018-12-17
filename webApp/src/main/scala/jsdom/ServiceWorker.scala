@@ -21,13 +21,13 @@ object ServiceWorker {
       window.addEventListener("load", (_: Any) => {
         sw.register("sw.js").toFuture.onComplete {
           case Success(registration) =>
-            console.log("SW registered: ", registration)
+            scribe.info(s"SW successfully registered")
             registration.onupdatefound = { event =>
               val installingWorker = registration.installing
               installingWorker.onstatechange = { event =>
                 val activeServiceworker = sw.controller
                 if (installingWorker.state == "installed" && activeServiceworker != null) {
-                  console.log("New SW installed, can update.")
+                  scribe.info("New SW installed, can update.")
                   subject.onNext(())
                 }
               }

@@ -60,11 +60,6 @@ function db() {
 
 function currentAuth() {
     return userAuth;
-    // return db().then(db => {
-    //     let transaction = db.transaction(["auth"], "readwrite");
-    //     let store = transaction.objectStore("auth");
-    //     return requestPromise(store.get(0));
-    // });
 }
 
 function getPublicKey() {
@@ -76,16 +71,17 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
 });
 
 function sendSubscriptionToBackend(subscription, currentAuth) {
-    log("sendSubscriptionToBackend: ", subscription);
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
+        logToBackend("Cannot send subscription to backend, subscription is empty.");
         return Promise.reject("Cannot send subscription to backend, subscription is empty.");
     }
 
     let key = subscription.getKey('p256dh');
     let auth = subscription.getKey('auth');
     if (!key || !auth) {
-        return Promise.reject("Cannot send subscription to backend, key or auth is missing, ignoring: key: " + key + ", auth: " + auth);
+        logToBackend(`Cannot send subscription to backend, key or auth is missing, ignoring: key: ${key}, auth: ${auth}.`);
+        return Promise.reject("Cannot send subscription to backend, key or auth is missing, ignoring.");
     }
 
     let subscriptionObj = {
@@ -94,7 +90,7 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
         auth: btoa(String.fromCharCode.apply(null, new Uint8Array(auth)))
     };
 
-    log("Sending subscription to backend", subscriptionObj);
+    log("Sending subscription to backend.");
     return fetch(baseUrl + '/Push/subscribeWebPush', {
         method: 'POST',
         body: JSON.stringify({ subscription: subscriptionObj }),
@@ -107,14 +103,14 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 // TODO: check if permissions granted, otherwise we don't need this. in this
 // case the app will do this when request notification permissions.
 function subscribeWebPushAndPersist() {
-    log("Subscribing to web push");
+    log("Subscribing to web push.");
     let currentAuth = userAuth
     if (typeof currentAuth !== 'undefined') {
         getPublicKey().then(
             publicKey => publicKey.json().then (
                 publicKeyJson => {
                     if (publicKeyJson) {
-                        log("publicKey: ", publicKeyJson);
+                        log("Found public key.");
                         // we unsubscribe first, because you cannot subscribe with a new public key if there is an old subscription active.
                         // for now, we always unsubscribe first before subscribing to webpush.
                         return self.registration.pushManager.getSubscription().then(subscription => {
@@ -126,12 +122,12 @@ function subscribeWebPushAndPersist() {
                                     applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
                                 }).then(
                                     sub => {
-                                        log("Success. Sending subscription to backend");
-                                        sendSubscriptionToBackend(sub, currentAuth)
+                                        log("Success. Sending subscription to backend.");
+                                        sendSubscriptionToBackend(sub, currentAuth);
                                     },
                                     err => {
-                                        logToBackend(`Subscribing failed with: ${err}`);
-                                        error(`Subscribing failed with: ${err}`);
+                                        error(`Subscribing failed with: ${err}.`);
+                                        logToBackend(`Subscribing failed with: ${err}.`);
                                     }
                                 );
                             });
@@ -142,8 +138,8 @@ function subscribeWebPushAndPersist() {
                     }
                 },
                 err => {
-                    logToBackend(`Decoding of json public key ${publicKey} failed with: ${err}`);
-                    error(`Decoding of json public key ${publicKey} failed with: ${err}`);
+                    logToBackend(`Decoding of json public key ${publicKey} failed with: ${err}.`);
+                    error(`Decoding of json public key failed with: ${err}.`);
                 }
             )
         );
@@ -172,8 +168,8 @@ function focusedClient(windowClients, subscribedId, channelId, messageId) {
 log("ServiceWorker starting!");
 const port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
-log("BaseUrl: " + baseUrl);
-log("Origin: " + location.origin);
+// log(`BaseUrl: ${baseUrl}.`);
+// log(`Origin: ${location.origin}.`);
 
 // Weird workaround since emoji requires global
 let global = {};
@@ -198,22 +194,23 @@ self.addEventListener('message', e => {
     if(e.data) {
         const messageObject = JSON.parse(e.data);
         if(messageObject.type === "AuthMessage") {
-            log("Received Auth");
+            log("Received auth message.");
             userAuth = messageObject.token;
             subscribeWebPushAndPersist();
+        } else if(messageObject.type === "Message") {
+            log("Received worker message.");
         } else
-            log("Received Message");
+            log("Received unclassified message.");
     }
 });
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('push', e => {
 
-    log("ServiceWorker received push notification", e);
-    console.log(e);
+    log("ServiceWorker received push notification.");
 
     if(Notification.permission != "granted") {
-        log("ServiceWorker received but notifications are not granted, ignoring");
+        log("ServiceWorker received but notifications are not granted, ignoring.");
         return;
     }
 
@@ -231,10 +228,10 @@ self.addEventListener('push', e => {
                 const channelId = (!!parentId) ? parentId : subscribedId;
 
                 if (focusedClient(windowClients, subscribedId, channelId, nodeId)) {
-                    log("focused client => ignoring push");
+                    log("Focused client => ignoring push.");
                     return;
                 } else {
-                    log("no focused client found");
+                    log("No focused client found.");
 
                     const titleContent = (!!data.parentContent && !!parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
                     const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
@@ -270,15 +267,15 @@ self.addEventListener('push', e => {
                             }
                         }
 
-                        log(`number of notifications = ${count}`);
+                        log(`Number of notifications = ${count}.`);
 
-                        const title = (count > 1) ? `${titleContent} (${count} new messages)` : titleContent;
+                        const title = (count > 1) ? `${titleContent} (${count} new messages).` : titleContent;
 
                         return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
                     });
                 }
             } else {
-                    log("push notification without data => ignoring");
+                    log("Push notification without data => ignoring.");
                     return;
             }
         })
@@ -287,8 +284,7 @@ self.addEventListener('push', e => {
 
 self.addEventListener('notificationclick', e => {
 
-    log("ServiceWorker received notification click");
-    console.log(e);
+    log("ServiceWorker received notification click.");
 
     e.notification.close();
     e.waitUntil(
@@ -310,11 +306,11 @@ self.addEventListener('notificationclick', e => {
                 const url = client.url;
 
                 if (url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
-                    log("Found window that is already including node");
+                    log("Found window that is already including node.");
 
                     return client.focus().then(function (client) { client.navigate(url); });
                 } else if (url.indexOf(baseLocation) !== -1) {
-                    log("Found woost window => opening node");
+                    log("Found woost window => opening node.");
 
                     const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
                     const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : ("/#view=conversation&page=" + channelId);
@@ -322,7 +318,7 @@ self.addEventListener('notificationclick', e => {
                 }
             }
 
-            log("no matching client found. Opening new window");
+            log("No matching client found. Opening new window.");
 
             return self.clients.openWindow("/#view=conversation&page=" + channelId).then(function (client) { client.focus(); });
 
@@ -333,7 +329,7 @@ self.addEventListener('notificationclick', e => {
 //TODO: integration test!
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
 self.addEventListener('pushsubscriptionchange', e => {
-    log("ServiceWorker received pushsubscriptionchange event", e);
+    log("ServiceWorker received pushsubscriptionchange event.");
     // resubscribe and send new subscription to backend
     e.waitUntil(subscribeWebPushAndPersist());
 });
