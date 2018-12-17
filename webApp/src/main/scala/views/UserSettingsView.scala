@@ -97,6 +97,7 @@ object UserSettingsView {
   }
 
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
+    width := "300px",
     b("Plugins:"),
     br,
     div(
@@ -326,8 +327,7 @@ object UserSettingsView {
     div("Slack plugin not enabled"),
     button(
       cls := "ui button green",
-      width := "300px",
-      marginTop := "5px",
+      margin := "5px 0 0",
       "Enable Slack plugin",
       onClick foreach {
         Analytics.sendEvent("slack", "enableplugin")
