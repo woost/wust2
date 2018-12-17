@@ -71,13 +71,14 @@ object MainView {
           case user if user.id == pageParentId =>
             val mobileText = div(
               "Signup",
+              textDecoration.underline
             )
 
             div(
               Elements.topBanner(None, Some(mobileText)),
               onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
               onClick foreach {
-                Analytics.sendEvent("banner", "signup")
+                Analytics.sendEvent("banner", "signuponuser")
               },
             )
           case _ => VDomModifier.empty
