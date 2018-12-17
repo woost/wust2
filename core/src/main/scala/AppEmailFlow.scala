@@ -29,6 +29,10 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=$token"
   }
 
+  private def userSettingsLink: String = {
+    s"https://${serverConfig.host}/#view=usersettings"
+  }
+
   private val signature =
     """
       |Your Woost Team
@@ -46,6 +50,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |please verify your email address by clicking this link:
         |${secretLink}
+        |
+        |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail via ${userSettingsLink}.
         |
         |Thank you!
         |

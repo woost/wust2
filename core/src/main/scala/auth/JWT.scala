@@ -29,7 +29,8 @@ class JWT(secret: String, tokenLifetime: Duration) {
   // is merged into the new login/signup user. Either way, the token will not be valid
   // afterwards and is therefore invalidated as soon as the implicit user becomes a
   // real user.
-  private val implicitTokenLifeTimeSeconds = 1000 * 365 * 24 * 60 * 60 //1000 years, TODO: configure
+  val implicitTokenLifeTimeSeconds = 1000 * 365 * 24 * 60 * 60 //1000 years, TODO: configure
+  val emailVerificationTokenLifeTimeSeconds = 24 * 60 * 60 // 24 hours, TODO: configure
 
   private def generateClaim(custom: CustomClaim, userId: UserId, expires: Long) = {
     JwtClaim(content = custom.asJson.noSpaces, subject = Some(userId.toBase58))
@@ -41,7 +42,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
   }
 
   def generateEmailActivationToken(userId: UserId, email: String): Authentication.Token = {
-    val thisTokenLifetimeSeconds: Long = 24 * 60 * 60 // 24 hours, TODO: configure
+    val thisTokenLifetimeSeconds: Long = emailVerificationTokenLifeTimeSeconds
     val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
     val claim = generateClaim(CustomClaim.EmailVerify(userId, email), userId, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
