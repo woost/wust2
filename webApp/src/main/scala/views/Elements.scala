@@ -266,7 +266,7 @@ object Elements {
     )
   )
 
-  def icon(icon: IconLookup) = i(
+  def icon(icon: VDomModifier) = i(
     cls := "icon fa-fw",
     icon
   )

@@ -114,6 +114,7 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
+      viewFilter(state),
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
@@ -669,6 +670,7 @@ object PageHeader {
 
     div(
       cls := "viewbar",
+      marginLeft := "5px",
       Styles.flex,
       flexDirection.row,
       justifyContent.flexEnd,
@@ -698,6 +700,50 @@ object PageHeader {
       }
     )
 
+  }
+
+  private def viewFilter(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+
+    val onlyDeletedParents = div(
+      cls := "item",
+      Elements.icon(Icons.delete)(marginRight := "5px"),
+      span(cls := "text", "Show only deleted items", cursor.pointer),
+      onClick.mapTo({
+        ViewFilter.Parents.onlyDeletedParents(state.page.now.parentId.get)(_)
+      }) --> state.graphTransformation
+    )
+
+    val withoutDeletedParents = div(
+      cls := "item",
+      Elements.icon(Icons.undelete)(marginRight := "5px"),
+      span(cls := "text", "Do not show deleted items", cursor.pointer),
+      onClick.mapTo({
+        ViewFilter.Parents.withoutDeletedParents(state.page.now.parentId.get)(_)
+      }) --> state.graphTransformation
+    )
+
+    val allParents = div(
+      cls := "item",
+      Elements.icon(Icons.nofilter)(marginRight := "5px"),
+      span(cls := "text", "Show all items", cursor.pointer),
+      onClick(identity[Graph] _) --> state.graphTransformation
+    )
+
+    val filterItems: List[VDomModifier] = List(withoutDeletedParents, onlyDeletedParents, allParents)
+
+    div(
+      cls := "ui icon top left labeled pointing dropdown",
+      Icons.filter,
+      div(
+        cls := "menu",
+        div(cls := "header", "Filter", cursor.default),
+        filterItems,
+      ),
+      UI.tooltip("bottom right") := "Filter items in view",
+      zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
+      Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
+      onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
+    )
   }
 
 }

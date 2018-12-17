@@ -51,7 +51,7 @@ class GlobalState(
 
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
 
-  val graph: Rx[Graph] = {
+  val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
 
     Rx {
@@ -72,6 +72,16 @@ class GlobalState(
     }
   }
 
+  // Allow filtering / transformation of the graph on globally
+  val graphTransformation: Var[Graph => Graph] = Var(identity[Graph])
+
+  // Always transform graph - using identity on default
+  val graph: Rx[Graph] = Rx {
+    val graph: Graph = rawGraph()
+    val transformation: Graph => Graph = graphTransformation()
+    transformation(graph)
+  }
+
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
     val page = viewConfig().pageChange.page
     viewConfig().copy(pageChange = PageChange(page.copy(page.parentId.filter(graph().contains))))
@@ -85,7 +95,6 @@ class GlobalState(
   val pageHasParents = Rx {
     page().parentId.exists(graph().hasParents)
   }
-
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
   val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }

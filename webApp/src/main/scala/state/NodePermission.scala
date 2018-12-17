@@ -7,8 +7,8 @@ import rx._
 object NodePermission {
   // TODO: proper permission check in frontend over member/permissions
   def canWrite(graph: Graph, nodeId: NodeId): Boolean = {
-    graph.nodesById(nodeId) match {
-      case n: Node.Content => true
+    graph.nodesByIdGet(nodeId) match {
+      case Some(n: Node.Content) => true
       case _ => false
     }
   }

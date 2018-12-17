@@ -17,6 +17,16 @@ object Icons {
     })
   )
 
+  val filter: IconDefinition = freeSolid.faFilter
+  val nofilter: Layer = fontawesome.layered(
+    fontawesome.icon(freeSolid.faFilter),
+    fontawesome.icon(freeSolid.faMinus, new Params {
+      transform = new Transform {
+        rotate = 45.0
+      }
+
+    })
+  )
   val conversation: IconDefinition = freeRegular.faComments
   val tasks: IconDefinition = freeSolid.faTasks
   val stage: IconDefinition = freeSolid.faColumns
