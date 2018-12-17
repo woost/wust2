@@ -222,7 +222,7 @@ object GlobalStateFactory {
         Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
           scribe.info("Requesting updating from SW")
           reg.update().toFuture.onComplete { res =>
-            scribe.info(s"Result of update request: $res")
+            scribe.info(s"Result of update request: ${if(res.isSuccess) "Success" else "Failure"}")
           }
         }))
       }
