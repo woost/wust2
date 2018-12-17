@@ -77,9 +77,9 @@ class GlobalState(
 
   // Always transform graph - using identity on default
   val graph: Rx[Graph] = Rx {
-    val graph: Graph = rawGraph()
+    val currGraph: Graph = rawGraph()
     val transformation: Graph => Graph = graphTransformation()
-    transformation(graph)
+    transformation(currGraph)
   }
 
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
