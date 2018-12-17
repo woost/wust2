@@ -52,7 +52,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     s"""${nodeStr(sourceIdx)} -${ edge.data.toString }-> ${nodeStr(targetIdx)}"""
   }
 
-  override def toString: String = {
+  def toDetailedString: String = {
     def nodeStr(nodeIdx:Int):String = {
       val node = nodes(nodeIdx)
       s"${nodeStrDetail(nodeIdx)}:${node.meta.accessLevel}  ${node.id.toBase58}  ${node.id.toUuid}"
@@ -64,7 +64,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
       ")"
   }
 
-  def toSummaryString: String = {
+  override def toString: String = {
     s"Graph(nodes: ${ nodes.length }, edges: ${ edges.length })"
   }
 

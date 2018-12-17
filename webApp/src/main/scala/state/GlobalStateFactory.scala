@@ -249,7 +249,7 @@ object GlobalStateFactory {
 
     DevOnly {
 
-     graph.debugWithDetail((g: Graph) => s"graph: ${g.toSummaryString}", (g:Graph) => g.toString)
+     graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g:Graph) => g.toDetailedString)
 
       page.debug("page")
       view.debug("view")
