@@ -19,7 +19,7 @@ object NodeData {
   }
 
   case class File(key: String, fileName: String, contentType: String, description: String) extends Named with Content {
-    def str = description
+    def str = if (description.isEmpty) "[File]" else description
     override def updateStr(str: String): Content = copy(description = str)
   }
   object File extends Named

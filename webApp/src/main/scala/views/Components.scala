@@ -63,7 +63,7 @@ object Components {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
-    case file: NodeData.File         => div(trimToMaxLength(file.fileName, maxLength))
+    case file: NodeData.File         => div(trimToMaxLength(file.str, maxLength))
   }
 
   def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = nodeData match {
