@@ -321,7 +321,21 @@ object UserSettingsView {
   }
 
   private def slackPlaceholder = div(
-    "Slack plugin not enabled",
+    Styles.flex,
+    flexDirection.column,
+    div("Slack plugin not enabled"),
+    button(
+      cls := "ui button green",
+      width := "300px",
+      marginTop := "5px",
+      "Enable Slack plugin",
+      onClick foreach {
+        Analytics.sendEvent("slack", "enableplugin")
+      },
+      onClick foreach {
+        UI.toast("Thanks for your interest in the slack plugin. It will be available soon.")
+      }
+    )
   )
 
   private def slackButton(user: UserInfo): Future[VNode] = {
