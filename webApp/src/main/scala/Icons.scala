@@ -32,6 +32,17 @@ object Icons {
   val mentionIn: IconDefinition = freeSolid.faCopy
   val signOut: IconDefinition =  freeSolid.faSignOutAlt
   val menu: IconDefinition = freeSolid.faCog
+  val menuDropdown: Layer = fontawesome.layered(
+    fontawesome.icon(freeSolid.faCog),
+    fontawesome.icon(freeSolid.faCaretDown, new Params {
+      transform = new Transform {
+        x = 5.0
+        y = 10.0
+        size = 10.0
+      }
+
+    })
+  )
   val share: IconDefinition = freeSolid.faShareAlt
   val search: IconDefinition = freeSolid.faSearch
   val user: IconDefinition = freeSolid.faUsers

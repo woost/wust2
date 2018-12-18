@@ -563,7 +563,7 @@ object PageHeader {
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
       cls := "ui icon top left labeled pointing dropdown",
-      Icons.menu,
+      Icons.menuDropdown,
       div(
         cls := "menu",
         div(cls := "header", "Settings", cursor.default),
