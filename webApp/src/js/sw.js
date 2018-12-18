@@ -185,9 +185,8 @@ var userAuth;
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
-    e.waitUntil(self.registration.pushManager.getSubscription().then(subscription => {
-        return subscription ? subscription.unsubscribe() : Promise.resolve(true);
-    }));
+    log("Trying to subscribe to webpush");
+    e.waitUntil(subscribeWebPushAndPersist());
 });
 
 self.addEventListener('message', e => {
