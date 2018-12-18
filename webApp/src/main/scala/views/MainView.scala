@@ -41,12 +41,14 @@ object MainView {
               case Some(detail) =>
                 when(detail.email.isEmpty) {
                   val desktopText = div(
-                    "You do not have an email setup. ",
+                    span("You do not have an email setup. "),
                     span("Please update your profile.", textDecoration.underline),
+                    span(" After the 21th of December 2018 you can only login via email."),
                   )
                   val mobileText = div(
-                    "Please setup an email in ",
-                    span("your profile.", textDecoration.underline),
+                    span("Please setup an email in "),
+                    span("your profile", textDecoration.underline),
+                    span(" until the 21th of December 2018."),
                   )
 
                   div(
