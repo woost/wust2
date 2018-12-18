@@ -230,12 +230,11 @@ self.addEventListener('push', e => {
                 const parentId = data.parentId;
                 const subscribedId = data.subscribedId;
                 const channelId = (!!parentId) ? parentId : subscribedId;
-                const sendTime = Number(data.epoch);
-                const dateOfArrival = Date.now();
+                const outdated = (!!data.epoch) ? ((Date.now() - Number(data.epoch)) > 43200000) else false
 
                 // 86400000 == 1 day (1000*60*60*24)
                 // 43200000 == 12h   (1000*60*60*12)
-                if (((dateOfArrival - sendTime) > 43200000) || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
+                if (outdated || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
                     log("Focused client or outdated push notification => ignoring push.");
                     return;
                 } else {
