@@ -194,7 +194,7 @@ self.addEventListener('message', e => {
         const messageObject = JSON.parse(e.data);
         if(messageObject.type === "AuthMessage") {
             log("Received auth message.");
-            if(userAuth !== messageObject.token) {
+            if((typeof userAuth === 'undefined') || (userAuth !== messageObject.token)) {
                 userAuth = messageObject.token;
                 e.waitUntil(subscribeWebPushAndPersist());
             } else {
