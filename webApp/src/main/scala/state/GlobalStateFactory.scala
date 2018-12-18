@@ -133,7 +133,7 @@ object GlobalStateFactory {
     }
 
     //TODO: better in rx/obs operations
-    // store auth in localstore and indexed db
+    // store auth in localstore and send to serviceworker
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
     authWithPrev.foreach { case (prev, auth) =>
       if (prev != auth) {

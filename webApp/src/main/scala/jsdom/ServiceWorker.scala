@@ -57,15 +57,17 @@ object ServiceWorker {
     implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
     implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]
 
+    scribe.info("Querying serviceworker")
     Navigator.serviceWorker.foreach { sw =>
       auth match {
         case Authentication.Verified(_, _, token) =>
           val activeServiceworker =  sw.controller
-          if(activeServiceworker != null)
+          if(activeServiceworker != null) {
+            scribe.info("Sending auth to serviceworker")
             activeServiceworker.postMessage((AuthMessage(token): WorkerMessage).asJson.noSpaces);
-          else scribe.debug("No serviceworker found")
+          } else scribe.info("No serviceworker found")
         case _ =>
-          scribe.debug("No token available")
+          scribe.info("No token available")
       }
     }
   }
