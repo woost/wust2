@@ -37,7 +37,7 @@ object Main {
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }
 
-  private def enableEventLogging(state:GlobalState) {
+  private def enableEventLogging(state:GlobalState)= {
     val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
     val boxStyle =
       s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
