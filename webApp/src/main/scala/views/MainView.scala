@@ -51,7 +51,7 @@ object MainView {
 
                   div(
                     Elements.topBanner(Some(desktopText), Some(mobileText)),
-                    onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+                    onClick(state.viewConfig.now.showViewWithRedirect(View.UserSettings)) --> state.viewConfig,
                   )
                 }
               case err                   =>
