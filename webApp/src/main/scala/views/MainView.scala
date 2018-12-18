@@ -43,12 +43,12 @@ object MainView {
                   val desktopText = div(
                     span("You do not have an email setup. "),
                     span("Please update your profile.", textDecoration.underline),
-                    span(" After the 21th of December 2018 you can only login via email."),
+                    span(" After the 21st of December 2018 you can only login via email."),
                   )
                   val mobileText = div(
                     span("Please setup an email in "),
                     span("your profile", textDecoration.underline),
-                    span(" until the 21th of December 2018."),
+                    span(" until the 21st of December 2018."),
                   )
 
                   div(
