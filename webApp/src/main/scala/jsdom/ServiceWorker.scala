@@ -1,5 +1,6 @@
 package wust.webApp.jsdom
 
+import googleAnalytics.Analytics
 import io.circe.{Decoder, Encoder, Json}
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -9,7 +10,7 @@ import wust.api.Authentication
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 object ServiceWorker {
 
@@ -19,27 +20,41 @@ object ServiceWorker {
 
     Navigator.serviceWorker.foreach { sw =>
       window.addEventListener("load", (_: Any) => {
-        sw.register("sw.js").toFuture.onComplete {
-          case Success(registration) =>
-            scribe.info(s"SW successfully registered")
-            registration.onupdatefound = { event =>
-              val installingWorker = registration.installing
-              installingWorker.onstatechange = { event =>
-                val activeServiceworker = sw.controller
-                if (installingWorker.state == "installed" && activeServiceworker != null) {
-                  scribe.info("New SW installed, can update.")
-                  subject.onNext(())
+        Try(sw.register("sw.js")).toEither match {
+          case Right(registered) => registered.toFuture.onComplete {
+            case Success(registration)      =>
+              scribe.info(s"SW successfully registered")
+              registration.onupdatefound = { event =>
+                val installingWorker = registration.installing
+                installingWorker.onstatechange = { event =>
+                  val activeServiceworker = sw.controller
+                  if(installingWorker.state == "installed" && activeServiceworker != null) {
+                    scribe.info("New SW installed, can update.")
+                    subject.onNext(())
+                  }
                 }
               }
-            }
-          case Failure(registrationError) =>
-            scribe.warn("SW registration failed: ", registrationError)
-            subject.onError(registrationError)
+            case Failure(registrationError) =>
+              scribe.warn("SW registration failed: ", registrationError)
+              subject.onError(registrationError)
+          }
+          case Left(e)             =>
+            scribe.error("SW could not register:", e)
+            subject.onError(e)
         }
       })
     }
 
-    subject
+    /* Register crashes can occur when privacy settings are too strong for serviceworkers, e.g. in ff when
+     * cookies are deleted, history is cleared or in privacy mode.
+     * To stop woost from crashing and just running without serviceworkers, we need this workaround
+     */
+    subject.onErrorRecoverWith{
+      case e: Throwable =>
+        scribe.debug("SW could not register:", e)
+        Analytics.sendEvent("serviceworker", "register", "error")
+        Observable.empty[Unit]
+    }
   }
 
 
