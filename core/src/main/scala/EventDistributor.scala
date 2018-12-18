@@ -143,6 +143,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
             subscribedNodeContent,
             parentNodeByChildId.get(nodeId).map(_.id.toBase58),
             parentNodeByChildId.get(nodeId).map(_.data.str),
+            EpochMilli.now.toString
           )
 
           pushService.send(subscription, pushData).transform {

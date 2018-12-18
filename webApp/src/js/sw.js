@@ -226,9 +226,13 @@ self.addEventListener('push', e => {
                 const parentId = data.parentId;
                 const subscribedId = data.subscribedId;
                 const channelId = (!!parentId) ? parentId : subscribedId;
+                const sendTime = Number(data.epoch);
+                const dateOfArrival = Date.now();
 
-                if (focusedClient(windowClients, subscribedId, channelId, nodeId)) {
-                    log("Focused client => ignoring push.");
+                // 86400000 == 1 day (1000*60*60*24)
+                // 43200000 == 12h   (1000*60*60*12)
+                if (((dateOfArrival - sendTime) > 43200000) || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
+                    log("Focused client or outdated push notification => ignoring push.");
                     return;
                 } else {
                     log("No focused client found.");
@@ -248,7 +252,6 @@ self.addEventListener('push', e => {
                         //     { action: 'close', title: 'Close', icon: 'images/xmark.png'},
                         // ],
                         data: {
-                            dateOfArrival: Date.now(),
                             nodeId: nodeId,
                             channelId: channelId,
                             msgCount: 1
