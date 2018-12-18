@@ -138,20 +138,9 @@ object GlobalStateFactory {
     authWithPrev.foreach { case (prev, auth) =>
       if (prev != auth) {
         Client.storage.auth() = Some(auth)
-        ServiceWorker.sendAuth(auth)
       }
 
-      // first subscription is send by the serviceworker. we do the one when the user changes
-      // TODO:
-      // - send message to service worker on user change.
-      // - drop whole indexeddb storage to sync with serviceworker.
-      // - move this logic into serviceworker
-      if (prev.user.id != auth.user.id) {
-        auth.user match {
-          case u: AuthUser.Assumed => Notifications.cancelSubscription()
-          case u: AuthUser.Persisted => Notifications.subscribe()
-        }
-      }
+      ServiceWorker.sendAuth(auth)
     }
 
     //TODO: better build up state from server events?
