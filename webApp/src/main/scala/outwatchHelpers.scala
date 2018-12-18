@@ -46,10 +46,18 @@ package object outwatchHelpers extends KeyHash {
     @inline def empty: VDomModifier = VDomModifier.empty
   }
 
+  @inline class ModifierBooleanOps(condition: Boolean) {
+    @inline def apply(m: => VDomModifier):VDomModifier = if(condition) VDomModifier(m) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier, m6: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6) else VDomModifier.empty
+  }
+
   implicit class RichVDomModifierFactory(val v: VDomModifier.type) extends AnyVal {
-    @inline def ifTrue(condition:Boolean)(modifier: => VDomModifier):VDomModifier = if(condition) VDomModifier(modifier) else VDomModifier.empty
-    @inline def ifTrue2(condition:Boolean)(modifier: => VDomModifier, modifier2: => VDomModifier):VDomModifier = if(condition) VDomModifier(modifier,modifier2) else VDomModifier.empty
-    @inline def ifNot(condition:Boolean)(modifier: => VDomModifier):VDomModifier = if(!condition) VDomModifier(modifier) else VDomModifier.empty
+    @inline def ifTrue(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
+    @inline def ifNot(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
   }
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {

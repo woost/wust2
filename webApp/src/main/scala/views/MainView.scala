@@ -119,7 +119,7 @@ object MainView {
               state.view().isContent
             }
             Rx {
-              VDomModifier.ifTrue2(viewIsContent())(
+              VDomModifier.ifTrue(viewIsContent())(
                 breadCrumbs,
                 PageHeader(state).apply(Styles.flexStatic)
               )
