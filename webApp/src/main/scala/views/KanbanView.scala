@@ -376,7 +376,7 @@ object KanbanView {
           //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
           VDomModifier.empty
         } else VDomModifier(
-          when(taskStats().isEmpty)(VDomModifier(
+          VDomModifier.ifTrue(taskStats().isEmpty)(VDomModifier(
             div(div(cls := "fa-fw", Icons.tasks), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"),
             div(div(cls := "fa-fw", Icons.conversation), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"),
           )),
@@ -445,7 +445,7 @@ object KanbanView {
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       Rx {
-        when(taskStats().nonEmpty || assignment().nonEmpty)(
+        VDomModifier.ifTrue(taskStats().nonEmpty || assignment().nonEmpty)(
           div(
             cls := "cardfooter",
             Styles.flex,
@@ -508,7 +508,7 @@ object KanbanView {
 
       Rx {
         val graph = state.graph()
-        when(graph.isExpanded(state.user().id, node.id))(
+        VDomModifier.ifTrue(graph.isExpanded(state.user().id, node.id))(
           div(
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
             width := "100%",

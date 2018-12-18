@@ -88,11 +88,11 @@ object UI {
   ))
 
   // tooltip is CSS only. It does not work when the tooltip itself is not in the rendering area of the element. If tooltip does not work, try popup instead
-  def tooltip: AttributeBuilder[String, VDomModifier] = str => whenNot(BrowserDetect.isMobile)(VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip))
-  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => whenNot(BrowserDetect.isMobile)(VDomModifier(tooltip := str, data.position := position))
+  def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip))
+  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(tooltip := str, data.position := position))
 
   // javascript version of tooltip
-  def popup(options: PopupOptions): VDomModifier = whenNot(BrowserDetect.isMobile)(VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := ZIndex.tooltip))
+  def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := ZIndex.tooltip))
   def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position

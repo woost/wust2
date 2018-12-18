@@ -39,7 +39,7 @@ object MainView {
           case user: AuthUser.Real =>
             Client.auth.getUserDetail(user.id).map {
               case Some(detail) =>
-                when(detail.email.isEmpty) {
+                VDomModifier.ifTrue(detail.email.isEmpty) {
                   val desktopText = div(
                     span("You do not have an email setup. "),
                     span("Please update your profile.", textDecoration.underline),
@@ -113,17 +113,16 @@ object MainView {
           overflow.auto,
           {
             val breadCrumbs = Rx {
-              state.pageHasParents().ifTrue[VDomModifier](BreadCrumbs(state)(Styles.flexStatic))
+              VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic))
             }
             val viewIsContent = Rx {
               state.view().isContent
             }
             Rx {
-              viewIsContent()
-                .ifTrue[VDomModifier](VDomModifier(
+              VDomModifier.ifTrue2(viewIsContent())(
                 breadCrumbs,
                 PageHeader(state).apply(Styles.flexStatic)
-              ))
+              )
             }
           },
           Rx {

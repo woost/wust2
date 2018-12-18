@@ -34,8 +34,11 @@ package object outwatchHelpers extends KeyHash {
     @inline def empty: VDomModifier = VDomModifier.empty
   }
 
-  @inline def when(condition:Boolean)(modifier: => VDomModifier):VDomModifier = condition.ifTrue[VDomModifier](modifier)
-  @inline def whenNot(condition:Boolean)(modifier: => VDomModifier):VDomModifier = condition.ifFalse[VDomModifier](modifier)
+  implicit class RichVDomModifierFactory(val v: VDomModifier.type) extends AnyVal {
+    @inline def ifTrue(condition:Boolean)(modifier: => VDomModifier):VDomModifier = if(condition) VDomModifier(modifier) else VDomModifier.empty
+    @inline def ifTrue2(condition:Boolean)(modifier: => VDomModifier, modifier2: => VDomModifier):VDomModifier = if(condition) VDomModifier(modifier,modifier2) else VDomModifier.empty
+    @inline def ifNot(condition:Boolean)(modifier: => VDomModifier):VDomModifier = if(!condition) VDomModifier(modifier) else VDomModifier.empty
+  }
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
     @inline def empty[T: Empty]: Var[T] = Var(Empty[T])
