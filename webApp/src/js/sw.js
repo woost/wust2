@@ -230,7 +230,7 @@ self.addEventListener('push', e => {
                 const parentId = data.parentId;
                 const subscribedId = data.subscribedId;
                 const channelId = (!!parentId) ? parentId : subscribedId;
-                const outdated = (!!data.epoch) ? ((Date.now() - Number(data.epoch)) > 43200000) else false
+                const outdated = (!!data.epoch) ? ((Date.now() - Number(data.epoch)) > 43200000) : false
 
                 // 86400000 == 1 day (1000*60*60*24)
                 // 43200000 == 12h   (1000*60*60*12)
