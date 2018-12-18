@@ -103,7 +103,6 @@ object MainView {
       div(
         Styles.flex,
         Styles.growFull,
-        position.relative,
         Sidebar(state),
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
@@ -111,6 +110,7 @@ object MainView {
           Styles.growFull,
           flexDirection.column,
           overflow.auto,
+          position.relative, // important for position absolute of loading animation to have the correct width of its parent element
           {
             val breadCrumbs = Rx {
               VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic))

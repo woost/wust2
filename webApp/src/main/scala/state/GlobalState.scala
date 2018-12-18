@@ -89,13 +89,15 @@ class GlobalState(
 
   val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
-  val pageChange: Var[PageChange] = viewConfig.zoom(GenLens[ViewConfig](_.pageChange))
-
-  val page: Var[Page] = pageChange.zoom(GenLens[PageChange](_.page)).mapRead{ page =>
-    page().copy(page().parentId.filter(graph().contains))
+  val rawPageChange: Var[PageChange] = viewConfig.zoom(GenLens[ViewConfig](_.pageChange))
+  val pageChange: Var[PageChange] = rawPageChange.mapRead{ pageChange =>
+    val page = pageChange().page
+    pageChange().copy(page = page.copy(page.parentId.filter(graph().contains)))
   }
 
-  val pageNotFound:Rx[Boolean] = Rx{ !page().parentId.forall(graph().contains) }
+  val page: Var[Page] = pageChange.zoom(GenLens[PageChange](_.page))
+
+  val pageNotFound:Rx[Boolean] = Rx{ !rawPageChange().page.parentId.forall(graph().contains) }
 
   val pageHasParents = Rx {
     page().parentId.exists(graph().hasParents)
@@ -114,7 +116,7 @@ class GlobalState(
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if(!view().isContent || page().parentId.nonEmpty)
+    if(!view().isContent || rawPageChange().page.parentId.nonEmpty)
       view()
     else
       View.Welcome
