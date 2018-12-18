@@ -195,7 +195,12 @@ self.addEventListener('message', e => {
         if(messageObject.type === "AuthMessage") {
             log("Received auth message.");
             userAuth = messageObject.token;
-            e.waitUntil(subscribeWebPushAndPersist());
+            if(userAuth !== messageObject.token) {
+                userAuth = messageObject.token;
+                e.waitUntil(subscribeWebPushAndPersist());
+            } else {
+                log("Current auth is still valid");
+            }
         } else if(messageObject.type === "Message") {
             log("Received worker message.");
         } else
