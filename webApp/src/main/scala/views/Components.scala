@@ -24,7 +24,7 @@ import wust.webApp.{BrowserDetect, Client, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, UploadingFile, View}
+import wust.webApp.state.{GlobalState, PageChange, UploadingFile, View}
 import wust.webApp.views.Elements._
 import wust.webApp.views.UI.ModalConfig
 
@@ -217,7 +217,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        state.page() = Page(tag.id)
+        state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
