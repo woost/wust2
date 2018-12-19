@@ -84,20 +84,20 @@ class GlobalState(
 
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
     val page = viewConfig().pageChange.page
-    viewConfig().copy(pageChange = PageChange(page.copy(page.parentId.filter(graph().contains))))
+    viewConfig().copy(pageChange = PageChange(page.copy(page.parentId.filter(rawGraph().contains))))
   }
 
   val rawPage: Rx[Page] = rawViewConfig.map(_.pageChange.page)
   val page: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
   val pageWithoutReload: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
-  val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(graph().contains) }
+  val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   val pageHasParents = Rx {
-    page().parentId.exists(graph().hasParents)
+    page().parentId.exists(rawGraph().hasParents)
   }
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
-  val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
+  val channelForest: Rx[Seq[Tree]] = Rx { rawGraph().channelTree(user().id) }
   val channels: Rx[Seq[(Node,Int)]] = Rx { channelForest().flatMap(_.flattenWithDepth()).distinct }
 
   val addNodesInTransit: Rx[Set[NodeId]] = {
