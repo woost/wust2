@@ -266,9 +266,10 @@ object ChatView {
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",
-            state.smallScreen.ifTrue[VDomModifier](marginLeft := "0px"),
+            if(state.smallScreen) marginLeft := "0px"
+            else marginLeft := "5px",
             lineColor.map(lineColor => borderLeft := s"3px solid ${ lineColor }"),
-            marginLeft := "5px",
+
 
             group.map { nodeIdx =>
               val nodeId = groupGraph.nodeIds(nodeIdx)
