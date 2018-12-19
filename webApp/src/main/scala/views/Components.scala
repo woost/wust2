@@ -274,7 +274,7 @@ object Components {
       //   else
       //     Set.empty
       state.eventProcessor.changes.onNext(
-        GraphChanges.delete(taggedNodeId, Set(tag.id))
+        GraphChanges.disconnect(Edge.Parent)(taggedNodeId, Set(tag.id))
       )
     })
   }

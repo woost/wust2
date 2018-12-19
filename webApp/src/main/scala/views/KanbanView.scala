@@ -28,6 +28,7 @@ object KanbanView {
 
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
     val newColumnFieldActive = Var(false)
+    val newTagFieldActive = Var(false)
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
@@ -43,8 +44,11 @@ object KanbanView {
         val graph = state.graph()
         page.parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
+          val workspaces = graph.workspacesForParent(pageParentIdx)
+          val firstWorkspaceIdx = workspaces.head
+          val firstWorkspaceId = graph.nodeIds(workspaces.head)
 
-          val topLevelStages = graph.notDeletedChildrenIdx(pageParentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
+          val topLevelStages = graph.notDeletedChildrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
           val allStages:ArraySet = {
             val stages = ArraySet.create(graph.size)
             topLevelStages.foreachElement(stages.add)
@@ -58,24 +62,24 @@ object KanbanView {
 
           val inboxTasks: ArraySet  = {
             val inboxTasks = ArraySet.create(graph.size)
-            graph.notDeletedChildrenIdx.foreachElement(pageParentIdx){childIdx =>
+            graph.notDeletedChildrenIdx.foreachElement(firstWorkspaceIdx){childIdx =>
               if(graph.nodes(childIdx).role == NodeRole.Task) {
-                @inline def hasStageParentInPage = graph.notDeletedParentsIdx(childIdx).exists(allStages.contains)
-                if(!hasStageParentInPage) inboxTasks += childIdx
+                @inline def hasStageParentInWorkspace = graph.notDeletedParentsIdx(childIdx).exists(allStages.contains)
+                if(!hasStageParentInWorkspace) inboxTasks += childIdx
               }
             }
             inboxTasks
           }
 
           val topLevelColumns: Seq[Tree] = topLevelStages.map { stageIdx =>
-            graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx)
+            graph.roleTree(stageIdx, NodeRole.Stage, firstWorkspaceIdx) //TODO: why workspace/pageParentIdx?
           }
 
-          val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
+          val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, firstWorkspaceId, topLevelColumns, (t: Tree) => t.node.id)
           val assigneInbox = inboxTasks.map(graph.nodeIds)
 
             VDomModifier(
-              renderInboxColumn(state, pageParentId, pageParentId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
+              renderInboxColumn(state, pageParentId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
               div(
                 cls := s"kanbancolumnarea",
                 keyed,
@@ -87,10 +91,81 @@ object KanbanView {
 
                 registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
               ),
-              newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic)
+              newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
+              tagList(state, pageParentId, newTagFieldActive).apply(Styles.flexStatic),
             )
         }
       },
+    )
+  }
+
+  private def tagList(
+    state: GlobalState,
+    workspaceId: NodeId,
+    newTagFieldActive: Var[Boolean],
+  )(implicit ctx:Ctx.Owner) = {
+    val tags = Rx {
+      val graph = state.graph()
+      val workspaceIdx = graph.idToIdx(workspaceId)
+      graph.tagChildrenIdx(workspaceIdx).map(graph.nodes)
+    }
+    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
+    div(
+      borderRadius := "5px",
+      border := s"1px dashed $columnColor",
+      padding := "15px",
+
+      Styles.flex,
+      flexDirection.column,
+      alignItems.flexEnd,
+
+      tags.map(_.map(tag => nodeTag(state, tag))),
+
+      addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
+
+      registerDragContainer(state),
+    )
+  }
+
+  private def addTagField(
+    state: GlobalState,
+    parentId: NodeId,
+    workspaceId: NodeId,
+    newTagFieldActive: Var[Boolean],
+  )(implicit ctx: Ctx.Owner): VNode = {
+    def submitAction(str:String) = {
+      val createdNode = Node.MarkdownTag(str)
+      val change = GraphChanges.addNodeWithParent(createdNode, parentId :: Nil)
+
+      state.eventProcessor.changes.onNext(change)
+    }
+
+    def blurAction(v:String): Unit = {
+      if(v.isEmpty) newTagFieldActive() = false
+    }
+
+    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
+
+    div(
+      cls := "kanbanaddnodefield",
+      keyed(parentId),
+      Rx {
+        if(newTagFieldActive())
+          inputRow(state,
+            submitAction,
+            autoFocus = true,
+            blurAction = Some(blurAction),
+            placeHolderMessage = Some(placeHolder),
+            submitIcon = freeSolid.faPlus,
+          )
+        else
+          div(
+            cls := "kanbanaddnodefieldtext",
+            "+ Add Tag",
+            color := "rgba(0,0,0,0.62)",
+            onClick foreach { newTagFieldActive() = true }
+          )
+      }
     )
   }
 
@@ -127,16 +202,15 @@ object KanbanView {
 
   private def renderInboxColumn(
     state: GlobalState,
-    parentId:NodeId,
-    pageParentId:NodeId,
+    workspaceId: NodeId,
     path: List[NodeId],
     children: Seq[NodeId],
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
-    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(parentId)).toHex
+    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-    val sortedChildren = TaskOrdering.constructOrderingOf[NodeId](state.graph.now, parentId, children, identity)
+    val sortedChildren = TaskOrdering.constructOrderingOf[NodeId](state.graph.now, workspaceId, children, identity)
 
     div(
       // sortable: draggable needs to be direct child of container
@@ -147,11 +221,11 @@ object KanbanView {
       p(cls := "kanban-uncategorized-title", "Inbox / Todo"),
       div(
         cls := "kanbancolumnchildren",
-        registerDragContainer(state, DragContainer.Kanban.Inbox(parentId, sortedChildren)),
-        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, path = path, selectedNodeIds,activeAddCardFields)),
+        registerDragContainer(state, DragContainer.Kanban.Inbox(workspaceId, sortedChildren)),
+        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = workspaceId, pageParentId = workspaceId, path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
-      addCardField(state, parentId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
+      addCardField(state, workspaceId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
     )
   }
 
@@ -317,19 +391,6 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
 
-    val rendered = nodeCardEditable(
-      state, node,
-      maxLength = Some(maxLength),
-      editMode = editable,
-      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty,
-      submit = state.eventProcessor.changes).prepend(
-      if(showCheckbox)
-        VDomModifier(
-          taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
-        )
-      else VDomModifier.empty
-    )
-
     val assignment = Rx {
       val graph = state.graph()
       val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
@@ -360,49 +421,51 @@ object KanbanView {
       TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount)
     }
 
-    val plainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
+    val isPlainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
 
-    val buttonBar = div(
-      cls := "buttonbar",
-      Styles.flex,
-      Rx {
-        if(editable()) {
-          //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
-          VDomModifier.empty
-        } else VDomModifier(
-          VDomModifier.ifTrue(plainCard())(VDomModifier(
+    val buttonBar = {
+      div(
+        cls := "buttonbar",
+        Styles.flex,
+        Rx {
+          if(editable()) {
+            //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
+            VDomModifier.empty
+          } else VDomModifier(
+            VDomModifier.ifTrue(isPlainCard())(VDomModifier(
+              div(
+                div(cls := "fa-fw", Icons.tasks),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
+              ),
+              div(
+                div(cls := "fa-fw", Icons.conversation),
+                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
+              ),
+            )),
+            if(state.graph().isExpanded(state.user.now.id, node.id))
+              div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
+            else
+              div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
+            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
             div(
-              div(cls := "fa-fw", Icons.tasks),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
-            ),
-            div(
-              div(cls := "fa-fw", Icons.conversation),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
-            ),
-          )),
-          if(state.graph().isExpanded(state.user.now.id, node.id))
-            div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
-          else
-            div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
-          div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
-          div(
-            div(cls := "fa-fw", Icons.delete),
-            onClick.stopPropagation foreach {
-              val graph = state.graph()
-              val nodeIdx = graph.idToIdx(node.id)
-              val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
-              val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+              div(cls := "fa-fw", Icons.delete),
+              onClick.stopPropagation foreach {
+                val graph = state.graph()
+                val nodeIdx = graph.idToIdx(node.id)
+                val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
+                val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
 
-              val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
-              state.eventProcessor.changes.onNext(changes)
-              selectedNodeIds.update(_ - node.id)
-            },
-            cursor.pointer, UI.popup := "Delete"
-          ),
-          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
-        )
-      }
-    )
+                val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
+                state.eventProcessor.changes.onNext(changes)
+                selectedNodeIds.update(_ - node.id)
+              },
+              cursor.pointer, UI.popup := "Delete"
+            ),
+            //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+          )
+        }
+      )
+    }
 
     val renderTaskProgress = Rx {
       if (taskStats().taskChildrenCount > 0) {
@@ -435,115 +498,141 @@ object KanbanView {
       graph.taskChildrenIdx(nodeIdx).partition(graph.isDone)
     }
 
-    rendered(
-      // sortable: draggable needs to be direct child of container
+    def cardFooter(implicit ctx:Ctx.Owner) = div(
+      cls := "cardfooter",
+      Styles.flex,
+      justifyContent.flexEnd,
+      alignItems.flexEnd,
+      flexGrow := 1,
+
+      div(
+        cls := "childstats",
+        Styles.flex,
+        flexDirection.row,
+        alignItems.center,
+        flexGrow := 1,
+        Rx{
+          VDomModifier(
+            renderTaskCount(
+              if (taskStats().taskChildrenCount > 0) VDomModifier(
+                s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+                UI.popup := "Zoom to show subtasks",
+              )
+              else VDomModifier(
+                cls := "emptystat",
+                UI.popup := "Create subtasks"
+              ),
+              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig,
+              cursor.pointer,
+            ),
+            renderTaskProgress(),
+            renderMessageCount(
+              if (taskStats().messageChildrenCount > 0) VDomModifier(
+                taskStats().messageChildrenCount,
+                UI.popup := "Zoom to show comments",
+              )
+              else VDomModifier(
+                cls := "emptystat",
+                UI.popup := "Start conversation about this card"
+              ),
+              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
+              cursor.pointer,
+            ),
+          )
+        },
+      ),
+      div(
+        Styles.flex,
+        flexWrap.wrap,
+        assignment.map(_.map(userNode => div(
+          Styles.flexStatic,
+          Avatar.user(userNode.id)(
+            marginRight := "2px",
+            width := "22px",
+            height := "22px",
+            cls := "avatar",
+          ),
+          keyed(userNode.id),
+          UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+          cursor.pointer,
+          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
+        ))),
+      ),
+    )
+
+    def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+      val tags = Rx {
+        val graph = state.graph()
+        val nodeIdx = graph.idToIdx(nodeId)
+        graph.tagParentsIdx(nodeIdx).map(graph.nodes)
+      }
+
+      div(
+        textAlign.right,
+        tags.map(_.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId))),
+      )
+    }
+
+    def subCards(graph:Graph)(implicit ctx: Ctx.Owner) = {
+      div(
+        boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
+        margin := "5px",
+        padding := "1px 5px 6px 5px",
+        borderRadius := "3px",
+        backgroundColor := "#EFEFEF",
+        partitionedTaskChildren(node.id, graph) match {
+          case (doneTasks, todoTasks) =>
+            val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, node.id, todoTasks, graph.nodeIds)
+            VDomModifier(
+              div(
+                minHeight := "50px",
+                sortedTodoTasks.map{ childIdx =>
+                  val childNode = graph.nodes(childIdx)
+                  renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path, selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
+                    marginTop := "5px",
+                  )
+                },
+                // sortable: draggable needs to be direct child of container
+                registerDragContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
+              ),
+              div(
+                doneTasks.map{ childIdx =>
+                  val childNode = graph.nodes(childIdx)
+                  renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, isDone = true).apply(
+                    marginTop := "5px",
+                    opacity := 0.5,
+                  )
+                }
+              )
+            )
+        },
+        addCardField(state, node.id, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
+      )
+    }
+
+    nodeCardEditable(
+      state, node,
+      maxLength = Some(maxLength),
+      editMode = editable,
+      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty,
+      submit = state.eventProcessor.changes).prepend(
+      if(showCheckbox)
+        VDomModifier(
+          taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
+        )
+      else VDomModifier.empty
+    ).apply(
       Rx{ VDomModifier.ifNot(editable() || isDone)(drag(DragItem.Task(node.id))) }, // prevents dragging when selecting text
       keyed(node.id, parentId),
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
-      Rx {
-        VDomModifier.ifTrue(!plainCard())(
-          div(
-            cls := "cardfooter",
-            Styles.flex,
-            justifyContent.flexEnd,
-            alignItems.flexEnd,
-            flexGrow := 1,
-
-            div(
-              cls := "childstats",
-              Styles.flex,
-              flexDirection.row,
-              alignItems.center,
-              flexGrow := 1,
-              Rx{
-                VDomModifier(
-                  renderTaskCount(
-                    if (taskStats().taskChildrenCount > 0) VDomModifier(
-                      s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
-                      UI.popup := "Zoom to show subtasks",
-                    )
-                    else VDomModifier(
-                      cls := "emptystat",
-                      UI.popup := "Create subtasks"
-                    ),
-                    onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig,
-                    cursor.pointer,
-                  ),
-                  renderTaskProgress(),
-                  renderMessageCount(
-                    if (taskStats().messageChildrenCount > 0) VDomModifier(
-                      taskStats().messageChildrenCount,
-                      UI.popup := "Zoom to show comments",
-                    )
-                    else VDomModifier(
-                      cls := "emptystat",
-                      UI.popup := "Start conversation about this card"
-                    ),
-                    onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
-                    cursor.pointer,
-                  ),
-                )
-              },
-            ),
-            div(
-              Styles.flex,
-              flexWrap.wrap,
-              assignment.map(_.map(userNode => div(
-                Styles.flexStatic,
-                Avatar.user(userNode.id)(
-                  marginRight := "2px",
-                  width := "22px",
-                  height := "22px",
-                  cls := "avatar",
-                ),
-                keyed(userNode.id),
-                UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
-                cursor.pointer,
-                onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
-              ))),
-            ),
-
-          ),
-        )
-      },
-
+      cardTags(state, node.id).apply(margin := "5px", marginTop := "0"),
+      Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
       Rx {
         val graph = state.graph()
-        VDomModifier.ifTrue(graph.isExpanded(state.user().id, node.id))(
-          div(
-            boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
-            margin := "5px",
-            padding := "1px 5px 6px 5px",
-            borderRadius := "3px",
-            backgroundColor := "#EFEFEF",
-            partitionedTaskChildren(node.id, graph) match {
-              case (doneTasks, todoTasks) =>
-                val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, node.id, todoTasks, graph.nodeIds)
-                VDomModifier(
-                  div(
-                    minHeight := "50px",
-                    sortedTodoTasks.map{ childIdx =>
-                      val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path, selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
-                        marginTop := "5px",
-                      )
-                    },
-                    registerDragContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
-                  ),
-                  div(
-                    doneTasks.map{ childIdx =>
-                      val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, isDone = true).apply(
-                        marginTop := "5px",
-                        opacity := 0.5,
-                      )
-                    }
-                  )
-                )
-            },
-            addCardField(state, node.id, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
-          )
+        val userId = state.user().id
+        VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
+          subCards(graph)
         )
       },
 

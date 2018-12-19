@@ -48,6 +48,7 @@ object Node {
   }
   @inline def MarkdownMessage(text: String) = Content(data = NodeData.Markdown(text), role = NodeRole.Message)
   @inline def MarkdownTask(text: String) = Content(data = NodeData.Markdown(text), role = NodeRole.Task)
+  @inline def MarkdownTag(text: String) = Content(data = NodeData.Markdown(text), role = NodeRole.Tag)
   @inline def MarkdownStage(text: String) = Content(data = NodeData.Markdown(text), role = NodeRole.Stage)
 
   implicit def AsUserInfo(user: User): UserInfo =
