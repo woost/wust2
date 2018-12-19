@@ -32,10 +32,10 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 
   lazy val lookup = GraphLookup(this, nodes, edges)
 
-  def isEmpty: Boolean = nodes.isEmpty
-  def nonEmpty: Boolean = !isEmpty
-  def size: Int = nodes.size
-  def length: Int = size
+  @inline def isEmpty: Boolean = nodes.isEmpty
+  @inline def nonEmpty: Boolean = !isEmpty
+  @inline def size: Int = nodes.length
+  @inline def length: Int = size
 
   @inline def nodeStr(nodeIdx: Int):String = {
     val node = nodes(nodeIdx)
