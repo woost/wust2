@@ -1160,7 +1160,7 @@ object CommonStyles extends StyleSheet.Standalone {
     verticalAlign.bottom,
   )
   ".emoji-sizer" - (
-    fontSize.medium,
+    fontSize.larger,
   )
 }
 
