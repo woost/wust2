@@ -80,14 +80,11 @@ object GlobalStateFactory {
       page.parentId.fold(graph) { parentId =>
         val userIdx = graph.idToIdx(user.id)
         val pageIdx = graph.idToIdx(parentId)
-        println("PAGE " + userIdx + pageIdx)
         if (userIdx >= 0 && pageIdx >= 0) {
           def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
           def pageIsInvited = graph.inviteNodeIdx.contains(userIdx)(pageIdx)
           def pageIsUnderUser: Boolean = algorithm.depthFirstSearchExists(start = pageIdx, graph.notDeletedParentsIdx, userIdx)
           def userIsMemberOfPage: Boolean = graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.a(edgeIdx) == userIdx)
-
-          println("PAGE " + anyPageParentIsPinned + pageIsInvited + pageIsUnderUser + userIsMemberOfPage)
 
           if(!userIsMemberOfPage) {
             Client.api.addMember(parentId, user.id, AccessLevel.ReadWrite)
