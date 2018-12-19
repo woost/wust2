@@ -217,7 +217,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page(tag.id)))
+        state.page() = Page(tag.id)
         e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),

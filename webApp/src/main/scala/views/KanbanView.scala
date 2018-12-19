@@ -283,7 +283,7 @@ object KanbanView {
               renderMessageCount(
                 if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
                 else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
                 cursor.pointer
               )
             )
@@ -378,8 +378,8 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           VDomModifier.ifTrue(taskStats().isEmpty)(VDomModifier(
-            div(div(cls := "fa-fw", Icons.tasks), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"),
-            div(div(cls := "fa-fw", Icons.conversation), onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"),
+            div(div(cls := "fa-fw", Icons.tasks), onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"),
+            div(div(cls := "fa-fw", Icons.conversation), onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"),
           )),
           if(state.graph().isExpanded(state.user.now.id, node.id))
             div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
@@ -465,7 +465,7 @@ object KanbanView {
                   renderTaskCount(
                     if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
                     else VDomModifier(cls := "emptystat"),
-                    onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Tasks)) --> state.viewConfig,
+                    onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig,
                     cursor.pointer,
                     UI.popup := "Zoom to show subtasks",
                   ),
@@ -479,7 +479,7 @@ object KanbanView {
                       cls := "emptystat",
                       UI.popup := "Start conversation about this card"
                     ),
-                    onClick.stopPropagation.mapTo(state.viewConfig.now.copy(pageChange = PageChange(Page(node.id)), view = View.Conversation)) --> state.viewConfig,
+                    onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
                     cursor.pointer,
                   ),
                 )
