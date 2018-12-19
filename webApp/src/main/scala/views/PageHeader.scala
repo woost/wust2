@@ -639,7 +639,7 @@ object PageHeader {
         div(cls := "header", "Settings", cursor.default),
         items
       ),
-      UI.tooltip("bottom right") := "Settings",
+//      UI.tooltip("bottom right") := "Settings",
       zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
       Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
       onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
