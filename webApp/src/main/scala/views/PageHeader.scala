@@ -114,7 +114,7 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
-      viewFilter(state),
+      ViewFilter.render(state),
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
@@ -702,72 +702,6 @@ object PageHeader {
       }
     )
 
-  }
-
-  private def viewFilter(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-
-    val onlyDeletedParents = div(
-      cls := "item",
-      Elements.icon(Icons.delete)(marginRight := "5px"),
-      span(cls := "text", "Show only deleted items", cursor.pointer),
-      onClick.mapTo({
-        val nextTransform: Graph => Graph = ViewFilter.Parents.onlyDeletedParents(state.page.now.parentId.get)(_)
-        state.graphTransformation.now :+ nextTransform
-      }) --> state.graphTransformation
-    )
-
-    val withoutDeletedParents = div(
-      cls := "item",
-      Elements.icon(Icons.undelete)(marginRight := "5px"),
-      span(cls := "text", "Do not show deleted items", cursor.pointer),
-      onClick.mapTo({
-        val nextTransform: Graph => Graph = ViewFilter.Parents.withoutDeletedParents(state.page.now.parentId.get)(_)
-        state.graphTransformation.now :+ nextTransform
-      }) --> state.graphTransformation
-    )
-
-    val myAssignments = div(
-      cls := "item",
-      Elements.icon(Icons.task)(marginRight := "5px"),
-      span(cls := "text", "Show my tasks", cursor.pointer),
-      onClick.mapTo({
-        val nextTransform: Graph => Graph = ViewFilter.Assignments.onlyAssignedTo(state.user.now.id)(_)
-        state.graphTransformation.now :+ nextTransform
-      }) --> state.graphTransformation
-    )
-
-    val notAssigned = div(
-      cls := "item",
-      Elements.icon(Icons.task)(marginRight := "5px"),
-      span(cls := "text", "Show not assigned tasks", cursor.pointer),
-      onClick.mapTo({
-        val nextTransform: Graph => Graph = ViewFilter.Assignments.onlyNotAssigned(_)
-        state.graphTransformation.now :+ nextTransform
-      }) --> state.graphTransformation
-    )
-
-    val noFilters = div(
-      cls := "item",
-      Elements.icon(Icons.noFilter)(marginRight := "5px"),
-      span(cls := "text", "Reset ALL filters", cursor.pointer),
-      onClick(Seq.empty[Graph => Graph]) --> state.graphTransformation
-    )
-
-    val filterItems: List[VDomModifier] = List(withoutDeletedParents, onlyDeletedParents, myAssignments, notAssigned, noFilters)
-
-    div(
-      cls := "ui icon top left labeled pointing dropdown",
-      Icons.filterDropdown,
-      div(
-        cls := "menu",
-        div(cls := "header", "Filter", cursor.default),
-        filterItems,
-      ),
-      UI.tooltip("bottom right") := "Filter items in view",
-      zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
-      Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
-      onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
-    )
   }
 
 }
