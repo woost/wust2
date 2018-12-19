@@ -42,9 +42,11 @@ object ConversationView {
         position.absolute,
 
         right := "0px",
-        top := "15px",
-        padding := "0px 15px 5px 5px",
+        top := "0px",
+        padding := "5px 15px 5px 5px",
         textAlign.right,
+        backgroundColor := "rgba(255,255,255,0.72)",
+        borderBottomLeftRadius := "5px",
 
         UI.tooltip("bottom right") := "Show messages chronologically or threaded.",
         UI.toggle("Threaded") --> threaded,

@@ -42,10 +42,15 @@ object TasksView {
       keyed,
 
       div(
+        alignSelf.flexEnd,
+        padding := "5px 15px 5px 5px",
+
+        backgroundColor := "rgba(255,255,255,0.72)",
+        borderBottomLeftRadius := "5px",
+
         Styles.flex,
-        flexDirection.row,
         justifyContent.flexEnd,
-        filterAssignedBar(filterAssigned),
+        filterAssignedBar(filterAssigned).apply(marginRight := "15px"),
         kanbanSwitchBar(kanbanSwitch),
       ),
 
@@ -62,33 +67,21 @@ object TasksView {
     )
   }
 
-  private def filterAssignedBar(filterAssigned: Var[Boolean]):VDomModifier = {
-    VDomModifier(
-      div(
-        marginTop := "15px",
-        padding := "0px 15px 5px 5px",
-        textAlign.right,
+  private def filterAssignedBar(filterAssigned: Var[Boolean]) = {
+    div(
+      UI.tooltip("bottom right") := "Show only tasks that are assigned to me.",
+      UI.toggle("Only my tasks", filterAssigned),
 
-        UI.tooltip("bottom right") := "Show only tasks that are assigned to me.",
-        UI.toggle("Only my tasks", filterAssigned),
-
-        zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
-      ),
+      zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
     )
   }
 
-  private def kanbanSwitchBar(kanbanSwitch:Var[Boolean]):VDomModifier = {
-    VDomModifier(
-      div(
-        marginTop := "15px",
-        padding := "0px 15px 5px 5px",
-        textAlign.right,
+  private def kanbanSwitchBar(kanbanSwitch:Var[Boolean]) = {
+    div(
+      UI.tooltip("bottom right") := "Show tasks in a kanban or as list.",
+      UI.toggle("Kanban", kanbanSwitch),
 
-        UI.tooltip("bottom right") := "Show tasks in a kanban or as list.",
-        UI.toggle("Kanban", kanbanSwitch),
-
-        zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
-      ),
+      zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
     )
   }
 }
