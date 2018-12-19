@@ -15,24 +15,24 @@ object NodeData {
   }
 
   sealed trait Content extends NodeData {
-    def updateStr(str: String): Content
+    def updateStr(str: String): Option[Content]
   }
 
   case class File(key: String, fileName: String, contentType: String, description: String) extends Named with Content {
     def str = if (description.isEmpty) "[File]" else description
-    override def updateStr(str: String): Content = copy(description = str)
+    override def updateStr(str: String) = if (description != str) Some(copy(description = str)) else None
   }
   object File extends Named
 
   case class Markdown(content: String) extends Named with Content {
     def str = content
-    override def updateStr(str: String): Content = copy(content = str)
+    override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object Markdown extends Named
 
   case class PlainText(content: String) extends Named with Content {
     def str = content
-    override def updateStr(str: String): Content = copy(content = str)
+    override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object PlainText extends Named
 

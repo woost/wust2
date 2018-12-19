@@ -531,19 +531,19 @@ object Components {
       if(editMode.now) {
         val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
         if (text.nonEmpty) {
-          val newData = node.data.updateStr(text)
-          if (newData != node.data) {
-            val updatedNode = node.copy(data = newData)
+          node.data.updateStr(text) match {
+            case Some(newData) =>
+              val updatedNode = node.copy(data = newData)
 
-            Var.set(
-              initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
-              editMode -> false
-            )
+              Var.set(
+                initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
+                editMode -> false
+              )
 
-            val changes = GraphChanges.addNode(updatedNode)
-            submit.onNext(changes)
-          } else {
-            editMode() = false
+              val changes = GraphChanges.addNode(updatedNode)
+              submit.onNext(changes)
+            case None =>
+              editMode() = false
           }
         }
       }

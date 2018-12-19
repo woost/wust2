@@ -263,9 +263,12 @@ object GlobalStateFactory {
     private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.collect {
       case n: Node.Content =>
         scribe.debug(s"replacing node emoji: ${n.str}.")
-        val emojiData = n.data.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str)))
-        scribe.debug(s"New representation: ${emojiData.str}.")
-        n.copy(data = emojiData)
+        n.data.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str))) match {
+          case Some(emojiData) =>
+            scribe.debug(s"New representation: ${emojiData.str}.")
+            n.copy(data = emojiData)
+          case None => n
+        }
       case n => n
     }(breakOut)
     def replaceChangesToColons(graphChanges: GraphChanges) = graphChanges.copy(addNodes = replaceToColons(graphChanges.addNodes))
