@@ -16,8 +16,9 @@ import wust.util._
 object TasksView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val topLevelStageExists = Rx {
+      // TODO: we should not react on graph, but on the result of a getGraph Request.
       val page = state.page()
-      val graph = state.graph.now
+      val graph = state.graph()
       page.parentId.fold(false) { parentId =>
         val parentIdx = graph.idToIdx(parentId)
         val workspacesIdx = graph.workspacesForParent(parentIdx)
