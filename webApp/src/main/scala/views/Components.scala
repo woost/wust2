@@ -20,7 +20,7 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.{BrowserDetect, Client, Ownable}
+import wust.webApp.{BrowserDetect, Client, Ownable, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
@@ -130,9 +130,9 @@ object Components {
         p(downloadLink),
         contentType match {
           case t if t.startsWith("image/") =>
-            val image = img(alt := fileName, downloadUrl(src))
+            val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(height := "90%", width := "90%"), modalModifier = cls := "basic"))) //TODO: better size settings
+              state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
           case "application/pdf"           =>
@@ -646,18 +646,17 @@ object Components {
   })
 
   def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val fileUploadIcon = freeSolid.faFileUpload
 
     val iconAndPopup = selected.map {
       case None =>
-        (fontawesome.icon(fileUploadIcon), div("Upload your own file!"))
+        (fontawesome.icon(Icons.fileUpload), div("Upload your own file!"))
       case Some(selected) =>
         val popupNode = selected.file.`type` match {
           case t if t.startsWith("image/") => img(src := selected.dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
           case _ => div(selected.file.name)
         }
         val icon = fontawesome.layered(
-          fontawesome.icon(fileUploadIcon),
+          fontawesome.icon(Icons.fileUpload),
           fontawesome.icon(
             freeSolid.faPaperclip,
             new Params {

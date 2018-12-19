@@ -34,6 +34,10 @@ object View {
     def viewKey = "chat"
     def isContent = true
   }
+  case object Files extends View {
+    def viewKey = "files"
+    def isContent = true
+  }
   case object Kanban extends View {
     def viewKey = "kanban"
     def isContent = true

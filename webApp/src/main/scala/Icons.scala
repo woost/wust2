@@ -40,10 +40,12 @@ object Icons {
   )
   val conversation: IconDefinition = freeRegular.faComments
   val tasks: IconDefinition = freeSolid.faTasks
+  val files: IconDefinition = freeSolid.faPaperclip
   val stage: IconDefinition = freeSolid.faColumns
 
   val task: IconDefinition = freeRegular.faCheckSquare
 
+  val fileUpload: IconDefinition = freeSolid.faFileUpload
   val userPermission: IconDefinition = freeSolid.faUserLock
   val permissionInherit: IconDefinition = freeSolid.faArrowUp
   val permissionPrivate: IconDefinition = freeSolid.faLock

@@ -690,6 +690,8 @@ object PageHeader {
 //          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
           MkInput(currentView, pageStyle, View.Tasks),
           MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks),
+          MkInput(currentView, pageStyle, View.Files),
+          MkLabel(currentView, pageStyle, View.Files, Icons.files),
 //          MkInput(currentView, pageStyle, View.Kanban),
 //          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
 //          MkInput(currentView, pageStyle, View.ListV),
