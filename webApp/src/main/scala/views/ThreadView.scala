@@ -248,7 +248,7 @@ object ThreadView {
           Styles.flexStatic,
 
           cursor.pointer,
-          UI.tooltip := "Click to collapse",
+          UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
           onClick(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
         ),
         div(
