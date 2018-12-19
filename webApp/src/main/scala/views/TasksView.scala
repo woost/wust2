@@ -34,6 +34,7 @@ object TasksView {
     val kanbanSwitch = Var(false)
     val filterAssigned = Var(false)
     state.page.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
+    state.graph.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
 
     div(
       Styles.flex,
