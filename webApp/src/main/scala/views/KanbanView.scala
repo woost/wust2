@@ -329,10 +329,7 @@ object KanbanView {
       submit = state.eventProcessor.changes).prepend(
       if(showCheckbox)
         VDomModifier(
-          Styles.flex,
-          alignItems.flexStart,
-          flexWrap.wrap,
-          taskCheckbox(state, node, parentId :: Nil)
+          taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
         )
       else VDomModifier.empty
     )
@@ -511,7 +508,6 @@ object KanbanView {
         VDomModifier.ifTrue(graph.isExpanded(state.user().id, node.id))(
           div(
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
-            width := "100%",
             margin := "5px",
             padding := "1px 5px 6px 5px",
             borderRadius := "3px",
