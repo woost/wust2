@@ -17,8 +17,19 @@ object Icons {
     })
   )
 
+  val filterDropdown: Layer = fontawesome.layered(
+    fontawesome.icon(freeSolid.faFilter),
+    fontawesome.icon(freeSolid.faCaretDown, new Params {
+      transform = new Transform {
+        x = 5.0
+        y = 10.0
+        size = 10.0
+      }
+
+    })
+  )
   val filter: IconDefinition = freeSolid.faFilter
-  val nofilter: Layer = fontawesome.layered(
+  val noFilter: Layer = fontawesome.layered(
     fontawesome.icon(freeSolid.faFilter),
     fontawesome.icon(freeSolid.faMinus, new Params {
       transform = new Transform {

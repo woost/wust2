@@ -746,7 +746,7 @@ object PageHeader {
 
     val noFilters = div(
       cls := "item",
-      Elements.icon(Icons.nofilter)(marginRight := "5px"),
+      Elements.icon(Icons.noFilter)(marginRight := "5px"),
       span(cls := "text", "Reset ALL filters", cursor.pointer),
       onClick(Seq.empty[Graph => Graph]) --> state.graphTransformation
     )
@@ -755,7 +755,7 @@ object PageHeader {
 
     div(
       cls := "ui icon top left labeled pointing dropdown",
-      Icons.filter,
+      Icons.filterDropdown,
       div(
         cls := "menu",
         div(cls := "header", "Filter", cursor.default),
