@@ -163,7 +163,7 @@ object AuthView {
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
     apply(state)(
-      header = "Login with existing account",
+      header = "Login",
       submitText = "Login",
       needsEmail = false,
       submitAction = userValue =>
@@ -197,7 +197,7 @@ object AuthView {
         },
       alternativeHeader = "Already have an account?",
       alternativeView = View.Login,
-      alternativeText = "Login with existing account",
+      alternativeText = "Login",
       autoCompletePassword = "new-password"
     )
 }

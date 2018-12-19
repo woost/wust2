@@ -557,8 +557,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-thread-messages-outer" - (
-    marginLeft(5 px),
     marginBottom(5 px),
+  )
+
+  ".thread-collapsebutton" - (
+    opacity(0.5),
+    fontSize := "22px",
+  )
+  ".thread-collapsebutton:hover" - (
+    visibility.visible.important,
+    opacity(1),
   )
 
   val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
@@ -1017,7 +1025,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chat-row.draggable-mirror .tag," +
   ".chat-row.draggable-mirror .tagdot," +
   ".chat-row.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
-  ".chat-row.draggable-mirror .collapsebutton" - (
+  ".chat-row.draggable-mirror .thread-collapsebutton" - (
     visibility.hidden.important
   )
 

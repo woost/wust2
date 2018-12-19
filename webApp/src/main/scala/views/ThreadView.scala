@@ -21,7 +21,7 @@ import wust.util._
 import wust.util.collection._
 import flatland._
 import monix.reactive.Observable
-import wust.webApp.BrowserDetect
+import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
@@ -239,9 +239,12 @@ object ThreadView {
         cls := "chat-thread-messages-outer",
         Styles.flex,
         div(
-          boxSizing.borderBox,
-          width := "3px",
-          backgroundColor := tagColor(nodeId).toHex,
+          div(
+            width := "3px",
+            height := "100%",
+            backgroundColor := tagColor(nodeId).toHex,
+          ),
+          padding := "0px 8px",
           Styles.flexStatic,
 
           cursor.pointer,
@@ -331,17 +334,21 @@ object ThreadView {
         }
       }
     }
-    val expandCollapsButton = Rx{ (isDeletedNow() || inCycle).ifFalse[VDomModifier](renderExpandCollapseButton(state, nodeId, isExpanded)) }
+    val expandCollapseButton = Rx{
+      VDomModifier.ifNot(isDeletedNow() || inCycle)(renderExpandCollapseButton(state, nodeId, isExpanded))
+    }
 
     div(
       cls := "chat-row",
       Styles.flex,
 
+      expandCollapseButton,
+
       isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
       selectByClickingOnRow,
       checkbox,
+
       renderedMessage,
-      expandCollapsButton,
       messageTags(state, nodeId, directParentIds),
       controls,
       messageRowDragOptions(nodeId, selectedNodes, editMode)
@@ -356,19 +363,17 @@ object ThreadView {
     Rx {
       if(isExpanded()) {
         div(
-          cls := "collapsebutton ui mini blue label",
-          "-",
-          marginLeft := "10px",
+          cls := "thread-collapsebutton",
+          Icons.collapse,
           onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
           UI.tooltip := "Collapse"
         )
       } else {
-        if(childrenSize() == 0) VDomModifier.empty
-        else div(
-          cls := "collapsebutton ui mini blue label",
-          "+" + childrenSize(),
-          marginLeft := "10px",
+        div(
+          cls := "thread-collapsebutton",
+          VDomModifier.ifTrue(childrenSize() == 0)(visibility.hidden),
+          Icons.expand,
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
           UI.tooltip := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")

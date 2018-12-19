@@ -50,4 +50,6 @@ object Icons {
   val notificationsEnabled: IconDefinition = freeSolid.faBell
   val notificationsDisabled: IconDefinition = freeRegular.faBellSlash
 
+  val expand: IconDefinition = freeRegular.faPlusSquare
+  val collapse: IconDefinition = freeRegular.faMinusSquare
 }
