@@ -45,13 +45,13 @@ object CreateNewPrompt {
       val ack = if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
         val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
-        state.viewConfig() = state.viewConfig.now.focusNode(newNode.id, needsGet = false)
+        state.pageWithoutReload() = Page(newNode.id)
         ack
       } else {
         val ack = state.eventProcessor.changes.onNext(changes)
         def newViewConfig = nodeRole.now match {
-          case NodeRole.Message => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Conversation)
-          case NodeRole.Task => state.viewConfig.now.copy(pageChange = PageChange(Page(parents.head)), view = View.Tasks)
+          case NodeRole.Message => state.viewConfig.now.focusView(Page(parents.head), View.Conversation)
+          case NodeRole.Task => state.viewConfig.now.focusView(Page(parents.head), View.Tasks)
         }
         UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.viewConfig() = newViewConfig, level = UI.ToastLevel.Success)
         ack

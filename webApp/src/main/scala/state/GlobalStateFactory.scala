@@ -153,7 +153,7 @@ object GlobalStateFactory {
     // There we want tnuro issue the new-channel change.
     {
     val userAndPage = Rx {
-      (pageChange(), user().toNode)
+      (rawViewConfig(), user().toNode)
     }
 
     var lastTransitChanges: List[GraphChanges] = Nil
@@ -163,22 +163,22 @@ object GlobalStateFactory {
     var prevPage: PageChange = null
     var prevUser: Node.User = null
     userAndPage.toRawObservable
-      .switchMap { case (pageChange, user) =>
+      .switchMap { case (viewConfig, user) =>
         val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
         val observable: Observable[Graph] =
           if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
             isLoading() = true
-            Observable.fromFuture(getNewGraph(pageChange.page))
-          } else if (prevPage == null || prevPage != pageChange) {
-            if (pageChange.needsGet && (!pageChange.page.isEmpty || isFirstGraphRequest)) {
+            Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
+          } else if (prevPage == null || prevPage != viewConfig.pageChange) {
+            if (viewConfig.pageChange.needsGet && (!viewConfig.pageChange.page.isEmpty || isFirstGraphRequest)) {
               isLoading() = true
-              Observable.fromFuture(getNewGraph(pageChange.page))
+              Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
             } else Observable.empty
           } else {
             Observable.empty
           }
 
-        prevPage = pageChange
+        prevPage = viewConfig.pageChange
         prevUser = user
         isFirstGraphRequest = false
 

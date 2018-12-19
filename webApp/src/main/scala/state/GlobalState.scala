@@ -37,7 +37,7 @@ class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
   val eventProcessor: EventProcessor,
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
-  val viewConfig: Var[ViewConfig],
+  val rawViewConfig: Var[ViewConfig],
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
   val hasError: Rx[Boolean],
@@ -72,6 +72,20 @@ class GlobalState(
     }
   }
 
+  val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
+    val page = viewConfig().pageChange.page
+    viewConfig().copy(pageChange = PageChange(page.copy(page.parentId.filter(graph().contains))))
+  }
+
+  val rawPage: Rx[Page] = rawViewConfig.map(_.pageChange.page)
+  val page: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
+  val pageWithoutReload: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
+  val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(graph().contains) }
+
+  val pageHasParents = Rx {
+    page().parentId.exists(graph().hasParents)
+  }
+
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
   val channelForest: Rx[Seq[Tree]] = Rx { graph().channelTree(user().id) }
@@ -89,20 +103,6 @@ class GlobalState(
 
   val isSynced: Rx[Boolean] = eventProcessor.changesInTransit.map(_.isEmpty).unsafeToRx(true)
 
-  val rawPageChange: Var[PageChange] = viewConfig.zoom(GenLens[ViewConfig](_.pageChange))
-  val pageChange: Var[PageChange] = rawPageChange.mapRead{ pageChange =>
-    val page = pageChange().page
-    pageChange().copy(page = page.copy(page.parentId.filter(graph().contains)))
-  }
-
-  val page: Var[Page] = pageChange.zoom(GenLens[PageChange](_.page))
-
-  val pageNotFound:Rx[Boolean] = Rx{ !rawPageChange().page.parentId.forall(graph().contains) }
-
-  val pageHasParents = Rx {
-    page().parentId.exists(graph().hasParents)
-  }
-
   //TODO: wait for https://github.com/raquo/scala-dom-types/pull/36
 //  val documentIsVisible: Rx[Boolean] = {
 //    def isVisible = dom.document.visibilityState.asInstanceOf[String] == VisibilityState.visible.asInstanceOf[String]
@@ -116,7 +116,7 @@ class GlobalState(
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if(!view().isContent || rawPageChange().page.parentId.nonEmpty)
+    if(!view().isContent || rawPage().parentId.nonEmpty)
       view()
     else
       View.Welcome
