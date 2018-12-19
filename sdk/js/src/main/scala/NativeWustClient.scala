@@ -73,7 +73,7 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
           response match {
             case graph: Graph => // graph is always grouped and logged as table
               logInGroup {
-                console.log(graph.toString)
+                console.log(graph.toDetailedString)
               }
             case _ if response.toString.length < 80 => // short data is displayed without grouping
               console.log(
