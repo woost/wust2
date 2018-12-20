@@ -5,6 +5,7 @@ target/
 /tokens.sh
 proguard-sbt.txt
 .metals/
+.bloop/
 .metaserver/
 /.sql_checksum
 /.yarn-offline-cache
