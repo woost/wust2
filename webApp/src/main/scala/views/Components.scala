@@ -98,7 +98,7 @@ object Components {
       Styles.growFull
     )
 
-    def downloadLink = a(downloadUrl(href), attr("download") := fileName, "Download")
+    def downloadLink = a(downloadUrl(href), "Download")
 
     div(
       file.description.nonEmpty.ifTrue[VDomModifier](b(file.description)),

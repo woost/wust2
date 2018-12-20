@@ -50,9 +50,16 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     // !!!!!really NEVER ever allow quotes or any possible encoding of breaking out of quotes in json!!!!!
     requireSaneKey(fileKey)
     require(fileContentType.matches("^[\\w\\.+\\-]+/[\\w\\.+\\-]+$"), "invalid file content type") // allow only potential content types: "<word>/<word>"
-    require(fileName.matches("^[\\w\\.+\\-\\s]+$"), "invalid file name")
     require(fileSize >= 0, "File size must be greater than or equal to zero")
     require(fileSize <= maxUploadBytesPerFile, "File size must be less than or equal to max upload bytes per file")
+
+    // filenames do not have any restriction, we allow the most common ones. this is just about the name of the file when clicking download.
+    // the url contains a hash, so browsers cannot infer a nice filename themselves. but we can help with a content-disposition header.
+    // if we do not like the filename, we do not want to fail as then unforeseen filenames cannot be uploaded. but we cannot trust this filename string.
+    // so we fall-back to providing no filename in the content-disposition header. file will then be named like the resource in the url (sha256 of content).
+    // we still enforce attachment, which will make the browser download the content instead of opening it in a tab.
+    // TODO: is this to defensive? what is a safe sanitizer for not-breaking out of json values?
+    val fileContentDisposition = if (fileName.matches("^[\\w\\.+\\-\\s()\\[\\]]+$")) s"""attachment; filename="$fileName"""" else "attachment"
 
     val keyPrefix = getKeyPrefixForUser(userId)
     val key = keyPrefix + "/" + fileKey
@@ -77,7 +84,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
         // then you have two minute time frame to upload maxUploadBytesPerFile * numberOfIssuedPresignUrls
         // or we cached issued tokens in the last two minutes
         if (freeUploadBytes < fileSize) FileUploadConfiguration.QuotaExceeded
-        else getPostConfiguration(key, fileSize = fileSize, fileContentType = fileContentType, validSeconds = 2 * 60) // 2 minutes
+        else getPostConfiguration(key, fileSize = fileSize, fileContentType = fileContentType, fileContentDisposition = fileContentDisposition, validSeconds = 2 * 60) // 2 minutes
       }
     }
   }
@@ -85,14 +92,14 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTForms.html
   // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-UsingHTTPPOST.html
   // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
-  private def getPostConfiguration(key: String, fileSize: Int, fileContentType: String, validSeconds: Int): FileUploadConfiguration = {
-
+  private def getPostConfiguration(key: String, fileSize: Int, fileContentType: String, fileContentDisposition: String, validSeconds: Int): FileUploadConfiguration = {
     val now = ZonedDateTime.now(ZoneOffset.UTC)
     val expiryTime = now.plusSeconds(validSeconds)
     val amzDateString = DateTimeFormatter.ofPattern("yyyyMMdd").format(now)
     val amzDateTimeString = DateTimeFormatter.ofPattern("yyyyMMdd'T'000000'Z'").format(now)
     val amzCredential = s"${awsConfig.accessKey}/$amzDateString/${awsConfig.region}/s3/aws4_request"
     val amzAlgorithm = "AWS4-HMAC-SHA256"
+    val fileCacheControl = s"max-age=$cacheMaxAgeSeconds"
 
     // this policy document defines what kind of post request we allow to s3.
     // we restrict the bucket to our upload bucket.
@@ -112,8 +119,9 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
          |    {"x-amz-date": "$amzDateTimeString"},
          |    {"x-amz-algorithm": "$amzAlgorithm"},
          |    {"x-amz-credential": "$amzCredential"},
-         |    {"cache-control": "max-age=$cacheMaxAgeSeconds"},
+         |    {"cache-control": "$fileCacheControl"},
          |    {"content-type": "$fileContentType"},
+         |    {"content-disposition": '$fileContentDisposition' },
          |    ["content-length-range", ${fileSize - 1}, ${fileSize + 1}]
          |  ]
          |}
@@ -126,7 +134,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     val signedPolicy = AwsSignature.HmacSHA256(data = policy, key = signingKey)
     val signature = javax.xml.bind.DatatypeConverter.printHexBinary(signedPolicy).toLowerCase
 
-    FileUploadConfiguration.UploadToken(baseUrl = s3PostUrl(awsConfig.uploadBucketName), credential = amzCredential, policyBase64 = policy, signature = signature, validSeconds = validSeconds, acl = acl, key = key, algorithm = amzAlgorithm, date = amzDateTimeString)
+    FileUploadConfiguration.UploadToken(baseUrl = s3PostUrl(awsConfig.uploadBucketName), credential = amzCredential, policyBase64 = policy, signature = signature, validSeconds = validSeconds, acl = acl, key = key, algorithm = amzAlgorithm, date = amzDateTimeString, contentDisposition = fileContentDisposition, cacheControl = fileCacheControl)
   }
 
   private def getAllObjectSummaries(keyPrefix: String): Task[Seq[S3ObjectSummary]] = Task {

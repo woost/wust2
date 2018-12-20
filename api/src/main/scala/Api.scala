@@ -4,6 +4,7 @@ import sloth.PathName
 import wust.graph._
 import wust.ids.{EdgeData, _}
 import cats.data.NonEmptyList
+import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.ContentDisposition
 import wust.graph.Node.User
 
 import scala.collection.mutable
@@ -208,7 +209,7 @@ object ApiEvent {
 
 sealed trait FileUploadConfiguration
 object FileUploadConfiguration {
-  case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String) extends FileUploadConfiguration
+  case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String, contentDisposition: String, cacheControl: String) extends FileUploadConfiguration
   case class KeyExists(key: String) extends FileUploadConfiguration
   case object QuotaExceeded extends FileUploadConfiguration
   case object ServiceUnavailable extends FileUploadConfiguration
