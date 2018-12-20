@@ -84,12 +84,12 @@ class GlobalState(
 
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
     val page = viewConfig().pageChange.page
-    viewConfig().copy(pageChange = PageChange(page.copy(page.parentId.filter(rawGraph().contains))))
+    val sanitizedPage = page.copy(page.parentId.filter(rawGraph().contains))
+    viewConfig().copy(pageChange = viewConfig().pageChange.copy(page = sanitizedPage))
   }
 
-  val rawPage: Rx[Page] = rawViewConfig.map(_.pageChange.page)
   val page: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
-  val pageWithoutReload: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
+  val pageWithoutReload: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page, needsGet = false))
   val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   val pageHasParents = Rx {
@@ -125,7 +125,7 @@ class GlobalState(
   }
 
   val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if(!view().isContent || rawPage().parentId.nonEmpty)
+    if(!view().isContent || rawViewConfig().pageChange.page.parentId.nonEmpty)
       view()
     else
       View.Welcome
