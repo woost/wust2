@@ -96,7 +96,7 @@ object SharedViewElements {
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toValueObservable.collect { case Some(s) => s } else ValueObservable.empty
+    }.toObservable.collect { case Some(s) => s } else Observable.empty
 
     val autoResizer = new TextAreaAutoResizer
 

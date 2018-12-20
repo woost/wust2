@@ -162,7 +162,7 @@ object GlobalStateFactory {
     var isFirstGraphRequest = true
     var prevPage: PageChange = null
     var prevUser: Node.User = null
-    userAndPage.toRawObservable
+    userAndPage.toObservable
       .switchMap { case (viewConfig, user) =>
         val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
         val observable: Observable[Graph] =

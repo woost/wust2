@@ -228,12 +228,12 @@ object Elements {
     }
   }
 
-  final class ValueWithEnter(overrideValue: ValueObservable[String] = ValueObservable.empty, clearValue: Boolean = true) {
+  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
     private val clearInput = if (clearValue) Handler.unsafe[Unit].mapObservable(_ => "") else ProHandler(Observer.empty, Observable.empty)
-    private val writeValue = ValueObservable(clearInput, overrideValue).merge
+    private val writeValue = Observable(clearInput, overrideValue).merge
 
     def trigger(): Unit = {
       // We clear input field before userInput is triggered
@@ -273,7 +273,7 @@ object Elements {
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
   def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue)).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: ValueObservable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue = overrideValue, clearValue = clearValue).emitterBuilder
+  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue = overrideValue, clearValue = clearValue).emitterBuilder
 
   final class TextAreaAutoResizer {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
