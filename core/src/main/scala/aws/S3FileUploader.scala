@@ -24,6 +24,10 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   private def s3GetUrl(bucketName: String) = s"https://s3.${awsConfig.region}.amazonaws.com/$bucketName"
   private def s3PostUrl(bucketName: String) = s"https://$bucketName.s3-${awsConfig.region}.amazonaws.com/"
 
+  private def requireSaneKey(key: String): Unit = {
+    require(key.matches("^[A-Fa-f0-9]+$"), "invalid file key") // our clients send the sha-256 of the content in hex. will be prefixed by hash of user-id
+  }
+
   def getFileDownloadBaseUrl: Task[StaticFileUrl] = Task.pure {
     StaticFileUrl(s3GetUrl(awsConfig.uploadBucketName))
   }
@@ -34,12 +38,19 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   }
 
   def deleteFileUpload(userId: UserId, fileKey: String): Task[Boolean] = {
+    requireSaneKey(fileKey)
+
     val keyPrefix = getKeyPrefixForUser(userId)
     val key = keyPrefix + "/" + fileKey
     deleteKeyInS3Bucket(key).map(_ => true)
   }
 
   def getFileUploadConfiguration(userId: UserId, fileKey: String, fileName: String, fileSize: Int, fileContentType: String): Task[FileUploadConfiguration] = {
+    // SANITIZE user input, we use these strings in the json policy document for the signed post request to aws.
+    // !!!!!really NEVER ever allow quotes or any possible encoding of breaking out of quotes in json!!!!!
+    requireSaneKey(fileKey)
+    require(fileContentType.matches("^[\\w\\.+\\-]+/[\\w\\.+\\-]+$"), "invalid file content type") // allow only potential content types: "<word>/<word>"
+    require(fileName.matches("^[\\w\\.+\\-\\s]+$"), "invalid file name")
     require(fileSize >= 0, "File size must be greater than or equal to zero")
     require(fileSize <= maxUploadBytesPerFile, "File size must be less than or equal to max upload bytes per file")
 
@@ -83,6 +94,12 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     val amzCredential = s"${awsConfig.accessKey}/$amzDateString/${awsConfig.region}/s3/aws4_request"
     val amzAlgorithm = "AWS4-HMAC-SHA256"
 
+    // this policy document defines what kind of post request we allow to s3.
+    // we restrict the bucket to our upload bucket.
+    // we allow only an upload to one specified key (one s3-object).
+    // we enforce a content-type, browser know how to display it -- will be stored by s3 as a response header when getting that object from s3
+    // we enforce a content-disposition, browsers should download the file as filename -- will be stored by s3 as a response header when getting that object from s3
+    // we only allow an upload for the specified file size (+-1) -- aws checks size
     val acl = "private"
     val policy_document =
       s"""
