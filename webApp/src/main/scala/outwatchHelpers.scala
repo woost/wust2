@@ -73,10 +73,20 @@ package object outwatchHelpers extends KeyHash {
 
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
 
-    def toTailObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
-      implicit val ctx = Ctx.Owner.Unsafe
-      val obs = rx.triggerLater(observer.onNext(_))
-      Cancelable(() => obs.kill())
+    def toTailObservable: Observable[T] = {
+      val callNow = rx.now // now at call-time
+      Observable.create[T](Unbounded) { observer =>
+        implicit val ctx = Ctx.Owner.Unsafe
+
+        // workaround: push now into the observer if it changed in between
+        // calling this method and the observable being subscribed.
+        // TODO: better alternative?
+        // - maybe just triggerLater with implicit owner at call-time and push into ReplaySubject(limit = 1)?
+        if (rx.now != callNow) observer.onNext(rx.now)
+        val obs = rx.triggerLater(observer.onNext(_))
+
+        Cancelable(() => obs.kill())
+      }
     }
 
     def toValueObservable: ValueObservable[T] = new ValueObservable[T] {
