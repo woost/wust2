@@ -98,10 +98,10 @@ object Components {
       Styles.growFull
     )
 
-    def downloadLink = a(downloadUrl(href), "Download")
+    def downloadLink = a(downloadUrl(href), s"Download ${StringOps.trimToMaxLength(file.fileName, 20)}")
 
     div(
-      file.description.nonEmpty.ifTrue[VDomModifier](b(file.description)),
+      file.str,
       if (file.key.isEmpty) { // this only happens for currently-uploading files
         VDomModifier(Rx {
           val uploadingFiles = state.uploadingFiles()
