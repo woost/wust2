@@ -124,12 +124,12 @@ class GlobalState(
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 
-  val view: Var[View] = viewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead { view =>
-    if(!view().isContent || rawViewConfig().pageChange.page.parentId.nonEmpty)
-      view()
+  val view: Var[View] = rawViewConfig.zoom { viewConfig =>
+    if(!viewConfig.view.isContent || viewConfig.pageChange.page.parentId.nonEmpty)
+      viewConfig.view
     else
       View.Welcome
-  }
+  }((viewConfig, view) => viewConfig.copy(view = view))
 
   val pageStyle = Rx {
     PageStyle(view(), page())
