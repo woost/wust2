@@ -1,5 +1,9 @@
 package wust.webApp.views
 
+import fomanticui.SidebarOptions
+import jquery.JQuerySelection
+import monix.reactive.Observable
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
@@ -12,17 +16,36 @@ import wust.webApp.outwatchHelpers._
 
 object ViewFilter {
 
-//  val allTransformations: List[GraphTransformation] =
+  private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewTransformation] = List(
+    Parents.OnlyDeletedParents(state),
+    Parents.WithoutDeletedParents(state),
+    Assignments.OnlyAssignedTo(state),
+    Assignments.OnlyNotAssigned(state),
+    Identity(state),
+  )
 
-  def render(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
 
-    val onlyDeletedParents = Parents.OnlyDeletedParents(state.page.now.parentId.get).renderReplaceFilter(state)
-    val withoutDeletedParents = Parents.WithoutDeletedParents(state.page.now.parentId.get).renderReplaceFilter(state)
-    val myAssignments = Assignments.OnlyAssignedTo(state.user.now.id).renderReplaceFilter(state)
-    val notAssigned = Assignments.OnlyNotAssigned.renderReplaceFilter(state)
-    val noFilters = Identity.renderReplaceFilter(state)
+    val filterItems: List[VDomModifier] = allTransformations(state).map(_.renderReplaceFilter)
 
-    val filterItems: List[VDomModifier] = List(withoutDeletedParents, onlyDeletedParents, myAssignments, notAssigned, noFilters)
+    div(
+      cls := "ui right vertical inverted labeled icon menu sidebar visible",
+//      zIndex := ZIndex.overlay,
+      filterItems,
+      onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
+        elem
+          .sidebar(new SidebarOptions {
+            transition = "overlay"
+            context = side
+          })
+//          .sidebar("setting", "transition", "overlay")
+      }: Function[(JQuerySelection, JQuerySelection), Unit])
+    )
+  }
+
+  def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+
+    val filterItems: List[VDomModifier] = allTransformations(state).map(_.renderReplaceFilter)
 
     div(
       cls := "ui icon top left labeled pointing dropdown",
@@ -44,19 +67,20 @@ object ViewFilter {
 sealed trait GraphTransformation { val transform: Graph => Graph }
 sealed trait ViewTransformation extends GraphTransformation {
   val transform: Graph => Graph
+  val state: GlobalState
   val icon: VDomModifier
   val description: String
 
-  def renderStackFilter(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    render(state, state.graphTransformation.now :+ transform)
+  def renderStackFilter(implicit ctx: Ctx.Owner): VNode = {
+    render(state.graphTransformation.now :+ transform)
   }
 
-  def renderReplaceFilter(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    render(state, Seq(transform))
+  def renderReplaceFilter(implicit ctx: Ctx.Owner): VNode = {
+    render(Seq(transform))
   }
 
-  private def render(state: GlobalState, graphTransform: Seq[Graph => Graph]) = {
-    div(
+  private def render(graphTransform: Seq[Graph => Graph]) = {
+    a(
       cls := "item",
       Elements.icon(icon)(marginRight := "5px"),
       span(cls := "text", description, cursor.pointer),
@@ -65,7 +89,7 @@ sealed trait ViewTransformation extends GraphTransformation {
   }
 }
 
-case object Identity extends ViewTransformation {
+case class Identity(state: GlobalState) extends ViewTransformation {
   val icon = Icons.noFilter
   val description = "Reset ALL filters"
   val transform = identity[Graph]
@@ -73,26 +97,28 @@ case object Identity extends ViewTransformation {
 
 object Parents {
 
-  case class WithoutDeletedParents(pageId: NodeId) extends ViewTransformation {
+  case class WithoutDeletedParents(state: GlobalState) extends ViewTransformation {
     val icon = Icons.undelete
     val description = "Do not show deleted items"
+    val pageId = (state: GlobalState) => state.page.now.parentId
 
     val transform = (graph: Graph) => {
       val newEdges = graph.edges.filterNot {
-        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, Seq(pageId))
+        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, pageId(state))
         case _              => false
       }
       graph.copy(edges = newEdges)
     }
   }
 
-  case class OnlyDeletedParents(pageId: NodeId) extends ViewTransformation {
+  case class OnlyDeletedParents(state: GlobalState) extends ViewTransformation {
     val icon  = Icons.delete
     val description = "Show only deleted items"
+    val pageId = (state: GlobalState) => state.page.now.parentId
 
     val transform = (graph: Graph) => {
       val newEdges = graph.edges.filter {
-        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, Seq(pageId))
+        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, pageId(state))
         case _ => true
       }
       graph.copy(edges = newEdges)
@@ -103,13 +129,14 @@ object Parents {
 
 object Assignments {
 
-  case class OnlyAssignedTo(userId: UserId) extends ViewTransformation  {
+  case class OnlyAssignedTo(state: GlobalState) extends ViewTransformation  {
     val icon = Icons.task
     val description = s"Show items assigned to: Me"
+    val userId = (state: GlobalState) => state.user.now.id
 
     val transform = (graph: Graph) => {
       val nodeIds = graph.edges.collect {
-        case e: Edge.Assigned if e.sourceId == userId => e.targetId
+        case e: Edge.Assigned if e.sourceId == userId(state) => e.targetId
       }
       val newEdges = graph.edges.filter {
         case e: Edge.Parent => nodeIds.contains(e.sourceId) || nodeIds.contains(e.targetId)
@@ -119,7 +146,7 @@ object Assignments {
     }
   }
 
-  case object OnlyNotAssigned extends ViewTransformation {
+  case class OnlyNotAssigned(state: GlobalState) extends ViewTransformation {
     val icon = Icons.task
     val description = "Show items that are not assigned"
 

@@ -114,7 +114,7 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
-      ViewFilter.render(state),
+     ViewFilter.renderMenu(state),
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
