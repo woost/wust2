@@ -7,6 +7,7 @@ import scala.scalajs.js.|
 // fomantic ui is imported globally
 trait JQuerySelectionWithFomanticUI extends js.Object {
   def dropdown(arg: String = ???): Unit = js.native
+  def dropdown(options: DropdownOptions): Unit = js.native
 
   def modal(behavior: String): Unit = js.native
   def modal(options: ModalOptions): Unit = js.native
@@ -18,7 +19,8 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def popup(options: PopupOptions): Unit = js.native
 
-  def dropdown(options: DropdownOptions): Unit = js.native
+  def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
+  def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
 }
 
 trait DropdownEntry extends js.Object {
@@ -111,4 +113,23 @@ trait SearchSourceEntry extends js.Object {
   var category: js.UndefOr[String] = js.undefined
 
   var data: js.UndefOr[js.Any] = js.undefined
+}
+
+trait SidebarOptions extends js.Object {
+  var context: js.UndefOr[String | jquery.JQuerySelection] = js.undefined
+  var exclusive: js.UndefOr[Boolean] = js.undefined
+  var closable: js.UndefOr[Boolean] = js.undefined
+  var dimPage: js.UndefOr[Boolean] = js.undefined
+  var scrollLock: js.UndefOr[Boolean] = js.undefined
+  var returnScroll: js.UndefOr[Boolean] = js.undefined
+  var delaySetup: js.UndefOr[Boolean] = js.undefined
+  var transition: js.UndefOr[String] = js.undefined
+  var selector: js.UndefOr[SidebarSelectorOption] = js.undefined
+}
+
+trait SidebarSelectorOption extends js.Object {
+  var fixed: js.UndefOr[String] = js.undefined
+  var omitted: js.UndefOr[String] = js.undefined
+  var pusher: js.UndefOr[String] = js.undefined
+  var sidebar: js.UndefOr[String] = js.undefined
 }
