@@ -222,7 +222,7 @@ object PageHeader {
           cursor.pointer,
           padding := "3px",
           Components.nodeCard(nodeRes._1),
-          onClick(Page(nodeRes._1.id)) --> state.page,
+          onClick.mapTo(state.viewConfig.now.focus(Page(nodeRes._1.id))) --> state.viewConfig,
           onClick(()) --> closeModal
         ),
       )
@@ -618,8 +618,7 @@ object PageHeader {
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
-          state.viewConfig() = ViewConfig.default
-          UI.toast(s"Deleted node '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.page() = Page(channel.id), level = UI.ToastLevel.Success)
+          UI.toast(s"Deleted node '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
         }
       ))
 

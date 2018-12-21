@@ -217,7 +217,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        state.page() = Page(tag.id)
+        state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
       draggableAs(DragItem.Tag(tag.id)),
@@ -232,7 +232,7 @@ object Components {
       backgroundColor := tagColor(tag.id).toHex,
       UI.tooltip := tag.data.str,
       onClick foreach { e =>
-        state.page() = Page(tag.id)
+        state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       },
       draggableAs(DragItem.Tag(tag.id)),

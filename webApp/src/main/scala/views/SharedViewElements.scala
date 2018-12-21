@@ -487,14 +487,14 @@ object SharedViewElements {
               },
             )),
             zoomButton(
-              onClick(Page(nodeId)) --> state.page,
+              onClick.mapTo(state.viewConfig.now.focus(Page(nodeId))) --> state.viewConfig,
             ),
             (nodeRole() != NodeRole.Task && canWrite()).ifTrue[VDomModifier](taskButton(
               onClick foreach {
                 val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
                 val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
                 state.eventProcessor.changes.onNext(change)
-                UI.toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 11)}' to a Task", click = () => state.page() = Page(nodeId), level = UI.ToastLevel.Success)
+                UI.toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 11)}' to a Task", click = () => state.viewConfig.update(_.focus(Page(nodeId))), level = UI.ToastLevel.Success)
               }
             ))
           )

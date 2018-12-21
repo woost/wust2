@@ -88,8 +88,8 @@ class GlobalState(
     viewConfig().copy(pageChange = viewConfig().pageChange.copy(page = sanitizedPage))
   }
 
-  val page: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page))
-  val pageWithoutReload: Var[Page] = viewConfig.zoom(_.pageChange.page)((viewConfig, page) => viewConfig.focus(page, needsGet = false))
+  val page: Rx[Page] = viewConfig.map(_.pageChange.page)
+  val pageWithoutReload: Rx[Page] = viewConfig.map(_.pageChange.page)
   val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   val pageHasParents = Rx {

@@ -217,7 +217,7 @@ object SelectedPostMenu {
 
   val menuActions: List[MenuAction] = List(
     MenuAction("Focus", { (p: Node, state: GlobalState) =>
-      state.page() = Page(p.id)
+      state.viewConfig.update(_.focus(Page(p.id)))
     }),
 //    MenuAction(
 //      "Collapse",

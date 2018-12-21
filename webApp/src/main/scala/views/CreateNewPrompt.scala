@@ -45,7 +45,7 @@ object CreateNewPrompt {
       val ack = if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
         val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
-        state.pageWithoutReload() = Page(newNode.id)
+        state.viewConfig.update(_.focus(Page(newNode.id), needsGet = false))
         ack
       } else {
         val ack = state.eventProcessor.changes.onNext(changes)
