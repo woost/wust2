@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import clipboard.ClipboardJS
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
@@ -152,17 +153,20 @@ object PageHeader {
 
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    // Workaround: Autsch!
-    val urlHolderId = "shareurlholder"
-    val urlHolder = textArea(id := urlHolderId, height := "0px", width := "0px", opacity := 0, border := "0px", padding := "0px", fontSize := "0px", zIndex := 100, position.absolute)
+    new ClipboardJS(".shareurlholder")
+
+    val urlHolderCls = "shareurlholder"
+    val shareTitle = channel.data.str
+    val shareUrl = dom.window.location.href
+    val shareDesc = s"Share: $shareTitle"
 
     div(
-      cls := "item",
+      cls := s"$urlHolderCls item",
       Elements.icon(Icons.share)(marginRight := "5px"),
       span(cls := "text", "Share Link", cursor.pointer),
-      urlHolder,
+      dataAttr("clipboard-text") := shareUrl,
       onClick foreach {
-        scribe.info(s"sharing post: $channel")
+        scribe.info(s"sharing node: $channel")
 
         // make channel public if it is not. we are sharing the link, so we want it to be public.
         channel match {
@@ -175,10 +179,6 @@ object PageHeader {
           case _ => ()
         }
 
-        val shareTitle = channel.data.str
-        val shareUrl = dom.window.location.href
-        val shareDesc = s"Share channel: $shareTitle"
-
         if(Navigator.share.isDefined) {
           Navigator.share(new ShareData {
             title = shareTitle
@@ -189,11 +189,7 @@ object PageHeader {
             case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
           }
         } else {
-          //TODO
-          val elem = dom.document.querySelector(s"#$urlHolderId").asInstanceOf[dom.html.TextArea]
-          elem.textContent = shareUrl
-          elem.select()
-          dom.document.execCommand("copy")
+
           UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         }
       },
