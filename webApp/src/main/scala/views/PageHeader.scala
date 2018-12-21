@@ -170,7 +170,7 @@ object PageHeader {
             if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
               val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
               state.eventProcessor.changes.onNext(changes)
-              UI.toast(s"Node '${StringOps.trimToMaxLength(channel.str, 10)}' is now public")
+              UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
             }
           case _ => ()
         }
