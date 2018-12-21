@@ -102,9 +102,9 @@ object Parents {
     val description = "Do not show deleted items"
     val pageId = (state: GlobalState) => state.page.now.parentId
 
-    val transform = (graph: Graph) => {
+    val transform = (graph: Graph) => pageId(state).fold(graph){ pid =>
       val newEdges = graph.edges.filterNot {
-        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, pageId(state))
+        case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
         case _              => false
       }
       graph.copy(edges = newEdges)
@@ -116,12 +116,12 @@ object Parents {
     val description = "Show only deleted items"
     val pageId = (state: GlobalState) => state.page.now.parentId
 
-    val transform = (graph: Graph) => {
+    val transform = (graph: Graph) => pageId(state).fold(graph){ pid =>
       val newEdges = graph.edges.filter {
-        case e: Edge.Parent => e.targetId == pageId && graph.isDeletedNow(e.sourceId, pageId(state))
+        case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow (e.sourceId, pid)
         case _ => true
       }
-      graph.copy(edges = newEdges)
+      graph.copy (edges = newEdges)
     }
   }
 
