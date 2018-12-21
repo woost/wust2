@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import googleAnalytics.Analytics
+import jquery.JQuerySelection
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -88,6 +89,9 @@ object MainView {
       }
     }
 
+    val sidebarContext = Handler.unsafe[JQuerySelection]
+    val sidebarOpenHandler = Handler.unsafe[String]
+
     VDomModifier(
       cls := "mainview",
       Styles.flex,
@@ -132,17 +136,24 @@ object MainView {
               else VDomModifier.empty
             } else VDomModifier.empty
           },
-          // It is important that the view rendering is in a separate Rx.
-          // This avoids rerendering the whole view when only the screen-size changed
-          Rx {
-            // we can now assume, that every page parentId is contained in the graph
-            ViewRender(state.view(), state).apply(
-              Styles.growFull,
-              flexGrow := 1
-            ).prepend(
-              overflow.visible
-            )
-          },
+          div(
+            cls := "pushable",
+            padding := "0",
+            ViewFilter.renderSidebar(state, sidebarContext, sidebarOpenHandler),
+            // It is important that the view rendering is in a separate Rx.
+            // This avoids rerendering the whole view when only the screen-size changed
+            Rx {
+              // we can now assume, that every page parentId is contained in the graph
+              ViewRender(state.view(), state).apply(
+                cls := "viewcontent pusher",
+                Styles.growFull,
+                flexGrow := 1,
+              ).prepend(
+                overflow.visible
+              )
+            },
+            onDomMount.asJquery --> sidebarContext,
+          )
         )
       )
     )

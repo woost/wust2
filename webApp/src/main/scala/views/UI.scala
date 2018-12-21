@@ -4,7 +4,7 @@ import cats.effect.IO
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, ModalOptions, PopupOptions, ToastClassNameOptions, ToastOptions}
+import fomanticui._
 import fontAwesome.freeSolid
 import marked.Marked
 import monix.execution.Cancelable
@@ -18,7 +18,7 @@ import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import wust.css.{Styles, ZIndex}
-import wust.webApp.{BrowserDetect, Ownable}
+import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.outwatchHelpers._
 import rx._
 
@@ -122,6 +122,15 @@ object UI {
       options.find(_.selected.getOrElse(false)).map(e => div(cls := "default text", e.value))
     )
   }
+
+//  def sidebar(modifier: VDomModifier, options: SidebarOptions): VNode = {
+//    div(
+//      cls := "ui sidebar",
+//      zIndex := ZIndex.overlay,
+//      modifier,
+//      onDomMount.asJquery.foreach(elem => elem.sidebar(options))
+//    )
+//  }
 
   sealed trait ToastLevel { def value: String }
   object ToastLevel {
