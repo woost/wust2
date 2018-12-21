@@ -79,7 +79,6 @@ object Main {
       // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
     })
 
-
     // setup emoji converter
     EmojiConvertor.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
     EmojiConvertor.img_sets.apple.sheet_size = 32
@@ -93,7 +92,6 @@ object Main {
     EmojiConvertor.wrap_native = true
     EmojiConvertor.avoid_ms_emoji = true
     EmojiConvertor.replace_mode = "img"
-
 
     // dev defaults
     DevOnly {
