@@ -183,6 +183,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
 }
 
 final case class RoleStats(roleCounts: List[(NodeRole, Int)]) {
+  lazy val mostCommonRole: NodeRole = roleCounts.maxBy(_._2)._1
   lazy val active: List[(NodeRole, Int)] = roleCounts.filter(_._2 > 0)
   def contains(role: NodeRole): Boolean = active.exists(_._1 == role)
 }
