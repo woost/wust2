@@ -164,7 +164,7 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
+          case e: Edge.Parent => e.targetId == pid && graph.isInDeletedGracePeriod(e.sourceId, pid)
           case _              => true
         }
         graph.copy(edges = newEdges)
@@ -176,7 +176,7 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filterNot {
-          case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
+          case e: Edge.Parent => e.targetId == pid && graph.isInDeletedGracePeriod(e.sourceId, pid)
           case _              => false
         }
         graph.copy(edges = newEdges)

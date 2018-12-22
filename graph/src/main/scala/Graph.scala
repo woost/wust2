@@ -564,8 +564,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
     notDeletedParentsIdx(nodeIdx).collect{case idx if nodes(idx).role == nodeRole => idx}
 
-  def isDeletedNow(nodeId: NodeId, parent: NodeId): Boolean = isDeletedNow(nodeId, Iterable(parent))
-  def isDeletedNow(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
+  def isInDeletedGracePeriod(nodeId: NodeId, parent: NodeId): Boolean = isInDeletedGracePeriod(nodeId, Iterable(parent))
+  def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
     val nodeIdx = idToIdx(nodeId)
     if(nodeIdx == -1) return false
 
@@ -609,7 +609,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else false // node is nowhere deleted
   }
 
-  def isDeletedNowIdx(nodeIdx: Int, parentIndices: immutable.BitSet): Boolean = {
+  def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIndices: immutable.BitSet): Boolean = {
     @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
@@ -635,7 +635,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
     parentsIdx.foreachElement(nodeIdx) { i =>
       //TODO: more efficient deletedNowIdx for one parent?
-      if(!isDeletedNowIdx(nodeIdx, immutable.BitSet(i)) && (!parentIndices.contains(i) || i == nodeIdx))
+      if(!isInDeletedGracePeriodIdx(nodeIdx, immutable.BitSet(i)) && (!parentIndices.contains(i) || i == nodeIdx))
         tagSet += nodes(i)
     }
 

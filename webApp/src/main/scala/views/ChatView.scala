@@ -103,7 +103,7 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
           Styles.flex,
           currentReply().map { replyNodeId =>
-            val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page().parentId)
+            val isDeletedNow = graph.isInDeletedGracePeriod(replyNodeId, state.page().parentId)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -282,7 +282,7 @@ object ChatView {
 
                 val isDeletedNow = Rx {
                   val graph = state.graph()
-                  graph.isDeletedNow(nodeId, parentIds)
+                  graph.isInDeletedGracePeriod(nodeId, parentIds)
                 }
 
                 val editMode = Var(false)

@@ -191,7 +191,7 @@ object ThreadView {
 
             val isDeletedNow = Rx {
               val graph = state.graph()
-              graph.isDeletedNow(nodeId, directParentIds)
+              graph.isInDeletedGracePeriod(nodeId, directParentIds)
             }
 
             val editMode = Var(false)

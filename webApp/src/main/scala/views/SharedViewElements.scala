@@ -559,12 +559,12 @@ object SharedViewElements {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
-      selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
+      selected.forall(t => graph.isInDeletedGracePeriod(t.nodeId, t.directParentIds))
     }
 
     val anySelectedNodeIsDeleted = Rx {
       val graph = state.graph()
-      selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
+      selected.forall(t => graph.isInDeletedGracePeriod(t.nodeId, t.directParentIds))
     }
 
     val anySelectedNodeIsDeletedInFuture = Rx {
