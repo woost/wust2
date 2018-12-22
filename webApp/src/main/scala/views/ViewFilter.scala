@@ -28,24 +28,24 @@ object ViewFilter {
 //    Identity(state),
   )
 
-  def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
-
-    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
-
-    div(
-      cls := "ui right vertical inverted labeled icon menu sidebar visible",
-      //      zIndex := ZIndex.overlay,
-      filterItems,
-      onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
-        elem
-          .sidebar(new SidebarOptions {
-            transition = "overlay"
-            context = side
-          })
-        //          .sidebar("setting", "transition", "overlay")
-      }: Function[(JQuerySelection, JQuerySelection), Unit])
-    )
-  }
+//  def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
+//
+//    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
+//
+//    div(
+//      cls := "ui right vertical inverted labeled icon menu sidebar visible",
+//      //      zIndex := ZIndex.overlay,
+//      filterItems,
+//      onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
+//        elem
+//          .sidebar(new SidebarOptions {
+//            transition = "overlay"
+//            context = side
+//          })
+//        //          .sidebar("setting", "transition", "overlay")
+//      }: Function[(JQuerySelection, JQuerySelection), Unit])
+//    )
+//  }
 
   def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -62,12 +62,12 @@ object ViewFilter {
         div(cls := "header", "Filter", cursor.default),
         filterItems,
         // This does not work because
-//        div(
-//          cls := "item",
-//          Elements.icon(Icons.noFilter)(marginRight := "5px"),
-//          span(cls := "text", "Reset ALL filters", cursor.pointer),
-//          onClick.mapTo(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations
-//        )
+        div(
+          cls := "item",
+          Elements.icon(Icons.noFilter)(marginRight := "5px"),
+          span(cls := "text", "Reset ALL filters", cursor.pointer),
+          onClick.mapTo(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations
+        )
       ),
       UI.tooltip("bottom right") := "Filter items in view",
       zIndex := ZIndex.overlay, // leave zIndex here since otherwise it gets overwritten
@@ -130,7 +130,7 @@ sealed trait ViewGraphTransformation {
   val domId: String
 
   def render(implicit ctx: Ctx.Owner) = {
-    val activeFilterCheckbox = Var[Boolean](false)
+
     val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
       state.graphTransformations.now :+ transform
     } else {
@@ -143,14 +143,8 @@ sealed trait ViewGraphTransformation {
         cls := "ui toggle checkbox",
         input(tpe := "checkbox",
           id := domId,
-          onChange.checked foreach { active: Boolean =>
-            Var.set(
-              activeFilterCheckbox -> active,
-              state.graphTransformations -> activeFilter(active)
-            )
-          },
-          // checked <-- activeFilterCheckbox, // <-- does not work
-          defaultChecked := activeFilterCheckbox.now
+          onChange.checked.map(activeFilter) --> state.graphTransformations,
+          checked <-- state.graphTransformations.map(_.contains(transform))
         ),
         label(description, `for` := domId),
       ),
