@@ -13,12 +13,13 @@ import wust.ids.{NodeId, UserId}
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.GraphTransformer.GraphTransformation
 
 object ViewFilter {
 
-  private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewTransformation] = List(
-    Parents.OnlyDeletedParents(state),
-    Parents.WithoutDeletedParents(state),
+  private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
+    Deleted.OnlyDeletedParents(state),
+    Deleted.NoDeletedParents(state),
     Assignments.OnlyAssignedTo(state),
     Assignments.OnlyNotAssigned(state),
     Identity(state),
@@ -30,7 +31,7 @@ object ViewFilter {
 
     div(
       cls := "ui right vertical inverted labeled icon menu sidebar visible",
-//      zIndex := ZIndex.overlay,
+      //      zIndex := ZIndex.overlay,
       filterItems,
       onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
         elem
@@ -38,7 +39,7 @@ object ViewFilter {
             transition = "overlay"
             context = side
           })
-//          .sidebar("setting", "transition", "overlay")
+        //          .sidebar("setting", "transition", "overlay")
       }: Function[(JQuerySelection, JQuerySelection), Unit])
     )
   }
@@ -62,81 +63,104 @@ object ViewFilter {
     )
   }
 
+  case class Identity(state: GlobalState) extends ViewGraphTransformation {
+    val icon = Icons.noFilter
+    val description = "Reset ALL filters"
+    val transform = GraphTransformer.Identity
+  }
+
+  object Deleted {
+
+    case class NoDeletedParents(state: GlobalState) extends ViewGraphTransformation {
+      val icon = Icons.undelete
+      val description = "Do not show deleted items"
+      val transform = GraphTransformer.NoDeletedParents
+    }
+
+    case class OnlyDeletedParents(state: GlobalState) extends ViewGraphTransformation {
+      val icon  = Icons.delete
+      val description = "Show only deleted items"
+      val transform = GraphTransformer.OnlyDeletedParents
+    }
+
+  }
+
+  object Assignments {
+
+    case class OnlyAssignedTo(state: GlobalState) extends ViewGraphTransformation {
+      val icon = Icons.task
+      val description = s"Show items assigned to: Me"
+      val transform = GraphTransformer.OnlyAssignedTo
+    }
+
+    case class OnlyNotAssigned(state: GlobalState) extends ViewGraphTransformation {
+      val icon = Icons.task
+      val description = "Show items that are not assigned"
+      val transform = GraphTransformer.OnlyNotAssigned
+    }
+
+  }
+
 }
 
-sealed trait GraphTransformation { val transform: Graph => Graph }
-sealed trait ViewTransformation extends GraphTransformation {
-  val transform: Graph => Graph
+
+
+sealed trait ViewGraphTransformation {
   val state: GlobalState
+  val transform: UserViewGraphTransformation
   val icon: VDomModifier
   val description: String
 
   def renderStackFilter(implicit ctx: Ctx.Owner): VNode = {
-    render(state.graphTransformation.now :+ transform)
+    render(state.graphTransformations.now :+ transform)
   }
 
   def renderReplaceFilter(implicit ctx: Ctx.Owner): VNode = {
     render(Seq(transform))
   }
 
-  private def render(graphTransform: Seq[Graph => Graph]) = {
+  private def render(graphTransform: Seq[UserViewGraphTransformation]) = {
     a(
       cls := "item",
       Elements.icon(icon)(marginRight := "5px"),
       span(cls := "text", description, cursor.pointer),
-      onClick.mapTo(graphTransform) --> state.graphTransformation
+      onClick.mapTo(graphTransform) --> state.graphTransformations
     )
   }
 }
 
-case class Identity(state: GlobalState) extends ViewTransformation {
-  val icon = Icons.noFilter
-  val description = "Reset ALL filters"
-  val transform = identity[Graph]
-}
+sealed trait UserViewGraphTransformation { def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation }
+object GraphTransformer {
+  type GraphTransformation = Graph => Graph
 
-object Parents {
-
-  case class WithoutDeletedParents(state: GlobalState) extends ViewTransformation {
-    val icon = Icons.undelete
-    val description = "Do not show deleted items"
-    val pageId = (state: GlobalState) => state.page.now.parentId
-
-    val transform = (graph: Graph) => pageId(state).fold(graph){ pid =>
-      val newEdges = graph.edges.filterNot {
-        case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
-        case _              => false
+  case object OnlyDeletedParents extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+      pageId.fold(graph) { pid =>
+        val newEdges = graph.edges.filter {
+          case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
+          case _              => true
+        }
+        graph.copy(edges = newEdges)
       }
-      graph.copy(edges = newEdges)
     }
   }
 
-  case class OnlyDeletedParents(state: GlobalState) extends ViewTransformation {
-    val icon  = Icons.delete
-    val description = "Show only deleted items"
-    val pageId = (state: GlobalState) => state.page.now.parentId
-
-    val transform = (graph: Graph) => pageId(state).fold(graph){ pid =>
-      val newEdges = graph.edges.filter {
-        case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow (e.sourceId, pid)
-        case _ => true
+  case object NoDeletedParents extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+      pageId.fold(graph) { pid =>
+        val newEdges = graph.edges.filterNot {
+          case e: Edge.Parent => e.targetId == pid && graph.isDeletedNow(e.sourceId, pid)
+          case _              => false
+        }
+        graph.copy(edges = newEdges)
       }
-      graph.copy (edges = newEdges)
     }
   }
 
-}
-
-object Assignments {
-
-  case class OnlyAssignedTo(state: GlobalState) extends ViewTransformation  {
-    val icon = Icons.task
-    val description = s"Show items assigned to: Me"
-    val userId = (state: GlobalState) => state.user.now.id
-
-    val transform = (graph: Graph) => {
+  case object OnlyAssignedTo extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val nodeIds = graph.edges.collect {
-        case e: Edge.Assigned if e.sourceId == userId(state) => e.targetId
+        case e: Edge.Assigned if e.sourceId == userId => e.targetId
       }
       val newEdges = graph.edges.filter {
         case e: Edge.Parent => nodeIds.contains(e.sourceId) || nodeIds.contains(e.targetId)
@@ -146,11 +170,8 @@ object Assignments {
     }
   }
 
-  case class OnlyNotAssigned(state: GlobalState) extends ViewTransformation {
-    val icon = Icons.task
-    val description = "Show items that are not assigned"
-
-    val transform = (graph: Graph) => {
+  case object OnlyNotAssigned extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val nodeIds = graph.edges.collect {
         case e: Edge.Assigned => e.targetId
       }
@@ -162,5 +183,7 @@ object Assignments {
     }
   }
 
+  case object Identity extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = identity[Graph]
+  }
 }
-

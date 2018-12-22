@@ -17,10 +17,11 @@ import wust.sdk._
 import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.Notifications
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.{AWS, Components, UI}
+import wust.webApp.views._
 import wust.css.Styles
 import wust.util.algorithm
 import wust.webApp.Ownable
+import wust.webApp.views.GraphTransformer.GraphTransformation
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -41,7 +42,7 @@ class GlobalState(
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
   val hasError: Rx[Boolean],
-  val fileDownloadBaseUrl: Rx[Option[String]]
+  val fileDownloadBaseUrl: Rx[Option[String]],
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
@@ -73,12 +74,16 @@ class GlobalState(
   }
 
   // Allow filtering / transformation of the graph on globally
-  val graphTransformation: Var[Seq[Graph => Graph]] = Var(Seq(identity[Graph]))
+  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(GraphTransformer.Identity))
+//  val graphTransformations: Var[Seq[GraphTransformation]] = Var(Seq(GraphTransformer.Identity))
+//  val stateGraphTransformations: Var[Seq[StateGraphTransformation]] = Var(Seq(StateGraphTransformations.Identity))
+//  val graphTransformer = StateGraphTransformer(this)
 
   // Always transform graph - using identity on default
+  case class ViewGraphData(page: Page, userId: UserId, graph: Graph)
   val graph: Rx[Graph] = Rx {
     val currGraph: Graph = rawGraph()
-    val transformation: Seq[Graph => Graph] = graphTransformation()
+    val transformation: Seq[GraphTransformation] = graphTransformations().map(_.transformWithViewData(page().parentId, user().id))
     transformation.foldLeft(currGraph)((g, gt) => gt(g))
   }
 
