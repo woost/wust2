@@ -11,7 +11,7 @@ import rx.Var.Assignment
 import rx.{Ctx, Rx, Var}
 import wust.css.ZIndex
 import wust.graph.{Edge, Graph}
-import wust.ids.{NodeId, UserId}
+import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.macros.SubObjects
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
@@ -186,11 +186,11 @@ object GraphOperation {
 
   case object OnlyAssignedTo extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      val nodeIds = graph.edges.collect {
+      val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned if e.sourceId == userId => e.targetId
       }
       val newEdges = graph.edges.filter {
-        case e: Edge.Parent => nodeIds.contains(e.sourceId) || nodeIds.contains(e.targetId)
+        case e: Edge.Parent if graph.nodesById(e.sourceId).role == NodeRole.Task => assignedNodeIds.contains(e.sourceId)
         case _              => true
       }
       graph.copy(edges = newEdges)
@@ -199,11 +199,11 @@ object GraphOperation {
 
   case object OnlyNotAssigned extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      val nodeIds = graph.edges.collect {
+      val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned => e.targetId
       }
       val newEdges = graph.edges.filterNot {
-        case e: Edge.Parent => nodeIds.contains(e.sourceId) || nodeIds.contains(e.targetId)
+        case e: Edge.Parent => assignedNodeIds.contains(e.sourceId)
         case _              => false
       }
       graph.copy(edges = newEdges)
