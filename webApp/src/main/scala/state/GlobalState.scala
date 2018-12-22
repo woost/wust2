@@ -126,12 +126,14 @@ class GlobalState(
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
 
-  val view: Var[View] = rawViewConfig.zoom { viewConfig =>
-    if(!viewConfig.view.isContent || viewConfig.pageChange.page.parentId.nonEmpty)
-      viewConfig.view
+  val view: Var[View] = rawViewConfig.zoom(GenLens[ViewConfig](_.view)).mapRead{ view =>
+    val page = rawViewConfig.now.pageChange.page
+    if(!view().isContent || page.parentId.nonEmpty)
+      view()
     else
       View.Welcome
-  }((viewConfig, view) => viewConfig.copy(view = view))
+  }
+
   {
     // simple heuristic, which selects a new view on every page change
     var lastPage = Page.empty
