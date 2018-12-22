@@ -3,17 +3,20 @@ package wust.webApp.views
 import fomanticui.SidebarOptions
 import jquery.JQuerySelection
 import monix.reactive.Observable
+import monix.reactive.subjects.BehaviorSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx.Ctx
+import rx.Var.Assignment
+import rx.{Ctx, Rx, Var}
 import wust.css.ZIndex
 import wust.graph.{Edge, Graph}
 import wust.ids.{NodeId, UserId}
+import wust.util.macros.SubObjects
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.GraphTransformer.GraphTransformation
+import wust.webApp.views.GraphOperation.GraphTransformation
 
 object ViewFilter {
 
@@ -22,12 +25,12 @@ object ViewFilter {
     Deleted.NoDeletedParents(state),
     Assignments.OnlyAssignedTo(state),
     Assignments.OnlyNotAssigned(state),
-    Identity(state),
+//    Identity(state),
   )
 
   def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
 
-    val filterItems: List[VDomModifier] = allTransformations(state).map(_.renderReplaceFilter)
+    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
 
     div(
       cls := "ui right vertical inverted labeled icon menu sidebar visible",
@@ -46,15 +49,25 @@ object ViewFilter {
 
   def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val filterItems: List[VDomModifier] = allTransformations(state).map(_.renderReplaceFilter)
+    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
+    val activeFilter = Rx { state.graphTransformations().nonEmpty }
+    val filterColor = activeFilter.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
 
     div(
       cls := "ui icon top left labeled pointing dropdown",
       Icons.filterDropdown,
+      filterColor,
       div(
         cls := "menu",
         div(cls := "header", "Filter", cursor.default),
         filterItems,
+        // This does not work because
+//        div(
+//          cls := "item",
+//          Elements.icon(Icons.noFilter)(marginRight := "5px"),
+//          span(cls := "text", "Reset ALL filters", cursor.pointer),
+//          onClick.mapTo(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations
+//        )
       ),
       UI.tooltip("bottom right") := "Filter items in view",
       zIndex := ZIndex.overlay, // leave zIndex here since otherwise it gets overwritten
@@ -66,7 +79,8 @@ object ViewFilter {
   case class Identity(state: GlobalState) extends ViewGraphTransformation {
     val icon = Icons.noFilter
     val description = "Reset ALL filters"
-    val transform = GraphTransformer.Identity
+    val transform = GraphOperation.Identity
+    val domId = "GraphOperation.Identity"
   }
 
   object Deleted {
@@ -74,13 +88,15 @@ object ViewFilter {
     case class NoDeletedParents(state: GlobalState) extends ViewGraphTransformation {
       val icon = Icons.undelete
       val description = "Do not show deleted items"
-      val transform = GraphTransformer.NoDeletedParents
+      val transform = GraphOperation.NoDeletedParents
+      val domId = "GraphOperation.NoDeletedParents"
     }
 
     case class OnlyDeletedParents(state: GlobalState) extends ViewGraphTransformation {
       val icon  = Icons.delete
       val description = "Show only deleted items"
-      val transform = GraphTransformer.OnlyDeletedParents
+      val transform = GraphOperation.OnlyDeletedParents
+      val domId = "GraphOperation.OnlyDeletedParents"
     }
 
   }
@@ -90,19 +106,20 @@ object ViewFilter {
     case class OnlyAssignedTo(state: GlobalState) extends ViewGraphTransformation {
       val icon = Icons.task
       val description = s"Show items assigned to: Me"
-      val transform = GraphTransformer.OnlyAssignedTo
+      val transform = GraphOperation.OnlyAssignedTo
+      val domId = "GraphOperation.OnlyAssignedTo"
     }
 
     case class OnlyNotAssigned(state: GlobalState) extends ViewGraphTransformation {
       val icon = Icons.task
       val description = "Show items that are not assigned"
-      val transform = GraphTransformer.OnlyNotAssigned
+      val transform = GraphOperation.OnlyNotAssigned
+      val domId = "GraphOperation.OnlyNotAssigned"
     }
 
   }
 
 }
-
 
 
 sealed trait ViewGraphTransformation {
@@ -110,28 +127,44 @@ sealed trait ViewGraphTransformation {
   val transform: UserViewGraphTransformation
   val icon: VDomModifier
   val description: String
+  val domId: String
 
-  def renderStackFilter(implicit ctx: Ctx.Owner): VNode = {
-    render(state.graphTransformations.now :+ transform)
-  }
+  def render(implicit ctx: Ctx.Owner) = {
+    val activeFilterCheckbox = Var[Boolean](false)
+    val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
+      state.graphTransformations.now :+ transform
+    } else {
+      state.graphTransformations.now.filter(_ != transform)
+    }
 
-  def renderReplaceFilter(implicit ctx: Ctx.Owner): VNode = {
-    render(Seq(transform))
-  }
-
-  private def render(graphTransform: Seq[UserViewGraphTransformation]) = {
-    a(
+    div(
       cls := "item",
-      Elements.icon(icon)(marginRight := "5px"),
-      span(cls := "text", description, cursor.pointer),
-      onClick.mapTo(graphTransform) --> state.graphTransformations
+      div(
+        cls := "ui toggle checkbox",
+        input(tpe := "checkbox",
+          id := domId,
+          onChange.checked foreach { active: Boolean =>
+            Var.set(
+              activeFilterCheckbox -> active,
+              state.graphTransformations -> activeFilter(active)
+            )
+          },
+          // checked <-- activeFilterCheckbox, // <-- does not work
+          defaultChecked := activeFilterCheckbox.now
+        ),
+        label(description, `for` := domId),
+      ),
+      Elements.icon(icon)(marginLeft := "5px"),
     )
+
   }
 }
 
 sealed trait UserViewGraphTransformation { def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation }
-object GraphTransformer {
+object GraphOperation {
   type GraphTransformation = Graph => Graph
+
+  def all: List[UserViewGraphTransformation] = macro SubObjects.list[UserViewGraphTransformation]
 
   case object OnlyDeletedParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>

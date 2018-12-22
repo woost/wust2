@@ -21,7 +21,7 @@ import wust.webApp.views._
 import wust.css.Styles
 import wust.util.algorithm
 import wust.webApp.Ownable
-import wust.webApp.views.GraphTransformer.GraphTransformation
+import wust.webApp.views.GraphOperation.GraphTransformation
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -74,10 +74,7 @@ class GlobalState(
   }
 
   // Allow filtering / transformation of the graph on globally
-  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(GraphTransformer.Identity))
-//  val graphTransformations: Var[Seq[GraphTransformation]] = Var(Seq(GraphTransformer.Identity))
-//  val stateGraphTransformations: Var[Seq[StateGraphTransformation]] = Var(Seq(StateGraphTransformations.Identity))
-//  val graphTransformer = StateGraphTransformer(this)
+  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq.empty[UserViewGraphTransformation])
 
   // Always transform graph - using identity on default
   case class ViewGraphData(page: Page, userId: UserId, graph: Graph)
