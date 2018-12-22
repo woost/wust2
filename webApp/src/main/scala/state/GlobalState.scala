@@ -93,7 +93,7 @@ class GlobalState(
   val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   val pageHasParents = Rx {
-    page().parentId.exists(rawGraph().hasParents)
+    page().parentId.exists(rawGraph().hasNotDeletedParents)
   }
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 

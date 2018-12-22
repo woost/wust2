@@ -718,6 +718,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def hasChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasChildrenIdx)
   def hasParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasParentsIdx)
 
+  def hasNotDeletedChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedChildrenIdx)
+  def hasNotDeletedParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedParentsIdx)
+
   def isChildOfAny(childId: NodeId, parentIds: Iterable[NodeId]): Boolean = {
     val p = parents(childId)
     parentIds.exists(p.contains)
