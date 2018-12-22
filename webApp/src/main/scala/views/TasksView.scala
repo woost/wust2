@@ -32,7 +32,6 @@ object TasksView {
     }
     
     val kanbanSwitch = Var(false)
-    val filterAssigned = Var(false)
     state.page.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
     state.graph.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
 
@@ -50,29 +49,19 @@ object TasksView {
 
         Styles.flex,
         justifyContent.flexEnd,
-        filterAssignedBar(filterAssigned).apply(marginRight := "15px"),
         kanbanSwitchBar(kanbanSwitch),
       ),
 
       Rx{
-        if(kanbanSwitch()) KanbanView(state, filterAssigned()).apply(
+        if(kanbanSwitch()) KanbanView(state).apply(
           Styles.growFull,
           flexGrow := 1
         )
-        else ListView(state, filterAssigned()).apply(
+        else ListView(state).apply(
           Styles.growFull,
           flexGrow := 1
         )
       }
-    )
-  }
-
-  private def filterAssignedBar(filterAssigned: Var[Boolean]) = {
-    div(
-      UI.tooltip("bottom right") := "Show only tasks that are assigned to me.",
-      UI.toggle("Only my tasks", filterAssigned),
-
-      zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
     )
   }
 

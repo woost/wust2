@@ -23,12 +23,12 @@ import wust.util.collection._
 object ListView {
   import SharedViewElements._
 
-  def apply(state: GlobalState, filterAssigned: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       overflow.auto,
       padding := "10px",
 
-      addListItemInputField(state, filterAssigned),
+      addListItemInputField(state),
 
       Rx {
         val graph = state.graph()
@@ -49,7 +49,7 @@ object ListView {
                   @inline def isCorrectlyEncodedTask = graph.notDeletedParentsIdx.exists(nodeIdx)(parentIdx => workspaces.contains(parentIdx)) //  || taskSet.contains(parentIdx) taskSet.contains activates subtasks
 //                  println("    listview is Task, correctly encoded: " + isCorrectlyEncodedTask)
                   if(isCorrectlyEncodedTask) {
-                     if(!filterAssigned || (filterAssigned && userTasks.contains(nodeIdx))) taskSet += nodeIdx
+                     if(userTasks.contains(nodeIdx)) taskSet += nodeIdx
                     false // true goes deeper and also shows subtasks
                   } else false
                 case NodeRole.Stage =>
@@ -128,11 +128,10 @@ object ListView {
   }
 
 
-  private def addListItemInputField(state: GlobalState, filterAssigned: Boolean)(implicit ctx: Ctx.Owner) = {
-    def submitAction(userId: UserId, filterAssigned: Boolean)(str: String) = {
+  private def addListItemInputField(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
       val change = GraphChanges.addNode(createdNode)
-      val assignments = if(filterAssigned) GraphChanges.connect(Edge.Assigned)(userId, createdNode.id) else GraphChanges.empty
       state.eventProcessor.enriched.changes.onNext(change)
     }
 
@@ -149,7 +148,7 @@ object ListView {
 
     div(
       Rx {
-        inputRow(state, submitAction(state.user().id, filterAssigned),
+        inputRow(state, submitAction(state.user().id),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile,
           triggerFocus = inputFieldFocusTrigger,

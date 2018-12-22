@@ -23,7 +23,7 @@ object KanbanView {
   import SharedViewElements._
 
   private val maxLength = 100
-  def apply(state: GlobalState, filterAssigned: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
 
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
@@ -68,17 +68,14 @@ object KanbanView {
           }
 
           val topLevelColumns: Seq[Tree] = topLevelStages.map { stageIdx =>
-            if(!filterAssigned)
-              graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx)
-            else
-              graph.roleTreeWithUserFilter(graph.assignedNodesIdx(graph.idToIdx(state.user().id)), stageIdx, NodeRole.Stage, pageParentIdx)
+            graph.roleTree(stageIdx, NodeRole.Stage, pageParentIdx)
           }
 
           val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, pageParentId, topLevelColumns, (t: Tree) => t.node.id)
-          val assigneInbox = if(!filterAssigned) inboxTasks.map(graph.nodeIds) else inboxTasks.mapToArray(identity).filter(idx => graph.assignedNodesIdx.contains(graph.idToIdx(state.user().id))(idx)).map(graph.nodeIds)
+          val assigneInbox = inboxTasks.map(graph.nodeIds)
 
             VDomModifier(
-              renderInboxColumn(state, pageParentId, pageParentId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds, filterAssigned),
+              renderInboxColumn(state, pageParentId, pageParentId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
               div(
                 cls := s"kanbancolumnarea",
                 keyed,
@@ -86,7 +83,7 @@ object KanbanView {
 
                 Styles.flex,
                 alignItems.flexStart,
-                sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true, filterAssigned = filterAssigned)),
+                sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
 
                 registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
               ),
@@ -107,7 +104,6 @@ object KanbanView {
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
-    filterAssigned: Boolean,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val pageParentIdx = graph.idToIdx(pageParentId)
     tree match {
@@ -115,15 +111,15 @@ object KanbanView {
         Rx {
           if(state.graph().isExpanded(state.user.now.id, node.id)) {
             val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, children, (t: Tree) => t.node.id)
-            renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, filterAssigned = filterAssigned)
+            renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
           }
           else
-            renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true, filterAssigned = filterAssigned)
+            renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
         }
       case Tree.Leaf(node) if node.role == NodeRole.Stage =>
-          renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, filterAssigned = filterAssigned)
+          renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
       case Tree.Leaf(node) if node.role == NodeRole.Task =>
-          renderCard(state, node, parentId, pageParentId, path, selectedNodeIds, activeAddCardFields, filterAssigned = filterAssigned)
+          renderCard(state, node, parentId, pageParentId, path, selectedNodeIds, activeAddCardFields)
       case _ => VDomModifier.empty // if card is not also direct child of page, it is probably a mistake
     }
   }
@@ -137,7 +133,6 @@ object KanbanView {
     children: Seq[NodeId],
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds: Var[Set[NodeId]],
-    filterAssigned: Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(parentId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -153,10 +148,10 @@ object KanbanView {
       div(
         cls := "kanbancolumnchildren",
         registerSortableContainer(state, DragContainer.Kanban.Inbox(parentId, sortedChildren)),
-        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, path = path, selectedNodeIds,activeAddCardFields,filterAssigned = filterAssigned)),
+        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
-      addCardField(state, parentId, pageParentId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"), assignToMe = filterAssigned)
+      addCardField(state, parentId, pageParentId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
     )
   }
 
@@ -172,7 +167,6 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
     isCollapsed: Boolean = false,
-    filterAssigned: Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
@@ -264,7 +258,7 @@ object KanbanView {
           cls := "kanbancolumnchildren",
           registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)),
           keyed(node.id, parentId),
-          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeAddCardFields, selectedNodeIds, filterAssigned = filterAssigned)),
+          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeAddCardFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
       ),
@@ -272,7 +266,7 @@ object KanbanView {
         cls := "kanbancolumnfooter",
         Styles.flex,
         justifyContent.spaceBetween,
-        addCardField(state, node.id, pageParentId, path, activeAddCardFields, Some(scrollHandler), None, assignToMe = filterAssigned).apply(width := "100%"),
+        addCardField(state, node.id, pageParentId, path, activeAddCardFields, Some(scrollHandler), None).apply(width := "100%"),
         Rx{
           // hide comment zoom, when addNodeField is active
           val fullPath = node.id :: path
@@ -321,7 +315,6 @@ object KanbanView {
     path: List[NodeId],
     selectedNodeIds:Var[Set[NodeId]],
     activeAddCardFields: Var[Set[List[NodeId]]],
-    filterAssigned:Boolean,
     showCheckbox:Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
@@ -524,7 +517,7 @@ object KanbanView {
                     minHeight := "50px",
                     sortedTodoTasks.map{ childIdx =>
                       val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path, selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, filterAssigned = filterAssigned, showCheckbox = true).apply(
+                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path, selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
                         marginTop := "5px",
                       )
                     },
@@ -533,7 +526,7 @@ object KanbanView {
                   div(
                     doneTasks.map{ childIdx =>
                       val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, filterAssigned = filterAssigned, showCheckbox = true).apply(
+                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
                         marginTop := "5px",
                         opacity := 0.5,
                         textDecoration.lineThrough,
@@ -542,7 +535,7 @@ object KanbanView {
                   )
                 )
             },
-            addCardField(state, node.id, pageParentId, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)"), assignToMe = filterAssigned).apply(padding := "8px 0px 0px 0px")
+            addCardField(state, node.id, pageParentId, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
           )
         )
       },
@@ -561,7 +554,6 @@ object KanbanView {
     activeAddCardFields: Var[Set[List[NodeId]]],
     scrollHandler: Option[ScrollBottomHandler] = None,
     textColor:Option[String] = None,
-    assignToMe: Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val fullPath = parentId :: path
     val active = Rx{activeAddCardFields() contains fullPath}
@@ -569,12 +561,11 @@ object KanbanView {
       if(active) scrollHandler.foreach(_.scrollToBottomInAnimationFrame())
     }
 
-    def submitAction(userId: UserId, filterAssigned: Boolean)(str:String) = {
+    def submitAction(userId: UserId)(str:String) = {
       val createdNode = Node.MarkdownTask(str)
       val change = GraphChanges.addNodeWithParent(createdNode, parentId :: pageParentId :: Nil)
-      val assignments = if(filterAssigned) GraphChanges.connect(Edge.Assigned)(userId, createdNode.id) else GraphChanges.empty
 
-      state.eventProcessor.changes.onNext(change merge assignments)
+      state.eventProcessor.changes.onNext(change)
     }
 
     def blurAction(v:String) = {
@@ -589,8 +580,7 @@ object KanbanView {
       Rx {
         if(active())
           inputRow(state,
-            submitAction(state.user().id,
-              assignToMe),
+            submitAction(state.user().id),
             autoFocus = true,
             blurAction = Some(blurAction),
             placeHolderMessage = Some(placeHolder),
