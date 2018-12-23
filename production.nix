@@ -7,12 +7,13 @@ in
     name = "Woost";
     buildInputs = with pkgs; [
       git
-      scala sbt
+      # scala
+      sbt
       docker docker_compose
-      ngrok # github app -> webhooks to localhost
+      #ngrok # github app -> webhooks to localhost
       nodejs-10_x yarn
-      phantomjs
-      gnumake gcc # required for some weird npm things
+      # phantomjs
+      # gnumake gcc # required for some weird npm things
     ];
 
     installPhase= ''
