@@ -207,6 +207,23 @@ object KanbanView {
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
+    val stageCommentZoom = Rx{
+      // hide comment zoom, when addNodeField is active
+      val fullPath = node.id :: path
+      val active = activeAddCardFields() contains fullPath
+      active.ifFalse[VDomModifier](
+        div(
+          cls := "childstats",
+          renderMessageCount(
+            if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
+            else VDomModifier(cls := "emptystat"),
+            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
+            cursor.pointer
+          )
+        )
+      )
+    }
+
     div(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
@@ -267,22 +284,7 @@ object KanbanView {
         Styles.flex,
         justifyContent.spaceBetween,
         addCardField(state, node.id, pageParentId, path, activeAddCardFields, Some(scrollHandler), None).apply(width := "100%"),
-        Rx{
-          // hide comment zoom, when addNodeField is active
-          val fullPath = node.id :: path
-          val active = activeAddCardFields() contains fullPath
-          active.ifFalse[VDomModifier](
-            div(
-              cls := "childstats",
-              renderMessageCount(
-                if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
-                else VDomModifier(cls := "emptystat"),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
-                cursor.pointer
-              )
-            )
-          )
-        },
+        // stageCommentZoom,
       )
     )
   }
