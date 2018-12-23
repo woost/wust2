@@ -614,7 +614,7 @@ object PageHeader {
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
-          UI.toast(s"Deleted node '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
+          UI.toast(s"Deleted '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
         }
       ))
 
