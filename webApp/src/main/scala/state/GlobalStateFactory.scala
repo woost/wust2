@@ -124,6 +124,24 @@ object GlobalStateFactory {
       }
     }
 
+    {
+      // simple heuristic, which selects a new view on every page change
+      var lastPage = Page.empty
+      graph.foreach { graph =>
+        if(lastPage != page.now) {
+          val stats = graph.topLevelRoleStats(page.now.parentId)
+          val bestView = stats.mostCommonRole match {
+            case NodeRole.Message => View.Conversation
+            case NodeRole.Task => View.Tasks
+            case _ => View.default
+          }
+          scribe.info(s"Selecting best view: '$bestView', because ($stats)")
+          view() = bestView
+          lastPage = page.now
+        }
+      }
+    }
+
     // clear selected nodes on view and page change
     {
       val clearTrigger = Rx {
