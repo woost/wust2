@@ -203,7 +203,7 @@ object Components {
   def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
 
   def customLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
-    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, cls := "animated-fadein", woostLoadingAnimation)
+    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimation)
   }
 
   def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data: Ctx.Data): VDomModifier = {
