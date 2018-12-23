@@ -43,7 +43,7 @@ object Topbar {
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "5px 5px",
-    fontSize := "14px",
+    fontSize := "16px",
     fontWeight.bold,
     "Woost",
     color := "white",
