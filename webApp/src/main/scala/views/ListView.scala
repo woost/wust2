@@ -35,25 +35,25 @@ object ListView {
         state.page().parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
           val workspaces = graph.workspacesForParent(pageParentIdx)
-          val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
+          // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
 
           val allTasks: ArraySet = {
             val taskSet = ArraySet.create(graph.size)
             // we go down from workspaces, since tasks which only live in stages have an invalid encoding and should be ignored
-//            println("listview workspaces: " + workspaces.map(i => graph.nodes(i).str).mkString(", "))
+           // println("listview workspaces: " + graph.debug(workspaces))
             algorithm.depthFirstSearchAfterStartsWithContinue(workspaces,graph.notDeletedChildrenIdx, {nodeIdx =>
               val node = graph.nodes(nodeIdx)
-//              println("  listview " + node.str)
+             // println("  listview " + graph.debug(node))
               node.role match {
                 case NodeRole.Task =>
                   @inline def isCorrectlyEncodedTask = graph.notDeletedParentsIdx.exists(nodeIdx)(parentIdx => workspaces.contains(parentIdx)) //  || taskSet.contains(parentIdx) taskSet.contains activates subtasks
-//                  println("    listview is Task, correctly encoded: " + isCorrectlyEncodedTask)
+                  // println("    listview is Task, correctly encoded: " + isCorrectlyEncodedTask)
                   if(isCorrectlyEncodedTask) {
-                     if(userTasks.contains(nodeIdx)) taskSet += nodeIdx
+                     taskSet += nodeIdx
                     false // true goes deeper and also shows subtasks
                   } else false
                 case NodeRole.Stage =>
-//                  println("    listview is Stage")
+                 // println("    listview is Stage")
                   true
                 case _ => false
               }

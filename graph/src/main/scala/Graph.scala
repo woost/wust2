@@ -69,6 +69,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     s"Graph(nodes: ${ nodes.length }, edges: ${ edges.length })"
   }
 
+  def debug(node:Node):String = lookup.idToIdxGet(node.id).map(debug).toString
   def debug(nodeId:NodeId):String = lookup.idToIdxGet(nodeId).map(debug).toString
   def debug(nodeIds:Iterable[NodeId]): String = nodeIds.map(debug).mkString(", ")
   def debug(nodeIdx:Int): String = nodeStr(nodeIdx)
