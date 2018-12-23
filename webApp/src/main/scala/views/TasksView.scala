@@ -5,7 +5,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.{Styles, ZIndex}
-import wust.graph.Graph
+import wust.graph.{Graph,Page}
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -32,8 +32,14 @@ object TasksView {
     }
     
     val kanbanSwitch = Var(false)
-    state.page.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
-    state.graph.foreach{ _ => kanbanSwitch() = topLevelStageExists.now }
+
+    var lastPage = Page.empty
+    state.graph.foreach{ _ =>
+      if(lastPage != state.page.now) {
+        kanbanSwitch() = topLevelStageExists.now
+        lastPage = state.page.now
+      }
+    }
 
     div(
       Styles.flex,
