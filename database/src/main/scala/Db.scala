@@ -384,20 +384,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         (for{
          userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))
-         user <- query[User].filter(_.id == userDetail.userId)
-        } yield user)
-          .take(1)
+         user <- queryUser.filter(_.id == userDetail.userId)
+        } yield user).take(1)
       ).map(_.headOption)
     }
 
-    def getUserAndDigest(name: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
+    def getUserAndDigestByEmail(email: String)(implicit ec: ExecutionContext): Future[Option[(User, Array[Byte])]] = {
       ctx.run {
-        queryUser
-          .filter(_.data ->> "name" == lift(name))
-          .join(query[Password])
-          .on((u, p) => u.id == p.userId)
-          .map { case (u, p) => (u, p.digest) }
-          .take(1)
+        (for{
+         userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))
+         user <- queryUser.filter(_.id == userDetail.userId)
+         password <- query[Password].filter(p => user.id == p.userId).map(_.digest)
+        } yield (user, password)).take(1)
       }.map(_.headOption)
     }
 

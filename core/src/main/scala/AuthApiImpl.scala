@@ -22,35 +22,29 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
       .map(_ => Returns(true))
   }
 
-  //TODO: some password checks?
+  //TODO: some email or name or password checks?
   def register(name: String, email: String, password: String): ApiFunction[AuthResult] = Effect { state =>
-    //TODO: we do not know from the result of user create what went wrong, it could either be already existing username or email. so we check email first once and then assume wrong username. would be gone if we remove unique username.
-    db.user.existsEmail(email).flatMap { emailAlreadyExists =>
-      if (emailAlreadyExists) Future.successful(Returns(AuthResult.BadEmail))
-      else {
-        val digest = passwordDigest(password)
-        state.auth.map(_.user) match {
-          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
-            db.ctx.transaction { implicit ec =>
-              val user = db.user.activateImplicitUser(prevUserId, name = name, email = email, passwordDigest = digest)
-              resultOnVerifiedAuthAfterRegister(user, email = email, replaces = Some(prevUserId))
-            }
-          case Some(AuthUser.Assumed(userId)) =>
-            val user = db.user.create(userId, name = name, email = email, passwordDigest = digest)
-              .map(Some(_)).recover{ case NonFatal(t) => None }
-            resultOnVerifiedAuthAfterRegister(user, email = email)
-          case _ =>
-            val user = db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
-              .map(Some(_)).recover { case NonFatal(t) => None }
-            resultOnVerifiedAuthAfterRegister(user, email = email)
-        }
-      }
+    val digest = passwordDigest(password)
+    state.auth.map(_.user) match {
+      case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+        val user = db.ctx.transaction { implicit ec =>
+          db.user.activateImplicitUser(prevUserId, name = name, email = email, passwordDigest = digest)
+        }.recover { case NonFatal(t) => None }
+        resultOnVerifiedAuthAfterRegister(user, email = email, replaces = Some(prevUserId))
+      case Some(AuthUser.Assumed(userId)) =>
+        val user = db.user.create(userId, name = name, email = email, passwordDigest = digest)
+          .map(Some(_)).recover{ case NonFatal(t) => None }
+        resultOnVerifiedAuthAfterRegister(user, email = email)
+      case _ =>
+        val user = db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
+          .map(Some(_)).recover { case NonFatal(t) => None }
+        resultOnVerifiedAuthAfterRegister(user, email = email)
     }
   }
 
-  def login(name: String, password: String): ApiFunction[AuthResult] = Effect { state =>
+  def login(email: String, password: String): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
-    db.user.getUserAndDigest(name).flatMap {
+    db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
         state.auth.flatMap(_.dbUserOpt) match {
           case Some(AuthUser.Implicit(prevUserId, _, _)) =>
@@ -67,7 +61,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
         }
 
       case Some(_) => Future.successful(Returns(AuthResult.BadPassword))
-      case None    => Future.successful(Returns(AuthResult.BadUser))
+      case None    => Future.successful(Returns(AuthResult.BadEmail))
     }
   }
 
@@ -142,10 +136,11 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
               // create an implicit user for the invite target
               // make him a member of this node and create an invite edge
               val invitedUserId = UserId.fresh
+              val invitedName = inviteTargetMail.split("@").head
               val invitedEdges = List(Edge.Member(invitedUserId, EdgeData.Member(AccessLevel.ReadWrite), node.id), Edge.Invite(invitedUserId, node.id))
               db.ctx.transaction { implicit ec =>
                 for {
-                  invitedUser <- db.user.createImplicitUser(invitedUserId, s"$inviteTargetMail - ${invitedUserId.toBase58}")
+                  invitedUser <- db.user.createImplicitUser(invitedUserId, invitedName)
                   SuccessResult <- db.edge.create(invitedEdges.map(forDb(_)))
                   invitedAuthToken = jwt.generateInvitationToken(forClientAuth(invitedUser).asInstanceOf[AuthUser.Implicit])
                 } yield {
@@ -214,7 +209,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
 
       val replacements = replaces.map(id => ReplaceNode(id, u.toNode))
       Returns(AuthResult.Success, authChangeEvents(jwt.generateAuthentication(forClientAuth(u))) ++ replacements)
-    case None => Returns(AuthResult.BadUser)
+    case None => Returns(AuthResult.BadEmail)
   }
 
   private def resultOnVerifiedAuthAfterLogin(user: Data.User, replaces: Option[UserId] = None): ApiData.Effect[AuthResult] = {

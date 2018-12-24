@@ -28,7 +28,7 @@ object AuthView {
   def apply(state: GlobalState)(
       header: String,
       submitText: String,
-      needsEmail: Boolean,
+      needUserName: Boolean,
       submitAction: UserValue => Future[Option[String]],
       alternativeHeader: String,
       alternativeView: View,
@@ -60,7 +60,7 @@ object AuthView {
         onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
 
         h2(header),
-        div(
+        needUserName.ifTrue[VDomModifier](div(
           cls := "ui fluid input",
           keyed,
           input(
@@ -74,8 +74,8 @@ object AuthView {
             onInput.value foreach { str => userValue.update(_.copy(username = str)) },
             onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
           )
-        ),
-        needsEmail.ifTrue[VDomModifier](div(
+        )),
+        div(
           cls := "ui fluid input",
           keyed,
           input(
@@ -86,9 +86,9 @@ object AuthView {
             display.block,
             margin := "auto",
             onInput.value foreach { str => userValue.update(_.copy(email = str)) },
-            onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.nonEmpty) e.focus() }
+            onDomMount.asHtml --> inNextAnimationFrame { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
           )
-        )),
+        ),
         div(
           cls := "ui fluid input",
           keyed,
@@ -102,7 +102,7 @@ object AuthView {
             margin := "auto",
             onInput.value foreach { str => userValue.update(_.copy(password = str)) },
             onEnter foreach actionSink(),
-            onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.nonEmpty && (!needsEmail || userValue.now.email.nonEmpty)) e.focus() }
+            onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
           )
         ),
         button(
@@ -165,12 +165,11 @@ object AuthView {
     apply(state)(
       header = "Login",
       submitText = "Login",
-      needsEmail = false,
+      needUserName = false,
       submitAction = userValue =>
-        Client.auth.login(userValue.username, userValue.password).map {
+        Client.auth.login(userValue.email, userValue.password).map {
           case AuthResult.BadPassword => Some("Wrong Password")
-          case AuthResult.BadUser     => Some("Username does not exist")
-          case AuthResult.BadEmail    => None
+          case AuthResult.BadEmail    => Some("Email address does not exist")
           case AuthResult.Success     =>
             Analytics.sendEvent("auth", "login")
             None
@@ -185,11 +184,10 @@ object AuthView {
     apply(state)(
       header = "Create an account",
       submitText = "Signup",
-      needsEmail = true,
+      needUserName = true,
       submitAction = userValue =>
         Client.auth.register(name = userValue.username, email = userValue.email, password = userValue.password).map {
           case AuthResult.BadPassword => Some("Insufficient password")
-          case AuthResult.BadUser     => Some("Username already taken")
           case AuthResult.BadEmail    => Some("Email address already taken")
           case AuthResult.Success     => 
             Analytics.sendEvent("auth", "signup")

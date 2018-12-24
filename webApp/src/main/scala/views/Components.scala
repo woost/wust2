@@ -45,9 +45,10 @@ object Components {
 
   def displayUserName(user: NodeData.User): String = {
     if(user.isImplicit) {
-      if (user.name.contains(" ")) { //hack for showing invite user by email with their email address
-        val email = user.name.split(" ")(0)
-        s"$email (unregistered)"
+      //hack for showing invite user by email with their email address. new implicit user do not have a name, just if they are invited. but old implicit users are named "unregisted-user-$id"
+      if (user.name.nonEmpty && !user.name.startsWith("unregistered-user-")) {
+        val prefixName = user.name.split(" ").head // old invite users have a space with an id as postfix behind their name, remove it.
+        s"${prefixName} (unregistered)"
       } else implicitUserName
     } else user.name
   }

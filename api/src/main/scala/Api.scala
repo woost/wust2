@@ -80,7 +80,6 @@ case class UserDetail(
 
 sealed trait AuthResult
 object AuthResult {
-  case object BadUser extends AuthResult
   case object BadEmail extends AuthResult
   case object BadPassword extends AuthResult
   case object Success extends AuthResult
@@ -93,18 +92,14 @@ sealed trait AuthUser {
 }
 object AuthUser {
   sealed trait Persisted extends AuthUser
-  case class Real(id: UserId, name: String, revision: Int)
-      extends Persisted {
-    def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
+  case class Real(id: UserId, name: String, revision: Int) extends Persisted {
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
   }
-  case class Implicit(id: UserId, name: String, revision: Int)
-      extends Persisted {
-    def toNode =
-      Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
+  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
+    def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
   }
   case class Assumed(id: UserId) extends AuthUser {
-    def name = s"unregistered-user-${id.toBase58}"
+    def name = ""
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0), NodeMeta.User)
   }
 
