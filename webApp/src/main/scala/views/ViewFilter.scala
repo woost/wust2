@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fomanticui.SidebarOptions
+import googleAnalytics.Analytics
 import jquery.JQuerySelection
 import monix.reactive.Observable
 import monix.reactive.subjects.BehaviorSubject
@@ -66,7 +67,8 @@ object ViewFilter {
           cls := "item",
           Elements.icon(Icons.noFilter)(marginRight := "5px"),
           span(cls := "text", "Reset ALL filters", cursor.pointer),
-          onClick.mapTo(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations
+          onClick.mapTo(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations,
+          onClick foreach { Analytics.sendEvent("filter", "reset") },
         )
       ),
       UI.tooltip("bottom right") := "Filter items in view",
@@ -144,6 +146,7 @@ sealed trait ViewGraphTransformation {
         input(tpe := "checkbox",
           id := domId,
           onChange.checked.map(activeFilter) --> state.graphTransformations,
+          onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", domId) },
           checked <-- state.graphTransformations.map(_.contains(transform))
         ),
         label(description, `for` := domId),
