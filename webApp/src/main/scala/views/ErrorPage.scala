@@ -14,8 +14,7 @@ object ErrorPage {
     cls := "ui negative message",
     div(
       cls := "header",
-      Components.woostIcon,
-      b(paddingLeft := "5px", paddingRight := "20px", "Oops, an error occurred!"),
+      b(paddingRight := "20px", "Oops, an error occurred!"),
       button(cls := "ui tiny button positive", freeSolid.faAmbulance, " Reload", onClick.foreach { dom.window.location.reload() })
     ),
     p(VDomModifier(errorMessage.getOrElse("Something went wrong"))),
