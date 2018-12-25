@@ -458,11 +458,16 @@ object KanbanView {
               Rx{
                 VDomModifier(
                   renderTaskCount(
-                    if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
-                    else VDomModifier(cls := "emptystat"),
+                    if (taskStats().taskChildrenCount > 0) VDomModifier(
+                      s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+                      UI.popup := "Zoom to show subtasks",
+                    )
+                    else VDomModifier(
+                      cls := "emptystat",
+                      UI.popup := "Create subtasks"
+                    ),
                     onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig,
                     cursor.pointer,
-                    UI.popup := "Zoom to show subtasks",
                   ),
                   renderTaskProgress(),
                   renderMessageCount(
