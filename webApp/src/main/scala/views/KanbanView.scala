@@ -372,10 +372,6 @@ object KanbanView {
           //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
           VDomModifier.empty
         } else VDomModifier(
-          VDomModifier.ifTrue(taskStats().isEmpty)(VDomModifier(
-            div(div(cls := "fa-fw", Icons.tasks), onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"),
-            div(div(cls := "fa-fw", Icons.conversation), onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"),
-          )),
           if(state.graph().isExpanded(state.user.now.id, node.id))
             div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
           else
