@@ -552,7 +552,7 @@ object PageHeader {
     val canWrite = Permission.canWrite(state, channel)
     val permissionItem = Permission.permissionItem(state, channel)
     val nodeRoleItem:VDomModifier = channel match {
-      case channel: Node.Content if canWrite =>
+      case channel: Node.Content if canWrite && channel.role != NodeRole.Stage =>
         def nodeRoleSubItem(nodeRole: NodeRole, roleIcon: IconLookup) = div(
           cls := "item",
           Elements.icon(roleIcon)(marginRight := "5px"),
@@ -731,10 +731,10 @@ object ConvertSelection {
         icon = Icons.task,
         description = "Task item of a list or kanban.",
       ) ::
-      ConvertSelection(
-        role = NodeRole.Stage,
-        icon = Icons.stage,
-        description = "Stage, a period in a structure / progress, e.g. column in a kanban",
-      ) ::
+      // ConvertSelection(
+      //   role = NodeRole.Stage,
+      //   icon = Icons.stage,
+      //   description = "Stage, a period in a structure / progress, e.g. column in a kanban",
+      // ) ::
       Nil
 }
