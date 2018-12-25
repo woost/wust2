@@ -644,13 +644,17 @@ object PageHeader {
 
   private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     def viewId(view:View) = s"viewswitcher_${view.viewKey}"
-    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition) = {
+    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
+
       label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+        Styles.flex,
+        alignItems.flexEnd,
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
         )),
-        UI.tooltip("bottom right") := targetView.toString
+        (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "3px")),
+        UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}"
       )
     }
 
@@ -674,19 +678,28 @@ object PageHeader {
       Rx {
         val currentView = state.view()
         val pageStyle = state.pageStyle()
+
+        val (numMsg, numTasks) = state.page.now.parentId.fold((0, 0)){ pid =>
+          val graph = state.graph.now
+          val nodeIdx = graph.idToIdx(pid)
+          val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+          val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
+          (messageChildrenCount, taskChildrenCount)
+        }
+
         Seq(
           // MkInput(currentView, pageStyle, View.Magic),
           // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           MkInput(currentView, pageStyle, View.Conversation),
-          MkLabel(currentView, pageStyle, View.Conversation, Icons.conversation),
+          MkLabel(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg),
 //          MkInput(currentView, pageStyle, View.Chat),
 //          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
 //          MkInput(currentView, pageStyle, View.Thread),
 //          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
           MkInput(currentView, pageStyle, View.Tasks),
-          MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks),
+          MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks),
           MkInput(currentView, pageStyle, View.Files),
-          MkLabel(currentView, pageStyle, View.Files, Icons.files),
+          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", 0),
 //          MkInput(currentView, pageStyle, View.Kanban),
 //          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
 //          MkInput(currentView, pageStyle, View.ListV),
