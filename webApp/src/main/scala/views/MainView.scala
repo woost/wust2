@@ -103,6 +103,7 @@ object MainView {
       div(
         Styles.flex,
         Styles.growFull,
+        position.relative, // needed for mobile expanded sidebar
         Sidebar(state),
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
