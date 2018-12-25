@@ -278,12 +278,6 @@ object SharedViewElements {
       cursor.pointer
     )
 
-  val taskButton: VNode =
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Convert message into task", Icons.task),
-      cursor.pointer
-    )
-
   def authorAvatar(author: Node.User, avatarSize: Int, avatarPadding: Int): VNode = {
     div(Avatar(author)(cls := "avatar",width := s"${avatarSize}px", padding := s"${avatarPadding}px"), marginRight := "5px")
   }
@@ -489,14 +483,6 @@ object SharedViewElements {
             zoomButton(
               onClick.mapTo(state.viewConfig.now.focus(Page(nodeId))) --> state.viewConfig,
             ),
-            (nodeRole() != NodeRole.Task && canWrite()).ifTrue[VDomModifier](taskButton(
-              onClick foreach {
-                val contentNode = state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content]
-                val change = GraphChanges.addNode(contentNode.copy(role = NodeRole.Task))
-                state.eventProcessor.changes.onNext(change)
-                UI.toast(s"Converted '${StringOps.trimToMaxLength(contentNode.str, 11)}' to a Task", click = () => state.viewConfig.update(_.focus(Page(nodeId))), level = UI.ToastLevel.Success)
-              }
-            ))
           )
         }
       }
@@ -575,13 +561,6 @@ object SharedViewElements {
     val middleActions =
       if (canWriteAll) List(
         starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
-        taskButton(
-          onClick foreach {
-            val change = GraphChanges(addNodes = nodeIdSet.map(nodeId => state.graph.now.nodesById(nodeId).asInstanceOf[Node.Content].copy(role = NodeRole.Task))(breakOut))
-            state.eventProcessor.changes.onNext(change)
-            ()
-          }
-        ),
         SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted)
       ) else Nil
 
