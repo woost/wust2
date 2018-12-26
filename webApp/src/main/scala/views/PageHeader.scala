@@ -648,7 +648,7 @@ object PageHeader {
 
       label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
         Styles.flex,
-        alignItems.flexEnd,
+        alignItems.center,
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
