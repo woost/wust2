@@ -7,9 +7,6 @@ import wust.css.Styles.Woost
 
 import scala.concurrent.duration._
 
-// TODO: generate by sbt:
-// https://stackoverflow.com/questions/23409993/defining-sbt-task-that-invokes-method-from-project-code
-
 object ZIndex {
   val controls = 10
   val draggable = 100
