@@ -376,7 +376,7 @@ object KanbanView {
           VDomModifier.ifTrue(plainCard())(VDomModifier(
             div(
               div(cls := "fa-fw", Icons.tasks),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Zoom to show subtasks"
+              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
             ),
             div(
               div(cls := "fa-fw", Icons.conversation),
