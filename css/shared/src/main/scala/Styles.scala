@@ -602,6 +602,19 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
+  ".markdown code .hljs" - ( // code which is syntax-highlighted
+    borderRadius(3 px),
+  )
+
+  ".markdown code:not([class])" - ( // code which is not syntax-highlighted
+    // like github
+    backgroundColor(c"rgba(27, 31, 35, 0.05)"),
+    borderRadius(3 px),
+    // fontSize(85 %%),
+    margin(0 px),
+    padding(0.2 em, 0.4 em),
+  )
+
   ".nodecard.node-deleted" - (
     fontSize.smaller,
     opacity(0.5),
