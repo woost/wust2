@@ -77,6 +77,13 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(userId = UserId(sourceId), nodeId = targetId)
   }
 
+  case class Property(nodeId: NodeId, propertyId: NodeId) extends Edge {
+    def sourceId = nodeId
+    def targetId = propertyId
+    def data = EdgeData.Property
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, propertyId = targetId)
+  }
+
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId):Edge = data match {
     case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
     case data: EdgeData.Member        => new Edge.Member(UserId(sourceId), data, targetId)
