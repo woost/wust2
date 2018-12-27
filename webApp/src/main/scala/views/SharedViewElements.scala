@@ -1,25 +1,21 @@
 package wust.webApp.views
 
-import cats.effect.IO
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.execution.Ack
-import monix.reactive.{Observable, Observer}
+import monix.reactive.{Observable}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
-import outwatch.dom.{helpers, _}
+import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.api.{ApiEvent, AuthUser}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.sdk.NodeColor
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
@@ -29,7 +25,7 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
 import wust.webApp.{BrowserDetect, Client, Icons}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.breakOut
 import scala.concurrent.Future
 import scala.scalajs.js
 
@@ -436,10 +432,6 @@ object SharedViewElements {
     }
 
   def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VNode = {
-    val nodeRole = Rx {
-      val g = state.graph()
-      g.nodesById(nodeId).role
-    }
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 

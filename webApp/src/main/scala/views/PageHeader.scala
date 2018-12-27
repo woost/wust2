@@ -9,8 +9,6 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.api.ApiEvent.NewGraphChanges
-import wust.api.AuthUser
 import wust.css.{Styles, ZIndex}
 import wust.graph.Node.User
 import wust.graph._
@@ -27,7 +25,6 @@ import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
 
 import scala.collection.breakOut
-import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.{Failure, Success}
 
