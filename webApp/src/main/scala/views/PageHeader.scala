@@ -654,35 +654,29 @@ object PageHeader {
   }
 
   private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    def viewId(view:View) = s"viewswitcher_${view.viewKey}"
-    def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
-
-      label(
-        `for` := viewId(targetView),
-        Elements.icon(icon),
-        onClick(targetView) --> state.view, cursor.pointer,
+    def item(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
+      div(
+        cls := "viewswitcher-item",
+        div(cls := "fa-fw", icon),
         Styles.flex,
         alignItems.center,
+
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
         )),
         (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "7px")),
-        UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}"
-      )
-    }
 
-    def MkInput(currentView: View, pageStyle: PageStyle, targetView: View) = {
-      input(display.none, id := viewId(targetView), `type` := "radio", name := "viewswitcher",
-        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(checked := true, cls := "checked")),
-        onInput foreach {
+        UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
+        onClick foreach {
+          state.view() = targetView
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
-        }
+        },
+        cursor.pointer,
       )
     }
 
     div(
-      cls := "viewbar",
       marginLeft := "5px",
       Styles.flex,
       flexWrap.wrap,
@@ -705,24 +699,15 @@ object PageHeader {
         } else (0, 0, 0)
 
         Seq(
-          // MkInput(currentView, pageStyle, View.Magic),
-          // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
-          MkInput(currentView, pageStyle, View.Conversation),
-          MkLabel(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)(zIndex := ZIndex.tooltip-10),
-//          MkInput(currentView, pageStyle, View.Chat),
-//          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
-//          MkInput(currentView, pageStyle, View.Thread),
-//          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
-          MkInput(currentView, pageStyle, View.Tasks),
-          MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)(zIndex := ZIndex.tooltip-20),
-          MkInput(currentView, pageStyle, View.Files),
-          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", numFiles)(zIndex := ZIndex.tooltip-30),
-//          MkInput(currentView, pageStyle, View.Kanban),
-//          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
-//          MkInput(currentView, pageStyle, View.ListV),
-//          MkLabel(currentView, pageStyle, View.ListV, freeSolid.faList),
-//          MkInput(currentView, pageStyle, View.Graph),
-//          MkLabel(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+          // item(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          item(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)(zIndex := ZIndex.tooltip-10),
+//          item(currentView, pageStyle, View.Chat, freeRegular.faComments),
+//          item(currentView, pageStyle, View.Thread, freeSolid.faStream),
+          item(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)(zIndex := ZIndex.tooltip-20),
+          item(currentView, pageStyle, View.Files, Icons.files, "files", numFiles)(zIndex := ZIndex.tooltip-30),
+//          item(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
+//          item(currentView, pageStyle, View.ListV, freeSolid.faList),
+//          item(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
       }
     )

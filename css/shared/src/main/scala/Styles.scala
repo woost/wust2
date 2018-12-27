@@ -1142,21 +1142,11 @@ object CommonStyles extends StyleSheet.Standalone {
     borderBottom(1 px, solid, black)
   )
 
-  ".viewbar label" - (
+  ".viewswitcher-item" - (
     fontSize.larger,
     height(100 %%),
-
-    padding(2 px, 5 px, 5 px, 5 px),
-
-    border(1 px, solid, transparent),
+    padding(5 px),
     borderRadius(2 px),
-    &("svg") - (
-      verticalAlign.middle
-    )
-  )
-
-  ".viewbar .checked + label" - (
-    color(c"#111111"),
   )
 
   ".emoji-outer" - (
