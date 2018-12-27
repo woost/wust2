@@ -126,9 +126,10 @@ object GlobalStateFactory {
 
     {
       // simple heuristic, which selects a new view on every page change
-      var lastPage = Page.empty
+      var lastPage: Page = null
+      var lastView: View = null
       graph.foreach { graph =>
-        if(lastPage != page.now) {
+        if(view.now.isContent && (lastPage != page.now || lastView != view.now)) {
           val stats = graph.topLevelRoleStats(page.now.parentId)
           val bestView = stats.mostCommonRole match {
             case NodeRole.Message => View.Conversation
@@ -137,8 +138,9 @@ object GlobalStateFactory {
           }
           scribe.info(s"Selecting best view: '$bestView', because ($stats)")
           view() = bestView
-          lastPage = page.now
         }
+        lastPage = page.now
+        lastView = view.now
       }
     }
 
