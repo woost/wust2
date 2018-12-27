@@ -83,6 +83,7 @@ class GlobalState(
     val transformation: Seq[GraphTransformation] = graphTransformations().map(_.transformWithViewData(page().parentId, user().id))
     transformation.foldLeft(currGraph)((g, gt) => gt(g))
   }
+  val isFilterActive = Rx { graphTransformations().nonEmpty }
 
   val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
     val page = viewConfig().pageChange.page

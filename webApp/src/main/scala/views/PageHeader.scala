@@ -115,7 +115,13 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
-      ViewFilter.renderMenu(state),
+      state.isFilterActive.now.ifTrue[VDomModifier]{
+        div(
+          Elements.icon(Icons.filter),
+          color := "green",
+          UI.tooltip("bottom right") := "A filter is active",
+        )
+      },
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
@@ -623,8 +629,9 @@ object PageHeader {
     val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
     val notificationItem = VDomModifier(Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel, isOwnUser) })
+    val filterItem = ViewFilter.renderMenu(state)
 
-    val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, mentionInItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+    val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, shareItem, filterItem, mentionInItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing

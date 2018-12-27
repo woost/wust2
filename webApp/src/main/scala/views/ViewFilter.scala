@@ -51,16 +51,15 @@ object ViewFilter {
   def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
     val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
-    val activeFilter = Rx { state.graphTransformations().nonEmpty }
-    val filterColor = activeFilter.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
+    val filterColor = state.isFilterActive.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
 
     div(
-      cls := "ui icon top left labeled pointing dropdown",
-      Icons.filterDropdown,
+      cls := "item",
+      Elements.icon(Icons.filter)(marginRight := "5px"),
       filterColor,
+      span(cls := "text", "Filter", cursor.default),
       div(
         cls := "menu",
-        div(cls := "header", "Filter", cursor.default),
         filterItems,
         // This does not work because
         div(
@@ -71,10 +70,6 @@ object ViewFilter {
           onClick foreach { Analytics.sendEvent("filter", "reset") },
         )
       ),
-      UI.tooltip("bottom right") := "Filter items in view",
-      zIndex := ZIndex.overlay, // leave zIndex here since otherwise it gets overwritten
-      Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
-      onDomMount.asJquery.foreach(_.dropdown("hide")), // https://semantic-ui.com/modules/dropdown.html#/usage
     )
   }
 
