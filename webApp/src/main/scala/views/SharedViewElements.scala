@@ -567,7 +567,7 @@ object SharedViewElements {
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def newChannelButton(state: GlobalState, label: String = "New Workspace", view: View = View.default): VNode = {
+  def newChannelButton(state: GlobalState, label: String = "New Workspace", view: Option[View] = None): VNode = {
     button(
       cls := "ui button",
       label,
@@ -576,12 +576,12 @@ object SharedViewElements {
 
         val nodeId = NodeId.fresh
         state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id))
-        state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), view, needsGet = false)
+        state.viewConfig() = state.viewConfig.now.focus(Page(nodeId), view, needsGet = false)
       }
     )
   }
 
-  def createNewButton(state: GlobalState, label: String = "New", defaultView: View = View.default, addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+  def createNewButton(state: GlobalState, label: String = "New", addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = PublishSubject[Boolean]()
 
     button(
@@ -592,7 +592,7 @@ object SharedViewElements {
         show.onNext(true)
       },
 
-      CreateNewPrompt(state, show, defaultView, addToChannels, nodeRole)
+      CreateNewPrompt(state, show, addToChannels, nodeRole)
     )
   }
 

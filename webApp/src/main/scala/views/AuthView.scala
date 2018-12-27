@@ -147,7 +147,7 @@ object AuthView {
         h3(alternativeHeader, textAlign := "center"),
         state.viewConfig.map { cfg =>
           div(
-            onClick(cfg.copy(view = alternativeView)) --> state.viewConfig,
+            onClick(cfg.copy(view = Some(alternativeView))) --> state.viewConfig,
             cls := "ui fluid button",
             alternativeText,
             display.block,

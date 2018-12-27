@@ -28,6 +28,7 @@ private sealed trait UrlOption {
   def update(config: ViewConfig, text: String): DecodeResult[ViewConfig]
 }
 private object UrlOption {
+
   object view extends UrlOption {
     val key = "view"
 
@@ -53,9 +54,10 @@ private object UrlOption {
 
     def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
       parseSingle(regex, text).map { view =>
-        config.copy(view = view)
+        config.copy(view = Some(view))
       }
   }
+
   object page extends UrlOption {
     val key = "page"
 
@@ -69,6 +71,7 @@ private object UrlOption {
         config.copy(pageChange = PageChange(page))
       }
   }
+
   object redirectTo extends UrlOption {
     val key = "redirectTo"
 
@@ -77,6 +80,7 @@ private object UrlOption {
         config.copy(redirectTo = Some(view))
       }
   }
+
   object share extends UrlOption {
     val key = "share"
 
@@ -87,6 +91,7 @@ private object UrlOption {
         config.copy(shareOptions = Some(shareOptions))
       }
   }
+
   object invitation extends UrlOption {
     val key = "invitation"
 
@@ -137,14 +142,12 @@ object ViewConfigParser {
 
 object ViewConfigWriter {
   def write(cfg: ViewConfig): String = {
-    val viewString = UrlOption.view.key + "=" + cfg.view.viewKey
-    val pageString = cfg.pageChange.page.parentId match {
-      case None => ""
-      case Some(parentId) =>
-        "&" + UrlOption.page.key + "=" + s"${parentId.toBase58}"
+    val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view.viewKey)
+    val pageString = cfg.pageChange.page.parentId map { parentId =>
+        UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
-    val redirectToStringWithSep =
-      cfg.redirectTo.fold("")(v => "&" + UrlOption.redirectTo.key + "=" + v.viewKey)
-    s"$viewString$pageString$redirectToStringWithSep"
+    val redirectToString =
+      cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
+    List(viewString, pageString, redirectToString).flatten.mkString("&")
   }
 }

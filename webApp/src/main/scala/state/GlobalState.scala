@@ -84,11 +84,63 @@ class GlobalState(
   }
   val isFilterActive = Rx { graphTransformations().nonEmpty }
 
-  val viewConfig: Var[ViewConfig] = rawViewConfig.mapRead{ viewConfig =>
-    val page = viewConfig().pageChange.page
-    val sanitizedPage = page.copy(page.parentId.filter(rawGraph().contains))
-    viewConfig().copy(pageChange = viewConfig().pageChange.copy(page = sanitizedPage))
+  val viewConfig: Var[ViewConfig] = {
+      def viewHeuristic(graph:Graph, page:Page) = {
+        val stats = graph.topLevelRoleStats(page.parentId)
+        val bestView = stats.mostCommonRole match {
+          case NodeRole.Message => View.Conversation
+          case NodeRole.Task => View.Tasks
+          case _ => View.Conversation
+        }
+        scribe.info(s"viewHeuristic: '$bestView', because ($stats)")
+        bestView
+      }
+
+      var lastPage:Page = Page.empty
+      var lastGraph:Graph = graph.now
+      var lastBestView:View = View.Conversation
+
+      rawViewConfig.mapRead{ viewConfig =>
+        val rawPage = viewConfig().pageChange.page
+        val sanitizedPage = rawPage.copy(rawPage.parentId.filter(rawGraph().contains))
+        val pageChange = viewConfig().pageChange.copy(page = sanitizedPage)
+
+        val view = (viewConfig().view, rawPage.parentId) match {
+          case (None, None) => View.Welcome
+          case (Some(view), None) => if(view.isContent) View.Welcome else view
+          case (None, Some(pageParentId)) =>
+            // no specific view was given. Select one automatically:
+
+            (lastGraph != graph(), lastPage != rawPage) match {
+              case (false, _) =>
+                // The graph didn't change, keep the current view.
+                lastBestView
+              case (true, false) => 
+                // The graph changed without page-change (life-updates, graph-changes by the user).
+                // We keep the current view.
+                lastGraph = graph()
+                lastBestView
+              case (true, true) =>
+                // The graph changed and we are on a different page than before.
+                // The user changed the page and waited for the new graph of getGraph. Now the graph is updated.
+                // Therefore, we apply the heuristic to select a new best view.
+                val bestView = viewHeuristic(graph(), rawPage)
+                lastBestView = bestView
+                lastPage = rawPage
+                lastGraph = graph()
+                bestView
+            }
+              case (Some(view), Some(_)) => view
+        }
+
+        viewConfig().copy(view = Some(view), pageChange = pageChange)
+    }
   }
+
+  val view: Var[View] = viewConfig.zoom { viewConfig => viewConfig.view.get }{(viewConfig, view) =>
+    viewConfig.copy(view = Some(view))
+  }
+
 
   val page: Rx[Page] = viewConfig.map(_.pageChange.page)
   val pageWithoutReload: Rx[Page] = viewConfig.map(_.pageChange.page)
@@ -125,13 +177,6 @@ class GlobalState(
     if(state == PermissionState.granted || state == PermissionState.denied)
       Analytics.sendEvent("notification", state.asInstanceOf[String])
   }
-
-  val view: Var[View] = rawViewConfig.zoom { viewConfig =>
-    if(!viewConfig.view.isContent || viewConfig.pageChange.page.parentId.nonEmpty)
-      viewConfig.view
-    else
-      View.Welcome
-  }((viewConfig, view) => viewConfig.copy(view = view))
 
   val pageStyle = Rx {
     PageStyle(view(), page())

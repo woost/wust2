@@ -529,7 +529,7 @@ object PageHeader {
   //   button(
   //     cls := "ui compact primary button",
   //     if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-  //     onClick(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
+  //     onClick.mapTo(GraphChanges.connect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes,
   //     onClick foreach { Analytics.sendEvent("pageheader", "join") }
   //   )
 
@@ -547,7 +547,7 @@ object PageHeader {
         button(
           cls := "ui compact primary button",
           if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-          onClick(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, channel.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, channel.id)))) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, channel.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, channel.id)))) --> state.eventProcessor.changes,
           onClick foreach { Analytics.sendEvent("pageheader", "join") }
         )
       )
@@ -611,7 +611,7 @@ object PageHeader {
         cls := "item",
         Elements.icon(Icons.signOut)(marginRight := "5px"),
         span(cls := "text", "Unpin from sidebar", cursor.pointer),
-        onClick(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
+        onClick.mapTo(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
     val deleteItem =

@@ -173,14 +173,14 @@ object Sidebar {
                 cls := "ui mini compact inverted green button",
                 padding := "4px",
                 freeSolid.faCheck,
-                onClick(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, node.id), Edge.Notify(node.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, node.id), Edge.Notify(node.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               ),
               button(
                 cls := "ui mini compact inverted button",
                 padding := "4px",
                 freeSolid.faTimes,
-                onClick(GraphChanges(delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(delEdges = Set(Edge.Invite(state.user.now.id, node.id)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               )
             )
@@ -267,7 +267,6 @@ object Sidebar {
 //          } else
                         Page(id)
       }
-      val contentView = if(state.view.now.isContent) state.view.now else View.default
-      state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(newPage), view = contentView, redirectTo = None)
+      state.viewConfig() = state.viewConfig.now.focus(newPage)
     }
 }
