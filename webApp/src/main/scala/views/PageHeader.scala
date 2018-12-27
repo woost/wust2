@@ -679,14 +679,16 @@ object PageHeader {
         val currentView = state.view()
         val pageStyle = state.pageStyle()
 
-        val (numMsg, numTasks, numFiles) = state.page.now.parentId.fold((0, 0, 0)){ pid =>
-          val graph = state.graph.now
-          val nodeIdx = graph.idToIdx(pid)
-          val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
-          val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
-          val filesCount = graph.pageFiles(pid).length
-          (messageChildrenCount, taskChildrenCount, filesCount)
-        }
+        val (numMsg, numTasks, numFiles) = if(!BrowserDetect.isPhone) {
+          state.page.now.parentId.fold((0, 0, 0)){ pid =>
+            val graph = state.graph.now
+            val nodeIdx = graph.idToIdx(pid)
+            val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+            val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
+            val filesCount = graph.pageFiles(pid).length
+            (messageChildrenCount, taskChildrenCount, filesCount)
+          }
+        } else (0, 0, 0)
 
         Seq(
           // MkInput(currentView, pageStyle, View.Magic),
