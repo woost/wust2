@@ -68,7 +68,7 @@ object PageHeader {
 
     val permissionIndicator = Rx {
       val level = Permission.resolveInherited(state.graph(),channel.id)
-      div(level.icon, UI.tooltip("bottom center") := level.description)
+      div(level.icon, UI.tooltip("bottom center") := level.description, zIndex := ZIndex.tooltip-15)
     }
 
     div(
@@ -660,7 +660,10 @@ object PageHeader {
     def viewId(view:View) = s"viewswitcher_${view.viewKey}"
     def MkLabel(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
 
-      label(`for` := viewId(targetView), icon, onClick(targetView) --> state.view, cursor.pointer,
+      label(
+        `for` := viewId(targetView),
+        Elements.icon(icon),
+        onClick(targetView) --> state.view, cursor.pointer,
         Styles.flex,
         alignItems.center,
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
@@ -708,15 +711,15 @@ object PageHeader {
           // MkInput(currentView, pageStyle, View.Magic),
           // MkLabel(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           MkInput(currentView, pageStyle, View.Conversation),
-          MkLabel(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg),
+          MkLabel(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)(zIndex := ZIndex.tooltip-10),
 //          MkInput(currentView, pageStyle, View.Chat),
 //          MkLabel(currentView, pageStyle, View.Chat, freeRegular.faComments),
 //          MkInput(currentView, pageStyle, View.Thread),
 //          MkLabel(currentView, pageStyle, View.Thread, freeSolid.faStream),
           MkInput(currentView, pageStyle, View.Tasks),
-          MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks),
+          MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)(zIndex := ZIndex.tooltip-20),
           MkInput(currentView, pageStyle, View.Files),
-          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", numFiles),
+          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", numFiles)(zIndex := ZIndex.tooltip-30),
 //          MkInput(currentView, pageStyle, View.Kanban),
 //          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
 //          MkInput(currentView, pageStyle, View.ListV),
