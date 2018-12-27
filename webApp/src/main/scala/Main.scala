@@ -37,6 +37,18 @@ object Main {
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
   }
 
+  private def setupDom(): Unit = {
+    setupDefaultPassiveEvents()
+    setupSetImmediatePolyfill()
+    setupMarked()
+    setupEmojis()
+
+    DevOnly {
+      setupRuntimeScalaCSSInjection()
+      // setupSnabbdomDebugging()
+    }
+  }
+
   private def enableEventLogging(state:GlobalState)= {
     val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
     val boxStyle =
@@ -51,19 +63,7 @@ object Main {
     }
   }
 
-  private def setupDom(): Unit = {
-    // initialize default-passive-events for smoother scrolling
-    defaultPassiveEvents.DefaultPassiveEvents
-
-    // Add polyfill for setImmediate
-    // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate
-    // Api explanation: https://jphpsf.github.io/setImmediate-shim-demo
-    // this will be automatically picked up by monix and used instead of
-    // setTimeout( ... , 0)
-    // This reduces latency for the async scheduler
-    js.Dynamic.global.setImmediate = immediate.immediate
-
-
+  private def setupMarked():Unit = {
     // setup markdown parser options
     Marked.setOptions(new MarkedOptions {
       gfm = true
@@ -78,7 +78,9 @@ object Main {
       //TODO provide a sane sanitizer that whitelists some commonly used html features
       // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
     })
+  }
 
+  private def setupEmojis():Unit = {
     // setup emoji converter
     EmojiConvertor.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
     EmojiConvertor.img_sets.apple.sheet_size = 32
@@ -92,19 +94,34 @@ object Main {
     EmojiConvertor.wrap_native = true
     EmojiConvertor.avoid_ms_emoji = true
     EmojiConvertor.replace_mode = "img"
+  }
 
-    // dev defaults
-    DevOnly {
+  private def setupRuntimeScalaCSSInjection():Unit = {
+    // inject styles tags at runtime. in production a css file is generated and included.
+    val styleTag = document.createElement("style")
+    document.head.appendChild(styleTag)
+    styleTag.innerHTML = wust.css.StyleRendering.renderAll
+  }
 
-      // inject styles tags at runtime. in production a css file is generated and included.
-      val styleTag = document.createElement("style")
-      document.head.appendChild(styleTag)
-      styleTag.innerHTML = wust.css.StyleRendering.renderAll
-
-      // debug snabbdom patching in outwatch
-      // helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
-      //   org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
-      // }
+  private def setupSnabbdomDebugging():Unit = {
+    // debug snabbdom patching in outwatch
+    helpers.OutwatchTracing.patch.zipWithIndex.foreach { case (proxy, index) =>
+      org.scalajs.dom.console.log(s"Snabbdom patch ($index)!", JSON.parse(JSON.stringify(proxy)), proxy)
     }
+  }
+
+  private def setupSetImmediatePolyfill():Unit = {
+    // Add polyfill for setImmediate
+    // https://developer.mozilla.org/en-US/docs/Web/API/Window/setImmediate
+    // Api explanation: https://jphpsf.github.io/setImmediate-shim-demo
+    // this will be automatically picked up by monix and used instead of
+    // setTimeout( ... , 0)
+    // This reduces latency for the async scheduler
+    js.Dynamic.global.setImmediate = immediate.immediate
+  }
+
+  private def setupDefaultPassiveEvents():Unit = {
+    // initialize default-passive-events for smoother scrolling
+    defaultPassiveEvents.DefaultPassiveEvents
   }
 }
