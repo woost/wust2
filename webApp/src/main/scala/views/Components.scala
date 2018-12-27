@@ -498,11 +498,11 @@ object Components {
     )
   }
 
-  def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges])(
+  def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     val editMode = Var(false)
-    editableNode(state, node, editMode, submit)(ctx)(
+    editableNode(state, node, editMode, submit, maxLength)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation foreach {
         if(!editMode.now) {
           editMode() = true

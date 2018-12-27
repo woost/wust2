@@ -48,11 +48,12 @@ object PageHeader {
   }
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(250)
     val channelTitle = NodePermission.canWrite(state, channel.id).map { canWrite =>
       val node =
-        if(!canWrite) renderNodeData(channel.data)
+        if(!canWrite) renderNodeData(channel.data, maxLength)
         else {
-          editableNodeOnClick(state, channel, state.eventProcessor.changes)(ctx)(
+          editableNodeOnClick(state, channel, state.eventProcessor.changes, maxLength)(ctx)(
             onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
           )
         }
@@ -62,7 +63,7 @@ object PageHeader {
 
     val channelMembersList = Rx {
       val hasBigScreen = state.screenSize() != ScreenSize.Small
-      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(Styles.flexStatic, marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
+      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
     }
 
     val permissionIndicator = Rx {
@@ -78,11 +79,18 @@ object PageHeader {
       Styles.flex,
       alignItems.center,
 
-      channelAvatar(channel, size = 30)(Styles.flexStatic, marginRight := "5px"),
-      channelTitle.map(_(flexShrink := 1, paddingLeft := "5px", paddingRight := "5px", marginRight := "5px")),
-      channelMembersList,
-      permissionIndicator,
-      menu(state, channel).apply(marginLeft.auto),
+      div(
+        Styles.flex,
+        alignItems.center,
+        justifyContent.flexStart,
+        flexGrow := 1,
+        padding := "0 5px",
+        channelAvatar(channel, size = 30)(marginRight := "5px", flexShrink := 0),
+        channelTitle.map(_(marginRight := "5px")),
+        channelMembersList,
+        permissionIndicator,
+      ),
+      menu(state, channel),
     )
   }
 
@@ -103,9 +111,7 @@ object PageHeader {
     div(
       Styles.flex,
       alignItems.center,
-      flexWrap.wrap,
-      minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
-      justifyContent.flexEnd, // horizontal centering when wrapped
+      minWidth.auto,
       Rx {
         val hideBookmarkButton = isSpecialNode() || isBookmarked()
         hideBookmarkButton.ifFalse[VDomModifier](addToChannelsButton(state, channel).apply(
@@ -147,6 +153,7 @@ object PageHeader {
             cls := "avatar",
             marginBottom := "2px",
           ),
+          Styles.flexStatic,
           cursor.grab,
           UI.tooltip("bottom center") := Components.displayUserName(user.data)
         )(
@@ -678,8 +685,8 @@ object PageHeader {
       cls := "viewbar",
       marginLeft := "5px",
       Styles.flex,
-      flexDirection.row,
-      justifyContent.flexEnd,
+      flexWrap.wrap,
+      justifyContent.center,
       alignItems.center,
 
       Rx {
