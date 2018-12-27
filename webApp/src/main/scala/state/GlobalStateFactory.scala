@@ -124,26 +124,6 @@ object GlobalStateFactory {
       }
     }
 
-    {
-      // simple heuristic, which selects a new view on every page change
-      var lastPage: Page = null
-      var lastView: View = null
-      graph.foreach { graph =>
-        if(view.now.isContent && (lastPage != page.now || lastView != view.now)) {
-          val stats = graph.topLevelRoleStats(page.now.parentId)
-          val bestView = stats.mostCommonRole match {
-            case NodeRole.Message => View.Conversation
-            case NodeRole.Task => View.Tasks
-            case _ => View.default
-          }
-          scribe.info(s"Selecting best view: '$bestView', because ($stats)")
-          view() = bestView
-        }
-        lastPage = page.now
-        lastView = view.now
-      }
-    }
-
     // clear selected nodes on view and page change
     {
       val clearTrigger = Rx {
@@ -264,6 +244,7 @@ object GlobalStateFactory {
 
       page.debug("page")
       view.debug("view")
+      viewConfig.debug("viewConfig") // keep until resolved: https://github.com/lihaoyi/scala.rx/pull/124
       user.debug("auth")
     }
 

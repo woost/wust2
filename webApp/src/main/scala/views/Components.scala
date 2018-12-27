@@ -191,11 +191,11 @@ object Components {
           } // Max 1 dm node with this name
           previousDmNode match {
             case Some(dmNode) if graph.can_access_node(user.id, dmNode.id) =>
-              state.viewConfig() = state.viewConfig.now.focusView(Page(dmNode.id), View.Chat, needsGet = false)
+              state.viewConfig() = state.viewConfig.now.focusView(Page(dmNode.id), View.Conversation, needsGet = false)
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
               state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, userId, title = dmName))
-              state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), View.Chat, needsGet = false)
+              state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), View.Conversation, needsGet = false)
               //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
               dom.window.setTimeout({() =>
                 Client.api.addMember(nodeId, dmUserId, AccessLevel.ReadWrite)

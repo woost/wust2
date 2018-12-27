@@ -79,8 +79,6 @@ object View {
   def contentList: List[View] = list.filter(_.isContent)
 
   val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
-
-  def default: View = Conversation
 }
 
 sealed trait ViewOperator {

@@ -53,7 +53,7 @@ object MainView {
 
                   div(
                     Elements.topBanner(Some(desktopText), Some(mobileText)),
-                    onClick(state.viewConfig.now.showViewWithRedirect(View.UserSettings)) --> state.viewConfig,
+                    onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.UserSettings)) --> state.viewConfig,
                   )
                 }
               case err                   =>
@@ -78,7 +78,7 @@ object MainView {
 
             div(
               Elements.topBanner(None, Some(mobileText)),
-              onClick(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+              onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
               onClick foreach {
                 Analytics.sendEvent("banner", "signuponuser")
               },
@@ -128,8 +128,10 @@ object MainView {
           },
           Rx {
             if(state.view().isContent) {
-              if (state.isLoading()) Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor)
-              else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor, Styles.growFull)
+              if (state.isLoading())
+                Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor)
+              else if (state.pageNotFound())
+                PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor, Styles.growFull)
               else VDomModifier.empty
             } else VDomModifier.empty
           },

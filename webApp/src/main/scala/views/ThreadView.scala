@@ -249,7 +249,7 @@ object ThreadView {
 
           cursor.pointer,
           UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-          onClick(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
+          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
         ),
         div(
           cls := "chat-thread-messages",

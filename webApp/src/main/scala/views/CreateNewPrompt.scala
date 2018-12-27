@@ -26,7 +26,7 @@ import scala.concurrent.Future
 
 object CreateNewPrompt {
 
-  def apply(state: GlobalState, show: Observable[Boolean], defaultView: View, defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
+  def apply(state: GlobalState, show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
     val parentNodes = Var[List[NodeId]](Nil)
     val childNodes = Var[List[NodeId]](Nil)
     val nodeRole = Var[NodeRole](defaultNodeRole)
