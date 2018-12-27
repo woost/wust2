@@ -80,4 +80,6 @@ object Icons {
 
   val expand: IconDefinition = freeRegular.faPlusSquare
   val collapse: IconDefinition = freeRegular.faMinusSquare
+
+  val property: IconDefinition = freeSolid.faReceipt
 }
