@@ -151,8 +151,8 @@ object Sidebar {
         val user = state.user()
 
         VDomModifier(
-          channelLine(user.toNode, page.parentId, pageStyle),
-          channelForest.nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("workspaces")(cls := "inverted")),
+          // channelLine(user.toNode, page.parentId, pageStyle),
+          // channelForest.nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("workspaces")(cls := "inverted")),
           channelForest.map { channelTree =>
             channelList(channelTree, page.parentId, pageStyle)
           },
@@ -202,7 +202,7 @@ object Sidebar {
         val user = state.user()
         val page = state.page()
         VDomModifier(
-          ((user.toNode,0) +: allChannels).map { case (node,rawDepth) =>
+          (allChannels).map { case (node,rawDepth) =>
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
