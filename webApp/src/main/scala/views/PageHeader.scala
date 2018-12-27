@@ -115,7 +115,7 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
-     ViewFilter.renderMenu(state),
+      ViewFilter.renderMenu(state),
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
@@ -653,7 +653,7 @@ object PageHeader {
           backgroundColor := pageStyle.sidebarBgColor,
           color := "white",
         )),
-        (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "3px")),
+        (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "7px")),
         UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}"
       )
     }
