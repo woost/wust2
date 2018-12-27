@@ -64,8 +64,17 @@ object Main {
   }
 
   private def setupMarked():Unit = {
-    // setup markdown parser options
+    // to open links in new windows:
+    // https://github.com/markedjs/marked/issues/655#issuecomment-383226346
+    val newRenderer = new marked.Renderer()
+    val linkRenderer = newRenderer.link
+    newRenderer.link = {(renderer, href, title, text) => 
+      val html = linkRenderer(renderer, href, title, text)
+      html.replaceFirst("^<a ", "<a target=\"_blank\" rel=\"nofollow\" ")
+    }
+
     Marked.setOptions(new MarkedOptions {
+      renderer = newRenderer
       gfm = true
       breaks = true // If true, add <br> on a single line break (copies GitHub). Requires gfm be true.
       highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks

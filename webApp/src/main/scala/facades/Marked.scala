@@ -20,8 +20,14 @@ object Marked extends js.Object {
   def setOptions(options: MarkedOptions): Unit = js.native
 }
 
+@js.native
+@JSImport("marked", "Renderer")
+class Renderer() extends js.Object {
+  var link:js.ThisFunction3[Renderer,String,String,String,String] = js.native
+}
+
 trait MarkedOptions extends js.Object {
-  var renderer: js.UndefOr[js.Object] = js.undefined
+  var renderer: js.UndefOr[Renderer] = js.undefined
   var gfm: js.UndefOr[Boolean] = js.undefined
   var tables: js.UndefOr[Boolean] = js.undefined
   var breaks: js.UndefOr[Boolean] = js.undefined
