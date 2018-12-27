@@ -1137,7 +1137,8 @@ object CommonStyles extends StyleSheet.Standalone {
     height(40 px),
     color.white,
 //    backgroundColor(Woost.color),
-    backgroundColor(c"#ff0266"),
+    // backgroundColor(c"#ff0266"), // pink
+    backgroundColor := "seagreen",
     borderBottom(1 px, solid, black)
   )
 
