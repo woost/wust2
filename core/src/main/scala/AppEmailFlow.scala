@@ -5,7 +5,7 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import wust.backend.config.{EmailConfig, ServerConfig}
 import wust.backend.mail.{MailMessage, MailRecipient, MailService}
-import wust.api.{AuthUser, Authentication, UserDetail}
+import wust.api.{AuthUser, Authentication, UserDetail, ClientInfo}
 import wust.backend.auth.JWT
 import wust.graph.Node
 import wust.ids.{NodeId, UserId}
@@ -61,7 +61,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
   }
 
-  private def feedbackMailMessage(userId: UserId, userName: String, msg: String): MailMessage = {
+  private def feedbackMailMessage(userId: UserId, userName: String, clientInfo: ClientInfo, msg: String): MailMessage = {
     //TODO: show name and email in message
     // pass User and Option[UserDetail] to this function
     val recipient = MailRecipient(to = "team@woost.space" :: Nil)
@@ -71,6 +71,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |Feedback:
         |  UserId: ${userId.toCuidString}
         |  UserName: ${userName}
+        |  UserAgent: ${clientInfo.userAgent}
         |  Instance: ${serverConfig.host}
         |
         |$msg
@@ -79,7 +80,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
   }
 
-  private def inviteEMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
+  private def inviteMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
     //TODO: email from field with username
     // we assume that the node we share is already public and just send a link
     // in reality we want something smarter, bind email adress to permission
@@ -107,13 +108,13 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     emailSubject.onNext(message)
   }
 
-  def sendEmailFeedback(userId: UserId, userName: String, msg: String)(implicit ec: ExecutionContext): Unit = {
-    val message = feedbackMailMessage(userId, userName = userName, msg = msg)
+  def sendEmailFeedback(userId: UserId, userName: String, clientInfo: ClientInfo, msg: String)(implicit ec: ExecutionContext): Unit = {
+    val message = feedbackMailMessage(userId, userName = userName, clientInfo, msg = msg)
     emailSubject.onNext(message)
   }
 
   def sendEmailInvitation(email: String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
-    val message = inviteEMailMessage(email = email, invitedJwt = invitedJwt, inviterName = inviterName, inviterEmail = inviterEmail, node = node)
+    val message = inviteMailMessage(email = email, invitedJwt = invitedJwt, inviterName = inviterName, inviterEmail = inviterEmail, node = node)
     emailSubject.onNext(message)
   }
 
@@ -122,7 +123,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         // retry? MonixUtils.retryWithBackoff(mailService.sendMail(message), maxRetries = 3, initialDelay = 1.minute)
         mailService.sendMail(message)
           .onErrorRecover { case NonFatal(t) =>
-            scribe.warn(s"Failed to send email message: $message", t)
+            scribe.warn(s"Failed to send email message, will not retry: $message", t)
             ()
           }
       }

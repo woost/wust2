@@ -43,7 +43,8 @@ trait Api[Result[_]] {
   //TODO have methods for warn/error. maybe a LogApi trait?
   def log(message: String): Result[Boolean]
 
-  def feedback(message: String): Result[Unit]
+  //TODO covenant currently does not allow us to extract the useragent header from a websocket request, so we need to provide it here explicitly.
+  def feedback(clientInfo: ClientInfo, message: String): Result[Unit]
 }
 
 @PathName("Push")
@@ -71,6 +72,8 @@ trait AuthApi[Result[_]] {
   def resendEmailVerification(id: UserId): Result[Unit]
   def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
 }
+
+case class ClientInfo(userAgent: String)
 
 case class UserDetail(
   userId: UserId,

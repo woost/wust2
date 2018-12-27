@@ -2,10 +2,11 @@ package wust.webApp.views
 
 import fontAwesome._
 import googleAnalytics.Analytics
-import org.scalajs.dom.window.{clearTimeout, setTimeout}
+import org.scalajs.dom.window.{clearTimeout, setTimeout, navigator}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.api.ClientInfo
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids
@@ -33,7 +34,7 @@ object FeedbackForm {
     var timeout:Option[Int] = None
     def submit():Unit = {
       if(feedbackText.now.trim.nonEmpty) {
-        Client.api.feedback(feedbackText.now).onComplete {
+        Client.api.feedback(ClientInfo(navigator.userAgent), feedbackText.now).onComplete {
           case Success(()) =>
             statusText() = "Thank you!"
             timeout.foreach(clearTimeout)
