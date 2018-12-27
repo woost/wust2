@@ -151,7 +151,7 @@ object KanbanView {
         sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
-      addCardField(state, parentId, pageParentId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
+      addCardField(state, parentId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
     )
   }
 
@@ -283,7 +283,7 @@ object KanbanView {
         cls := "kanbancolumnfooter",
         Styles.flex,
         justifyContent.spaceBetween,
-        addCardField(state, node.id, pageParentId, path, activeAddCardFields, Some(scrollHandler), None).apply(width := "100%"),
+        addCardField(state, node.id, path, activeAddCardFields, Some(scrollHandler), None).apply(width := "100%"),
         // stageCommentZoom,
       )
     )
@@ -549,7 +549,7 @@ object KanbanView {
                   )
                 )
             },
-            addCardField(state, node.id, pageParentId, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
+            addCardField(state, node.id, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
           )
         )
       },
@@ -563,7 +563,6 @@ object KanbanView {
   private def addCardField(
     state: GlobalState,
     parentId: NodeId,
-    pageParentId: NodeId,
     path:List[NodeId],
     activeAddCardFields: Var[Set[List[NodeId]]],
     scrollHandler: Option[ScrollBottomHandler] = None,
@@ -577,7 +576,9 @@ object KanbanView {
 
     def submitAction(userId: UserId)(str:String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, parentId :: pageParentId :: Nil)
+      val graph = state.graph.now
+      val workspaces:Set[NodeId] = graph.workspacesForParent(graph.idToIdx(parentId)).map(graph.nodeIds)(breakOut)
+      val change = GraphChanges.addNodeWithParent(createdNode, workspaces + parentId)
 
       state.eventProcessor.changes.onNext(change)
     }
