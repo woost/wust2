@@ -34,35 +34,3 @@ trait MarkedOptions extends js.Object {
   var highlight: js.UndefOr[js.Function2[String, js.UndefOr[String], String]] = js.undefined
   var sanitizer: js.UndefOr[js.Function1[String, String]] = js.undefined
 }
-
-object MarkedOptions {
-  def apply(
-      renderer: js.UndefOr[js.Object] = js.undefined,
-      gfm: js.UndefOr[Boolean] = js.undefined,
-      tables: js.UndefOr[Boolean] = js.undefined,
-      breaks: js.UndefOr[Boolean] = js.undefined,
-      pedantic: js.UndefOr[Boolean] = js.undefined,
-      sanitize: js.UndefOr[Boolean] = js.undefined,
-      smartLists: js.UndefOr[Boolean] = js.undefined,
-      silent: js.UndefOr[Boolean] = js.undefined,
-      highlight: js.UndefOr[js.Function3[String, String, String, js.Function]] = js.undefined,
-      langPrefix: js.UndefOr[String] = js.undefined,
-      smartypants: js.UndefOr[Boolean] = js.undefined
-  ): MarkedOptions = {
-    js.Dynamic
-      .literal(
-        renderer = renderer,
-        gfm = gfm,
-        tables = tables,
-        breaks = breaks,
-        pedantic = pedantic,
-        sanitize = sanitize,
-        smartLists = smartLists,
-        silent = silent,
-        highlight = highlight,
-        langPrefix = langPrefix,
-        smartypants = smartypants
-      )
-      .asInstanceOf[MarkedOptions]
-  }
-}
