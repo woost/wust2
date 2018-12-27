@@ -18,14 +18,8 @@ object FilesView {
       val graph = state.graph()
       val page = state.page()
 
-      page.parentId.fold(Seq.empty[(NodeId, NodeData.File)]) { parentId =>
-        graph.descendantsIdx(graph.idToIdx(parentId)).flatMap { nodeIdx =>
-          graph.nodes(nodeIdx) match {
-            case Node.Content(id, file: NodeData.File, _, _) => Some(id -> file)
-            case _ => None
-          }
-        }
-      }
+      page.parentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId))
+
     }
 
     div(

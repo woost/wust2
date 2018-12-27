@@ -679,12 +679,13 @@ object PageHeader {
         val currentView = state.view()
         val pageStyle = state.pageStyle()
 
-        val (numMsg, numTasks) = state.page.now.parentId.fold((0, 0)){ pid =>
+        val (numMsg, numTasks, numFiles) = state.page.now.parentId.fold((0, 0, 0)){ pid =>
           val graph = state.graph.now
           val nodeIdx = graph.idToIdx(pid)
           val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
           val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
-          (messageChildrenCount, taskChildrenCount)
+          val filesCount = graph.pageFiles(pid).length
+          (messageChildrenCount, taskChildrenCount, filesCount)
         }
 
         Seq(
@@ -699,7 +700,7 @@ object PageHeader {
           MkInput(currentView, pageStyle, View.Tasks),
           MkLabel(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks),
           MkInput(currentView, pageStyle, View.Files),
-          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", 0),
+          MkLabel(currentView, pageStyle, View.Files, Icons.files, "files", numFiles),
 //          MkInput(currentView, pageStyle, View.Kanban),
 //          MkLabel(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
 //          MkInput(currentView, pageStyle, View.ListV),

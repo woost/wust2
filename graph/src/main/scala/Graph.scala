@@ -732,6 +732,15 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
   lazy val incidentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
 
+  val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>
+    graph.descendantsIdx(graph.idToIdx(pageParentId)).flatMap { nodeIdx =>
+      graph.nodes(nodeIdx) match {
+        case Node.Content(id, file: NodeData.File, _, _) => Some(id -> file)
+        case _ => None
+      }
+    }
+  }
+
   def involvedInContainmentCycleIdx(idx: Int): Boolean = {
     depthFirstSearchExistsAfterStart(idx, childrenIdx, idx)
   }
