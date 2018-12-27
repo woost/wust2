@@ -244,9 +244,10 @@ object CommonStyles extends StyleSheet.Standalone {
     animationDelay(100 milliseconds),
     animationFillMode.forwards,
   )
+
   ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
-    animation := s"${Styles.fadeInKf.name.value} 1s, ${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
+    animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"
   )
 
   ".ui.dimmer.modals" - (

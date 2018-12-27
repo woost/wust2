@@ -159,15 +159,17 @@ object Components {
 
 
   val woostLoadingAnimation: VNode = {
-    import svg._
     div(
-      svg(
-        width := "100px", height := "100px", viewBox := "0 0 10 10",
-        g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
-          path(cls := "woost-loading-animation-logo", d := woostPathCurve, fill := "none", stroke := "#6636b7", strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
-        )
-      ),
-      p("Loading", dsl.color := "rgba(0,0,0,0.4)", textAlign.center)
+      {
+        import svg._
+        svg(
+          width := "100px", height := "100px", viewBox := "0 0 10 10",
+          g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
+            path(cls := "woost-loading-animation-logo", d := woostPathCurve, fill := "none", stroke := "#6636b7", strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
+            )
+          )
+      },
+      p("LOADING", dsl.color := "rgba(0,0,0,0.6)", textAlign.center, letterSpacing := "0.1em", fontWeight.bold)
     )
   }
 
@@ -203,8 +205,8 @@ object Components {
 
   def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
 
-  def customLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
-    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimation)
+  def spaceFillingLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
+    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimationWithFadeIn)
   }
 
   def withLoadingAnimation(state: GlobalState)(renderFn: => VDomModifier)(implicit data: Ctx.Data): VDomModifier = {
