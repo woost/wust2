@@ -9,7 +9,7 @@ import wust.api.AuthUser
 import wust.css.{Styles, ZIndex}
 import wust.graph.Page
 import wust.util._
-import wust.webApp.{Client, DevOnly, WoostNotification}
+import wust.webApp.{BrowserDetect, Client, DevOnly, WoostNotification}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, View}
 import wust.webApp.views.Components._
@@ -99,7 +99,7 @@ object MainView {
         registerBanner,
         emailBanner,
       ),
-      Topbar(state)(width := "100%", Styles.flexStatic),
+      (!BrowserDetect.isPhone).ifTrue[VDomModifier](Topbar(state)(width := "100%", Styles.flexStatic)),
       div(
         Styles.flex,
         Styles.growFull,
