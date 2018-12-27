@@ -30,6 +30,7 @@ object FilesView {
 
     div(
       padding := "20px",
+      overflow.auto,
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
         else div(
