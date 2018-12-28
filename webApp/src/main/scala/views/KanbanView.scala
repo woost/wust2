@@ -318,6 +318,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     activeAddCardFields: Var[Set[List[NodeId]]],
     showCheckbox:Boolean = false,
+    lineThrough:Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
 
@@ -325,6 +326,7 @@ object KanbanView {
       state, node,
       maxLength = Some(maxLength),
       editMode = editable,
+      contentInject = if(lineThrough) textDecoration.lineThrough else VDomModifier.empty,
       submit = state.eventProcessor.changes).prepend(
       if(showCheckbox)
         VDomModifier(
@@ -540,10 +542,9 @@ object KanbanView {
                   div(
                     doneTasks.map{ childIdx =>
                       val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
+                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, lineThrough = true).apply(
                         marginTop := "5px",
                         opacity := 0.5,
-                        textDecoration.lineThrough,
                       )
                     }
                   )
