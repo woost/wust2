@@ -169,7 +169,7 @@ object Components {
             )
           )
       },
-      p("LOADING", dsl.color := "rgba(0,0,0,0.6)", textAlign.center, letterSpacing := "0.1em", fontWeight.bold)
+      p("LOADING", marginTop := "16px", dsl.color := "rgba(0,0,0,0.6)", textAlign.center, letterSpacing := "0.05em", fontWeight := 700, fontSize := "15px")
     )
   }
 
