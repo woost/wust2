@@ -527,7 +527,7 @@ object KanbanView {
             backgroundColor := "#EFEFEF",
             partitionedTaskChildren(node.id, graph) match {
               case (doneTasks, todoTasks) =>
-                val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, pageParentId, todoTasks, graph.nodeIds)
+                val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, node.id, todoTasks, graph.nodeIds)
                 VDomModifier(
                   div(
                     minHeight := "50px",
