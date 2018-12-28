@@ -81,6 +81,7 @@ object PageHeader {
         alignItems.center,
         justifyContent.flexStart,
         flexGrow := 1,
+        flexShrink := 2,
         padding := "0 5px",
         channelAvatar(channel, size = 30)(marginRight := "5px", flexShrink := 0),
         channelTitle.map(_(marginRight := "5px")),
@@ -682,6 +683,7 @@ object PageHeader {
       flexWrap.wrap,
       justifyContent.center,
       alignItems.center,
+      minWidth.auto,
 
       Rx {
         val currentView = state.view()
