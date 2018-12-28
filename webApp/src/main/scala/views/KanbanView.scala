@@ -318,7 +318,7 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     activeAddCardFields: Var[Set[List[NodeId]]],
     showCheckbox:Boolean = false,
-    lineThrough:Boolean = false,
+    isDone:Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
 
@@ -326,7 +326,7 @@ object KanbanView {
       state, node,
       maxLength = Some(maxLength),
       editMode = editable,
-      contentInject = if(lineThrough) textDecoration.lineThrough else VDomModifier.empty,
+      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty,
       submit = state.eventProcessor.changes).prepend(
       if(showCheckbox)
         VDomModifier(
@@ -442,7 +442,7 @@ object KanbanView {
 
     rendered(
       // sortable: draggable needs to be direct child of container
-      Rx { if(editable()) dragDisabled else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
+      Rx { if(editable() || isDone) dragDisabled else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
       dragTarget(DragItem.Kanban.Card(node.id)),
 //      registerDraggableContainer(state),
       keyed(node.id, parentId),
@@ -542,7 +542,7 @@ object KanbanView {
                   div(
                     doneTasks.map{ childIdx =>
                       val childNode = graph.nodes(childIdx)
-                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, lineThrough = true).apply(
+                      renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, isDone = true).apply(
                         marginTop := "5px",
                         opacity := 0.5,
                       )
