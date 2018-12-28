@@ -85,7 +85,7 @@ object KanbanView {
                 alignItems.flexStart,
                 sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
 
-                registerSortableContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
+                registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
               ),
               newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic)
             )
@@ -147,7 +147,7 @@ object KanbanView {
       p(cls := "kanban-uncategorized-title", "Inbox / Todo"),
       div(
         cls := "kanbancolumnchildren",
-        registerSortableContainer(state, DragContainer.Kanban.Inbox(parentId, sortedChildren)),
+        registerDragContainer(state, DragContainer.Kanban.Inbox(parentId, sortedChildren)),
         sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = parentId, pageParentId = pageParentId, path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
@@ -231,13 +231,8 @@ object KanbanView {
       keyed(node.id, parentId),
       backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(node.id)).toHex,
       Rx{
-        if(editable()) dragDisabled
-        else { // prevents dragging when selecting text
-          VDomModifier(
-            sortableAs(DragItem.Kanban.Column(node.id)),
-            dragTarget(DragItem.Kanban.Column(node.id)),
-          )
-      }},
+        VDomModifier.ifNot(editable())(dragWithHandle(DragItem.Stage(node.id))) // prevents dragging when selecting text
+      },
       div(
         cls := "kanbancolumnheader",
         keyed(node.id, parentId),
@@ -268,12 +263,12 @@ object KanbanView {
             cursor.pointer,
             paddingBottom := "7px",
           ),
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)), // allows to drop cards on collapsed columns
+          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)), // allows to drop cards on collapsed columns
         )
       ) else VDomModifier(
         div(
           cls := "kanbancolumnchildren",
-          registerSortableContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)),
+          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)),
           keyed(node.id, parentId),
           children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeAddCardFields, selectedNodeIds)),
           scrollHandler.modifier,
@@ -442,11 +437,8 @@ object KanbanView {
 
     rendered(
       // sortable: draggable needs to be direct child of container
-      Rx { if(editable() || isDone) dragDisabled else sortableAs(DragItem.Kanban.Card(node.id)) }, // prevents dragging when selecting text
-      dragTarget(DragItem.Kanban.Card(node.id)),
-//      registerDraggableContainer(state),
+      Rx{ VDomModifier.ifNot(editable() || isDone)(drag(DragItem.Task(node.id))) }, // prevents dragging when selecting text
       keyed(node.id, parentId),
-      cls := "draghandle",
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       Rx {
@@ -537,7 +529,7 @@ object KanbanView {
                         marginTop := "5px",
                       )
                     },
-                    registerSortableContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
+                    registerDragContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
                   ),
                   div(
                     doneTasks.map{ childIdx =>

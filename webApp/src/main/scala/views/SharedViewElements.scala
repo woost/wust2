@@ -16,7 +16,8 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.webApp.dragdrop.DragItem
+import wust.webApp.dragdrop.DragItem.DisableDrag
+import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -216,7 +217,7 @@ object SharedViewElements {
     )
   }
 
-  val dragHandle = div(
+  val dragHandle:VNode = div(
     Styles.flex,
     alignItems.center,
     cls := "draghandle",
@@ -387,30 +388,39 @@ object SharedViewElements {
     creationDate(creationEpochMillis),
   )
 
-  def messageRowDragOptions[T <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageRowDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
     // The whole line is draggable, so that it can also be a drag-target.
     // This is currently a limit in the draggable library
-    editMode.map { editMode =>
-      if(editMode)
-        dragDisabled // prevents dragging when selecting text
-      else {
-        def payload = {
-          val selection = selectedNodes.now
-          if(selection exists (_.nodeId == nodeId))
-            DragItem.Chat.Messages(selection.map(_.nodeId)(breakOut))
-          else
-            DragItem.Chat.Message(nodeId)
-        }
+    Rx {
+      val graph = state.graph()
+      val node = graph.nodesById(nodeId)
+      VDomModifier.ifNot(editMode()){ // prevents dragging when selecting text
+        val selection = selectedNodes.now
         // payload is call by name, so it's always the current selectedNodeIds
+        def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
-          draggableAs(payload),
-          onDraggableDragged.foreach{ selectedNodes() = Set.empty[T] }
+          nodeDragOptions(nodeId, node.role, withHandle = true, payloadOverride = payloadOverride),
+          onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
         )
       }
     },
-    dragTarget(DragItem.Chat.Message(nodeId)),
-    cursor.auto, // else draggableAs sets class .draggable, which sets cursor.move
   )
+
+  def nodeDragOptions(nodeId:NodeId, role:NodeRole, withHandle:Boolean = false, payloadOverride:Option[() => DragPayload] = None): VDomModifier = {
+    val dragItem = role match {
+      case NodeRole.Message => DragItem.Message(nodeId)
+      case NodeRole.Task => DragItem.Task(nodeId)
+      case _ => DragItem.DisableDrag
+    }
+    val payload:() => DragPayload = payloadOverride.getOrElse(() => dragItem)
+    val target = dragItem match {
+      case target:DragTarget => target
+      case _ => DisableDrag // e.g. DisableDrag is not a DragTarget
+    }
+
+    if(withHandle) dragWithHandle(payload = payload(), target = target)
+    else drag(payload = payload(), target = target)
+  }
 
   def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
     BrowserDetect.isMobile.ifFalse[VDomModifier] {

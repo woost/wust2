@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.dragdrop._
 import cats.effect.IO
 import fontAwesome.freeSolid
 import monix.reactive.Observable
@@ -56,8 +57,8 @@ object ChatView {
     val pinReply = Var(false)
 
     def outerDragOptions(pageId: NodeId) = VDomModifier(
-      dragTargetOnly(DragItem.Chat.Page(pageId)),
-      registerDraggableContainer(state),
+      drag(target = DragItem.Page(pageId)),
+      registerDragContainer(state, DragContainer.Chat),
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -262,7 +263,7 @@ object ChatView {
 
           inReplyGroup.ifTrue[VDomModifier](renderCommonParents),
 
-          dragTargetOnly(DragItem.Chat.Thread(commonParentIds)),
+          drag(target = DragItem.Thread(commonParentIds)),
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",
@@ -306,7 +307,7 @@ object ChatView {
       val graph = state.graph()
       val nodeIdx = graph.idToIdx(nodeId)
       if(nodeIdx == -1) true
-      else graph.combinedDeletedAt(nodeIdx) match {
+      else graph.latestDeletedAt(nodeIdx) match {
         case Some(deletedAt) => deletedAt isAfter EpochMilli.now
         case None => false
       }
@@ -356,7 +357,7 @@ object ChatView {
         Rx { renderedMessage() },
         messageTags(state, nodeId, stageParents.now),
         controls,
-        messageRowDragOptions(nodeId, selectedNodes, editMode)
+        messageRowDragOptions(state, nodeId, selectedNodes, editMode)
       )
     )
   }

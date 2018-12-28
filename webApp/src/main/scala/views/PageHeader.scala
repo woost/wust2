@@ -137,7 +137,7 @@ object PageHeader {
     div(
       Styles.flex,
       flexWrap.wrap,
-      registerDraggableContainer(state),
+      registerDragContainer(state),
       Rx {
         val graph = state.graph()
         val nodeIdx = graph.idToIdx(channel.id)
@@ -155,8 +155,7 @@ object PageHeader {
           cursor.grab,
           UI.tooltip("bottom center") := Components.displayUserName(user.data)
         )(
-          draggableAs(DragItem.AvatarNode(user.id)),
-          cls := "draghandle",
+          drag(payload = DragItem.User(user.id)),
         ))(breakOut) : js.Array[VNode]
       }
     )

@@ -194,7 +194,7 @@ object GraphChanges {
         // if subject was not deleted in one of its parents => keep it
         // if it was deleted, take the latest deletion date
         val subjectIdx = graph.idToIdx(subjectId)
-        val deletedAt = if(subjectIdx == -1) None else graph.combinedDeletedAt(subjectIdx)
+        val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
 
         Edge.Parent(subjectId, EdgeData.Parent(deletedAt, None), newParentId)
       }(breakOut)

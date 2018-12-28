@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.dragdrop._
 import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
@@ -81,8 +82,8 @@ object Sidebar {
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay
         else sidebarWithExpand,
-        registerDraggableContainer(state),
-        dragTargetOnly(DragItem.Sidebar),
+        registerDragContainer(state, DragContainer.Sidebar),
+        drag(target = DragItem.Sidebar),
       )
     }
   }
@@ -113,11 +114,9 @@ object Sidebar {
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node drag-feedback",
         node match {
-          case _:Node.Content => draggableAs(DragItem.Channel(node.id))
-          case _:Node.User => dragDisabled
+          case _:Node.Content => drag(DragItem.Channel(node.id))
+          case _:Node.User => drag(target = DragItem.Channel(node.id))
         },
-        cls := "draghandle",
-        dragTarget(DragItem.Channel(node.id)),
       ),
     }
 
@@ -210,7 +209,7 @@ object Sidebar {
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              dragTargetOnly(DragItem.Channel(node.id)),
+              drag(target = DragItem.Channel(node.id)),
               cls := "node drag-feedback",
               // for each indent, steal padding on left and right
               // and reduce the width, so that the icon keeps its size

@@ -20,8 +20,8 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.{BrowserDetect, Client, Ownable, Icons}
-import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
+import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
+import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageChange, UploadingFile, View}
@@ -223,8 +223,7 @@ object Components {
         state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
-      draggableAs(DragItem.Tag(tag.id)),
-      dragTarget(DragItem.Tag(tag.id)),
+      drag(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
     )
   }
@@ -238,8 +237,7 @@ object Components {
         state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       },
-      draggableAs(DragItem.Tag(tag.id)),
-      dragTarget(DragItem.Tag(tag.id)),
+      drag(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
     )
   }
@@ -380,15 +378,7 @@ object Components {
     )
   }
 
-  def readDragDisableSort(elem: dom.html.Element): Option[Boolean] = {
-    readPropertyFromElement[Boolean](elem, DragItem.disableSortPropName)
-  }
-
-  def writeDragDisableSort(elem: dom.html.Element, disableSort: => Boolean): Unit = {
-    writePropertyIntoElement(elem, DragItem.disableSortPropName, disableSort)
-  }
-
-  def readDragTarget(elem: dom.html.Element): Option[DragTarget] = {
+  def readDragTarget(elem: dom.html.Element): js.UndefOr[DragTarget] = {
     readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
   }
 
@@ -396,7 +386,7 @@ object Components {
     writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
   }
 
-  def readDragPayload(elem: dom.html.Element): Option[DragPayload] = {
+  def readDragPayload(elem: dom.html.Element): js.UndefOr[DragPayload] = {
     readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
   }
 
@@ -404,7 +394,7 @@ object Components {
     writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
   }
 
-  def readDragContainer(elem: dom.html.Element): Option[DragContainer] = {
+  def readDragContainer(elem: dom.html.Element): js.UndefOr[DragContainer] = {
     readPropertyFromElement[DragContainer](elem, DragContainer.propName)
   }
 
@@ -412,7 +402,7 @@ object Components {
     writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
   }
 
-  def readDraggableDraggedAction(elem: dom.html.Element): Option[() => Unit] = {
+  def readDraggableDraggedAction(elem: dom.html.Element): js.UndefOr[() => Unit] = {
     readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
   }
 
@@ -420,51 +410,49 @@ object Components {
     writePropertyIntoElement(elem, DragItem.draggedActionPropName, action)
   }
 
-
-  def sortableAs(payload: => DragPayload): VDomModifier = {
+  def dragWithHandle(item: DragPayloadAndTarget):VDomModifier = dragWithHandle(item,item)
+  def dragWithHandle(
+    payload: => DragPayload = DragItem.DisableDrag,
+    target: DragTarget = DragItem.DisableDrag,
+  ): VDomModifier = {
     VDomModifier(
       cls := "draggable", // makes this element discoverable for the Draggable library
+      VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
       onDomMount.asHtml foreach { elem =>
         writeDragPayload(elem, payload)
+        writeDragTarget(elem, target)
       }
     )
   }
+  def drag(item: DragPayloadAndTarget):VDomModifier = drag(item,item)
+  def drag(
+    payload: => DragPayload = DragItem.DisableDrag,
+    target: DragTarget = DragItem.DisableDrag,
+  ): VDomModifier = {
+    VDomModifier(dragWithHandle(payload, target), cls := "draghandle")
+  }
 
-  def draggableAs(payload: => DragPayload): VDomModifier = {
+  def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
     VDomModifier(
-      sortableAs(payload),
-      onDomMount.asHtml foreach { elem =>
-        writeDragDisableSort(elem, true)
+      //          border := "2px solid violet",
+      outline := "none", // hides focus outline
+      cls := "sortable-container",
+
+      // workaround for draggable in snabbdom
+      // since draggable modifies the dom, snabbdom cannot rely on the correctness of the virtualdom anymore.
+      // Therefore we use a new key every time to not reuse the (virtual) dom.
+      // Sorting would crash in many cases without this workaround.
+      VDomModifier.ifTrue(container.isInstanceOf[SortableContainer])(key := scala.util.Random.nextInt), 
+
+      managedElement.asHtml { elem =>
+        writeDragContainer(elem, container)
+        state.sortable.addContainer(elem)
+        Cancelable { () => state.sortable.removeContainer(elem) }
       }
     )
   }
 
-  def dragTarget(dragTarget: DragTarget): VDomModifier = {
-    onDomMount.asHtml foreach { elem =>
-      writeDragTarget(elem, dragTarget)
-    }
-  }
-
-  val dragDisabled: VDomModifier = {
-    VDomModifier(
-      cls := "draggable", // makes this element discoverable for the Draggable library
-      onDomMount.asHtml foreach { elem =>
-        writeDragPayload(elem, DragItem.DisableDrag)
-      }
-    )
-  }
-
-  def dragTargetOnly(dragTarget: DragTarget): VDomModifier = {
-    VDomModifier(
-      cursor.auto, // overwrites cursor set by .draggable class
-      dragDisabled,
-      onDomMount.asHtml foreach { elem =>
-        writeDragTarget(elem, dragTarget)
-      }
-    )
-  }
-
-  def onDraggableDragged: EmitterBuilder[Unit, VDomModifier] =
+  def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
     EmitterBuilder.ofModifier[Unit] { sink =>
       IO {
         VDomModifier(
@@ -475,31 +463,6 @@ object Components {
       }
     }
 
-
-  def registerDraggableContainer(state: GlobalState): VDomModifier = {
-    VDomModifier(
-      //    border := "2px solid blue",
-      outline := "none", // hides focus outline
-      cls := "sortable-container",
-      managedElement.asHtml { elem =>
-        state.sortable.addContainer(elem)
-        Cancelable { () => state.sortable.removeContainer(elem) }
-      }
-    )
-  }
-
-  def registerSortableContainer(state: GlobalState, container: DragContainer): VDomModifier = {
-    VDomModifier(
-      //          border := "2px solid violet",
-      outline := "none", // hides focus outline
-      cls := "sortable-container",
-      managedElement.asHtml { elem =>
-        writeDragContainer(elem, container)
-        state.sortable.addContainer(elem)
-        Cancelable { () => state.sortable.removeContainer(elem) }
-      }
-    )
-  }
 
   def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
     implicit ctx: Ctx.Owner
@@ -536,7 +499,7 @@ object Components {
         if (text.nonEmpty) {
           node.data.updateStr(text) match {
             case Some(newData) =>
-              val updatedNode = node.copy(data = newData)
+            val updatedNode = node.copy(data = newData)
 
               Var.set(
                 initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),

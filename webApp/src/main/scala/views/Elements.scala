@@ -191,22 +191,11 @@ object Elements {
   val onSwipeRight: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swiperight")
   val onSwipeLeft: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swipeleft")
 
-  def decodeFromAttr[T: io.circe.Decoder](elem: dom.html.Element, attrName: String): Option[T] = {
-    import io.circe.parser.decode
+  def readPropertyFromElement[T](elem: dom.html.Element, propName: String): js.UndefOr[T] = {
     for {
-      elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]].toOption
-      attr <- Option(elem.attributes.getNamedItem(attrName))
-      decoded <- decode[T](attr.value).toOption
-    } yield decoded
-  }
-
-  def readPropertyFromElement[T](elem: dom.html.Element, propName: String): Option[T] = {
-    (
-      for {
-        elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]]
-        valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]]
-      } yield valueProvider()
-    ).toOption
+      elem <- elem.asInstanceOf[js.UndefOr[dom.html.Element]]
+      valueProvider <- elem.asInstanceOf[js.Dynamic].selectDynamic(propName).asInstanceOf[js.UndefOr[() => T]]
+    } yield valueProvider()
   }
 
   def writePropertyIntoElement(elem: dom.html.Element, propName: String, value: => Any): Unit = {

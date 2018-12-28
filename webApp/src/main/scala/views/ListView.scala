@@ -94,18 +94,16 @@ object ListView {
 
           VDomModifier(
             div(
-              registerSortableContainer(state, DragContainer.List(pageParentId, sortedTodoTasks.map(graph.nodeIds))),
+              registerDragContainer(state, DragContainer.List(pageParentId, sortedTodoTasks.map(graph.nodeIds))),
               sortedTodoTasks.map { nodeIdx =>
                 val nodeUsers = graph.assignedUsersIdx(nodeIdx)
                 val assignments = nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
                 val userAvatar = renderUserAvatar(assignments, graph.nodeIds(nodeIdx))
                 val node = graph.nodes(nodeIdx)
                 nodeCardWithCheckbox(state, node, pageParentId :: Nil).apply(
-                  cls := "draghandle",
                   margin := "4px",
                   userAvatar,
-                  sortableAs(DragItem.List.Item(node.id)),
-                  dragTarget(DragItem.List.Item(node.id)),
+                  nodeDragOptions(node.id, node.role)
                 )
               }
             ),

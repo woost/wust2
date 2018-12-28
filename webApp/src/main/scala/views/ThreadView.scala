@@ -45,8 +45,8 @@ object ThreadView {
     val scrollHandler = new ScrollBottomHandler
 
     val outerDragOptions = VDomModifier(
-      registerDraggableContainer(state),
-      Rx { state.page().parentId.map(pageParentId => dragTargetOnly(DragItem.Chat.Page(pageParentId))) },
+      registerDragContainer(state),
+      Rx { state.page().parentId.map(pageParentId => drag(target = DragItem.Page(pageParentId))) },
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -178,7 +178,7 @@ object ThreadView {
       div(
         cls := "chat-group-inner-frame",
 
-        dragTargetOnly(DragItem.Chat.Message(firstNodeId)),
+        drag(target = DragItem.Message(firstNodeId)),
 
         author.map(author => chatMessageHeader(state, author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
@@ -233,7 +233,7 @@ object ThreadView {
       cls := "chat-expanded-thread",
       backgroundColor := bgColor,
 
-      dragTargetOnly(DragItem.Chat.Thread(nodeId :: Nil)),
+      drag(target = DragItem.Thread(nodeId :: Nil)),
 
       div(
         cls := "chat-thread-messages-outer",
@@ -351,7 +351,7 @@ object ThreadView {
       renderedMessage,
       messageTags(state, nodeId, directParentIds),
       controls,
-      messageRowDragOptions(nodeId, selectedNodes, editMode)
+      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
     )
   }
 

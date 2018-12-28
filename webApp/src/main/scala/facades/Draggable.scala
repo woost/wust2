@@ -99,12 +99,30 @@ class DragStartEvent(data: js.Object) extends DragEvent(data) {
 @JSImport("@shopify/draggable", "DragOverEvent")
 class DragOverEvent(data: js.Object) extends DragEvent(data) {
   def over: html.Element = js.native
+  def overContainer: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragOverContainerEvent")
+class DragOverContainerEvent(data: js.Object) extends DragEvent(data) {
+  def overContainer: html.Element = js.native
 }
 
 @js.native
 @JSImport("@shopify/draggable", "DragOutEvent")
 class DragOutEvent(data: js.Object) extends DragEvent(data) {
   def over: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragOutContainerEvent")
+class DragOutContainerEvent(data: js.Object) extends DragEvent(data) {
+  def overContainer: html.Element = js.native
+}
+
+@js.native
+@JSImport("@shopify/draggable", "DragStopEvent")
+class DragStopEvent(data: js.Object) extends DragEvent(data) {
 }
 
 
@@ -134,25 +152,28 @@ class SortableEvent(data: js.Object) extends AbstractEvent(data) {
 }
 
 @js.native
-@JSImport("@shopify/draggable", "SortableStopEvent")
-class SortableStopEvent(data: js.Object) extends SortableEvent(data) {
-  def oldIndex:Int = js.native
-  def newIndex:Int = js.native
-  def oldContainer:html.Element = js.native
-  def newContainer:html.Element = js.native
+@JSImport("@shopify/draggable", "SortableStartEvent")
+class SortableStartEvent(data: js.Object) extends SortableEvent(data) {
+  def startIndex:Int = js.native
+  def startContainer:html.Element = js.native
 }
 
 @js.native
 @JSImport("@shopify/draggable", "SortableSortEvent")
 class SortableSortEvent(data: js.Object) extends SortableEvent(data) {
+  override def dragEvent:DragOverEvent = js.native
   def currentIndex:Int = js.native
   def over:html.Element = js.native
   def overContainer:html.Element = js.native
 }
 
 @js.native
-@JSImport("@shopify/draggable", "SortableStartEvent")
-class SortableStartEvent(data: js.Object) extends SortableEvent(data) {
-  def startIndex:Int = js.native
-  def startContainer:html.Element = js.native
+@JSImport("@shopify/draggable", "SortableStopEvent")
+class SortableStopEvent(data: js.Object) extends SortableEvent(data) {
+  override def dragEvent:DragStopEvent = js.native
+  def oldIndex:Int = js.native
+  def newIndex:Int = js.native
+  def oldContainer:html.Element = js.native
+  def newContainer:html.Element = js.native
 }
+

@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.dragdrop._
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -77,7 +78,7 @@ object BreadCrumbs {
             div(intersperse(elements, span("/", cls := "divider")))
           }
         },
-        registerDraggableContainer(state),
+        registerDragContainer(state),
         onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
       )
     }

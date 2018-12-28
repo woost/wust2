@@ -54,7 +54,7 @@ object SelectedNodes {
           }
         )
       },
-      registerDraggableContainer(state),
+      registerDragContainer(state),
       keyed,
       onGlobalEscape(Set.empty[T]) --> selectedNodes
     )
@@ -63,8 +63,7 @@ object SelectedNodes {
   private def nodeList[T <: SelectedNodeBase](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       cls := "nodelist drag-feedback",
-      draggableAs(DragItem.SelectedNodes(selectedNodeIds)),
-      cls := "draghandle",
+      drag(payload = DragItem.SelectedNodes(selectedNodeIds)),
 
       Styles.flex,
 //      alignItems.center,
@@ -123,8 +122,7 @@ object SelectedNodes {
     ),
       maxLength = Some(20)
     )(
-      draggableAs(DragItem.SelectedNode(node.id)),
-      dragTarget(DragItem.SelectedNode(node.id)),
+      drag(DragItem.SelectedNode(node.id)),
       cls := "draggable drag-feedback"
     )
   }

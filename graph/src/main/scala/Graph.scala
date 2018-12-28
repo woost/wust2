@@ -548,13 +548,13 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     builder.result()
   }
 
-  def combinedDeletedAt(subjectIdx: Int): Option[EpochMilli] = {
-    parentEdgeIdx(subjectIdx).foldLeft(Option(EpochMilli.min)) {
-      case (None, _)                               => None
-      case (Some(resultDeletedAt), currentEdgeIdx) => edges(currentEdgeIdx).asInstanceOf[Edge.Parent].data.deletedAt match {
-        case Some(currentDeletedAt) =>
-          Some(resultDeletedAt newest currentDeletedAt)
-        case None                   => None
+  def latestDeletedAt(subjectIdx: Int): Option[EpochMilli] = {
+    parentEdgeIdx(subjectIdx).foldLeft(Option.empty[EpochMilli]) { (result,currentEdgeIdx) =>
+      val currentDeletedAt = edges(currentEdgeIdx).asInstanceOf[Edge.Parent].data.deletedAt
+      (result,currentDeletedAt) match {
+        case (None,currentDeletedAt) => currentDeletedAt
+        case (result,None) => result
+        case (Some(result), Some(currentDeletedAt)) => Some(result newest currentDeletedAt)
       }
     }
   }
