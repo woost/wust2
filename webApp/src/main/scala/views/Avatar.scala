@@ -79,8 +79,8 @@ object Avatar {
 //    assert((hue1 - (hue3 - PI2)).abs >= padding)
 //    assert((hue2 - (hue3 - PI2)).abs >= padding)
 
-    @inline def c = 60
-    @inline def l = 65
+    @inline def c = 55
+    @inline def l = 70
     val col1 = HCL(hue1, c, l).toHex
     val col2 = HCL(hue2, c, l).toHex
     val col3 = HCL(hue3, c, l).toHex
