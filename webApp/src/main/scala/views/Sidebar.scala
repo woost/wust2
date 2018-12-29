@@ -239,7 +239,7 @@ object Sidebar {
       width := s"${ size }px",
       height := s"${ size }px",
       backgroundColor := (node match {
-        case node: Node.Content => (if(isSelected) BaseColors.pageBg else BaseColors.pageBgLight).copy(h = NodeColor.hue(node.id)).toHex
+        case node: Node.Content => (if(isSelected) BaseColors.pageBgLight else BaseColors.pageBg).copy(h = NodeColor.hue(node.id)).toHex
         case _: Node.User       => if(isSelected) "rgb(255, 255, 255)" else "rgba(255, 255, 255, 0.9)"
       }),
       Avatar(node),
