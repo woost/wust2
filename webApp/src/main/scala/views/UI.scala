@@ -18,7 +18,7 @@ import outwatch.dom.{helpers, _}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import wust.css.{Styles, ZIndex}
-import wust.webApp.{BrowserDetect, Ownable}
+import wust.webApp.{BrowserDetect}
 import wust.webApp.outwatchHelpers._
 import rx._
 

@@ -20,7 +20,7 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
+import wust.webApp.{BrowserDetect, Client, Icons}
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._

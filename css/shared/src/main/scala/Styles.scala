@@ -560,7 +560,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".thread-collapsebutton" - (
     opacity(0.5),
-    fontSize := "22px",
+    fontSize(22 px),
   )
   ".thread-collapsebutton:hover" - (
     visibility.visible.important,
@@ -1139,7 +1139,7 @@ object CommonStyles extends StyleSheet.Standalone {
     color.white,
 //    backgroundColor(Woost.color),
     // backgroundColor(c"#ff0266"), // pink
-    backgroundColor := "seagreen",
+    backgroundColor := seagreen,
     borderBottom(1 px, solid, black)
   )
 

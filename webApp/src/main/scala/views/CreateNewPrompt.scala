@@ -20,7 +20,7 @@ import wust.graph.Edge.Pinned
 import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.outwatchHelpers._
 import wust.util._
-import wust.webApp.{Ownable, views}
+import wust.webApp.views
 
 import scala.concurrent.Future
 

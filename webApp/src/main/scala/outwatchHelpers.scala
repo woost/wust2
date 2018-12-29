@@ -21,15 +21,26 @@ import scala.scalajs.js.JSConverters._
 import wust.util._
 import scala.util.control.NonFatal
 
-class Ownable[T](val get: Ctx.Owner => T) {
-  @inline final def map[R](f: T => R): Ownable[R] = Ownable(get andThen f)
-  @inline final def mapWithOwner[R](f: Ctx.Owner => T => R): Ownable[R] = Ownable(ctx => f(ctx)(get(ctx)))
-  @inline final def flatMap[R](f: T => Ownable[R]): Ownable[R] = Ownable(ctx => f(get(ctx)).get(ctx))
-}
-object Ownable {
-  @inline def apply[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get)
+package outwatchHelpers {
+  class Ownable[T](val get: Ctx.Owner => T) {
+    @inline final def map[R](f: T => R): Ownable[R] = Ownable(get andThen f)
+    @inline final def mapWithOwner[R](f: Ctx.Owner => T => R): Ownable[R] = Ownable(ctx => f(ctx)(get(ctx)))
+    @inline final def flatMap[R](f: T => Ownable[R]): Ownable[R] = Ownable(ctx => f(get(ctx)).get(ctx))
+  }
+  object Ownable {
+    @inline def apply[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get)
 
-  implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable.get(_))
+    implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable.get(_))
+  }
+
+  @inline class ModifierBooleanOps(condition: Boolean) {
+    @inline def apply(m: => VDomModifier):VDomModifier = if(condition) VDomModifier(m) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier, m6: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6) else VDomModifier.empty
+  }
 }
 
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
@@ -44,15 +55,6 @@ package object outwatchHelpers extends KeyHash {
 
   implicit object EmptyVDM extends Empty[VDomModifier] {
     @inline def empty: VDomModifier = VDomModifier.empty
-  }
-
-  @inline class ModifierBooleanOps(condition: Boolean) {
-    @inline def apply(m: => VDomModifier):VDomModifier = if(condition) VDomModifier(m) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: VDomModifier, m5: VDomModifier, m6: VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6) else VDomModifier.empty
   }
 
   implicit class RichVDomModifierFactory(val v: VDomModifier.type) extends AnyVal {
