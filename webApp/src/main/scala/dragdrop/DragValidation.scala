@@ -77,8 +77,10 @@ object DragValidation {
           state.eventProcessor.changes.onNext(calculateChange(e, state.graph.now, state.user.now.id))
         }((sourceContainer.get, payload.get, overContainer.get, ctrl, shift))
 
-        if(successful)
+        if(successful) {
           scribe.info(s"sort action successful: $payload: $sourceContainer -> $overContainer")
+          Analytics.sendEvent("drag", "sort", s"${sourceContainer.get.productPrefix}-${payload.get.productPrefix}-${overContainer.get.productPrefix}${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+        }
         else {
           scribe.info(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
           performDrag(state, e,currentOverEvent,ctrl, shift)
@@ -101,6 +103,7 @@ object DragValidation {
 
              if(successful) {
                scribe.info(s"drag action successful: $payload -> $target")
+               Analytics.sendEvent("drag", "drop", s"${ payload.get.productPrefix }-${ target.get.productPrefix }${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
                afterDraggedActionOpt.foreach{action =>
                  scribe.info(s"performing afterDraggedAction...")
                  action.apply()

@@ -32,7 +32,7 @@ object DragItem {
   val draggedActionPropName = "_wust_draggedaction"
 }
 
-sealed trait DragContainer
+sealed trait DragContainer extends Product with Serializable
 sealed trait SortableContainer extends DragContainer { def parentId: NodeId; def items: Seq[NodeId] }
 object DragContainer {
   case object Default extends DragContainer
