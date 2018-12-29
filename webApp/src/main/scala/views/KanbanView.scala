@@ -22,7 +22,7 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
-  private val maxLength = 100
+  private val maxLength = 300
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
 
