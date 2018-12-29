@@ -8,14 +8,14 @@ sealed trait DragPayloadAndTarget extends DragPayload with DragTarget
 object DragItem {
   case object DisableDrag extends DragPayloadAndTarget
 
-  sealed trait SingleNode extends DragPayloadAndTarget { def nodeId: NodeId }
+  sealed trait ContentNode extends DragPayloadAndTarget  { def nodeId: NodeId }
+  case class Message(nodeId: NodeId) extends ContentNode { override def toString = s"Message(${nodeId.shortHumanReadable})"}
+  case class Task(nodeId: NodeId) extends ContentNode { override def toString = s"Task(${nodeId.shortHumanReadable})"}
 
-  case class Message(nodeId: NodeId) extends SingleNode { override def toString = s"Message(${nodeId.shortHumanReadable})"}
-  case class Task(nodeId: NodeId) extends SingleNode { override def toString = s"Task(${nodeId.shortHumanReadable})"}
   case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Tag(${nodeId.shortHumanReadable})"}
 
   case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})"}
-  case class Stage(nodeId: NodeId) extends SingleNode { override def toString = s"Column(${nodeId.shortHumanReadable})"}
+  case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Column(${nodeId.shortHumanReadable})"}
 
   case object Sidebar extends DragTarget
   case class Channel(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable})"}

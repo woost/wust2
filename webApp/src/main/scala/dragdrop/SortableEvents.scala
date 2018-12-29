@@ -122,7 +122,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   // - Only one "big" sortable => container always the same (oldContainer == newContainer)
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
-  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: DragItem.SingleNode, from: SortableContainer, into: SortableContainer): GraphChanges = {
+  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer): GraphChanges = {
 
     import DragContainer._
     scribe.debug("Computing sorting change")
@@ -133,13 +133,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
         val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition)) { scribe.debug("item dropped on same place (no movement)"); GraphChanges.empty }
                  else
-                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
+                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
 
 
         //                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
-        //                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
+        //                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
         //                 else
-        //                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode.nodeId, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
+        //                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
 
         scribe.debug("Calculated new sorting graph change!")
         scribe.debug(gc.toPrettyString(graph))
@@ -149,9 +149,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     }
   }
 
-  private def addTag(nodeId: NodeId, tagId: NodeId, graph:Graph): GraphChanges = addTag(nodeId :: Nil, tagId, graph)
-  private def addTag(nodeIds: Iterable[NodeId], tagId: NodeId, graph:Graph): GraphChanges = addTag(nodeIds, tagId :: Nil, graph)
-  private def addTag(nodeIds: Iterable[NodeId], tagIds: Iterable[NodeId], graph:Graph): GraphChanges = {
+  @inline private def linkInto(nodeId: NodeId, tagId: NodeId, graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagId, graph)
+  @inline private def linkInto(nodeId: NodeId, tagIds: Iterable[NodeId], graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagIds, graph)
+  @inline private def linkInto(nodeIds: Iterable[NodeId], tagId: NodeId, graph:Graph): GraphChanges = linkInto(nodeIds, tagId :: Nil, graph)
+  private def linkInto(nodeIds: Iterable[NodeId], tagIds: Iterable[NodeId], graph:Graph): GraphChanges = {
     // tags will be added with the same (latest) deletedAt date, which the node already has for other parents
     nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
       val subjectIdx = graph.idToIdx(nodeId)
@@ -160,10 +161,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     }
   }
 
-  private def moveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
-  private def moveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
-  private def moveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
-  private def moveInto(nodeIds: Iterable[NodeId], newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = {
+  @inline private def moveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
+  @inline private def moveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
+  @inline private def moveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
+  @inline private def moveInto(nodeIds: Iterable[NodeId], newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
   }
   private def movePinnedChannel(channelId: NodeId, targetChannelId: Option[NodeId], graph: Graph, userId: UserId): GraphChanges = {
@@ -177,6 +178,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       targetChannelId => GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
     }
     disconnect merge connect
+  }
+
+  @inline private def linkOrMoveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentId :: Nil, graph, link)
+  @inline private def linkOrMoveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId, newParentId :: Nil, graph, link)
+  @inline private def linkOrMoveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentIds, graph, link)
+  @inline private def linkOrMoveInto(nodeId: Iterable[NodeId], newParentId: Iterable[NodeId], graph:Graph, link:Boolean) = {
+    if(link) linkInto(nodeId, newParentId, graph)
+    else moveInto(nodeId, newParentId, graph)
   }
 
 
@@ -250,14 +259,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (from: Kanban.AreaForColumns, payload: DragItem.Stage, into: Kanban.AreaForColumns, false, false) =>
         (sortableStopEvent,graph,userId) =>
           //        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val unstageChanges: GraphChanges = if(from.parentId != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.parentId) else GraphChanges.empty
           unstageChanges merge sortChanges
 
 
       case (from: Kanban.Column, payload: DragItem.Task, into: Kanban.Column, false, false) =>
         (sortableStopEvent,graph,userId) =>
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val unstageChanges: GraphChanges = if(from.parentId != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.parentId) else GraphChanges.empty
           unstageChanges merge sortChanges
 
@@ -266,7 +275,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         (sortableStopEvent,graph,userId) =>
           // the card changes its workspace from from:Card to into:Kanban.Column.workspace
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val changeWorkspace: GraphChanges = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), from.parentId :: Nil, Some(into.workspace))
           // TODO: adding stageParents to fullChange results in a graphchange where the same parentedge
           // is introduced by sortChanges, but with an ordering. Graphchanges does NOT squash the edges. This is a bug in GraphChanges.
@@ -276,14 +285,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (from: Kanban.Inbox, payload: DragItem.Task, into: Kanban.Column, false, false) =>
         (sortableStopEvent,graph,userId) =>
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), stageParents, Some(into.parentId))
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val stageParents = graph.getRoleParents(payload.nodeId, NodeRole.Stage).filterNot(_ == into.parentId)
           sortChanges
 
       case (from: Kanban.Column, payload: DragItem.Task, into: Kanban.Workspace, false, false) =>
         (sortableStopEvent,graph,userId) =>
           // disconnect from all stage parents
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val stageParents = graph.getRoleParents(payload.nodeId, NodeRole.Stage)
           val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, stageParents)
           val changeWorkspace: GraphChanges = if(from.workspace != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.workspace :: Nil) else GraphChanges.empty
@@ -292,7 +301,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (from: Kanban.Workspace, payload: DragItem.Task, into: Kanban.Workspace, false, false) =>
         (sortableStopEvent,graph,userId) =>
           // disconnect from all stage parents
-          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val oldParents = graph.parents(payload.nodeId).filterNot(_ == into.parentId)
           val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, oldParents)
           unstageChanges merge sortChanges
@@ -301,7 +310,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       //// List View ////
       case (from: List, payload: DragItem.Task, into: List, false, false) =>
         (sortableStopEvent,graph,userId) =>
-          sortingChanges(graph, userId, sortableStopEvent, payload, from, into)
+          sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
 
     }
   }
@@ -317,32 +326,24 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     // Drag actions are only dependent on payload and target. (independent of containers)
     import DragItem._
     {
-      case (payload: Message, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Task, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Message, target: Task, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Message, target: Thread, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeIds, graph)
-      case (payload: Message, target: Workspace, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: ContentNode, target: ContentNode, ctrl, false)  => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Thread, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeIds, graph, ctrl)
+      case (payload: ContentNode, target: Workspace, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Channel, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: Message, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Task, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: ContentNode, target: BreadCrumb, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: Message, target: BreadCrumb, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Task, target: BreadCrumb, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-
-      case (payload: SelectedNode, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: SelectedNode, target: Task, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: SelectedNodes, target: Message, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
-      case (payload: SelectedNodes, target: Task, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
-      case (payload: SelectedNodes, target: Workspace, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
-      case (payload: SelectedNodes, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
+      case (payload: SelectedNode, target: ContentNode, ctrl, false)  => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: ContentNode, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: Workspace, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: Channel, ctrl, false) => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
 
       case (payload: Channel, target: Channel, false, false)      => (sortableStopEvent,graph,userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
       case (payload: Channel, target: Sidebar.type, false, false) => (sortableStopEvent,graph,userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
 
-      case (payload: Tag, target: Message, false, false)  => (sortableStopEvent,graph,userId) => addTag(target.nodeId, payload.nodeId, graph)
-      case (payload: Tag, target: Task, false, false)  => (sortableStopEvent,graph,userId) => addTag(target.nodeId, payload.nodeId, graph)
+      case (payload: Tag, target: ContentNode, false, false)  => (sortableStopEvent,graph,userId) => linkInto(target.nodeId, payload.nodeId, graph)
 
-      case (payload: User, target: Task, _, _)                => (sortableStopEvent,graph,userId) => assign(payload.userId, target.nodeId)
+      case (payload: User, target: Task, false, false)                => (sortableStopEvent,graph,userId) => assign(payload.userId, target.nodeId)
     }
   }
 
