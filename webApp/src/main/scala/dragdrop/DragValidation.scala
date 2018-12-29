@@ -30,7 +30,6 @@ object DragValidation {
     val overContainer = overContainerWorkaround.getOrElse(lastDragOverContainerEvent.overContainer)
     val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
     val payloadOpt = readDragPayload(e.dragEvent.source)
-    //      val targetOpt = readDragTarget(e.dragEvent.over)
     // containers are written by registerDragContainer
     val targetContainerOpt = readDragContainer(overContainer)
     val sourceContainerOpt = readDragContainer(sourceContainerWorkaround)
@@ -109,7 +108,7 @@ object DragValidation {
              }
              else {
                scribe.info(s"drag action not defined: $payload -> $target")
-               // TODO:              Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+               Analytics.sendEvent("drag", "nothandled", s"${ payload.get.productPrefix }-${ target.get.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
              }
            case (payload, target) =>
              scribe.info(s"incomplete drag information: $payload -> $target)")
