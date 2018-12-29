@@ -395,7 +395,7 @@ object SharedViewElements {
       val graph = state.graph()
       val node = graph.nodesById(nodeId)
       VDomModifier.ifNot(editMode()){ // prevents dragging when selecting text
-        val selection = selectedNodes.now
+        val selection = selectedNodes()
         // payload is call by name, so it's always the current selectedNodeIds
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
