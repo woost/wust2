@@ -223,7 +223,6 @@ object Components {
         state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
-      drag(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
     )
   }
@@ -242,13 +241,14 @@ object Components {
     )
   }
 
-  def nodeTag(state: GlobalState, tag: Node, pageOnClick: Boolean = true): VNode = {
+  def nodeTag(
+    state: GlobalState,
+    tag: Node,
+    pageOnClick: Boolean = true,
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+  ): VNode = {
     val contentString = trimToMaxLength(tag.data.str, 20)
-    renderNodeTag(state, tag, contentString, pageOnClick)
-  }
-
-  def editableNodeTag(state: GlobalState, tag: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = Some(20))(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeTag(state, tag, editableNode(state, tag, editMode, submit, maxLength), pageOnClick = false)
+    renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
   }
 
   def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit): VNode = {

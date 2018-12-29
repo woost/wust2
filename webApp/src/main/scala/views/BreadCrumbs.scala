@@ -65,8 +65,10 @@ object BreadCrumbs {
                         graph.nodesByIdGet(nid) match {
                           // hiding the stage prevents accidental zooming into stages, which in turn prevents to create inconsistent state.
                           // example of unwanted inconsistent state: task is only child of stage, but child of nothing else.
-                          case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage => nodeTag(state, node)(cursor.pointer)
-                          case _                                                  => VDomModifier.empty
+                          case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage =>
+                            nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(cursor.pointer)
+                          case _                                                  =>
+                            VDomModifier.empty
                         }
                       },
                       if(gId != -1) cycleIndicator(true) else "",

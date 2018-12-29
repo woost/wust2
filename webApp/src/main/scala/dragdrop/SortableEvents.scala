@@ -161,6 +161,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   private def moveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
+  private def moveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
   private def moveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
   private def moveInto(nodeIds: Iterable[NodeId], newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
@@ -193,32 +194,31 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   //  shiftDown.foreach(down => println(s"shift down: $down"))
 
 
-  sortableSortEvent.withLatestFrom3(currentOverContainerEvent, ctrlDown, shiftDown)((e, currentOverContainerEvent, ctrl, shift) => (e, currentOverContainerEvent, ctrl, shift)).foreachTry {
-    case (e, currentOverContainerEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
-      val overSortcontainer = readDragContainer(e.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
+  sortableSortEvent.withLatestFrom3(currentOverContainerEvent, ctrlDown, shiftDown)((sortableSortEvent, currentOverContainerEvent, ctrl, shift) => (sortableSortEvent, currentOverContainerEvent, ctrl, shift)).foreachTry {
+    case (sortableSortEvent, currentOverContainerEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
+      val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
       if(overSortcontainer) {
         scribe.info("over sortcontainer, validating sort information...")
-        validateSortInformation(e, currentOverContainerEvent.get, ctrl, shift)
+        validateSortInformation(sortableSortEvent, currentOverContainerEvent.get, ctrl, shift)
       } else {
         // drag action is handled by dragOverEvent instead
-        e.cancel()
+        sortableSortEvent.cancel()
       }
-    case (e, _, _, _) => e.cancel()
+    case (sortableSortEvent, _, _, _) => sortableSortEvent.cancel()
   }
 
-  dragOverEvent.withLatestFrom3(currentOverEvent, ctrlDown, shiftDown)((e, currentOverEvent, ctrl, shift) => (e, currentOverEvent, ctrl, shift)).foreachTry {
-    case (e, currentOverEvent, ctrl, shift) if currentOverEvent.isDefined =>
+  dragOverEvent.withLatestFrom2(ctrlDown, shiftDown)((e, ctrl, shift) => (e, ctrl, shift)).foreachTry {
+    case (e, ctrl, shift) =>
       val notOverSortContainer = !readDragContainer(e.overContainer).exists(_.isInstanceOf[SortableContainer])
 
-      if(false && notOverSortContainer) {
+      if(notOverSortContainer) {
         scribe.info("not over sort container, validating drag information...")
         validateDragInformation(e, ctrl, shift)
       } else {
         // drag action is handled by sortableSortEvent instead
         e.cancel()
       }
-    case (e, _, _, _) => e.cancel()
   }
 
   // when dropping
@@ -317,30 +317,32 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     // Drag actions are only dependent on payload and target. (independent of containers)
     import DragItem._
     {
+      case (payload: Message, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: Task, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: Message, target: Task, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
       case (payload: Message, target: Thread, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeIds, graph)
+      case (payload: Message, target: Workspace, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
 
-      case (payload: Task, target: SingleNode, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: Stage, target: SingleNode, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: Message, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: Task, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
 
-      case (payload: SelectedNode, target: SingleNode, false, false)  => (sortableStopEvent,graph,userId) => addTag(payload.nodeIds, target.nodeId, graph)
-      case (payload: SelectedNodes, target: SingleNode, false, false) => (sortableStopEvent,graph,userId) => addTag(payload.nodeIds, target.nodeId, graph)
+      case (payload: Message, target: BreadCrumb, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: Task, target: BreadCrumb, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+
+      case (payload: SelectedNode, target: Message, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: SelectedNode, target: Task, false, false)  => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
+      case (payload: SelectedNodes, target: Message, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
+      case (payload: SelectedNodes, target: Task, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
+      case (payload: SelectedNodes, target: Workspace, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
+      case (payload: SelectedNodes, target: Channel, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId, graph)
 
       case (payload: Channel, target: Channel, false, false)      => (sortableStopEvent,graph,userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
-      case (payload: AnyNodes, target: Channel, false, false)     => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeId :: Nil, graph)
-      case (payload: Channel, target: SingleNode, false, false)   => (sortableStopEvent,graph,userId) => addTag(payload.nodeId, target.nodeId, graph)
       case (payload: Channel, target: Sidebar.type, false, false) => (sortableStopEvent,graph,userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
 
-      case (payload: ChildNode, target: ParentNode, false, false)       => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: ChildNode, target: MultiParentNodes, false, false) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeIds, graph)
-      case (payload: ChildNode, target: ChildNode, false, false)        => (sortableStopEvent,graph,userId) => moveInto(payload.nodeId, target.nodeId, graph)
-      case (payload: ParentNode, target: SingleNode, false, false)      => (sortableStopEvent,graph,userId) => addTag(target.nodeId, payload.nodeId, graph)
+      case (payload: Tag, target: Message, false, false)  => (sortableStopEvent,graph,userId) => addTag(target.nodeId, payload.nodeId, graph)
+      case (payload: Tag, target: Task, false, false)  => (sortableStopEvent,graph,userId) => addTag(target.nodeId, payload.nodeId, graph)
 
       case (payload: User, target: Task, _, _)                => (sortableStopEvent,graph,userId) => assign(payload.userId, target.nodeId)
-      case (payload: User, _, _, _)                => (sortableStopEvent,graph,userId) => GraphChanges.empty
-
-      case (payload: AnyNodes, target: AnyNodes , true, _)  => (sortableStopEvent,graph,userId) => addTag(payload.nodeIds, target.nodeIds, graph)
-
-      case (payload: AnyNodes, target: AnyNodes, false, _) => (sortableStopEvent,graph,userId) => moveInto(payload.nodeIds, target.nodeIds, graph)
     }
   }
 

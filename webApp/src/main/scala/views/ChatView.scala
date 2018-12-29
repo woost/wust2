@@ -57,7 +57,7 @@ object ChatView {
     val pinReply = Var(false)
 
     def outerDragOptions(pageId: NodeId) = VDomModifier(
-      drag(target = DragItem.Page(pageId)),
+      drag(target = DragItem.Workspace(pageId)),
       registerDragContainer(state, DragContainer.Chat),
     )
 

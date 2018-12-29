@@ -64,6 +64,7 @@ object SelectedNodes {
     div(
       cls := "nodelist drag-feedback",
       drag(payload = DragItem.SelectedNodes(selectedNodeIds)),
+      onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] },
 
       Styles.flex,
 //      alignItems.center,

@@ -46,7 +46,7 @@ object ThreadView {
 
     val outerDragOptions = VDomModifier(
       registerDragContainer(state),
-      Rx { state.page().parentId.map(pageParentId => drag(target = DragItem.Page(pageParentId))) },
+      Rx { state.page().parentId.map(pageParentId => drag(target = DragItem.Workspace(pageParentId))) },
     )
 
     val pageCounter = PublishSubject[Int]()
