@@ -183,6 +183,8 @@ object GraphChanges {
     disconnect merge connect
   }
 
+  //TODO: The GrahpChange.moveInto function needs tests!
+  //TODO: unify with moveInto used for drag&drop?
   def moveInto(graph: Graph, subjectIds: Iterable[NodeId], newParentIds: Iterable[NodeId]): GraphChanges =
     newParentIds.foldLeft(GraphChanges.empty) { (changes, targetId) => changes merge GraphChanges.moveInto(graph, subjectIds, targetId) }
   def moveInto(graph: Graph, subjectId: NodeId, newParentId: NodeId): GraphChanges = moveInto(graph, subjectId :: Nil, newParentId)
@@ -210,5 +212,53 @@ object GraphChanges {
       ) -- newParentships
 
     GraphChanges(addEdges = newParentships, delEdges = removeParentships)
+  }
+
+
+  // these moveInto methods are only used for drag&drop right now. Can we unify them with the above moveInto?
+  @inline def moveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentId :: Nil, graph)
+  @inline def moveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph): GraphChanges = moveInto(nodeId, newParentId :: Nil, graph)
+  @inline def moveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = moveInto(nodeId :: Nil, newParentIds, graph)
+  @inline def moveInto(nodeIds: Iterable[NodeId], newParentIds: Iterable[NodeId], graph:Graph): GraphChanges = {
+    GraphChanges.moveInto(graph, nodeIds, newParentIds)
+  }
+  def movePinnedChannel(channelId: NodeId, targetChannelId: Option[NodeId], graph: Graph, userId: UserId): GraphChanges = {
+    val channelIdx = graph.idToIdx(channelId)
+    val directParentsInChannelTree = graph.notDeletedParentsIdx(channelIdx).collect {
+      case parentIdx if graph.anyAncestorIsPinned(graph.nodeIds(parentIdx) :: Nil, userId) => graph.nodeIds(parentIdx)
+    }
+
+    val disconnect: GraphChanges = GraphChanges.disconnect(Edge.Parent)(channelId, directParentsInChannelTree)
+    val connect: GraphChanges = targetChannelId.fold(GraphChanges.empty) {
+      targetChannelId => GraphChanges.connect(Edge.Parent)(channelId, targetChannelId)
+    }
+    disconnect merge connect
+  }
+
+
+  @inline def linkInto(nodeId: NodeId, tagId: NodeId, graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagId, graph)
+  @inline def linkInto(nodeId: NodeId, tagIds: Iterable[NodeId], graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagIds, graph)
+  @inline def linkInto(nodeIds: Iterable[NodeId], tagId: NodeId, graph:Graph): GraphChanges = linkInto(nodeIds, tagId :: Nil, graph)
+  def linkInto(nodeIds: Iterable[NodeId], tagIds: Iterable[NodeId], graph:Graph): GraphChanges = {
+    // tags will be added with the same (latest) deletedAt date, which the node already has for other parents
+    nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
+      val subjectIdx = graph.idToIdx(nodeId)
+      val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
+      currentChange merge GraphChanges.connect((s, d, t) => new Edge.Parent(s, d, t))(nodeIds, EdgeData.Parent(deletedAt, None), tagIds)
+    }
+  }
+
+
+  @inline def linkOrMoveInto(nodeId: NodeId, newParentId: NodeId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentId :: Nil, graph, link)
+  @inline def linkOrMoveInto(nodeId: Iterable[NodeId], newParentId: NodeId, graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId, newParentId :: Nil, graph, link)
+  @inline def linkOrMoveInto(nodeId: NodeId, newParentIds: Iterable[NodeId], graph:Graph, link:Boolean): GraphChanges = linkOrMoveInto(nodeId :: Nil, newParentIds, graph, link)
+  @inline def linkOrMoveInto(nodeId: Iterable[NodeId], newParentId: Iterable[NodeId], graph:Graph, link:Boolean) = {
+    if(link) linkInto(nodeId, newParentId, graph)
+    else moveInto(nodeId, newParentId, graph)
+  }
+
+
+  @inline def assign(userId: UserId, nodeId: NodeId) = {
+    GraphChanges.connect(Edge.Assigned)(userId, nodeId)
   }
 }
