@@ -326,7 +326,7 @@ object ChatView {
       else VDomModifier.empty
     } else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode)
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes, editMode))
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
@@ -354,10 +354,9 @@ object ChatView {
         isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
         selectByClickingOnRow,
         checkbox,
-        Rx { renderedMessage() },
+        renderedMessage,
         messageTags(state, nodeId, stageParents.now),
         controls,
-        messageRowDragOptions(state, nodeId, selectedNodes, editMode)
       )
     )
   }

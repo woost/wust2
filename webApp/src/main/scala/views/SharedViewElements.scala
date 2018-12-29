@@ -388,9 +388,7 @@ object SharedViewElements {
     creationDate(creationEpochMillis),
   )
 
-  def messageRowDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
-    // The whole line is draggable, so that it can also be a drag-target.
-    // This is currently a limit in the draggable library
+  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
       val node = graph.nodesById(nodeId)

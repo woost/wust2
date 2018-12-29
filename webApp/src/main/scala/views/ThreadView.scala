@@ -313,15 +313,17 @@ object ThreadView {
       graph.isDeletedInFuture(nodeId, directParentIds)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = inCycle.ifTrue(VDomModifier(
-      Styles.flex,
-      alignItems.center,
-      freeSolid.faSyncAlt,
-      paddingRight := "3px",
-      backgroundColor := "#CCC",
-      color := "#666",
-      boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
-    )))
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
+        Styles.flex,
+        alignItems.center,
+        freeSolid.faSyncAlt,
+        paddingRight := "3px",
+        backgroundColor := "#CCC",
+        color := "#666",
+        boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
+      ),
+      messageDragOptions(state, nodeId, selectedNodes, editMode),
+    ))
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(editMode, showReplyField), isSelected = isSelected)
     val selectByClickingOnRow = {
@@ -351,7 +353,6 @@ object ThreadView {
       renderedMessage,
       messageTags(state, nodeId, directParentIds),
       controls,
-      messageRowDragOptions(state, nodeId, selectedNodes, editMode)
     )
   }
 
