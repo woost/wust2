@@ -174,31 +174,39 @@ object Components {
   }
 
   // FIXME: Ensure unique DM node that may be renamed.
-  def onClickDirectMessage(state:GlobalState, user:Node.User): VDomModifier = {
-    (state.user.now.id != user.id).ifTrue[VDomModifier]({
-      val dmName = IndexedSeq[String](displayUserName(state.user.now.toNode.data), displayUserName(user.data)).sorted.mkString(", ")
+  def onClickDirectMessage(state: GlobalState, dmUser: Node.User): VDomModifier = {
+    val user = state.user.now
+    val userId = user.id
+    val dmUserId = dmUser.id
+    (userId != dmUserId).ifTrue[VDomModifier]({
+      val dmName = IndexedSeq[String](displayUserName(user.toNode.data), displayUserName(dmUser.data)).sorted.mkString(", ")
       VDomModifier(
         onClick.foreach{
           val graph = state.graph.now
-          val previousDmNode = graph.chronologicalNodesAscending.find(n => n.str == dmName && graph.pinnedNodeIdx.contains(graph.idToIdx(user.id))(graph.idToIdx(n.id))) // Max 1 dm node with this name
+          val previousDmNode: Option[Node] = {
+            val userIdx = graph.idToIdx(userId)
+            graph.chronologicalNodesAscending.find{ n =>
+              n.str == dmName && graph.isPinned(graph.idToIdx(n.id), userIdx)
+            }
+          } // Max 1 dm node with this name
           previousDmNode match {
             case Some(dmNode) if graph.can_access_node(user.id, dmNode.id) =>
               state.viewConfig() = state.viewConfig.now.focusView(Page(dmNode.id), View.Chat, needsGet = false)
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
-              state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id, title = dmName))
+              state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, userId, title = dmName))
               state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), View.Chat, needsGet = false)
               //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
               dom.window.setTimeout({() =>
-                Client.api.addMember(nodeId, user.id, AccessLevel.ReadWrite)
-                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(user.id, nodeId)))
+                Client.api.addMember(nodeId, dmUserId, AccessLevel.ReadWrite)
+                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(dmUserId, nodeId)))
                 state.eventProcessor.changes.onNext(change)
               }, 3000)
               ()
           }
         },
         cursor.pointer,
-        UI.popup := s"Start Conversation with ${displayUserName(user.data)}"
+        UI.popup := s"Start Conversation with ${displayUserName(dmUser.data)}"
       )
     })
   }
