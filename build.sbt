@@ -10,7 +10,7 @@ dynver in ThisBuild ~= (_.replace('+', '-')) // TODO: https://github.com/dwijnan
 import Def.{setting => dep}
 
 // -- common setting --
-scalaVersion in ThisBuild := "2.12.7"
+scalaVersion in ThisBuild := "2.12.8"
 // 2.11 is needed for android app
 crossScalaVersions in ThisBuild := Seq("2.11.12", scalaVersion.value)
 
