@@ -4,7 +4,7 @@ import fontAwesome._
 import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.execution.Ack
-import monix.reactive.{Observable}
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.window

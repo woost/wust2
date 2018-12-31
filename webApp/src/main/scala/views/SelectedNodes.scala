@@ -4,12 +4,12 @@ import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.Icons
-import wust.webApp.dragdrop.{DragItem}
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
@@ -31,7 +31,7 @@ object SelectedNodes {
 
       Rx {
         val graph = state.graph()
-        val sortedNodeIds = selectedNodes().toList.sortBy(data => graph.nodeModified(graph.idToIdx(data.nodeId)): Long)
+        val sortedNodeIds = selectedNodes().toList //.sortBy(data => graph.nodeCreated(graph.idToIdx(data.nodeId)): Long)
         val canWriteAll = NodePermission.canWriteAll(graph, sortedNodeIds.map(_.nodeId))
         VDomModifier(
           sortedNodeIds match {
@@ -56,7 +56,8 @@ object SelectedNodes {
       },
       registerDragContainer(state),
       keyed,
-      onGlobalEscape(Set.empty[T]) --> selectedNodes
+      ZIndex.selected,
+      onGlobalEscape(Set.empty[T]) --> selectedNodes,
     )
   }
 
