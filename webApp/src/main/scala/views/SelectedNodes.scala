@@ -56,7 +56,7 @@ object SelectedNodes {
       },
       registerDragContainer(state),
       keyed,
-      ZIndex.selected,
+      zIndex := ZIndex.selected,
       onGlobalEscape(Set.empty[T]) --> selectedNodes,
     )
   }
