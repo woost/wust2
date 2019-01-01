@@ -18,6 +18,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, PageChange, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import wust.webApp.state.ScreenSize
 
 object KanbanView {
   import SharedViewElements._
@@ -29,15 +30,12 @@ object KanbanView {
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
     val newColumnFieldActive = Var(false)
     val newTagFieldActive = Var(false)
+    val tagBarExpanded = Var(state.largeScreen)
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
-      cls := "kanbanview",
-
-      overflow.auto,
-
+      height := "100%",
       Styles.flex,
-      alignItems.flexStart,
 
       Rx {
         val page = state.page()
@@ -78,24 +76,57 @@ object KanbanView {
           val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, firstWorkspaceId, topLevelColumns, (t: Tree) => t.node.id)
           val assigneInbox = inboxTasks.map(graph.nodeIds)
 
-            VDomModifier(
-              renderInboxColumn(state, pageParentId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
-              div(
-                cls := s"kanbancolumnarea",
-                keyed,
-                Styles.flexStatic,
+          div(
+            cls := "kanbanview",
 
-                Styles.flex,
-                alignItems.flexStart,
-                sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
+            overflow.auto,
 
-                registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
-              ),
-              newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
-              tagList(state, pageParentId, newTagFieldActive).apply(Styles.flexStatic),
-            )
+            Styles.flex,
+            alignItems.flexStart,
+            renderInboxColumn(state, firstWorkspaceId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
+            div(
+              cls := s"kanbancolumnarea",
+              keyed,
+              Styles.flexStatic,
+
+              Styles.flex,
+              alignItems.flexStart,
+              sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
+
+              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
+            ),
+            newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
+          )
         }
       },
+      Rx {
+        val page = state.page()
+        val graph = state.graph()
+        page.parentId.map { pageParentId =>
+          val pageParentIdx = graph.idToIdx(pageParentId)
+          val workspaces = graph.workspacesForParent(pageParentIdx)
+          val firstWorkspaceIdx = workspaces.head
+          val firstWorkspaceId = graph.nodeIds(workspaces.head)
+          if(tagBarExpanded())
+            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(Styles.flexStatic)
+          else
+            VDomModifier(
+              position.relative,
+              div(
+                "show tags",
+                onClick.stopPropagation(true) --> tagBarExpanded,
+                cursor.pointer,
+
+                position.absolute,
+                top := "0",
+                right := "0",
+                backgroundColor := "rgba(255,255,255,0.9)",
+                borderBottomLeftRadius := "5px",
+                padding := "5px",
+              )
+            )
+        }
+      }
     )
   }
 
@@ -103,6 +134,7 @@ object KanbanView {
     state: GlobalState,
     workspaceId: NodeId,
     newTagFieldActive: Var[Boolean],
+    tagBarExpanded: Var[Boolean],
   )(implicit ctx:Ctx.Owner) = {
     val tags = Rx {
       val graph = state.graph()
@@ -111,13 +143,18 @@ object KanbanView {
     }
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
     div(
-      borderRadius := "5px",
-      border := s"1px dashed $columnColor",
-      padding := "15px",
+      borderLeft := s"1px solid $columnColor",
+      paddingLeft := "10px",
+      paddingRight := "10px",
+      paddingBottom := "10px",
 
       Styles.flex,
       flexDirection.column,
       alignItems.flexEnd,
+
+      div(
+        closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> tagBarExpanded),
+      ),
 
       tags.map(_.map(tag => nodeTag(state, tag))),
 
