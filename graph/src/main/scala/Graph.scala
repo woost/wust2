@@ -463,26 +463,27 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def isPinned(idx: Int, userIdx:Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
+  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt.apply(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).asInstanceOf[Edge.Author].data.timestamp).toArray).toArray)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
-  val (nodeCreated: Array[EpochMilli], nodeModified: Array[EpochMilli], nodeCreatorIdx:Array[Int]) = {
+  val (nodeCreated: Array[EpochMilli], nodeCreatorIdx:Array[Int], nodeModified:Array[EpochMilli]) = {
     val nodeCreated = Array.fill(n)(EpochMilli.min)
-    val nodeModified = Array.fill(n)(EpochMilli.min)
     val nodeCreator = new Array[Int](n)
+    val nodeModified = Array.fill(n)(EpochMilli.min)
     var nodeIdx = 0
     while(nodeIdx < n) {
-      val authorEdgeIndices: ArraySliceInt = authorshipEdgeIdx(nodeIdx)
+      val authorEdgeIndices: ArraySliceInt = sortedAuthorshipEdgeIdx(nodeIdx)
       if(authorEdgeIndices.nonEmpty) {
-        val (createdEdgeIdx, lastModifierEdgeIdx) = authorEdgeIndices.minMax(smallerThan = (a, b) => edges(a).asInstanceOf[Edge.Author].data.timestamp < edges(b).asInstanceOf[Edge.Author].data.timestamp)
+        val (createdEdgeIdx, lastModifierEdgeIdx) = (authorEdgeIndices.head, authorEdgeIndices.last)
         nodeCreated(nodeIdx) = edges(createdEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
-        nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
         nodeCreator(nodeIdx) = edgesIdx.a(createdEdgeIdx)
+        nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
       } else {
         nodeCreator(nodeIdx) = -1
       }
       nodeIdx += 1
     }
-    (nodeCreated, nodeModified, nodeCreator)
+    (nodeCreated, nodeCreator, nodeModified)
   }
 
   def nodeCreator(idx:Int): Option[Node.User] = {
@@ -490,6 +491,18 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case -1 => None
       case authorIdx => Option(nodes(authorIdx).asInstanceOf[Node.User])
     }
+  }
+
+  def nodeModifier(idx:Int): IndexedSeq[(Node.User, EpochMilli)] = {
+    val numAuthors = sortedAuthorshipEdgeIdx(idx).length
+    if(numAuthors > 1) {
+      sortedAuthorshipEdgeIdx(idx).tail.map{ eIdx =>
+        val user = nodes(edgesIdx.a(eIdx)).asInstanceOf[Node.User]
+        val time = edges(eIdx).asInstanceOf[Edge.Author].data.timestamp
+        (user, time)
+      }
+    }
+    else IndexedSeq.empty[(Node.User, EpochMilli)]
   }
 
   def topLevelRoleStats(parentIds: Iterable[NodeId]): RoleStats = {

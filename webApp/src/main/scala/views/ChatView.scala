@@ -253,9 +253,10 @@ object ChatView {
       state.largeScreen.ifTrue[VDomModifier](if(inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage(state, user))))),
       div(
         cls := "chat-group-inner-frame",
-        inReplyGroup.ifFalse[VDomModifier](author.map(author => chatMessageHeader(state, author, creationEpochMillis, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))(
-          state.smallScreen.ifTrue[VDomModifier](VDomModifier(paddingLeft := "0")),
-        ))),
+        inReplyGroup.ifFalse[VDomModifier](author.map{ author =>
+          val header = chatMessageHeader(state, author, creationEpochMillis, groupHeadId, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))
+          header(state.smallScreen.ifTrue[VDomModifier](VDomModifier(paddingLeft := "0")))
+        }),
 
         div(
           cls := "chat-expanded-thread",
@@ -322,7 +323,7 @@ object ChatView {
       val graph = state.graph()
       val idx = graph.idToIdx(nodeId)
       val author: Option[Node.User] = graph.nodeCreator(idx)
-      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), author.map(smallAuthorAvatar))
+      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), nodeId, author.map(smallAuthorAvatar))
       else VDomModifier.empty
     } else VDomModifier.empty
 

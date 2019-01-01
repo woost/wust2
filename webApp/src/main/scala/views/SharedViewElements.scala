@@ -296,21 +296,48 @@ object SharedViewElements {
     )
   }
 
+  def dateString(epochMilli: EpochMilli): String = {
+    val createdDate = new js.Date(epochMilli)
+    if(dateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
+      dateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
+    else
+      dateFns.format(new js.Date(epochMilli), "p") // localized only time
+  }
+
   def creationDate(created: EpochMilli): VDomModifier = {
     (created != EpochMilli.min).ifTrue[VDomModifier](
       div(
         cls := "chatmsg-date",
         Styles.flexStatic,
-        {
-          val createdDate = new js.Date(created)
-          if(dateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
-            dateFns.format(new js.Date(created), "Pp") // localized date and time
-          else
-            dateFns.format(new js.Date(created), "p") // localized only time
-        }
-//        dateFns.formatDistance(new js.Date(created), new js.Date), " ago",
+        dateString(created),
       )
     )
+  }
+
+  def modifications(author: Node.User, modificationData: IndexedSeq[(Node.User, EpochMilli)]): VDomModifier = {
+
+    @inline def modificationItem(user: Node.User, time: EpochMilli)  = li(s"${user.name} at ${dateString(time)}")
+
+    @inline def modificationsHtml = ul(
+      fontSize.xSmall,
+      margin := "0",
+      padding := "0 0 0 5px",
+      modificationData.map(item => modificationItem(item._1, item._2))
+    )
+
+    @inline def modificationsString = {
+      modificationData.map(item => modificationItem(item._1, item._2)).mkString(",\n")
+    }
+
+    modificationData.nonEmpty.ifTrue[VDomModifier]{
+      val lastModification = modificationData.last
+      div(
+        cls := "chatmsg-date",
+        Styles.flexStatic,
+        s"edited${if(author.id != lastModification._1.id) s" by ${lastModification._1.name}" else ""}",
+        UI.popupHtml := modificationsHtml,
+      )
+    }
   }
 
   def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], isDeletedInFuture: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
@@ -380,12 +407,20 @@ object SharedViewElements {
     author.map(author => VDomModifier(authorName(state, author))),
   )
 
-  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, avatar: VDomModifier) = div(
+//  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, modificationData: IndexedSeq[(Node.User, EpochMilli)], avatar: VDomModifier) = div(
+  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, nodeId: NodeId, avatar: VDomModifier)(implicit ctx: Ctx.Owner) = div(
     cls := "chatmsg-header",
     Styles.flex,
     avatar,
-    author.map(author => VDomModifier(authorName(state, author))),
-    creationDate(creationEpochMillis),
+    author.map { author =>
+      VDomModifier(
+        authorName(state, author),
+        creationDate(creationEpochMillis),
+        state.graph.map { graph =>
+          modifications(author, graph.nodeModifier(graph.idToIdx(nodeId)))
+        },
+      )
+    },
   )
 
   def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(

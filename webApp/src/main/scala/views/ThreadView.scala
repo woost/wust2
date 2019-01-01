@@ -180,7 +180,7 @@ object ThreadView {
 
         drag(target = DragItem.Message(firstNodeId)),
 
-        author.map(author => chatMessageHeader(state, author, creationEpochMillis, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
+        author.map(author => chatMessageHeader(state, author, creationEpochMillis, groupHeadId, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
           val nodeId = groupGraph.nodeIds(nodeIdx)
 
