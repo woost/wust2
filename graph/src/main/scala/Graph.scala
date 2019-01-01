@@ -653,10 +653,13 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
     val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
-    parentsIdx.foreachElement(nodeIdx) { i =>
+    parentsIdx.foreachElement(nodeIdx) { parentIdx =>
       //TODO: more efficient deletedNowIdx for one parent?
-      if(!isInDeletedGracePeriodIdx(nodeIdx, immutable.BitSet(i)) && (!parentIndices.contains(i) || i == nodeIdx))
-        tagSet += nodes(i)
+      if(!isInDeletedGracePeriodIdx(nodeIdx, immutable.BitSet(parentIdx))
+        && (!parentIndices.contains(parentIdx) || parentIdx == nodeIdx)
+        && (nodes(parentIdx).role != NodeRole.Stage || nodes(parentIdx).str.trim.toLowerCase != Graph.doneTextLower)
+      )
+        tagSet += nodes(parentIdx)
     }
 
     tagSet.result()
