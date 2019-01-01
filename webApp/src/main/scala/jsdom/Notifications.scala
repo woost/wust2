@@ -34,6 +34,7 @@ object Notifications {
       scribe.info("Will not subscribe web push, no permission")
   }
   def requestPermissionsAndSubscribe(onSuccess: => Unit = ())(implicit ec: ExecutionContext): Unit = {
+    hotjar.pageView("/request-notification-permission")
     Notification.foreach { n =>
       n.requestPermission { (state: String) =>
         scribe.info(s"Requested notification permission: $state")

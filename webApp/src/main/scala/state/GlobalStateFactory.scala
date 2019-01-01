@@ -47,7 +47,10 @@ object GlobalStateFactory {
 
     val isLoading = Var(false)
 
-    val hasError = OutwatchTracing.error.map(_ => true).unsafeToRx(false)
+    val hasError = OutwatchTracing.error.map{_ =>
+      hotjar.pageView("/js-error")
+      true
+    }.unsafeToRx(false)
 
     val fileDownloadBaseUrl = Var[Option[String]](None)
 

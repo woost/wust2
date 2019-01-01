@@ -160,41 +160,49 @@ object AuthView {
     )
   }
 
-  def login(state: GlobalState)(implicit ctx: Ctx.Owner) =
+  def login(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    hotjar.pageView("/login")
     apply(state)(
       header = "Login",
       submitText = "Login",
       needUserName = false,
-      submitAction = userValue =>
+      submitAction = {userValue =>
+        hotjar.pageView("/login/submit")
         Client.auth.login(userValue.email, userValue.password).map {
           case AuthResult.BadPassword => Some("Wrong Password")
           case AuthResult.BadEmail    => Some("Email address does not exist")
           case AuthResult.Success     =>
             Analytics.sendEvent("auth", "login")
             None
-        },
+        }
+      },
       alternativeHeader = "New to Woost?",
       alternativeView = View.Signup,
       alternativeText = "Create an account",
       autoCompletePassword = "current-password"
     )
+  }
 
-  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) =
+  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    hotjar.pageView("/signup")
     apply(state)(
       header = "Create an account",
       submitText = "Signup",
       needUserName = true,
-      submitAction = userValue =>
+      submitAction = {userValue =>
+        hotjar.pageView("/signup/submit")
         Client.auth.register(name = userValue.username, email = userValue.email, password = userValue.password).map {
           case AuthResult.BadPassword => Some("Insufficient password")
           case AuthResult.BadEmail    => Some("Email address already taken")
           case AuthResult.Success     => 
             Analytics.sendEvent("auth", "signup")
             None
-        },
+        }
+      },
       alternativeHeader = "Already have an account?",
       alternativeView = View.Login,
       alternativeText = "Login",
       autoCompletePassword = "new-password"
     )
+  }
 }
