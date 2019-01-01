@@ -629,7 +629,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else false // node is nowhere deleted
   }
 
-  def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIndices: immutable.BitSet): Boolean = {
+  def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = {
     @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
@@ -648,14 +648,32 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else false // node is nowhere deleted
   }
 
+  def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
+    @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
+
+    @inline def deletedParentSet = {
+      val set = ArraySet.create(n)
+      deletedParentsIdx.foreachElement(nodeIdx)(set.add)
+      set
+    }
+
+    @inline def deletedInAllSpecifiedParentIndices = deletedParentSet.contains(parentIdx)
+
+    @inline def hasNoParents = parentsIdx.sliceIsEmpty(nodeIdx)
+
+    if(nodeIsDeletedInAtLeastOneParent) {
+      if(deletedInAllSpecifiedParentIndices) true
+      else hasNoParents
+    } else false // node is nowhere deleted
+  }
+
   def directNodeTags(nodeIdx: Int, parentIndices: immutable.BitSet): Array[Node] = {
     //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
 
     val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
     parentsIdx.foreachElement(nodeIdx) { parentIdx =>
-      //TODO: more efficient deletedNowIdx for one parent?
-      if(!isInDeletedGracePeriodIdx(nodeIdx, immutable.BitSet(parentIdx))
+      if(!isInDeletedGracePeriodIdx(nodeIdx, parentIdx)
         && (!parentIndices.contains(parentIdx) || parentIdx == nodeIdx)
         && (nodes(parentIdx).role != NodeRole.Stage || nodes(parentIdx).str.trim.toLowerCase != Graph.doneTextLower)
       )
