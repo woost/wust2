@@ -82,4 +82,15 @@ object Icons {
   val collapse: IconDefinition = freeRegular.faMinusSquare
 
   val property: IconDefinition = freeSolid.faReceipt
+  val propertyZoom: Layer = fontawesome.layered(
+    fontawesome.icon(freeSolid.faSearch, new Params {
+      styles = scalajs.js.Dictionary[String]("color" -> "grey")
+      transform = new Transform {
+        x = 5.0
+        y = 5.0
+        size = 50.0
+      }
+    }),
+    fontawesome.icon(freeSolid.faReceipt),
+  )
 }
