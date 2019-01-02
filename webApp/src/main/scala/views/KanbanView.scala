@@ -450,9 +450,9 @@ object KanbanView {
 
 
 
-    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int) {
+    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
-      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0
+      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 //&& propertiesCount == 0
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
@@ -469,7 +469,9 @@ object KanbanView {
         else count
       }
 
-      TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount)
+      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx).length
+
+      TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount, propertiesCount)
     }
 
     val isPlainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
@@ -493,6 +495,7 @@ object KanbanView {
                 onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
               ),
             )),
+            ItemProperties.manageProperties(state, node.id),
             if(state.graph().isExpanded(state.user.now.id, node.id))
               div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
             else
