@@ -82,7 +82,7 @@ object DragActions {
         (sortableStopEvent,graph,userId) =>
           // disconnect from all stage parents
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          val oldParents = graph.parents(payload.nodeId).filterNot(_ == into.parentId)
+          val oldParents = graph.parents(payload.nodeId).filterNot(parentId => parentId == into.parentId || graph.nodesById(parentId).role == NodeRole.Tag)
           val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, oldParents)
           unstageChanges merge sortChanges
 
