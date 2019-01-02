@@ -48,10 +48,8 @@ object EdgeData {
 
   case object Expanded extends Named with EdgeData
 
-  case object Assigned extends Named with EdgeData
+  trait PropertyKey
+  case object Assigned extends Named with EdgeData with PropertyKey
+  case class LabeledProperty(key: String, acceptType: String) extends Named with EdgeData with PropertyKey
 
-  case object Property extends Named with EdgeData
-
-  // case class Number(content: String, weight: Double) extends Named with ConnectionData
-  // object Number extends Named
 }
