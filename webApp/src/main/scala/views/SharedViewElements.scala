@@ -933,7 +933,7 @@ object ItemProperties {
 
     val propertyButton: VNode = {
       div(
-        div(cls := "fa-fw", UI.popup("bottom right") := "Add a property", Icons.property),
+        div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
         cursor.pointer,
 
         onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
