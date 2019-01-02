@@ -90,11 +90,16 @@ object UI {
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(tooltip := str, data.position := position))
 
   // javascript version of tooltip
-  def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := ZIndex.tooltip))
+  def popup(options: PopupOptions, tooltipZIndex: Int = ZIndex.tooltip): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(onDomMount.asJquery.foreach(_.popup(options)), zIndex := tooltipZIndex))
   def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
     popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
+  }
+  def popup(tooltipZIndex: Int): AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; }, tooltipZIndex)
+  def popup(position: String, zIndex: Int): AttributeBuilder[String, VDomModifier] = str => {
+    val _position = position
+    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; }, zIndex)
   }
   def popupHtml: AttributeBuilder[BasicVNode, VDomModifier] = node => popup(new PopupOptions { html = node.render.outerHTML; hideOnScroll = true; exclusive = true; })
   def popupHtml(position: String): AttributeBuilder[BasicVNode, VDomModifier] = node => {
