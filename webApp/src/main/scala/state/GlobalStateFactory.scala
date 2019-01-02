@@ -48,7 +48,7 @@ object GlobalStateFactory {
     val isLoading = Var(false)
 
     val hasError = OutwatchTracing.error.map{_ =>
-      hotjar.pageView("/js-error")
+      hotjar.tagRecording("js-error")
       true
     }.unsafeToRx(false)
 

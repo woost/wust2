@@ -51,6 +51,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragStartEvent]("drag:start", (e:DragStartEvent) => {
+    hotjar.tagRecording("drag:start")
 //    dragStartEvent.onNext(e)
     DevOnly {
       val payload = readDragPayload(e.originalSource)
