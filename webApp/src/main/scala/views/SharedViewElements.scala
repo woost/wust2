@@ -13,7 +13,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api.{ApiEvent, AuthUser}
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.util._
@@ -646,127 +646,102 @@ object ItemProperties {
 
     val propertyTypeSelection = BehaviorSubject[String]("none")
     val propertyKeyInputProcess = BehaviorSubject[String]("")
-
-    //    val integerPropertyInputProcess = PublishSubject[Int]
-    //    val floatPropertyInputProcess = PublishSubject[Double]
-    //    val datumPropertyInputProcess = PublishSubject[EpochMilli]
-    //    val stringPropertyInputProcess = PublishSubject[String]
-    val propertyValueInputProcess = PublishSubject[String]
+    val propertyValueInputProcess = BehaviorSubject[String]("")
 
     clear foreach(_ => propertyTypeSelection.onNext("none"))
     clear foreach(_ => propertyKeyInputProcess.onNext(""))
+    clear foreach(_ => propertyValueInputProcess.onNext(""))
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
-      val inputSizeMods = VDomModifier(width := "250px", height := "30px")
+      val inputSizeMods = VDomModifier(width := "250px", marginTop := "4px")
+
+      val inputFieldMod = (propertyType: String) => if(propertyType == NodeData.Integer.tpe) {
+        VDomModifier(
+          tpe := "number",
+          step := "1",
+          placeholder := "Integer Number",
+          //                      Elements.valueWithEnter(clearValue = false) foreach { str =>
+          //                      if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+          //                        handleAddProperty(str)
+          //                      }
+          //                    },
+        )
+      } else if(propertyType == NodeData.Float.tpe) {
+        VDomModifier(
+          tpe := "number",
+          step := "any",
+          placeholder := "Floating Point Number",
+        )
+      } else if(propertyType == NodeData.Date.tpe) {
+        VDomModifier(
+          tpe := "date",
+        )
+      } else if(propertyType == NodeData.PlainText.tpe) {
+        VDomModifier(
+          tpe := "text",
+          placeholder := "Text",
+        )
+      } else {
+        VDomModifier(
+          disabled,
+          placeholder := "ERROR MATICHNG TYPE",
+        )
+      }
+
       VDomModifier(
         form(
           onDomMount.asHtml.foreach { element = _ },
-
+          select(
+            inputSizeMods,
+            option(
+              value := "none", "Select a property type",
+              selected,
+              selected <-- clear.map(_ => true),
+              disabled,
+            ),
+            option( value := NodeData.Integer.tpe, "Integer Number" ),
+            option( value := NodeData.Float.tpe, "Floating Point Number" ),
+            option( value := NodeData.Date.tpe, "Date" ),
+            option( value := NodeData.PlainText.tpe, "Text" ),
+            onInput.value --> propertyTypeSelection,
+          ),
+          input(
+            cls := "ui fluid action input",
+            inputSizeMods,
+            tpe := "text",
+            placeholder := "Property Name",
+            value <-- clear,
+            cls <-- propertyTypeSelection.map(t => if(t == "none") "disabled" else ""),
+            onInput.value --> propertyKeyInputProcess,
+          ),
           VDomModifier(
-            div(
-              Styles.flex,
-              Styles.flexStatic,
-              flexDirection.column,
+            input(
               cls := "ui fluid action input",
               inputSizeMods,
-              div(
-                select(
-                  option(
-                    value := "none", "Select a property type",
-                    selected,
-                    selected <-- clear.map(_ => true),
-                    disabled,
-                  ),
-                  option( value := NodeData.Integer.tpe, "Integer Number" ),
-                  option( value := NodeData.Float.tpe, "Floating Point Number" ),
-                  option( value := NodeData.Date.tpe, "Date" ),
-                  option( value := NodeData.PlainText.tpe, "Text" ),
-                  onInput.value --> propertyTypeSelection,
-                ),
-              ),
-              div(
-                propertyTypeSelection.map {
-                  case "none" =>
-                    VDomModifier.empty
-                  case _ =>
-                    input(
-                      tpe := "text",
-                      placeholder := "Property Name",
-                      value <-- clear,
-                      onInput.value --> propertyKeyInputProcess,
-                    )
-                },
-              ),
-              div(
-                //                propertyKeyInputProcess.withLatestFrom(propertyTypeSelection)((pKey, pType) => (pType, pKey.nonEmpty)).map {
-                propertyKeyInputProcess.combineLatest(propertyTypeSelection).map {
-                  case (propertyKey, propertyType) if propertyKey.nonEmpty =>
-                    val inputField = if(propertyType == NodeData.Integer.tpe) {
-                      input(
-                        tpe := "number",
-                        step := "1",
-                        placeholder := "Integer Number",
-                        value <-- clear,
-                        //                      onChange.value.map(_.toInt) --> integerPropertyInputProcess,
-                        onChange.value --> propertyValueInputProcess,
-                        //                      Elements.valueWithEnter(clearValue = false) foreach { str =>
-                        //                      if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                        //                        handleAddProperty(str)
-                        //                      }
-                        //                    },
-                      )
-                    } else if(propertyType == NodeData.Float.tpe) {
-                      input(
-                        tpe := "number",
-                        step := "any",
-                        placeholder := "Floating Point Number",
-                        value <-- clear,
-                        //                    onChange.value.map(_.toDouble) --> floatPropertyInputProcess,
-                        onChange.value --> propertyValueInputProcess,
-                      )
-                    } else if(propertyType == NodeData.Date.tpe) {
-                      input(
-                        tpe := "date",
-                        // placeholder := "mm / dd / yyyy",
-                        value <-- clear,
-                        //                    onChange.value.map(EpochMilli.from) --> datumPropertyInputProcess,
-                        onChange.value --> propertyValueInputProcess,
-                      )
-                    } else if(propertyType == NodeData.PlainText.tpe) {
-                      input(
-                        tpe := "text",
-                        placeholder := "Text",
-                        value <-- clear,
-                        //                    onChange.value --> stringPropertyInputProcess,
-                        onChange.value --> propertyValueInputProcess,
-                      )
-                      //                    } else VDomModifier.empty
-                    } else p("ERROR MATICHNG TYPE")
-
-                    VDomModifier(
-                      inputField,
-                      div(
-                        cls := "ui primary button approve",
-                        "Add",
-                        onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
-                          //                          case (pValue: String, pKey: String, pType: String) => handleAddProperty(pKey, pValue, pType)
-                          handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
-                        },
-                      ),
-                    )
-
-                  case _  => VDomModifier.empty
-                },
-              ),
+              value <-- clear,
+              onInput.value --> propertyValueInputProcess,
+              cls <-- propertyKeyInputProcess.map(k => if(k.isEmpty) "disabled" else ""),
+              propertyTypeSelection.map(inputFieldMod),
+            ),
+            div(
+              cls := "ui primary button approve",
+              cls <-- propertyValueInputProcess.map(v => if(v.isEmpty) "disabled" else ""),
+              inputSizeMods,
+              "Add property",
+              onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+              },
             ),
           )
         ),
         div(
           Rx{
             val graph = state.graph()
-            val propertyEdges: Array[Edge.LabeledProperty] = graph.edges.collect { case e@Edge.LabeledProperty(pNodeId, _, _) if pNodeId == nodeId => e }
-            scribe.info(s"PROPERTIES: found ${propertyEdges.length} property edges")
+            //            val propertyEdges: Array[Edge.LabeledProperty] = graph.edges.collect { case e@Edge.LabeledProperty(pNodeId, _, _) if pNodeId == nodeId => e }
+            val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
+            scribe.info(s"PROPERTIES: found ${propertyEdgesIdx.length} property edges")
+            val propertyEdges = propertyEdgesIdx.map(eIdx => graph.edges(eIdx).asInstanceOf[Edge.LabeledProperty])
             val propertyData = propertyEdges.map(e => (e.data.key, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
 
             propertyData.map(data => propertyRow(data._1, data._2))
@@ -782,6 +757,12 @@ object ItemProperties {
             //                )
             //              )
           },
+        ),
+        a(
+          href := "#",
+          paddingTop := "15px",
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+          "Show detailed property view",
         ),
       ),
     }
@@ -829,12 +810,30 @@ object ItemProperties {
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
+        flexDirection.row,
+        justifyContent.spaceBetween,
         alignItems.center,
-        channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-        renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-        paddingBottom := "5px",
+        div(
+          Styles.flex,
+          flexDirection.column,
+          div(
+            Styles.flex,
+            alignItems.center,
+            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+            paddingBottom := "5px",
+          ),
+          div(s"Manage Properties"),
+        ),
+        div(
+          Styles.flex,
+          Styles.flexStatic,
+          Icons.property,
+          cursor.pointer,
+          fontSize.xxLarge,
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+        ),
       ),
-      div(s"Manage Properties"),
     )
 
     def channelAvatar(node: Node, size: Int) = {
@@ -851,11 +850,8 @@ object ItemProperties {
         marginTop := "10px",
         alignItems.center,
         div(
-          fontWeight.bold,
-          s"$propertyKey: ",
-        ),
-        div(
-          propertyValue.str,
+          span(fontWeight.bold, s"$propertyKey: "),
+          span(s"${propertyValue.str}"),
         ),
       )
     }
