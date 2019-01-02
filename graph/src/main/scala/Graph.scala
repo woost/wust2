@@ -271,6 +271,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val expandedNodesDegree = new Array[Int](n)
   private val assignedNodesDegree = new Array[Int](n)
   private val assignedUsersDegree = new Array[Int](n)
+  private val propertiesDegree = new Array[Int](n)
 
   private val now = EpochMilli.now
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(now - (24 * 3600 * 1000))
@@ -330,6 +331,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             pinnedNodeDegree(sourceIdx) += 1
           case _: Edge.Invite   =>
             inviteNodeDegree(sourceIdx) += 1
+          case _: Edge.LabeledProperty   =>
+            propertiesDegree(sourceIdx) += 1
           case _                =>
         }
       }
@@ -357,6 +360,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
   private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
   private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
+  private val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
 
   consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
@@ -411,6 +415,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         pinnedNodeIdxBuilder.add(sourceIdx, targetIdx)
       case _: Edge.Invite   =>
         inviteNodeIdxBuilder.add(sourceIdx, targetIdx)
+      case _: Edge.LabeledProperty   =>
+        propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _                =>
     }
   }
@@ -436,6 +442,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
   val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
+  val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
 
   val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if(idx != -1) expandedNodesIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
