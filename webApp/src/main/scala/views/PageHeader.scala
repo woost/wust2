@@ -395,12 +395,29 @@ object PageHeader {
       backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
       div(
         Styles.flex,
+        flexDirection.row,
+        justifyContent.spaceBetween,
         alignItems.center,
-        channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-        renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-        paddingBottom := "5px",
+        div(
+          Styles.flex,
+          flexDirection.column,
+          div(
+            Styles.flex,
+            alignItems.center,
+            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+            paddingBottom := "5px",
+          ),
+          div(s"Manage Members"),
+        ),
+        div(
+          Styles.flex,
+          Styles.flexStatic,
+          Icons.users,
+          cursor.pointer,
+          fontSize.xxLarge,
+        ),
       ),
-      div(s"Manage Members"),
     )
 
     def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {
@@ -504,7 +521,7 @@ object PageHeader {
 
     div(
       cls := "item",
-      Elements.icon(Icons.user)(marginRight := "5px"),
+      Elements.icon(Icons.users)(marginRight := "5px"),
       span(cls := "text", "Manage Members", cursor.pointer),
 
       onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,

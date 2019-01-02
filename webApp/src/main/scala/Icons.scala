@@ -68,7 +68,7 @@ object Icons {
   )
   val share: IconDefinition = freeSolid.faShareAlt
   val search: IconDefinition = freeSolid.faSearch
-  val user: IconDefinition = freeSolid.faUsers
+  val users: IconDefinition = freeSolid.faUsers
 
   val notificationsEnabled: IconDefinition = freeSolid.faBell
   val notificationsDisabled: IconDefinition = freeRegular.faBellSlash
