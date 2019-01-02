@@ -30,7 +30,9 @@ object PropertyView {
 
       Rx {
         val graph = state.graph()
-        val subjects = state.page().parentId.flatMap(graph.nodesByIdGet)
+        val parents = state.page().parentId
+        val subjects = parents.flatMap(graph.nodesByIdGet)
+        val properties = graph.edges.filter(e => e.isInstanceOf[Edge.LabeledProperty] && parents.contains(e.sourceId)).map(pEdge => (pEdge.asInstanceOf[Edge.LabeledProperty].data.key, graph.nodesById(pEdge.targetId).str))
 
         // https://fomantic-ui.com/elements/list.html#description
         val list = div(cls := "ui list")
@@ -51,6 +53,15 @@ object PropertyView {
             content(
               header("Access"),
               description(subjects.map(_.meta.accessLevel).mkString(", "))
+            ),
+            content(
+              header("Porperties"),
+              description(
+                if(properties.nonEmpty)
+                  properties.map{ case (propertyKey: String, propertyValue: String) => s"$propertyKey: $propertyValue"}.mkString(", ")
+                else
+                  "-"
+              )
             ),
             content(
               header("Parents"),
