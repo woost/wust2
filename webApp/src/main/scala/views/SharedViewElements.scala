@@ -6,7 +6,7 @@ import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.execution.Ack
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
@@ -29,6 +29,7 @@ import wust.webApp.{BrowserDetect, Client, Icons}
 import scala.collection.breakOut
 import scala.concurrent.Future
 import scala.scalajs.js
+import scala.util.Try
 
 object SharedViewElements {
 
@@ -474,6 +475,7 @@ object SharedViewElements {
             replyButton(
               onClick foreach { replyAction }
             ),
+            ItemProperties.manageProperties(state, nodeId),
             ifCanWrite(editButton(
               onClick.mapTo(!editMode.now) --> editMode
             )),
@@ -621,4 +623,260 @@ object SharedViewElements {
         ),
         logout(state))
     }
+}
+
+
+
+
+
+object ItemProperties {
+  import wust.sdk.BaseColors
+  import wust.sdk.NodeColor.hue
+  import wust.webApp.outwatchHelpers.Ownable
+
+  def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+
+    // todo: check if node is instance of node.content ?
+    val graph = state.graph.now
+    val node = graph.nodesById(nodeId).asInstanceOf[Node.Content]
+
+    val modalCloseTrigger = PublishSubject[Unit]
+
+    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
+
+    val propertyTypeSelection = BehaviorSubject[String]("none")
+    val propertyKeyInputProcess = BehaviorSubject[String]("")
+
+    //    val integerPropertyInputProcess = PublishSubject[Int]
+    //    val floatPropertyInputProcess = PublishSubject[Double]
+    //    val datumPropertyInputProcess = PublishSubject[EpochMilli]
+    //    val stringPropertyInputProcess = PublishSubject[String]
+    val propertyValueInputProcess = PublishSubject[String]
+
+    clear foreach(_ => propertyTypeSelection.onNext("none"))
+    clear foreach(_ => propertyKeyInputProcess.onNext(""))
+
+    def description(implicit ctx: Ctx.Owner) = {
+      var element: dom.html.Element = null
+      val inputSizeMods = VDomModifier(width := "250px", height := "30px")
+      VDomModifier(
+        form(
+          onDomMount.asHtml.foreach { element = _ },
+
+          VDomModifier(
+            div(
+              Styles.flex,
+              Styles.flexStatic,
+              flexDirection.column,
+              cls := "ui fluid action input",
+              inputSizeMods,
+              div(
+                select(
+                  option(
+                    value := "none", "Select a property type",
+                    selected,
+                    selected <-- clear.map(_ => true),
+                    disabled,
+                  ),
+                  option( value := NodeData.Integer.tpe, "Integer Number" ),
+                  option( value := NodeData.Float.tpe, "Floating Point Number" ),
+                  option( value := NodeData.Date.tpe, "Date" ),
+                  option( value := NodeData.PlainText.tpe, "Text" ),
+                  onInput.value --> propertyTypeSelection,
+                ),
+              ),
+              div(
+                propertyTypeSelection.map {
+                  case "none" =>
+                    VDomModifier.empty
+                  case _ =>
+                    input(
+                      tpe := "text",
+                      placeholder := "Property Name",
+                      value <-- clear,
+                      onInput.value --> propertyKeyInputProcess,
+                    )
+                },
+              ),
+              div(
+                //                propertyKeyInputProcess.withLatestFrom(propertyTypeSelection)((pKey, pType) => (pType, pKey.nonEmpty)).map {
+                propertyKeyInputProcess.combineLatest(propertyTypeSelection).map {
+                  case (propertyKey, propertyType) if propertyKey.nonEmpty =>
+                    val inputField = if(propertyType == NodeData.Integer.tpe) {
+                      input(
+                        tpe := "number",
+                        step := "1",
+                        placeholder := "Integer Number",
+                        value <-- clear,
+                        //                      onChange.value.map(_.toInt) --> integerPropertyInputProcess,
+                        onChange.value --> propertyValueInputProcess,
+                        //                      Elements.valueWithEnter(clearValue = false) foreach { str =>
+                        //                      if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                        //                        handleAddProperty(str)
+                        //                      }
+                        //                    },
+                      )
+                    } else if(propertyType == NodeData.Float.tpe) {
+                      input(
+                        tpe := "number",
+                        step := "any",
+                        placeholder := "Floating Point Number",
+                        value <-- clear,
+                        //                    onChange.value.map(_.toDouble) --> floatPropertyInputProcess,
+                        onChange.value --> propertyValueInputProcess,
+                      )
+                    } else if(propertyType == NodeData.Date.tpe) {
+                      input(
+                        tpe := "date",
+                        // placeholder := "mm / dd / yyyy",
+                        value <-- clear,
+                        //                    onChange.value.map(EpochMilli.from) --> datumPropertyInputProcess,
+                        onChange.value --> propertyValueInputProcess,
+                      )
+                    } else if(propertyType == NodeData.PlainText.tpe) {
+                      input(
+                        tpe := "text",
+                        placeholder := "Text",
+                        value <-- clear,
+                        //                    onChange.value --> stringPropertyInputProcess,
+                        onChange.value --> propertyValueInputProcess,
+                      )
+                      //                    } else VDomModifier.empty
+                    } else p("ERROR MATICHNG TYPE")
+
+                    VDomModifier(
+                      inputField,
+                      div(
+                        cls := "ui primary button approve",
+                        "Add",
+                        onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+                          //                          case (pValue: String, pKey: String, pType: String) => handleAddProperty(pKey, pValue, pType)
+                          handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+                        },
+                      ),
+                    )
+
+                  case _  => VDomModifier.empty
+                },
+              ),
+            ),
+          )
+        ),
+        div(
+          Rx{
+            val graph = state.graph()
+            val propertyEdges: Array[Edge.LabeledProperty] = graph.edges.collect { case e@Edge.LabeledProperty(pNodeId, _, _) if pNodeId == nodeId => e }
+            scribe.info(s"PROPERTIES: found ${propertyEdges.length} property edges")
+            val propertyData = propertyEdges.map(e => (e.data.key, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
+
+            propertyData.map(data => propertyRow(data._1, data._2))
+
+            //              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
+            //              val user = graph.nodesById(membership.userId).asInstanceOf[User]
+            //              userLine(user).apply(
+            //                button(
+            //                  cls := "ui tiny compact negative basic button",
+            //                  marginLeft := "10px",
+            //                  "Remove",
+            //                  onClick(membership).foreach(handleRemoveMember(_))
+            //                )
+            //              )
+          },
+        ),
+      ),
+    }
+
+    def handleAddProperty(propertyKey: String, propertyValue: String, propertyType: String)(implicit ctx: Ctx.Owner): Unit = {
+      //      val propertyNode = propertyId match {
+      //        case Some(pid) => graph.nodesById(pid)
+      //        case _ => Node.Content(property, NodeRole.Property)
+      //      }
+
+      val propertyOpt: Option[NodeData.Content] = propertyType match {
+        case NodeData.Integer.tpe   => Try(propertyValue.toInt).toOption.map(number => NodeData.Integer(number))
+        case NodeData.Float.tpe     => Try(propertyValue.toDouble).toOption.map(number => NodeData.Float(number))
+        case NodeData.Date.tpe      => Try(new js.Date(propertyValue).getTime.toLong).toOption.map(datum => NodeData.Date(EpochMilli(datum)))
+//        case NodeData.Integer.tpe   => Some(NodeData.Integer(propertyValue))
+//        case NodeData.Float.tpe     => Some(NodeData.Float(propertyValue))
+//        case NodeData.Date.tpe      => Try(new js.Date(propertyValue).getTime.toLong).toOption.map(datum => NodeData.Date(EpochMilli(datum)))
+        case NodeData.PlainText.tpe => Some(NodeData.PlainText(propertyValue))
+        case _                      => None
+      }
+
+      propertyOpt.foreach { data =>
+        val propertyNode = Node.Content(data, NodeRole.Property)
+        val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey, data.tpe), propertyNode.id)
+//        val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey, "PropertyAcceptedType"), propertyNode.id)
+//        val gc = GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge)) merge GraphChanges.connect(Edge.Parent)(nodeId, propertyNode.id)
+        val gc = GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
+
+        state.eventProcessor.changes.onNext(gc).foreach {_ =>
+          clear.onNext(())
+          //          modalCloseTrigger.onNext(())
+        }
+      }
+    }
+
+    def handleRemoveProperty(propertyId: NodeId)(implicit ctx: Ctx.Owner): Unit = {
+      // TODO
+      //      state.eventProcessor.changes.onNext(
+      //        GraphChanges.disconnect(Edge.LabeledProperty)(nodeId, propertyId)
+      //      )
+      //      modalCloseTrigger.onNext(())
+    }
+
+    def header(implicit ctx: Ctx.Owner) = VDomModifier(
+      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+      div(
+        Styles.flex,
+        alignItems.center,
+        channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+        renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+        paddingBottom := "5px",
+      ),
+      div(s"Manage Properties"),
+    )
+
+    def channelAvatar(node: Node, size: Int) = {
+      Avatar(node)(
+        width := s"${ size }px",
+        height := s"${ size }px"
+      )
+    }
+
+    def propertyRow(propertyKey: String, propertyValue: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
+      div(
+        Styles.flex,
+        Styles.flexStatic,
+        marginTop := "10px",
+        alignItems.center,
+        div(
+          fontWeight.bold,
+          s"$propertyKey: ",
+        ),
+        div(
+          propertyValue.str,
+        ),
+      )
+    }
+
+    val propertyButton: VNode = {
+      div(
+        div(cls := "fa-fw", UI.popup("bottom right") := "Add a property", Icons.property),
+        cursor.pointer,
+
+        onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
+          modalModifier = VDomModifier(
+            cls := "mini form",
+          ),
+          contentModifier = VDomModifier(
+            backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
+          )
+        ))) --> state.modalConfig
+      )
+    }
+
+    propertyButton
+  }
+
 }

@@ -3,6 +3,8 @@ package wust
 
 import supertagged._
 
+import scala.util.Try
+
 package object ids {
   type UuidType = String
 
@@ -27,6 +29,10 @@ package object ids {
     @inline def from(time: String): EpochMilli = { // TODO this should not exist here, we cannot use instant in frontend!!
       import java.time.Instant
       EpochMilli(Instant.parse(time).toEpochMilli)
+    }
+    @inline def fromOpt(time: String): Option[EpochMilli] = { // TODO this should not exist here, we cannot use instant in frontend!!
+      import java.time.Instant
+      Try(EpochMilli(Instant.parse(time).toEpochMilli)).toOption
     }
     @inline def second: Long = 1000L
     @inline def minute: Long = 60L * second
