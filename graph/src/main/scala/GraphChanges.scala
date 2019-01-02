@@ -206,7 +206,10 @@ object GraphChanges {
       for {
         subject <- cycleFreeSubjects
         parent <- graph.parents(subject)
-        if graph.nodesById(parent).role != NodeRole.Tag
+        subjectRole = graph.nodesById(subject).role
+        parentRole = graph.nodesById(parent).role
+        // moving nodes should keep its tags. Except for tags itself.
+        if subjectRole == NodeRole.Tag || (subjectRole != NodeRole.Tag && parentRole != NodeRole.Tag)
       } yield Edge.Parent(subject, parent)
       ) (breakOut): collection.Set[Edge]
       ) -- newParentships

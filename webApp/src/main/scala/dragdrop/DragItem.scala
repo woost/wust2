@@ -21,6 +21,7 @@ object DragItem {
   case class Channel(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable})"}
   case class BreadCrumb(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"BreadCrumb(${nodeId.shortHumanReadable})"}
   case class Workspace(nodeId: NodeId) extends DragTarget { override def toString = s"Workspace(${nodeId.shortHumanReadable})"}
+  case class TagBar(nodeId: NodeId) extends DragTarget { override def toString = s"TagBar(${nodeId.shortHumanReadable})"}
 
   case class User(userId: UserId) extends DragPayload { @inline def nodeId = userId.asInstanceOf[NodeId];  override def toString = s"User(${nodeId.shortHumanReadable})" }
 

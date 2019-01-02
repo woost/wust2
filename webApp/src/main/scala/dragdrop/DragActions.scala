@@ -118,6 +118,8 @@ object DragActions {
       case (payload: Channel, target: Sidebar.type, false, false) => (sortableStopEvent,graph,userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
 
       case (payload: Tag, target: ContentNode, false, false)  => (sortableStopEvent,graph,userId) => linkInto(target.nodeId, payload.nodeId, graph)
+      case (payload: Tag, target: Tag, ctrl, false)  => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: Tag, target: TagBar, ctrl, false)  => (sortableStopEvent,graph,userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
       case (payload: User, target: Task, false, false)                => (sortableStopEvent,graph,userId) => assign(payload.userId, target.nodeId)
     }
