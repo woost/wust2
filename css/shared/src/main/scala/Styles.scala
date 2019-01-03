@@ -259,7 +259,16 @@ object CommonStyles extends StyleSheet.Standalone {
     zIndex(ZIndex.modal)
   )
   ".ui.modal" - (
-    zIndex(ZIndex.modal + 1)
+    zIndex(ZIndex.modal + 1),
+  )
+
+//  ".modal-header" - ( )
+//  ".modal-content" - ( )
+  ".modal-inner-content" - (
+    height(100 %%),
+  )
+  ".modal-description" - (
+    height(100 %%),
   )
 
   val sidebarBgColor = s"#2A3238"
@@ -683,7 +692,6 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer,
     display.inlineBlock
   )
-
 
 
   val kanbanColumnPaddingPx = 7
