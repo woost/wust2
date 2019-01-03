@@ -679,7 +679,7 @@ object ItemProperties {
       } else {
         VDomModifier(
           disabled,
-          placeholder := "ERROR MATICHNG TYPE",
+          placeholder := "Select a property type",
         )
       }
 
@@ -717,6 +717,11 @@ object ItemProperties {
               onInput.value --> propertyValueInputProcess,
               cls <-- propertyKeyInputProcess.map(k => if(k.isEmpty) "disabled" else ""),
               propertyTypeSelection.map(inputFieldMod),
+              Elements.valueWithEnter(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+                if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+                }
+              },
             ),
             div(
               cls := "ui primary button approve",
@@ -724,7 +729,9 @@ object ItemProperties {
               inputSizeMods,
               "Add property",
               onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+                if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
                 handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+                }
               },
             ),
           )
