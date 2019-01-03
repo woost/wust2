@@ -641,8 +641,6 @@ object ItemProperties {
     val graph = state.graph.now
     val node = graph.nodesById(nodeId).asInstanceOf[Node.Content]
 
-    val modalCloseTrigger = PublishSubject[Unit]
-
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
     val propertyTypeSelection = BehaviorSubject[String]("none")
@@ -737,7 +735,7 @@ object ItemProperties {
             val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
             scribe.info(s"PROPERTIES: found ${propertyEdgesIdx.length} property edges")
             val propertyEdges = propertyEdgesIdx.map(eIdx => graph.edges(eIdx).asInstanceOf[Edge.LabeledProperty])
-            val propertyData = propertyEdges.map(e => (e.data.key, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
+            val propertyData = propertyEdges.map(e => (e, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
 
             propertyData.map(data => propertyRow(data._1, data._2))
           },
@@ -768,52 +766,50 @@ object ItemProperties {
 
         state.eventProcessor.changes.onNext(gc).foreach {_ =>
           clear.onNext(())
-          //          modalCloseTrigger.onNext(())
         }
       }
     }
 
-    // TODO
-    def handleRemoveProperty(propertyId: NodeId)(implicit ctx: Ctx.Owner): Unit = {
-      //      state.eventProcessor.changes.onNext(
-      //        GraphChanges.disconnect(Edge.LabeledProperty)(nodeId, propertyId)
-      //      )
-      //      modalCloseTrigger.onNext(())
+    def handleRemoveProperty(propertyData: EdgeData.LabeledProperty, propertyId: NodeId)(implicit ctx: Ctx.Owner): Unit = {
+      state.eventProcessor.changes.onNext(
+        GraphChanges.disconnect(Edge.LabeledProperty)(nodeId, propertyData, propertyId)
+      )
     }
 
-    def propertyRow(propertyKey: String, propertyValue: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
+    def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
       div(
         Styles.flex,
-        Styles.flexStatic,
         marginTop := "10px",
         alignItems.center,
+        justifyContent.spaceBetween,
         div(
-          span(fontWeight.bold, s"$propertyKey: "),
+          span(fontWeight.bold, s"${propertyKey.data.key}: "),
           span(s"${propertyValue.str}"),
         ),
+        button(
+          cls := "ui tiny compact negative basic button",
+          marginLeft := "10px",
+          "Remove",
+          onClick((propertyKey.data, propertyValue.id)).foreach(p => handleRemoveProperty(p._1, p._2))
+        )
       )
     }
 
-    val propertyButton: VNode = {
-      div(
-        div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
-        cursor.pointer,
+    div(
+      div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
+      cursor.pointer,
 
-        onClick(Ownable(implicit ctx => UI.ModalConfig(
-          header = ModalConfig.defaultHeader(state, node, "Manage properties", Icons.property),
-          description = description,
-          close = modalCloseTrigger,
-          modalModifier = VDomModifier(
-            cls := "mini form",
-          ),
-          contentModifier = VDomModifier(
-            backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
-          )
-        ))) --> state.modalConfig
-      )
-    }
-
-    propertyButton
+      onClick(Ownable(implicit ctx => UI.ModalConfig(
+        header = ModalConfig.defaultHeader(state, node, "Manage properties", Icons.property),
+        description = description,
+        modalModifier = VDomModifier(
+          cls := "mini form",
+        ),
+        contentModifier = VDomModifier(
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
+        )
+      ))) --> state.modalConfig
+    )
   }
 
 }
