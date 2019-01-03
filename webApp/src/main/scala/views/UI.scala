@@ -6,6 +6,9 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
+import wust.css.{Styles, ZIndex}
+import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.outwatchHelpers._
 import rx._
 import wust.css.ZIndex
 import wust.webApp.outwatchHelpers._
@@ -72,6 +75,46 @@ object UI {
       }
     }
   ))
+
+  object ModalConfig {
+    import wust.graph.{Page, Node}
+    import wust.sdk.BaseColors
+    import wust.sdk.NodeColor._
+    import wust.webApp.state.{GlobalState, View}
+    import wust.webApp.views.Components.renderNodeData
+
+    def defaultHeader(state: GlobalState, node: Node, modalHeaderText: String, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
+      VDomModifier(
+      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+      div(
+        Styles.flex,
+        flexDirection.row,
+        justifyContent.spaceBetween,
+        alignItems.center,
+        div(
+          Styles.flex,
+          flexDirection.column,
+          div(
+            Styles.flex,
+            alignItems.center,
+            Elements.channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+            paddingBottom := "5px",
+          ),
+          div(modalHeaderText),
+        ),
+        div(
+          Styles.flex,
+          Styles.flexStatic,
+          icon,
+          cursor.pointer,
+          fontSize.xxLarge,
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+        ),
+      ),
+    )
+    }
+  }
 
   // tooltip is CSS only. It does not work when the tooltip itself is not in the rendering area of the element. If tooltip does not work, try popup instead
   def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip))
