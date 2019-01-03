@@ -714,6 +714,7 @@ object ItemProperties {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
+    val modalCloseTrigger = PublishSubject[Unit]
     val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe)
     val propertyKeyInputProcess = BehaviorSubject[String]("")
     val propertyValueInputProcess = BehaviorSubject[String]("")
@@ -813,7 +814,6 @@ object ItemProperties {
           Rx{
             val graph = state.graph()
             val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
-            scribe.info(s"PROPERTIES: found ${propertyEdgesIdx.length} property edges")
             val propertyEdges = propertyEdgesIdx.map(eIdx => graph.edges(eIdx).asInstanceOf[Edge.LabeledProperty])
             val propertyData = propertyEdges.map(e => (e, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
 
@@ -821,9 +821,13 @@ object ItemProperties {
           },
         ),
         a(
-          href := "#",
           paddingTop := "15px",
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+          cursor.pointer,
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Property)) foreach { vc =>
+            modalCloseTrigger.onNext(()).onComplete { _ =>
+              state.viewConfig() = vc
+            }
+          },
           "Show detailed property view",
         ),
       ),
@@ -882,12 +886,13 @@ object ItemProperties {
       onClick(Ownable(implicit ctx => UI.ModalConfig(
         header = ModalConfig.defaultHeader(state, node, "Manage properties", Icons.property),
         description = description,
+        close = modalCloseTrigger,
         modalModifier = VDomModifier(
           cls := "mini form",
         ),
         contentModifier = VDomModifier(
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
-        )
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
+        ),
       ))) --> state.modalConfig
     )
   }
