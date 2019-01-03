@@ -59,16 +59,17 @@ object UI {
           },
           i(cls := "close icon"),
           div(
-            cls := "header",
+            cls := "header modal-header",
             config.header
           ),
           div(
-            cls := "content",
+            cls := "content modal-content",
+            height := s"${2*dom.window.innerHeight/3}px",
             config.contentModifier,
             div(
-              cls := "ui medium",
+              cls := "ui medium modal-inner-content",
               div(
-                cls := "description",
+                cls := "description modal-description",
                 config.description
               )
             ),
@@ -94,34 +95,34 @@ object UI {
 
     def defaultHeader(state: GlobalState, node: Node, modalHeaderText: String, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
-      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-      div(
-        Styles.flex,
-        flexDirection.row,
-        justifyContent.spaceBetween,
-        alignItems.center,
+        backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
         div(
           Styles.flex,
-          flexDirection.column,
+          flexDirection.row,
+          justifyContent.spaceBetween,
+          alignItems.center,
           div(
             Styles.flex,
-            alignItems.center,
-            Elements.channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-            paddingBottom := "5px",
+            flexDirection.column,
+            div(
+              Styles.flex,
+              alignItems.center,
+              Elements.channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+              renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+              paddingBottom := "5px",
+            ),
+            div(modalHeaderText),
           ),
-          div(modalHeaderText),
+          div(
+            Styles.flex,
+            Styles.flexStatic,
+            icon,
+            cursor.pointer,
+            fontSize.xxLarge,
+            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+          ),
         ),
-        div(
-          Styles.flex,
-          Styles.flexStatic,
-          icon,
-          cursor.pointer,
-          fontSize.xxLarge,
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
-        ),
-      ),
-    )
+      )
     }
   }
 

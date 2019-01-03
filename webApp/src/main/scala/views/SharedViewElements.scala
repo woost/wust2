@@ -801,6 +801,8 @@ object ItemProperties {
           )
         ),
         div(
+          overflow.auto,
+          height := "60%",
           Rx{
             val graph = state.graph()
             val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
