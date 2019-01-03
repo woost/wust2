@@ -714,11 +714,11 @@ object ItemProperties {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = BehaviorSubject[String]("none")
+    val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe)
     val propertyKeyInputProcess = BehaviorSubject[String]("")
     val propertyValueInputProcess = BehaviorSubject[String]("")
 
-    clear foreach(_ => propertyTypeSelection.onNext("none"))
+    clear foreach(_ => propertyTypeSelection.onNext(NodeData.Empty.tpe))
     clear foreach(_ => propertyKeyInputProcess.onNext(""))
     clear foreach(_ => propertyValueInputProcess.onNext(""))
 
@@ -726,7 +726,7 @@ object ItemProperties {
       var element: dom.html.Element = null
       val inputSizeMods = VDomModifier(width := "250px", marginTop := "4px")
 
-      val inputFieldMod = (propertyType: String) => if(propertyType == NodeData.Integer.tpe) {
+      val inputFieldMod = (propertyType: NodeData.Type) => if(propertyType == NodeData.Integer.tpe) {
         VDomModifier(
           tpe := "number",
           step := "1",
@@ -769,7 +769,7 @@ object ItemProperties {
             option( value := NodeData.Float.tpe, "Floating Point Number" ),
             option( value := NodeData.Date.tpe, "Date" ),
             option( value := NodeData.PlainText.tpe, "Text" ),
-            onInput.value --> propertyTypeSelection,
+            onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
           ),
           input(
             cls := "ui fluid action input",
@@ -777,7 +777,7 @@ object ItemProperties {
             tpe := "text",
             placeholder := "Property Name",
             value <-- clear,
-            cls <-- propertyTypeSelection.map(t => if(t == "none") "disabled" else ""),
+            cls <-- propertyTypeSelection.map(t => if(t == NodeData.Empty.tpe) "disabled" else ""),
             onInput.value --> propertyKeyInputProcess,
           ),
           VDomModifier(
