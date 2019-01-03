@@ -4,6 +4,11 @@ import fontAwesome._
 import outwatchHelpers._
 
 object Icons {
+
+  val sync: IconDefinition = freeSolid.faExchangeAlt
+  val plugin: IconDefinition = freeSolid.faPuzzlePiece
+  val slack: IconDefinition  = freeBrands.faSlack
+
   val zoom: IconDefinition = freeSolid.faSearchPlus
   val edit: IconDefinition = freeRegular.faEdit
   val delete: IconDefinition = freeRegular.faTrashAlt

@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import fontAwesome.{IconDefinition, freeBrands, freeSolid}
+import fontAwesome.IconDefinition
 import googleAnalytics.Analytics
 import monix.reactive.Observable
 import outwatch.dom._
@@ -44,7 +44,10 @@ object UserSettingsView {
   private def uploadSettings(state: GlobalState, ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
     val fileUploads = Var[Option[Seq[UploadedFile]]](None)
     div(
-      b("Uploaded files:"),
+      div(
+        i(Icons.files),
+        b(" Uploaded files:"),
+      ),
       br,
       div(
         marginLeft := "10px",
@@ -98,7 +101,10 @@ object UserSettingsView {
 
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     width := "300px",
-    b("Plugins:"),
+    div(
+      i(Icons.plugin),
+      b(" Plugins:")
+    ),
     br,
     div(
       marginLeft := "10px",
@@ -312,7 +318,7 @@ object UserSettingsView {
           justifyContent.center,
           fontSize := "25px",
           woostIcon(marginRight := "10px"),
-          (freeSolid.faExchangeAlt: VNode) (marginRight := "10px"),
+          (Icons.sync: VNode) (marginRight := "10px"),
           (icon: VNode),
           marginBottom := "5px",
         ),
@@ -339,7 +345,7 @@ object UserSettingsView {
   )
 
   private def slackButton(user: UserInfo): Future[VNode] = {
-    val syncButton = genConnectButton(freeBrands.faSlack, "Slack") _
+    val syncButton = genConnectButton(Icons.slack, "Slack") _
     Client.slackApi.isAuthenticated(user.id)
       .map(activated => syncButton(activated))
       .recover { case NonFatal(e) =>
