@@ -23,6 +23,8 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
+import wust.webApp.views.Elements.channelAvatar
+import wust.webApp.views.UI.ModalConfig
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -393,35 +395,6 @@ object PageHeader {
       Client.api.removeMember(membership.nodeId,membership.userId,membership.level) //TODO: handle error...
     }
 
-    def header(implicit ctx: Ctx.Owner) = VDomModifier(
-      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-      div(
-        Styles.flex,
-        flexDirection.row,
-        justifyContent.spaceBetween,
-        alignItems.center,
-        div(
-          Styles.flex,
-          flexDirection.column,
-          div(
-            Styles.flex,
-            alignItems.center,
-            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-            paddingBottom := "5px",
-          ),
-          div(s"Manage Members"),
-        ),
-        div(
-          Styles.flex,
-          Styles.flexStatic,
-          Icons.users,
-          cursor.pointer,
-          fontSize.xxLarge,
-        ),
-      ),
-    )
-
     def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {
       div(
         marginTop := "10px",
@@ -526,7 +499,10 @@ object PageHeader {
       Elements.icon(Icons.users)(marginRight := "5px"),
       span(cls := "text", "Manage Members", cursor.pointer),
 
-      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
+      onClick(Ownable(implicit ctx => UI.ModalConfig(
+        header = ModalConfig.defaultHeader(state, node, "Manage Members", Icons.users),
+        description = description,
+        close = modalCloseTrigger,
         modalModifier = VDomModifier(
           cls := "mini form",
         ),
@@ -534,13 +510,6 @@ object PageHeader {
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
         )
       ))) --> state.modalConfig
-    )
-  }
-
-  private def channelAvatar(node: Node, size: Int) = {
-    Avatar(node)(
-      width := s"${ size }px",
-      height := s"${ size }px"
     )
   }
 
