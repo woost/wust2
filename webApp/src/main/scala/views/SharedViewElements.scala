@@ -24,6 +24,7 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
+import wust.webApp.views.UI.ModalConfig
 import wust.webApp.{BrowserDetect, Client, Icons}
 
 import scala.collection.breakOut
@@ -732,11 +733,6 @@ object ItemProperties {
           tpe := "number",
           step := "1",
           placeholder := "Integer Number",
-          //                      Elements.valueWithEnter(clearValue = false) foreach { str =>
-          //                      if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-          //                        handleAddProperty(str)
-          //                      }
-          //                    },
         )
       } else if(propertyType == NodeData.Float.tpe) {
         VDomModifier(
@@ -809,24 +805,12 @@ object ItemProperties {
         div(
           Rx{
             val graph = state.graph()
-            //            val propertyEdges: Array[Edge.LabeledProperty] = graph.edges.collect { case e@Edge.LabeledProperty(pNodeId, _, _) if pNodeId == nodeId => e }
             val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
             scribe.info(s"PROPERTIES: found ${propertyEdgesIdx.length} property edges")
             val propertyEdges = propertyEdgesIdx.map(eIdx => graph.edges(eIdx).asInstanceOf[Edge.LabeledProperty])
             val propertyData = propertyEdges.map(e => (e.data.key, graph.nodesById(e.propertyId).asInstanceOf[Node.Content]))
 
             propertyData.map(data => propertyRow(data._1, data._2))
-
-            //              val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-            //              val user = graph.nodesById(membership.userId).asInstanceOf[User]
-            //              userLine(user).apply(
-            //                button(
-            //                  cls := "ui tiny compact negative basic button",
-            //                  marginLeft := "10px",
-            //                  "Remove",
-            //                  onClick(membership).foreach(handleRemoveMember(_))
-            //                )
-            //              )
           },
         ),
         a(
@@ -839,18 +823,11 @@ object ItemProperties {
     }
 
     def handleAddProperty(propertyKey: String, propertyValue: String, propertyType: String)(implicit ctx: Ctx.Owner): Unit = {
-      //      val propertyNode = propertyId match {
-      //        case Some(pid) => graph.nodesById(pid)
-      //        case _ => Node.Content(property, NodeRole.Property)
-      //      }
 
       val propertyOpt: Option[NodeData.Content] = propertyType match {
         case NodeData.Integer.tpe   => Try(propertyValue.toInt).toOption.map(number => NodeData.Integer(number))
         case NodeData.Float.tpe     => Try(propertyValue.toDouble).toOption.map(number => NodeData.Float(number))
         case NodeData.Date.tpe      => Try(new js.Date(propertyValue).getTime.toLong).toOption.map(datum => NodeData.Date(EpochMilli(datum)))
-//        case NodeData.Integer.tpe   => Some(NodeData.Integer(propertyValue))
-//        case NodeData.Float.tpe     => Some(NodeData.Float(propertyValue))
-//        case NodeData.Date.tpe      => Try(new js.Date(propertyValue).getTime.toLong).toOption.map(datum => NodeData.Date(EpochMilli(datum)))
         case NodeData.PlainText.tpe => Some(NodeData.PlainText(propertyValue))
         case _                      => None
       }
@@ -858,8 +835,6 @@ object ItemProperties {
       propertyOpt.foreach { data =>
         val propertyNode = Node.Content(data, NodeRole.Property)
         val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey, data.tpe), propertyNode.id)
-//        val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey, "PropertyAcceptedType"), propertyNode.id)
-//        val gc = GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge)) merge GraphChanges.connect(Edge.Parent)(nodeId, propertyNode.id)
         val gc = GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
 
         state.eventProcessor.changes.onNext(gc).foreach {_ =>
@@ -869,49 +844,12 @@ object ItemProperties {
       }
     }
 
+    // TODO
     def handleRemoveProperty(propertyId: NodeId)(implicit ctx: Ctx.Owner): Unit = {
-      // TODO
       //      state.eventProcessor.changes.onNext(
       //        GraphChanges.disconnect(Edge.LabeledProperty)(nodeId, propertyId)
       //      )
       //      modalCloseTrigger.onNext(())
-    }
-
-    def header(implicit ctx: Ctx.Owner) = VDomModifier(
-      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-      div(
-        Styles.flex,
-        flexDirection.row,
-        justifyContent.spaceBetween,
-        alignItems.center,
-        div(
-          Styles.flex,
-          flexDirection.column,
-          div(
-            Styles.flex,
-            alignItems.center,
-            channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-            renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-            paddingBottom := "5px",
-          ),
-          div(s"Manage Properties"),
-        ),
-        div(
-          Styles.flex,
-          Styles.flexStatic,
-          Icons.property,
-          cursor.pointer,
-          fontSize.xxLarge,
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
-        ),
-      ),
-    )
-
-    def channelAvatar(node: Node, size: Int) = {
-      Avatar(node)(
-        width := s"${ size }px",
-        height := s"${ size }px"
-      )
     }
 
     def propertyRow(propertyKey: String, propertyValue: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
@@ -932,7 +870,10 @@ object ItemProperties {
         div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
         cursor.pointer,
 
-        onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = modalCloseTrigger,
+        onClick(Ownable(implicit ctx => UI.ModalConfig(
+          header = ModalConfig.defaultHeader(state, node, "Manage properties", Icons.property),
+          description = description,
+          close = modalCloseTrigger,
           modalModifier = VDomModifier(
             cls := "mini form",
           ),
