@@ -112,7 +112,7 @@ object ChatView {
           backgroundColor <-- state.pageStyle.map(_.bgLightColor),
           Styles.flex,
           currentReply().map { replyNodeId =>
-            val isDeletedNow = graph.isInDeletedGracePeriod(replyNodeId, state.page().parentId)
+            val isDeletedNow =  graph.isDeletedNow(replyNodeId, state.page().parentId)
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -290,10 +290,7 @@ object ChatView {
 
               div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
 
-                val isDeletedNow = Rx {
-                  val graph = state.graph()
-                  graph.isInDeletedGracePeriod(nodeId, parentIds)
-                }
+                val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
 
                 val editMode = Var(false)
 
@@ -312,15 +309,7 @@ object ChatView {
       selectedNodes().exists(_.nodeId == nodeId)
     }
 
-    val isDeletedInFuture = Rx {
-      val graph = state.graph()
-      val nodeIdx = graph.idToIdx(nodeId)
-      if(nodeIdx == -1) true
-      else graph.latestDeletedAt(nodeIdx) match {
-        case Some(deletedAt) => deletedAt isAfter EpochMilli.now
-        case None => false
-      }
-    }
+    val isDeletedInFuture = state.graph.map(_.isDeletedInFuture(nodeId, directParentIds))
 
     def replyAction = {
       currentReply.update(_ ++ Set(nodeId))
@@ -417,7 +406,7 @@ object ChatView {
                 case NodeRole.Task =>
                   Rx {
                     val graph = state.graph()
-                    val directNonStageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
+                    val directNonStageParents = graph.parentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
                     nodeCardWithCheckbox(state, node, directNonStageParents).apply(backgroundColor := "transparent", boxShadow := "none")
                   }
                 case _ =>

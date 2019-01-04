@@ -197,10 +197,7 @@ object ThreadView {
 
             val showReplyField = Var(false)
 
-            val isDeletedNow = Rx {
-              val graph = state.graph()
-              graph.isInDeletedGracePeriod(nodeId, directParentIds)
-            }
+            val isDeletedNow =  state.graph.map(_.isDeletedNow(nodeId, directParentIds))
 
             val editMode = Var(false)
 
@@ -217,7 +214,7 @@ object ThreadView {
               }
 
               val showExpandedThread = Rx {
-                !isDeletedNow() && (isExpanded() || showReplyField())
+                (isExpanded() || showReplyField())
               }
 
               VDomModifier(
@@ -316,10 +313,7 @@ object ThreadView {
       selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
-    val isDeletedInFuture = Rx {
-      val graph = state.graph()
-      graph.isDeletedInFuture(nodeId, directParentIds)
-    }
+    val isDeletedInFuture = state.graph.map(_.isDeletedInFuture(nodeId, directParentIds))
 
     val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
         Styles.flex,
@@ -345,7 +339,7 @@ object ThreadView {
       }
     }
     val expandCollapseButton = Rx{
-      VDomModifier.ifNot(isDeletedNow() || inCycle)(renderExpandCollapseButton(state, nodeId, isExpanded))
+      VDomModifier.ifNot(inCycle)(renderExpandCollapseButton(state, nodeId, isExpanded))
     }
 
     div(

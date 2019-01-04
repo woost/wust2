@@ -261,7 +261,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val tagParentsDegree = new Array[Int](n)
   private val notDeletedParentsDegree = new Array[Int](n)
   private val notDeletedChildrenDegree = new Array[Int](n)
-  private val deletedParentsDegree = new Array[Int](n)
+  private val inDeletedGracePeriodDegree = new Array[Int](n)
   private val futureDeletedParentsDegree = new Array[Int](n)
   private val authorshipDegree = new Array[Int](n)
   private val membershipsForNodeDegree = new Array[Int](n)
@@ -294,10 +294,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             val childIsTask = nodes(sourceIdx).role == NodeRole.Task
             val childIsTag = nodes(sourceIdx).role == NodeRole.Tag
             val parentIsTag = nodes(targetIdx).role == NodeRole.Tag
+            parentsDegree(sourceIdx) += 1
+            childrenDegree(targetIdx) += 1
             e.data.deletedAt match {
               case None            =>
-                parentsDegree(sourceIdx) += 1
-                childrenDegree(targetIdx) += 1
                 if(childIsMessage) messageChildrenDegree(targetIdx) += 1
                 if(childIsTask) taskChildrenDegree(targetIdx) += 1
                 if(childIsTag) tagChildrenDegree(targetIdx) += 1
@@ -306,8 +306,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                 notDeletedChildrenDegree(targetIdx) += 1
               case Some(deletedAt) =>
                 if(deletedAt isAfter now) { // in the future
-                  parentsDegree(sourceIdx) += 1
-                  childrenDegree(targetIdx) += 1
                   if(childIsMessage) messageChildrenDegree(targetIdx) += 1
                   if(childIsTask) taskChildrenDegree(targetIdx) += 1
                   if(childIsTag) tagChildrenDegree(targetIdx) += 1
@@ -316,10 +314,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                   notDeletedChildrenDegree(targetIdx) += 1
                   futureDeletedParentsDegree(sourceIdx) += 1
                 } else if(deletedAt isAfter remorseTimeForDeletedParents) { // less than 24h in the past
-                  parentsDegree(sourceIdx) += 1
-                  childrenDegree(targetIdx) += 1
-                  deletedParentsDegree(sourceIdx) += 1
-                } //TODO everything deleted further in the past should already be filtered in backend
+                  inDeletedGracePeriodDegree(sourceIdx) += 1
+                }
+              // TODO everything deleted further in the past should already be filtered in backend
+              // BUT received on request
             }
           case _: Edge.Assigned =>
             assignedNodesDegree(sourceIdx) += 1
@@ -348,7 +346,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
   private val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
   private val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
-  private val deletedParentsIdxBuilder = NestedArrayInt.builder(deletedParentsDegree)
+  private val inDeletedGracePeriodParentsIdxBuilder = NestedArrayInt.builder(inDeletedGracePeriodDegree)
   private val futureDeletedParentsIdxBuilder = NestedArrayInt.builder(futureDeletedParentsDegree)
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
@@ -376,11 +374,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         val childIsTask = nodes(sourceIdx).role == NodeRole.Task
         val childIsTag = nodes(sourceIdx).role == NodeRole.Tag
         val parentIsTag = nodes(targetIdx).role == NodeRole.Tag
+        parentsIdxBuilder.add(sourceIdx, targetIdx)
+        parentEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        childrenIdxBuilder.add(targetIdx, sourceIdx)
         e.data.deletedAt match {
           case None            =>
-            parentsIdxBuilder.add(sourceIdx, targetIdx)
-            parentEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-            childrenIdxBuilder.add(targetIdx, sourceIdx)
             if(childIsMessage) messageChildrenIdxBuilder.add(targetIdx, sourceIdx)
             if(childIsTask) taskChildrenIdxBuilder.add(targetIdx, sourceIdx)
             if(childIsTag) tagChildrenIdxBuilder.add(targetIdx, sourceIdx)
@@ -389,9 +387,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             notDeletedChildrenIdxBuilder.add(targetIdx, sourceIdx)
           case Some(deletedAt) =>
             if(deletedAt isAfter now) { // in the future
-              parentsIdxBuilder.add(sourceIdx, targetIdx)
-              parentEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-              childrenIdxBuilder.add(targetIdx, sourceIdx)
               if(childIsMessage) messageChildrenIdxBuilder.add(targetIdx, sourceIdx)
               if(childIsTask) taskChildrenIdxBuilder.add(targetIdx, sourceIdx)
               if(childIsTag) tagChildrenIdxBuilder.add(targetIdx, sourceIdx)
@@ -400,11 +395,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               notDeletedChildrenIdxBuilder.add(targetIdx, sourceIdx)
               futureDeletedParentsIdxBuilder.add(sourceIdx, targetIdx)
             } else if(deletedAt isAfter remorseTimeForDeletedParents) { // less than 24h in the past
-              parentsIdxBuilder.add(sourceIdx, targetIdx)
-              parentEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-              childrenIdxBuilder.add(targetIdx, sourceIdx)
-              deletedParentsIdxBuilder.add(sourceIdx, targetIdx)
-            } //TODO everything deleted further in the past should already be filtered in backend
+              inDeletedGracePeriodParentsIdxBuilder.add(sourceIdx, targetIdx)
+            }
+          // TODO everything deleted further in the past should already be filtered in backend
+          // BUT received on request
         }
       case _: Edge.Expanded =>
         expandedNodesIdxBuilder.add(sourceIdx, targetIdx)
@@ -431,7 +425,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val tagParentsIdx: NestedArrayInt = tagParentsIdxBuilder.result()
   val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
   val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
-  val deletedParentsIdx: NestedArrayInt = deletedParentsIdxBuilder.result()
+  val inDeletedGracePeriodParentIdx: NestedArrayInt = inDeletedGracePeriodParentsIdxBuilder.result()
   val futureDeletedParentsIdx: NestedArrayInt = futureDeletedParentsIdxBuilder.result()
   val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
   val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
@@ -597,16 +591,23 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
     notDeletedParentsIdx(nodeIdx).collect{case idx if nodes(idx).role == nodeRole => idx}
 
+  def partiallyDeletedParents(nodeId: NodeId) = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).flatMap { e =>
+    val parentEdge = e.asInstanceOf[Edge.Parent]
+    val deleted = parentEdge.data.deletedAt.fold(false)(_ isBefore now)
+    if(deleted) Some(parentEdge) else None
+  }
+  def isPartiallyDeleted(nodeId: NodeId) = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).exists{e => e.asInstanceOf[Edge.Parent].data.deletedAt.fold(false)(_ isBefore now)}
+
   def isInDeletedGracePeriod(nodeId: NodeId, parent: NodeId): Boolean = isInDeletedGracePeriod(nodeId, Iterable(parent))
   def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
     val nodeIdx = idToIdx(nodeId)
     if(nodeIdx == -1) return false
 
-    @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
+    @inline def nodeIsDeletedInAtLeastOneParent = inDeletedGracePeriodParentIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
       val set = ArraySet.create(n)
-      deletedParentsIdx.foreachElement(nodeIdx)(set.add)
+      inDeletedGracePeriodParentIdx.foreachElement(nodeIdx)(set.add)
       set
     }
 
@@ -643,11 +644,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = {
-    @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
+    @inline def nodeIsDeletedInAtLeastOneParent = inDeletedGracePeriodParentIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
       val set = ArraySet.create(n)
-      deletedParentsIdx.foreachElement(nodeIdx)(set.add)
+      inDeletedGracePeriodParentIdx.foreachElement(nodeIdx)(set.add)
       set
     }
 
@@ -662,11 +663,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def isInDeletedGracePeriodIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
-    @inline def nodeIsDeletedInAtLeastOneParent = deletedParentsIdx.sliceNonEmpty(nodeIdx)
+    @inline def nodeIsDeletedInAtLeastOneParent = inDeletedGracePeriodParentIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
       val set = ArraySet.create(n)
-      deletedParentsIdx.foreachElement(nodeIdx)(set.add)
+      inDeletedGracePeriodParentIdx.foreachElement(nodeIdx)(set.add)
       set
     }
 
@@ -679,6 +680,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       else hasNoParents
     } else false // node is nowhere deleted
   }
+
+  def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
+    //      !inDeletedGracePeriodParentIdx.contains(nodeIdx)(parentIdx) && !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
+    !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
+  }
+  def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
+  def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
+  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.forall(parentId => isDeletedNow(nodeId, parentId))
 
   def directNodeTags(nodeIdx: Int, parentIndices: immutable.BitSet): Array[Node] = {
     //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
