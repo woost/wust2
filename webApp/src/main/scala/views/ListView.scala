@@ -41,12 +41,12 @@ object ListView {
             val taskSet = ArraySet.create(graph.size)
             // we go down from workspaces, since tasks which only live in stages have an invalid encoding and should be ignored
            // println("listview workspaces: " + graph.debug(workspaces))
-            algorithm.depthFirstSearchAfterStartsWithContinue(workspaces,graph.notDeletedChildrenIdx, {nodeIdx =>
+            algorithm.depthFirstSearchAfterStartsWithContinue(workspaces,graph.childrenIdx, {nodeIdx =>
               val node = graph.nodes(nodeIdx)
              // println("  listview " + graph.debug(node))
               node.role match {
                 case NodeRole.Task =>
-                  @inline def isCorrectlyEncodedTask = graph.notDeletedParentsIdx.exists(nodeIdx)(parentIdx => workspaces.contains(parentIdx)) //  || taskSet.contains(parentIdx) taskSet.contains activates subtasks
+                  @inline def isCorrectlyEncodedTask = graph.parentsIdx.exists(nodeIdx)(parentIdx => workspaces.contains(parentIdx)) //  || taskSet.contains(parentIdx) taskSet.contains activates subtasks
                   // println("    listview is Task, correctly encoded: " + isCorrectlyEncodedTask)
                   if(isCorrectlyEncodedTask) {
                      taskSet += nodeIdx

@@ -119,13 +119,15 @@ object PageHeader {
         ))
       },
 //      notifyControl(state, channel).apply(buttonStyle),
-      state.isFilterActive.now.ifTrue[VDomModifier]{
+      state.isFilterActive.map(_.ifTrue[VDomModifier]{
         div(
           Elements.icon(Icons.filter),
           color := "green",
-          UI.tooltip("bottom right") := "A filter is active",
+          onClick(Seq(GraphOperation.NoDeletedButGracedParents)) --> state.graphTransformations,
+          cursor.pointer,
+          UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
-      },
+      }),
       viewSwitcher(state),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)

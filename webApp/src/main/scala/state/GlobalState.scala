@@ -75,15 +75,15 @@ class GlobalState(
 
   // Allow filtering / transformation of the graph on globally
   val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq.empty[UserViewGraphTransformation])
+//  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(GraphOperation.NoDeletedButGracedParents))
 
-  // Always transform graph - using identity on default
-  case class ViewGraphData(page: Page, userId: UserId, graph: Graph)
+  // Always transform graph - using NoDeletedButGracedParents on default
   val graph: Rx[Graph] = Rx {
     val currGraph: Graph = rawGraph()
     val transformation: Seq[GraphTransformation] = graphTransformations().map(_.transformWithViewData(page().parentId, user().id))
     transformation.foldLeft(currGraph)((g, gt) => gt(g))
   }
-  val isFilterActive = Rx { graphTransformations().nonEmpty }
+  val isFilterActive = Rx { graphTransformations().length != 1 || !graphTransformations().contains(GraphOperation.NoDeletedButGracedParents) }
 
   val viewConfig: Var[ViewConfig] = {
       def viewHeuristic(graph:Graph, page:Page) = {
