@@ -11,19 +11,28 @@ object TaskOrdering {
 
   type Position = Int
 
-  def constructOrderingOf[T](graph: Graph, parentId: NodeId, container: Seq[T], extractNodeId: T => NodeId): Seq[T] = {
-    computeOrder(graph, parentId, container.map(extractNodeId)).flatMap(nodeId => container.find(t => extractNodeId(t) == nodeId))
+  // TODO: Allow definitions of Orderings
+  def constructOrderingOf[T](graph: Graph, parentId: NodeId, container: Seq[T], extractNodeId: T => NodeId, customSortWith: Option[(BigDecimal, BigDecimal) => Boolean] = None): Seq[T] = {
+    computeOrder(graph, parentId, container.map(extractNodeId), customSortWith).flatMap(nodeId => container.find(t => extractNodeId(t) == nodeId))
   }
   // (Re)construct ordering of a parent container.
-  def constructOrdering(graph: Graph, parentId: NodeId): Seq[NodeId] = {
-    computeOrder(graph, parentId, graph.notDeletedChildrenIdx(graph.idToIdx(parentId)).map(graph.nodeIds))
+  def constructOrdering(graph: Graph, parentId: NodeId, customSortWith: Option[(BigDecimal, BigDecimal) => Boolean] = None): Seq[NodeId] = {
+    computeOrder(graph, parentId, graph.notDeletedChildrenIdx(graph.idToIdx(parentId)).map(graph.nodeIds), customSortWith)
   }
 
-  private def computeOrder(graph: Graph, parentId: NodeId, container: Seq[NodeId]) = {
-    val sorted = container.sortWith { (id1, id2) =>
-      val orderValue1 = getValueOfNodeId(graph, parentId, id1)._2
-      val orderValue2 = getValueOfNodeId(graph, parentId, id2)._2
-      orderValue1 < orderValue2
+  // TODO: Make fast
+  private def computeOrder(graph: Graph, parentId: NodeId, container: Seq[NodeId], customSortWith: Option[(BigDecimal, BigDecimal) => Boolean]) = {
+    val sorted = customSortWith match {
+      case None      => container.sortWith { (id1, id2) =>
+        val orderValue1 = getValueOfNodeId(graph, parentId, id1)._2
+        val orderValue2 = getValueOfNodeId(graph, parentId, id2)._2
+        orderValue1 < orderValue2
+      }
+      case Some(csw) => container.sortWith { (id1, id2) =>
+        val orderValue1 = getValueOfNodeId(graph, parentId, id1)._2
+        val orderValue2 = getValueOfNodeId(graph, parentId, id2)._2
+        csw(orderValue1, orderValue2)
+      }
     }
 
     sorted

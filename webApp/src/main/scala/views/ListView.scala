@@ -90,7 +90,7 @@ object ListView {
             )),
           )
 
-          val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, pageParentId, todoTasks.mapToArray(identity), graph.nodeIds)
+          val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, pageParentId, todoTasks.mapToArray(identity), graph.nodeIds, Some((a: BigDecimal, b: BigDecimal) => a > b))
 
           VDomModifier(
             div(
