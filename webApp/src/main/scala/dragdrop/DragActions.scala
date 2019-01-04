@@ -90,7 +90,7 @@ object DragActions {
       //// List View ////
       case (from: List, payload: DragItem.Task, into: List, false, false) =>
         (sortableStopEvent,graph,userId) =>
-          sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
+          sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into, revert = true)
 
     }
   }

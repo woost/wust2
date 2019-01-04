@@ -66,7 +66,7 @@ object TaskOrdering {
 
   @inline private def checkBounds(containerSize: Int, index: Int) = index >= 0 && index < containerSize
 
-  def constructGraphChangesByContainer(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId, fromItems: Seq[NodeId], intoItems: Seq[NodeId]): GraphChanges = {
+  def constructGraphChangesByContainer(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId, fromItems: Seq[NodeId], intoItems: Seq[NodeId], revert: Boolean = false): GraphChanges = {
 
     scribe.debug(s"calculate for movement: from position $previousDomPosition to new position $newDomPosition into ${if(containerChanged) "different" else "same"} container")
 
@@ -99,7 +99,7 @@ object TaskOrdering {
     val afterNode = if(checkBounds(newOrderedNodes.size, afterNodeIndex))
                       Some(newOrderedNodes(afterNodeIndex))
                     else None
-                    scribe.debug(s"after index = $afterNodeIndex, node = ${afterNode.map(graph.nodesById)}") //afterNode.map(n => getNodeIdStr(graph, n))
+    scribe.debug(s"after index = $afterNodeIndex, node = ${afterNode.map(graph.nodesById)}") //afterNode.map(n => getNodeIdStr(graph, n))
 
     val beforeParentData = beforeNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
     val afterParentData = afterNode.map(nodeId => getValueOfNodeId(graph, into, nodeId))
@@ -109,13 +109,14 @@ object TaskOrdering {
     scribe.debug(s"before node ordering = $beforeNodeOrderingValue")
     scribe.debug(s"after node ordering = $afterNodeOrderingValue")
     val newOrderingValue = {
+      val addVal = if(!revert) 1 else -1
       if(beforeNodeOrderingValue.isDefined && afterNodeOrderingValue.isDefined) {
         val (before, after) = (beforeNodeOrderingValue.get, afterNodeOrderingValue.get)
         before + (after - before)/2
       } else if(beforeNodeOrderingValue.isDefined) {
-        BigDecimal(beforeNodeOrderingValue.get.toBigInt + 1)
+        beforeNodeOrderingValue.get + addVal
       } else if(afterNodeOrderingValue.isDefined) {
-        BigDecimal(afterNodeOrderingValue.get.toBigInt - 1)
+        afterNodeOrderingValue.get - addVal
       } else { // workaround: infamous 'should never happen' case
         scribe.warn("NON-EMPTY but no before / after")
         BigDecimal(graph.nodeCreated(graph.idToIdx(nodeId)))

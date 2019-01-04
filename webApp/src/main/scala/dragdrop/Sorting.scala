@@ -53,7 +53,7 @@ object Sorting {
   // - Only one "big" sortable => container always the same (oldContainer == newContainer)
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
-  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer): GraphChanges = {
+  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer, revert: Boolean = false): GraphChanges = {
 
     import DragContainer._
     scribe.debug("Computing sorting change")
@@ -64,7 +64,7 @@ object Sorting {
 
         val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition)) { scribe.debug("item dropped on same place (no movement)"); GraphChanges.empty }
                  else
-                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
+                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items, revert)
 
 
         //                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
