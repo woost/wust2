@@ -73,18 +73,6 @@ class GlobalState(
     }
   }
 
-  // Allow filtering / transformation of the graph on globally
-  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq.empty[UserViewGraphTransformation])
-//  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(GraphOperation.NoDeletedButGracedParents))
-
-  // Always transform graph - using NoDeletedButGracedParents on default
-  val graph: Rx[Graph] = Rx {
-    val currGraph: Graph = rawGraph()
-    val transformation: Seq[GraphTransformation] = graphTransformations().map(_.transformWithViewData(page().parentId, user().id))
-    transformation.foldLeft(currGraph)((g, gt) => gt(g))
-  }
-  val isFilterActive = Rx { graphTransformations().length != 1 || !graphTransformations().contains(GraphOperation.NoDeletedButGracedParents) }
-
   val viewConfig: Var[ViewConfig] = {
       def viewHeuristic(graph:Graph, page:Page) = {
         val stats = graph.topLevelRoleStats(page.parentId)
@@ -98,7 +86,7 @@ class GlobalState(
       }
 
       var lastPage:Page = Page.empty
-      var lastGraph:Graph = graph.now
+      var lastGraph:Graph = rawGraph.now
       var lastBestView:View = View.Conversation
 
       rawViewConfig.mapRead{ viewConfig =>
@@ -112,23 +100,23 @@ class GlobalState(
           case (None, Some(pageParentId)) =>
             // no specific view was given. Select one automatically:
 
-            (lastGraph != graph(), lastPage != rawPage) match {
+            (lastGraph != rawGraph(), lastPage != rawPage) match {
               case (false, _) =>
                 // The graph didn't change, keep the current view.
                 lastBestView
-              case (true, false) => 
+              case (true, false) =>
                 // The graph changed without page-change (life-updates, graph-changes by the user).
                 // We keep the current view.
-                lastGraph = graph()
+                lastGraph = rawGraph()
                 lastBestView
               case (true, true) =>
                 // The graph changed and we are on a different page than before.
                 // The user changed the page and waited for the new graph of getGraph. Now the graph is updated.
                 // Therefore, we apply the heuristic to select a new best view.
-                val bestView = viewHeuristic(graph(), rawPage)
+                val bestView = viewHeuristic(rawGraph(), rawPage)
                 lastBestView = bestView
                 lastPage = rawPage
-                lastGraph = graph()
+                lastGraph = rawGraph()
                 bestView
             }
               case (Some(view), Some(_)) => view
@@ -197,5 +185,22 @@ class GlobalState(
     }
   })
   val sortableEvents = new SortableEvents(this, sortable)
+
+
+  // Allow filtering / transformation of the graph on globally
+  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(GraphOperation.NoDeletedButGracedParents))
+
+  // Always transform graph - using NoDeletedButGracedParents on default
+  val graph: Rx[Graph] = for {
+    graphTrans <- graphTransformations
+    currentGraph <- rawGraph
+    u <- user.map(_.id)
+    p <- rawViewConfig.map(_.pageChange.page.parentId)
+  } yield {
+    val transformation: Seq[GraphTransformation] = graphTrans.map(_.transformWithViewData(p, u))
+    transformation.foldLeft(currentGraph)((g, gt) => gt(g))
+  }
+  val isFilterActive = Rx { graphTransformations().length != 1 || !graphTransformations().contains(GraphOperation.NoDeletedButGracedParents) }
+
 }
 

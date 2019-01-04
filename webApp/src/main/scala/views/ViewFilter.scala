@@ -171,7 +171,7 @@ sealed trait ViewGraphTransformation {
   }
 }
 
-sealed trait UserViewGraphTransformation { def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation }
+sealed trait UserViewGraphTransformation { def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation }
 object GraphOperation {
   object Type extends TaggedType[String]
   type Type = Type.Type
@@ -184,7 +184,7 @@ object GraphOperation {
   def all: List[UserViewGraphTransformation] = macro SubObjects.list[UserViewGraphTransformation]
 
   case object InDeletedGracePeriodParents extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => graph.isInDeletedGracePeriod(e.sourceId, pid)
@@ -196,7 +196,7 @@ object GraphOperation {
   }
 
   case object OnlyDeletedParents extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val pageIdx = graph.idToIdx(pid)
         val newEdges = graph.edges.filter {
@@ -209,7 +209,7 @@ object GraphOperation {
   }
 
   case object NoDeletedParents extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid)
@@ -221,7 +221,7 @@ object GraphOperation {
   }
 
   case object NoDeletedButGracedParents extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid) || graph.isInDeletedGracePeriod(e.sourceId, pid)
@@ -233,7 +233,7 @@ object GraphOperation {
   }
 
   case object OnlyAssignedTo extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned if e.sourceId == userId => e.targetId
       }
@@ -246,7 +246,7 @@ object GraphOperation {
   }
 
   case object OnlyNotAssigned extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned => e.targetId
       }
@@ -259,6 +259,6 @@ object GraphOperation {
   }
 
   case object Identity extends Named with UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = identity[Graph]
+    def transformWithViewData(pageId: => Option[NodeId], userId: => UserId): GraphTransformation = identity[Graph]
   }
 }
