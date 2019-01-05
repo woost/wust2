@@ -74,7 +74,7 @@ object TasksView {
   private def kanbanSwitchBar(kanbanSwitch:Var[Boolean]) = {
     div(
       UI.tooltip("bottom right") := "Show tasks in a kanban or as list.",
-      UI.toggle("Kanban", kanbanSwitch),
+      UI.toggle("Columns", kanbanSwitch),
 
       zIndex := ZIndex.overlaySwitch, // like selectednodes, but still below
     )
