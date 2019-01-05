@@ -14,6 +14,7 @@ import cats.effect.IO
 import org.scalajs.dom
 import wust.graph.Page
 import wust.util._
+import Components._
 
 import scala.concurrent.Future
 import scala.scalajs.js
@@ -155,6 +156,8 @@ object AuthView {
             cursor.pointer
           )
         },
+        h4("Having Problems with Login or Signup?", textAlign := "center", marginTop := "40px"),
+        div("Please contact ", woostTeamEmailLink, textAlign := "center"),
         marginBottom := "20px",
       )
     )
