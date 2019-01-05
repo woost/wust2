@@ -99,7 +99,7 @@ object MainView {
         registerBanner,
         emailBanner,
       ),
-      Topbar(state)(width := "100%", Styles.flexStatic),
+      Rx { VDomModifier.ifTrue(Topbar.isVisible())(Topbar(state)(width := "100%", Styles.flexStatic)) },
       div(
         Styles.flex,
         Styles.growFull,

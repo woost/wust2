@@ -33,6 +33,7 @@ object Sidebar {
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       minWidth := s"${ smallIconSize }px",
+      Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar.hamburger(state)) },
       channelIcons(state, smallIconSize),
       newChannelButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
@@ -45,6 +46,7 @@ object Sidebar {
     def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
       backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+      Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar(state).apply(Styles.flexStatic)) },
       channels(state),
       newChannelButton(state).apply(
         cls := "newChannelButton-large " + buttonStyles,

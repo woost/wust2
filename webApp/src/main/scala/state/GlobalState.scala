@@ -42,6 +42,7 @@ class GlobalState(
   val isLoading: Rx[Boolean],
   val hasError: Rx[Boolean],
   val fileDownloadBaseUrl: Rx[Option[String]],
+  val screenSize: Rx[ScreenSize],
 )(implicit ctx: Ctx.Owner) {
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
@@ -183,11 +184,6 @@ class GlobalState(
   }
 
   val jsErrors: Observable[String] = events.window.onError.map(_.message)
-
-  val screenSize: Rx[ScreenSize] = events.window.onResize
-    .debounce(0.2 second)
-    .map(_ => ScreenSize.calculate())
-    .unsafeToRx(ScreenSize.calculate())
 
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
   @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large

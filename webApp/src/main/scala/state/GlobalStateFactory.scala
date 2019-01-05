@@ -54,7 +54,7 @@ object GlobalStateFactory {
 
     val fileDownloadBaseUrl = Var[Option[String]](None)
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
     // would be better to statically have this base url from the index.html or something.
@@ -253,6 +253,11 @@ object GlobalStateFactory {
 
     state
   }
+
+  val screenSize: Rx[ScreenSize] = outwatch.dom.dsl.events.window.onResize
+    .debounce(0.2 second)
+    .map(_ => ScreenSize.calculate())
+    .unsafeToRx(ScreenSize.calculate())
 
   object EmojiTitleConverter {
     val emojiTitleConvertor = new EmojiConvertor()

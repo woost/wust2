@@ -21,6 +21,8 @@ import wust.webApp.state._
 import scala.scalajs.js
 
 object Topbar {
+  val isVisible:Rx[Boolean] = Rx{ GlobalStateFactory.screenSize() != ScreenSize.Small }
+
   def apply(state: GlobalState): VNode = {
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
@@ -97,10 +99,9 @@ object Topbar {
       freeSolid.faBars,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
-      onClick foreach { ev =>
+      onClick.stopPropagation foreach {
         Analytics.sendEvent("hamburger", if(sidebarOpen.now) "close" else "open")
-        sidebarOpen() = !sidebarOpen.now;
-        ev.stopPropagation()
+        sidebarOpen() = !sidebarOpen.now
       }
     )
   }
