@@ -142,7 +142,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".enable-text-selection, .enable-text-selection *" - (
     (userSelect := "text").important,
-    cursor.text.important
+    cursor.auto.important
+  )
+
+  ".enable-text-selection.a, .enable-text-selection a" - (
+    cursor.pointer.important
   )
 
 

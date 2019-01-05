@@ -41,7 +41,11 @@ object Placeholders {
 object Components {
   private val implicitUserName = "Unregistered User"
 
-  val woostTeamEmailLink = a(href := "mailto:team@woost.space", "team@woost.space", cursor.pointer)
+  val woostTeamEmailLink = 
+    VDomModifier(
+      cls := "enable-text-selection",
+      a(href := "mailto:team@woost.space", "team@woost.space", target := "_blank")
+    )
 
   def displayUserName(user: NodeData.User): String = {
     if(user.isImplicit) {
