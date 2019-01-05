@@ -200,7 +200,7 @@ class GlobalState(
     val transformation: Seq[GraphTransformation] = graphTrans.map(_.transformWithViewData(p, u))
     transformation.foldLeft(currentGraph)((g, gt) => gt(g))
   }
-  val isFilterActive = Rx { graphTransformations().length != 1 || !graphTransformations().contains(GraphOperation.NoDeletedButGracedParents) }
+  val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 1 || !graphTransformations().contains(GraphOperation.NoDeletedButGracedParents) }
 
 }
 
