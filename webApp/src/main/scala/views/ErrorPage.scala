@@ -11,13 +11,14 @@ import wust.webApp.outwatchHelpers._
 object ErrorPage {
   def apply(errorMessage: Option[String] = None) = div(
     padding := "50px",
+    margin := "5px",
     cls := "ui negative message",
     div(
       cls := "header",
-      b(paddingRight := "20px", "Oops, an error occurred!"),
-      button(cls := "ui tiny button positive", freeSolid.faAmbulance, " Reload", onClick.foreach { dom.window.location.reload() })
+      h3("Oops, an error occurred!"),
     ),
-    p(VDomModifier(errorMessage.getOrElse("Something went wrong"))),
+    p(VDomModifier(errorMessage.getOrElse("Something went wrong."))),
+    button(cls := "ui button positive", margin := "10px 0px", freeSolid.faAmbulance, " Reload Page", onClick.foreach { dom.window.location.reload() }),
     p("If the problem persists, please contact us at ", Components.woostTeamEmailLink)
   )
 }
