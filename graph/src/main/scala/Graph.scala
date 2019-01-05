@@ -591,12 +591,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
     notDeletedParentsIdx(nodeIdx).collect{case idx if nodes(idx).role == nodeRole => idx}
 
-  def partiallyDeletedParents(nodeId: NodeId) = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).flatMap { e =>
+  def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Parent] = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).flatMap { e =>
     val parentEdge = e.asInstanceOf[Edge.Parent]
     val deleted = parentEdge.data.deletedAt.fold(false)(_ isBefore now)
     if(deleted) Some(parentEdge) else None
   }
-  def isPartiallyDeleted(nodeId: NodeId) = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).exists{e => e.asInstanceOf[Edge.Parent].data.deletedAt.fold(false)(_ isBefore now)}
+  def isPartiallyDeleted(nodeId: NodeId): Boolean = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).exists{e => e.asInstanceOf[Edge.Parent].data.deletedAt.fold(false)(_ isBefore now)}
 
   def isInDeletedGracePeriod(nodeId: NodeId, parent: NodeId): Boolean = isInDeletedGracePeriod(nodeId, Iterable(parent))
   def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
