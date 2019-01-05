@@ -752,12 +752,12 @@ object ItemProperties {
         a(
           paddingTop := "15px",
           cursor.pointer,
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Property)) foreach { vc =>
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Detail)) foreach { vc =>
             modalCloseTrigger.onNext(()).onComplete { _ =>
               state.viewConfig() = vc
             }
           },
-          "Show detailed property view",
+          "Show detailed view",
         ),
       ),
     }

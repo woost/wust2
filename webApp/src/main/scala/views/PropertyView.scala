@@ -1,27 +1,14 @@
 package wust.webApp.views
 
-import fontAwesome.{freeRegular, freeSolid}
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole}
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor._
-import wust.util._
-import flatland._
-import wust.webApp.{BrowserDetect, Icons}
-import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
-import wust.util.collection._
 
 object PropertyView {
-  import SharedViewElements._
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
