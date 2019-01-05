@@ -10,6 +10,9 @@ sealed trait View {
   def isContent: Boolean = true
 }
 object View {
+  case object Detail extends View {
+    def viewKey = "detail"
+  }
   case object Magic extends View {
     def viewKey = "magic"
   }

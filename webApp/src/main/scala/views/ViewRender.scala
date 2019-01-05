@@ -7,6 +7,7 @@ import wust.webApp.views.graphview.GraphView
 
 object ViewRender {
   def apply(view: View, state: GlobalState)(implicit ctx: Ctx.Owner): VNode = view match {
+    case View.Detail           => DetailView(state)
     case View.Magic            => MagicView(state)
     case View.Conversation     => ConversationView(state)
     case View.Files            => FilesView(state)
