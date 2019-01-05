@@ -10,8 +10,8 @@ import scala.concurrent.duration._
 object ZIndex {
   val controls = 10
   val draggable = 100
+  val overlaySwitch = 300
   val selected = 400
-  val overlaySwitch = 800
   val overlayLow = 1000
   val tooltip = 1500
   val loading = 1750
