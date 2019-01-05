@@ -7,72 +7,61 @@ import scala.collection.breakOut
 
 sealed trait View {
   def viewKey: String
-  def isContent: Boolean
+  def isContent: Boolean = true
 }
 object View {
   case object Magic extends View {
     def viewKey = "magic"
-    def isContent = true
   }
   case object Split extends View {
     def viewKey = "split"
-    def isContent = true
   }
   case object Conversation extends View {
     def viewKey = "conversation"
-    def isContent = true
   }
   case object Tasks extends View {
     def viewKey = "tasks"
-    def isContent = true
   }
   case object Thread extends View {
     def viewKey = "thread"
-    def isContent = true
   }
   case object Chat extends View {
     def viewKey = "chat"
-    def isContent = true
   }
   case object Files extends View {
     def viewKey = "files"
-    def isContent = true
   }
   case object Kanban extends View {
     def viewKey = "kanban"
-    def isContent = true
   }
   case object List extends View {
     def viewKey = "list"
-    def isContent = true
   }
   case object Property extends View {
     def viewKey = "property"
-    def isContent = true
   }
   case object Graph extends View {
     def viewKey = "graph"
-    def isContent = true
   }
   case object Login extends View {
     def viewKey = "login"
-    def isContent = false
+    override def isContent = false
   }
   case object Signup extends View {
     def viewKey = "signup"
-    def isContent = false
+    override def isContent = false
   }
   case object Welcome extends View {
     def viewKey = "welcome"
-    def isContent = false
+    override def isContent = false
   }
   case object UserSettings extends View {
     def viewKey = "usersettings"
-    def isContent = false
+    override def isContent = false
   }
   case class Tiled(operator: ViewOperator, views: NonEmptyList[View]) extends View {
     def viewKey = views.map(_.viewKey).toList.mkString(operator.separator)
-    def isContent = views.exists(_.isContent)
+    override def isContent = views.exists(_.isContent)
   }
 
   def list: List[View] = macro SubObjects.list[View]
