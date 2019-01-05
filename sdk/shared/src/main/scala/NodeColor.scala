@@ -7,13 +7,11 @@ import wust.ids._
 import collection.breakOut
 
 object BaseColors {
-  //TODO: ensure that these are calculated at compile time
-  val sidebarBg = RGB("#4D394B").hcl
-  val sidebarBgHighlight = RGB("#9D929B").hcl
-
   val pageBg = RGB("#F3EFCC").hcl
   val pageBgLight = RGB("#e2f8f2").hcl
   val pageBorder = RGB("#95CCDF").hcl
+
+  val sidebarBgHighlight = pageBgLight
 
   val tag = RGB("#fa8088").hcl
   val kanbanColumnBg = RGB("#E39B86").hcl

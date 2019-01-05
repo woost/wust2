@@ -262,9 +262,12 @@ object CommonStyles extends StyleSheet.Standalone {
     zIndex(ZIndex.modal + 1)
   )
 
+  val sidebarBgColor = s"#2A3238"
+  val sidebarBgColorCSS = c"#2A3238"
   ".sidebar" - (
     color.white,
-    transition := "background-color 0.5s",
+    background := sidebarBgColorCSS,
+    borderRight(2 px, solid, sidebarBgColorCSS),
     Styles.flexStatic,
     height(100 %%),
     Styles.flex,
@@ -318,6 +321,7 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.center,
     cursor.pointer.important, // overwrites cursor from .draggable
     marginBottom(2 px),
+    borderRadius(2 px),
   )
 
   ".channel-line > .channelicon" - (
@@ -1117,7 +1121,7 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingRight(5 px),
     height(topBarHeight px),
     color.white,
-    transition := "background-color 0.5s", // fades on page change
+    background := sidebarBgColorCSS,
     Styles.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
@@ -1144,7 +1148,7 @@ object CommonStyles extends StyleSheet.Standalone {
     color.white,
 //    backgroundColor(Woost.color),
     // backgroundColor(c"#ff0266"), // pink
-    backgroundColor := seagreen,
+    backgroundColor.seagreen,
     borderBottom(1 px, solid, black)
   )
 

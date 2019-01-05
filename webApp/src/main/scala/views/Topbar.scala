@@ -27,7 +27,6 @@ object Topbar {
     div.staticRx(keyValue) { implicit ctx =>
       VDomModifier(
         cls := "topbar",
-        backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
         header(state).apply(marginRight := "10px"),
         // SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic),
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),

@@ -4,7 +4,7 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{CommonStyles,Styles}
 import wust.ids.NodeRole
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize, View}
@@ -59,7 +59,7 @@ object WelcomeView {
       Rx {
         (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
           div(
-            backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
+            backgroundColor := CommonStyles.sidebarBgColor,
             color := "white",
             padding := "15px",
             div(

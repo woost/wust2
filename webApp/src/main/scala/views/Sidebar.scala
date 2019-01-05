@@ -31,7 +31,6 @@ object Sidebar {
 
     def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       minWidth := s"${ smallIconSize }px",
       Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar.hamburger(state)) },
       channelIcons(state, smallIconSize),
@@ -45,7 +44,6 @@ object Sidebar {
 
     def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      backgroundColor <-- state.pageStyle.map(_.sidebarBgColor),
       Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar(state).apply(Styles.flexStatic)) },
       channels(state),
       newChannelButton(state).apply(
@@ -76,7 +74,7 @@ object Sidebar {
 
     def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
       state.sidebarOpen() match {
-        case true  => VDomModifier(openSidebar, (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](authStatus), maxWidth := "200px")
+        case true  => VDomModifier(openSidebar, (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](authStatus), maxWidth := "202px") // maxWith = 200px sidebar + 2px border
         case false => closedSidebar
       }
     }
@@ -101,7 +99,7 @@ object Sidebar {
         cls := "channel-line",
         selected.ifTrueSeq(
           Seq(
-            color := pageStyle.sidebarBgColor,
+            color := CommonStyles.sidebarBgColor,
             backgroundColor := pageStyle.sidebarBgHighlightColor
           )
         ),
@@ -207,7 +205,7 @@ object Sidebar {
           (allChannels).map { case (node,rawDepth) =>
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
-            channelIcon(state, node, isSelected, size, BaseColors.sidebarBg.copy(h = NodeColor.hue(node.id)).toHex)(ctx)(
+            channelIcon(state, node, isSelected, size)(ctx)(
               UI.popup("right center") := (if (state.user.now.id == node.id) "Your personal Workspace" else node.str),
 
               onChannelClick(ChannelAction.Node(node.id))(state),
@@ -233,7 +231,7 @@ object Sidebar {
     )
   }
 
-  def channelIcon(state: GlobalState, node: Node, isSelected: Boolean, size: Int, selectedBorderColor: String = "transparent")(
+  def channelIcon(state: GlobalState, node: Node, isSelected: Boolean, size: Int)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     div(
@@ -242,7 +240,7 @@ object Sidebar {
       width := s"${ size }px",
       height := s"${ size }px",
       backgroundColor := (node match {
-        case node: Node.Content => (if(isSelected) "#FFFFFF" else BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex)
+        case node: Node.Content => ((if(isSelected) BaseColors.pageBgLight else BaseColors.pageBg).copy(h = NodeColor.hue(node.id)).toHex)
         case _: Node.User       => if(isSelected) "rgb(255, 255, 255)" else "rgba(255, 255, 255, 0.9)"
       }),
       Avatar(node),

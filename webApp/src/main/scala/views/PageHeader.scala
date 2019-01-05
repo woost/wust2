@@ -9,7 +9,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{Styles, CommonStyles, ZIndex}
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
@@ -679,7 +679,7 @@ object PageHeader {
         alignItems.center,
 
         (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
-          backgroundColor := pageStyle.sidebarBgColor,
+          backgroundColor := CommonStyles.sidebarBgColor,
           color := "white",
         )),
         (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "7px")),
