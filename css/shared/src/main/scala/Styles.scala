@@ -772,10 +772,6 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  ".nodecard.draggable--over .buttonbar" - (
-    backgroundColor(transparent),
-    )
-
   ".nodecard .buttonbar > div" - (
     color(c"rgb(157, 157, 157)"),
     padding(2 px)
@@ -824,10 +820,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".kanbancolumnheader > p" - (
     marginBottom(0 em) // default was 1 em
-  )
-
-  ".kanbancolumn.draggable--over .buttonbar" - (
-    visibility.hidden.important // hide buttons when dragging over column
   )
 
   ".nodecard:hover > .buttonbar," +
@@ -963,11 +955,18 @@ object CommonStyles extends StyleSheet.Standalone {
     margin(5 px)
   )
 
-  // -- draggable selectednodes
-  ".selectednodes.draggable-mirror .actionbutton" - (
-    display.none
-    )
 
+
+
+
+  // prevents white rectangle on card placeholder
+  ".nodecard.draggable--over .buttonbar" - (
+    backgroundColor(transparent),
+  )
+
+  ".kanbancolumn.draggable--over .buttonbar" - (
+    visibility.hidden.important // hide buttons when dragging over column
+  )
 
   ".selectednodes .nodelist.draggable-mirror" - (
     backgroundColor(selectedNodesBgColor),
