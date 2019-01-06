@@ -40,8 +40,9 @@ object SelectedNodes {
               cls := "selectednodes",
               Styles.flex,
               alignItems.center,
+
               clearSelectionButton(selectedNodes),
-              div(nonEmptyNodeIds.size, marginLeft := "10px", marginRight := "10px", fontWeight.bold),
+              div(nonEmptyNodeIds.size, marginRight := "10px", fontWeight.bold),
 
               Rx {
                 (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds.map(_.nodeId), selectedNodes, state.graph()))
