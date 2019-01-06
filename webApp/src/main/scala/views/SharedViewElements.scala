@@ -474,17 +474,17 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 
-    div(
-      Styles.flexStatic,
-      cls := "chatmsg-controls",
       BrowserDetect.isMobile.ifFalse[VDomModifier] {
         Rx {
           def ifCanWrite(mod: => VDomModifier): VDomModifier = if (canWrite()) mod else VDomModifier.empty
 
+        div(
+          Styles.flexStatic,
+          cls := "chatmsg-controls",
           if(isDeletedNow()) {
             ifCanWrite(undeleteButton(
               onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
@@ -519,34 +519,33 @@ object SharedViewElements {
               onClick.mapTo(state.viewConfig.now.focus(Page(nodeId))) --> state.viewConfig,
             ),
           )
-        }
-      }
     )
   }
-
-  def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VNode] = {
-    val directNodeTags:Rx[Seq[Node]] = Rx {
-      val graph = state.graph()
-      graph.directNodeTags(graph.idToIdx(nodeId), graph.createImmutableBitSet(directParentIds))
     }
+  }
 
+  def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
+      val graph = state.graph()
+      val directNodeTags = graph.directNodeTags(graph.idToIdx(nodeId), graph.createImmutableBitSet(directParentIds))
+      VDomModifier.ifTrue(directNodeTags.nonEmpty)(
       state.screenSize.now match {
         case ScreenSize.Small =>
           div(
             cls := "tags",
-            directNodeTags().map { tag =>
+              directNodeTags.map { tag =>
               nodeTagDot(state, tag)(Styles.flexStatic)
             },
           )
         case _                =>
           div(
             cls := "tags",
-            directNodeTags().map { tag =>
+              directNodeTags.map { tag =>
               removableNodeTag(state, tag, nodeId)(Styles.flexStatic)
             },
           )
       }
+      )
     }
   }
 

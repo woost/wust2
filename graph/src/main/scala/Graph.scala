@@ -689,17 +689,17 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
   def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.forall(parentId => isDeletedNow(nodeId, parentId))
 
-  def directNodeTags(nodeIdx: Int, parentIndices: immutable.BitSet): Array[Node] = {
+  def directNodeTags(nodeIdx: Int, parentIndices: collection.Set[Int]): Array[Node] = {
     //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
 
     val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
-    parentsIdx.foreachElement(nodeIdx) { parentIdx =>
-      if(!isInDeletedGracePeriodIdx(nodeIdx, parentIdx)
-        && (!parentIndices.contains(parentIdx) || parentIdx == nodeIdx)
-        && (nodes(parentIdx).role != NodeRole.Stage || nodes(parentIdx).str.trim.toLowerCase != Graph.doneTextLower)
+    parentsIdx.foreachElement(nodeIdx) { nodeParentIdx =>
+      if(!isInDeletedGracePeriodIdx(nodeIdx, nodeParentIdx)
+        && (!parentIndices.contains(nodeParentIdx) || nodeParentIdx == nodeIdx)
+        && (nodes(nodeParentIdx).role != NodeRole.Stage || nodes(nodeParentIdx).str.trim.toLowerCase != Graph.doneTextLower)
       )
-        tagSet += nodes(parentIdx)
+        tagSet += nodes(nodeParentIdx)
     }
 
     tagSet.result()

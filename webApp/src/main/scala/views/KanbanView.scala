@@ -612,16 +612,19 @@ object KanbanView {
     )
 
     def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
-      val tags = Rx {
+      Rx {
         val graph = state.graph()
         val nodeIdx = graph.idToIdx(nodeId)
-        graph.tagParentsIdx(nodeIdx).map(graph.nodes)
+        val tags = graph.tagParentsIdx(nodeIdx).map(graph.nodes)
+        VDomModifier.ifTrue(tags.nonEmpty) {
+          div(
+            margin := "5px",
+            marginTop := "0",
+            textAlign.right,
+            tags.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId)),
+          )
+        }
       }
-
-      div(
-        textAlign.right,
-        tags.map(_.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId))),
-      )
     }
 
     def subCards(graph:Graph)(implicit ctx: Ctx.Owner) = {
@@ -677,7 +680,7 @@ object KanbanView {
       keyed(node.id, parentId),
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
-      cardTags(state, node.id).apply(margin := "5px", marginTop := "0"),
+      cardTags(state, node.id),
       Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
       Rx {
         val graph = state.graph()
