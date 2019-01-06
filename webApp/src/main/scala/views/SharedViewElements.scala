@@ -375,18 +375,20 @@ object SharedViewElements {
               alignItems.flexStart,
               cls := "drag-feedback",
 
-              dragHandle(Styles.flexStatic),
+              // dragHandle(Styles.flexStatic),
               renderedMessageModifier,
             )
           case _ =>
-            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes, contentInject = BrowserDetect.isMobile.ifFalse[VDomModifier](cls := "enable-text-selection")).apply(
+            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
               importanceIndicator,
               cls := "drag-feedback",
 
+              // Sadly it is not possible to FLOAT the syncedicon to the bottom right:
+              // https://stackoverflow.com/questions/499829/how-can-i-wrap-text-around-a-bottom-right-div/499883#499883
               syncedIcon,
-              dragHandle(Styles.flexStatic),
+              // dragHandle(Styles.flexStatic),
               renderedMessageModifier,
             )
         }
@@ -432,7 +434,7 @@ object SharedViewElements {
         // payload is call by name, so it's always the current selectedNodeIds
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
-          nodeDragOptions(nodeId, node.role, withHandle = true, payloadOverride = payloadOverride),
+          nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
           onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
         )
       }
@@ -478,9 +480,9 @@ object SharedViewElements {
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 
-      BrowserDetect.isMobile.ifFalse[VDomModifier] {
-        Rx {
-          def ifCanWrite(mod: => VDomModifier): VDomModifier = if (canWrite()) mod else VDomModifier.empty
+    BrowserDetect.isMobile.ifFalse[VDomModifier] {
+      Rx {
+        def ifCanWrite(mod: => VDomModifier): VDomModifier = if (canWrite()) mod else VDomModifier.empty
 
         div(
           Styles.flexStatic,
@@ -519,8 +521,8 @@ object SharedViewElements {
               onClick.mapTo(state.viewConfig.now.focus(Page(nodeId))) --> state.viewConfig,
             ),
           )
-    )
-  }
+        )
+      }
     }
   }
 
@@ -529,22 +531,22 @@ object SharedViewElements {
       val graph = state.graph()
       val directNodeTags = graph.directNodeTags(graph.idToIdx(nodeId), graph.createImmutableBitSet(directParentIds))
       VDomModifier.ifTrue(directNodeTags.nonEmpty)(
-      state.screenSize.now match {
-        case ScreenSize.Small =>
-          div(
-            cls := "tags",
+        state.screenSize.now match {
+          case ScreenSize.Small =>
+            div(
+              cls := "tags",
               directNodeTags.map { tag =>
-              nodeTagDot(state, tag)(Styles.flexStatic)
-            },
-          )
-        case _                =>
-          div(
-            cls := "tags",
+                nodeTagDot(state, tag)(Styles.flexStatic)
+              },
+            )
+          case _                =>
+            div(
+              cls := "tags",
               directNodeTags.map { tag =>
-              removableNodeTag(state, tag, nodeId)(Styles.flexStatic)
-            },
-          )
-      }
+                removableNodeTag(state, tag, nodeId)(Styles.flexStatic)
+              },
+            )
+        }
       )
     }
   }
