@@ -246,7 +246,7 @@ self.addEventListener('push', e => {
                     let options = {
                         body: content,
                         icon: 'favicon.ico',
-                        vibrate: [200, 50, 200],
+                        vibrate: [150, 50, 150],
                         renotify: true,
                         tag: subscribedId,
                         // actions: [
