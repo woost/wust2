@@ -63,27 +63,19 @@ object ThreadView {
         width := "100%"
       ),
       div(
-        Styles.flex,
-        flexDirection.column,
-        flexDirection.columnReverse, // on resize, align scrolling to bottom (https://stackoverflow.com/questions/34779723/how-to-change-a-scrolling-element-behavior-on-resize-html-css-javascript/34790448#34790448)
         cls := "chat-history",
-        flexGrow := 1,
-        div(
-          flexGrow := 1,
-          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-          chatHistory(state, selectedNodes, pageCounter, shouldLoadInfinite),
-          outerDragOptions,
-
-          // clicking on background deselects
-          onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
-          scrollHandler.modifier,
-          // on page change, always scroll down
-          emitterRx(state.page).foreach {
-            scrollHandler.scrollToBottomInAnimationFrame()
-          }
-        ),
-        // since flexDirection is reversed, InfiniteScroll is written at the bottom instead of top
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
+        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        chatHistory(state, selectedNodes, pageCounter, shouldLoadInfinite),
+        outerDragOptions,
+
+        // clicking on background deselects
+        onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+        scrollHandler.modifier,
+        // on page change, always scroll down
+        emitterRx(state.page).foreach {
+          scrollHandler.scrollToBottomInAnimationFrame()
+        }
       ),
       {
         def submitAction(str:String) = {

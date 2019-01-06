@@ -53,7 +53,7 @@ object InfiniteScroll {
       var numSteps = 0
 
       VDomModifier(
-        overflowY.auto,
+        overflow.auto,
         shouldLoad.map {
           case true => VDomModifier(
             div(
