@@ -64,6 +64,7 @@ trait Options extends js.Object {
 // https://github.com/Shopify/draggable/blob/master/src/Draggable/Plugins/Mirror
 trait MirrorOptions extends js.Object {
   var constrainDimensions: js.UndefOr[Boolean] = js.undefined
+  var appendTo: js.UndefOr[String|html.Element|js.Function0[html.Element]] = js.undefined
 }
 
 

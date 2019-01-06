@@ -182,6 +182,7 @@ class GlobalState(
     delay = 200.0 // prevents drag when touch scrolling is intended
     mirror = new MirrorOptions {
       constrainDimensions = true
+      appendTo = "#draggable-mirrors"
     }
   })
   val sortableEvents = new SortableEvents(this, sortable)
