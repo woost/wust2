@@ -42,7 +42,7 @@ object PropertyView {
               description(subjects.map(_.meta.accessLevel).mkString(", "))
             ),
             content(
-              header("Porperties"),
+              header("Properties"),
               description(
                 if(properties.nonEmpty)
                   properties.map{ case (propertyKey: String, propertyValue: String) => s"$propertyKey: $propertyValue"}.mkString(", ")
