@@ -61,7 +61,7 @@ object DetailView {
                 description(subject.meta.accessLevel.str)
               ),
               content(
-                header("Porperties"),
+                header("Properties"),
                 description(
                   if(properties.nonEmpty) properties.map{ case (propertyKey: String, propertyValue: String) => s"$propertyKey: $propertyValue"}.mkString(", ")
                   else "-"
@@ -77,7 +77,7 @@ object DetailView {
               ),
               content(
                 header("Children"),
-                description(description(children.map(c => nodeCard(c)(display.inlineBlock))))
+                description(description(children.map(c => nodeCard(c)(display.inlineBlock, marginTop := "5px", marginRight := "10px"))))
               ),
             )
           )
