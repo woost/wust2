@@ -731,12 +731,16 @@ object ItemProperties {
         VDomModifier(
           tpe := "number",
           step := "1",
+          min := Int.MinValue.toString,
+          max := Int.MaxValue.toString,
           placeholder := "Integer Number",
         )
       } else if(propertyType == NodeData.Float.tpe) {
         VDomModifier(
           tpe := "number",
           step := "any",
+          min := Double.MinValue.toString,
+          max := Double.MaxValue.toString,
           placeholder := "Floating Point Number",
         )
       } else if(propertyType == NodeData.Date.tpe) {
