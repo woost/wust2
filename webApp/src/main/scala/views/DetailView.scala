@@ -45,6 +45,7 @@ object DetailView {
           val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
           val children = graph.childrenIdx(subjectIdx).map(graph.nodes)
 
+          // TODO: Make all elements configurable
           list(
             item(
               content(
@@ -76,7 +77,7 @@ object DetailView {
               ),
               content(
                 header("Children"),
-                description(description(renderAsTag(children)))
+                description(description(children.map(c => nodeCard(c)(display.inlineBlock))))
               ),
             )
           )
