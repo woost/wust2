@@ -715,13 +715,9 @@ object ItemProperties {
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
     val modalCloseTrigger = PublishSubject[Unit]
-    val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe)
-    val propertyKeyInputProcess = BehaviorSubject[String]("")
-    val propertyValueInputProcess = BehaviorSubject[String]("")
-
-    clear foreach(_ => propertyTypeSelection.onNext(NodeData.Empty.tpe))
-    clear foreach(_ => propertyKeyInputProcess.onNext(""))
-    clear foreach(_ => propertyValueInputProcess.onNext(""))
+    val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
+    val propertyKeyInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
+    val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
