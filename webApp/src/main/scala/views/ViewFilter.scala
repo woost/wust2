@@ -87,9 +87,9 @@ case class ViewGraphTransformation(
   icon: VDomModifier,
   description: String,
 ){
-  private val domId: GraphOperation.Type = transform.tpe
 
   def render(implicit ctx: Ctx.Owner): BasicVNode = {
+    val domId = scala.util.Random.nextString(8)
 
     val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
       state.graphTransformations.map(_ :+ transform)
@@ -168,19 +168,12 @@ object ViewGraphTransformation {
 }
 
 sealed trait UserViewGraphTransformation {
-  val tpe: GraphOperation.Type
   def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation
 }
 object GraphOperation {
-  object Type extends TaggedType[String]
-  type Type = Type.Type
   type GraphTransformation = Graph => Graph
 
-  abstract class Named(implicit name: sourcecode.Name) {
-    val tpe = Type(name.value)
-  }
-
-  case object InDeletedGracePeriodParents extends Named with UserViewGraphTransformation {
+  case object InDeletedGracePeriodParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
@@ -192,7 +185,7 @@ object GraphOperation {
     }
   }
 
-  case object OnlyDeletedParents extends Named with UserViewGraphTransformation {
+  case object OnlyDeletedParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val pageIdx = graph.idToIdx(pid)
@@ -205,7 +198,7 @@ object GraphOperation {
     }
   }
 
-  case object NoDeletedParents extends Named with UserViewGraphTransformation {
+  case object NoDeletedParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
@@ -217,7 +210,7 @@ object GraphOperation {
     }
   }
 
-  case object NoDeletedButGracedParents extends Named with UserViewGraphTransformation {
+  case object NoDeletedButGracedParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
@@ -229,7 +222,7 @@ object GraphOperation {
     }
   }
 
-  case object OnlyAssignedTo extends Named with UserViewGraphTransformation {
+  case object OnlyAssignedTo extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned if e.sourceId == userId => e.targetId
@@ -242,7 +235,7 @@ object GraphOperation {
     }
   }
 
-  case object OnlyNotAssigned extends Named with UserViewGraphTransformation {
+  case object OnlyNotAssigned extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned => e.targetId
@@ -255,7 +248,7 @@ object GraphOperation {
     }
   }
 
-  case object Identity extends Named with UserViewGraphTransformation {
+  case object Identity extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = identity[Graph]
   }
 }
