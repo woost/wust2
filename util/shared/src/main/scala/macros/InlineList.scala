@@ -1,4 +1,4 @@
-package wust.webUtil.macros
+package wust.util.macros
 
 import scala.reflect.macros.blackbox.Context
 
