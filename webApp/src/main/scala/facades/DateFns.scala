@@ -1,4 +1,4 @@
-package wust.webApp.jsdom
+package dateFns
 
 import scala.scalajs.js
 import scala.scalajs.js.Date
@@ -6,7 +6,7 @@ import scala.scalajs.js.annotation._
 
 @js.native
 @JSImport("date-fns", JSImport.Default)
-object dateFns extends js.Object {
+object DateFns extends js.Object {
 
   // https://date-fns.org/v2.0.0-alpha.16/docs
   def format(date: js.Date, format: String): String = js.native

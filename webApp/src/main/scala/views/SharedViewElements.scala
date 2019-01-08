@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import dateFns.DateFns
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.eval.Task
@@ -18,7 +19,6 @@ import wust.ids._
 import wust.util._
 import wust.webApp.dragdrop.DragItem.DisableDrag
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
-import wust.webApp.jsdom.dateFns
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
@@ -298,10 +298,10 @@ object SharedViewElements {
 
   def dateString(epochMilli: EpochMilli): String = {
     val createdDate = new js.Date(epochMilli)
-    if(dateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
-      dateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
+    if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
+      DateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
     else
-      dateFns.format(new js.Date(epochMilli), "p") // localized only time
+      DateFns.format(new js.Date(epochMilli), "p") // localized only time
   }
 
   def creationDate(created: EpochMilli): VDomModifier = {
