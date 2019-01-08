@@ -612,6 +612,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
+  ".markdown ul" - (
+    margin(0 px),
+  )
+
   ".markdown code .hljs" - ( // code which is syntax-highlighted
     borderRadius(3 px),
   )
