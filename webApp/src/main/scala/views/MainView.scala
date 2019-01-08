@@ -33,39 +33,6 @@ object MainView {
 
     val notificationBanner = Rx { WoostNotification.banner(state, state.permissionState()) }
 
-    val emailBanner = Rx { // TODO: we need this for the migration from username to email - can go away afterwards
-      Observable.fromFuture(
-        state.user() match {
-          case user: AuthUser.Real =>
-            Client.auth.getUserDetail(user.id).map {
-              case Some(detail) =>
-                VDomModifier.ifTrue(detail.email.isEmpty) {
-                  val desktopText = div(
-                    span("You do not have an email setup. "),
-                    span("Please update your profile.", textDecoration.underline),
-                    span(" After the 7th of Januar 2019 you can only login via email."),
-                  )
-                  val mobileText = div(
-                    span("Please setup an email in "),
-                    span("your profile", textDecoration.underline),
-                    span(" until the 7th of Januar 2019."),
-                  )
-
-                  div(
-                    Elements.topBanner(Some(desktopText), Some(mobileText)),
-                    onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.UserSettings)) --> state.viewConfig,
-                  )
-                }
-              case err                   =>
-                scribe.info(s"Cannot get user details: ${ err }")
-                VDomModifier.empty
-            }
-          case _                   =>
-            Future.successful(VDomModifier.empty)
-        }
-      )
-    }
-
     val registerBanner = Rx {
       state.page().parentId.map{ pageParentId =>
         state.user() match {
@@ -98,7 +65,6 @@ object MainView {
         cls := "topBannerContainer",
         notificationBanner,
         registerBanner,
-        emailBanner,
       ),
       Rx { VDomModifier.ifTrue(Topbar.isVisible())(Topbar(state)(width := "100%", Styles.flexStatic)) },
       div(
