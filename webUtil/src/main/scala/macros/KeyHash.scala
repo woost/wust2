@@ -4,6 +4,13 @@ import outwatch.dom.Key
 
 import scala.reflect.macros.blackbox.Context
 
+// These macros are for efficiently injecting location-aware keys into our outwatch code.
+// The key is an integer and is derived as the hashcode of the filepath, line and column of the source code.
+// Usage.like: KeyHash.keyValue             // generate a hashCode of the location in the source code of this function call
+//             KeyHash.keyValue(varA, varB) // to make the hashcode dependent on varA and varB as well
+//             KeyHash.keyed                // shortcut for `dsl.key := KeyHash.keyValue`
+//             KeyHash.keyed(varA, varB)    // shortcut for `dsl.key := KeyHash.keyValue(varA, varB)`
+
 object KeyHashMacro {
   def keyValue(c: Context): c.Expr[Int] = {
     import c.universe._

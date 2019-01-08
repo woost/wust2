@@ -2,6 +2,10 @@ package wust.util.macros
 
 import scala.reflect.macros.blackbox.Context
 
+// These macros are for writing a chain of conditions in a short way with
+// the list api without the overhead of allocating a list at runtime.
+// Usage like: InlineList.contains(1,2,3)(3) // true
+
 object InlineListMacro {
   def contains[T](c: Context)(values: c.Expr[T]*)(t: c.Expr[T]): c.Expr[Boolean] = {
     import c.universe._

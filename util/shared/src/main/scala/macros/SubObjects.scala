@@ -2,6 +2,13 @@ package wust.util.macros
 
 import scala.reflect.macros.blackbox.Context
 
+// This macro is for expanding a class type into a list of objects that extend this class.
+// Example:
+// sealed trait Person
+// object Female extends Person
+// object Male extends Person
+// val persons: List[Person] = macro SubObject.list[Person] // List(Female, Male)
+
 object SubObjects {
   def list[Trait]
     (c: Context)
