@@ -28,6 +28,7 @@ import monix.eval.Task
 import monix.execution.Ack
 import org.scalajs.dom
 import wust.api.ApiEvent
+import wust.util.macros.InlineList
 import wust.webApp
 import wust.webApp.views.UI.ToastLevel.Success
 
@@ -215,7 +216,7 @@ object ChatView {
     val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).filter{parentIdx =>
       val parentNode = graph.nodes(parentIdx)
 
-      IndexedSeq(NodeRole.Message, NodeRole.Task).contains(parentNode.role)
+      InlineList.contains(NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.map(graph.nodeIds)
     div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
   }
