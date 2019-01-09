@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import dateFns.DateFns
 
 import concurrent.duration._
 import emojijs.EmojiConvertor
@@ -17,12 +18,13 @@ import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
-import wust.css
+import wust.util._
 import wust.css.Styles
 import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
 import rx._
 import wust.graph.Node
+import wust.ids.EpochMilli
 
 import scala.scalajs.js
 
@@ -243,6 +245,24 @@ object Elements {
         emitter(userInput) --> sink
       )
     }
+  }
+
+  def dateString(epochMilli: EpochMilli): String = {
+    val createdDate = new js.Date(epochMilli)
+    if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
+      DateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
+    else
+      DateFns.format(new js.Date(epochMilli), "p") // localized only time
+  }
+
+  def creationDate(created: EpochMilli): VDomModifier = {
+    (created != EpochMilli.min).ifTrue[VDomModifier](
+      div(
+        cls := "chatmsg-date",
+        Styles.flexStatic,
+        dateString(created),
+      )
+    )
   }
 
   def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
