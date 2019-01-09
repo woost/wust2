@@ -23,6 +23,11 @@ import scala.scalajs.js.|
 import DragActions._
 import DragValidation._
 
+// This file registers all drag-event listeners and puts the events into PublishSubjects.
+// These subjects are used to check if (onDragOver) drag-actions are valid.
+// Valitiy is checked using the partial functions DragActions.sortAction and DragActions.dragAction.
+// If e.g. a sort-action is not valid, the sortable:sort is canceled, so that elements don't move out of the way. (https://github.com/Shopify/draggable/tree/master/src/Sortable#events)
+// If it is valid, perform the respective action in DragActions.
 
 class SortableEvents(state: GlobalState, draggable: Draggable) {
 
