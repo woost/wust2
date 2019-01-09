@@ -140,15 +140,18 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   // when dropping
-  sortableStopEvent.withLatestFrom4(currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)((e, currentOverContainerEvent, currentOverEvent, ctrl, shift) => (e, currentOverContainerEvent, currentOverEvent, ctrl, shift)).foreachTry {
-    case (e, currentOverContainerEvent, currentOverEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
+  sortableStopEvent.withLatestFrom4(currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)((sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) => (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift)).foreachTry {
+    case (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
       val overSortcontainer = currentOverContainerEvent.flatMap(e => readDragContainer(e.overContainer)).exists(_.isInstanceOf[SortableContainer])
 
       if(overSortcontainer) {
-        performSort(state, e, currentOverContainerEvent.get, currentOverEvent.get, ctrl, shift)
+        performSort(state, sortableStopEvent, currentOverContainerEvent.get, currentOverEvent.get, ctrl, shift)
       } else {
-        performDrag(state, e, currentOverEvent.get, ctrl, shift)
+        performDrag(state, sortableStopEvent, currentOverEvent.get, ctrl, shift)
       }
+
+      snabbdom.VNodeProxy.setDirty(sortableStopEvent.oldContainer)
+      snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
     case _ =>
       scribe.info("dropped outside container or target")
   }

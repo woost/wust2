@@ -450,12 +450,6 @@ object Components {
       outline := "none", // hides focus outline
       cls := "sortable-container",
 
-      // workaround for draggable in snabbdom
-      // since draggable modifies the dom, snabbdom cannot rely on the correctness of the virtualdom anymore.
-      // Therefore we use a new key every time to not reuse the (virtual) dom.
-      // Sorting would crash in many cases without this workaround.
-      VDomModifier.ifTrue(container.isInstanceOf[SortableContainer])(key := scala.util.Random.nextInt), 
-
       managedElement.asHtml { elem =>
         writeDragContainer(elem, container)
         state.sortable.addContainer(elem)

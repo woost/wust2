@@ -58,7 +58,7 @@ lazy val commonSettings = Seq(
   assemblyOption in assembly := (assemblyOption in assembly).value.copy(cacheOutput = false), // disable cache output for hopefully faster build
 
 
-  // watch managed library dependencies https://github.com/sbt/sbt/issues/2834
+  // watch managed library dependencies
   watchSources ++= (managedClasspath in Compile).map(_.files).value,
   scalacOptions ++=
     // https://www.threatstack.com/blog/useful-scalac-options-for-better-scala-development-part-1/
