@@ -1,24 +1,24 @@
 package wust.webApp.views
 
-import fontAwesome.{freeRegular, freeSolid}
+import fontAwesome.freeSolid
+
 import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole, UserId}
+import wust.ids.{NodeId, NodeRole, UserId}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
 import flatland._
-import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, NodePermission, PageChange, View}
+import wust.webApp.state.{GlobalState, NodePermission, View}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.state.ScreenSize
 
 object KanbanView {
   import SharedViewElements._

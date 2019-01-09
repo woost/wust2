@@ -19,6 +19,7 @@ import wust.webApp.jsdom.{IndexedDbOps, Navigator, Notifications, ServiceWorker}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Client, DevOnly}
 import outwatch.dom.helpers.OutwatchTracing
+import wust.ids.NodeData.EditableText
 import wust.util.StringOps
 import wust.util.algorithm
 import wust.webApp.views.UI
@@ -269,16 +270,20 @@ object GlobalStateFactory {
     val emojiTextConvertor = new EmojiConvertor()
     emojiTextConvertor.colons_mode = true
     emojiTextConvertor.text_mode = true
-    private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.collect {
+    private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.map {
       case n: Node.Content =>
-        scribe.debug(s"replacing node emoji: ${n.str}.")
-        n.data.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str))) match {
-          case Some(emojiData) =>
-            scribe.debug(s"New representation: ${emojiData.str}.")
-            n.copy(data = emojiData)
-          case None => n
+        n.data match {
+          case editable: EditableText =>
+            scribe.debug(s"replacing node emoji: ${ n.str }.")
+            editable.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str))) match {
+              case Some(emojiData) =>
+                scribe.debug(s"New representation: ${ emojiData.str }.")
+                n.copy(data = emojiData)
+              case None            => n
+            }
+          case _                      => n
         }
-      case n => n
+      case n                                 => n
     }(breakOut)
     def replaceChangesToColons(graphChanges: GraphChanges) = graphChanges.copy(addNodes = replaceToColons(graphChanges.addNodes))
   }

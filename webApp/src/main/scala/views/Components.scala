@@ -16,6 +16,7 @@ import jquery.JQuerySelection
 import wust.api.UploadedFile
 import wust.css.{Styles, ZIndex}
 import wust.graph._
+import wust.ids.NodeData.EditableText
 import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
@@ -62,6 +63,9 @@ object Components {
     case NodeData.PlainText(content) => escapeHtml(content)
     case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
     case file: NodeData.File         => s"File: ${ escapeHtml(file.key) }"
+    case d: NodeData.Integer         => d.str
+    case d: NodeData.Float           => d.str
+    case d: NodeData.Date            => d.str
   }
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
@@ -69,6 +73,9 @@ object Components {
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => div(trimToMaxLength(file.str, maxLength))
+    case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Float           => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
   }
 
   def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = nodeData match {
@@ -76,6 +83,9 @@ object Components {
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
+    case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Float           => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
   }
 
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
@@ -499,35 +509,32 @@ object Components {
 
     val initialRender: Var[VDomModifier] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
 
-    def save(contentEditable:HTMLElement): Unit = {
-      if(editMode.now) {
-        val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
-        if (text.nonEmpty) {
-          node.data.updateStr(text) match {
-            case Some(newData) =>
-            val updatedNode = node.copy(data = newData)
+    import scala.concurrent.duration._
 
-              Var.set(
-                initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
-                editMode -> false
-              )
+    def editableText(textData: EditableText)(implicit ctx: Ctx.Owner) = {
+      def save(contentEditable:HTMLElement): Unit = {
+        if(editMode.now) {
+          val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
+          if (text.nonEmpty) {
+            textData.updateStr(text) match {
+              case Some(newData) =>
+                val updatedNode = node.copy(data = newData)
 
-              val changes = GraphChanges.addNode(updatedNode)
-              submit.onNext(changes)
-            case None =>
-              editMode() = false
+                Var.set(
+                  initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
+                  editMode -> false
+                )
+
+                val changes = GraphChanges.addNode(updatedNode)
+                submit.onNext(changes)
+              case None =>
+                editMode() = false
+            }
           }
         }
       }
-    }
 
-    import scala.concurrent.duration._
-
-    p( // has different line-height than div and is used for text by markdown
-      outline := "none", // hides contenteditable outline
-      keyed, // when updates come in, don't disturb current editing session
-      Rx {
-        if(editMode()) VDomModifier(
+      VDomModifier(
           node.data.str, // Markdown source code
           contentEditable := true,
           cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
@@ -544,7 +551,22 @@ object Components {
             //TODO how to revert back if you wrongly edited something on mobile?
           )),
           onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
-        ) else initialRender()
+        )
+    }
+
+    // TODO: editable nodes of Integer, Float, Date with appropriate input field
+    val editRenderByType = node.data match {
+      case d: NodeData.EditableText => editableText(d)
+      case _ => VDomModifier(initialRender)
+    }
+
+
+    p( // has different line-height than div and is used for text by markdown
+      outline := "none", // hides contenteditable outline
+      keyed, // when updates come in, don't disturb current editing session
+      Rx {
+        if(editMode()) editRenderByType
+        else initialRender()
       },
       onDomUpdate.asHtml --> inNextAnimationFrame { node =>
         if(editMode.now) node.focus()
