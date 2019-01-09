@@ -32,12 +32,6 @@ trait Api[Result[_]] {
 
 //  def importGithubUrl(url: String): Result[Boolean]
 //  def importGitterUrl(url: String): Result[Boolean]
-  def chooseTaskNodes(
-      heuristic: NlpHeuristic,
-      nodes: List[NodeId],
-      num: Option[Int]
-  ): Result[List[Heuristic.ApiResult]]
-
   def currentTime:Result[EpochMilli]
 
   //TODO have methods for warn/error. maybe a LogApi trait?
@@ -230,19 +224,4 @@ object Heuristic {
 
   type Result = PostResult
   type ApiResult = IdResult
-}
-
-sealed trait NlpHeuristic extends Any
-object NlpHeuristic {
-  case class DiceSorensen(nGram: Int) extends AnyVal with NlpHeuristic
-  case object Hamming extends NlpHeuristic
-  case class Jaccard(nGram: Int) extends AnyVal with NlpHeuristic
-  case object Jaro extends NlpHeuristic
-  case object JaroWinkler extends NlpHeuristic
-  case object Levenshtein extends NlpHeuristic
-  case class NGram(nGram: Int) extends AnyVal with NlpHeuristic
-  case class Overlap(nGram: Int) extends AnyVal with NlpHeuristic
-  case object RatcliffObershelp extends NlpHeuristic
-  case class WeightedLevenshtein(delWeight: Int, insWeight: Int, subWeight: Int)
-      extends NlpHeuristic
 }

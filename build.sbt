@@ -405,7 +405,6 @@ lazy val core = project
         Deps.jbcrypt.value ::
         Deps.javaMail.value ::
         Deps.monix.value ::
-        Deps.stringmetric.value ::
         Deps.webPush.value ::
         Deps.awsSdk.s3.value ::
         Nil,

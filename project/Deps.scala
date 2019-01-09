@@ -113,10 +113,6 @@ object Deps {
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
   }
 
-  // NLP
-  val stringmetric = dep("io.github.GRBurst.stringmetric" %% "stringmetric-core" % "91e2a03")
-  //  val stringmetric = dep("com.rockymadden.stringmetric" %% "stringmetric-core" % "0.28.0-SNAPSHOT")
-
   val webpackVersion = "4.23.1"
   val webpackDevServerVersion = "3.1.10"
 

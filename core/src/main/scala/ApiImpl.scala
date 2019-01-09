@@ -305,15 +305,6 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 //    Future.successful(true)
 //  }
 
-  override def chooseTaskNodes(
-      heuristic: NlpHeuristic,
-      posts: List[NodeId],
-      num: Option[Int]
-  ): ApiFunction[List[Heuristic.ApiResult]] = Action.assureDbUser { (state, user) =>
-    ???
-    //    getPage(user.id, Page.empty).map(PostHeuristic(_, heuristic, posts, num))
-  }
-
   override def currentTime: Dsl.ApiFunction[EpochMilli] = Action { Future.successful(EpochMilli.now) }
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
