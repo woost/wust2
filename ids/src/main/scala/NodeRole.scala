@@ -2,7 +2,7 @@ package wust.ids
 
 import wust.util.macros.SubObjects
 
-sealed trait NodeRole
+sealed trait NodeRole extends Product with Serializable
 object NodeRole {
   case object Message extends NodeRole
   case object Property extends NodeRole
