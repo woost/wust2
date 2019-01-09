@@ -120,8 +120,8 @@ object DevView {
           def addRandomPost(count: Int): Unit = {
             val newPosts =
               List.fill(count)(Node.MarkdownMessage(rSentence))
-            val changes = GraphChanges.from(addNodes = newPosts)
-            state.eventProcessor.enriched.changes.onNext(changes)
+            val changes = GraphChanges.addNodesWithParents(newPosts, state.page.now.parentId)
+            state.eventProcessor.changes.onNext(changes)
           }
 
           div(

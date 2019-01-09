@@ -129,8 +129,8 @@ object ListView {
   private def addListItemInputField(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNode(createdNode)
-      state.eventProcessor.enriched.changes.onNext(change)
+      val change = GraphChanges.addNodeWithParent(createdNode, state.page.now.parentId)
+      state.eventProcessor.changes.onNext(change)
     }
 
     val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."

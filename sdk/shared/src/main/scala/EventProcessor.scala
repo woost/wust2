@@ -76,11 +76,6 @@ class EventProcessor private (
 
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
-  @deprecated("use GraphChanges.addNodeWithParent instead.", "")
-  object enriched {
-    val changes = PublishSubject[GraphChanges]
-  }
-
   val localEvents = PublishSubject[ApiEvent.GraphContent]
 
   // public reader
@@ -96,10 +91,9 @@ class EventProcessor private (
     val sharedRawGraph = rawGraph.share
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = enriched.changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
-    val allChanges = Observable(enrichedChanges, changes).merge
+    val enrichedChanges = changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
 
-    val localChanges = allChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
+    val localChanges = enrichedChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
 

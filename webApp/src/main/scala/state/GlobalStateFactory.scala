@@ -288,15 +288,6 @@ object GlobalStateFactory {
   ): GraphChanges = {
     import changes.consistent._
 
-    def toParentConnections(page: Page, nodeId: NodeId): Option[Edge] =
-      page.parentId.map(Edge.Parent(nodeId, _))
-
-    val containedNodes = addEdges.collect { case Edge.Parent(source, _, _) => source }
-    val toContain = addNodes
-      .filterNot(p => containedNodes(p.id))
-      .flatMap(p => toParentConnections(viewConfig.pageChange.page, p.id))
-
-
-    changes.consistent merge GraphChanges(addEdges = toContain)
+    changes.consistent
   }
 }

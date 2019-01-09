@@ -63,39 +63,8 @@ object SelectedPostMenu {
     val editMode = Handler.unsafe[Boolean](false)
 
     val updatePostHandler = Handler.unsafe[String]
-    updatePostHandler.foreach { newContent =>
-      val changes =
-        GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
-      state.eventProcessor.enriched.changes.onNext(changes)
-
-      editMode.onNext(false)
-    }
-
     val insertPostHandler = Handler.unsafe[String]
-    insertPostHandler.foreach { content =>
-      val newNode = Node.MarkdownMessage(content)
-
-      val changes = GraphChanges(
-        addNodes = Set(newNode),
-        addEdges = Set(Edge.Parent(newNode.id, rxPost.now.id))
-      )
-      state.eventProcessor.enriched.changes.onNext(changes)
-    }
-
     val connectPostHandler = Handler.unsafe[String]
-    connectPostHandler.foreach { content =>
-      val newNode = Node.MarkdownMessage(content)
-
-      val changes = GraphChanges(
-        addNodes = Set(newNode),
-        addEdges = Set(
-          Edge.Label(rxPost.now.id, EdgeData.Label("related"), newNode.id)
-        ) ++ state.graph.now
-          .parents(rxPost.now.id)
-          .map(parentId => Edge.Parent(newNode.id, parentId))
-      )
-      state.eventProcessor.enriched.changes.onNext(changes)
-    }
 
     val editableTitle = div(
       editMode.map { activated =>
@@ -121,6 +90,35 @@ object SelectedPostMenu {
 
     //TODO: wrap in one observable
     div(
+      emitter(updatePostHandler).foreach { newContent =>
+        val changes =
+          GraphChanges.addNode(rxPost.now.copy(data = NodeData.Markdown(newContent)))
+        state.eventProcessor.changes.onNext(changes)
+
+        editMode.onNext(false)
+      },
+      emitter(insertPostHandler).foreach { content =>
+        val newNode = Node.MarkdownMessage(content)
+
+        val changes = GraphChanges(
+          addNodes = Set(newNode),
+          addEdges = Set(Edge.Parent(newNode.id, rxPost.now.id))
+        )
+        state.eventProcessor.changes.onNext(changes)
+      },
+      emitter(connectPostHandler).foreach { content =>
+        val newNode = Node.MarkdownMessage(content)
+
+        val changes = GraphChanges(
+          addNodes = Set(newNode),
+          addEdges = Set(
+            Edge.Label(rxPost.now.id, EdgeData.Label("related"), newNode.id)
+          ) ++ state.graph.now
+            .parents(rxPost.now.id)
+            .map(parentId => Edge.Parent(newNode.id, parentId))
+        )
+        state.eventProcessor.changes.onNext(changes)
+      },
       position.absolute,
       onClick foreach(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
@@ -232,11 +230,9 @@ object SelectedPostMenu {
     // MenuAction("Split", { (p: Post, s: Simulation[Post]) => logger.info(s"Split: ${p.id}") }),
     MenuAction(
       "Delete", { (p: Node, state: GlobalState) =>
-        state.eventProcessor.enriched.changes
-          .onNext(
-            GraphChanges
-              .delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentId.toSet)
-          )
+        state.eventProcessor.changes.onNext(
+          GraphChanges.delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentId.toSet)
+        )
       }
     ),
     // MenuAction(

@@ -28,19 +28,6 @@ object PostCreationMenu {
 
     val inputHandler = Handler.unsafe[String]
     var ySimPostOffset: Double = 50
-    inputHandler.foreach { content =>
-      val author = state.user.now
-      val changes = GraphChanges.addMarkdownMessage(content)
-      state.eventProcessor.enriched.changes.onNext(changes)
-
-    // TODO: move created post below menu (not working yet)
-//      val simPostOpt = rxNodeIdToSimPost.now.get(newPost.id)
-//      simPostOpt.foreach { simPost =>
-//        simPost.fx = m.pos.x
-//        simPost.fy = m.pos.y + ySimPostOffset / transformRx.now.k + simPost.size.height / 2
-//        ySimPostOffset += (simPost.size.height + 10) * transformRx.now.k
-//      }
-    }
 
     //TODO: hide postMenu with ESC key
     //TODO: checkboxes for parents
@@ -48,6 +35,19 @@ object PostCreationMenu {
     //TODO: close button
 
     div(
+      emitter(inputHandler).foreach { content =>
+        val author = state.user.now
+        val changes = GraphChanges.addNodeWithParent(Node.MarkdownMessage(content), state.page.now.parentId)
+        state.eventProcessor.changes.onNext(changes)
+
+        // TODO: move created post below menu (not working yet)
+        //      val simPostOpt = rxNodeIdToSimPost.now.get(newPost.id)
+        //      simPostOpt.foreach { simPost =>
+        //        simPost.fx = m.pos.x
+        //        simPost.fy = m.pos.y + ySimPostOffset / transformRx.now.k + simPost.size.height / 2
+        //        ySimPostOffset += (simPost.size.height + 10) * transformRx.now.k
+        //      }
+      },
       position.absolute,
       //TODO: prevent drag events to bubble to background
       onClick foreach(_.stopPropagation()), // prevent click from bubbling to background
