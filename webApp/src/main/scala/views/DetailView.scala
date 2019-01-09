@@ -17,10 +17,6 @@ object DetailView {
         else "-"
       )
     }
-    //    @inline def renderAsRemovableTag(tags: Seq[Node]) = {
-    //      if(tags.nonEmpty) tags.map(tag => removableNodeTag(state, tag, taggedNodeId = parentId))
-    //      else "-"
-    //    }
 
     // View elements
     val list = div(cls := "ui list")
