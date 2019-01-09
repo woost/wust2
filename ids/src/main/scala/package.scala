@@ -3,8 +3,6 @@ package wust
 
 import supertagged._
 
-import scala.util.Try
-
 package object ids {
   type UuidType = String
 
@@ -26,14 +24,6 @@ package object ids {
       EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
     @inline def now: EpochMilli =
       EpochMilli(localNow + delta)
-    @inline def from(time: String): EpochMilli = { // TODO this should not exist here, we cannot use instant in frontend!!
-      import java.time.Instant
-      EpochMilli(Instant.parse(time).toEpochMilli)
-    }
-    @inline def fromOpt(time: String): Option[EpochMilli] = { // TODO this should not exist here, we cannot use instant in frontend!!
-      import java.time.Instant
-      Try(EpochMilli(Instant.parse(time).toEpochMilli)).toOption
-    }
     @inline def second: Long = 1000L
     @inline def minute: Long = 60L * second
     @inline def hour: Long = 60L * minute
