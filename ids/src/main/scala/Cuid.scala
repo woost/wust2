@@ -55,7 +55,7 @@ import org.sazabi.base58.Base58
 
   @inline def toHex:String = f"$left%016x$right%016x"
 
-  @inline def toStringFast:String = {
+  def toStringFast:String = {
     // the fastest tostring found so far (by benchmarks)
     // faster than:
     //    s"${left.toHexString}|${right.toHexString}"
