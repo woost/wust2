@@ -21,7 +21,6 @@ import wust.webApp.state._
 import scala.scalajs.js
 
 object Topbar {
-  val isVisible:Rx[Boolean] = Rx{ GlobalStateFactory.screenSize() != ScreenSize.Small }
 
   def apply(state: GlobalState): VNode = {
     div.staticRx(keyValue) { implicit ctx =>

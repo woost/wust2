@@ -32,7 +32,7 @@ object Sidebar {
     def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
       minWidth := s"${ smallIconSize }px",
-      Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar.hamburger(state)) },
+      Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
       channelIcons(state, smallIconSize),
       newChannelButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
@@ -44,7 +44,7 @@ object Sidebar {
 
     def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "sidebar",
-      Rx{ VDomModifier.ifNot(Topbar.isVisible())(Topbar(state).apply(Styles.flexStatic)) },
+      Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
       channels(state),
       newChannelButton(state).apply(
         cls := "newChannelButton-large " + buttonStyles,

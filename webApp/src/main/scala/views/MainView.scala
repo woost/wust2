@@ -66,7 +66,7 @@ object MainView {
         notificationBanner,
         registerBanner,
       ),
-      Rx { VDomModifier.ifTrue(Topbar.isVisible())(Topbar(state)(width := "100%", Styles.flexStatic)) },
+      Rx { VDomModifier.ifTrue(state.topbarIsVisible())(Topbar(state)(width := "100%", Styles.flexStatic)) },
       div(
         Styles.flex,
         Styles.growFull,
