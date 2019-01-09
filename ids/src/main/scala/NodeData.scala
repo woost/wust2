@@ -2,8 +2,6 @@ package wust.ids
 
 import supertagged._
 
-import scala.util.Try
-
 sealed trait NodeData {
   def str: String //TODO: define this properly
   val tpe: NodeData.Type
@@ -16,53 +14,48 @@ object NodeData {
     val tpe = Type(name.value)
   }
 
-  sealed trait PropertyValue {
-//    def constraint: Boolean
-  }
-  sealed trait Content extends NodeData {
-    def updateStr(str: String): Option[Content]
+  sealed trait EditableText extends Content {
+    def updateStr(str: String): Option[EditableText]
   }
 
-  case class File(key: String, fileName: String, contentType: String, description: String) extends Named with Content {
+  sealed trait Content extends NodeData
+
+  case class File(key: String, fileName: String, contentType: String, description: String) extends Named with EditableText {
     def str = if (description.isEmpty) "[File]" else description
     override def updateStr(str: String) = if (description != str) Some(copy(description = str)) else None
   }
   object File extends Named
 
-  case class Markdown(content: String) extends Named with Content {
+  case class Markdown(content: String) extends Named with EditableText {
     def str = content
     override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object Markdown extends Named
 
-  case class PlainText(content: String) extends Named with Content with PropertyValue {
+  case class PlainText(content: String) extends Named with EditableText {
     def str = content
-    @inline private def update(str: String) = if (content != str) Some(copy(content = str)) else None
-    override def updateStr(str: String): Option[Content] = update(str)
+    override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object PlainText extends Named
 
-  case class Integer(content: Int) extends Named with Content with PropertyValue {
+  case class Integer(content: Int) extends Named with Content {
     require(content <= Int.MaxValue && content >= Int.MinValue)
     def str = content.toString
-    override def updateStr(str: String): Option[Content] =
-      Try(str.trim.toInt).toOption.flatMap(value => if(content != value) Some(copy(content = value)) else None) // FIXME: do not use Try
+    def update(value: Int)= if(content != value) Some(copy(content = value)) else None
   }
   object Integer extends Named
 
-  case class Float(content: Double) extends Named with Content with PropertyValue {
+  case class Float(content: Double) extends Named with Content {
     require(content <= Double.MaxValue && content >= Double.MinValue)
     def str = content.toString
-    override def updateStr(str: String): Option[Content] =
-      Try(str.trim.toDouble).toOption.flatMap(value => if(content != value) Some(copy(content = value)) else None) // FIXME: do not use Try
+    def update(value: Double) = if(content != value) Some(copy(content = value)) else None
   }
   object Float extends Named
 
-  case class Date(content: EpochMilli) extends Named with Content with PropertyValue {
+  case class Date(content: EpochMilli) extends Named with Content {
     def plainStr = content.toString
     def str = content.humanReadable
-    override def updateStr(str: String): Option[Content] =
-      Try(EpochMilli(str.trim.toLong)).toOption.flatMap(value => if(content != value) Some(copy(content = value)) else None)
+    def update(value: EpochMilli) = if(content != value) Some(copy(content = value)) else None
   }
   object Date extends Named
 
