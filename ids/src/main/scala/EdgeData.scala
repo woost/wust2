@@ -51,7 +51,7 @@ object EdgeData {
   trait PropertyKey
   case object Assigned extends Named with EdgeData with PropertyKey
 
-  case class LabeledProperty(key: String, acceptType: String) extends Named with EdgeData with PropertyKey
+  case class LabeledProperty(key: String) extends Named with EdgeData with PropertyKey
   object LabeledProperty extends Named
 
 }
