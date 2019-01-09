@@ -268,6 +268,7 @@ lazy val benchJS = bench.js.enablePlugins(ScalaJSBundlerPlugin)
 
 lazy val serviceUtil = project
   .settings(commonSettings)
+  .dependsOn(idsJVM)
   .settings(
     libraryDependencies ++=
       Deps.monix.value ::
@@ -415,6 +416,7 @@ lazy val core = project
 
 lazy val webUtil = project
   .enablePlugins(ScalaJSPlugin)
+  .dependsOn(idsJS)
   .settings(commonSettings, commonWebSettings)
   .settings(
     libraryDependencies ++=
