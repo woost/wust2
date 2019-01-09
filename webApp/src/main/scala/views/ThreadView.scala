@@ -79,10 +79,9 @@ object ThreadView {
       ),
       {
         def submitAction(str:String) = {
-          // we treat new chat messages as noise per default, so we set a future deletion date
           scrollHandler.scrollToBottomInAnimationFrame()
           val ack = fileUploadHandler.now match {
-            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), state.page.now.parentId, deletedAt = noiseFutureDeleteDate))
+            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), state.page.now.parentId))
             case Some(uploadFile) => uploadFileAndCreateNode(state, str, state.page.now.parentId, uploadFile)
           }
 
@@ -277,10 +276,9 @@ object ThreadView {
   private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
 
     def handleInput(str: String): Future[Ack] = if (str.nonEmpty) {
-      // we treat new chat messages as noise per default, so we set a future deletion date
       val graph = state.graph.now
       val user = state.user.now
-      val addNodeChange = GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), nodeId :: Nil, deletedAt = noiseFutureDeleteDate)
+      val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), nodeId :: Nil)
       val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(user.id, nodeId) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
@@ -305,9 +303,7 @@ object ThreadView {
       selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
-    val isDeletedInFuture = state.graph.map(_.isDeletedInFuture(nodeId, directParentIds))
-
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, editMode = editMode, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
         Styles.flex,
         alignItems.center,
         freeSolid.faSyncAlt,
@@ -318,7 +314,7 @@ object ThreadView {
       ),
       messageDragOptions(state, nodeId, selectedNodes, editMode),
     ))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(editMode, showReplyField), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>

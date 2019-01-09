@@ -32,8 +32,6 @@ import scala.scalajs.js
 
 object SharedViewElements {
 
-  @inline def noiseFutureDeleteDate = EpochMilli(EpochMilli.now + EpochMilli.week)
-
   trait SelectedNodeBase {
     def nodeId: NodeId
     def directParentIds: Iterable[NodeId]
@@ -230,20 +228,6 @@ object SharedViewElements {
     onMouseDown.stopPropagation foreach {},
   )
 
-  val activeStarButton: VNode = {
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Mark as unimportant and delete automatically after a week", freeSolid.faStar, color := "#fbbd08"),
-      cursor.pointer,
-    )
-  }
-
-  val inactiveStarButton: VNode = {
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right"):= "Mark as important", freeRegular.faStar, color := "#fbbd08"),
-      cursor.pointer,
-    )
-  }
-
   val replyButton: VNode = {
     div(
       div(cls := "fa-fw", UI.popup("bottom right") := "Reply to message", freeSolid.faReply),
@@ -340,7 +324,7 @@ object SharedViewElements {
     }
   }
 
-  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], isDeletedInFuture: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
+  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
 
     val node = Rx {
       // we need to get the latest node content from the graph
@@ -364,10 +348,6 @@ object SharedViewElements {
     def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
       val baseNode = if (isDeletedNow) nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
       else {
-        val importanceIndicator = Rx {
-          val unimportant = editMode() || isDeletedInFuture()
-          unimportant.ifFalse[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px #fbbd08"))
-        }
         node.role match {
           case NodeRole.Task =>
             nodeCardWithCheckbox(state, node, directParentIds).apply(
@@ -382,7 +362,6 @@ object SharedViewElements {
             nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
-              importanceIndicator,
               cls := "drag-feedback",
 
               // Sadly it is not possible to FLOAT the syncedicon to the bottom right:
@@ -476,7 +455,7 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], isDeletedInFuture:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 
@@ -493,18 +472,6 @@ object SharedViewElements {
             ))
           }
           else VDomModifier(
-            if(isDeletedInFuture()) {
-              ifCanWrite(inactiveStarButton(
-                onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
-              ))
-            } else {
-              ifCanWrite(activeStarButton(
-                onClick foreach {
-                  state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds, noiseFutureDeleteDate))
-                  ()
-                }
-              ))
-            },
             replyButton(
               onClick foreach { replyAction }
             ),
@@ -551,32 +518,6 @@ object SharedViewElements {
     }
   }
 
-  def starActionButton[T <: SelectedNodeBase](state: GlobalState, selected: List[T], selectedNodes: Var[Set[T]], anySelectedNodeIsDeleted: Rx[Boolean], anySelectedNodeIsDeletedInFuture: Rx[Boolean])(implicit ctx:Ctx.Owner): BasicVNode = {
-    div(
-      Rx {
-        if(anySelectedNodeIsDeleted() || anySelectedNodeIsDeletedInFuture())
-          VDomModifier(
-            inactiveStarButton,
-            onClick foreach {
-              val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.undelete(t.nodeId, t.directParentIds))
-              state.eventProcessor.changes.onNext(changes)
-              selectedNodes() = Set.empty[T]
-            }
-          )
-        else
-          VDomModifier(
-            activeStarButton,
-            onClick foreach {
-              val changes = selected.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(t.nodeId, t.directParentIds, noiseFutureDeleteDate))
-              state.eventProcessor.changes.onNext(changes)
-              selectedNodes() = Set.empty[T]
-            }
-          )
-      },
-      cursor.pointer,
-    )
-  }
-
   def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
     val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
@@ -584,19 +525,8 @@ object SharedViewElements {
       selected.forall(t => graph.isInDeletedGracePeriod(t.nodeId, t.directParentIds))
     }
 
-    val anySelectedNodeIsDeleted = Rx {
-      val graph = state.graph()
-      selected.forall(t => graph.isInDeletedGracePeriod(t.nodeId, t.directParentIds))
-    }
-
-    val anySelectedNodeIsDeletedInFuture = Rx {
-      val graph = state.graph()
-      selected.exists(t => graph.isDeletedInFuture(t.nodeId, t.directParentIds))
-    }
-
     val middleActions =
       if (canWriteAll) List(
-        starActionButton(state, selected, selectedNodes, anySelectedNodeIsDeleted = anySelectedNodeIsDeleted, anySelectedNodeIsDeletedInFuture = anySelectedNodeIsDeletedInFuture),
         SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted)
       ) else Nil
 

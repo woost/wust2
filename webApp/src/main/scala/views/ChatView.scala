@@ -133,10 +133,9 @@ object ChatView {
             else state.page.now.parentId.toSet
           }
 
-          // we treat new chat messages as noise per default, so we set a future deletion date
           val ack = fileUploadHandler.now match {
             case None =>
-              state.eventProcessor.changes.onNext(GraphChanges.addNodeWithDeletedParent(Node.MarkdownMessage(str), replyNodes, deletedAt = noiseFutureDeleteDate))
+              state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), replyNodes))
             case Some(uploadFile) =>
               uploadFileAndCreateNode(state, str, replyNodes, uploadFile)
           }
@@ -301,8 +300,6 @@ object ChatView {
       selectedNodes().exists(_.nodeId == nodeId)
     }
 
-    val isDeletedInFuture = state.graph.map(_.isDeletedInFuture(nodeId, directParentIds))
-
     def replyAction = {
       currentReply.update(_ ++ Set(nodeId))
       inputFieldFocusTrigger.onNext(Unit)
@@ -316,8 +313,8 @@ object ChatView {
       else VDomModifier.empty
     } else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes, editMode))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isDeletedInFuture = isDeletedInFuture, editMode = editMode, replyAction = replyAction) //TODO reply action
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, editMode = editMode, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes, editMode))
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, editMode = editMode, replyAction = replyAction) //TODO reply action
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
