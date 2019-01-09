@@ -296,24 +296,6 @@ object SharedViewElements {
     )
   }
 
-  def dateString(epochMilli: EpochMilli): String = {
-    val createdDate = new js.Date(epochMilli)
-    if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
-      DateFns.format(new js.Date(epochMilli), "Pp") // localized date and time
-    else
-      DateFns.format(new js.Date(epochMilli), "p") // localized only time
-  }
-
-  def creationDate(created: EpochMilli): VDomModifier = {
-    (created != EpochMilli.min).ifTrue[VDomModifier](
-      div(
-        cls := "chatmsg-date",
-        Styles.flexStatic,
-        dateString(created),
-      )
-    )
-  }
-
   def modifications(author: Node.User, modificationData: IndexedSeq[(Node.User, EpochMilli)]): VDomModifier = {
 
     @inline def modificationItem(user: Node.User, time: EpochMilli)  = li(s"${user.name} at ${dateString(time)}")
