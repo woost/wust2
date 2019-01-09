@@ -7,7 +7,9 @@ import wust.webApp.parsers.{ViewConfigParser, ViewConfigWriter}
 
 case class ShareOptions(title: String, text: String, url: String)
 
-case class ViewConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
+//TODO: get rid of pagechange, currently needed to know whether we should get a new graph on page change or not.
+// we only know whether we need this when changing the page. But it feels like mixing data and commands.
+case class PageChange(page: Page, needsGet: Boolean = true)
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
     case _ => true
@@ -21,7 +23,7 @@ case class ViewConfig(view: Option[View], pageChange: PageChange, redirectTo: Op
 
   def focusView(page: Page, view:View, needsGet: Boolean = true): ViewConfig = {
     focus(page, Some(view), needsGet)
-  }
+    }
   def focus(page: Page, view:Option[View] = None, needsGet: Boolean = true): ViewConfig = {
     copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None)
   }
