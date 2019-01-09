@@ -123,7 +123,7 @@ object PageHeader {
         div(
           Elements.icon(Icons.filter),
           color := "green",
-          onClick(Seq(GraphOperation.NoDeletedButGracedParents)) --> state.graphTransformations,
+          onClick(Seq(state.defaultTransformation)) --> state.graphTransformations,
           cursor.pointer,
           UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
