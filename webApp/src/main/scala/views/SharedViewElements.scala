@@ -329,7 +329,7 @@ object SharedViewElements {
     val node = Rx {
       // we need to get the latest node content from the graph
       val graph = state.graph()
-      graph.nodesByIdGet(nodeId)
+      graph.nodesByIdGet(nodeId) //TODO: why option? shouldn't the node always exist?
     }
 
     val isSynced: Rx[Boolean] = {
@@ -346,7 +346,8 @@ object SharedViewElements {
 
 
     def render(node: Node, isDeletedNow: Boolean)(implicit ctx: Ctx.Owner) = {
-      val baseNode = if (isDeletedNow) nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
+      if(isDeletedNow)
+        nodeCardWithoutRender(node, maxLength = Some(25)).apply(cls := "node-deleted")
       else {
         node.role match {
           case NodeRole.Task =>
@@ -372,8 +373,6 @@ object SharedViewElements {
             )
         }
       }
-
-      baseNode
     }
 
     Rx {
