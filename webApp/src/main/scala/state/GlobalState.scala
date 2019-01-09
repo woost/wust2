@@ -20,6 +20,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
 import wust.css.Styles
 import wust.util.algorithm
+import wust.webApp.Ownable
 import wust.webApp.views.GraphOperation.GraphTransformation
 
 import scala.collection.breakOut

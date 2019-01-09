@@ -1,30 +1,18 @@
 package wust.webApp.views
 
-import cats.effect.IO
-
-import concurrent.duration._
-import emojijs.EmojiConvertor
-import fomanticui.{DropdownEntry, DropdownOptions, ModalOptions, PopupOptions, ToastClassNameOptions, ToastOptions}
-import fontAwesome.freeSolid
-import marked.Marked
-import monix.execution.Cancelable
+import fomanticui._
 import monix.reactive.Observable
 import org.scalajs.dom
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.raw.{HTMLElement, HTMLInputElement}
-import org.scalajs.dom.window.{clearTimeout, setTimeout}
-import org.scalajs.dom.{KeyboardEvent, MouseEvent}
-import outwatch.dom.{helpers, _}
+import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import wust.css.{Styles, ZIndex}
-import wust.webApp.{BrowserDetect}
-import wust.webApp.outwatchHelpers._
 import rx._
+import wust.css.ZIndex
+import wust.webApp.outwatchHelpers._
+import wust.webApp.{BrowserDetect, Ownable}
 
-import scala.scalajs.js.JSConverters._
 import scala.scalajs.js
-import scala.collection.breakOut
+import scala.scalajs.js.JSConverters._
 
 object UI {
 
