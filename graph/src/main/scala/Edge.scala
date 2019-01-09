@@ -70,13 +70,12 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(userId = UserId(sourceId), nodeId = targetId)
   }
 
-  trait Property
-  case class LabeledProperty(nodeId: NodeId, data: EdgeData.LabeledProperty, propertyId: NodeId) extends Edge with Property {
+  case class LabeledProperty(nodeId: NodeId, data: EdgeData.LabeledProperty, propertyId: NodeId) extends Edge {
     def sourceId = nodeId
     def targetId = propertyId
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, propertyId = targetId)
   }
-  case class Assigned(userId: UserId, nodeId: NodeId) extends Edge with Property {
+  case class Assigned(userId: UserId, nodeId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = nodeId
     def data = EdgeData.Assigned
@@ -84,15 +83,15 @@ object Edge {
   }
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId): Edge = data match {
-    case data: EdgeData.Author        => new Edge.Author(UserId(sourceId), data, targetId)
-    case data: EdgeData.Member        => new Edge.Member(UserId(sourceId), data, targetId)
-    case data: EdgeData.Parent        => new Edge.Parent(sourceId, data, targetId)
-    case data: EdgeData.Label         => new Edge.Label(sourceId, data, targetId)
-    case data: EdgeData.LabeledProperty         => new Edge.LabeledProperty(sourceId, data, targetId)
-    case EdgeData.Notify              => new Edge.Notify(sourceId, UserId(targetId))
-    case EdgeData.Expanded            => new Edge.Expanded(UserId(sourceId), targetId)
-    case EdgeData.Assigned            => new Edge.Assigned(UserId(sourceId), targetId)
-    case EdgeData.Pinned              => new Edge.Pinned(UserId(sourceId), targetId)
-    case EdgeData.Invite              => new Edge.Invite(UserId(sourceId), targetId)
+    case data: EdgeData.Author              => new Edge.Author(UserId(sourceId), data, targetId)
+    case data: EdgeData.Member              => new Edge.Member(UserId(sourceId), data, targetId)
+    case data: EdgeData.Parent              => new Edge.Parent(sourceId, data, targetId)
+    case data: EdgeData.Label               => new Edge.Label(sourceId, data, targetId)
+    case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, targetId)
+    case EdgeData.Notify                    => new Edge.Notify(sourceId, UserId(targetId))
+    case EdgeData.Expanded                  => new Edge.Expanded(UserId(sourceId), targetId)
+    case EdgeData.Assigned                  => new Edge.Assigned(UserId(sourceId), targetId)
+    case EdgeData.Pinned                    => new Edge.Pinned(UserId(sourceId), targetId)
+    case EdgeData.Invite                    => new Edge.Invite(UserId(sourceId), targetId)
   }
 }
