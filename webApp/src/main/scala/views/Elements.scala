@@ -247,6 +247,31 @@ object Elements {
     }
   }
 
+  val integerInputMod = VDomModifier(
+      tpe := "number",
+      step := "1",
+      min := Int.MinValue.toString,
+      max := Int.MaxValue.toString,
+      placeholder := "Integer Number",
+    )
+
+  val floatingInputMod = VDomModifier(
+    tpe := "number",
+    step := "any",
+    min := Double.MinValue.toString,
+    max := Double.MaxValue.toString,
+    placeholder := "Floating Point Number",
+  )
+
+  val dateInputMod = VDomModifier(
+    tpe := "date",
+  )
+
+  val textInputMod = VDomModifier(
+      tpe := "text",
+      placeholder := "Text",
+    )
+
   def dateString(epochMilli: EpochMilli): String = {
     val createdDate = new js.Date(epochMilli)
     if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)
