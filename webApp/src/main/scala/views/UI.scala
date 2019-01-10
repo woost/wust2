@@ -6,11 +6,8 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers._
-import wust.css.{Styles, ZIndex}
-import wust.webApp.{BrowserDetect, Icons}
-import wust.webApp.outwatchHelpers._
 import rx._
-import wust.css.ZIndex
+import wust.css.{Styles, ZIndex}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Ownable}
 
@@ -78,7 +75,7 @@ object UI {
   ))
 
   object ModalConfig {
-    import wust.graph.{Page, Node}
+    import wust.graph.{Node, Page}
     import wust.sdk.BaseColors
     import wust.sdk.NodeColor._
     import wust.webApp.state.{GlobalState, View}
