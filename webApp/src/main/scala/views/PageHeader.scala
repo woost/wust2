@@ -623,7 +623,7 @@ object PageHeader {
     val notificationItem = VDomModifier(Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel, isOwnUser) })
     val filterItem = ViewFilter.renderMenu(state)
 
-    val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, shareItem, filterItem, mentionInItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+    val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, shareItem, filterItem, mentionInItem, permissionItem, /* nodeRoleItem, */ leaveItem, deleteItem)
 
     div(
       // https://semantic-ui.com/modules/dropdown.html#pointing
