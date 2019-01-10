@@ -53,10 +53,6 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(userId = UserId(sourceId), nodeId = targetId)
   }
 
-  case class Label(sourceId: NodeId, data: EdgeData.Label, targetId: NodeId) extends Edge {
-    def copyId(sourceId: NodeId, targetId: NodeId) = copy(sourceId = sourceId, targetId = targetId)
-  }
-
   case class Pinned(userId: UserId, nodeId: NodeId) extends Edge {
     def sourceId = userId
     def targetId = nodeId
@@ -86,7 +82,6 @@ object Edge {
     case data: EdgeData.Author              => new Edge.Author(UserId(sourceId), data, targetId)
     case data: EdgeData.Member              => new Edge.Member(UserId(sourceId), data, targetId)
     case data: EdgeData.Parent              => new Edge.Parent(sourceId, data, targetId)
-    case data: EdgeData.Label               => new Edge.Label(sourceId, data, targetId)
     case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, targetId)
     case EdgeData.Notify                    => new Edge.Notify(sourceId, UserId(targetId))
     case EdgeData.Expanded                  => new Edge.Expanded(UserId(sourceId), targetId)

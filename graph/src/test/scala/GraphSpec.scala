@@ -18,7 +18,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
   }
-  def Connection(sourceId: NodeId, targetId: NodeId) = wust.graph.Edge.Label(sourceId, EdgeData.Label("connector"), targetId)
+  def Connection(sourceId: NodeId, targetId: NodeId) = wust.graph.Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty("connector"), targetId)
   def Containment(parentId: NodeId, childId: NodeId) = wust.graph.Edge.Parent(childId, parentId)
 
   def removeEdges(graph:Graph, es: Iterable[Edge]): Graph = new Graph(nodes = graph.nodes, edges = graph.edges.filterNot(es.toSet))

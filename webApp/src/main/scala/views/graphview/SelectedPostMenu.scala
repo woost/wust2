@@ -111,9 +111,7 @@ object SelectedPostMenu {
 
         val changes = GraphChanges(
           addNodes = Set(newNode),
-          addEdges = Set(
-            Edge.Label(rxPost.now.id, EdgeData.Label("related"), newNode.id)
-          ) ++ state.graph.now
+          addEdges = state.graph.now
             .parents(rxPost.now.id)
             .map(parentId => Edge.Parent(newNode.id, parentId))
         )

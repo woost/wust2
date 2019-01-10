@@ -161,10 +161,10 @@ object GitHubImporter {
 //          val issueDesc = Post(NodeId(issue.id.toString), PostData.Markdown(issue.body), tempUserId, issue.created_at, issue.updated_at)
           val issueId: NodeId = ??? //NodeId(issue.id.toString)
           val issueDesc = Node.Content(issueId, NodeData.Markdown(issue.body), NodeRole.Message)
-          val conn = Edge.Label(issueDesc.id, EdgeData.Label("describes"), issueTitle.id)
+//          val conn = Edge.Label(issueDesc.id, EdgeData.Label("describes"), issueTitle.id)
           val cont = Edge.Parent(issueDesc.id, issueTitle.id)
           val comm = Edge.Parent(issueDesc.id, _comment.id)
-          (Set(issueDesc), Set(conn, cont, comm))
+          (Set(issueDesc), Set(cont, comm))
         } else {
           (Set.empty[Node], Set.empty[Edge])
         }

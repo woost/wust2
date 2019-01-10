@@ -39,9 +39,6 @@ object EdgeData {
   case object Notify extends Named with EdgeData
 
   // content types
-  case class Label(name: String) extends Named with EdgeData
-  object Label extends Named
-
   case object Pinned extends Named with EdgeData
 
   case object Invite extends Named with EdgeData

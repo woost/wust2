@@ -151,7 +151,7 @@ object DevView {
         Rx {
           val posts = state.graph().nodeIds.toArray
           def randomConnection =
-            Edge.Label(posts(rInt(posts.length)), EdgeData.Label(rWord), posts(rInt(posts.length)))
+            Edge.LabeledProperty(posts(rInt(posts.length)), EdgeData.LabeledProperty(rWord), posts(rInt(posts.length)))
 
           def connect(_count: Int): Unit = {
             if (posts.length > 1) {

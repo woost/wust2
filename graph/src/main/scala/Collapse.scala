@@ -74,7 +74,7 @@ object Collapse {
           yield {
             LocalConnection(
               sourceId = altSource,
-              EdgeData.Label("redirected"),
+              EdgeData.LabeledProperty("redirected"),
               targetId = altTarget
             )
           }

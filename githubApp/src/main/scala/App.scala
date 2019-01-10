@@ -49,7 +49,7 @@ object Constants {
   val issueTagId: NodeId = issuesNode.id //NodeId("wust-github-issue")
   val commentTagId: NodeId = commentsNode.id //NodeId("wust-github-comment")
 
-  val label = EdgeData.Label("describes")
+  val label = EdgeData.LabeledProperty("describes")
 
   val wustOwner = "woost"
   val wustRepo = "bug"
@@ -438,7 +438,7 @@ object WustReceiver {
         .find(
           c =>
             c.data match {
-              case EdgeData.Label("describes") => c.targetId == pid
+              case EdgeData.LabeledProperty("describes") => c.targetId == pid
               case _                           => false
             }
         )
