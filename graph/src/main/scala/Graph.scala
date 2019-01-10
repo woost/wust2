@@ -960,6 +960,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           }
         })
         workspacesBuilder.result()
+      case NodeRole.Tag => Array.empty[Int]
       case _ =>
         Array(parentIdx)
     }

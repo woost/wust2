@@ -351,7 +351,10 @@ object Components {
         val workspaces = graph.workspacesForParent(parentIdx)
         graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
       }
-      val parentIdsWithDone = directParentIds.filter(parentId => graph.nodesById(parentId).role != NodeRole.Stage)
+      val parentIdsWithDone = directParentIds.filter{ parentId =>
+        val role = graph.nodesById(parentId).role
+        role != NodeRole.Stage && role != NodeRole.Tag
+      }
       parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
     }
 
