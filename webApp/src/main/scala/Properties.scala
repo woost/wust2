@@ -63,7 +63,7 @@ object ItemProperties {
               disabled,
             ),
             option( value := NodeData.Integer.tpe, "Integer Number" ),
-            option( value := NodeData.Float.tpe, "Floating Point Number" ),
+            option( value := NodeData.Float.tpe, "Decimal Number" ),
             option( value := NodeData.Date.tpe, "Date" ),
             option( value := NodeData.PlainText.tpe, "Text" ),
             onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
