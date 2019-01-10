@@ -1010,7 +1010,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".chat-history.draggable--over," +
   ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
   ".chat-row.draggable--over .nodecard" - (
-    backgroundColor(c"rgba(65,184,255, 1)").important,
+    backgroundColor(c"rgba(55, 66, 74, 1)").important,
     color.white.important,
     opacity(1).important,
     cursor.move.important
