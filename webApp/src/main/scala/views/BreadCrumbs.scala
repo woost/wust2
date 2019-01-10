@@ -67,9 +67,9 @@ object BreadCrumbs {
                     val sortedNodes = nodes.sortBy(graph.parentDepth(_))
                     sortedNodes.map { nid: NodeId =>
                       graph.nodesByIdGet(nid) match {
-                        // hiding the stage prevents accidental zooming into stages, which in turn prevents to create inconsistent state.
-                        // example of unwanted inconsistent state: task is only child of stage, but child of nothing else.
-                        case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage =>
+                        // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
+                        // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
+                        case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
                           span(
                             cls := "breadcrumb",
                             nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(cursor.pointer),
