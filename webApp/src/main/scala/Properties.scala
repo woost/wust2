@@ -20,9 +20,10 @@ import wust.webUtil.StringOps._
 
 import scala.scalajs.js
 
-
-
-
+/*
+ * Here, the managing of node properties is done.
+ * Currently, this is done with providing a modal which enables the user to add properties to a node.
+ */
 object ItemProperties {
 
   def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {

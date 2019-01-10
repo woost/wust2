@@ -8,6 +8,10 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 
+/*
+ * This view list all properties or attributes of a node.
+ * It is meant as the main view for editing properties or getting a detailed overview of a single node.
+ */
 object DetailView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
