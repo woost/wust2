@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.DevOnly
 import dateFns.DateFns
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -456,7 +457,7 @@ object SharedViewElements {
             replyButton(
               onClick foreach { replyAction }
             ),
-            ItemProperties.manageProperties(state, nodeId),
+            DevOnly(ItemProperties.manageProperties(state, nodeId)),
             ifCanWrite(editButton(
               onClick.mapTo(!editMode.now) --> editMode
             )),

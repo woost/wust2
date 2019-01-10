@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
+import wust.webApp.DevOnly
 
 import collection.breakOut
 import outwatch.dom._
@@ -495,7 +496,7 @@ object KanbanView {
                 onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
               ),
             )),
-            ItemProperties.manageProperties(state, node.id),
+            DevOnly(ItemProperties.manageProperties(state, node.id)),
             if(state.graph().isExpanded(state.user.now.id, node.id))
               div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
             else
