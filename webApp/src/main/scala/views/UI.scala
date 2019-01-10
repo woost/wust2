@@ -98,7 +98,7 @@ object UI {
             div(
               Styles.flex,
               alignItems.center,
-              Elements.channelAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+              Elements.nodeAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
               renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             ),
