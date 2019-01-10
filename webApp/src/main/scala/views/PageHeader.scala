@@ -23,7 +23,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.views.Elements.channelAvatar
+import wust.webApp.views.Elements.nodeAvatar
 import wust.webApp.views.UI.ModalConfig
 
 import scala.collection.breakOut
@@ -85,7 +85,7 @@ object PageHeader {
         flexGrow := 1,
         flexShrink := 2,
         padding := "0 5px",
-        channelAvatar(channel, size = 30)(marginRight := "5px", flexShrink := 0),
+        nodeAvatar(channel, size = 30)(marginRight := "5px", flexShrink := 0),
         channelTitle.map(_(marginRight := "5px")),
         channelMembersList,
         permissionIndicator,
@@ -282,7 +282,7 @@ object PageHeader {
       div(
         Styles.flex,
         alignItems.center,
-        channelAvatar(node, size = 20)(marginRight := "5px"),
+        nodeAvatar(node, size = 20)(marginRight := "5px"),
         renderNodeData(node.data)(fontWeight.normal),
         paddingBottom := "5px",
       ),

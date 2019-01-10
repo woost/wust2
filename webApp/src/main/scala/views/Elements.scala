@@ -305,7 +305,8 @@ object Elements {
     cls := "icon fa-fw",
     icon
   )
-  def channelAvatar(node: Node, size: Int): VNode = {
+
+  def nodeAvatar(node: Node, size: Int): VNode = {
     Avatar(node)(
       width := s"${ size }px",
       height := s"${ size }px"
