@@ -72,7 +72,7 @@ object BreadCrumbs {
                         case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
                           span(
                             cls := "breadcrumb",
-                            nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(cursor.pointer),
+                            nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer),
                           )
                         case _                                                  =>
                           VDomModifier.empty

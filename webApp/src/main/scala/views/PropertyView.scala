@@ -54,7 +54,7 @@ object PropertyView {
               header("Parents"),
               description(subjects.map { node =>
                 val parents = graph.parentsIdx(graph.idToIdx(node.id)).map(graph.nodes)
-                parents.map(p => nodeTag(state, p))
+                parents.map(p => nodeTag(state, p, pageOnClick = true))
               })
             ),
             content(

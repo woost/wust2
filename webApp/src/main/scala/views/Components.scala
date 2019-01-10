@@ -249,15 +249,15 @@ object Components {
     )
   }
 
-  def nodeTagDot(state: GlobalState, tag: Node): VNode = {
+  def nodeTagDot(state: GlobalState, tag: Node, pageOnClick:Boolean = false): VNode = {
     span(
       cls := "node tagdot",
       backgroundColor := tagColor(tag.id).toHex,
       UI.tooltip := tag.data.str,
-      onClick foreach { e =>
+      if(pageOnClick) onClick foreach { e =>
         state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
-      },
+      } else cursor.default,
       drag(DragItem.Tag(tag.id)),
     )
   }
@@ -265,7 +265,7 @@ object Components {
   def checkboxNodeTag(
     state: GlobalState,
     tagNode: Node,
-    pageOnClick: Boolean = true,
+    pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
   )(implicit ctx: Ctx.Owner): VNode = {
 
@@ -287,15 +287,15 @@ object Components {
   def nodeTag(
     state: GlobalState,
     tag: Node,
-    pageOnClick: Boolean = true,
+    pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
   ): VNode = {
     val contentString = trimToMaxLength(tag.data.str, 20)
     renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
   }
 
-  def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit): VNode = {
-    nodeTag(state, tag, pageOnClick = false)(
+  def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
+    nodeTag(state, tag, pageOnClick)(
       span(
         "×",
         cls := "actionbutton",
@@ -306,7 +306,7 @@ object Components {
     )
   }
 
-  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId): VNode = {
+  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
     removableNodeTagCustom(state, tag, () => {
       // when removing last parent, fall one level lower into the still existing grandparents
       //TODO: move to GraphChange factory
@@ -319,7 +319,7 @@ object Components {
       state.eventProcessor.changes.onNext(
         GraphChanges.disconnect(Edge.Parent)(taggedNodeId, Set(tag.id))
       )
-    })
+    }, pageOnClick)
   }
 
   def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {

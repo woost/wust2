@@ -17,7 +17,7 @@ object DetailView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     @inline def renderAsTag(tags: Seq[Node])(implicit ctx: Ctx.Owner) = {
       div(
-        if(tags.nonEmpty) tags.map(t => nodeTag(state, t))
+        if(tags.nonEmpty) tags.map(t => nodeTag(state, t, pageOnClick = true))
         else "-"
       )
     }

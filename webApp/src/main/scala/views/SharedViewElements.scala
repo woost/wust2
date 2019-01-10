@@ -481,14 +481,14 @@ object SharedViewElements {
             div(
               cls := "tags",
               directNodeTags.map { tag =>
-                nodeTagDot(state, tag)(Styles.flexStatic)
+                nodeTagDot(state, tag, pageOnClick = true)(Styles.flexStatic)
               },
             )
           case _                =>
             div(
               cls := "tags",
               directNodeTags.map { tag =>
-                removableNodeTag(state, tag, nodeId)(Styles.flexStatic)
+                removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
               },
             )
         }
