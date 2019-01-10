@@ -263,9 +263,10 @@ object ChatView {
           cls := "chat-expanded-thread",
           backgroundColor :=? bgColor,
 
-          inReplyGroup.ifTrue[VDomModifier](renderCommonParents),
-
-          drag(target = DragItem.Thread(commonParentIds)),
+          VDomModifier.ifTrue(inReplyGroup)(
+            renderCommonParents,
+            drag(target = DragItem.Thread(commonParentIds)),
+          ),
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",

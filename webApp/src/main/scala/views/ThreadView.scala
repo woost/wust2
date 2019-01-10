@@ -177,7 +177,7 @@ object ThreadView {
       div(
         cls := "chat-group-inner-frame",
 
-        drag(target = DragItem.Message(firstNodeId)),
+        // drag(target = DragItem.Message(firstNodeId)),
 
         author.map(author => chatMessageHeader(state, author, creationEpochMillis, groupHeadId, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>

@@ -553,17 +553,15 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   //   -- controls on hover --
-  ".chat-row:hover" - (
-    backgroundColor(c"rgba(255,255,255,0.5)")
-  )
+  // ".chat-row:hover" - (
+  //   backgroundColor(c"rgba(255,255,255,0.5)")
+  // )
 
   //TODO: how to generate this combinatorial explosion with scalacss?
   ".chat-row:hover .chatmsg-controls,"+
   ".chat-row:hover .nodeselection-checkbox.checkbox,"+
-  ".chat-row:hover .transitivetag,"+
   ".chat-row:focus .chatmsg-controls,"+
-  ".chat-row:focus .nodeselection-checkbox.checkbox,"+
-  ".chat-row:focus .transitivetag" - (
+  ".chat-row:focus .nodeselection-checkbox.checkbox" - (
     visibility.visible
   )
 
@@ -653,11 +651,6 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth.auto, // when wrapping, prevents container to get smaller than the smallest element
     alignItems.center
   )
-
-  ".transitivetag" - (
-    visibility.hidden
-  )
-
 
   val tagBorderRadius = 2.px
   ".tag" - (
@@ -1005,7 +998,7 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- draggable node
   ".sortable-container .node.draggable--over," +
   ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // threadview
-  ".chat-expanded-thread.draggable--over .chat-common-parents," + // chatview
+  ".chat-expanded-thread.draggable--over," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
   ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
@@ -1033,6 +1026,13 @@ object CommonStyles extends StyleSheet.Standalone {
     color.white.important,
   )
 
+  ".chat-expanded-thread.draggable--over .chatmsg-controls," +
+  ".chat-expanded-thread.draggable--over .nodeselection-checkbox.checkbox," +
+  ".chat-history.draggable--over .chatmsg-controls," +
+  ".chat-history.draggable--over .nodeselection-checkbox.checkbox" - (
+    visibility.hidden.important,
+  )
+
   ".draggable-mirror" - (
     opacity(0.8).important,
     zIndex(ZIndex.dragging).important, // needs to overlap everything else
@@ -1052,13 +1052,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color.inherit.important
   )
 
-  ".chat-row.draggable-mirror .tag," +
-  ".chat-row.draggable-mirror .tagdot," +
-  ".chat-row.draggable-mirror .checkbox," + // checkbox is also set to visible when checked
-  ".chat-row.draggable-mirror .thread-collapsebutton" - (
-    visibility.hidden.important
-  )
-
   val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
   ".nodecard.draggable-source--is-dragging," +
   ".nodecard.draggable-source--is-dragging.draggable--over," +
@@ -1071,13 +1064,6 @@ object CommonStyles extends StyleSheet.Standalone {
     border(1 px, dashed, onDragNodeCardColor).important,
   )
 
-
-  ".chat-row.draggable-source--is-dragging .nodecard *,"+
-  ".chat-row.draggable--over.draggable-source--is-dragging .nodecard *," +
-  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard *" - (
-    backgroundColor(white).important,
-    color(onDragNodeCardColor).important,
-  )
 
   // -- draggable chanelicon
   ".channelicon.draggable-mirror" - (
@@ -1112,15 +1098,11 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  // -- draggable actionbutton, transitivetag
+  // -- draggable actionbutton
   ".node.draggable--over .actionbutton" - (
     backgroundColor.inherit.important,
     cursor.move.important
   )
-
-  ".chat-row.draggable-source--is-dragging .transitivetag" - (
-    visibility.visible
-    )
 
   ".text" - (
     cursor.text
