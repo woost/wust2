@@ -14,7 +14,7 @@ object Ownable {
   @inline def apply[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get)
   @inline def value[T](get: T): Ownable[T] = new Ownable[T](_ => get)
 
-  implicit val monad: Monad[Ownable] = new Monad[Ownable] {
+  implicit object monad extends Monad[Ownable] {
     override def pure[A](x: A): Ownable[A] = Ownable.value(x)
     override def map[A, B](fa: Ownable[A])(f: A => B): Ownable[B] = fa.map(f)
     override def flatMap[A, B](fa: Ownable[A])(f: A => Ownable[B]): Ownable[B] = fa.flatMap(f)

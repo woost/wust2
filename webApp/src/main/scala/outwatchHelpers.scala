@@ -1,6 +1,6 @@
 package wust.webApp
 
-import cats.Monad
+import cats.{Functor, Monad}
 import cats.effect.IO
 import fontAwesome._
 import jquery.JQuerySelection
@@ -19,6 +19,8 @@ import wust.webUtil.macros.KeyHash
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import wust.util._
+import wust.webUtil.RxInstances
+
 import scala.util.control.NonFatal
 
 package outwatchHelpers {
@@ -37,7 +39,7 @@ package outwatchHelpers {
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
 //TODO: outwatch: onInput.target foreach { elem => ... }
 //TODO: outwatch: Emitterbuilder.timeOut or delay
-package object outwatchHelpers extends KeyHash {
+package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
 //    Scheduler.trampoline(executionModel = monix.execution.ExecutionModel.SynchronousExecution)
@@ -51,6 +53,16 @@ package object outwatchHelpers extends KeyHash {
   implicit class RichVDomModifierFactory(val v: VDomModifier.type) extends AnyVal {
     @inline def ifTrue(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(condition)
     @inline def ifNot(condition:Boolean): ModifierBooleanOps = new ModifierBooleanOps(!condition)
+  }
+
+  @inline implicit class RichFunctorVNode[F[_]: Functor](val f: F[VNode]) {
+    @inline def apply(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.apply(mods :_*))
+    @inline def prepend(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.prepend(mods :_*))
+  }
+  cats.data.Nested
+  @inline implicit class RichFunctorVNodeNested[F[_]: Functor, G[_]: Functor](val f: F[G[VNode]]) {
+    @inline def apply(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
+    @inline def prepend(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
   }
 
   implicit class RichVarFactory(val v: Var.type) extends AnyVal {
