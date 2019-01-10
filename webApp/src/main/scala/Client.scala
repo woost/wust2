@@ -2,6 +2,7 @@ package wust.webApp
 
 import java.nio.ByteBuffer
 
+import googleAnalytics.Analytics
 import boopickle.Default._
 import chameleon.ext.boopickle._
 import covenant.http._
@@ -84,6 +85,7 @@ object Client {
     loginStorageAuth(auth getOrElse initialAssumedAuth).onComplete {
       case Success(true) =>
         lastSuccessAuth = Some(nextAuth)
+        Analytics.setUserId(nextAuth.user.id.toUuid.toString)
       case Success(false) =>
         scribe.warn("Login failed, token is not valid. Will switch to new assumed auth.")
         storage.auth() = None // forget invalid token

@@ -25,6 +25,12 @@ object Analytics {
       })
     }
   }
+
+  def setUserId(userId: String): Unit = {
+    tracker.foreach { tracker =>
+      tracker.set("userId", userId)
+    }
+  }
 }
 
 @js.native
@@ -48,4 +54,5 @@ trait GA extends js.Object {
 //https://developers.google.com/analytics/devguides/collection/analyticsjs/tracker-object-reference
 trait Tracker extends js.Object {
   def send(hitType: String, event: EventOptions): Unit
+  def set(fieldName: String, fieldValue: String): Unit
 }
