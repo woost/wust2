@@ -12,7 +12,7 @@ import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
-import wust.webApp.outwatchHelpers.{Ownable, _}
+import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.{Elements, UI}
 import wust.webApp.views.UI.ModalConfig
