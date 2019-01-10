@@ -12,10 +12,10 @@ import rx.Var.Assignment
 import rx.{Ctx, Rx, Var}
 import supertagged.TaggedType
 import wust.css.ZIndex
-import wust.graph.{Edge, Graph}
+import wust.graph.{Edge, Graph, Node}
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm
-import wust.util.macros.SubObjects
+import wust.util.macros.{InlineList, SubObjects}
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
@@ -78,6 +78,33 @@ object ViewFilter {
     )
   }
 
+  def addLabeledFilterCheckbox(state: GlobalState, filterName: String, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
+    val domId = scala.util.Random.nextString(8)
+    val checkbox = addFilterCheckbox(state, filterName, transform)
+
+    div(
+      cls := "ui checkbox",
+      checkbox(id := domId),
+      label(
+        `for` := domId,
+        description,
+      )
+    )
+  }
+
+  def addFilterCheckbox(state: GlobalState, filterName: String, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
+    val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
+      state.graphTransformations.map(_ :+ transform)
+    } else {
+      state.graphTransformations.map(_.filter(_ != transform))
+    }
+
+    input(tpe := "checkbox",
+      onChange.checked.map(v => activeFilter(v).now) --> state.graphTransformations,
+      onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", s"$filterName") },
+      checked <-- state.graphTransformations.map(_.contains(transform)),
+    )
+  }
 }
 
 
@@ -89,29 +116,11 @@ case class ViewGraphTransformation(
 ){
 
   def render(implicit ctx: Ctx.Owner): BasicVNode = {
-    val domId = scala.util.Random.nextString(8)
-
-    val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
-      state.graphTransformations.map(_ :+ transform)
-    } else {
-      state.graphTransformations.map(_.filter(_ != transform))
-    }
-
     div(
       cls := "item",
-      div(
-        cls := "ui toggle checkbox",
-        input(tpe := "checkbox",
-          id := domId,
-          onChange.checked.map(v => activeFilter(v).now) --> state.graphTransformations,
-          onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", domId) },
-          checked <-- state.graphTransformations.map(_.contains(transform))
-        ),
-        label(description, `for` := domId),
-      ),
+      ViewFilter.addLabeledFilterCheckbox(state, transform.toString, description, transform).apply(cls := "toggle"),
       Elements.icon(icon)(marginLeft := "5px"),
     )
-
   }
 }
 
@@ -172,6 +181,20 @@ sealed trait UserViewGraphTransformation {
 }
 object GraphOperation {
   type GraphTransformation = Graph => Graph
+
+  case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+      pageId.fold(graph) { _ =>
+        val tagIdx = graph.idToIdx(tagId)
+        val newEdges = graph.edges.filter {
+          case e: Edge.Parent if InlineList.contains(NodeRole.Message, NodeRole.Task)(graph.nodesById(e.sourceId).role) =>
+            if(graph.tagParentsIdx.contains(graph.idToIdx(e.sourceId))(tagIdx)) true else false
+          case _              => true
+        }
+        graph.copy(edges = newEdges)
+      }
+    }
+  }
 
   case object InDeletedGracePeriodParents extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>

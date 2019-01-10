@@ -3,6 +3,7 @@ package wust.webApp.views
 import cats.effect.IO
 import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
 import fontAwesome._
+import googleAnalytics.Analytics
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -260,6 +261,28 @@ object Components {
       },
       drag(DragItem.Tag(tag.id)),
       cls := "drag-feedback"
+    )
+  }
+
+  def checkboxNodeTag(
+    state: GlobalState,
+    tagNode: Node,
+    pageOnClick: Boolean = true,
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+  )(implicit ctx: Ctx.Owner): VNode = {
+
+    div( // checkbox and nodetag are both inline elements because of fomanticui
+      div(
+        verticalAlign.middle,
+        cls := "ui checkbox",
+        ViewFilter.addFilterCheckbox(
+          state,
+          tagNode.str,
+          GraphOperation.OnlyTaggedWith(tagNode.id)
+        ),
+        label(), // needed for fomanticui
+      ),
+      nodeTag(state, tagNode, pageOnClick, dragOptions)(verticalAlign.middle),
     )
   }
 

@@ -144,19 +144,17 @@ object KanbanView {
     }
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
 
-    def renderTagTree(trees:Seq[Tree]):VDomModifier = {
-      trees.map{
-        case Tree.Leaf(node) =>
-          nodeTag(state, node)
-        case Tree.Parent(node, children) =>
-          VDomModifier(
-            nodeTag(state, node),
-            div(
-              paddingLeft := "10px",
-              renderTagTree(children)
-            )
+    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
+      case Tree.Leaf(node) =>
+        checkboxNodeTag(state, node)
+      case Tree.Parent(node, children) =>
+        VDomModifier(
+          checkboxNodeTag(state, node),
+          div(
+            paddingLeft := "10px",
+            renderTagTree(children)
           )
-      }
+        )
     }
 
     div(
