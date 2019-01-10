@@ -1089,7 +1089,7 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- sortable
   ".sortable-container .draggable-source--is-dragging," +
   ".sortable-container .draggable-source--is-dragging.draggable--over" - (
-    backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
+    backgroundColor(c"rgba(42, 50, 56, 0.71)").important,
     color(transparent).important,
     borderColor(transparent).important,
   )
