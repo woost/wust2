@@ -106,6 +106,7 @@ object AuthView {
             onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
           )
         ),
+        discardContentMessage(state),
         button(
           cls := "ui fluid primary button",
           submitText,
@@ -120,29 +121,6 @@ object AuthView {
             div(cls := "header", s"$submitText failed"),
             p(errorMessage)
           )
-        },
-        Rx {
-          state.user() match {
-            case AuthUser.Implicit(_, name, _) => div(
-              marginTop := "10px",
-              fontSize := "10px",
-              span("You already created content as an unregistered user. If you login or register, the content will be moved into your account. "),
-              a(
-                href := "#",
-                color := "tomato",
-                marginLeft := "auto",
-                "Discard content",
-                onClick.preventDefault foreach {
-                  if(dom.window.confirm("This will make all your created content inaccessible. Do you want to continue?")) {
-                    Client.auth.logout()
-                  }
-                  ()
-                }
-              )
-            )
-            case _ => VDomModifier.empty
-
-          }
         },
         div(cls := "ui divider"),
         h3(alternativeHeader, textAlign := "center"),
@@ -161,6 +139,36 @@ object AuthView {
         marginBottom := "20px",
       )
     )
+  }
+
+  def discardContentMessage(state:GlobalState)(implicit ctx:Ctx.Owner) = {
+    Rx {
+      state.user() match {
+        // User.Implicit user means, that the user already created content, else it would be User.Assumed.
+        case AuthUser.Implicit(_, name, _) => UI.message(
+          msgType = "warning",
+          header = Some("Discard created content?"),
+          content = Some(VDomModifier(
+            span("You already created content as an unregistered user. If you login or register, the content will be moved into your account. If you don't want to keep it you can "),
+            a(
+              href := "#",
+              color := "tomato",
+              marginLeft := "auto",
+              "discard all content now",
+              onClick.preventDefault foreach {
+                if(dom.window.confirm("This will delete all your content, you created as an unregistered user. Do you want to continue?")) {
+                  Client.auth.logout()
+                }
+                ()
+              }
+              ),
+            "."
+          ))
+      )
+        case _ => VDomModifier.empty
+
+      }
+    },
   }
 
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) = {

@@ -15,6 +15,13 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 object UI {
+  def message(msgType:String = "", header:Option[VDomModifier] = None, content:Option[VDomModifier] = None):VNode = {
+    div(
+      cls := "ui message", cls := msgType,
+      header.map(headerContent => div(cls := "header", headerContent)),
+      content
+    )
+  }
 
   def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(

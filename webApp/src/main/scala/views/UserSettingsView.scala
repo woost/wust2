@@ -187,7 +187,7 @@ object UserSettingsView {
       ),
       errorHandler.map {
         case None => VDomModifier(userDetail.map(_.collect { case UserDetail(userId, Some(email), false) => div(
-          cls := "ui yellow message",
+          cls := "ui warning message",
           div(
             cls := "header", s"Email address is unverified. Check your inbox for the verification email. Or ",
             a(
