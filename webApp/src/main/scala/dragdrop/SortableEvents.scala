@@ -96,6 +96,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   sortableStartEvent.foreachTry { e =>
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
     val payload: js.UndefOr[DragPayload] = readDragPayload(e.dragEvent.originalSource)
+    scribe.info(s"\n sort start: $payload, from container: ${readDragContainer(e.startContainer)}")
     payload.foreach(writeDragPayload(e.dragEvent.source, _))
 
     if(payload == js.defined(DragItem.DisableDrag)) { scribe.info("Drag is disabled on this element."); e.cancel() }

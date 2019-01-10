@@ -659,7 +659,9 @@ object KanbanView {
                     marginTop := "5px",
                     opacity := 0.5,
                   )
-                }
+                },
+                // sortable: draggable needs to be direct child of container
+                registerDragContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
               )
             )
         },
@@ -679,7 +681,7 @@ object KanbanView {
         )
       else VDomModifier.empty
     ).apply(
-      Rx{ VDomModifier.ifNot(editable() || isDone)(drag(DragItem.Task(node.id))) }, // prevents dragging when selecting text
+      Rx{ VDomModifier.ifNot(editable())(drag(DragItem.Task(node.id))) }, // prevents dragging when selecting text
       keyed(node.id, parentId),
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 

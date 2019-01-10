@@ -81,10 +81,13 @@ object DragActions {
       case (from: Kanban.Workspace, payload: DragItem.Task, into: Kanban.Workspace, false, false) =>
         (sortableStopEvent,graph,userId) =>
           // disconnect from all stage parents
+          // TODO: drag checked subcard into expanded subcard
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val oldParents = graph.parents(payload.nodeId).filterNot(parentId => parentId == into.parentId || graph.nodesById(parentId).role == NodeRole.Tag)
           val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, oldParents)
-          unstageChanges merge sortChanges
+          val change = unstageChanges merge sortChanges
+          println(change.toPrettyString(graph))
+          change
 
 
       //// List View ////
