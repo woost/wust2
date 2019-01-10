@@ -39,14 +39,12 @@ object NodeData {
   object PlainText extends Named
 
   case class Integer(content: Int) extends Named with Content {
-    require(content <= Int.MaxValue && content >= Int.MinValue)
     def str = content.toString
     def update(value: Int)= if(content != value) Some(copy(content = value)) else None
   }
   object Integer extends Named
 
   case class Float(content: Double) extends Named with Content {
-    require(content <= Double.MaxValue && content >= Double.MinValue)
     def str = content.toString
     def update(value: Double) = if(content != value) Some(copy(content = value)) else None
   }
