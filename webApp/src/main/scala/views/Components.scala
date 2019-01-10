@@ -246,7 +246,6 @@ object Components {
         state.viewConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
-      cls := "drag-feedback"
     )
   }
 
@@ -260,7 +259,6 @@ object Components {
         e.stopPropagation()
       },
       drag(DragItem.Tag(tag.id)),
-      cls := "drag-feedback"
     )
   }
 
@@ -465,6 +463,7 @@ object Components {
   ): VDomModifier = {
     VDomModifier(
       cls := "draggable", // makes this element discoverable for the Draggable library
+      cls := "drag-feedback", // visual feedback for drag-start
       VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
       onDomMount.asHtml foreach { elem =>
         writeDragPayload(elem, payload)

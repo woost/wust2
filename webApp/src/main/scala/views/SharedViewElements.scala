@@ -337,21 +337,16 @@ object SharedViewElements {
             nodeCardWithCheckbox(state, node, directParentIds).apply(
               Styles.flex,
               alignItems.flexStart,
-              cls := "drag-feedback",
-
-              // dragHandle(Styles.flexStatic),
               renderedMessageModifier,
             )
           case _ =>
             nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
-              cls := "drag-feedback",
 
               // Sadly it is not possible to FLOAT the syncedicon to the bottom right:
               // https://stackoverflow.com/questions/499829/how-can-i-wrap-text-around-a-bottom-right-div/499883#499883
               syncedIcon,
-              // dragHandle(Styles.flexStatic),
               renderedMessageModifier,
             )
         }

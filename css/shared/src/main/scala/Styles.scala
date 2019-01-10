@@ -100,8 +100,8 @@ object Styles extends StyleSheet.Inline {
   )
 
   val dragFeedBackKf = keyframes(
-    (0 %%) -> style(boxShadow := "0px 0px 0px 0px rgba(133,213,255,1)"),
-    (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(133,213,255,0)")
+    (0 %%) -> style(boxShadow := "0px 0px 0px 0px rgba(0,0,0,1)"),
+    (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(0,0,0,0)")
   )
 
   val loadingAnimationDashOffsetKf = keyframes(
@@ -993,8 +993,7 @@ object CommonStyles extends StyleSheet.Standalone {
 //    border(2 px, solid, green)
   )
 
-  ".draggable-mirror.drag-feedback," +
-  ".draggable-mirror .drag-feedback" - (
+  ".draggable-mirror.drag-feedback" - (
     animationName(Styles.dragFeedBackKf),
     animationDuration(500 milliseconds)
   )

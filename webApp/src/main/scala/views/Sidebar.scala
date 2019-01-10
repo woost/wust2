@@ -113,7 +113,7 @@ object Sidebar {
 
         onChannelClick(ChannelAction.Node(node.id))(state),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
-        cls := "node drag-feedback",
+        cls := "node",
         node match {
           case _:Node.Content => drag(DragItem.Channel(node.id))
           case _:Node.User => drag(target = DragItem.Channel(node.id))
@@ -215,7 +215,7 @@ object Sidebar {
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
               drag(target = DragItem.Channel(node.id)),
-              cls := "node drag-feedback",
+              cls := "node",
               // for each indent, steal padding on left and right
               // and reduce the width, so that the icon keeps its size
               width := s"${ size-(depth*indentFactor) }px",

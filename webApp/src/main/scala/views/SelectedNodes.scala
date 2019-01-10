@@ -64,7 +64,7 @@ object SelectedNodes {
 
   private def nodeList[T <: SelectedNodeBase](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
-      cls := "nodelist drag-feedback",
+      cls := "nodelist",
       drag(payload = DragItem.SelectedNodes(selectedNodeIds)),
       onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] },
 
@@ -126,7 +126,7 @@ object SelectedNodes {
       maxLength = Some(20)
     )(
       drag(DragItem.SelectedNode(node.id)),
-      cls := "draggable drag-feedback"
+      cls := "draggable"
     )
   }
 }
