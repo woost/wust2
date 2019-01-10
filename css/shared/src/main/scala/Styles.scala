@@ -1018,6 +1018,9 @@ object CommonStyles extends StyleSheet.Standalone {
     color.white.important,
   )
 
+  // when dragging over, hide stuff that would normally appear on hover
+  ".nodecard.draggable--over .buttonbar," +
+  ".nodecard.draggable--over .childstats *," +
   ".chat-expanded-thread.draggable--over .chatmsg-controls," +
   ".chat-expanded-thread.draggable--over .nodeselection-checkbox.checkbox," +
   ".chat-history.draggable--over .chatmsg-controls," +
