@@ -222,7 +222,7 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(3 px),
     marginRight(3 px),
     color(c"#666"),
-    fontSize.larger,
+    fontSize := "14px",
     fontWeight.bold
   )
 
@@ -718,10 +718,6 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(7 px)
   )
 
-  ".kanbannewcolumnarea.sortable-container--over" - (
-    backgroundColor(transparent),
-  )
-
   ".kanban-uncategorized-title" - (
     padding(5 px),
     color(c"rgba(0, 0, 0, 0.62)"),
@@ -996,12 +992,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  ".sortable-container .node.draggable--over," +
-  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // threadview
+  ".node.draggable--over," +
   ".chat-expanded-thread.draggable--over," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
-  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard," + // first message in a group
   ".chat-row.draggable--over .nodecard" - (
     backgroundColor(c"rgba(55, 66, 74, 1)").important,
     color.white.important,
@@ -1019,10 +1013,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".chat-row.draggable--over .nodecard *," +
-  ".chat-expanded-thread.draggable--over > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *," + // threadview
   ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-author," + // chatview
-  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-date," + // chatview
-  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row:first-child:not(.draggable-source--is-dragging) .nodecard *" - ( // first message in a group
+  ".chat-expanded-thread.draggable--over .chat-common-parents .chatmsg-date" - ( // chatview
     color.white.important,
   )
 
@@ -1052,38 +1044,9 @@ object CommonStyles extends StyleSheet.Standalone {
     color.inherit.important
   )
 
-  val onDragNodeCardColor = c"rgba(0,0,0,0.5)"
-  ".nodecard.draggable-source--is-dragging," +
-  ".nodecard.draggable-source--is-dragging.draggable--over," +
-  ".chat-row.draggable-source--is-dragging .nodecard,"+
-  ".chat-row.draggable-source--is-dragging.draggable--over .nodecard," +
-  ".chat-group-inner-frame.draggable--over > div:nth-child(2) > .chat-row.draggable-source--is-dragging .nodecard" - (
-    backgroundColor(white).important,
-    color(onDragNodeCardColor).important,
-    (boxShadow := none).important,
-    border(1 px, dashed, onDragNodeCardColor).important,
-  )
-
-
   // -- draggable chanelicon
   ".channelicon.draggable-mirror" - (
     border(2 px, solid, c"#383838").important
-  )
-
-  ".channelicon.draggable-source--is-dragging" - (
-    border(2 px, dashed, c"#383838").important
-    )
-
-
-  // -- draggable tag
-  val onDragNodeTagColor = c"rgba(255,255,255,0.8)"
-  ".tag.draggable-source--is-dragging," +
-  ".tag.draggable-source--is-dragging.draggable--over," +
-  ".tagdot.draggable-source--is-dragging," +
-  ".tagdot.draggable-source--is-dragging.draggable--over" - (
-    border(1 px, dashed, onDragNodeTagColor).important,
-    color(onDragNodeTagColor).important,
-    backgroundColor(c"#98A3AB").important
   )
 
   // -- sortable
