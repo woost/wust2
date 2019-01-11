@@ -227,7 +227,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   val sidebarBgColorCSS = c"#2A3238"
-  val sidebarBgColor = sidebarBgColorCSS.toString
+  val sidebarBgColor = sidebarBgColorCSS.value
   ".pageheader" - (
     borderBottom(1 px, solid, sidebarBgColorCSS)
   )
