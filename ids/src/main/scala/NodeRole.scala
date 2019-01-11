@@ -8,7 +8,7 @@ object NodeRole {
   case object Message extends ContentRole
   case object Task extends ContentRole
 
-  case object Property extends NodeRole
+  case object Neutral extends NodeRole
   case object Stage extends NodeRole { override def toString: String = "Stage (Column)" }
   case object Tag extends NodeRole
 

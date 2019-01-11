@@ -133,10 +133,10 @@ object ItemProperties {
 
       // TODO: Users and reuse
       val propertyNodeOpt: Option[Node] = propertyType match {
-        case NodeData.Integer.tpe   => safeToInt(propertyValue).map(number => Node.Content(NodeData.Integer(number), NodeRole.Property))
-        case NodeData.Float.tpe     => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Float(number), NodeRole.Property))
-        case NodeData.Date.tpe      => safeToEpoch(propertyValue).map(datum => Node.Content(NodeData.Date(datum), NodeRole.Property))
-        case NodeData.PlainText.tpe => Some(Node.Content(NodeData.PlainText(propertyValue), NodeRole.Property))
+        case NodeData.Integer.tpe   => safeToInt(propertyValue).map(number => Node.Content(NodeData.Integer(number), NodeRole.Neutral))
+        case NodeData.Float.tpe     => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Float(number), NodeRole.Neutral))
+        case NodeData.Date.tpe      => safeToEpoch(propertyValue).map(datum => Node.Content(NodeData.Date(datum), NodeRole.Neutral))
+        case NodeData.PlainText.tpe => Some(Node.Content(NodeData.PlainText(propertyValue), NodeRole.Neutral))
         case _                      => None
       }
 
