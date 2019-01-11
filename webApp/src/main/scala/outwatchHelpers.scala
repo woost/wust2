@@ -1,5 +1,6 @@
 package wust.webApp
 
+import scala.util.control.NonFatal
 import cats.{Functor, Monad}
 import cats.effect.IO
 import fontAwesome._
@@ -210,13 +211,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     def subscribe(that: Var[T]): Cancelable = o.subscribe(new VarObserver[T](that))
 
     def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
-    def foreachTry(callback: T => Unit): CancelableFuture[Unit] = o.foreach { value =>
-      try {
-        callback(value)
-      } catch {
-        case NonFatal(e) => scribe.error(e.getMessage, e)
-      }
-    }
+    def foreachSafe(callback: T => Unit): Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.subscribe()
 
     def debug: Cancelable = debug()
     def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => scribe.info(s"$name: $x"))
