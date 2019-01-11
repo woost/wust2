@@ -83,7 +83,7 @@ object UserSettingsView {
                 alignItems.center,
                 Components.renderUploadedFile(state, nodeId, file),
                 div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
-                button(cls := "ui negative button", "Delete file", onClick.foreach {
+                button(cls := "ui negative button", "Archive file", onClick.foreach {
                   val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
                   if(shouldDelete) {
                     Client.api.deleteFileUpload(file.key.split("/")(1)).foreach { success =>

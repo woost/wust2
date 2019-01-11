@@ -322,7 +322,7 @@ object KanbanView {
               state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
               selectedNodeIds.update(_ - node.id)
             },
-            cursor.pointer, UI.popup := "Delete"
+            cursor.pointer, UI.popup := "Archive"
           )),
 //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
         )
@@ -512,7 +512,7 @@ object KanbanView {
                 state.eventProcessor.changes.onNext(changes)
                 selectedNodeIds.update(_ - node.id)
               },
-              cursor.pointer, UI.popup := "Delete"
+              cursor.pointer, UI.popup := "Archive"
             ),
             //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
           )

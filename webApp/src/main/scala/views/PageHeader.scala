@@ -606,13 +606,13 @@ object PageHeader {
       (canWrite).ifTrue[VDomModifier](div(
         cls := "item",
         Elements.icon(Icons.delete)(marginRight := "5px"),
-        span(cls := "text", "Delete", cursor.pointer),
+        span(cls := "text", "Archive", cursor.pointer),
         onClick foreach {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
-          UI.toast(s"Deleted '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
+          UI.toast(s"Archived '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
         }
       ))
 

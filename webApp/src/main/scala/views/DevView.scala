@@ -142,7 +142,7 @@ object DevView {
           }
 
           div(
-            "delete: ",
+            "archive: ",
             button("1", onClick foreach { deletePost(posts.take(1)) }),
             button("10", onClick foreach { deletePost(posts.take(10)) }),
             button("100", onClick foreach { deletePost(posts.take(100)) })

@@ -244,7 +244,7 @@ object SharedViewElements {
 
   val deleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Delete message", Icons.delete),
+      div(cls := "fa-fw", UI.popup("bottom right") := "Archive message", Icons.delete),
       cursor.pointer,
     )
 

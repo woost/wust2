@@ -100,7 +100,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         applyChanges.value.onComplete {
-          case Success(change) => scribe.info(s"Deleted message: $change")
+          case Success(change) => scribe.info(s"Archived message: $change")
           case Failure(ex)      => scribe.error("Error deleting message: ", ex)
         }
 
@@ -198,7 +198,7 @@ case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver
         }
 
         applyChanges.value.onComplete {
-          case Success(_) => scribe.info("Archieved channel")
+          case Success(_) => scribe.info("Archived channel")
           case Failure(ex)      => scribe.error("Error archiving channel: ", ex)
         }
 
