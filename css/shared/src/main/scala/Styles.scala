@@ -222,7 +222,7 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(3 px),
     marginRight(3 px),
     color(c"#666"),
-    fontSize := "14px",
+    fontSize(14 px),
     fontWeight.bold
   )
 
