@@ -623,8 +623,9 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
-  ".markdown ul" - (
+  ".markdown ul, .markdown ol" - (
     margin(0 px),
+    paddingLeft(2 em),
   )
 
   ".markdown code .hljs" - ( // code which is syntax-highlighted
