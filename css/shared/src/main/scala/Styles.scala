@@ -226,6 +226,12 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold
   )
 
+  val sidebarBgColorCSS = c"#2A3238"
+  val sidebarBgColor = sidebarBgColorCSS.toString
+  ".pageheader" - (
+    borderBottom(1 px, solid, sidebarBgColorCSS)
+  )
+
   ".pageheader-channeltitle" - (
     fontSize(20 px),
     Styles.wordWrap,
@@ -271,8 +277,6 @@ object CommonStyles extends StyleSheet.Standalone {
     height(100 %%),
   )
 
-  val sidebarBgColor = s"#2A3238"
-  val sidebarBgColorCSS = c"#2A3238"
   ".sidebar" - (
     color.white,
     background := sidebarBgColorCSS,
