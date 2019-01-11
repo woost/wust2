@@ -208,7 +208,7 @@ object UserSettingsView {
         )
       },
       button(
-        "Add or change email",
+        "Change email",
         cls := "ui fluid primary button",
         display.block,
 
