@@ -93,7 +93,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   dragOutContainerEvent.map(_ => js.undefined).subscribe(currentOverContainerEvent)
 
 
-  sortableStartEvent.foreachTry { e =>
+  sortableStartEvent.foreach { e =>
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
     val payload: js.UndefOr[DragPayload] = readDragPayload(e.dragEvent.originalSource)
     payload.foreach(writeDragPayload(e.dragEvent.source, _))
@@ -112,7 +112,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
 
   // when dragging over
-  sortableSortEvent.withLatestFrom3(currentOverContainerEvent, ctrlDown, shiftDown)((sortableSortEvent, currentOverContainerEvent, ctrl, shift) => (sortableSortEvent, currentOverContainerEvent, ctrl, shift)).foreachTry {
+  sortableSortEvent.withLatestFrom3(currentOverContainerEvent, ctrlDown, shiftDown)((sortableSortEvent, currentOverContainerEvent, ctrl, shift) => (sortableSortEvent, currentOverContainerEvent, ctrl, shift)).foreach {
     case (sortableSortEvent, currentOverContainerEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
       val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
@@ -126,7 +126,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     case (sortableSortEvent, _, _, _) => sortableSortEvent.cancel()
   }
 
-  dragOverEvent.withLatestFrom2(ctrlDown, shiftDown)((e, ctrl, shift) => (e, ctrl, shift)).foreachTry {
+  dragOverEvent.withLatestFrom2(ctrlDown, shiftDown)((e, ctrl, shift) => (e, ctrl, shift)).foreach {
     case (e, ctrl, shift) =>
       val notOverSortContainer = !readDragContainer(e.overContainer).exists(_.isInstanceOf[SortableContainer])
 
@@ -140,7 +140,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   // when dropping
-  sortableStopEvent.withLatestFrom4(currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)((sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) => (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift)).foreachTry {
+  sortableStopEvent.withLatestFrom4(currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)((sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) => (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift)).foreach {
     case (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
       val overSortcontainer = currentOverContainerEvent.flatMap(e => readDragContainer(e.overContainer)).exists(_.isInstanceOf[SortableContainer])
 
