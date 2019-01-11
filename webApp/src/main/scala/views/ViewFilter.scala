@@ -187,7 +187,7 @@ object GraphOperation {
       pageId.fold(graph) { _ =>
         val tagIdx = graph.idToIdx(tagId)
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if InlineList.contains(NodeRole.Message, NodeRole.Task)(graph.nodesById(e.sourceId).role) =>
+          case e: Edge.Parent if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.sourceId).role) =>
             if(graph.tagParentsIdx.contains(graph.idToIdx(e.sourceId))(tagIdx)) true else false
           case _              => true
         }

@@ -215,7 +215,7 @@ object ChatView {
     val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).filter{parentIdx =>
       val parentNode = graph.nodes(parentIdx)
 
-      InlineList.contains(NodeRole.Message, NodeRole.Task)(parentNode.role)
+      InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.map(graph.nodeIds)
     div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
   }
