@@ -33,28 +33,6 @@ object MainView {
 
     val notificationBanner = Rx { WoostNotification.banner(state, state.permissionState()) }
 
-    val registerBanner = Rx {
-      state.page().parentId.map{ pageParentId =>
-        state.user() match {
-          case _: AuthUser.Real                => VDomModifier.empty
-          case user if user.id == pageParentId =>
-            val mobileText = div(
-              "Signup",
-              textDecoration.underline
-            )
-
-            div(
-              Elements.topBanner(None, Some(mobileText)),
-              onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
-              onClick foreach {
-                Analytics.sendEvent("banner", "signuponuser")
-              },
-            )
-          case _ => VDomModifier.empty
-        }
-      }
-    }
-
     VDomModifier(
       cls := "mainview",
       Styles.flex,
@@ -64,7 +42,6 @@ object MainView {
       div(
         cls := "topBannerContainer",
         notificationBanner,
-        registerBanner,
       ),
       Rx { VDomModifier.ifTrue(state.topbarIsVisible())(Topbar(state)(width := "100%", Styles.flexStatic)) },
       div(
