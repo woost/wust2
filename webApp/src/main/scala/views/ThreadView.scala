@@ -111,7 +111,7 @@ object ThreadView {
       val page = state.page()
       val graph = state.graph()
 
-      calculateThreadMessages(page.parentId, graph, false)
+      calculateThreadMessages(page.parentId, graph)
     }
 
     var prevMessageSize = -1
@@ -251,7 +251,7 @@ object ThreadView {
           cls := "chat-thread-messages",
           width := "100%",
           Rx {
-            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph(), true), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
+            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
           },
           Rx {
             if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
@@ -373,19 +373,18 @@ object ThreadView {
     }
   }
 
-  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph, expanded: Boolean): js.Array[Int] = {
+  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     // most nodes don't have any children, so we skip the expensive accumulation
     if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
 
     val nodeSet = ArraySet.create(graph.nodes.length)
-    val expandedFilter = if(expanded) IndexedSeq(NodeRole.Message, NodeRole.Task) else IndexedSeq(NodeRole.Message)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
       val parentIdx = graph.idToIdx(parentId)
       if(parentIdx != -1) {
         graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
           val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && IndexedSeq(NodeRole.Message, NodeRole.Task).contains(childNode.role) || graph.childrenIdx(childIdx).exists(idx => IndexedSeq(NodeRole.Message).contains(graph.nodes(idx).role)))
+          if(childNode.isInstanceOf[Node.Content] && childNode.role.isInstanceOf[NodeRole.ContentRole] || graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role))
             nodeSet.add(childIdx)
         }
       }
