@@ -46,7 +46,7 @@ object UI {
   def modal(config: Observable[Ownable[ModalConfig]]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
-      configRx.mapWithOwner { implicit ctx => config =>
+      configRx.flatMap(config => Ownable { implicit ctx =>
         VDomModifier(
           emitter(config.close).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
           config.modalModifier,
@@ -77,7 +77,7 @@ object UI {
             }
           )
         )
-      }
+      })
     }
   ))
 
