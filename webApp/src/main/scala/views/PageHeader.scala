@@ -33,7 +33,7 @@ import scala.util.{Failure, Success}
 
 object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    div.staticRx(keyValue)(implicit ctx =>
+    div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
         Rx {
@@ -43,7 +43,7 @@ object PageHeader {
           parentNode.map { channel => channelRow (state, channel) }
         },
       )
-    )
+    })
   }
 
   private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {

@@ -14,7 +14,7 @@ import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import wust.util.RichBoolean
-import wust.webApp.Client
+import wust.webApp.{Client, Ownable}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 
@@ -23,7 +23,7 @@ import scala.scalajs.js
 object Topbar {
 
   def apply(state: GlobalState): VNode = {
-    div.staticRx(keyValue) { implicit ctx =>
+    div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
         header(state).apply(marginRight := "10px"),
@@ -38,7 +38,7 @@ object Topbar {
           )
         }
       )
-    }
+    })
   }
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(

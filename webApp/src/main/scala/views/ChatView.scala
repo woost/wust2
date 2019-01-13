@@ -17,7 +17,7 @@ import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.{BrowserDetect, Client, Icons}
+import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -217,7 +217,7 @@ object ChatView {
 
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.map(graph.nodeIds)
-    div.thunkRx(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger))
+    div.thunk(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger:PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -282,14 +282,14 @@ object ChatView {
               val previousNodeId = _previousNodeId
               _previousNodeId = Some(nodeId)
 
-              div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
+              div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
 
                 val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
 
                 val editMode = Var(false)
 
                 renderMessageRow(state, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
-              }
+              })
             },
           )
         )

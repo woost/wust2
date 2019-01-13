@@ -12,7 +12,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
-import wust.webApp.BrowserDetect
+import wust.webApp.{BrowserDetect, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -79,14 +79,14 @@ object Sidebar {
       }
     }
 
-    div.staticRx(keyValue) { implicit ctx =>
+    div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay
         else sidebarWithExpand,
         registerDragContainer(state, DragContainer.Sidebar),
         drag(target = DragItem.Sidebar),
       )
-    }
+    })
   }
 
   val buttonStyles = "tiny compact inverted grey"

@@ -185,8 +185,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   implicit class RichVNode(val vNode: BasicVNode) extends AnyVal {
-    def staticRx(key: Key.Value)(renderFn: Ctx.Owner => VDomModifier): ConditionalVNode = vNode.static(key)(withManualOwner(renderFn))
-    def thunkRx(key: Key.Value)(args: Any*)(renderFn: Ctx.Owner => VDomModifier): ThunkVNode = vNode.thunk(key)(args)(withManualOwner(renderFn))
     def render: org.scalajs.dom.Element = {
       val elem = document.createElement(vNode.nodeType)
       OutWatch.renderReplace(elem, vNode).unsafeRunSync()

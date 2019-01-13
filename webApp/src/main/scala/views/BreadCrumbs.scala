@@ -9,6 +9,7 @@ import rx._
 import wust.graph.Node
 import wust.ids._
 import wust.util._
+import wust.webApp.Ownable
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
@@ -42,7 +43,7 @@ object BreadCrumbs {
   }
 
   def apply(state: GlobalState): VNode = {
-    div.staticRx(keyValue) { implicit ctx =>
+    div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "breadcrumbs",
         Rx {
@@ -88,6 +89,6 @@ object BreadCrumbs {
         registerDragContainer(state),
         onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
       )
-    }
+    })
   }
 }

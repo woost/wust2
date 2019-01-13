@@ -21,7 +21,7 @@ import wust.util._
 import wust.util.collection._
 import flatland._
 import monix.reactive.Observable
-import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
@@ -155,9 +155,9 @@ object ThreadView {
     val nodeIds: Seq[NodeId] = group.map(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
-    div.thunkRx(key)(nodeIds, state.screenSize.now)(implicit ctx =>
+    div.thunk(key)(nodeIds, state.screenSize.now)(Ownable { implicit ctx =>
       thunkGroup(state, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
-    )
+    })
   }
 
   private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
@@ -183,7 +183,7 @@ object ThreadView {
         group.map { nodeIdx =>
           val nodeId = groupGraph.nodeIds(nodeIdx)
 
-          div.thunkRx(keyValue(nodeId))(state.screenSize.now) { implicit ctx =>
+          div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
             val nodeIdList = nodeId :: Nil
 
             val showReplyField = Var(false)
@@ -217,7 +217,7 @@ object ThreadView {
                 },
               )
             }
-          }
+          })
         }
       )
     )
