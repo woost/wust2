@@ -57,11 +57,6 @@ object ChatView {
     }
     val pinReply = Var(false)
 
-    def outerDragOptions(pageId: NodeId) = VDomModifier(
-      drag(target = DragItem.Workspace(pageId)),
-      registerDragContainer(state, DragContainer.Chat),
-    )
-
     val pageCounter = PublishSubject[Int]()
     val shouldLoadInfinite = Var[Boolean](false)
 
@@ -74,27 +69,15 @@ object ChatView {
         position.absolute,
         width := "100%"
       ),
-      div(
-        cls := "chat-history",
-        InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
         Rx {
           state.page().parentId map { pageParentId =>
-            VDomModifier(
-              chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite),
-              outerDragOptions(pageParentId)
-            )
-          }
-        },
-
-        // clicking on background deselects
-        onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
-        scrollHandler.modifier,
-        // on page change, always scroll down
-        emitterRx(state.page).foreach {
-          scrollHandler.scrollToBottomInAnimationFrame()
+          div(
+            InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter, // TODO: when moving this line into chatHistory(), InfiniteScrollUp breaks. Why?
+            chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, scrollHandler,shouldLoadInfinite),
+          ),
         }
-      ),
+      },
+
       emitterRx(state.page).foreach { currentReply() = Set.empty[NodeId] },
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
       Rx {
@@ -163,7 +146,13 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def pageDragOptions(state: GlobalState, pageId: NodeId) = VDomModifier(
+    drag(target = DragItem.Workspace(pageId)),
+    registerDragContainer(state, DragContainer.Chat),
+  )
+
+
+  private def chatHistory(state: GlobalState, pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], scrollHandler:ScrollBottomHandler, shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
     state.page.foreach { _ => pageCounter() = initialPageCounter }
@@ -187,6 +176,11 @@ object ChatView {
     }
 
     VDomModifier(
+      cls := "chat-history",
+      backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+      //
+      // InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter, // TODO: when moving this line here, InfiniteScrollUp breaks. Why?
+      //
       Rx {
         val graph = state.graph()
         val page = state.page()
@@ -205,6 +199,14 @@ object ChatView {
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
+      pageDragOptions(state, pageParentId),
+      // clicking on background deselects
+      onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+      scrollHandler.modifier,
+      // on page change, always scroll down
+      emitterRx(state.page).foreach {
+        scrollHandler.scrollToBottomInAnimationFrame()
+      }
     )
   }
 
