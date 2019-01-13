@@ -93,4 +93,27 @@ object Icons {
     }),
     fontawesome.icon(freeSolid.faReceipt),
   )
+//  val propertyNumber: Text = fontawesome.text("123")
+  val propertyNumber: IconDefinition = freeSolid.faHashtag
+  val propertyText: IconDefinition = freeSolid.faFont
+  val propertyDate: IconDefinition = freeSolid.faCalendarDay
+  val propertyCheckbox: IconDefinition = freeRegular.faCheckSquare
+
+  val deadline: IconDefinition = freeSolid.faClock
+  val reminder: Layer = fontawesome.layered(
+    fontawesome.icon(freeSolid.faBell, new Params {
+      transform = new Transform {
+        x = 5.0
+        y = -5.0
+        size = 10.0
+      }
+    }),
+    fontawesome.icon(freeSolid.faClock, new Params {
+      transform = new Transform {
+        x = -3.0
+        y = 3.0
+        size = 12.5
+      }
+    }),
+  )
 }
