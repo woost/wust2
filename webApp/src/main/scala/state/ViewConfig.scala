@@ -29,6 +29,7 @@ case class ViewConfig(view: Option[View], pageChange: PageChange, redirectTo: Op
     }
   }
 
+  @inline def focusView(view:View): ViewConfig = copy(view = Some(view), redirectTo = None)
   @inline def focusView(page: Page, view:View, needsGet: Boolean = true): ViewConfig = focus(page, Some(view), needsGet)
   def focus(page: Page, view:Option[View] = None, needsGet: Boolean = true): ViewConfig = {
     copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None, prevPage = Some(page))

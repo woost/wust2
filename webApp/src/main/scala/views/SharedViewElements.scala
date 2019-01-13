@@ -595,8 +595,9 @@ object SharedViewElements {
             Styles.wordWrap
           ),
           cursor.pointer,
-          onClick[View](View.UserSettings) --> state.view,
-          onClick foreach { Analytics.sendEvent("authstatus", "avatar") },
+          onClick foreach {
+            state.viewConfig.update(_.focusView(View.UserSettings))
+            Analytics.sendEvent("authstatus", "avatar") },
         ),
         logout(state))
     }

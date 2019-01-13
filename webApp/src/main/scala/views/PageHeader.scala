@@ -657,7 +657,7 @@ object PageHeader {
 
         UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
         onClick foreach {
-          state.view() = targetView
+          state.viewConfig.update(_.focusView(targetView))
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         },
         cursor.pointer,

@@ -127,10 +127,7 @@ class GlobalState(
     }
   }
 
-  val view: Var[View] = viewConfig.zoom { viewConfig => viewConfig.view.get }{(viewConfig, view) =>
-    viewConfig.copy(view = Some(view))
-  }
-
+  val view: Rx[View] = viewConfig.map(_.view.get) // TODO: improve. we can do get, because viewConfig always has a view opposed to rawViewConfig
 
   val page: Rx[Page] = viewConfig.map(_.pageChange.page)
   val pageWithoutReload: Rx[Page] = viewConfig.map(_.pageChange.page)
