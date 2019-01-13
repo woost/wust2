@@ -14,7 +14,7 @@ import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Elements, UI}
+import wust.webApp.views.{Components, Elements, UI}
 import wust.webApp.views.UI.ModalConfig
 import wust.webUtil.StringOps._
 
@@ -160,10 +160,7 @@ object ItemProperties {
         marginTop := "10px",
         alignItems.center,
         justifyContent.spaceBetween,
-        div(
-          span(fontWeight.bold, s"${propertyKey.data.key}: "),
-          span(s"${propertyValue.str}"),
-        ),
+        Components.propertyTag(state, propertyKey.data.key, propertyValue),
         button(
           cls := "ui tiny compact negative basic button",
           marginLeft := "10px",

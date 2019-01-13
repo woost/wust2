@@ -249,6 +249,21 @@ object Components {
     )
   }
 
+  def propertyTag(
+    state: GlobalState,
+    key: String,
+    property: Node,
+    pageOnClick: Boolean = false,
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+  ): VNode = {
+    val contentString = trimToMaxLength(s"$key: ${property.str}", 40)
+    span(
+      cls := "node tag",
+      contentString,
+      backgroundColor := tagColor(property.id).toHex,
+    )
+  }
+
   def nodeTagDot(state: GlobalState, tag: Node, pageOnClick:Boolean = false): VNode = {
     span(
       cls := "node tagdot",
