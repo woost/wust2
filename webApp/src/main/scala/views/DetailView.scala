@@ -40,7 +40,7 @@ object DetailView {
           val subjectIdx = graph.idToIdx(subjectId)
           val subject = graph.nodes(subjectIdx)
           val tags = graph.tagParentsIdx(subjectIdx).map(graph.nodes)
-          val properties = graph.propertiesEdgeIdx(subjectIdx).map(eidx => graph.edges(eidx).asInstanceOf[Edge.LabeledProperty]).map(e => (e.data.key, graph.nodesById(e.targetId).str))
+          val properties = graph.propertiesEdgeIdx(subjectIdx).map(eidx => graph.edges(eidx).asInstanceOf[Edge.LabeledProperty]).map(e => (e.data.key, graph.nodesById(e.targetId)))
 
           val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
           val children = graph.childrenIdx(subjectIdx).map(graph.nodes)
@@ -63,7 +63,9 @@ object DetailView {
               content(
                 header("Properties"),
                 description(
-                  if(properties.nonEmpty) properties.map{ case (propertyKey: String, propertyValue: String) => s"$propertyKey: $propertyValue"}.mkString(", ")
+                  if(properties.nonEmpty) properties.map { case (propertyKey: String, propertyValue: Node) =>
+                    Components.propertyTag(state, propertyKey, propertyValue)
+                  }
                   else "-"
                 )
               ),
