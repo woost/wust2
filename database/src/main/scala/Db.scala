@@ -424,13 +424,13 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.nonEmpty)
     }
 
-    def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Option[User]] = {
       import user.data._
       ctx.run {
         queryUser
-          .filter(u => u.id == lift(user.id) && u.data ->> "revision" == lift(revision.toString) && u.data ->> "isImplicit" == lift(isImplicit.toString) && u.data ->> "name" == lift(name))
+          .filter(u => u.id == lift(user.id) && u.data ->> "revision" == lift(revision.toString) && u.data ->> "isImplicit" == lift(isImplicit.toString)) // we do not check the user-name, as it can be changed by the user during a session.
           .take(1)
-      }.map(_.nonEmpty)
+      }.map(_.headOption)
     }
 
     def canAccessNode(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = ctx.run {

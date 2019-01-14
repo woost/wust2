@@ -169,7 +169,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
         case tokenUser: AuthUser.Implicit =>
           db.ctx.transaction { implicit ec =>
             for {
-              true <- db.user.checkIfEqualUserExists(tokenUser)
+              Some(_) <- db.user.checkIfEqualUserExists(tokenUser)
               true <- db.user.mergeImplicitUser(implicitId = tokenUser.id, userId = user.id)
             } yield Returns((), Seq(ReplaceNode(tokenUser.id, user.toNode)))
           }

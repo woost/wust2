@@ -55,8 +55,10 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
 
   def validAuthFromToken(token: Authentication.Token)(implicit ec: ExecutionContext): Future[Option[Authentication.Verified]] =
     jwt.authenticationFromToken(token).map { auth =>
-      db.user.checkIfEqualUserExists(auth.user).map { isValid =>
-        if (isValid) Some(auth) else None
+      //TODO: we anyhow go to the db for each authentication check, so we could also switch to sessions whcih can be stopped and controlled in a better way. furthermore auth tokens can be smaller.
+      db.user.checkIfEqualUserExists(auth.user).map {
+        case Some(user) => Some(auth.copy(user = forClientAuth(user)))
+        case None => None
       }
     } getOrElse Future.successful(None)
 
