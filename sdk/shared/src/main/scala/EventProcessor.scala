@@ -69,9 +69,10 @@ class EventProcessor private (
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
-  val currentAuth: Observable[Authentication] = authEventStream.collect {
+  private val currentAuthUpdate = PublishSubject[Authentication]
+  val currentAuth: Observable[Authentication] = Observable(currentAuthUpdate, authEventStream.collect {
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
-  }.share
+  }).merge.share
   val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
@@ -161,7 +162,19 @@ class EventProcessor private (
 
   sendingChanges.subscribe(
     _ => Ack.Continue,
-    err => scribe.error("[Events] Error sending out changes, cannot continue", err)
+    err => scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
+  )
+
+  graph.combineLatest(currentAuth).subscribe(
+    {
+      case (graph, auth@Authentication.Verified(user: AuthUser.Real, _, _)) =>
+        graph.nodesByIdGet(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
+          val newName = userNode.data.name
+          if (newName != user.name) currentAuthUpdate.onNext(auth.copy(user = user.copy(name = newName)))
+          else Ack.Continue
+        }
+      case _ => Ack.Continue
+    }: ((Graph, Authentication)) => Future[Ack]
   )
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
