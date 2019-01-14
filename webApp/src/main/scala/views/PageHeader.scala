@@ -770,6 +770,11 @@ object ConvertSelection {
         icon = Icons.task,
         description = "Task item of a list or kanban.",
       ) ::
+      ConvertSelection(
+        role = NodeRole.Project,
+        icon = Icons.project,
+        description = "A Project. It can contain conversations and tasks.",
+      ) ::
       // ConvertSelection(
       //   role = NodeRole.Stage,
       //   icon = Icons.stage,
