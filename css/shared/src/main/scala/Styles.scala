@@ -703,6 +703,10 @@ object CommonStyles extends StyleSheet.Standalone {
     textDecoration := "underline"
   )
 
+  ".tag .markdown" - (
+    display.inlineBlock,
+  )
+
   ".tagdot" - (
     width(1 em),
     height(1 em),
