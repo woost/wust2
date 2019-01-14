@@ -1,8 +1,6 @@
 package wust.webApp
 
-import scala.util.control.NonFatal
-import cats.{Functor, Monad}
-import cats.effect.IO
+import cats.Functor
 import fontAwesome._
 import jquery.JQuerySelection
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
@@ -10,18 +8,15 @@ import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{console, document}
-import outwatch.AsVDomModifier
 import outwatch.dom._
-import outwatch.dom.helpers.{AsyncEmitterBuilder, EmitterBuilder}
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.util.Empty
+import wust.webUtil.RxInstances
 import wust.webUtil.macros.KeyHash
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import wust.util._
-import wust.webUtil.RxInstances
-
 import scala.util.control.NonFatal
 
 package outwatchHelpers {
@@ -262,11 +257,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
-  //TODO: add to fontawesome
-  implicit class FontAwesomeOps(val fa: fontawesome.type) extends AnyVal {
-    def layered(layers: Icon*): Layer = fa.layer(push => layers.foreach(push(_)))
-  }
-
   def requestSingleAnimationFrame(): ( => Unit) => Unit = {
     var lastAnimationFrameRequest = -1
     f => {
@@ -309,7 +299,6 @@ class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
 }
 
 trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] {
-  import outwatchHelpers._
   def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transformRx[O](implicit ctx => _.filter(predicate))
