@@ -1,7 +1,6 @@
 package wust.webApp
 
 import fontAwesome._
-import outwatchHelpers._
 
 object Icons {
 
@@ -95,8 +94,9 @@ object Icons {
     }),
     fontawesome.icon(freeSolid.faReceipt),
   )
-//  val propertyNumber: Text = fontawesome.text("123")
-  val propertyNumber: IconDefinition = freeSolid.faHashtag
+
+  val propertyInt: Layer = fontawesome.layered( fontawesome.icon(freeSolid.faFont), fontawesome.text("123", new Params { transform = new Transform { size = 10.0 } }) )
+  val propertyDec: Layer = fontawesome.layered( fontawesome.icon(freeSolid.faFont), fontawesome.text("4.2", new Params { transform = new Transform { size = 10.0 } }) )
   val propertyText: IconDefinition = freeSolid.faFont
   val propertyDate: IconDefinition = freeSolid.faCalendarDay
   val propertyCheckbox: IconDefinition = freeRegular.faCheckSquare
