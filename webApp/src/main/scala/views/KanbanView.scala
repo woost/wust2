@@ -44,7 +44,7 @@ object KanbanView {
         page.parentId.map { pageParentId =>
           val pageParentIdx = graph.idToIdx(pageParentId)
           val workspaces = graph.workspacesForParent(pageParentIdx)
-          val firstWorkspaceIdx = workspaces.head
+          val firstWorkspaceIdx = workspaces.head //TODO: crashes
           val firstWorkspaceId = graph.nodeIds(workspaces.head)
 
           val topLevelStages = graph.childrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
@@ -484,16 +484,14 @@ object KanbanView {
             //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
             VDomModifier.empty
           } else VDomModifier(
-            VDomModifier.ifTrue(isPlainCard())(VDomModifier(
-              div(
-                div(cls := "fa-fw", Icons.tasks),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
-              ),
-              div(
-                div(cls := "fa-fw", Icons.conversation),
-                onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
-              ),
-            )),
+            div(
+              div(cls := "fa-fw", Icons.tasks),
+              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
+            ),
+            div(
+              div(cls := "fa-fw", Icons.conversation),
+              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
+            ),
             DevOnly(ItemProperties.manageProperties(state, node.id)),
             if(state.graph().isExpanded(state.user.now.id, node.id))
               div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
