@@ -44,42 +44,68 @@ object PageHeader {
         Rx {
           val graph = state.graph()
           val page = state.page()
-          val parentNode = page.parentId.flatMap(graph.nodesByIdGet)
-          parentNode.map { channel => channelRow (state, channel) }
+          val pageNode = page.parentId.flatMap(graph.nodesByIdGet)
+          pageNode.map { pageNode => pageRow (state, pageNode) }
         },
       )
     })
   }
 
-  private def channelRow(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VNode = {
     val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(250)
-    val channelTitle = NodePermission.canWrite(state, channel.id).map { canWrite =>
-      val node =
-        if(!canWrite) renderNodeData(channel.data, maxLength)
-        else {
-          editableNodeOnClick(state, channel, state.eventProcessor.changes, maxLength)(ctx)(
-            onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-          )
-        }
-      node(cls := "pageheader-channeltitle")
+    val channelTitle = NodePermission.canWrite(state, pageNode.id).map { canWrite =>
+      pageNode.role match {
+        case NodeRole.Message =>
+          val node =
+            if(!canWrite) nodeCard(pageNode)
+            else {
+              nodeCard(pageNode)
+              // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
+              //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+              // )
+            }
+            node(cls := "pageheader-channeltitle")
+
+        case NodeRole.Task =>
+          val node =
+            if(!canWrite) nodeCard(pageNode)
+            else {
+              nodeCardWithCheckbox(state, pageNode, Nil)
+              // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
+              //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+              // )
+            }
+            node(cls := "pageheader-channeltitle")
+
+        case _ => // usually NodeRole.Project
+          val node =
+            if(!canWrite) renderNodeData(pageNode.data, maxLength)
+            else {
+              editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
+                onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+              )
+            }
+            node(cls := "pageheader-channeltitle")
+
+      }
     }
 
 
     val channelMembersList = Rx {
       val hasBigScreen = state.screenSize() != ScreenSize.Small
-      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, channel).apply(marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
+      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
     }
 
     val permissionIndicator = Rx {
-      val level = Permission.resolveInherited(state.graph(),channel.id)
+      val level = Permission.resolveInherited(state.graph(),pageNode.id)
       div(level.icon, UI.tooltip("bottom center") := level.description, zIndex := ZIndex.tooltip-15)
     }
 
     div(
-      backgroundColor := BaseColors.pageBg.copy(h = hue(channel.id)).toHex,
       paddingTop := "5px",
       paddingLeft := "5px",
       paddingRight := "15px",
+      backgroundColor := BaseColors.pageBg.copy(h = hue(pageNode.id)).toHex,
 
       Styles.flex,
       alignItems.center,
@@ -91,12 +117,13 @@ object PageHeader {
         flexGrow := 1,
         flexShrink := 2,
         padding := "0 5px",
-        nodeAvatar(channel, size = 30)(marginRight := "5px", flexShrink := 0),
+        nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
         channelTitle.map(_(marginRight := "5px")),
         channelMembersList,
         permissionIndicator,
+        paddingBottom := "5px",
       ),
-      menu(state, channel),
+      menu(state, pageNode).apply(alignSelf.flexEnd),
     )
   }
 

@@ -191,10 +191,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- breadcrumb --
   ".breadcrumbs" - (
-    padding(1 px, 3 px),
+    padding(2 px, 3 px),
     alignItems.center,
     overflowX.auto,
-    fontSize(12 px),
+    fontSize(13 px),
     Styles.flexStatic,
 
     &(".cycle-indicator") - (
@@ -207,6 +207,19 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumb .tag" - (
     marginLeft(1 px),
     marginRight(2 px)
+  )
+
+  ".breadcrumb .nodecard-content" - (
+    minHeight(0 em),
+  )
+
+  ".breadcrumb .markdown" - (
+    paddingTop(0 px),
+    paddingBottom(0 px),
+  )
+
+  ".breadcrumb .nodecard > .checkbox" - (
+    marginTop(1.5 px),
   )
 
   // first/last breadcrumb should not have any margin.
@@ -222,7 +235,7 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(3 px),
     marginRight(3 px),
     color(c"#666"),
-    fontSize(14 px),
+    fontSize(16 px),
     fontWeight.bold
   )
 
@@ -236,6 +249,15 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
     cursor.text,
+  )
+
+  ".pageheader-channeltitle .nodecard-content" - (
+    minHeight(0 em),
+    paddingBottom(3 px),
+  )
+
+  ".pageheader-channeltitle.nodecard > .checkbox" - (
+    marginTop(9 px),
   )
 
   ".avatar" - (
@@ -595,6 +617,12 @@ object CommonStyles extends StyleSheet.Standalone {
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
+  )
+
+  ".nodecard > .checkbox" - (
+    marginTop(5 px),
+    marginLeft(5 px),
+    marginRight(3 px),
   )
 
   ".nodecard a" - (

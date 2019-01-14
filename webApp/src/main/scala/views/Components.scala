@@ -290,7 +290,7 @@ object Components {
         cls := "ui checkbox",
         ViewFilter.addFilterCheckbox(
           state,
-          tagNode.str,
+          tagNode.str, // TODO: renderNodeData
           GraphOperation.OnlyTaggedWith(tagNode.id)
         ),
         label(), // needed for fomanticui
@@ -305,7 +305,7 @@ object Components {
     pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
   ): VNode = {
-    val contentString = trimToMaxLength(tag.data.str, 20)
+    val contentString = renderNodeData(tag.data, maxLength = Some(20))
     renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
   }
 
@@ -396,9 +396,6 @@ object Components {
 
     div(
       cls := "ui checkbox fitted",
-      marginTop := "5px",
-      marginLeft := "5px",
-      marginRight := "3px",
       input(
         tpe := "checkbox",
         checked <-- isChecked,
@@ -730,4 +727,3 @@ object Components {
     )
   }
 }
-

@@ -1,12 +1,13 @@
 package wust.webApp.views
 
+import wust.css.Styles
 import wust.webApp.dragdrop._
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
-import wust.graph.Node
+import wust.graph.{Node, Page}
 import wust.ids._
 import wust.util._
 import wust.webApp.Ownable
@@ -46,6 +47,8 @@ object BreadCrumbs {
     div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "breadcrumbs",
+        Styles.flex,
+        alignItems.center,
         Rx {
           val page = state.page()
           val user = state.user()
@@ -67,14 +70,34 @@ object BreadCrumbs {
                     // this ensures that e.g. „Channels“ comes first
                     val sortedNodes = nodes.sortBy(graph.parentDepth(_))
                     sortedNodes.map { nid: NodeId =>
+                      val onClickFocus = VDomModifier(
+                        cursor.pointer,
+                        onClick foreach { e =>
+                          state.viewConfig.update(_.focus(Page(nid)))
+                          e.stopPropagation()
+                        }
+                      )
                       graph.nodesByIdGet(nid) match {
                         // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
                         // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
                         case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-                          span(
-                            cls := "breadcrumb",
-                            nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer),
-                          )
+                          node.role match {
+                            case NodeRole.Message => 
+                              span(
+                                cls := "breadcrumb",
+                                nodeCard(node)(onClickFocus),
+                              )
+                            case NodeRole.Task => 
+                              span(
+                                cls := "breadcrumb",
+                                nodeCardWithCheckbox(state, node, Nil).apply(onClickFocus),
+                              )
+                            case _ => // usually NodeRole.Project
+                              span(
+                                cls := "breadcrumb",
+                                nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer),
+                              )
+                          }
                         case _                                                  =>
                           VDomModifier.empty
                       }
@@ -83,7 +106,7 @@ object BreadCrumbs {
                 )
               }
             }.flatten
-            div(intersperseWhile(elements, span("/", cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type]))
+            intersperseWhile(elements, span("/", cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
           }
         },
         registerDragContainer(state),
