@@ -27,7 +27,7 @@ object Topbar {
       VDomModifier(
         cls := "topbar",
         header(state).apply(marginRight := "10px"),
-        // SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic),
+        wust.webApp.DevOnly(SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic)),
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
 
