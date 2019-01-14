@@ -72,7 +72,7 @@ object AuthView {
             attr("autocomplete") := "username",
             display.block,
             margin := "auto",
-            onInput.value foreach { str => userValue.update(_.copy(username = str)) },
+            onInput.value foreach { str => userValue.update(_.copy(username = str.trim)) },
             onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
           )
         )),

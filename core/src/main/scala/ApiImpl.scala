@@ -86,6 +86,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
         }
         changes.addNodes.forall {
           case node:Node.Content => allPostsWithAuthor.contains(node.id)
+          case node:Node.User if node.id == user.id => allPostsWithAuthor.contains(node.id) // only allowed to edit your own user node
           case _                 => false
         }
       }

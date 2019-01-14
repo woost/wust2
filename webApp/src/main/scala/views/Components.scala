@@ -530,83 +530,81 @@ object Components {
     )
   }
 
+  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    //TODO: this validation code whether a node is writeable should be shared with the backend.
 
-  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
+    val initialRender: Var[VNode] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
+
     node match {
-      case contentNode: Node.Content => editableNodeContent(state, contentNode, editMode, submit, maxLength)
-      case _                         => renderNodeDataWithFile(state, node.id, node.data, maxLength)
+
+      case node@Node.Content(_, textData: NodeData.EditableText, _, _) =>
+        val editRender = editableTextNode(state, editMode, initialRender, submit, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
+        editableNodeContent(state, node, editMode, initialRender, editRender)
+
+      //TODO: integer, floating point, etc.
+
+      case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
+        val editRender = editableTextNode(state, editMode, initialRender, submit, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
+        editableNodeContent(state, user, editMode, initialRender, editRender)
+
+      case _ => initialRender.now
     }
   }
 
-  def editableNodeContent(state: GlobalState, node: Node.Content, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int])(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-
-    val initialRender: Var[VDomModifier] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
-
+  def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], submit: Observer[GraphChanges], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
     import scala.concurrent.duration._
 
-    def editableText(textData: EditableText)(implicit ctx: Ctx.Owner) = {
-      def save(contentEditable:HTMLElement): Unit = {
-        if(editMode.now) {
-          val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
-          if (text.nonEmpty) {
-            textData.updateStr(text) match {
-              case Some(newData) =>
-                val updatedNode = node.copy(data = newData)
+    def save(contentEditable:HTMLElement): Unit = {
+      if(editMode.now) {
+        val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
+        if (text.nonEmpty) {
+          applyStringToNode(text) match {
+            case Some(updatedNode) =>
+              Var.set(
+                initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
+                editMode -> false
+              )
 
-                Var.set(
-                  initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
-                  editMode -> false
-                )
-
-                val changes = GraphChanges.addNode(updatedNode)
-                submit.onNext(changes)
-              case None =>
-                editMode() = false
-            }
+              val changes = GraphChanges.addNode(updatedNode)
+              submit.onNext(changes)
+            case None =>
+              editMode() = false
           }
         }
       }
-
-      VDomModifier(
-          node.data.str, // Markdown source code
-          contentEditable := true,
-          cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-          whiteSpace.preWrap, // preserve white space in Markdown code
-          backgroundColor := "#FFF",
-          color := "#000",
-          cursor.auto,
-
-          onFocus foreach { e => document.execCommand("selectAll", false, null) },
-          onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-          BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-            onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-            onEscape foreach { editMode() = false }
-            //TODO how to revert back if you wrongly edited something on mobile?
-          )),
-          onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
-        )
     }
 
-    // TODO: editable nodes of Integer, Float, Date with appropriate input field
-    val editRenderByType = node.data match {
-      case d: NodeData.EditableText => editableText(d)
-      case _ => VDomModifier(initialRender)
-    }
+    VDomModifier(
+      onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+      onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+      nodeStr, // Markdown source code
+      contentEditable := true,
+      cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
+      whiteSpace.preWrap, // preserve white space in Markdown code
+      backgroundColor := "#FFF",
+      color := "#000",
+      cursor.auto,
 
+      onFocus foreach { e => document.execCommand("selectAll", false, null) },
+      onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
+      BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
+        onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+        onEscape foreach { editMode() = false }
+        //TODO how to revert back if you wrongly edited something on mobile?
+      )),
+      onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
+    )
+  }
+
+  def editableNodeContent(state: GlobalState, node: Node, editMode: Var[Boolean], initialRender: Rx[VNode], editRender: VDomModifier)(
+    implicit ctx: Ctx.Owner
+  ): VNode = {
 
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       keyed, // when updates come in, don't disturb current editing session
       Rx {
-        if(editMode()) editRenderByType
-        else initialRender()
-      },
-      onDomUpdate.asHtml --> inNextAnimationFrame { node =>
-        if(editMode.now) node.focus()
+        if(editMode()) editRender else initialRender()
       },
     )
   }

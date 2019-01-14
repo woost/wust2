@@ -129,7 +129,7 @@ object PageHeader {
 
   private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     val isSpecialNode = Rx{
-      //TODO we should use the permission system here
+      //TODO we should use the permission system here and/or share code with the settings menu function
       channel.id == state.user().id
     }
     val isBookmarked = Rx {
@@ -165,7 +165,7 @@ object PageHeader {
       }),
       viewSwitcher(state).apply(alignSelf.flexEnd),
       Rx {
-        settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
+        settingsMenu(state, channel, isBookmarked()).apply(buttonStyle)
       },
     )
   }
@@ -577,12 +577,14 @@ object PageHeader {
   //TODO make this reactive by itself and never rerender, because the modal stuff is quite expensive.
   //TODO move menu to own file, makes up for a lot of code in this file
   //TODO: also we maybe can prevent rerendering menu buttons and modals while the menu is closed and do this lazily?
-  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def settingsMenu(state: GlobalState, channel: Node, bookmarked: Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
+    val channelAsContent: Option[Node.Content] = Some(channel).collect { case n: Node.Content => n }
+    def channelIsContent = channelAsContent.isDefined
     val canWrite = Permission.canWrite(state, channel)
     val permissionItem = Permission.permissionItem(state, channel)
-    val nodeRoleItem:VDomModifier = channel match {
-      case channel: Node.Content if canWrite && channel.role != NodeRole.Stage =>
+    val nodeRoleItem:VDomModifier = channelAsContent.collect {
+      case channel if canWrite && channel.role != NodeRole.Stage =>
         def nodeRoleSubItem(nodeRole: NodeRole, roleIcon: IconLookup) = div(
           cls := "item",
           Elements.icon(roleIcon)(marginRight := "5px"),
@@ -603,7 +605,6 @@ object PageHeader {
             ConvertSelection.all.map { convert => nodeRoleSubItem(convert.role, convert.icon) }
           )
         )
-      case _ => VDomModifier.empty
     }
 
     val mentionInItem:VDomModifier = {
@@ -627,7 +628,7 @@ object PageHeader {
     }
 
     val leaveItem:VDomModifier =
-      (bookmarked && !isOwnUser).ifTrue[VDomModifier](div(
+      (bookmarked && channelIsContent).ifTrue[VDomModifier](div(
         cls := "item",
         Elements.icon(Icons.signOut)(marginRight := "5px"),
         span(cls := "text", "Unpin from sidebar", cursor.pointer),
@@ -635,7 +636,7 @@ object PageHeader {
       ))
 
     val deleteItem =
-      (canWrite).ifTrue[VDomModifier](div(
+      (!channelIsContent && canWrite).ifTrue[VDomModifier](div(
         cls := "item",
         Elements.icon(Icons.delete)(marginRight := "5px"),
         span(cls := "text", "Archive", cursor.pointer),
@@ -649,10 +650,13 @@ object PageHeader {
       ))
 
 
-    val addMemberItem = canWrite.ifTrue[VDomModifier](manageMembers(state, channel.asInstanceOf[Node.Content]))
-    val shareItem = isOwnUser.ifFalse[VDomModifier](shareButton(state, channel))
+    val addMemberItem = channel match {
+      case channel: Node.Content if canWrite => manageMembers(state, channel)
+      case _ => VDomModifier.empty
+    }
+    val shareItem = channelIsContent.ifTrue[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)
-    val notificationItem = VDomModifier(Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel, isOwnUser) })
+    val notificationItem = channelIsContent.ifTrue[VDomModifier](Rx { WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, channel) })
     val filterItem = ViewFilter.renderMenu(state)
 
     val items:List[VDomModifier] = List(notificationItem, searchItem, addMemberItem, shareItem, filterItem, mentionInItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)

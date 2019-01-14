@@ -114,7 +114,10 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   @deprecated("Be aware that you are constructing a new graph here.", "")
   def filterNot(p: Node => Boolean): Graph = filter(node => !p(node))
 
-  def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes ++ Set(user), addEdges = c.addEdges, deleteEdges = c.delEdges)
+  def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = {
+    val addNodes = if (c.addNodes.exists(_.id == user.id)) c.addNodes else c.addNodes ++ Set(user) // do not add author of change if the node was updated, the author might be outdated.
+    changeGraphInternal(addNodes = addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+  }
   def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
 
   def replaceNode(oldNodeId: NodeId, newNode: Node): Graph = {
@@ -239,7 +242,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def contains(nodeId: NodeId): Boolean = idToIdx.isDefinedAt(nodeId)
 
-  assert(idToIdx.size == nodes.length, "nodes are not distinct by id")
+  assert(idToIdx.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
 
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)

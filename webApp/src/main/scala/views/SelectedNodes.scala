@@ -32,7 +32,7 @@ object SelectedNodes {
       Rx {
         val graph = state.graph()
         val sortedNodeIds = selectedNodes().toList //.sortBy(data => graph.nodeCreated(graph.idToIdx(data.nodeId)): Long)
-        val canWriteAll = NodePermission.canWriteAll(graph, sortedNodeIds.map(_.nodeId))
+        val canWriteAll = NodePermission.canWriteAll(state.user(), graph, sortedNodeIds.map(_.nodeId))
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty

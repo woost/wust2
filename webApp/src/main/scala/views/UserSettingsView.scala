@@ -16,6 +16,7 @@ import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import cats.effect.IO
 import org.scalajs.dom
+import wust.graph.{GraphChanges, Node}
 
 import scala.util.control.NonFatal
 import scala.concurrent.Future
@@ -31,7 +32,7 @@ object UserSettingsView {
       Rx {
         val user = state.user()
         VDomModifier(
-          header(user)(marginBottom := "50px"),
+          header(state, user).apply(marginBottom := "50px"),
           accountSettings(state, user).apply(marginBottom := "50px"),
           pluginSettings(user).apply(marginBottom := "50px"),
           uploadSettings(state, user)
@@ -272,7 +273,7 @@ object UserSettingsView {
     )
   }
 
-  private def header(user: UserInfo): VNode = {
+  private def header(state: GlobalState, user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       alignItems.center,
@@ -283,7 +284,7 @@ object UserSettingsView {
         height := "50px",
         padding := "4px",
       ),
-      div(marginLeft := "20px", user.name, fontSize := "30px")
+      editableNodeOnClick(state, user.toNode, state.eventProcessor.changes).apply(marginLeft := "20px", fontSize := "30px")
     )
   }
 

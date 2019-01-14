@@ -113,7 +113,7 @@ object WoostNotification {
     notify
   }
 
-  def generateNotificationItem(state: GlobalState, permissionState: PermissionState, graph: Graph, user: User, channel: Node, isOwnUser: Boolean)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def generateNotificationItem(state: GlobalState, permissionState: PermissionState, graph: Graph, user: User, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val channelIdx = graph.idToIdx(channel.id)
     val userIdx = graph.idToIdx(user.id)
@@ -123,12 +123,12 @@ object WoostNotification {
 
     val text = if(permissionGranted && hasNotifyEdge) "Mute" else "Unmute"
 
-    (!isOwnUser).ifTrue[VDomModifier](div(
+    div(
       cls := "item",
       decorateNotificationIcon(state, notifyControl(graph, user, permissionState, channel)),
 
       span(marginLeft := "7px", cls := "text", text, cursor.pointer)
-    ))
+    )
   }
 
   def banner(state: GlobalState, permissionState: PermissionState): VDomModifier = {

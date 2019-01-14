@@ -107,7 +107,7 @@ class EventProcessor private (
         val replacements = new mutable.ArrayBuffer[ApiEvent.ReplaceNode]
         events.foreach {
           case ApiEvent.NewGraphChanges(user, changes) =>
-            val completeChanges = changes.copy(addNodes = changes.addNodes ++ Set(user))
+            val completeChanges = if (changes.addNodes.exists(_.id == user.id)) changes else changes.copy(addNodes = changes.addNodes ++ Set(user)) // do not add author of change if the node was updated, the author might be outdated.
             if (lastChanges == null) lastChanges = completeChanges.consistent
             else lastChanges = lastChanges.merge(completeChanges).consistent
           case ApiEvent.ReplaceGraph(graph) =>
