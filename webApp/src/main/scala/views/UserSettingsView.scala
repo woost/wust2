@@ -222,6 +222,7 @@ object UserSettingsView {
     )
   }
 
+  //TODO hidden field for username so password manager can interpret this: https://www.chromium.org/developers/design-documents/create-amazing-password-forms
   private def changePassword(user: UserInfo)(implicit ctx: Ctx.Owner) = {
     var element: dom.html.Form = null
     val password = Handler.unsafe[String]
@@ -249,6 +250,7 @@ object UserSettingsView {
         input(
           placeholder := "New password",
           tpe := "password",
+          autoComplete := "new-password",
           value <-- clearHandler,
           onChange.value --> password,
           onEnter.value foreach actionSink)
