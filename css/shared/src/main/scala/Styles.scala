@@ -228,9 +228,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val sidebarBgColorCSS = c"#2A3238"
   val sidebarBgColor = sidebarBgColorCSS.value
-  ".pageheader" - (
-    borderBottom(1 px, solid, sidebarBgColorCSS)
-  )
 
   ".pageheader-channeltitle" - (
     fontSize(20 px),
@@ -1124,7 +1121,8 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.larger,
     height(100 %%),
     padding(5 px),
-    borderRadius(2 px),
+    borderRadius(3 px, 3 px, 0 px, 0 px),
+    marginLeft(2 px),
   )
 
   ".emoji-outer" - (

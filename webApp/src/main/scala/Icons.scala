@@ -43,6 +43,9 @@ object Icons {
 
     })
   )
+  val dashboard: IconDefinition = freeSolid.faChartLine
+  val project: IconDefinition = freeSolid.faProjectDiagram
+
   val conversation: IconDefinition = freeRegular.faComments
   val tasks: IconDefinition = freeSolid.faTasks
   val files: IconDefinition = freeSolid.faPaperclip
@@ -68,7 +71,6 @@ object Icons {
         y = 10.0
         size = 10.0
       }
-
     })
   )
   val share: IconDefinition = freeSolid.faShareAlt

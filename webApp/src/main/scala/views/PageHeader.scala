@@ -32,10 +32,15 @@ import scala.util.{Failure, Success}
 
 
 object PageHeader {
+  val lineColor = "#6B808F"
+  val lineWidth = "2px"
+
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
+        borderBottom := s"$lineWidth solid $lineColor",
+
         Rx {
           val graph = state.graph()
           val page = state.page()
@@ -71,9 +76,10 @@ object PageHeader {
     }
 
     div(
-      padding := "5px",
-      paddingRight := "20px",
       backgroundColor := BaseColors.pageBg.copy(h = hue(channel.id)).toHex,
+      paddingTop := "5px",
+      paddingLeft := "5px",
+      paddingRight := "15px",
 
       Styles.flex,
       alignItems.center,
@@ -130,7 +136,7 @@ object PageHeader {
           UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
       }),
-      viewSwitcher(state),
+      viewSwitcher(state).apply(alignSelf.flexEnd),
       Rx {
         settingsMenu(state, channel, isBookmarked(), isSpecialNode()).apply(buttonStyle)
       },
@@ -284,7 +290,6 @@ object PageHeader {
         alignItems.center,
         nodeAvatar(node, size = 20)(marginRight := "5px"),
         renderNodeData(node.data)(fontWeight.normal),
-        paddingBottom := "5px",
       ),
       div(
         cls := "ui search",
@@ -645,15 +650,31 @@ object PageHeader {
     def item(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
       div(
         cls := "viewswitcher-item",
+
+        border := s"$lineWidth solid $lineColor",
+        marginBottom := s"-$lineWidth",
+
         div(cls := "fa-fw", icon),
         Styles.flex,
         alignItems.center,
 
-        (currentView.viewKey == targetView.viewKey).ifTrue[VDomModifier](Seq(
-          backgroundColor := CommonStyles.sidebarBgColor,
-          color := "white",
-        )),
-        (numItems > 0).ifTrue[VDomModifier](span(numItems, paddingLeft := "7px")),
+        Rx {
+          val pageStyle = state.pageStyle()
+          def isSelected = currentView.viewKey == targetView.viewKey
+          if (isSelected) {
+            VDomModifier(
+              backgroundColor := pageStyle.bgLightColor,
+              borderBottomColor := pageStyle.bgLightColor,
+            )
+          } else {
+            VDomModifier(
+              backgroundColor := "#97aaba",
+              borderBottomColor := lineColor,
+              color := "rgba(0,0,0,0.7)",
+            )
+          }
+        },
+        VDomModifier.ifTrue(numItems > 0)(span(numItems, paddingLeft := "7px")),
 
         UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
         onClick foreach {
@@ -667,7 +688,6 @@ object PageHeader {
     div(
       marginLeft := "5px",
       Styles.flex,
-      flexWrap.wrap,
       justifyContent.center,
       alignItems.center,
       minWidth.auto,
@@ -689,6 +709,7 @@ object PageHeader {
 
         Seq(
           // item(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          item(currentView, pageStyle, View.Dashboard, Icons.dashboard, "dashboard", 0)(zIndex := ZIndex.tooltip-10),
           item(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)(zIndex := ZIndex.tooltip-10),
 //          item(currentView, pageStyle, View.Chat, freeRegular.faComments),
 //          item(currentView, pageStyle, View.Thread, freeSolid.faStream),

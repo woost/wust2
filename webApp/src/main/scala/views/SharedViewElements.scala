@@ -511,7 +511,7 @@ object SharedViewElements {
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def newChannelButton(state: GlobalState, label: String = "New Workspace", view: Option[View] = None): VNode = {
+  def newProjectButton(state: GlobalState, label: String = "New Project", view: Option[View] = None): VNode = {
     button(
       cls := "ui button",
       label,
@@ -519,7 +519,7 @@ object SharedViewElements {
         ev.target.asInstanceOf[dom.html.Element].blur()
 
         val nodeId = NodeId.fresh
-        state.eventProcessor.changes.onNext(GraphChanges.newChannel(nodeId, state.user.now.id))
+        state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id))
         state.viewConfig() = state.viewConfig.now.focus(Page(nodeId), view, needsGet = false)
       }
     )

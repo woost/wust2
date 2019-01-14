@@ -19,9 +19,10 @@ object ViewRender {
     case View.List             => ListView(state)
     case View.Property         => PropertyView(state)
     case View.Graph            => GraphView(state)
+    case View.Welcome          => WelcomeView(state)
     case View.Login            => AuthView.login(state)
     case View.Signup           => AuthView.signup(state)
-    case View.Welcome          => WelcomeView(state)
+    case View.Dashboard        => DashboardView(state)
     case View.UserSettings     => UserSettingsView(state)
     case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(_, state)), state)
   }

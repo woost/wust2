@@ -75,14 +75,21 @@ class GlobalState(
   }
 
   val viewConfig: Var[ViewConfig] = {
-      def viewHeuristic(graph:Graph, page:Page) = {
-        val stats = graph.topLevelRoleStats(page.parentId)
-        val bestView = stats.mostCommonRole match {
-          case NodeRole.Message => View.Conversation
-          case NodeRole.Task => View.Tasks
-          case _ => View.Conversation
+      def viewHeuristic(graph:Graph, page:Page):View = {
+        val bestView:View = page.parentId.flatMap(graph.idToIdxGet) match {
+          case Some(pageParentIdx) => graph.nodes(pageParentIdx).role match {
+            case NodeRole.Project => View.Dashboard
+            case _ =>
+              val stats = graph.topLevelRoleStats(page.parentId)
+              stats.mostCommonRole match {
+                case NodeRole.Message => View.Conversation
+                case NodeRole.Task => View.Tasks
+                case _ => View.Conversation
+              }
+          }
+          case None => View.Dashboard
         }
-        scribe.info(s"viewHeuristic: '$bestView', because ($stats)")
+        scribe.info(s"viewHeuristic: '$bestView'")
         bestView
       }
 

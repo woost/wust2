@@ -34,9 +34,9 @@ object Sidebar {
       minWidth := s"${ smallIconSize }px",
       Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
       channelIcons(state, smallIconSize),
-      newChannelButton(state, "+").apply(
+      newProjectButton(state, "+").apply(
         cls := "newChannelButton-small " + buttonStyles,
-        UI.popup("right center") := "New Workspace",
+        UI.popup("right center") := "New Project",
         onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
       ),
       onSwipeRight(true) --> state.sidebarOpen,
@@ -46,7 +46,7 @@ object Sidebar {
       cls := "sidebar",
       Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
       channels(state),
-      newChannelButton(state).apply(
+      newProjectButton(state).apply(
         cls := "newChannelButton-large " + buttonStyles,
         onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
       ),

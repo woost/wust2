@@ -124,11 +124,11 @@ object GraphChanges {
     }(breakOut)
   )
 
-  def newChannel(nodeId: NodeId, userId: UserId, title: String = "Untitled Workspace"): GraphChanges = {
+  def newProject(nodeId: NodeId, userId: UserId, title: String = "Untitled Project"): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.Markdown(title),
-      NodeRole.Message, //TODO: something different?
+      NodeRole.Project,
       NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
     )
     GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId), Edge.Notify(nodeId, userId), Edge.Member(userId, EdgeData.Member(AccessLevel.ReadWrite), nodeId)))

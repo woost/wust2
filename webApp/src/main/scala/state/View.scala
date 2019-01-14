@@ -46,6 +46,9 @@ object View {
   case object Graph extends View {
     def viewKey = "graph"
   }
+  case object Dashboard extends View {
+    def viewKey = "dashboard"
+  }
   case object Login extends View {
     def viewKey = "login"
     override def isContent = false
