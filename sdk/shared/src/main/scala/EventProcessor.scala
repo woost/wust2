@@ -91,7 +91,11 @@ class EventProcessor private (
     val sharedRawGraph = rawGraph.share
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = changes.withLatestFrom(rawGraphWithInit)(enrichChanges)
+    val enrichedChanges = changes.withLatestFrom(rawGraphWithInit) { (changes, graph) =>
+      val newChanges = enrichChanges(changes, graph)
+      scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
+      newChanges
+    }
 
     val localChanges = enrichedChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
