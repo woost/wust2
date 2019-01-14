@@ -165,7 +165,7 @@ class EventProcessor private (
     err => scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
   )
 
-  graph.combineLatest(currentAuth).subscribe(
+  graph.withLatestFrom(currentAuth)((_,_)).subscribe(
     {
       case (graph, auth@Authentication.Verified(user: AuthUser.Real, _, _)) =>
         graph.nodesByIdGet(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
