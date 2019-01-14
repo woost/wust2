@@ -43,7 +43,7 @@ import scala.util.{Failure, Success}
 object ChatView {
   import SharedViewElements._
 
-  private final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with state.selectednode. also in sync with threadview
@@ -230,7 +230,10 @@ object ChatView {
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
     val pageParentIdx = groupGraph.idToIdx(pageParentId)
-    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter(idx => idx != pageParentIdx && groupGraph.nodes(idx).role != NodeRole.Stage).sortBy(idx => groupGraph.nodeCreated(idx))
+    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter{ idx =>
+      val role = groupGraph.nodes(idx).role
+      idx != pageParentIdx && role != NodeRole.Stage && role != NodeRole.Tag
+    }.sortBy(idx => groupGraph.nodeCreated(idx))
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds)
 
@@ -398,8 +401,8 @@ object ChatView {
                 case NodeRole.Task =>
                   Rx {
                     val graph = state.graph()
-                    val directNonStageParents = graph.parentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
-                    nodeCardWithCheckbox(state, node, directNonStageParents).apply(backgroundColor := "transparent", boxShadow := "none")
+                    val directContentParents = graph.parentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
+                    nodeCardWithCheckbox(state, node, directContentParents).apply(backgroundColor := "transparent", boxShadow := "none")
                   }
                 case _ =>
                   div(
@@ -456,7 +459,10 @@ object ChatView {
     var lastParents: IndexedSeq[Int] = null
     messages.foreach { message =>
       val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-      val parents: IndexedSeq[Int] = graph.parentsIdx(message).filter(idx => graph.nodes(idx).role != NodeRole.Stage) // is there a more efficient way to ignore certain kinds of parent roles?
+      val parents: IndexedSeq[Int] = graph.parentsIdx(message).filter{ idx =>
+        val role = graph.nodes(idx).role
+        role != NodeRole.Stage && role != NodeRole.Tag
+      } // is there a more efficient way to ignore certain kinds of parent roles?
 
       @inline def differentParents = lastParents != null && parents != lastParents
       @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
