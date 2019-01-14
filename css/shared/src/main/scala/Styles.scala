@@ -1008,6 +1008,11 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.move.important
   )
 
+  ".sidebar .draggable--over" - (
+    color(c"rgba(55, 66, 74, 1)").important,
+    backgroundColor.white.important,
+  )
+
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
     borderLeft(3 px, solid, transparent).important,
     opacity(1),
