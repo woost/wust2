@@ -4,6 +4,8 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.graph._
+import wust.ids.{NodeData, NodeRole}
+import wust.webApp.{Icons, Permission}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
@@ -39,11 +41,21 @@ object DetailView {
           val graph = state.graph()
           val subjectIdx = graph.idToIdx(subjectId)
           val subject = graph.nodes(subjectIdx)
-          val tags = graph.tagParentsIdx(subjectIdx).map(graph.nodes)
-          val properties = graph.propertiesEdgeIdx(subjectIdx).map(eidx => graph.edges(eidx).asInstanceOf[Edge.LabeledProperty]).map(e => (e.data.key, graph.nodesById(e.targetId)))
+          val accessLevel = Permission.resolveInherited(graph, subjectId)
 
-          val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
-          val children = graph.childrenIdx(subjectIdx).map(graph.nodes)
+          val tagsIdx = graph.tagParentsIdx(subjectIdx)
+          @inline def numTags = tagsIdx.length
+          val tags = tagsIdx.map(graph.nodes)
+
+          val propertiesIdx = graph.propertiesEdgeIdx(subjectIdx)
+          @inline def numProperties = propertiesIdx.length
+          val properties = propertiesIdx.map(eidx => graph.edges(eidx).asInstanceOf[Edge.LabeledProperty]).map(e => (e.data.key, graph.nodesById(e.targetId)))
+
+          val parentsIdx = graph.parentsIdx(subjectIdx)
+          @inline def numParents = parentsIdx.length
+          val parents = parentsIdx.map(graph.nodes)
+
+          @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
 
           // TODO: Make all elements configurable
           list(
@@ -54,32 +66,40 @@ object DetailView {
               ),
               content(
                 header("Role"),
-                description(subject.role.toString)
-              ),
-              content(
-                header("Access"),
-                description(subject.meta.accessLevel.str)
-              ),
-              content(
-                header("Properties"),
                 description(
-                  if(properties.nonEmpty) properties.map { case (propertyKey: String, propertyValue: Node) =>
-                    Components.propertyTag(state, propertyKey, propertyValue)
-                  }
-                  else "-"
+                  subject.role match {
+                    case NodeRole.Task => Icons.task
+                    case NodeRole.Message => Icons.conversation
+                    case _ => ""
+                  },
+                  subject.role.toString
                 )
               ),
               content(
-                header("Tags"),
+                header(s"Access (${accessLevel.value})"),
+                description(
+                  accessLevel.icon,
+                  accessLevel.description
+                )
+              ),
+              content(
+                header(s"Properties ($numProperties)"),
+                description(
+                  properties.foldLeft(VDomModifier("-")){ case (_, (propertyKey: String, propertyValue: Node)) =>
+                    Components.propertyTag(state, propertyKey, propertyValue)
+                  }
+                )
+              ),
+              content(
+                header(s"Tags ($numTags)"),
                 description(renderAsTag(tags))
               ),
               content(
-                header("Parents"),
+                header(s"Parents ($numParents)"),
                 description(description(renderAsTag(parents)))
               ),
               content(
-                header("Children"),
-                description(description(children.map(c => nodeCard(c)(display.inlineBlock, marginTop := "5px", marginRight := "10px"))))
+                header(s"Children ($numChildren)"),
               ),
             )
           )

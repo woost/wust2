@@ -22,7 +22,7 @@ import wust.ids.{NodeData, _}
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
-import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
+import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
@@ -256,7 +256,13 @@ object Components {
     pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
   ): VNode = {
-    val contentString = trimToMaxLength(s"$key: ${property.str}", 40)
+
+    val icon = ItemProperties.iconByNodeData(property.data)
+    val contentString = VDomModifier(
+      Elements.icon(icon)(marginRight := "5px"),
+      s"$key: ${property.data.str}"
+    )
+
     span(
       cls := "node tag",
       contentString,
