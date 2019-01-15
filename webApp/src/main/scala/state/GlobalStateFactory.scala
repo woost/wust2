@@ -2,6 +2,7 @@ package wust.webApp.state
 
 import java.util.concurrent.TimeUnit
 
+import googleAnalytics.Analytics
 import colorado.HCL
 import emojijs.EmojiConvertor
 import org.scalajs.dom.console
@@ -140,6 +141,10 @@ object GlobalStateFactory {
         ()
       }
       clearTrigger.foreach { _ => selectedNodes() = Nil }
+    }
+
+    state.auth.foreach { auth =>
+      Analytics.setUserId(auth.user.id.toUuid.toString)
     }
 
     //TODO: better in rx/obs operations
