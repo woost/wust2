@@ -109,6 +109,7 @@ object PageHeader {
 
       Styles.flex,
       alignItems.center,
+      flexWrap.wrap,
 
       div(
         Styles.flex,
