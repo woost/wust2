@@ -113,12 +113,12 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dragging over
   sortableSortEvent.withLatestFrom3(currentOverContainerEvent, ctrlDown, shiftDown)((sortableSortEvent, currentOverContainerEvent, ctrl, shift) => (sortableSortEvent, currentOverContainerEvent, ctrl, shift)).foreachSafe {
-    case (sortableSortEvent, currentOverContainerEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
+    case (sortableSortEvent, JSDefined(currentOverContainerEvent), ctrl, shift) =>
       val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
       if(overSortcontainer) {
         scribe.info("over sortcontainer, validating sort information...")
-        validateSortInformation(sortableSortEvent, currentOverContainerEvent.get, ctrl, shift)
+        validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrl, shift)
       } else {
         // drag action is handled by dragOverEvent instead
         sortableSortEvent.cancel()
@@ -141,13 +141,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dropping
   sortableStopEvent.withLatestFrom4(currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)((sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) => (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift)).foreachSafe {
-    case (sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift) if currentOverContainerEvent.isDefined =>
-      val overSortcontainer = currentOverContainerEvent.flatMap(e => readDragContainer(e.overContainer)).exists(_.isInstanceOf[SortableContainer])
+    case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent), ctrl, shift) =>
+      val overSortcontainer = readDragContainer(currentOverContainerEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
       if(overSortcontainer) {
-        performSort(state, sortableStopEvent, currentOverContainerEvent.get, currentOverEvent.get, ctrl, shift)
+        performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrl, shift)
       } else {
-        performDrag(state, sortableStopEvent, currentOverEvent.get, ctrl, shift)
+        performDrag(state, sortableStopEvent, currentOverEvent, ctrl, shift)
       }
 
       snabbdom.VNodeProxy.setDirty(sortableStopEvent.oldContainer)
