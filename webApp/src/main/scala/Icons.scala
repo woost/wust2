@@ -97,6 +97,7 @@ object Icons {
 
   val propertyInt: Layer = fontawesome.layered( fontawesome.icon(freeSolid.faFont), fontawesome.text("123", new Params { transform = new Transform { size = 10.0 } }) )
   val propertyDec: Layer = fontawesome.layered( fontawesome.icon(freeSolid.faFont), fontawesome.text("4.2", new Params { transform = new Transform { size = 10.0 } }) )
+  val propertyNumber: IconDefinition = freeSolid.faCalculator
   val propertyText: IconDefinition = freeSolid.faFont
   val propertyDate: IconDefinition = freeSolid.faCalendarDay
   val propertyCheckbox: IconDefinition = freeRegular.faCheckSquare

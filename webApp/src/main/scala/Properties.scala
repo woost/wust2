@@ -27,8 +27,9 @@ import scala.scalajs.js
 object ItemProperties {
 
   def iconByNodeData(data: NodeData): VDomModifier = data match {
-    case _: NodeData.Integer => Icons.propertyInt
-    case _: NodeData.Float => Icons.propertyDec
+    //    case _: NodeData.Integer => Icons.propertyInt
+    //    case _: NodeData.Float => Icons.propertyDec
+    case _: NodeData.Integer | _: NodeData.Float => Icons.propertyNumber
     case _: NodeData.Date => Icons.propertyDate
     case _: NodeData.File => Icons.files
     case _ => Icons.propertyText
