@@ -85,9 +85,9 @@ object DetailView {
               content(
                 header(s"Properties ($numProperties)"),
                 description(
-                  properties.foldLeft(VDomModifier("-")){ case (_, (propertyKey: String, propertyValue: Node)) =>
+                  if(properties.nonEmpty) properties.map { case (propertyKey: String, propertyValue: Node) =>
                     Components.propertyTag(state, propertyKey, propertyValue)
-                  }
+                  } else "-"
                 )
               ),
               content(
