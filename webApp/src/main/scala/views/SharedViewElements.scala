@@ -515,7 +515,7 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClick foreach { ev =>
+      onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
 
         val nodeId = NodeId.fresh

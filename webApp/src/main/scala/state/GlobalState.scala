@@ -84,7 +84,7 @@ class GlobalState(
               stats.mostCommonRole match {
                 case NodeRole.Message => View.Conversation
                 case NodeRole.Task => View.Tasks
-                case _ => View.Conversation
+                case _ => View.Dashboard
               }
           }
           case None => View.Dashboard
@@ -95,7 +95,7 @@ class GlobalState(
 
       var lastPage:Page = Page.empty
       var lastGraph:Graph = rawGraph.now
-      var lastBestView:View = View.Conversation
+      var lastBestView:View = View.Dashboard
 
       rawViewConfig.mapRead{ viewConfig =>
         val rawPage = viewConfig().pageChange.page

@@ -82,7 +82,7 @@ object PageHeader {
             if(!canWrite) renderNodeData(pageNode.data, maxLength)
             else {
               editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
-                onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
+                onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
               )
             }
             node(cls := "pageheader-channeltitle")
@@ -159,7 +159,7 @@ object PageHeader {
         div(
           Elements.icon(Icons.filter),
           color := "green",
-          onClick(Seq(state.defaultTransformation)) --> state.graphTransformations,
+          onClick.stopPropagation(Seq(state.defaultTransformation)) --> state.graphTransformations,
           cursor.pointer,
           UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
@@ -213,7 +213,7 @@ object PageHeader {
       Elements.icon(Icons.share)(marginRight := "5px"),
       span(cls := "text", "Share Link", cursor.pointer),
       dataAttr("clipboard-text") := shareUrl,
-      onClick foreach {
+      onClick.stopPropagation foreach {
         scribe.info(s"sharing node: $channel")
 
         // make channel public if it is not. we are sharing the link, so we want it to be public.
@@ -241,7 +241,7 @@ object PageHeader {
           UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         }
       },
-      onClick foreach { Analytics.sendEvent("pageheader", "share") }
+      onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "share") }
     )
   }
 
@@ -266,8 +266,8 @@ object PageHeader {
           cursor.pointer,
           padding := "3px",
           Components.nodeCard(nodeRes._1),
-          onClick.mapTo(state.viewConfig.now.focus(Page(nodeRes._1.id))) --> state.viewConfig,
-          onClick(()) --> closeModal
+          onClick.stopPropagation.mapTo(state.viewConfig.now.focus(Page(nodeRes._1.id))) --> state.viewConfig,
+          onClick.stopPropagation(()) --> closeModal
         ),
       )
 
@@ -333,7 +333,7 @@ object PageHeader {
             cls := "ui primary icon button approve",
             Elements.icon(Icons.search),
             span(cls := "text", "Search", marginLeft := "5px", cursor.pointer),
-            onClick(searchInputProcess) --> searchLocal
+            onClick.stopPropagation(searchInputProcess) --> searchLocal
           ),
         ),
       )
@@ -353,7 +353,7 @@ object PageHeader {
       Elements.icon(Icons.search)(marginRight := "5px"),
       span(cls := "text", "Search", cursor.pointer),
 
-      onClick(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal,
+      onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal,
         modalModifier = cls := "form",
         contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       ))) --> state.modalConfig
@@ -477,20 +477,20 @@ object PageHeader {
                 div(
                   cls := "ui primary button approve",
                   "Add",
-                  onClick(userNameInputProcess) foreach { str =>
+                  onClick.stopPropagation(userNameInputProcess) foreach { str =>
                     if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
                       handleAddMember(str)
                     }
                   }
                 ),
               ),
-              a(href := "#", padding := "5px", onClick.preventDefault(false) --> showEmailInvite, "Invite user by username")
+              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(false) --> showEmailInvite, "Invite user by username")
             )
             case false => VDomModifier(
               searchInGraph(state.graph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), showParents = false, inputModifiers = inputSizeMods).foreach { userId =>
                 addUserMember(UserId(userId))
               },
-              a(href := "#", padding := "5px", onClick.preventDefault(true) --> showEmailInvite, "Invite user by email address")
+              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(true) --> showEmailInvite, "Invite user by email address")
             )
           },
           statusMessageHandler.map {
@@ -516,7 +516,7 @@ object PageHeader {
                     cls := "ui tiny compact negative basic button",
                     marginLeft := "10px",
                     "Remove",
-                    onClick(membership).foreach(handleRemoveMember(_))
+                    onClick.stopPropagation(membership).foreach(handleRemoveMember(_))
                   )
                 )
               }:VDomModifier
@@ -532,7 +532,7 @@ object PageHeader {
       Elements.icon(Icons.users)(marginRight := "5px"),
       span(cls := "text", "Manage Members", cursor.pointer),
 
-      onClick(Ownable(implicit ctx => UI.ModalConfig(
+      onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(
         header = ModalConfig.defaultHeader(state, node, "Manage Members", Icons.users),
         description = description,
         close = modalCloseTrigger,
@@ -633,7 +633,7 @@ object PageHeader {
         cls := "item",
         Elements.icon(Icons.signOut)(marginRight := "5px"),
         span(cls := "text", "Unpin from sidebar", cursor.pointer),
-        onClick.mapTo(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
+        onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id)) --> state.eventProcessor.changes
       ))
 
     val deleteItem =
@@ -641,7 +641,7 @@ object PageHeader {
         cls := "item",
         Elements.icon(Icons.delete)(marginRight := "5px"),
         span(cls := "text", "Archive", cursor.pointer),
-        onClick foreach {
+        onClick.stopPropagation foreach {
           state.eventProcessor.changes.onNext(
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
@@ -709,7 +709,7 @@ object PageHeader {
         VDomModifier.ifTrue(numItems > 0)(span(numItems, paddingLeft := "7px")),
 
         UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
-        onClick foreach {
+        onClick.stopPropagation foreach {
           state.viewConfig.update(_.focusView(targetView))
           Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
         },
