@@ -31,7 +31,10 @@ object MainView {
 
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val notificationBanner = Rx { WoostNotification.banner(state, state.permissionState()) }
+    val notificationBanner = Rx {
+      val projectName = state.page().parentId.map(pid => state.graph().nodesById(pid).str)
+      WoostNotification.banner(state, state.permissionState(), projectName)
+    }
 
     VDomModifier(
       cls := "mainview",
