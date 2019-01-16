@@ -15,8 +15,10 @@ import wust.util.Empty
 import wust.webUtil.RxInstances
 import wust.webUtil.macros.KeyHash
 
+import scala.concurrent.Future
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
 
 package outwatchHelpers {
@@ -79,6 +81,16 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   implicit class RichRxFactory(val v: Rx.type) extends AnyVal {
+
+    def fromFuture[T](seed: T)(future: Future[T], recover: PartialFunction[Throwable, T] = PartialFunction.empty): Rx[T] = Rx.create[T](seed) { rx =>
+      future.onComplete {
+        case Success(v) => rx() = v
+        case Failure(t) => recover.lift(t) match {
+          case Some(v) => rx() = v
+          case None => throw t
+        }
+      }
+    }
 
     def merge[T](seed: T)(rxs: Rx[T]*)(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(seed) { v =>
       rxs.foreach(_.triggerLater(v() = _))
