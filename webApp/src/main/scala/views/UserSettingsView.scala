@@ -129,23 +129,21 @@ object UserSettingsView {
     )
   }
 
-  private def changeEmail(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  private def changeEmail(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner) = {
     val userDetail = Var[Option[UserDetail]](None)
     val detailsUnavailable = Var(true)
-    state.user.foreach { user =>
-      Client.auth.getUserDetail(user.id).onComplete {
-        case Success(detail) =>
-          Var.set(
-            detailsUnavailable -> false,
-            userDetail -> detail
-          )
-        case Failure(err) =>
-          scribe.info("Cannot get UserDetail", err)
-          Var.set(
-            detailsUnavailable -> false,
-            userDetail -> None
-          )
-      }
+    Client.auth.getUserDetail(user.id).onComplete {
+      case Success(detail) =>
+        Var.set(
+          detailsUnavailable -> false,
+          userDetail -> detail
+        )
+      case Failure(err) =>
+        scribe.info("Cannot get UserDetail", err)
+        Var.set(
+          detailsUnavailable -> false,
+          userDetail -> None
+        )
     }
 
     var element: dom.html.Form = null
@@ -293,7 +291,7 @@ object UserSettingsView {
         marginLeft := "20px",
         "Edit username",
         onClick(true) --> editMode
-    )
+      )
     )
   }
 
