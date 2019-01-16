@@ -25,12 +25,19 @@ object InlineListMacro {
     val tree = values.foldLeft[Tree](q"true")((tree, expr) => q"$tree && ${f.tree}(${expr.tree})")
     c.Expr[Boolean](tree)
   }
+  def foreach[T](c: Context)(values: c.Expr[T]*)(f: c.Expr[T => Unit]): c.Expr[Unit] = {
+    import c.universe._
+
+    val tree = values.foldLeft[Tree](q"()")((tree, expr) => q"$tree; ${f.tree}(${expr.tree})")
+    c.Expr[Unit](tree)
+  }
 }
 
 trait InlineList {
   def contains[T](values: T*)(t: T): Boolean = macro InlineListMacro.contains[T]
   def exists[T](values: T*)(f: T => Boolean): Boolean = macro InlineListMacro.exists[T]
   def forall[T](values: T*)(f: T => Boolean): Boolean = macro InlineListMacro.forall[T]
+  def foreach[T](values: T*)(f: T => Unit): Unit = macro InlineListMacro.foreach[T]
 }
 object InlineList extends InlineList
 
