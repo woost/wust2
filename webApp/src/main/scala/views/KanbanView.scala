@@ -24,7 +24,7 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
-  private val maxLength = 300
+  private val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
 

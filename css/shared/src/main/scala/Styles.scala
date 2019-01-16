@@ -192,9 +192,11 @@ object CommonStyles extends StyleSheet.Standalone {
   // -- breadcrumb --
   ".breadcrumbs" - (
     padding(2 px, 3 px),
-    alignItems.center,
+
+    Styles.flex,
+    alignItems.flexStart,
+    // flexWrap.wrap,
     overflowX.auto,
-    fontSize(13 px),
     Styles.flexStatic,
 
     &(".cycle-indicator") - (
@@ -204,33 +206,6 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
-  ".breadcrumb .tag" - (
-    marginLeft(1 px),
-    marginRight(2 px)
-  )
-
-  ".breadcrumb .nodecard-content" - (
-    minHeight(0 em),
-  )
-
-  ".breadcrumb .markdown" - (
-    paddingTop(0 px),
-    paddingBottom(0 px),
-  )
-
-  ".breadcrumb .nodecard > .checkbox" - (
-    marginTop(1.5 px),
-  )
-
-  // first/last breadcrumb should not have any margin.
-  // this way e.g. the cycle shape is closer to the cycle
-  ".breadcrumb .tag:first-of-type" - (
-    marginLeft(0 px),
-    )
-  ".breadcrumb .tag:last-of-type" - (
-    marginRight(0 px),
-    )
-
   ".breadcrumbs .divider" - (
     marginLeft(3 px),
     marginRight(3 px),
@@ -238,6 +213,56 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize(16 px),
     fontWeight.bold
   )
+
+  ".breadcrumb" - (
+    margin(0 px).important,
+    height(1.4 em).important,
+  )
+
+  ".breadcrumb," +
+  ".breadcrumb *" - (
+    maxWidth(10 em),
+    overflow.hidden,
+    fontSize(13 px).important,
+    fontWeight.normal,
+  )
+
+  ".breadcrumb.tag" - (
+    border.none,
+    display.inline,
+  )
+
+  ".breadcrumb.tag .markdown" - (
+    display.block,
+  )
+
+  ".breadcrumb.nodecard," +
+  ".breadcrumb .nodecard-content" - (
+    minHeight(0 em),
+    border.none,
+  )
+
+  ".breadcrumb .markdown" - (
+    paddingTop(0 px),
+    paddingBottom(0 px),
+  )
+
+  ".breadcrumb .markdown *" - (
+    /* BOTH of the following are required for text-overflow */
+    whiteSpace.nowrap,
+    overflow.hidden,
+    textOverflow := "ellipsis",
+  )
+
+  // first/last breadcrumb should not have any margin.
+  // this way e.g. the cycle shape is closer to the cycle
+  ".breadcrumb:first-of-type" - (
+    marginLeft(0 px),
+    )
+  ".breadcrumb:last-of-type" - (
+    marginRight(0 px),
+    )
+
 
   val sidebarBgColorCSS = c"#2A3238"
   val sidebarBgColor = sidebarBgColorCSS.value

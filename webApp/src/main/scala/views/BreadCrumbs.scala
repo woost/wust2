@@ -47,8 +47,6 @@ object BreadCrumbs {
     div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "breadcrumbs",
-        Styles.flex,
-        alignItems.center,
         Rx {
           val page = state.page()
           val user = state.user()
@@ -81,23 +79,14 @@ object BreadCrumbs {
                         // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
                         // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
                         case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-                          node.role match {
-                            case NodeRole.Message => 
-                              span(
-                                cls := "breadcrumb",
-                                nodeCard(node)(onClickFocus),
-                              )
-                            case NodeRole.Task => 
-                              span(
-                                cls := "breadcrumb",
-                                nodeCardWithCheckbox(state, node, Nil).apply(onClickFocus),
-                              )
+                          (node.role match {
+                            case NodeRole.Message | NodeRole.Task => 
+                              nodeCard(node)(onClickFocus)
                             case _ => // usually NodeRole.Project
-                              span(
-                                cls := "breadcrumb",
-                                nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer),
-                              )
-                          }
+                              nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer)
+                          }).apply(
+                            cls := "breadcrumb"
+                          )
                         case _                                                  =>
                           VDomModifier.empty
                       }

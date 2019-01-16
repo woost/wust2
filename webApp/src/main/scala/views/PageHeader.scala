@@ -55,22 +55,11 @@ object PageHeader {
     val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(250)
     val channelTitle = NodePermission.canWrite(state, pageNode.id).map { canWrite =>
       pageNode.role match {
-        case NodeRole.Message =>
+        case NodeRole.Message | NodeRole.Task =>
           val node =
             if(!canWrite) nodeCard(pageNode)
             else {
               nodeCard(pageNode)
-              // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
-              //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-              // )
-            }
-            node(cls := "pageheader-channeltitle")
-
-        case NodeRole.Task =>
-          val node =
-            if(!canWrite) nodeCard(pageNode)
-            else {
-              nodeCardWithCheckbox(state, pageNode, Nil)
               // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
               //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
               // )
