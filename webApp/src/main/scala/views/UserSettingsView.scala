@@ -119,7 +119,7 @@ object UserSettingsView {
       width := "300px",
       b("Account settings:"),
       br,
-      changeEmail(state).apply(
+      changeEmail(state, user).apply(
         marginLeft := "10px",
       ),
       br,
@@ -276,6 +276,7 @@ object UserSettingsView {
   }
 
   private def header(state: GlobalState, user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
+    val editMode = Var(false)
     div(
       Styles.flex,
       alignItems.center,
@@ -286,7 +287,13 @@ object UserSettingsView {
         height := "50px",
         padding := "4px",
       ),
-      editableNodeOnClick(state, user.toNode, state.eventProcessor.changes).apply(marginLeft := "20px", fontSize := "30px")
+      editableNode(state, user.toNode, editMode, state.eventProcessor.changes).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center),
+      button(
+        cls := "ui button primary tiny",
+        marginLeft := "20px",
+        "Edit username",
+        onClick(true) --> editMode
+    )
     )
   }
 
