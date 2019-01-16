@@ -209,7 +209,7 @@ object Components {
               state.viewConfig() = state.viewConfig.now.focusView(Page(dmNode.id), View.Conversation, needsGet = false)
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
-              state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, userId, title = dmName)) // TODO: noderole message
+              state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, userId, title = dmName) merge GraphChanges.notify(nodeId, userId)) // TODO: noderole message
               state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), View.Conversation, needsGet = false)
               //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
               dom.window.setTimeout({() =>
