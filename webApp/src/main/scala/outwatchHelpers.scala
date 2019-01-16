@@ -132,10 +132,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       Cancelable(() => ctx.contextualRx.kill())
     }
 
-    def tail(implicit ctx: Ctx.Owner): Rx[T] = Rx.create(rx.now) { v =>
-      rx.triggerLater(v() = _)
-    }
-
     @inline def subscribe(that: Var[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that() = _)
     @inline def subscribe(that: Observer[T])(implicit ctx: Ctx.Owner): Obs = rx.foreach(that.onNext)
 
