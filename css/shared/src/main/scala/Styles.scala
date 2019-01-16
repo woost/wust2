@@ -649,7 +649,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".markdown ul, .markdown ol" - (
-    margin(0 px),
+    margin(0 px, 0 px, 1 em), // like <p> from semantic-ui
     paddingLeft(2 em),
   )
 
