@@ -294,7 +294,7 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
-    val columnTitle = editableNode(state, node, editMode = editable, submit = state.eventProcessor.changes, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
+    val columnTitle = editableNode(state, node, editMode = editable, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
 
     val messageChildrenCount = Rx {
       val graph = state.graph()
@@ -668,8 +668,8 @@ object KanbanView {
       state, node,
       maxLength = Some(maxLength),
       editMode = editable,
-      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty,
-      submit = state.eventProcessor.changes).prepend(
+      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty
+      ).prepend(
       if(showCheckbox)
         VDomModifier(
           taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")

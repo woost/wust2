@@ -306,13 +306,6 @@ object Elements {
     icon
   )
 
-  def nodeAvatar(node: Node, size: Int): VNode = {
-    Avatar(node)(
-      width := s"${ size }px",
-      height := s"${ size }px"
-    )
-  }
-
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
   def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue)).emitterBuilder
   def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue = overrideValue, clearValue = clearValue).emitterBuilder

@@ -216,7 +216,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".breadcrumb" - (
     margin(0 px).important,
-    height(1.4 em).important,
+    height(1.5 em).important,
   )
 
   ".breadcrumb," +
@@ -225,11 +225,6 @@ object CommonStyles extends StyleSheet.Standalone {
     overflow.hidden,
     fontSize(13 px).important,
     fontWeight.normal,
-  )
-
-  ".breadcrumb.tag" - (
-    border.none,
-    display.inline,
   )
 
   ".breadcrumb.tag .markdown" - (

@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.{BaseColors, NodeColor}
 import wust.css.Styles
 import wust.webApp.dragdrop._
 import googleAnalytics.Analytics
@@ -83,10 +84,17 @@ object BreadCrumbs {
                             case NodeRole.Message | NodeRole.Task => 
                               nodeCard(node)(onClickFocus)
                             case _ => // usually NodeRole.Project
-                              nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(cursor.pointer)
-                          }).apply(
-                            cls := "breadcrumb"
-                          )
+                              nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)), pageOnClick = true)(
+                                cursor.pointer,
+                                backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
+                                border := "1px solid",
+                                borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
+                                color.black,
+                              ).prepend(
+                                Styles.flex,
+                                nodeAvatar(node, size = 13)(marginRight := "5px", marginTop := "2px", flexShrink := 0),
+                              )
+                          }).apply(cls := "breadcrumb")
                         case _                                                  =>
                           VDomModifier.empty
                       }

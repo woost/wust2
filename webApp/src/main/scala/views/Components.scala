@@ -371,12 +371,12 @@ object Components {
       contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
     )
   }
-  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(
       node,
       contentInject = VDomModifier(
         prependInject,
-        editableNode(state, node, editMode, submit, maxLength),
+        editableNode(state, node, editMode, maxLength),
         contentInject
       ),
     ).apply(
@@ -522,12 +522,18 @@ object Components {
       }
     }
 
+  def nodeAvatar(node: Node, size: Int): VNode = {
+    Avatar(node)(
+      width := s"${ size }px",
+      height := s"${ size }px"
+    )
+  }
 
-  def editableNodeOnClick(state: GlobalState, node: Node, submit: Observer[GraphChanges], maxLength: Option[Int] = None)(
+  def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None)(
     implicit ctx: Ctx.Owner
   ): VNode = {
     val editMode = Var(false)
-    editableNode(state, node, editMode, submit, maxLength)(ctx)(
+    editableNode(state, node, editMode, maxLength)(ctx)(
       onClick.stopPropagation.stopImmediatePropagation foreach {
         if(!editMode.now) {
           editMode() = true
@@ -536,7 +542,7 @@ object Components {
     )
   }
 
-  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], submit: Observer[GraphChanges], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
     //TODO: this validation code whether a node is writeable should be shared with the backend.
 
     val initialRender: Var[VNode] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
@@ -544,20 +550,20 @@ object Components {
     node match {
 
       case node@Node.Content(_, textData: NodeData.EditableText, _, _) =>
-        val editRender = editableTextNode(state, editMode, initialRender, submit, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
+        val editRender = editableTextNode(state, editMode, initialRender, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
         editableNodeContent(state, node, editMode, initialRender, editRender)
 
       //TODO: integer, floating point, etc.
 
       case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
-        val editRender = editableTextNode(state, editMode, initialRender, submit, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
+        val editRender = editableTextNode(state, editMode, initialRender, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
         editableNodeContent(state, user, editMode, initialRender, editRender)
 
       case _ => initialRender.now
     }
   }
 
-  def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], submit: Observer[GraphChanges], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
     import scala.concurrent.duration._
 
     def save(contentEditable:HTMLElement): Unit = {
@@ -572,7 +578,7 @@ object Components {
               )
 
               val changes = GraphChanges.addNode(updatedNode)
-              submit.onNext(changes)
+              state.eventProcessor.changes.onNext(changes)
             case None =>
               editMode() = false
           }

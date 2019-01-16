@@ -10,6 +10,7 @@ import rx._
 import wust.css.{Styles, ZIndex}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Ownable}
+import wust.webApp.views.Components._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
@@ -102,7 +103,7 @@ object UI {
             div(
               Styles.flex,
               alignItems.center,
-              Elements.nodeAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
+              nodeAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
               renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             ),

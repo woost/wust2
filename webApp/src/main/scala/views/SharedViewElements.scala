@@ -340,7 +340,7 @@ object SharedViewElements {
               renderedMessageModifier,
             )
           case _ =>
-            nodeCardEditable(state, node, editMode = editMode, state.eventProcessor.changes).apply(
+            nodeCardEditable(state, node, editMode = editMode).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
 

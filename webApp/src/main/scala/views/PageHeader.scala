@@ -23,7 +23,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.views.Elements.nodeAvatar
 import wust.webApp.views.UI.ModalConfig
 
 import scala.collection.breakOut
@@ -59,7 +58,8 @@ object PageHeader {
           val node =
             if(!canWrite) nodeCard(pageNode)
             else {
-              nodeCard(pageNode)
+              val editable = Var(false)
+              nodeCardEditable(state, pageNode, editable).apply(onClick.stopPropagation(true) --> editable)
               // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
               //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
               // )
@@ -70,7 +70,7 @@ object PageHeader {
           val node =
             if(!canWrite) renderNodeData(pageNode.data, maxLength)
             else {
-              editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
+              editableNodeOnClick(state, pageNode, maxLength)(ctx)(
                 onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
               )
             }
