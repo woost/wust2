@@ -637,7 +637,7 @@ object PageHeader {
       ))
 
     val deleteItem =
-      (!channelIsContent && canWrite).ifTrue[VDomModifier](div(
+      (channelIsContent && canWrite).ifTrue[VDomModifier](div(
         cls := "item",
         Elements.icon(Icons.delete)(marginRight := "5px"),
         span(cls := "text", "Archive", cursor.pointer),
