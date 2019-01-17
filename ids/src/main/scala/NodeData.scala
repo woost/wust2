@@ -52,7 +52,7 @@ object NodeData {
 
   case class Date(content: EpochMilli) extends Named with Content {
     def plainStr = content.toString
-    def str = content.humanReadable
+    def str = content.isoDate
     def update(value: EpochMilli) = if(content != value) Some(copy(content = value)) else None
   }
   object Date extends Named

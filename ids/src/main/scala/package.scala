@@ -49,6 +49,16 @@ package object ids {
         val second = d.getSeconds
         f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d:$second%02d"
       }
+      def isoDate: String = {
+        // java.util.Date is deprecated, but implemented in java and scalajs
+        // and therefore a simple cross-compiling solution
+        import java.util.Date
+        val d = new Date(t)
+        val year = d.getYear + 1900
+        val month = d.getMonth + 1
+        val day = d.getDate
+        f"$year%04d-$month%02d-$day%02d"
+      }
     }
 
     // https://www.postgresql.org/docs/9.1/static/datatype-datetime.html
