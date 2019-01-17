@@ -106,7 +106,7 @@ class DragOverEvent(data: js.Object) extends DragEvent(data) {
 @js.native
 @JSImport("@shopify/draggable", "DragOverContainerEvent")
 class DragOverContainerEvent(data: js.Object) extends DragEvent(data) {
-  def overContainer: html.Element = js.native
+  def overContainer: js.UndefOr[html.Element] = js.native
 }
 
 @js.native
@@ -165,7 +165,7 @@ class SortableSortEvent(data: js.Object) extends SortableEvent(data) {
   override def dragEvent:DragOverEvent = js.native
   def currentIndex:Int = js.native
   def over:html.Element = js.native
-  def overContainer:html.Element = js.native
+  def overContainer:js.UndefOr[html.Element] = js.native
 }
 
 @js.native

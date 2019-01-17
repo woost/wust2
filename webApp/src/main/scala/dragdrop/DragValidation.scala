@@ -27,11 +27,11 @@ object DragValidation {
 
   def extractSortInformation(e:SortableEvent, lastDragOverContainerEvent: DragOverContainerEvent):(js.UndefOr[DragContainer], js.UndefOr[DragPayload], js.UndefOr[DragContainer]) = {
     val overContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].overContainer.asInstanceOf[js.UndefOr[dom.html.Element]] // https://github.com/Shopify/draggable/issues/256
-    val overContainer = overContainerWorkaround.getOrElse(lastDragOverContainerEvent.overContainer)
+    val overContainer = overContainerWorkaround.orElse(lastDragOverContainerEvent.overContainer)
     val sourceContainerWorkaround = e.dragEvent.asInstanceOf[js.Dynamic].sourceContainer.asInstanceOf[dom.html.Element] // TODO: report as feature request
     val payloadOpt = readDragPayload(e.dragEvent.source)
     // containers are written by registerDragContainer
-    val targetContainerOpt = readDragContainer(overContainer)
+    val targetContainerOpt = overContainer.flatMap(readDragContainer)
     val sourceContainerOpt = readDragContainer(sourceContainerWorkaround)
     (sourceContainerOpt, payloadOpt, targetContainerOpt)
   }
