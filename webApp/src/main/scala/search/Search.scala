@@ -72,10 +72,9 @@ object Search {
     boundary: Double,
   ): List[(Node, Double)] = {
 
-    val maxNum = math.min(nodes.length, num.getOrElse(nodes.length))
-
-
     if (nodes.isEmpty) return List.empty[(Node, Double)]
+
+    val maxNum = math.min(nodes.length, math.abs(num.getOrElse(nodes.length)))
 
     val res = nodes.flatMap { node =>
 
@@ -87,8 +86,10 @@ object Search {
       val nodeRes = if (trimmedNeedle.length == 0 || nodeStr.length == 0) None
                 else if (trimmedNeedle == nodeStr) Some(node -> 1.0)
                 else if (trimmedLoweredNeedle == nodeStrLowered) Some(node -> 0.99999)
-                else if (nodeStrLowered.contains(trimmedLoweredNeedle) || trimmedLoweredNeedle.contains(nodeStrLowered)) Some(node -> 0.99)
-                else {
+                else if (nodeStrLowered.contains(trimmedLoweredNeedle)) {
+                  val strPerc = 0.99 - 1.0 / trimmedLoweredNeedle.r.findAllMatchIn(nodeStrLowered).length * trimmedLoweredNeedle.length / nodeStrLowered.length
+                  Some(node -> strPerc)
+                } else {
                   val sim_1 = f(trimmedLoweredNeedle, nodeStrLowered)
                   if(sim_1 > boundary)
                     Some(node -> sim_1)
@@ -103,8 +104,8 @@ object Search {
     }.sortBy(_._2)
 
     num match {
-      case Some(n) => if (n > 0) res.reverse.take(n) else res.take(math.abs(n))
-      case None    => res
+      case Some(n) => if(n > 0) res.takeRight(maxNum) else res.take(maxNum)
+      case _       => res
     }
   }
 
