@@ -19,7 +19,7 @@ object PropertyView {
         val graph = state.graph()
         val parents = state.page().parentId
         val subjects = parents.flatMap(graph.nodesByIdGet)
-        val properties = graph.edges.filter(e => e.isInstanceOf[Edge.LabeledProperty] && parents.contains(e.sourceId)).map(pEdge => (pEdge.asInstanceOf[Edge.LabeledProperty].data.key, graph.nodesById(pEdge.targetId).str))
+        val properties = graph.edges.collect { case e: Edge.LabeledProperty if parents.contains(e.sourceId) => (e.data.key, graph.nodesById(e.targetId).str) }
 
         // https://fomantic-ui.com/elements/list.html#description
         val list = div(cls := "ui list")
