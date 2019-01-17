@@ -3,6 +3,7 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.graph.Edge.LabeledProperty
 import wust.graph._
 import wust.ids.{NodeData, NodeRole}
 import wust.webApp.{Icons, Permission}
@@ -43,17 +44,14 @@ object DetailView {
           val subject = graph.nodes(subjectIdx)
           val accessLevel = Permission.resolveInherited(graph, subjectId)
 
-          val tagsIdx = graph.tagParentsIdx(subjectIdx)
-          @inline def numTags = tagsIdx.length
-          val tags = tagsIdx.map(graph.nodes)
+          val tags = graph.tagParentsIdx(subjectIdx).map(graph.nodes)
+          @inline def numTags = tags.length
 
-          val propertiesIdx = graph.propertiesEdgeIdx(subjectIdx)
-          @inline def numProperties = propertiesIdx.length
-          val properties = propertiesIdx.map(eidx => graph.edges(eidx).asInstanceOf[Edge.LabeledProperty]).map(e => (e.data.key, graph.nodesById(e.targetId)))
+          val properties = graph.propertyPairIdx(subjectIdx)
+          @inline def numProperties = properties.length
 
-          val parentsIdx = graph.parentsIdx(subjectIdx)
-          @inline def numParents = parentsIdx.length
-          val parents = parentsIdx.map(graph.nodes)
+          val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
+          @inline def numParents = parents.length
 
           @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
 
@@ -85,7 +83,7 @@ object DetailView {
               content(
                 header(s"Properties ($numProperties)"),
                 description(
-                  if(properties.nonEmpty) properties.map { case (propertyKey: String, propertyValue: Node) =>
+                  if(properties.nonEmpty) properties.map { case (propertyKey: LabeledProperty, propertyValue: Node) =>
                     Components.propertyTag(state, propertyKey, propertyValue)
                   } else "-"
                 )

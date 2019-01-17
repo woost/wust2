@@ -251,7 +251,7 @@ object Components {
 
   def propertyTag(
     state: GlobalState,
-    key: String,
+    key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
@@ -260,7 +260,7 @@ object Components {
     val icon = ItemProperties.iconByNodeData(property.data)
     val contentString = VDomModifier(
       Elements.icon(icon)(marginRight := "5px"),
-      s"$key: ${property.data.str}"
+      s"${key.data.key}: ${property.data.str}"
     )
 
     span(

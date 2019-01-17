@@ -627,6 +627,24 @@ object KanbanView {
       }
     }
 
+    def cardProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+      Rx {
+        val graph = state.graph()
+        val nodeIdx = graph.idToIdx(nodeId)
+        val properties = graph.propertyPairIdx(nodeIdx)
+        VDomModifier.ifTrue(properties.nonEmpty) {
+          div(
+            margin := "5px",
+            marginTop := "0",
+            textAlign.right,
+            properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
+              Components.propertyTag(state, propertyKey, propertyValue)
+            }
+          )
+        }
+      }
+    }
+
     def subCards(graph:Graph)(implicit ctx: Ctx.Owner) = {
       div(
         boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
@@ -681,6 +699,7 @@ object KanbanView {
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
       cardTags(state, node.id),
+      cardProperties(state, node.id),
       Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
       Rx {
         val graph = state.graph()

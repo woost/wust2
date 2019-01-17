@@ -169,7 +169,7 @@ object ItemProperties {
         marginTop := "10px",
         alignItems.center,
         justifyContent.spaceBetween,
-        Components.propertyTag(state, propertyKey.data.key, propertyValue),
+        Components.propertyTag(state, propertyKey, propertyValue),
         button(
           cls := "ui tiny compact negative basic button",
           marginLeft := "10px",
