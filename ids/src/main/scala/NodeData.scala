@@ -44,11 +44,11 @@ object NodeData {
   }
   object Integer extends Named
 
-  case class Float(content: Double) extends Named with Content {
+  case class Decimal(content: Double) extends Named with Content {
     def str = content.toString
     def update(value: Double) = if(content != value) Some(copy(content = value)) else None
   }
-  object Float extends Named
+  object Decimal extends Named
 
   case class Date(content: EpochMilli) extends Named with Content {
     def plainStr = content.toString

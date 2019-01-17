@@ -255,12 +255,12 @@ object Elements {
       placeholder := "Integer Number",
     )
 
-  val floatingInputMod = VDomModifier(
+  val decimalInputMod = VDomModifier(
     tpe := "number",
     step := "any",
     min := Double.MinValue.toString,
     max := Double.MaxValue.toString,
-    placeholder := "Floating Point Number",
+    placeholder := "Decimal Number",
   )
 
   val dateInputMod = VDomModifier(

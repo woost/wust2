@@ -65,7 +65,7 @@ object Components {
     case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
     case file: NodeData.File         => s"File: ${ escapeHtml(file.key) }"
     case d: NodeData.Integer         => d.str
-    case d: NodeData.Float           => d.str
+    case d: NodeData.Decimal         => d.str
     case d: NodeData.Date            => d.str
   }
 
@@ -75,7 +75,7 @@ object Components {
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => div(trimToMaxLength(file.str, maxLength))
     case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Float           => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Decimal         => div(trimToMaxLength(d.str, maxLength))
     case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -85,7 +85,7 @@ object Components {
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
     case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Float           => div(trimToMaxLength(d.str, maxLength))
+    case d: NodeData.Decimal         => div(trimToMaxLength(d.str, maxLength))
     case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
   }
 

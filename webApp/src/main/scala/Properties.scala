@@ -29,10 +29,10 @@ object ItemProperties {
   def iconByNodeData(data: NodeData): VDomModifier = data match {
     //    case _: NodeData.Integer => Icons.propertyInt
     //    case _: NodeData.Float => Icons.propertyDec
-    case _: NodeData.Integer | _: NodeData.Float => Icons.propertyNumber
-    case _: NodeData.Date => Icons.propertyDate
-    case _: NodeData.File => Icons.files
-    case _ => Icons.propertyText
+    case _: NodeData.Integer | _: NodeData.Decimal => Icons.propertyNumber
+    case _: NodeData.Date                          => Icons.propertyDate
+    case _: NodeData.File                          => Icons.files
+    case _                                         => Icons.propertyText
   }
 
   def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
@@ -53,11 +53,11 @@ object ItemProperties {
       val inputSizeMods = VDomModifier(width := "250px", marginTop := "4px")
 
       val inputFieldMod: NodeData.Type => VDomModifier = {
-        case NodeData.Integer.tpe => Elements.integerInputMod
-        case NodeData.Float.tpe => Elements.floatingInputMod
-        case NodeData.Date.tpe => Elements.dateInputMod
+        case NodeData.Integer.tpe   => Elements.integerInputMod
+        case NodeData.Decimal.tpe   => Elements.decimalInputMod
+        case NodeData.Date.tpe      => Elements.dateInputMod
         case NodeData.PlainText.tpe => Elements.textInputMod
-        case _ =>  VDomModifier(disabled, placeholder := "Select a property type")
+        case _                      =>  VDomModifier(disabled, placeholder := "Select a property type")
       }
 
       VDomModifier(
@@ -72,7 +72,7 @@ object ItemProperties {
               disabled,
             ),
             option( value := NodeData.Integer.tpe, "Integer Number" ),
-            option( value := NodeData.Float.tpe, "Decimal Number" ),
+            option( value := NodeData.Decimal.tpe, "Decimal Number" ),
             option( value := NodeData.Date.tpe, "Date" ),
             option( value := NodeData.PlainText.tpe, "Text" ),
             onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
@@ -143,7 +143,7 @@ object ItemProperties {
       // TODO: Users and reuse
       val propertyNodeOpt: Option[Node] = propertyType match {
         case NodeData.Integer.tpe   => safeToInt(propertyValue).map(number => Node.Content(NodeData.Integer(number), NodeRole.Neutral))
-        case NodeData.Float.tpe     => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Float(number), NodeRole.Neutral))
+        case NodeData.Decimal.tpe   => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Decimal(number), NodeRole.Neutral))
         case NodeData.Date.tpe      => safeToEpoch(propertyValue).map(datum => Node.Content(NodeData.Date(datum), NodeRole.Neutral))
         case NodeData.PlainText.tpe => Some(Node.Content(NodeData.PlainText(propertyValue), NodeRole.Neutral))
         case _                      => None
