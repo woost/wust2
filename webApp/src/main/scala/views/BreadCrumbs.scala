@@ -51,7 +51,7 @@ object BreadCrumbs {
         Rx {
           val page = state.page()
           val user = state.user()
-          val graph = state.graph()
+          val graph = state.rawGraph()
           page.parentId.map { (parentId: NodeId) =>
             val parentDepths = graph.parentDepths(parentId)
             val distanceToNodes = parentDepths.toList.sortBy { case (depth, _) => -depth }
