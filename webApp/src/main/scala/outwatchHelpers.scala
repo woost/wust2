@@ -99,6 +99,16 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
 
+    def toLazyTailObservable: Observable[T] = {
+      Observable.create[T](Unbounded) { observer =>
+        implicit val ctx = Ctx.Owner.Unsafe
+
+        val obs = rx.triggerLater(observer.onNext(_))
+
+        Cancelable(() => obs.kill())
+      }
+    }
+
     def toTailObservable: Observable[T] = {
       val callNow = rx.now // now at call-time
       Observable.create[T](Unbounded) { observer =>
