@@ -93,7 +93,7 @@ object PageHeader {
     div(
       paddingTop := "5px",
       paddingLeft := "5px",
-      paddingRight := "15px",
+      paddingRight := "10px",
       backgroundColor := BaseColors.pageBg.copy(h = hue(pageNode.id)).toHex,
 
       Styles.flex,
@@ -113,7 +113,7 @@ object PageHeader {
         permissionIndicator,
         paddingBottom := "5px",
       ),
-      menu(state, pageNode).apply(alignSelf.flexEnd),
+      menu(state, pageNode).apply(alignSelf.flexEnd, marginLeft.auto),
     )
   }
 
@@ -155,7 +155,7 @@ object PageHeader {
       }),
       viewSwitcher(state).apply(alignSelf.flexEnd),
       Rx {
-        settingsMenu(state, channel, isBookmarked()).apply(buttonStyle)
+        settingsMenu(state, channel, isBookmarked()).apply(buttonStyle, marginLeft := "15px")
       },
     )
   }
