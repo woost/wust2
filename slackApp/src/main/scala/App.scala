@@ -172,7 +172,7 @@ object AppServer {
         true <- wustReceiver.client.api.addMember(workspaceNodeId, authData.wustAuthData.user.id, AccessLevel.ReadWrite)
         true <- wustReceiver.push(
           List(
-            GraphChanges.connect(Edge.Pinned)(authData.wustAuthData.user.id, workspaceNodeId)
+            GraphChanges.connect(Edge.Pinned)(workspaceNodeId, authData.wustAuthData.user.id)
           ),
           Some(WustUserData(authData.wustAuthData.user.id, authData.wustAuthData.token))
         ).map(_.isRight)
@@ -277,7 +277,7 @@ class WustReceiver(val client: WustClient[Future])(implicit ec: ExecutionContext
   def push(graphChanges: List[GraphChanges], auth: Option[WustUserData]): Result[List[GraphChanges]] = {
     scribe.info(s"pushing new graph change: $graphChanges")
     val enrichedWithAppMembership = graphChanges.map { gc =>
-      val appMemberEdges: GraphChanges = GraphChanges.connect((u: UserId, n: NodeId) => Edge.Member(u, EdgeData.Member(AccessLevel.ReadWrite), n))(Constants.wustUser.id, gc.addNodes.map(_.id))
+      val appMemberEdges: GraphChanges = GraphChanges.connect((u: UserId, n: NodeId) => Edge.Member(nodeId = n, EdgeData.Member(AccessLevel.ReadWrite), userId = u))(Constants.wustUser.id, gc.addNodes.map(_.id))
       gc.merge(appMemberEdges)
     }
 

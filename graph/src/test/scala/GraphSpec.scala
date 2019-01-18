@@ -3,6 +3,7 @@ package wust.graph
 import org.scalatest._
 import wust.ids._
 import wust.util.collection._
+import wust.graph.EdgeComponents._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))
@@ -18,8 +19,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
   implicit class ContainmentBuilder(parentId: Int) {
     def cont(childId: Int) = Containment(parentId, childId);
   }
-  def Connection(sourceId: NodeId, targetId: NodeId) = wust.graph.Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty("connector"), targetId)
-  def Containment(parentId: NodeId, childId: NodeId) = wust.graph.Edge.Parent(childId, parentId)
+  def Connection(sourceId: NodeId, targetId: NodeId) = wust.graph.Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty("connector"), PropertyId(targetId))
+  def Containment(parentId: NodeId, childId: NodeId) = wust.graph.Edge.Child(ParentId(parentId), ChildId(childId))
 
   def removeEdges(graph:Graph, es: Iterable[Edge]): Graph = new Graph(nodes = graph.nodes, edges = graph.edges.filterNot(es.toSet))
   def removeNodes(graph:Graph, nids: Iterable[NodeId]): Graph = graph.filterNotIds(nids.toSet)
@@ -115,26 +116,26 @@ class GraphSpec extends FreeSpec with MustMatchers {
       "replace parent edge in graph" in {
         val graph = Graph(
           nodes = List(1, 2),
-          edges = Set(Edge.Parent(2: NodeId, new EdgeData.Parent(deletedAt = None, ordering = Some(BigDecimal(5.0))), 1: NodeId))
+          edges = Set(Edge.Child(ParentId(1: NodeId), new EdgeData.Child(deletedAt = None, ordering = Some(BigDecimal(5.0))), ChildId(2: NodeId)))
         )
 
         graph.parents(1: NodeId) mustEqual Set.empty
         graph.parents(2: NodeId) mustEqual Set[NodeId](1)
-        assert(graph.edges.head.asInstanceOf[Edge.Parent].data.ordering.contains(BigDecimal(5.0)))
+        assert(graph.edges.head.asInstanceOf[Edge.Child].data.ordering.contains(BigDecimal(5.0)))
 
-        val newParent: List[Edge] = List(Edge.Parent(NodeId(Cuid(2, 0)): NodeId, EdgeData.Parent(deletedAt = None, ordering = Some(BigDecimal(7.0))), NodeId(Cuid(1, 0)): NodeId))
+        val newParent: List[Edge] = List(Edge.Child(ParentId(NodeId(Cuid(1, 0)): NodeId), EdgeData.Child(deletedAt = None, ordering = Some(BigDecimal(7.0))), ChildId(NodeId(Cuid(2, 0)): NodeId)))
         val gc: GraphChanges = GraphChanges.from(addEdges = newParent)
         val newGraph: Graph = graph.applyChanges(gc)
 
-        assert(newGraph.edges.head.asInstanceOf[Edge.Parent].data.ordering.contains(BigDecimal(7.0)))
+        assert(newGraph.edges.head.asInstanceOf[Edge.Child].data.ordering.contains(BigDecimal(7.0)))
       }
 
       "replace parent edge in graph multiple parents" in {
         val graph = Graph(
           nodes = List(1, 2, 3),
           edges = Set(
-            Edge.Parent(2: NodeId, EdgeData.Parent(deletedAt = None, ordering = Some(BigDecimal(5.0))), 1: NodeId),
-            Edge.Parent(3: NodeId, EdgeData.Parent(deletedAt = None, ordering = Some(BigDecimal(4.0))), 1: NodeId)
+            Edge.Child(ParentId(1: NodeId), EdgeData.Child(deletedAt = None, ordering = Some(BigDecimal(5.0))), ChildId(2: NodeId)),
+            Edge.Child(ParentId(1: NodeId), EdgeData.Child(deletedAt = None, ordering = Some(BigDecimal(4.0))), ChildId(3: NodeId))
           )
         )
 
@@ -142,13 +143,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
         graph.parents(2: NodeId) mustEqual Set[NodeId](1)
         graph.parents(3: NodeId) mustEqual Set[NodeId](1)
 
-        assert(graph.edges.find(e => e.sourceId == (2: NodeId) && e.targetId == (1: NodeId)).exists(_.asInstanceOf[Edge.Parent].data.ordering.contains(BigDecimal(5.0))))
-        assert(graph.edges.find(e => e.sourceId == (3: NodeId) && e.targetId == (1: NodeId)).exists(_.asInstanceOf[Edge.Parent].data.ordering.contains(BigDecimal(4.0))))
+        assert(graph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering.contains(BigDecimal(5.0))))
+        assert(graph.edges.find(e => e.targetId == (3: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering.contains(BigDecimal(4.0))))
 
-        val newParent = Edge.Parent(2: NodeId, EdgeData.Parent(deletedAt = None, ordering = Some(BigDecimal(7.0))), 1: NodeId)
+        val newParent = Edge.Child(ParentId(1: NodeId), EdgeData.Child(deletedAt = None, ordering = Some(BigDecimal(7.0))), ChildId(2: NodeId))
         val newGraph = graph.applyChanges(GraphChanges(addEdges = Set(newParent)))
 
-        assert(newGraph.edges.find(e => e.sourceId == (2: NodeId) && e.targetId == (1: NodeId)).exists(_.asInstanceOf[Edge.Parent].data.ordering.contains(BigDecimal(7.0))))
+        assert(newGraph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering.contains(BigDecimal(7.0))))
       }
 
     }
@@ -160,8 +161,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       import wust.ids.NodeAccess.{Level, Inherited}
       import wust.ids.AccessLevel._
       def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeRole.default, NodeMeta(nodeAccess))
-      def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(UserId(NodeId(user)), EdgeData.Member(level), NodeId(node))
-      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(NodeId(node), EdgeData.Member(level), UserId(NodeId(user)))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
       def access(g:Graph, user:Cuid, node:Cuid):Boolean = g.can_access_node(UserId(NodeId(user)), NodeId(node))
 
       "simple" - {
@@ -401,7 +402,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
     "root nodes" - {
       implicit def node(id: String): Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
 
-      def parent(childId: Cuid, parentId: Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def parent(childId: Cuid, parentId: Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
 
       "empty" in {
         val g = Graph.empty
@@ -469,7 +470,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
     "redundant tree - including cycle leafs" - {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
-      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
       def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = false)
 
       "root only" in {
@@ -542,7 +543,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
     "redundant tree - excluding cycle leafs" - {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
-      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
       def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = true)
 
       "root only" in {
@@ -589,8 +590,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def user(id:String):Node = Node.User(UserId(NodeId(stringToCuid(id))), NodeData.User("hans", false, 0), NodeMeta.User)
-      def parent(childId:Cuid, parentId:Cuid) = Edge.Parent(NodeId(childId), NodeId(parentId))
-      def pinned(userId:Cuid, nodeId:Cuid) = Edge.Pinned(UserId(NodeId(userId)), NodeId(nodeId))
+      def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
+      def pinned(userId:Cuid, nodeId:Cuid) = Edge.Pinned(NodeId(nodeId), UserId(NodeId(userId)))
 
       "empty" in {
         val g = Graph(

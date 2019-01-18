@@ -137,7 +137,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
               // make him a member of this node and create an invite edge
               val invitedUserId = UserId.fresh
               val invitedName = inviteTargetMail.split("@").head
-              val invitedEdges = List(Edge.Member(invitedUserId, EdgeData.Member(AccessLevel.ReadWrite), node.id), Edge.Invite(invitedUserId, node.id))
+              val invitedEdges = List(Edge.Member(nodeId = node.id, EdgeData.Member(AccessLevel.ReadWrite), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
               db.ctx.transaction { implicit ec =>
                 for {
                   invitedUser <- db.user.createImplicitUser(invitedUserId, invitedName)

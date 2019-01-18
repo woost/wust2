@@ -8,13 +8,13 @@ import wust.api._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.util.time.StopWatch
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
+import wust.graph.EdgeComponents._
 
 import scala.collection.mutable
 import scala.concurrent.duration.{span => _}
-import wust.util.time.{StopWatch, time}
-
 object DevView {
 
   def benchGraphLookup(state:GlobalState, n:Int) = {
@@ -151,7 +151,7 @@ object DevView {
         Rx {
           val posts = state.graph().nodeIds.toArray
           def randomConnection =
-            Edge.LabeledProperty(posts(rInt(posts.length)), EdgeData.LabeledProperty(rWord), posts(rInt(posts.length)))
+            Edge.LabeledProperty(posts(rInt(posts.length)), EdgeData.LabeledProperty(rWord), PropertyId(posts(rInt(posts.length))))
 
           def connect(_count: Int): Unit = {
             if (posts.length > 1) {
@@ -174,7 +174,7 @@ object DevView {
         },
         Rx {
           val posts = state.graph().nodeIds.toArray
-          def randomConnection = Edge.Parent(posts(rInt(posts.length)), posts(rInt(posts.length)))
+          def randomConnection = Edge.Child(ParentId(posts(rInt(posts.length))), ChildId(posts(rInt(posts.length))))
 
           def contain(count: Int): Unit = {
             state.eventProcessor.changes

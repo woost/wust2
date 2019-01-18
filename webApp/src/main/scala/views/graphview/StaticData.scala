@@ -12,6 +12,7 @@ import wust.graph.{Node, _}
 import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
+import wust.graph.EdgeComponents._
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer
@@ -199,8 +200,8 @@ object StaticData {
 
       i = 0
       while (i < containmentCount) {
-        val child = nodeIdToIndex(containments(i).sourceId)
-        val parent = nodeIdToIndex(containments(i).targetId)
+        val child = nodeIdToIndex(containments(i).targetId)
+        val parent = nodeIdToIndex(containments(i).sourceId)
         staticData.containmentChild(i) = child
         staticData.containmentParent(i) = parent
         staticData.containmentTest.set(child, parent)

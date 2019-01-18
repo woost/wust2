@@ -102,7 +102,7 @@ object SelectedPostMenu {
 
         val changes = GraphChanges(
           addNodes = Set(newNode),
-          addEdges = Set(Edge.Parent(newNode.id, rxPost.now.id))
+          addEdges = Set(Edge.Child(ParentId(rxPost.now.id), ChildId(newNode.id)))
         )
         state.eventProcessor.changes.onNext(changes)
       },
@@ -113,7 +113,7 @@ object SelectedPostMenu {
           addNodes = Set(newNode),
           addEdges = state.graph.now
             .parents(rxPost.now.id)
-            .map(parentId => Edge.Parent(newNode.id, parentId))
+            .map(parentId => Edge.Child(ParentId(parentId), ChildId(newNode.id)))
         )
         state.eventProcessor.changes.onNext(changes)
       },

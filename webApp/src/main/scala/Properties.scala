@@ -158,7 +158,7 @@ object ItemProperties {
       }
 
       propertyNodeOpt.foreach { propertyNode =>
-        val propertyEdge = Edge.LabeledProperty (nodeId, EdgeData.LabeledProperty (propertyKey), propertyNode.id)
+        val propertyEdge = Edge.LabeledProperty (nodeId, EdgeData.LabeledProperty (propertyKey), PropertyId(propertyNode.id))
         val gc = GraphChanges (addNodes = Set (propertyNode), addEdges = Set (propertyEdge) )
 
         state.eventProcessor.changes.onNext (gc) foreach { _ => clear.onNext (()) }
@@ -166,10 +166,10 @@ object ItemProperties {
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
-      Styles.flex,
-      alignItems.center,
+        Styles.flex,
+        alignItems.center,
       Components.removablePropertyTag(state, propertyKey, propertyValue),
-    )
+        )
 
     contents(
       cursor.pointer,

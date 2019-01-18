@@ -185,9 +185,9 @@ object GraphOperation {
       pageId.fold(graph) { _ =>
         val tagIdx = graph.idToIdx(tagId)
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.sourceId).role) =>
-            if(graph.tagParentsIdx.contains(graph.idToIdx(e.sourceId))(tagIdx)) true else false
-          case _              => true
+          case e: Edge.Child if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.childId).role) =>
+            if(graph.tagParentsIdx.contains(graph.idToIdx(e.childId))(tagIdx)) true else false
+          case _                                                                                                                   => true
         }
         graph.copy(edges = newEdges)
       }
@@ -198,8 +198,8 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if e.targetId == pid => graph.isInDeletedGracePeriod(e.sourceId, pid)
-          case _              => true
+          case e: Edge.Child if e.parentId == pid => graph.isInDeletedGracePeriod(e.childId, pid)
+          case _                                     => true
         }
         graph.copy(edges = newEdges)
       }
@@ -211,8 +211,8 @@ object GraphOperation {
       pageId.fold(graph) { pid =>
         val pageIdx = graph.idToIdx(pid)
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if e.targetId == pid => graph.isDeletedNow(e.sourceId, pid) || graph.isInDeletedGracePeriod(e.sourceId, pid)
-          case _              => true
+          case e: Edge.Child if e.parentId == pid => graph.isDeletedNow(e.childId, pid) || graph.isInDeletedGracePeriod(e.childId, pid)
+          case _                                     => true
         }
         graph.copy(edges = newEdges)
       }
@@ -223,8 +223,8 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid)
-          case _              => true
+          case e: Edge.Child if e.parentId == pid => !graph.isDeletedNow(e.childId, pid)
+          case _                                  => true
         }
         graph.copy(edges = newEdges)
       }
@@ -235,8 +235,8 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       pageId.fold(graph) { pid =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid) || graph.isInDeletedGracePeriod(e.sourceId, pid)
-          case _              => true
+          case e: Edge.Child if e.parentId == pid => !graph.isDeletedNow(e.childId, pid) || graph.isInDeletedGracePeriod(e.childId, pid)
+          case _                                     => true
         }
         graph.copy(edges = newEdges)
       }
@@ -247,7 +247,7 @@ object GraphOperation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val templateNodeIds: Set[NodeId] = graph.edges.collect { case e: Edge.Automated => e.templateNodeId }(breakOut)
       val newEdges = graph.edges.filter {
-        case e: Edge.Parent if templateNodeIds.contains(e.sourceId) => false
+        case e: Edge.Child if templateNodeIds.contains(e.childId) => false
         case _              => true
       }
       graph.copy(edges = newEdges)
@@ -257,11 +257,11 @@ object GraphOperation {
   case object OnlyAssignedTo extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
-        case e: Edge.Assigned if e.sourceId == userId => e.targetId
+        case e: Edge.Assigned if e.userId == userId => e.nodeId
       }
       val newEdges = graph.edges.filter {
-        case e: Edge.Parent if graph.nodesById(e.sourceId).role == NodeRole.Task => assignedNodeIds.contains(e.sourceId)
-        case _              => true
+        case e: Edge.Child if graph.nodesById(e.childId).role == NodeRole.Task => assignedNodeIds.contains(e.childId)
+        case _                                                                    => true
       }
       graph.copy(edges = newEdges)
     }
@@ -270,11 +270,11 @@ object GraphOperation {
   case object OnlyNotAssigned extends UserViewGraphTransformation {
     def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
-        case e: Edge.Assigned => e.targetId
+        case e: Edge.Assigned => e.nodeId
       }
       val newEdges = graph.edges.filterNot {
-        case e: Edge.Parent => assignedNodeIds.contains(e.sourceId)
-        case _              => false
+        case e: Edge.Child => assignedNodeIds.contains(e.childId)
+        case _             => false
       }
       graph.copy(edges = newEdges)
     }

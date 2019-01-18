@@ -97,9 +97,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         for {
           membershipConnection <- query[MemberEdge].filter(c =>
             //TODO call-site inline to have constant string instead of param for member.tpe
-            c.targetId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe)
+            c.sourceId == lift(nodeId) && c.data.jsonType == lift(EdgeData.Member.tpe)
           )
-          userNode <- queryUser.filter(_.id == membershipConnection.sourceId)
+          userNode <- queryUser.filter(_.id == membershipConnection.targetId)
         } yield userNode
       }
     }
@@ -109,9 +109,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val insertMembership = quote { nodeId: NodeId =>
         infix"""
           insert into edge(sourceid, data, targetid) values
-          (${lift(userId)}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${nodeId})
+          (${nodeId}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${lift(userId)})
           ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
-        """.as[Insert[Edge]].returning(_.targetId)
+        """.as[Insert[Edge]].returning(_.sourceId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_))).map { x =>
         //FIXME doesn't this always return nodeIds?
@@ -121,7 +121,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def removeMember(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
-      ctx.run(query[Edge].filter(e => e.sourceId == lift(userId) && e.targetId == lift(nodeId) && e.data.jsonType == lift(EdgeData.Member.tpe)).delete).flatMap { touched =>
+      ctx.run(query[Edge].filter(e => e.sourceId == lift(nodeId) && e.targetId == lift(userId) && e.data.jsonType == lift(EdgeData.Member.tpe)).delete).flatMap { touched =>
         checkUnexpected(touched <= 1, success = touched == 1, s"Unexpected number of edge deletes: $touched <= 1")
       }
     }
@@ -247,7 +247,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       for {
         user <- query[Node].filter(_.id == lift(userId))
         membershipConnection <- query[Edge].filter(c =>
-          c.sourceId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe)
+          c.targetId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe)
         )
       } yield membershipConnection
     }
@@ -255,7 +255,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def allNodesQuery(userId: UserId): Quoted[Query[Node]] = quote {
       for {
         c <- allMembershipConnections(userId)
-        p <- query[Node].join(p => p.id == c.targetId)
+        p <- query[Node].join(p => p.id == c.sourceId)
       } yield p
     }
 

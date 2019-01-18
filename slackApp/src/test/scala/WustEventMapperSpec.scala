@@ -7,6 +7,7 @@ import wust.graph.{Edge, GraphChanges, Node, NodeMeta}
 import wust.ids._
 import wust.sdk.WustClient
 import wust.slack.Data._
+import wust.graph.EdgeComponents._
 
 import scala.concurrent.Future
 
@@ -109,15 +110,15 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         )
       ),
       addEdges = Set(
-        Edge.Parent(
-          TestConstants.messageNodeId,
-          EdgeData.Parent(None, None),
-          TestConstants.channelNodeId
+        Edge.Child(
+          ParentId(TestConstants.channelNodeId),
+          EdgeData.Child(None, None),
+          ChildId(TestConstants.messageNodeId),
         ),
         Edge.Author(
-          TestConstants.userId,
+          TestConstants.messageNodeId,
           EdgeData.Author(EpochMilli.now),
-          TestConstants.messageNodeId
+          TestConstants.userId,
         ),
       ),
       delEdges = Set.empty[Edge]
@@ -151,15 +152,15 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         )
       ),
       addEdges = Set(
-        Edge.Parent(
-          TestConstants.channelNodeId,
-          EdgeData.Parent(None, None),
-          TestConstants.workspaceId,
+        Edge.Child(
+          ParentId(TestConstants.workspaceId),
+          EdgeData.Child(None, None),
+          ChildId(TestConstants.channelNodeId),
         ),
         Edge.Author(
-          TestConstants.userId,
-          EdgeData.Author(EpochMilli.now),
           TestConstants.channelNodeId,
+          EdgeData.Author(EpochMilli.now),
+          TestConstants.userId,
         )
       ),
       delEdges = Set.empty[Edge]
@@ -186,10 +187,10 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val deleteMessage = GraphChanges(
       addNodes = Set.empty[Node],
       addEdges = Set(
-        Edge.Parent(
-          TestConstants.messageNodeId,
-          EdgeData.Parent(Some(EpochMilli.now), None),
-          TestConstants.channelNodeId,
+        Edge.Child(
+          ParentId(TestConstants.channelNodeId),
+          EdgeData.Child(Some(EpochMilli.now), None),
+          ChildId(TestConstants.messageNodeId),
         ),
       ),
       delEdges = Set.empty[Edge]
@@ -216,10 +217,10 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val deleteChannel = GraphChanges(
       addNodes = Set.empty[Node],
       addEdges = Set(
-        Edge.Parent(
-          TestConstants.channelNodeId,
-          EdgeData.Parent(Some(EpochMilli.now), None),
-          TestConstants.workspaceId,
+        Edge.Child(
+          ParentId(TestConstants.workspaceId),
+          EdgeData.Child(Some(EpochMilli.now), None),
+          ChildId(TestConstants.channelNodeId),
         ),
       ),
       delEdges = Set.empty[Edge]
@@ -254,9 +255,9 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       ),
       addEdges = Set(
         Edge.Author(
-          TestConstants.userId,
+          TestConstants.messageNodeId,
           EdgeData.Author(EpochMilli.now),
-          TestConstants.messageNodeId
+          TestConstants.userId,
         ),
       ),
       delEdges = Set.empty[Edge]
@@ -291,9 +292,9 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
       ),
       addEdges = Set(
         Edge.Author(
-          TestConstants.userId,
-          EdgeData.Author(EpochMilli.now),
           TestConstants.channelNodeId,
+          EdgeData.Author(EpochMilli.now),
+          TestConstants.userId,
         ),
       ),
       delEdges = Set.empty[Edge]
@@ -327,10 +328,10 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
         )
       ),
       addEdges = Set(
-        Edge.Parent(
-          NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25"),
-          EdgeData.Parent(None, None),
-          NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK")
+        Edge.Child(
+          ParentId(NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK")),
+          EdgeData.Child(None, None),
+          ChildId(NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25")),
         ),
       )
     )

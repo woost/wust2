@@ -75,11 +75,11 @@ object PageSettingsMenu {
           if (isBookmarked()) VDomModifier(
             Elements.icon(Icons.signOut),
             span("Unpin from sidebar"),
-            onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channelId)) --> state.eventProcessor.changes
+            onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id)) --> state.eventProcessor.changes
           ) else VDomModifier(
             Elements.icon(Icons.pin),
             span("Pin to sidebar"),
-            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, channelId), Edge.Notify(channelId, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, channelId)))) --> state.eventProcessor.changes
+            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Set(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
           )
         ))
       }
@@ -94,7 +94,7 @@ object PageSettingsMenu {
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
                 GraphChanges.delete(channelId, state.graph.now.parents(channelId).toSet)
-                  .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channelId))
+                  .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
               )
               UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }'", click = () => state.urlConfig.update(_.focus(Page(channelId))), level = UI.ToastLevel.Success)
             }
@@ -326,7 +326,7 @@ object PageSettingsMenu {
     val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
 
     def addUserMember(userId: UserId): Unit = {
-      val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(userId, node.id)))
+      val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(node.id, userId)))
       state.eventProcessor.changes.onNext(change)
       Client.api.addMember(node.id, userId, AccessLevel.ReadWrite).onComplete {
         case Success(b) =>
@@ -511,7 +511,7 @@ object PageSettingsMenu {
         button(
           cls := "ui compact primary button",
           if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-          onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(state.user.now.id, channel.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(state.user.now.id, channel.id)))) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channel.id, state.user.now.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(channel.id, state.user.now.id)))) --> state.eventProcessor.changes,
           onClick foreach { Analytics.sendEvent("pageheader", "join") }
         )
       )

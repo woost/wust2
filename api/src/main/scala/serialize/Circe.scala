@@ -4,6 +4,7 @@ import wust.api._
 import wust.ids._
 import wust.graph._
 import io.circe._, io.circe.generic.extras.semiauto._
+import wust.graph.EdgeComponents._
 
 object Circe extends wust.ids.serialize.Circe {
 
@@ -12,8 +13,8 @@ object Circe extends wust.ids.serialize.Circe {
   implicit val nodeMetaEncoder: Encoder[NodeMeta] = deriveEncoder[NodeMeta]
   implicit val PostDecoder: Decoder[Node] = deriveDecoder[Node]
   implicit val PostEncoder: Encoder[Node] = deriveEncoder[Node]
-  implicit val ConnectionDecoder1: Decoder[Edge.Parent] = deriveDecoder[Edge.Parent]
-  implicit val ConnectionEncoder1: Encoder[Edge.Parent] = deriveEncoder[Edge.Parent]
+  implicit val ConnectionDecoder1: Decoder[Edge.Child] = deriveDecoder[Edge.Child]
+  implicit val ConnectionEncoder1: Encoder[Edge.Child] = deriveEncoder[Edge.Child]
   implicit val ConnectionDecoder3: Decoder[Edge.Member] = deriveDecoder[Edge.Member]
   implicit val ConnectionEncoder3: Encoder[Edge.Member] = deriveEncoder[Edge.Member]
   implicit val ConnectionDecoder4: Decoder[Edge.Author] = deriveDecoder[Edge.Author]

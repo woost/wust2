@@ -66,7 +66,7 @@ class WustReceiver(client: WustClient[Future])(implicit ec: ExecutionContext) ex
     println(s"new message: ${msg.content}")
     // TODO: author
     val post = Node.MarkdownMessage(msg.content)
-    val connection = Edge.Parent(post.id, Constants.gitterId)
+    val connection = Edge.Child(ParentId(Constants.gitterId), ChildId(post.id))
 
     val changes = List(GraphChanges(addNodes = Set(post), addEdges = Set(connection)))
     client.api.changeGraph(changes).map { success =>

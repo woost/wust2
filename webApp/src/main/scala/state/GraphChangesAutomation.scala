@@ -6,8 +6,9 @@ import akka.stream.scaladsl.Source
 import flatland.{ArraySet, ArrayStackInt}
 import monix.reactive.Observable
 import rx.Var
+import wust.graph.EdgeComponents.Edge
 import wust.graph._
-import wust.ids.{EdgeData, EpochMilli, NodeId}
+import wust.ids.{EdgeData, EpochMilli, NodeId, TemplateId}
 import wust.util.macros.InlineList
 import wust.util.{StringOps, algorithm}
 import wust.webApp.views.UI
@@ -66,7 +67,7 @@ object GraphChangesAutomation {
             case None =>
               val copyNode = node.copy(id = NodeId.fresh)
               addNodes += copyNode
-              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), node.id)
+              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id))
               replacedNodes += node.id -> copyNode
           }
         case _ => ()
@@ -104,7 +105,7 @@ object GraphChangesAutomation {
 
     changes.addEdges.foreach {
 
-      case parent: Edge.Parent if parent.data.deletedAt.isEmpty && !graph.parents(parent.childId).contains(parent.parentId) => // a new, undeleted parent edge
+      case parent: Edge.Child if parent.data.deletedAt.isEmpty && !graph.parents(parent.childId).contains(parent.parentId) => // a new, undeleted parent edge
         scribe.info(s"Inspecting parent edge '$parent' for automation")
         val parentIdx = graph.idToIdx(parent.parentId)
         if (parentIdx < 0) addEdges += parent

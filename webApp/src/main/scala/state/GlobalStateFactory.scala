@@ -101,7 +101,7 @@ object GlobalStateFactory {
           def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
           def pageIsInvited = graph.inviteNodeIdx.contains(userIdx)(pageIdx)
           def pageIsUnderUser: Boolean = algorithm.depthFirstSearchExists(start = pageIdx, graph.notDeletedParentsIdx, userIdx)
-          def userIsMemberOfPage: Boolean = graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.a(edgeIdx) == userIdx)
+          def userIsMemberOfPage: Boolean = graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx)
 
           if(!userIsMemberOfPage) {
             Client.api.addMember(parentId, user.id, AccessLevel.ReadWrite)
@@ -109,8 +109,8 @@ object GlobalStateFactory {
 
           if(!anyPageParentIsPinned && !pageIsUnderUser && !pageIsInvited) {
             val changes = GraphChanges.connect(Edge.Notify)(parentId, user.id)
-             .merge(GraphChanges.connect(Edge.Pinned)(user.id, parentId))
-             .merge(GraphChanges.disconnect(Edge.Invite)(user.id, parentId))
+             .merge(GraphChanges.connect(Edge.Pinned)(parentId, user.id))
+             .merge(GraphChanges.disconnect(Edge.Invite)(parentId, user.id))
 
             eventProcessor.changes.onNext(changes)
 

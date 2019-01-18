@@ -5,6 +5,7 @@ import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import wust.graph.EdgeComponents._
 
 object GitterImporter {
   import scala.collection.JavaConverters._
@@ -29,7 +30,7 @@ object GitterImporter {
 
     // TODO: author: tempUserId
     val discussion = Node.Content(NodeData.PlainText(_uri), NodeRole.Message)
-    val discussionTag = Edge.Parent(discussion.id, _gitter.id)
+    val discussionTag = Edge.Child(ParentId(_gitter.id), ChildId(discussion.id))
     val postsAndConnection = for {
       roomId <- Future { client.getRoomIdByUri(_uri).id }
       roomMessages <- Future { client.getRoomMessages(roomId).asScala.toList }
@@ -38,7 +39,7 @@ object GitterImporter {
         //TODO what about this userid?
         //TODO: author: tempUserId
         val post: Node = Node.Content(NodeData.Markdown(message.text), NodeRole.Message)
-        val conn: Edge = Edge.Parent(post.id, discussion.id)
+        val conn: Edge = Edge.Child(ParentId(discussion.id), ChildId(post.id))
         (Set(post), Set(conn))
       }.toSet
     }

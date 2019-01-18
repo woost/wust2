@@ -16,6 +16,7 @@ import wust.webApp.{ BrowserDetect, DevOnly }
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
+import wust.ids._
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -37,13 +38,13 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          val unstageChanges: GraphChanges = if (from.parentId != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.parentId) else GraphChanges.empty
+          val unstageChanges: GraphChanges = if (from.parentId != into.parentId) GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId)) else GraphChanges.empty
           unstageChanges merge sortChanges
 
       case (from: Kanban.Column, payload: DragItem.Task, into: Kanban.Column, false, false) =>
         (sortableStopEvent, graph, userId) =>
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          val unstageChanges: GraphChanges = if (from.parentId != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.parentId) else GraphChanges.empty
+          val unstageChanges: GraphChanges = if (from.parentId != into.parentId) GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId)) else GraphChanges.empty
           unstageChanges merge sortChanges
 
       case (from: Kanban.Card, payload: DragItem.Task, into: Kanban.Column, false, false) =>
@@ -51,7 +52,7 @@ object DragActions {
           // the card changes its workspace from from:Card to into:Kanban.Column.workspace
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(dragging.nodeId), stageParents, Some(into.parentId))
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          val changeWorkspace: GraphChanges = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), from.parentId :: Nil, Some(into.workspace))
+          val changeWorkspace: GraphChanges = GraphChanges.changeSource(Edge.Child)(Some(ChildId(payload.nodeId)), ParentId(from.parentId) :: Nil, Some(ParentId(into.workspace)))
           // TODO: adding stageParents to fullChange results in a graphchange where the same parentedge
           // is introduced by sortChanges, but with an ordering. Graphchanges does NOT squash the edges. This is a bug in GraphChanges.
           // val stageParents: GraphChanges = GraphChanges.connect(Edge.Parent)(dragging.nodeId, into.parentId)
@@ -69,8 +70,8 @@ object DragActions {
           // disconnect from all stage parents
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val stageParents = graph.getRoleParents(payload.nodeId, NodeRole.Stage)
-          val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, stageParents)
-          val changeWorkspace: GraphChanges = if (from.workspace != into.parentId) GraphChanges.disconnect(Edge.Parent)(payload.nodeId, from.workspace :: Nil) else GraphChanges.empty
+          val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Child)(ParentId(stageParents), ChildId(payload.nodeId))
+          val changeWorkspace: GraphChanges = if (from.workspace != into.parentId) GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace) :: Nil, ChildId(payload.nodeId)) else GraphChanges.empty
           unstageChanges merge sortChanges merge changeWorkspace
 
       case (from: Kanban.Workspace, payload: DragItem.Task, into: Kanban.Workspace, false, false) =>
@@ -78,7 +79,7 @@ object DragActions {
           // disconnect from all stage parents
           val sortChanges = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           val oldParents = graph.parents(payload.nodeId).filterNot(parentId => parentId == into.parentId || graph.nodesById(parentId).role == NodeRole.Tag)
-          val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Parent)(payload.nodeId, oldParents)
+          val unstageChanges: GraphChanges = GraphChanges.disconnect(Edge.Child)(ParentId(oldParents), ChildId(payload.nodeId))
           unstageChanges merge sortChanges
 
       //// List View ////
@@ -114,7 +115,7 @@ object DragActions {
       case (payload: Tag, target: TagBar, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: User, target: Task, false, false) => (sortableStopEvent, graph, userId) => assign(payload.userId, target.nodeId)
+      case (payload: User, target: Task, false, false) => (sortableStopEvent, graph, userId) => assign(target.nodeId, payload.userId)
     }
   }
 

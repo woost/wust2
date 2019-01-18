@@ -22,7 +22,7 @@ object EdgeData {
   case class Member(level: AccessLevel) extends Named with EdgeData
   object Member extends Named
 
-  case class Parent(deletedAt: Option[EpochMilli], ordering: Option[BigDecimal]) extends Named with EdgeData {
+  case class Child(deletedAt: Option[EpochMilli], ordering: Option[BigDecimal]) extends Named with EdgeData {
     override def toString: String = s"Parent(${
       List(
         deletedAt.map(deletedAt => s"deletedAt=${deletedAt.humanReadable}"),
@@ -30,20 +30,11 @@ object EdgeData {
       ).flatten.mkString(", ")
     })"
   }
-  object Parent extends Parent(None, None) {
-    def apply(timestamp: EpochMilli): Parent = Parent(Some(timestamp), None)
-    def apply(ordering: BigDecimal): Parent = Parent(None, Some(ordering))
-    def apply(timestamp: EpochMilli, ordering: BigDecimal): Parent = Parent(Some(timestamp), Some(ordering))
+  object Child extends Child(None, None) {
+    def apply(timestamp: EpochMilli): Child = Child(Some(timestamp), None)
+    def apply(ordering: BigDecimal): Child = Child(None, Some(ordering))
+    def apply(timestamp: EpochMilli, ordering: BigDecimal): Child = Child(Some(timestamp), Some(ordering))
   }
-
-  case object Notify extends Named with EdgeData
-
-  // content types
-  case object Pinned extends Named with EdgeData
-
-  case object Invite extends Named with EdgeData
-
-  case object Expanded extends Named with EdgeData
 
   case object Automated extends Named with EdgeData
   case class DerivedFromTemplate(timestamp: EpochMilli) extends Named with EdgeData
@@ -54,5 +45,10 @@ object EdgeData {
 
   case class LabeledProperty(key: String) extends Named with EdgeData with PropertyKey
   object LabeledProperty extends Named
+
+  case object Notify extends Named with EdgeData
+  case object Pinned extends Named with EdgeData
+  case object Invite extends Named with EdgeData
+  case object Expanded extends Named with EdgeData
 
 }

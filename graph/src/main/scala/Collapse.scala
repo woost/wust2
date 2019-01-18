@@ -3,6 +3,7 @@ package wust.graph
 import wust.graph.CollapsedGraph.LocalConnection
 import wust.ids._
 import wust.util.algorithm._
+import wust.graph.EdgeComponents._
 
 import scala.collection.breakOut
 
@@ -72,6 +73,7 @@ object Collapse {
         //TODO: assert(c.targetId is NodeId) => this will be different for hyperedges
         for (altSource <- alternativePosts(c.sourceId); altTarget <- alternativePosts(c.targetId))
           yield {
+            // TODO: check if source + target has to be changed after Edge.Parent refactoring
             LocalConnection(
               sourceId = altSource,
               EdgeData.LabeledProperty("redirected"),
@@ -97,7 +99,8 @@ object Collapse {
         hiddenPosts(child) ||
         (!(graph.children(parentId) contains child) && graph.involvedInContainmentCycle(child))
       }
-      visibleChildren.map(LocalConnection(_, EdgeData.Parent, parentId))
+      // TODO: check if source + target has to be changed after Edge.Parent refactoring
+      visibleChildren.map(LocalConnection(_, EdgeData.Child, parentId))
     }
   }
 
