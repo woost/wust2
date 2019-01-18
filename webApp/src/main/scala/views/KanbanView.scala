@@ -7,7 +7,7 @@ import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.sdk.BaseColors
@@ -476,46 +476,126 @@ object KanbanView {
 
     val isPlainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
 
+    /// Given a node, allow its content to overflow, even if a parent has overflow: hidden
+    /** see: https://stackoverflow.com/a/22927412
+      * How it works:
+      * Wraps the node with two divs, one with position:relative, one with position:absolute, then
+      * sets position:fixed on the passed node.
+      * Only problem: you need to set a width on the outermost div. */
+    def overrideOverflowCutoff(node : VNode, widthPx : Option[Int] = None) = {
+      div(position.relative,
+          (!widthPx.isEmpty).ifTrue[VDomModifier](width := s"${widthPx.get}px"),
+          div(position.absolute,
+              node(position.fixed)))
+    }
+
     val buttonBar = {
+      /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
+      def menuItem(shortName : String,
+                   longDesc : String,
+                   icon : fontAwesome.IconDefinition,
+                   action : VDomModifier) = {
+        def builder(compressed : Boolean = false) = div(
+          cls := "item",
+          span(cls := "icon", icon),
+          action,
+          cursor.pointer,
+          compressed.ifTrue[VDomModifier](UI.popup := longDesc),
+          (!compressed).ifTrue[VDomModifier](shortName)
+        )
+        builder _
+      }
+      val createSubtasks = menuItem(
+        "Create subtasks", "Create subtasks", Icons.tasks,
+        onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig)
+      val startConversation = menuItem("Start conversation", "Start conversation about this card", Icons.conversation,
+        onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig)
+      val archive = menuItem(
+        "Archive", "Archive", Icons.delete,
+        Rx {
+          onClick.stopPropagation foreach {
+            val graph = state.graph()
+            val nodeIdx = graph.idToIdx(node.id)
+            val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
+            val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+
+            val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
+            state.eventProcessor.changes.onNext(changes)
+            selectedNodeIds.update(_ - node.id)
+          }
+        })
+      val edit = menuItem(
+        "Edit", "Edit", Icons.edit, 
+        onClick.stopPropagation(true) --> editable
+      )
+      val expand = menuItem(
+        "Expand", "Expand", Icons.expand,
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
+      val collapse = menuItem(
+        "Collapse", "Collapse", Icons.collapse,
+        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
+      val propertiesBuilder = menuItem(
+        "Properties", "Properties", Icons.property,
+        span())
+      def properties(compressed : Boolean) = {
+        DevOnly(ItemProperties.manageProperties(
+                  state, node.id,
+                  propertiesBuilder(compressed)))
+      }
+      def toggle(compress : Boolean) = Rx {
+        if(state.graph().isExpanded(state.user.now.id, node.id))
+          collapse(compress)
+        else
+          expand(compress),
+      }
+      /// these are only visible via the more menu
+      val moreMenuItems = Seq[(Boolean) => VDomModifier](
+        createSubtasks,
+        startConversation,
+        toggle _,
+        edit,
+        archive,
+        properties
+      )
+      /// these are always visible on hover
+      val immediateMenuItems = Seq[(Boolean) => VDomModifier](
+        toggle _,
+        edit,
+        archive
+      )
+      val moreMenu = overrideOverflowCutoff(
+        div(
+          // ideally this would be always visible, but since the outer div does no longer hide overflow,
+          // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
+          //visibility.visible, 
+          cls := "ui icon labeled fluid dropdown",
+          Icons.ellipsisV,
+          cursor.pointer,
+          UI.popup := "More",
+          zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
+          Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
+          onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
+          div(
+            cls := "menu",
+            div(cls := "header", "Context menu", cursor.default),
+            moreMenuItems.map(_(false))
+          ),
+
+        ),
+        // we pass the width manually to make the pressable area big enough
+        widthPx = Some(10)
+      )
       div(
         cls := "buttonbar",
         Styles.flex,
         Rx {
           if(editable()) {
-            //          div(div(cls := "fa-fw", freeSolid.faCheck), onClick.stopPropagation(false) --> editable, cursor.pointer)
             VDomModifier.empty
           } else VDomModifier(
-            div(
-              div(cls := "fa-fw", Icons.tasks),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig, cursor.pointer, UI.popup := "Create subtasks"
-            ),
-            div(
-              div(cls := "fa-fw", Icons.conversation),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig, cursor.pointer, UI.popup := "Start conversation about this card"
-            ),
-            DevOnly(ItemProperties.manageProperties(state, node.id)),
-            if(state.graph().isExpanded(state.user.now.id, node.id))
-              div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse")
-            else
-              div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand"),
-            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
-            div(
-              div(cls := "fa-fw", Icons.delete),
-              onClick.stopPropagation foreach {
-                val graph = state.graph()
-                val nodeIdx = graph.idToIdx(node.id)
-                val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
-                val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
-
-                val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
-                state.eventProcessor.changes.onNext(changes)
-                selectedNodeIds.update(_ - node.id)
-              },
-              cursor.pointer, UI.popup := "Archive"
-            ),
-            //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+            immediateMenuItems.map(_(true)),
           )
-        }
+        },
+        Rx { (!editable()).ifTrue[VDomModifier](moreMenu) }
       )
     }
 

@@ -37,7 +37,17 @@ object ItemProperties {
     case _                                         => Icons.propertyText
   }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  def manageProperties(state: GlobalState, nodeId: NodeId)
+                      (implicit ctx: Ctx.Owner) : VNode = {
+    manageProperties(state, nodeId,
+                     div(
+                       cursor.pointer,
+                       div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property)
+                     ))}
+
+
+  def manageProperties(state: GlobalState, nodeId: NodeId,
+                       contents : VNode)(implicit ctx: Ctx.Owner): VNode = {
 
     // todo: check if node is instance of node.content ?
     val graph = state.graph.now
@@ -174,22 +184,22 @@ object ItemProperties {
       Components.removablePropertyTag(state, propertyKey, propertyValue),
     )
 
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property),
-      cursor.pointer,
-
+    contents(
       onClick(Ownable(implicit ctx => UI.ModalConfig(
-        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
-        description = description,
-        close = modalCloseTrigger,
-        modalModifier = VDomModifier(
-          cls := "mini form",
-        ),
-        contentModifier = VDomModifier(
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
-        ),
-      ))) --> state.modalConfig
+                        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
+                        description = description,
+                        close = modalCloseTrigger,
+                        modalModifier = VDomModifier(
+                          cls := "mini form",
+                          ),
+                        contentModifier = VDomModifier(
+                          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
+                        ),
+                        ))) --> state.modalConfig
     )
+
+    
+
   }
 
 }
