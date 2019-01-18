@@ -5,7 +5,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.graph.Edge.LabeledProperty
 import wust.graph._
-import wust.ids.{NodeData, NodeRole}
+import wust.ids.{NodeData, NodeId, NodeRole}
 import wust.webApp.{Icons, Permission}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -21,6 +21,12 @@ object DetailView {
     @inline def renderAsTag(tags: Seq[Node])(implicit ctx: Ctx.Owner) = {
       div(
         if(tags.nonEmpty) tags.map(t => nodeTag(state, t, pageOnClick = true))
+        else "-"
+      )
+    }
+    @inline def renderAsRemovableTag(tags: Seq[Node], taggedNodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+      div(
+        if(tags.nonEmpty) tags.map(tag => removableNodeTag(state, tag, taggedNodeId))
         else "-"
       )
     }
@@ -55,32 +61,31 @@ object DetailView {
 
           @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
 
-          // TODO: Make all elements configurable
           list(
             item(
               content(
                 header("Data"),
                 description(subject.data.str)
               ),
-              content(
+              content( // TODO: Configurable role (changeable on click)
                 header("Role"),
                 description(
-                  subject.role match {
+                  Elements.icon(subject.role match {
                     case NodeRole.Task => Icons.task
                     case NodeRole.Message => Icons.conversation
                     case _ => ""
-                  },
+                  })(marginRight := "5px"),
                   subject.role.toString
                 )
               ),
-              content(
+              content( // TODO: Configurable access level (changeable on click)
                 header(s"Access (${accessLevel.value})"),
                 description(
-                  accessLevel.icon,
+                  Elements.icon(accessLevel.icon)(marginRight := "5px"),
                   accessLevel.description
                 )
               ),
-              content(
+              content( // TODO: Configurable property value (changeable on click)
                 header(s"Properties ($numProperties)"),
                 description(
                   if(properties.nonEmpty) properties.map { case (propertyKey: LabeledProperty, propertyValue: Node) =>
@@ -88,20 +93,20 @@ object DetailView {
                   } else "-"
                 )
               ),
-              content(
+              content( // TODO: Configurable tags (adding by autocomplete)
                 header(s"Tags ($numTags)"),
-                description(renderAsTag(tags))
+                description(renderAsRemovableTag(tags, subjectId))
               ),
-              content(
+              content( // TODO: Configurable parents (adding by autocomplete)
                 header(s"Parents ($numParents)"),
-                description(description(renderAsTag(parents)))
+                description(renderAsTag(parents))
               ),
               content(
                 header(s"Children ($numChildren)"),
               ),
             )
           )
-        },
+        }
       }
     )
   }
