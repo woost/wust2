@@ -265,17 +265,18 @@ object algorithm {
     visited += start
     successors.foreachElement(start){ elem =>
       stack.push(elem)
+      visited += elem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited.containsNot(current)) {
-        result += current
-        visited += current
-        successors.foreachElement(current) { next =>
-          if (visited.containsNot(next)) {
-            stack.push(next)
-          }
+
+      result += current
+      visited += current
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
