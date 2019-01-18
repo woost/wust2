@@ -249,6 +249,16 @@ object Components {
     )
   }
 
+  def removableTagMod(action: () => Unit) = {
+    span(
+      "×",
+      cls := "actionbutton",
+      onClick.stopPropagation foreach {
+        action()
+      },
+    )
+  }
+
   def propertyTag(
     state: GlobalState,
     key: Edge.LabeledProperty,
@@ -271,15 +281,7 @@ object Components {
   }
 
   def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false): VNode = {
-    propertyTag(state, key, propertyNode, pageOnClick)(
-      span(
-        "×",
-        cls := "actionbutton",
-        onClick.stopPropagation foreach {
-          action()
-        },
-      )
-    )
+    propertyTag(state, key, propertyNode, pageOnClick)(removableTagMod(action))
   }
 
   def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false): VNode = {
@@ -337,15 +339,7 @@ object Components {
     }
 
     def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
-      nodeTag(state, tag, pageOnClick)(
-        span(
-          "×",
-          cls := "actionbutton",
-          onClick.stopPropagation foreach {
-            action()
-          },
-        )
-      )
+      nodeTag(state, tag, pageOnClick)(removableTagMod(action))
     }
 
     def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
