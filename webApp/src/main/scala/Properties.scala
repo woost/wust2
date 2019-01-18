@@ -26,6 +26,8 @@ import scala.scalajs.js
  */
 object ItemProperties {
 
+  val naming = "Manage custom fields"
+
   def iconByNodeData(data: NodeData): VDomModifier = data match {
     //    case _: NodeData.Integer => Icons.propertyInt
     //    case _: NodeData.Float => Icons.propertyDec
@@ -173,11 +175,11 @@ object ItemProperties {
     )
 
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
+      div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property),
       cursor.pointer,
 
       onClick(Ownable(implicit ctx => UI.ModalConfig(
-        header = ModalConfig.defaultHeader(state, node, "Manage properties", Icons.property),
+        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
         description = description,
         close = modalCloseTrigger,
         modalModifier = VDomModifier(

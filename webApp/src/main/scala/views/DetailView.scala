@@ -63,10 +63,6 @@ object DetailView {
 
           list(
             item(
-              content(
-                header("Data"),
-                description(subject.data.str)
-              ),
               content( // TODO: Configurable role (changeable on click)
                 header("Role"),
                 description(
@@ -103,6 +99,10 @@ object DetailView {
               ),
               content(
                 header(s"Children ($numChildren)"),
+              ),
+              content(
+                header("Data"),
+                description(subject.data.str)
               ),
             )
           )
