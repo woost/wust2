@@ -129,7 +129,7 @@ object GraphChanges {
       nodeId,
       NodeData.Markdown(title),
       NodeRole.Project,
-      NodeMeta(accessLevel = NodeAccess.Level(AccessLevel.Restricted))
+      NodeMeta(accessLevel = NodeAccess.Inherited)
     )
     GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(userId, nodeId), Edge.Notify(nodeId, userId), Edge.Member(userId, EdgeData.Member(AccessLevel.ReadWrite), nodeId)))
   }
