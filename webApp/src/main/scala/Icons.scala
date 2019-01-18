@@ -4,6 +4,7 @@ import fontAwesome._
 
 object Icons {
 
+  val ellipsisV: IconDefinition = freeSolid.faEllipsisV
   val sync: IconDefinition = freeSolid.faExchangeAlt
   val plugin: IconDefinition = freeSolid.faPuzzlePiece
   val slack: IconDefinition  = freeBrands.faSlack
