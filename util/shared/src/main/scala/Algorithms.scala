@@ -51,31 +51,24 @@ object algorithm {
   // stops whole traversal if append returns false
   @inline def depthFirstSearchWithManualAppendStopIfAppendFalse(start: Int, successors: NestedArrayInt, append: Int => Boolean): Unit = {
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
     if (!append(start)) return
 
-    visited(start) = 1
-    var i = 0
-    val startSuccessorCount = successors(start).length
-    while (i < startSuccessorCount) {
-      stack.push(successors(start, i))
-      i += 1
+    visited += start
+    successors.foreachElement(start) { succElem =>
+      stack.push(succElem)
+      visited += succElem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited(current) != 1) {
-        if (!append(current)) return
+      if (!append(current)) return
 
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1) stack.push(next)
-          i += 1
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -92,17 +85,17 @@ object algorithm {
 
     successors.foreachElement(start) { succElem =>
       stack.push(succElem)
+      visited += succElem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited.containsNot(current)) {
+      append(current)
 
-        visited += current
-        append(current)
-
-        successors.foreachElement(current) { next =>
-          if (visited.containsNot(next)) stack.push(next)
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -117,19 +110,19 @@ object algorithm {
     starts.foreach { start =>
       successors.foreachElement(start) { succElem =>
         stack.push(succElem)
+        visited += succElem
       }
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited.containsNot(current)) {
-        visited += current
-        if (continue(current)) {
-          successors.foreachElement(current) { next =>
-            if (visited.containsNot(next)) stack.push(next)
+      if (continue(current)) {
+        successors.foreachElement(current) { next =>
+          if (visited.containsNot(next)) {
+            stack.push(next)
+            visited += next
           }
         }
-
       }
     }
   }
@@ -149,6 +142,7 @@ object algorithm {
     starts.foreach { start =>
       successors(None, start) { succElem =>
         stack.push(succElem)
+        visited += succElem
         stackParent.push(start)
       }
     }
@@ -156,19 +150,14 @@ object algorithm {
     while (!stack.isEmpty) {
       val current = stack.pop()
       val currentParent = stackParent.pop()
-      if (visited.containsNot(current)) {
-        visited += current
-        successors(Some(currentParent), current) { next =>
-          if (visited.containsNot(next)) {
-            stack.push(next)
-            stackParent.push(current)
-          }
+      successors(Some(currentParent), current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
+          stackParent.push(current)
         }
-
       }
     }
-
-    None
   }
 
   def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search: Int): Option[Int] = {
@@ -176,25 +165,23 @@ object algorithm {
     val stack = ArrayStackInt.create(capacity = 2 * successors.size)
     val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
+    stack.push(start)
+    visited += start
     successors.foreachElement(start) { succElem =>
-      stack.push(start)
       stack.push(succElem)
+      visited += succElem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
       val previous = stack.pop()
       if (current == search) return Some(previous)
-      if (visited.containsNot(current)) {
-        visited.add(current)
 
-        successors.foreachElement(current) { next =>
-          if (visited.containsNot(next)) {
-            stack.push(current)
-            stack.push(next)
-          }
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
-
       }
     }
 
@@ -224,27 +211,21 @@ object algorithm {
   def depthFirstSearchExistsAfterStart(start: Int, successors: NestedArrayInt, search: Int): Boolean = {
 
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
 
-    var i = 0
-    val startSuccessorCount = successors(start).length
-    while (i < startSuccessorCount) {
-      stack.push(successors(start, i))
-      i += 1
+    successors.foreachElement(start) { succElem =>
+      stack.push(succElem)
+      visited += succElem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
       if (current == search) return true
-      if (visited(current) != 1) {
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1) stack.push(next)
-          i += 1
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -288,15 +269,19 @@ object algorithm {
     val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = ArraySet.create(successors.size)
 
-    starts.foreach(stack.push)
+    starts.foreach { start =>
+      stack.push(start)
+      visited += start
+    }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
       if (search.contains(current)) return true
-      if (visited.containsNot(current)) {
-        visited.add(current)
-        successors.foreachElement(current) { next =>
-          if (visited.containsNot(next)) stack.push(next)
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -308,28 +293,22 @@ object algorithm {
     if (start == search) return true
 
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size)
 
-    visited(start) = 1
-    var i = 0
-    val startSuccessorCount = successors(start).length
-    while (i < startSuccessorCount) {
-      stack.push(successors(start, i))
-      i += 1
+    visited += start
+    successors.foreachElement(start){ elem =>
+      stack.push(elem)
+      visited += elem
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
       if (current == search) return true
-      if (visited(current) != 1) {
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1) stack.push(next)
-          i += 1
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -339,29 +318,24 @@ object algorithm {
 
   def depthFirstSearchExcludeExists(start: Int, successors: NestedArrayInt, exclude: Array[Int], search: Int): Boolean = {
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size)
 
-    visited(start) = 1
-    var i = 0
-    val startSuccessorCount = successors(start).length
-    while (i < startSuccessorCount) {
-      val next = successors(start, i)
-      if (exclude(next) != 1) stack.push(next)
-      i += 1
+    visited += start
+    successors.foreachElement(start){ elem =>
+      if (exclude(elem) != 1) {
+        stack.push(elem)
+        visited += elem
+      }
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
       if (current == search) return true
-      if (visited(current) != 1) {
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1 && exclude(next) != 1) stack.push(next)
-          i += 1
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -371,7 +345,7 @@ object algorithm {
 
   def depthFirstSearchAfterStarts(start: Array[Int], successors: NestedArrayInt): Array[Int] = {
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size)
     val result = new mutable.ArrayBuilder.ofInt
 
     // start is intentionally left out.
@@ -379,27 +353,21 @@ object algorithm {
     // result += start
     // visited(start) = 1
 
-    var i = 0
     start.foreachElement { start =>
-      val startSuccessorCount = successors(start).length
-      while (i < startSuccessorCount) {
-        stack.push(successors(start, i))
-        i += 1
+      successors.foreachElement(start){ elem =>
+        stack.push(elem)
+        visited += elem
       }
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited(current) != 1) {
-        result += current
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1) stack.push(next)
-          i += 1
+      result += current
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
@@ -409,7 +377,7 @@ object algorithm {
 
   def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt): Array[Int] = {
     val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = new Array[Int](successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    val visited = ArraySet.create(successors.size)
     val result = new mutable.ArrayBuilder.ofInt
 
     // start is intentionally left out.
@@ -426,16 +394,12 @@ object algorithm {
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      if (visited(current) != 1) {
-        result += current
-        visited(current) = 1
-        val nexts = successors(current)
-        val nextCount = nexts.length
-        i = 0
-        while (i < nextCount) {
-          val next = nexts(i)
-          if (visited(next) != 1) stack.push(next)
-          i += 1
+      result += current
+
+      successors.foreachElement(current) { next =>
+        if (visited.containsNot(next)) {
+          stack.push(next)
+          visited += next
         }
       }
     }
