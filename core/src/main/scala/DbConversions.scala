@@ -57,7 +57,7 @@ object DbConversions {
   }
 
   implicit def forDb(c: Edge.Member): Data.MemberEdge =
-    Data.MemberEdge(c.sourceId, c.data, c.targetId)
+    Data.MemberEdge(c.nodeId, c.data, c.userId)
 
   implicit def forDb(c: Edge): Data.Edge =
     Data.Edge(sourceId = c.sourceId, data = c.data, targetId = c.targetId)

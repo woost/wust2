@@ -682,7 +682,7 @@ object SharedViewElements {
     }
 
     def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
-      state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(tag.id, parentId))
+      state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
     ))
 
     def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
@@ -764,7 +764,7 @@ object SharedViewElements {
 
         cursor.pointer,
         UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-        onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
+        onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(nodeId, state.user.now.id)) --> state.eventProcessor.changes
       )
     )
   }
@@ -779,7 +779,7 @@ object SharedViewElements {
         div(
           cls := "expand-collapsebutton",
           Icons.collapse,
-          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(nodeId, state.user.now.id)) --> state.eventProcessor.changes,
           cursor.pointer,
           UI.popup := "Collapse"
         )
@@ -788,7 +788,7 @@ object SharedViewElements {
           cls := "expand-collapsebutton",
           VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
           Icons.expand,
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, state.user.now.id)) --> state.eventProcessor.changes,
           cursor.pointer,
           UI.popup := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
         )

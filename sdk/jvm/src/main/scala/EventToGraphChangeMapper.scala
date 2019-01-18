@@ -1,6 +1,6 @@
 package wust.sdk
 
-import wust.graph.{Edge, GraphChanges, Node, NodeMeta}
+import wust.graph._
 import wust.ids._
 
 object EventToGraphChangeMapper {
@@ -12,7 +12,7 @@ object EventToGraphChangeMapper {
 //    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
 //    val nodeAuthorMemberEdge = Edge.Member(wustAuthorUserId, EdgeData.Member(AccessLevel.ReadWrite), nodeContent.id)
 
-    val parentEdges: Set[Edge] = parents.map(parent => Edge.Parent(nodeContent.id, parent))
+    val parentEdges: Set[Edge] = parents.map(parent => Edge.Child(ParentId(parent), ChildId(nodeContent.id)))
 //    val memberEdges: Set[Edge] = additionalMembers.collect {
 //      case (member: UserId, access: AccessLevel) => Edge.Member(member, EdgeData.Member(access), nodeContent.id)
 //    }
@@ -53,16 +53,16 @@ object EventToGraphChangeMapper {
   }
 
   def deleteMessageInWust(nodeId: NodeId, channelId: NodeId): GraphChanges = {
-    GraphChanges.disconnect(Edge.Parent)(
-      nodeId,
-      channelId
+    GraphChanges.disconnect(Edge.Child)(
+      ParentId(channelId),
+      ChildId(nodeId),
     )
   }
 
   def unDeleteMessageInWust(nodeId: NodeId, channelId: NodeId): GraphChanges = {
-    GraphChanges.connect(Edge.Parent)(
-      nodeId,
-      channelId
+    GraphChanges.connect(Edge.Child)(
+      ParentId(channelId),
+      ChildId(nodeId),
     )
   }
 
@@ -83,28 +83,28 @@ object EventToGraphChangeMapper {
   }
 
   def deleteChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
-    GraphChanges.disconnect(Edge.Parent)(
-      channelId,
-      workspaceNodeId
+    GraphChanges.disconnect(Edge.Child)(
+      ParentId(workspaceNodeId),
+      ChildId(channelId),
     )
   }
 
   def archiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId, timestamp: EpochMilli): GraphChanges = {
     GraphChanges(
-      addEdges = Set(Edge.Parent(channelId, data = EdgeData.Parent(Some(timestamp), None), workspaceNodeId))
+      addEdges = Set(Edge.Child(ParentId(workspaceNodeId), data = EdgeData.Child(Some(timestamp), None), ChildId(channelId)))
     )
   }
 
   def unDeleteChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
-    GraphChanges.connect(Edge.Parent)(
-      channelId,
-      workspaceNodeId
+    GraphChanges.connect(Edge.Child)(
+      ParentId(workspaceNodeId),
+      ChildId(channelId),
     )
   }
 
   def unArchiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
     GraphChanges(
-      addEdges = Set(Edge.Parent(channelId, data = EdgeData.Parent(None, None), workspaceNodeId))
+      addEdges = Set(Edge.Child(ParentId(workspaceNodeId), ChildId(channelId)))
     )
   }
 

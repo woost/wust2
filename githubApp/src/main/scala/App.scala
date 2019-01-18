@@ -109,8 +109,8 @@ object AppServer {
     val issuePosts = Set(issuePost, issueDesc)
 
     val edges = Set(
-      Edge.Parent(issuePost.id, Constants.issueTagId): Edge,
-      Edge.Parent(issuePost.id, Constants.githubId): Edge
+      Edge.Child(ParentId(Constants.issueTagId), ChildId(issuePost.id)): Edge,
+      Edge.Child(ParentId(Constants.githubId), ChildId(issuePost.id)): Edge
     )
 
     GraphChanges(addNodes = issuePosts, addEdges = edges)
@@ -379,7 +379,7 @@ object WustReceiver {
         mCallBuffer += c
         github.createComment(c).foreach {
           res =>
-            val tag = Edge.Parent(c.nodeId, Constants.commentTagId)
+            val tag = Edge.Child(ParentId(Constants.commentTagId), ChildId(c.nodeId))
             println(s"Sending add comment tag: $tag")
             valid(
               client.api.changeGraph(List(GraphChanges(addEdges = Set(tag)))),
@@ -434,15 +434,9 @@ object WustReceiver {
     }
 
     def issuePostOfDesc(graph: Graph, pid: NodeId): Option[Node] = {
-      graph.edges
-        .find(
-          c =>
-            c.data match {
-              case EdgeData.LabeledProperty("describes") => c.targetId == pid
-              case _                           => false
-            }
-        )
-        .map(c => graph.nodesById(c.sourceId))
+      graph.edges.collectFirst {
+        case e: Edge.LabeledProperty if e.data.key == "describes" && e.propertyId == pid => graph.nodesById(e.nodeId)
+      }
     }
 
     // TODO: NodeId <=> ExternalId mapping

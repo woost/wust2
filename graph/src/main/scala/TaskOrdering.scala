@@ -1,6 +1,6 @@
 package wust.graph
 
-import wust.ids.{EdgeData, EpochMilli, NodeId, UserId}
+import wust.ids._
 
 /**
   * Algorithms to define an ordering on nodes
@@ -48,7 +48,9 @@ object TaskOrdering {
   @inline private def getNodeIdxStr(graph: Graph, idx: Int) = graph.nodes(idx).str
 
   // TODO: check if fixed parentEdgeIdx returns edgeIdx not parentIdx
-  @inline def getParentEdge(graph: Graph, parentId: NodeId, nodeId: NodeId) = graph.parentEdgeIdx(graph.idToIdx(nodeId)).map(graph.edges).find(_.targetId == parentId).map(_.asInstanceOf[Edge.Parent])
+  @inline def getParentEdge(graph: Graph, parentId: NodeId, nodeId: NodeId) = graph.parentEdgeIdx(graph.idToIdx(nodeId)).map(graph.edges).collectFirst {
+      case e: Edge.Child if e.parentId == parentId => e
+    }
 
   @inline private def getValueOfNodeId(graph: Graph, parentId: NodeId, nodeId: NodeId): (Option[EpochMilli], BigDecimal) = {
     val edge = getParentEdge(graph, parentId, nodeId)
@@ -84,7 +86,7 @@ object TaskOrdering {
     // Reconstruct order of nodes in the `into` container
     val newOrderedNodes: Seq[NodeId] = intoItems
 
-    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Parent)(nodeId, into)
+    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Child)(ParentId(into), ChildId(nodeId))
 
     // Get corresponding nodes that are before and after the dragged node
     val indexOffset = if(!containerChanged && checkMovedDownwards(previousDomPosition, newDomPosition)) 1 else 0
@@ -123,10 +125,10 @@ object TaskOrdering {
       }
     }
 
-    val newParentEdge = if(containerChanged) Edge.Parent(nodeId, EdgeData.Parent(newOrderingValue), into)
+    val newParentEdge = if(containerChanged) Edge.Child(ParentId(into), EdgeData.Child(newOrderingValue), ChildId(nodeId))
                         else {
                           val keepedDeletedAt = getParentEdge(graph, from, nodeId).flatMap(_.data.deletedAt)
-                          Edge.Parent(nodeId, new EdgeData.Parent(keepedDeletedAt, Some(newOrderingValue)), into)
+                          Edge.Child(ParentId(into), new EdgeData.Child(keepedDeletedAt, Some(newOrderingValue)), ChildId(nodeId))
                         }
 
     GraphChanges(addEdges = Set(newParentEdge))

@@ -63,8 +63,8 @@ class ForceSimulation(
 
   //TODO why partial?
   private var labelVisualization: PartialFunction[EdgeData.Type, VisualizationType] = {
-    case EdgeData.Parent.tpe => Containment
-    case _:EdgeData.LabeledProperty    => Edge
+    case EdgeData.Child.tpe         => Containment
+    case _:EdgeData.LabeledProperty => Edge
   }
   private var postSelection: Selection[Node] = _
   var simData: SimulationData = _

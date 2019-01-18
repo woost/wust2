@@ -26,7 +26,7 @@ object Logging {
       .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
       .withHandler(
         formatter = detailFormatter,
-        minimumLevel = Some(Level.Info),
+        minimumLevel = Some(Level.Debug),
         writer = FileWriter().path(LogPath.daily(prefix = id, directory = Paths.get("logs")))
       )
 
@@ -48,7 +48,7 @@ object Logging {
       rootSetup
         .withHandler(
           formatter = simpleFormatter,
-          minimumLevel = Some(Level.Info),
+          minimumLevel = Some(Level.Debug),
           writer = writer)
     }
 

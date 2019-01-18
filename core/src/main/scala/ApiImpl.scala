@@ -11,7 +11,6 @@ import wust.core.{ChangeGraphAuthorization, ChangeGraphAuthorizer}
 import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
-import wust.ids
 import wust.ids._
 
 import scala.collection.mutable
@@ -96,7 +95,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
                   user.toNode,
                   GraphChanges(
                     addNodes = Set(forClient(node), subjectUser), // subjectUser is for other users, the node is for the subjectuser
-                    addEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)), // member edge is for subjectUser and other users
+                    addEdges = Set(Edge.Member(nodeId = nodeId, EdgeData.Member(accessLevel), userId = subjectUserId)), // member edge is for subjectUser and other users
                   )
                 )
               )
@@ -124,7 +123,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
                 NewGraphChanges.forAll(
                   user.toNode,
                   GraphChanges(
-                    delEdges = Set(Edge.Member(subjectUserId, EdgeData.Member(accessLevel), nodeId)),
+                    delEdges = Set(Edge.Member(nodeId = nodeId, EdgeData.Member(accessLevel), userId = subjectUserId)),
                   )
                 )
               )

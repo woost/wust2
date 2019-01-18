@@ -37,7 +37,7 @@ object Data {
 
   case class Edge(sourceId: NodeId, data: EdgeData, targetId: NodeId)
 
-  case class MemberEdge(sourceId: UserId, data: EdgeData.Member, targetId: NodeId)
+  case class MemberEdge(sourceId: NodeId, data: EdgeData.Member, targetId: UserId)
 
   case class Password(userId: UserId, digest: Array[Byte])
   case class WebPushSubscription(

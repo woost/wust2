@@ -6,7 +6,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph.{Edge, Graph, GraphChanges, Node}
-import wust.ids.{EdgeData, NodeData, NodeId, NodeRole}
+import wust.ids._
 import wust.webApp.ItemProperties
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
@@ -141,9 +141,9 @@ object TableView {
               GraphChanges(
                 addNodes = Set(templateNode, newPropertyNode),
                 addEdges = Set(
-                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
-                  Edge.Automated(focusedId, templateNodeId = templateNode.id),
-                  Edge.Parent(templateNode.id, parentId = focusedId)
+                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(newPropertyNode.id)),
+                  Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id)),
+                  Edge.Child(childId = ChildId(templateNode.id), parentId = ParentId(focusedId))
                 )
               )
             } else GraphChanges.empty

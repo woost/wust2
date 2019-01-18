@@ -214,7 +214,7 @@ object Components {
               //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
               dom.window.setTimeout({() =>
                 Client.api.addMember(nodeId, dmUserId, AccessLevel.ReadWrite)
-                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(dmUserId, nodeId)))
+                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(nodeId = nodeId, userId = dmUserId)))
                 state.eventProcessor.changes.onNext(change)
               }, 3000)
               ()
@@ -378,7 +378,7 @@ object Components {
         Styles.flex,
         Avatar.user(user.id)(height := "20px"),
         div(marginLeft := "5px", displayUserName(user.data)),
-        removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(user.id, assignedNodeId)))
+        removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(assignedNodeId, user.id)))
       )
     }
 
@@ -408,7 +408,7 @@ object Components {
         //   else
         //     Set.empty
         state.eventProcessor.changes.onNext(
-          GraphChanges.disconnect(Edge.Parent)(taggedNodeId, Set(tag.id))
+        GraphChanges.disconnect(Edge.Child)(Set(ParentId(tag.id)), ChildId(taggedNodeId))
         )
       }, pageOnClick)
     }
@@ -499,16 +499,16 @@ object Components {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
                     val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                    val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
+                  val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
                 val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
-                val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
+              val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
                 state.eventProcessor.changes.onNext(changes)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node for every workspace exists
-                val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
+              val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
                 state.eventProcessor.changes.onNext(changes)
               }
             }

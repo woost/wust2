@@ -18,6 +18,29 @@ package object ids {
   }
   type UserId = UserId.Type
 
+
+  object ChildId extends OverTagged(NodeId) { // ChildId clashes with outwatch's ChildId
+    @inline def fresh: ChildId = apply(NodeId.fresh)
+    @inline def fromBase58String(str: String): ChildId = apply(NodeId.fromBase58String(str))
+  }
+  type ChildId = ChildId.Type
+  object ParentId extends OverTagged(NodeId) {
+    @inline def fresh: ParentId = apply(NodeId.fresh)
+    @inline def fromBase58String(str: String): ParentId = apply(NodeId.fromBase58String(str))
+  }
+  type ParentId = ParentId.Type
+  object PropertyId extends OverTagged(NodeId) {
+    @inline def fresh: PropertyId = apply(NodeId.fresh)
+    @inline def fromBase58String(str: String): PropertyId = apply(NodeId.fromBase58String(str))
+  }
+  type PropertyId = PropertyId.Type
+  object TemplateId extends OverTagged(NodeId) {
+    @inline def fresh: TemplateId = apply(NodeId.fresh)
+    @inline def fromBase58String(str: String): TemplateId = apply(NodeId.fromBase58String(str))
+  }
+  type TemplateId = TemplateId.Type
+
+
   object EpochMilli extends TaggedType[Long] {
     var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
     @inline def localNow: EpochMilli =

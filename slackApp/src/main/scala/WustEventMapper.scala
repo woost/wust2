@@ -22,20 +22,20 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
   /**
     * TODO: Filter for edges
-    * if an child or a parent is known known to app => infere event
+    * if an child or a parent is known known to app => infer event
     *
     */
 
   def filterDeleteEvents(gc: GraphChanges) = {
     (gc.addEdges ++ gc.delEdges).filter {
-      case Edge.Parent(_, EdgeData.Parent(Some(_), _), _) => true
-      case _ => false
+      case Edge.Child(_, EdgeData.Child(Some(_), _), _) => true
+      case _                                            => false
     }
   }
 
   def filterUndeleteEvents(gc: GraphChanges) = {
     if(gc.addNodes.collect{case n : Node.Content => n}.isEmpty){
-      gc.addEdges.collect { case e @ Edge.Parent(_, EdgeData.Parent(None, _), _) => e}
+      gc.addEdges.collect { case e @ Edge.Child(_, EdgeData.Child(None, _), _) => e}
     } else
         Set.empty[Edge]
   }
@@ -46,11 +46,11 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     Future.sequence(for {
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
-        case Edge.Parent(childId, EdgeData.Parent(None, _), _) => if(childId == node.id) true else false
-        case _                                                     => false
+        case Edge.Child(_, EdgeData.Child(None, _), childId) => if(childId == node.id) true else false
+        case _                                               => false
       }
     } yield {
-      persistenceAdapter.getSlackChannelByWustId(edge.targetId).map(b =>
+      persistenceAdapter.getSlackChannelByWustId(edge.sourceId).map(b =>
         if(b.nonEmpty) {
           scribe.info(s"detected create message event: ($node, $edge)")
           Some((node, edge))
@@ -66,12 +66,12 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     Future.sequence(for {
       node <- gc.addNodes
       edge <- gc.addEdges.filter {
-        case Edge.Parent(childId, EdgeData.Parent(None, _), _) =>
+        case Edge.Child(_, EdgeData.Child(None, _), childId) =>
             if(childId == node.id) true else false
-        case _ => false
+        case _                                               => false
       }
     } yield {
-      persistenceAdapter.teamExistsByWustId(edge.targetId).map(b =>
+      persistenceAdapter.teamExistsByWustId(edge.sourceId).map(b =>
         if(b) {
           scribe.info(s"detected create channel event: ($node, $edge)")
           Some((node, edge))
@@ -86,8 +86,8 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
   def filterUpdateEvents(gc: GraphChanges) = {
     // Only node with no matching edge
     val edges = (gc.addEdges ++ gc.delEdges).filter {
-      case Edge.Parent(_, _, _) => true
-      case _ => false
+      case Edge.Child(_, _, _) => true
+      case _                   => false
     }
 
     val nodes = gc.addNodes.filter {
@@ -186,9 +186,9 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
     def deleteEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = Future.sequence(filterDeleteEvents(gc).map { e =>
 
-      persistenceAdapter.teamExistsByWustId(e.targetId).flatMap(b =>
+      persistenceAdapter.teamExistsByWustId(e.sourceId).flatMap(b =>
         if(b) {
-          generateSlackDeleteChannel(persistenceAdapter, e.sourceId).value.flatMap {
+          generateSlackDeleteChannel(persistenceAdapter, e.targetId).value.flatMap {
             case Some(c) => applyDeleteChannel(persistenceAdapter, client, c)
             case _ => Future.successful(false)
           }
@@ -196,7 +196,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
           // TODO: Threads
           //          ???
         } else {
-          generateSlackDeleteMessage(persistenceAdapter, e.sourceId, e.targetId).value.flatMap {
+          generateSlackDeleteMessage(persistenceAdapter, e.targetId, e.sourceId).value.flatMap {
             case Some(m) => applyDeleteMessage(persistenceAdapter, client, m)
             case _ => Future.successful(false)
           }
@@ -233,9 +233,9 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     }
 
     def unArchiveEvents(persistenceAdapter: PersistenceAdapter, client: SlackClient) = Future.sequence(filterUndeleteEvents(gc).map( e =>
-      persistenceAdapter.teamExistsByWustId(e.targetId).flatMap(b =>
+      persistenceAdapter.teamExistsByWustId(e.sourceId).flatMap(b =>
         if(b) {
-          generateSlackUnarchiveChannel(persistenceAdapter, e.sourceId).value.flatMap {
+          generateSlackUnarchiveChannel(persistenceAdapter, e.targetId).value.flatMap {
             case Some(c) => applyUnarchiveChannel(persistenceAdapter, client, c)
             case _       => Future.successful(false)
           }
@@ -261,11 +261,11 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     case class SlackCreateChannel(channelName: String, teamNode: NodeId) extends GraphChangeEvent
 
     def generateSlackCreateChannel(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
-      val channelMapping = Channel_Mapping(None, node.str, slack_deleted_flag = false, node.id, edge.targetId)
+      val channelMapping = Channel_Mapping(None, node.str, slack_deleted_flag = false, node.id, edge.sourceId)
       for{
         true <- persistenceAdapter.storeOrUpdateChannelMapping(channelMapping)
       } yield {
-        SlackCreateChannel(node.str, edge.targetId)
+        SlackCreateChannel(node.str, edge.sourceId)
       }
     }
 
@@ -310,7 +310,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
 
     def generateSlackCreateMessage(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
 
-      val channelNodeId = edge.targetId
+      val channelNodeId = edge.sourceId
       val messageMapping = Message_Mapping(None, None, None, slack_deleted_flag = false, node.str, node.id, channelNodeId)
       for {
         true <- OptionT[Future, Boolean](persistenceAdapter.storeOrUpdateMessageMapping(messageMapping).map(Some(_)))

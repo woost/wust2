@@ -1,5 +1,6 @@
 BEGIN;
 SELECT plan(8);
+-- SELECT plan(5);
 
 -- suppress cascade notices from cleanup()
 SET client_min_messages TO WARNING;
@@ -33,58 +34,58 @@ end
 $$ language plpgsql;
 
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid varchar(2), userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid uuid, level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid uuid, userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), nodeid)
+        VALUES ( nodeid, jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION invite(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION invite(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Invite'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Invite'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION author(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Author'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Author'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION expanded(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION expanded(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Expanded'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Expanded'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION child(parentid varchar(2), childid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(parentid))
+        VALUES ( node_to_uuid(parentid), jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(childid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION child(parentid uuid, childid uuid, deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), parentid)
+        VALUES ( parentid, jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), childid )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -97,18 +98,18 @@ begin
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION pinned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION pinned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Pinned'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Pinned'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION assigned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION assigned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Assigned'), node_to_uuid(nodeid))
+        VALUES (node_to_uuid(nodeid), jsonb_build_object('type', 'Assigned'), user_to_uuid(userid))
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -131,9 +132,10 @@ $$ LANGUAGE 'sql';
 -- graph_page with induced subgraph
 select cleanup();
 
+-- case 1: single user and node
 select node('01');
 select usernode('0A');
-select member('0A', '01');
+select member('01', '0A');
 
 select set_eq(
     $$ select * from
@@ -141,23 +143,24 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[],
+            array[user_to_uuid('0A')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[])
     $$
 );
 
 
--- single pinned node and user
+-- case 2: single user and node with children
 select cleanup();
 
 select node('A1', NULL);
-select node('B1', NULL); select parent('B1', 'A1');
-select node('C1', NULL); select parent('C1', 'B1');
-select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
+select node('B1', NULL); select child('A1', 'B1');
+select node('C1', NULL); select child('B1', 'C1');
+select node('D1', NULL); select child('A1', 'D1'); select child('C1', 'D1');
 
 select usernode('A2');
-select member('A2', 'A1', 'readwrite');
-select pinned('A2', 'A1');
+select member('A1', 'A2', 'readwrite');
+select pinned('A1', 'A2');
 
 
 select set_eq(
@@ -166,22 +169,23 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('A1'),node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Pinned"}']::text[]),
-        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, null::jsonb[], array[]::uuid[], array[]::text[])
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[]),
+        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, null::jsonb[],
+            array[node_to_uuid('B1'),node_to_uuid('D1'),user_to_uuid('A2'),user_to_uuid('A2')]::uuid[], array['{"type": "Child", "deletedAt": null}', '{"type": "Child", "deletedAt": null}', '{"type": "Member", "level": "readwrite"}', '{"type": "Pinned"}']::text[])
     $$
 );
 
 
 
--- transitive (accessible) parents of channels
+-- case 3: transitive (accessible) child of channels
 select cleanup();
 
 select usernode('0A');
-select node('01'); select pinned('0A', '01');
-    select node('02', 'readwrite'); select parent('01', '02');
-        select node('03', 'readwrite'); select parent('02', '03');
-        select node('04', 'restricted'); select parent('02', '04');
-    select node('05', 'restricted'); select parent('01', '05');
+select node('01'); select pinned('01', '0A');
+    select node('02', 'readwrite'); select child('02', '01');
+        select node('03', 'readwrite'); select child('03', '02');
+        select node('04', 'restricted'); select child('04', '02');
+    select node('05', 'restricted'); select child('05', '01');
 
 select set_eq(
     $$ select * from
@@ -189,25 +193,25 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Pinned"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Pinned"}']::text[]),
+        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Child", "deletedAt": null}']::text[]),
+        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Child", "deletedAt": null}']::text[])
     $$
 );
 
 
--- single unpinned but membership and invite of node and user
+-- case 4: single unpinned but membership and invite of node and user
 select cleanup();
 
 select node('A1', NULL);
-select node('B1', NULL); select parent('B1', 'A1');
-select node('C1', NULL); select parent('C1', 'B1');
-select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
+select node('B1', NULL); select child('A1', 'B1');
+select node('C1', NULL); select child('B1', 'C1');
+select node('D1', NULL); select child('A1', 'D1'); select child('C1', 'D1');
 
 select usernode('A2');
-select member('A2', 'A1', 'readwrite');
-select invite('A2', 'A1');
+select member('A1', 'A2', 'readwrite');
+select invite('A1', 'A2');
 
 
 select set_eq(
@@ -216,36 +220,22 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'),
-            jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0),
-            '{"type": "Message"}'::jsonb,
-            'restricted'::accesslevel,
-            null::jsonb[],
-            array[node_to_uuid('A1'), node_to_uuid('A1')]::uuid[],
-            array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]
-        ),
-        (node_to_uuid('A1'),
-            jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')),
-            '{"type": "Message"}'::jsonb,
-            null,
-            null::jsonb[],
-            array[]::uuid[],
-            array[]::text[]
-        )
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[]),
+        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, null::jsonb[], array[node_to_uuid('B1'), node_to_uuid('D1'), user_to_uuid('A2'), user_to_uuid('A2')]::uuid[], array['{"type": "Child", "deletedAt": null}','{"type": "Child", "deletedAt": null}', '{"type": "Invite"}', '{"type": "Member", "level": "readwrite"}']::text[])
     $$
 );
 
 
--- single unpinned and restricted membership of node and user
+-- case 5: single unpinned and restricted membership of node and user
 select cleanup();
 
 select node('A1', NULL);
-select node('B1', NULL); select parent('B1', 'A1');
-select node('C1', NULL); select parent('C1', 'B1');
-select node('D1', NULL); select parent('D1', 'A1'); select parent('D1', 'C1');
+select node('B1', NULL); select child('A1', 'B1');
+select node('C1', NULL); select child('B1', 'C1');
+select node('D1', NULL); select child('A1', 'D1'); select child('C1', 'D1');
 
 select usernode('A2');
-select member('A2', 'A1', 'restricted');
+select member('A1', 'A2', 'restricted');
 
 
 select set_eq(
@@ -265,15 +255,15 @@ select set_eq(
     $$
 );
 
--- transitive (accessible) parents of invitations
+-- case 6: transitive (accessible) child of invitations
 select cleanup();
 
 select usernode('0A');
-select node('01'); select member('0A', '01'); select invite('0A', '01');
-    select node('02', 'readwrite'); select parent('01', '02');
-        select node('03', 'readwrite'); select parent('02', '03');
-        select node('04', 'restricted'); select parent('02', '04');
-    select node('05', 'restricted'); select parent('01', '05');
+select node('01'); select member('01', '0A'); select invite('01', '0A');
+    select node('02', 'readwrite'); select child('02', '01');
+        select node('03', 'readwrite'); select child('03', '02');
+        select node('04', 'restricted'); select child('04', '02');
+    select node('05', 'restricted'); select child('05', '01');
 
 select set_eq(
     $$ select * from
@@ -281,31 +271,31 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01'), node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[user_to_uuid('0A'), user_to_uuid('0A')]::uuid[], array['{"type": "Invite"}', '{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Child", "deletedAt": null}']::text[]),
+        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Child", "deletedAt": null}']::text[])
     $$
 );
 
 
 
--- only return specific induced edges incident to user
+-- case 7: only return specific induced edges incident to user
 select cleanup();
 
 select usernode('0A');
 select usernode('0B');
 select node('01');
 
-select author(  '0B', '01'); -- will be induced
-select assigned(  '0B', '01'); -- will be induced
-select expanded('0B', '01');
-select member(  '0B', '01'); -- will be induced
-select pinned(  '0B', '01');
-select parent(user_to_uuid('0B'), node_to_uuid('01')); -- will be induced
+select assigned('01', '0B'); -- will be induced
+select author(  '01', '0B'); -- will be induced
+select member(  '01', '0B'); -- will be induced
 
+select expanded('01', '0B'); -- will be induced
 select notify(  '01', '0B'); -- will be induced
-select parent(node_to_uuid('01'), user_to_uuid('0B'));
+select pinned(  '01', '0B'); -- will be induced
+
+select child(node_to_uuid('01'), user_to_uuid('0B')); -- will be induced
 
 select set_eq(
     $$ select nodeid, data, role, accesslevel, targetids, array_sort(edgeData) || array[]::text[] from
@@ -320,19 +310,19 @@ select set_eq(
             array[]::uuid[],
             array[]::text[]
         ),
-        (user_to_uuid('0B'),
-            jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0),
-            '{"type": "Message"}'::jsonb,
-            'restricted'::accesslevel,
-            array[node_to_uuid('01'),node_to_uuid('01'),node_to_uuid('01'),node_to_uuid('01')]::uuid[],
-            array_sort(array['{"type": "Member", "level": "readwrite"}','{"type": "Author"}', '{"type": "Parent", "deletedAt": null}', '{"type": "Assigned"}']::text[])
-        ),
         (node_to_uuid('01'),
             jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')),
             '{"type": "Message"}'::jsonb,
             'readwrite'::accesslevel,
-            array[user_to_uuid('0B')]::uuid[],
-            array['{"type": "Notify"}']::text[]
+            array[user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B')]::uuid[],
+            array_sort(array['{"type": "Assigned"}','{"type": "Author"}','{"type": "Child", "deletedAt": null}','{"type": "Expanded"}','{"type": "Member", "level": "readwrite"}','{"type": "Notify"}','{"type": "Pinned"}']::text[])
+        ),
+        (user_to_uuid('0B'),
+            jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0),
+            '{"type": "Message"}'::jsonb,
+            'restricted'::accesslevel,
+            array[]::uuid[],
+            array[]::text[]
         )
     $$
 );
@@ -340,11 +330,12 @@ select set_eq(
 
 
 
--- children of current user
+-- case 8: children of current user
 select cleanup();
 select usernode('0A');
-select member('0A', user_to_uuid('0A'));
-select node('11', 'readwrite'); select parent(node_to_uuid('11'), user_to_uuid('0A'));
+select member(user_to_uuid('0A'), '0A');
+select node('11', 'readwrite');
+select child(node_to_uuid('11'), user_to_uuid('0A'));
 
 select set_eq(
     $$ select * from
@@ -353,7 +344,7 @@ select set_eq(
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
         (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
-        (node_to_uuid('11'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('11')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[])
+        (node_to_uuid('11'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('11')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Child", "deletedAt": null}']::text[])
     $$
 );
 
@@ -370,7 +361,7 @@ select set_eq(
 -- select usernode('A1');
 -- select node('B1', 'restricted');
 -- select node('B2', 'restricted');
--- select parent('B1', 'B2');
+-- select child('B1', 'B2');
 -- select member('A1', 'B1', 'readwrite');
 -- select insert_before('B1', 'P1', 'N1');
 -- select notify('B1', 'A1');

@@ -138,7 +138,7 @@ object ItemProperties {
         val propertyEdgeData = EdgeData.LabeledProperty(propertyKey)
         def addProperty(targetNodeId: NodeId): GraphChanges = {
           val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-          val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, newPropertyNode.id)
+          val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
           GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
         }
 
@@ -162,10 +162,10 @@ object ItemProperties {
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
-      Styles.flex,
-      alignItems.center,
+        Styles.flex,
+        alignItems.center,
       Components.removablePropertyTag(state, propertyKey, propertyValue),
-    )
+        )
 
     description
   }

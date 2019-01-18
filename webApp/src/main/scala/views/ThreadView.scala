@@ -248,7 +248,7 @@ object ThreadView {
       val graph = state.graph.now
       val user = state.user.now
       val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), nodeId :: Nil)
-      val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(user.id, nodeId) else GraphChanges.empty
+      val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(nodeId, user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
     } else Future.successful(Continue)

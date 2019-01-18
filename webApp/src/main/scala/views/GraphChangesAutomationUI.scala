@@ -7,7 +7,7 @@ import wust.webApp.outwatchHelpers._
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
 import wust.graph.{Edge, GraphChanges, Node, Page}
-import wust.ids.NodeId
+import wust.ids.{ChildId, NodeId, ParentId, TemplateId}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.{Icons, Ownable}
 import wust.webApp.state.{FocusState, GlobalState}
@@ -45,7 +45,7 @@ object GraphChangesAutomationUI {
 
                 Components.removeableList[Node](
                   templates,
-                  state.eventProcessor.changes.redirectMap(templateNode => GraphChanges(delEdges = Set(Edge.Automated(focusState.focusedId, templateNode.id)))),
+                  state.eventProcessor.changes.redirectMap(templateNode => GraphChanges(delEdges = Set(Edge.Automated(focusState.focusedId, TemplateId(templateNode.id))))),
                   tooltip = Some("Remove this template")
                 ) { templateNode =>
                   KanbanView.renderCard(
@@ -86,7 +86,7 @@ object GraphChangesAutomationUI {
 
         onClick.mapTo {
           val templateNode = Node.MarkdownTask("Template")
-          GraphChanges(addEdges = Set(Edge.Parent(templateNode.id, focusState.focusedId), Edge.Automated(focusState.focusedId, templateNode.id)), addNodes = Set(templateNode))
+          GraphChanges(addEdges = Set(Edge.Child(ParentId(focusState.focusedId), ChildId(templateNode.id)), Edge.Automated(focusState.focusedId, TemplateId(templateNode.id))), addNodes = Set(templateNode))
         } --> state.eventProcessor.changes,
       ),
 
@@ -94,7 +94,7 @@ object GraphChangesAutomationUI {
         case content: Node.Content => true
         case _ => false
       }).foreach { selectedTemplateNodeId =>
-        state.eventProcessor.changes onNext GraphChanges(addEdges = Set(Edge.Automated(focusState.focusedId, selectedTemplateNodeId)))
+        state.eventProcessor.changes onNext GraphChanges(addEdges = Set(Edge.Automated(focusState.focusedId, TemplateId(selectedTemplateNodeId))))
       },
     )
 
