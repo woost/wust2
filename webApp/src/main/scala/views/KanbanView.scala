@@ -638,7 +638,7 @@ object KanbanView {
             marginTop := "0",
             textAlign.right,
             properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
-              Components.propertyTag(state, propertyKey, propertyValue)
+              Components.removablePropertyTag(state, propertyKey, propertyValue)
             }
           )
         }

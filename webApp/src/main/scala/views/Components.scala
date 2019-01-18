@@ -270,53 +270,8 @@ object Components {
     )
   }
 
-  def nodeTagDot(state: GlobalState, tag: Node, pageOnClick:Boolean = false): VNode = {
-    span(
-      cls := "node tagdot",
-      backgroundColor := tagColor(tag.id).toHex,
-      UI.tooltip := tag.data.str,
-      if(pageOnClick) onClick foreach { e =>
-        state.viewConfig.update(_.focus(Page(tag.id)))
-        e.stopPropagation()
-      } else cursor.default,
-      drag(DragItem.Tag(tag.id)),
-    )
-  }
-
-  def checkboxNodeTag(
-    state: GlobalState,
-    tagNode: Node,
-    pageOnClick: Boolean = false,
-    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
-  )(implicit ctx: Ctx.Owner): VNode = {
-
-    div( // checkbox and nodetag are both inline elements because of fomanticui
-      div(
-        verticalAlign.middle,
-        cls := "ui checkbox",
-        ViewFilter.addFilterCheckbox(
-          state,
-          tagNode.str, // TODO: renderNodeData
-          GraphOperation.OnlyTaggedWith(tagNode.id)
-        ),
-        label(), // needed for fomanticui
-      ),
-      nodeTag(state, tagNode, pageOnClick, dragOptions)(verticalAlign.middle),
-    )
-  }
-
-  def nodeTag(
-    state: GlobalState,
-    tag: Node,
-    pageOnClick: Boolean = false,
-    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
-  ): VNode = {
-    val contentString = renderNodeData(tag.data, maxLength = Some(20))
-    renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
-  }
-
-  def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
-    nodeTag(state, tag, pageOnClick)(
+  def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false): VNode = {
+    propertyTag(state, key, propertyNode, pageOnClick)(
       span(
         "×",
         cls := "actionbutton",
@@ -327,413 +282,479 @@ object Components {
     )
   }
 
-  def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
-    removableNodeTagCustom(state, tag, () => {
-      // when removing last parent, fall one level lower into the still existing grandparents
-      //TODO: move to GraphChange factory
-      // val removingLastParent = graph.parents(taggedNodeId).size == 1
-      // val addedGrandParents: scala.collection.Set[Edge] =
-      //   if (removingLastParent)
-      //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
-      //   else
-      //     Set.empty
+  def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false): VNode = {
+    removablePropertyTagCustom(state, key, propertyNode, () => {
       state.eventProcessor.changes.onNext(
-        GraphChanges.disconnect(Edge.Parent)(taggedNodeId, Set(tag.id))
+        GraphChanges(delEdges = Set(key))
       )
     }, pageOnClick)
   }
 
-  def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
-    div(
-      keyed(node.id),
-      cls := "node nodecard",
-      div(
-        cls := "nodecard-content",
-        contentInject
-      ),
-    )
-  }
-  def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
-    renderNodeCard(
-      node,
-      contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
-    )
-  }
-  def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeCard(
-      node,
-      contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength), contentInject)
-    )
-  }
-  def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
-    renderNodeCard(
-      node,
-      contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
-    )
-  }
-  def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
-    renderNodeCard(
-      node,
-      contentInject = VDomModifier(
-        prependInject,
-        editableNode(state, node, editMode, maxLength),
-        contentInject
-      ),
-    ).apply(
-      Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
-    )
-  }
 
-  def taskCheckbox(state:GlobalState, node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
-    val isChecked:Rx[Boolean] = Rx {
-      val graph = state.graph()
-      val nodeIdx = graph.idToIdx(node.id)
-      @inline def nodeIsDoneInParent(parentId:NodeId) = {
-        val parentIdx = graph.idToIdx(parentId)
-        val workspaces = graph.workspacesForParent(parentIdx)
-        graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
-      }
-      val parentIdsWithDone = directParentIds.filter{ parentId =>
-        val role = graph.nodesById(parentId).role
-        role != NodeRole.Stage && role != NodeRole.Tag
-      }
-      parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
-    }
-
-    div(
-      cls := "ui checkbox fitted",
-      input(
-        tpe := "checkbox",
-        checked <-- isChecked,
-        onChange.checked foreach { checking =>
-          val graph = state.graph.now
-          directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
-            val doneIdx = graph.doneNodeForWorkspace(workspaceIdx)
-
-            if(checking) {
-              val (doneNodeId, doneNodeAddChange) = doneIdx match {
-                case None                   =>
-                  val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                  val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
-                  (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
-                case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
-              }
-              val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
-              val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
-              state.eventProcessor.changes.onNext(changes)
-            } else { // unchecking
-              // since it was checked, we know for sure, that a done-node for every workspace exists
-              val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
-              state.eventProcessor.changes.onNext(changes)
-            }
-          }
-
-        }
-      ),
-      label()
-    )
-  }
-
-  def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
-    nodeCard(node).prepend(
-      Styles.flex,
-      alignItems.flexStart,
-      taskCheckbox(state, node, directParentIds)
-    )
-  }
-
-  def readDragTarget(elem: dom.html.Element): js.UndefOr[DragTarget] = {
-    readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
-  }
-
-  def writeDragTarget(elem: dom.html.Element, dragTarget: => DragTarget): Unit = {
-    writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
-  }
-
-  def readDragPayload(elem: dom.html.Element): js.UndefOr[DragPayload] = {
-    readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
-  }
-
-  def writeDragPayload(elem: dom.html.Element, dragPayload: => DragPayload): Unit = {
-    writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
-  }
-
-  def readDragContainer(elem: dom.html.Element): js.UndefOr[DragContainer] = {
-    readPropertyFromElement[DragContainer](elem, DragContainer.propName)
-  }
-
-  def writeDragContainer(elem: dom.html.Element, dragContainer: => DragContainer): Unit = {
-    writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
-  }
-
-  def readDraggableDraggedAction(elem: dom.html.Element): js.UndefOr[() => Unit] = {
-    readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
-  }
-
-  def writeDraggableDraggedAction(elem: dom.html.Element, action: => () => Unit): Unit = {
-    writePropertyIntoElement(elem, DragItem.draggedActionPropName, action)
-  }
-
-  def dragWithHandle(item: DragPayloadAndTarget):VDomModifier = dragWithHandle(item,item)
-  def dragWithHandle(
-    payload: => DragPayload = DragItem.DisableDrag,
-    target: DragTarget = DragItem.DisableDrag,
-  ): VDomModifier = {
-    VDomModifier(
-      cls := "draggable", // makes this element discoverable for the Draggable library
-      cls := "drag-feedback", // visual feedback for drag-start
-      VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
-      onDomMount.asHtml foreach { elem =>
-        writeDragPayload(elem, payload)
-        writeDragTarget(elem, target)
-      }
-    )
-  }
-  def drag(item: DragPayloadAndTarget):VDomModifier = drag(item,item)
-  def drag(
-    payload: => DragPayload = DragItem.DisableDrag,
-    target: DragTarget = DragItem.DisableDrag,
-  ): VDomModifier = {
-    VDomModifier(dragWithHandle(payload, target), cls := "draghandle")
-  }
-
-  def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
-    VDomModifier(
-      //          border := "2px solid violet",
-      outline := "none", // hides focus outline
-      cls := "sortable-container",
-
-      managedElement.asHtml { elem =>
-        writeDragContainer(elem, container)
-        state.sortable.addContainer(elem)
-        Cancelable { () => state.sortable.removeContainer(elem) }
-      }
-    )
-  }
-
-  def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
-    EmitterBuilder.ofModifier[Unit] { sink =>
-      IO {
-        VDomModifier(
-          onDomMount.asHtml foreach { elem =>
-            writeDraggableDraggedAction(elem, () => sink.onNext(Unit))
-          }
-        )
-      }
-    }
-
-  def nodeAvatar(node: Node, size: Int): VNode = {
-    Avatar(node)(
-      width := s"${ size }px",
-      height := s"${ size }px"
-    )
-  }
-
-  def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None)(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-    val editMode = Var(false)
-    editableNode(state, node, editMode, maxLength)(ctx)(
-      onClick.stopPropagation.stopImmediatePropagation foreach {
-        if(!editMode.now) {
-          editMode() = true
-        }
-      }
-    )
-  }
-
-  def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
-    //TODO: this validation code whether a node is writeable should be shared with the backend.
-
-    val initialRender: Var[VNode] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
-
-    node match {
-
-      case node@Node.Content(_, textData: NodeData.EditableText, _, _) =>
-        val editRender = editableTextNode(state, editMode, initialRender, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
-        editableNodeContent(state, node, editMode, initialRender, editRender)
-
-      //TODO: integer, floating point, etc.
-
-      case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
-        val editRender = editableTextNode(state, editMode, initialRender, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
-        editableNodeContent(state, user, editMode, initialRender, editRender)
-
-      case _ => initialRender.now
-    }
-  }
-
-  def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
-    import scala.concurrent.duration._
-
-    def save(contentEditable:HTMLElement): Unit = {
-      if(editMode.now) {
-        val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
-        if (text.nonEmpty) {
-          applyStringToNode(text) match {
-            case Some(updatedNode) =>
-              Var.set(
-                initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
-                editMode -> false
-              )
-
-              val changes = GraphChanges.addNode(updatedNode)
-              state.eventProcessor.changes.onNext(changes)
-            case None =>
-              editMode() = false
-          }
-        }
-      }
-    }
-
-    VDomModifier(
-      onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-      onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-      nodeStr, // Markdown source code
-      contentEditable := true,
-      cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-      whiteSpace.preWrap, // preserve white space in Markdown code
-      backgroundColor := "#FFF",
-      color := "#000",
-      cursor.auto,
-
-      onFocus foreach { e => document.execCommand("selectAll", false, null) },
-      onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-      BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-        onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-        onEscape foreach { editMode() = false }
-        //TODO how to revert back if you wrongly edited something on mobile?
-      )),
-      onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
-    )
-  }
-
-  def editableNodeContent(state: GlobalState, node: Node, editMode: Var[Boolean], initialRender: Rx[VNode], editRender: VDomModifier)(
-    implicit ctx: Ctx.Owner
-  ): VNode = {
-
-    p( // has different line-height than div and is used for text by markdown
-      outline := "none", // hides contenteditable outline
-      keyed, // when updates come in, don't disturb current editing session
-      Rx {
-        if(editMode()) editRender else initialRender()
-      },
-    )
-  }
-
-  def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
-    var elem: JQuerySelection = null
-    div(
-      keyed,
-      cls := "ui category search",
-      div(
-        cls := "ui icon input",
-        input(
-          inputModifiers,
-          cls := "prompt",
-          tpe := "text",
-          dsl.placeholder := placeholder,
-
-          onFocus.foreach { _ =>
-            elem.search(arg = new SearchOptions {
-              `type` = if (showParents) "category" else js.undefined
-
-              cache = false
-              searchOnFocus = true
-              minCharacters = 0
-
-              source = graph.now.nodes.collect { case node: Node if filter(node) =>
-                val cat: js.UndefOr[String] = if (showParents) {
-                  val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
-                  if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
-                } else js.undefined
-
-                val str = node match {
-                  case user: Node.User => Components.displayUserName(user.data)
-                  case _ => node.str
-                }
-
-                new SearchSourceEntry {
-                  title = str
-                  category = cat
-                  data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
-                }
-              }(breakOut): js.Array[SearchSourceEntry]
-
-              searchFields = js.Array("title")
-
-              onSelect = { (selected, results) =>
-                val id = selected.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
-                sink.onNext(id)
-                elem.search("set value", "")
-                true
-              }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
-            })
-
-
-            if (completeOnInit) elem.search("search local", "")
-          },
-
-          valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
-        ),
-        i(cls := "search icon"),
-      ),
-      div(cls := "results"),
-
-      onDomMount.asJquery.foreach { e =>
-        elem = e
-      }
-    )
-  })
-
-  def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
-
-    val iconAndPopup = selected.map {
-      case None =>
-        (fontawesome.icon(Icons.fileUpload), div("Upload your own file!"))
-      case Some(selected) =>
-        val popupNode = selected.file.`type` match {
-          case t if t.startsWith("image/") => img(src := selected.dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
-          case _ => div(selected.file.name)
-        }
-        val icon = fontawesome.layered(
-          fontawesome.icon(Icons.fileUpload),
-          fontawesome.icon(
-            freeSolid.faPaperclip,
-            new Params {
-              transform = new Transform {size = 20.0; x = 7.0; y = 7.0; }
-              styles = scalajs.js.Dictionary[String]("color" -> "orange")
-            }
-          )
-        )
-
-        (icon, popupNode)
-    }
-
-    div(
-      padding := "3px",
-      input(display.none, tpe := "file", id := "upload-file-field",
-        onChange.foreach { e =>
-          val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
-          if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
-          else selected() = None
-        }
-      ),
-      label(
-        forId := "upload-file-field", // label for input will trigger input element on click.
-        iconAndPopup.map { case (icon, popup) =>
-          VDomModifier(
-            UI.popupHtml("top left") := popup,
-            icon
-          )
-        },
-        margin := "0px",
-        Styles.flexStatic,
-        cls := "ui circular icon button",
-        fontSize := "1.1rem",
-        backgroundColor := "steelblue",
-        color := "white",
+    def nodeTagDot(state: GlobalState, tag: Node, pageOnClick:Boolean = false): VNode = {
+      span(
+        cls := "node tagdot",
+        backgroundColor := tagColor(tag.id).toHex,
+        UI.tooltip := tag.data.str,
+        if(pageOnClick) onClick foreach { e =>
+          state.viewConfig.update(_.focus(Page(tag.id)))
+          e.stopPropagation()
+        } else cursor.default,
+        drag(DragItem.Tag(tag.id)),
       )
-    )
+    }
+
+    def checkboxNodeTag(
+      state: GlobalState,
+      tagNode: Node,
+      pageOnClick: Boolean = false,
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+    )(implicit ctx: Ctx.Owner): VNode = {
+
+      div( // checkbox and nodetag are both inline elements because of fomanticui
+        div(
+          verticalAlign.middle,
+          cls := "ui checkbox",
+          ViewFilter.addFilterCheckbox(
+            state,
+            tagNode.str, // TODO: renderNodeData
+            GraphOperation.OnlyTaggedWith(tagNode.id)
+          ),
+          label(), // needed for fomanticui
+        ),
+        nodeTag(state, tagNode, pageOnClick, dragOptions)(verticalAlign.middle),
+      )
+    }
+
+    def nodeTag(
+      state: GlobalState,
+      tag: Node,
+      pageOnClick: Boolean = false,
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+    ): VNode = {
+      val contentString = renderNodeData(tag.data, maxLength = Some(20))
+      renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
+    }
+
+    def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
+      nodeTag(state, tag, pageOnClick)(
+        span(
+          "×",
+          cls := "actionbutton",
+          onClick.stopPropagation foreach {
+            action()
+          },
+        )
+      )
+    }
+
+    def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
+      removableNodeTagCustom(state, tag, () => {
+        // when removing last parent, fall one level lower into the still existing grandparents
+        //TODO: move to GraphChange factory
+        // val removingLastParent = graph.parents(taggedNodeId).size == 1
+        // val addedGrandParents: scala.collection.Set[Edge] =
+        //   if (removingLastParent)
+        //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
+        //   else
+        //     Set.empty
+        state.eventProcessor.changes.onNext(
+          GraphChanges.disconnect(Edge.Parent)(taggedNodeId, Set(tag.id))
+        )
+      }, pageOnClick)
+    }
+
+    def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
+      div(
+        keyed(node.id),
+        cls := "node nodecard",
+        div(
+          cls := "nodecard-content",
+          contentInject
+        ),
+      )
+    }
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+      renderNodeCard(
+        node,
+        contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
+      )
+    }
+    def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+      renderNodeCard(
+        node,
+        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength), contentInject)
+      )
+    }
+    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+      renderNodeCard(
+        node,
+        contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
+      )
+    }
+    def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+      renderNodeCard(
+        node,
+        contentInject = VDomModifier(
+          prependInject,
+          editableNode(state, node, editMode, maxLength),
+          contentInject
+        ),
+      ).apply(
+        Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
+      )
+    }
+
+    def taskCheckbox(state:GlobalState, node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
+      val isChecked:Rx[Boolean] = Rx {
+        val graph = state.graph()
+        val nodeIdx = graph.idToIdx(node.id)
+        @inline def nodeIsDoneInParent(parentId:NodeId) = {
+          val parentIdx = graph.idToIdx(parentId)
+          val workspaces = graph.workspacesForParent(parentIdx)
+          graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
+        }
+        val parentIdsWithDone = directParentIds.filter{ parentId =>
+          val role = graph.nodesById(parentId).role
+          role != NodeRole.Stage && role != NodeRole.Tag
+        }
+        parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
+      }
+
+      div(
+        cls := "ui checkbox fitted",
+        input(
+          tpe := "checkbox",
+          checked <-- isChecked,
+          onChange.checked foreach { checking =>
+            val graph = state.graph.now
+            directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
+              val doneIdx = graph.doneNodeForWorkspace(workspaceIdx)
+
+              if(checking) {
+                val (doneNodeId, doneNodeAddChange) = doneIdx match {
+                  case None                   =>
+                    val freshDoneNode = Node.MarkdownStage(Graph.doneText)
+                    val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, freshDoneNode.id)
+                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
+                  case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
+                }
+                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
+                val changes = doneNodeAddChange merge GraphChanges.changeTarget(Edge.Parent)(node.id::Nil, stageParents,doneNodeId::Nil)
+                state.eventProcessor.changes.onNext(changes)
+              } else { // unchecking
+                // since it was checked, we know for sure, that a done-node for every workspace exists
+                val changes = GraphChanges.disconnect(Edge.Parent)(node.id, doneIdx.map(graph.nodeIds))
+                state.eventProcessor.changes.onNext(changes)
+              }
+            }
+
+          }
+        ),
+        label()
+      )
+    }
+
+    def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+      nodeCard(node).prepend(
+        Styles.flex,
+        alignItems.flexStart,
+        taskCheckbox(state, node, directParentIds)
+      )
+    }
+
+    def readDragTarget(elem: dom.html.Element): js.UndefOr[DragTarget] = {
+      readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
+    }
+
+    def writeDragTarget(elem: dom.html.Element, dragTarget: => DragTarget): Unit = {
+      writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
+    }
+
+    def readDragPayload(elem: dom.html.Element): js.UndefOr[DragPayload] = {
+      readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
+    }
+
+    def writeDragPayload(elem: dom.html.Element, dragPayload: => DragPayload): Unit = {
+      writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
+    }
+
+    def readDragContainer(elem: dom.html.Element): js.UndefOr[DragContainer] = {
+      readPropertyFromElement[DragContainer](elem, DragContainer.propName)
+    }
+
+    def writeDragContainer(elem: dom.html.Element, dragContainer: => DragContainer): Unit = {
+      writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
+    }
+
+    def readDraggableDraggedAction(elem: dom.html.Element): js.UndefOr[() => Unit] = {
+      readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
+    }
+
+    def writeDraggableDraggedAction(elem: dom.html.Element, action: => () => Unit): Unit = {
+      writePropertyIntoElement(elem, DragItem.draggedActionPropName, action)
+    }
+
+    def dragWithHandle(item: DragPayloadAndTarget):VDomModifier = dragWithHandle(item,item)
+    def dragWithHandle(
+      payload: => DragPayload = DragItem.DisableDrag,
+      target: DragTarget = DragItem.DisableDrag,
+    ): VDomModifier = {
+      VDomModifier(
+        cls := "draggable", // makes this element discoverable for the Draggable library
+        cls := "drag-feedback", // visual feedback for drag-start
+        VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
+        onDomMount.asHtml foreach { elem =>
+          writeDragPayload(elem, payload)
+          writeDragTarget(elem, target)
+        }
+      )
+    }
+    def drag(item: DragPayloadAndTarget):VDomModifier = drag(item,item)
+    def drag(
+      payload: => DragPayload = DragItem.DisableDrag,
+      target: DragTarget = DragItem.DisableDrag,
+    ): VDomModifier = {
+      VDomModifier(dragWithHandle(payload, target), cls := "draghandle")
+    }
+
+    def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
+      VDomModifier(
+        //          border := "2px solid violet",
+        outline := "none", // hides focus outline
+        cls := "sortable-container",
+
+        managedElement.asHtml { elem =>
+          writeDragContainer(elem, container)
+          state.sortable.addContainer(elem)
+          Cancelable { () => state.sortable.removeContainer(elem) }
+        }
+      )
+    }
+
+    def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
+      EmitterBuilder.ofModifier[Unit] { sink =>
+        IO {
+          VDomModifier(
+            onDomMount.asHtml foreach { elem =>
+              writeDraggableDraggedAction(elem, () => sink.onNext(Unit))
+            }
+          )
+        }
+      }
+
+    def nodeAvatar(node: Node, size: Int): VNode = {
+      Avatar(node)(
+        width := s"${ size }px",
+        height := s"${ size }px"
+      )
+    }
+
+    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None)(
+      implicit ctx: Ctx.Owner
+    ): VNode = {
+      val editMode = Var(false)
+      editableNode(state, node, editMode, maxLength)(ctx)(
+        onClick.stopPropagation.stopImmediatePropagation foreach {
+          if(!editMode.now) {
+            editMode() = true
+          }
+        }
+      )
+    }
+
+    def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+      //TODO: this validation code whether a node is writeable should be shared with the backend.
+
+      val initialRender: Var[VNode] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
+
+      node match {
+
+        case node@Node.Content(_, textData: NodeData.EditableText, _, _) =>
+          val editRender = editableTextNode(state, editMode, initialRender, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
+          editableNodeContent(state, node, editMode, initialRender, editRender)
+
+        //TODO: integer, floating point, etc.
+
+        case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
+          val editRender = editableTextNode(state, editMode, initialRender, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
+          editableNodeContent(state, user, editMode, initialRender, editRender)
+
+        case _ => initialRender.now
+      }
+    }
+
+    def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
+      import scala.concurrent.duration._
+
+      def save(contentEditable:HTMLElement): Unit = {
+        if(editMode.now) {
+          val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
+          if (text.nonEmpty) {
+            applyStringToNode(text) match {
+              case Some(updatedNode) =>
+                Var.set(
+                  initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
+                  editMode -> false
+                )
+
+                val changes = GraphChanges.addNode(updatedNode)
+                state.eventProcessor.changes.onNext(changes)
+              case None =>
+                editMode() = false
+            }
+          }
+        }
+      }
+
+      VDomModifier(
+        onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+        onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+        nodeStr, // Markdown source code
+        contentEditable := true,
+        cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
+        whiteSpace.preWrap, // preserve white space in Markdown code
+        backgroundColor := "#FFF",
+        color := "#000",
+        cursor.auto,
+
+        onFocus foreach { e => document.execCommand("selectAll", false, null) },
+        onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
+        BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
+          onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
+          onEscape foreach { editMode() = false }
+          //TODO how to revert back if you wrongly edited something on mobile?
+        )),
+        onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
+      )
+    }
+
+    def editableNodeContent(state: GlobalState, node: Node, editMode: Var[Boolean], initialRender: Rx[VNode], editRender: VDomModifier)(
+      implicit ctx: Ctx.Owner
+    ): VNode = {
+
+      p( // has different line-height than div and is used for text by markdown
+        outline := "none", // hides contenteditable outline
+        keyed, // when updates come in, don't disturb current editing session
+        Rx {
+          if(editMode()) editRender else initialRender()
+        },
+      )
+    }
+
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+      var elem: JQuerySelection = null
+      div(
+        keyed,
+        cls := "ui category search",
+        div(
+          cls := "ui icon input",
+          input(
+            inputModifiers,
+            cls := "prompt",
+            tpe := "text",
+            dsl.placeholder := placeholder,
+
+            onFocus.foreach { _ =>
+              elem.search(arg = new SearchOptions {
+                `type` = if (showParents) "category" else js.undefined
+
+                cache = false
+                searchOnFocus = true
+                minCharacters = 0
+
+                source = graph.now.nodes.collect { case node: Node if filter(node) =>
+                  val cat: js.UndefOr[String] = if (showParents) {
+                    val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
+                    if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+                  } else js.undefined
+
+                  val str = node match {
+                    case user: Node.User => Components.displayUserName(user.data)
+                    case _ => node.str
+                  }
+
+                  new SearchSourceEntry {
+                    title = str
+                    category = cat
+                    data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
+                  }
+                }(breakOut): js.Array[SearchSourceEntry]
+
+                searchFields = js.Array("title")
+
+                onSelect = { (selected, results) =>
+                  val id = selected.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
+                  sink.onNext(id)
+                  elem.search("set value", "")
+                  true
+                }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
+              })
+
+
+              if (completeOnInit) elem.search("search local", "")
+            },
+
+            valid.map(_.ifFalse[VDomModifier](borderColor := "tomato"))
+          ),
+          i(cls := "search icon"),
+        ),
+        div(cls := "results"),
+
+        onDomMount.asJquery.foreach { e =>
+          elem = e
+        }
+      )
+    })
+
+    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
+
+      val iconAndPopup = selected.map {
+        case None =>
+          (fontawesome.icon(Icons.fileUpload), div("Upload your own file!"))
+        case Some(selected) =>
+          val popupNode = selected.file.`type` match {
+            case t if t.startsWith("image/") => img(src := selected.dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
+            case _ => div(selected.file.name)
+          }
+          val icon = fontawesome.layered(
+            fontawesome.icon(Icons.fileUpload),
+            fontawesome.icon(
+              freeSolid.faPaperclip,
+              new Params {
+                transform = new Transform {size = 20.0; x = 7.0; y = 7.0; }
+                styles = scalajs.js.Dictionary[String]("color" -> "orange")
+              }
+            )
+          )
+
+          (icon, popupNode)
+      }
+
+      div(
+        padding := "3px",
+        input(display.none, tpe := "file", id := "upload-file-field",
+          onChange.foreach { e =>
+            val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
+            if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
+            else selected() = None
+          }
+        ),
+        label(
+          forId := "upload-file-field", // label for input will trigger input element on click.
+          iconAndPopup.map { case (icon, popup) =>
+            VDomModifier(
+              UI.popupHtml("top left") := popup,
+              icon
+            )
+          },
+          margin := "0px",
+          Styles.flexStatic,
+          cls := "ui circular icon button",
+          fontSize := "1.1rem",
+          backgroundColor := "steelblue",
+          color := "white",
+        )
+      )
+    }
   }
-}

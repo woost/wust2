@@ -84,7 +84,7 @@ object DetailView {
                 header(s"Properties ($numProperties)"),
                 description(
                   if(properties.nonEmpty) properties.map { case (propertyKey: LabeledProperty, propertyValue: Node) =>
-                    Components.propertyTag(state, propertyKey, propertyValue)
+                    Components.removablePropertyTag(state, propertyKey, propertyValue)
                   } else "-"
                 )
               ),
