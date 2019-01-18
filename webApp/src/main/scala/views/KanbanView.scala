@@ -535,7 +535,7 @@ object KanbanView {
         "Collapse", "Collapse", Icons.collapse,
         onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
       val propertiesBuilder = menuItem(
-        "Properties", "Properties", Icons.property,
+        ItemProperties.naming, ItemProperties.naming, Icons.property,
         span())
       def properties(compressed : Boolean) = {
         DevOnly(ItemProperties.manageProperties(
@@ -568,7 +568,7 @@ object KanbanView {
           // ideally this would be always visible, but since the outer div does no longer hide overflow,
           // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
           //visibility.visible, 
-          cls := "ui icon labeled fluid dropdown",
+          cls := "ui icon left labeled fluid dropdown",
           Icons.ellipsisV,
           cursor.pointer,
           UI.popup := "More",
