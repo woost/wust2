@@ -60,7 +60,6 @@ object UI {
           ),
           div(
             cls := "content modal-content",
-            height := s"${2*dom.window.innerHeight/3}px",
             config.contentModifier,
             div(
               cls := "ui medium modal-inner-content",

@@ -310,10 +310,10 @@ object CommonStyles extends StyleSheet.Standalone {
 //  ".modal-header" - ( )
 //  ".modal-content" - ( )
   ".modal-inner-content" - (
-    height(100 %%),
+//    height(100 %%),
   )
   ".modal-description" - (
-    height(100 %%),
+//    height(100 %%),
   )
 
   ".sidebar" - (

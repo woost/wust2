@@ -114,8 +114,9 @@ object ItemProperties {
           )
         ),
         div(
+          marginTop := "10px",
+          maxHeight := s"${0.5*dom.window.innerHeight}px",
           overflow.auto,
-          height := "60%",
           Rx{
             val graph = state.graph()
             val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
@@ -125,15 +126,17 @@ object ItemProperties {
             propertyData.map(data => propertyRow(data._1, data._2))
           },
         ),
-        a(
-          paddingTop := "15px",
+        div(
+          marginTop := "10px",
           cursor.pointer,
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Detail)) foreach { vc =>
-            modalCloseTrigger.onNext(()).onComplete { _ =>
-              state.viewConfig() = vc
-            }
-          },
-          "Show detailed view",
+          a(
+            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Detail)) foreach { vc =>
+              modalCloseTrigger.onNext(()).onComplete { _ =>
+                state.viewConfig() = vc
+              }
+            },
+            "Show detailed view",
+          )
         ),
       ),
     }
@@ -163,21 +166,11 @@ object ItemProperties {
       )
     }
 
-    def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = {
-      div(
-        Styles.flex,
-        marginTop := "10px",
-        alignItems.center,
-        justifyContent.spaceBetween,
-        Components.removablePropertyTag(state, propertyKey, propertyValue),
-        button(
-          cls := "ui tiny compact negative basic button",
-          marginLeft := "10px",
-          "Remove",
-          onClick((propertyKey.data, propertyValue.id)).foreach(p => handleRemoveProperty(p._1, p._2))
-        )
-      )
-    }
+    def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
+      Styles.flex,
+      alignItems.center,
+      Components.removablePropertyTag(state, propertyKey, propertyValue),
+    )
 
     div(
       div(cls := "fa-fw", UI.popup("bottom right") := "Manage properties", Icons.property),
