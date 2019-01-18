@@ -678,6 +678,9 @@ object PageHeader {
         div(cls := "fa-fw", icon),
         Styles.flex,
         alignItems.center,
+        // will ensure that icons shrink to fit a line
+        // see: https://stackoverflow.com/questions/45819924/css-scale-items-when-resizing-in-flexbox
+        width := "100%",
 
         Rx {
           val pageStyle = state.pageStyle()
