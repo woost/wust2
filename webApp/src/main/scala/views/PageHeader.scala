@@ -729,15 +729,20 @@ object PageHeader {
         } else (0, 0, 0)
 
         Seq(
-          // item(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          // removed task / conversation views, since the toggle button was not being
+          // reflected in the ui and history was bugged
+          // also, the UI is sorta inconsistent, so we decided to have all views individually
+          //item(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)
+          //    (zIndex := ZIndex.tooltip-10),
+          //item(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)
+          //    (zIndex := ZIndex.tooltip-20),
+          //item(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           item(currentView, pageStyle, View.Dashboard, Icons.dashboard, "dashboard", 0)(zIndex := ZIndex.tooltip-10),
-          item(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)(zIndex := ZIndex.tooltip-10),
-//          item(currentView, pageStyle, View.Chat, freeRegular.faComments),
-//          item(currentView, pageStyle, View.Thread, freeSolid.faStream),
-          item(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)(zIndex := ZIndex.tooltip-20),
+          item(currentView, pageStyle, View.Chat, Icons.chat, "Chat", numMsg),
+          item(currentView, pageStyle, View.Thread, Icons.thread, "Thread", numMsg),
+          item(currentView, pageStyle, View.List, Icons.list, "List", numTasks),
+          item(currentView, pageStyle, View.Kanban, Icons.kanban, "Kanban", numTasks),
           item(currentView, pageStyle, View.Files, Icons.files, "files", numFiles)(zIndex := ZIndex.tooltip-30),
-//          item(currentView, pageStyle, View.Kanban, freeSolid.faColumns),
-//          item(currentView, pageStyle, View.ListV, freeSolid.faList),
 //          item(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
       }
