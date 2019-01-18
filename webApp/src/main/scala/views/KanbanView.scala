@@ -109,7 +109,8 @@ object KanbanView {
           val firstWorkspaceIdx = workspaces.head
           val firstWorkspaceId = graph.nodeIds(workspaces.head)
           if(tagBarExpanded())
-            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(flexShrink := 0, flexGrow := 1)
+            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(
+              flexShrink := 0, flexGrow := 1, overflow.auto)
           else
             VDomModifier(
               position.relative,
