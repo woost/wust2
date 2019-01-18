@@ -33,51 +33,58 @@ end
 $$ language plpgsql;
 
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid varchar(2), userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid uuid, level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid uuid, userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), nodeid)
+        VALUES ( nodeid, jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-
-CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION invite(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Author'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Invite'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION expanded(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION author(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Expanded'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Author'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION expanded(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(parentid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Expanded'), user_to_uuid(userid) )
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
+
+CREATE or replace FUNCTION child(parentid varchar(2), childid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES ( node_to_uuid(parentid), jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(childid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION child(parentid uuid, childid uuid, deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), parentid)
+        VALUES ( parentid, jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), childid )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -90,18 +97,18 @@ begin
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION pinned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION pinned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Pinned'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Pinned'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION assigned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION assigned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Assigned'), node_to_uuid(nodeid))
+        VALUES (node_to_uuid(nodeid), jsonb_build_object('type', 'Assigned'), user_to_uuid(userid))
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -120,6 +127,7 @@ CREATE or replace FUNCTION array_sort(anyarray) RETURNS anyarray AS $$
 $$ LANGUAGE 'sql';
 
 
+
 -- IMPORTANT:
 -- exactly the same test cases as in GraphSpec
 -- when changing things, make sure to change them for the Graph as well.
@@ -131,8 +139,8 @@ select usernode('A1'); -- user
 select node('B1', 'restricted'); -- node without permission
 select node('C1', 'readwrite'); -- node with permission
 select node('D1', NULL); -- node with permission multiple inheritance
-select parent('D1', 'B1'); -- inheritance happens via this parent edge
-select parent('D1', 'C1'); -- inheritance happens via this parent edge
+select child('B1', 'D1'); -- inheritance happens via this child edge
+select child('C1', 'D1'); -- inheritance happens via this child edge
 
 SELECT cmp_ok(can_access_node(user_to_uuid('A1'), node_to_uuid('D1')), '=', true);
 SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A1'), array[node_to_uuid('D1')]), '=', array[]::uuid[]);
@@ -144,8 +152,8 @@ select usernode('A2');
 select node('B2', 'readwrite');
 select node('C2', NULL);
 select node('D2', NULL);
-select parent('C2', 'B2');
-select parent('D2', 'C2');
+select child('B2', 'C2');
+select child('C2', 'D2');
 
 SELECT cmp_ok(can_access_node(user_to_uuid('A2'), node_to_uuid('D2')), '=', true);
 SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A2'), array[node_to_uuid('D2')]), '=', array[]::uuid[]);
@@ -156,8 +164,8 @@ select usernode('A3');
 select node('B3', 'restricted');
 select node('C3', NULL);
 select node('D3', NULL);
-select parent('C3', 'B3');
-select parent('D3', 'C3');
+select child('B3', 'C3');
+select child('C3', 'D3');
 
 SELECT cmp_ok(can_access_node(user_to_uuid('A3'), node_to_uuid('D3')), '=', false);
 SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A3'), array[node_to_uuid('D3')]), '=', array[node_to_uuid('D3')]::uuid[]);
@@ -168,9 +176,9 @@ select usernode('A4');
 select node('B4', 'readwrite');
 select node('C4', NULL);
 select node('D4', NULL);
-select parent('C4', 'B4');
-select parent('D4', 'C4');
-select parent('C4', 'D4');
+select child('B4', 'C4');
+select child('C4', 'D4');
+select child('D4', 'C4');
 
 SELECT cmp_ok(can_access_node(user_to_uuid('A4'), node_to_uuid('D4')), '=', true);
 SELECT cmp_ok(can_access_node(user_to_uuid('A4'), node_to_uuid('C4')), '=', true);
@@ -183,9 +191,9 @@ select usernode('A5');
 select node('B5', 'restricted');
 select node('C5', NULL);
 select node('D5', NULL);
-select parent('C5', 'B5');
-select parent('D5', 'C5');
-select parent('C5', 'D5');
+select child('B5', 'C5');
+select child('C5', 'D5');
+select child('D5', 'C5');
 
 SELECT cmp_ok(can_access_node(user_to_uuid('A5'), node_to_uuid('D5')), '=', false);
 SELECT cmp_ok(can_access_node(user_to_uuid('A5'), node_to_uuid('C5')), '=', false);
@@ -205,7 +213,7 @@ SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A6'), array[node_to_uuid('D6')]),
 -- we assume that a user exist in any cases and therefore we do not handle this explicitly
 
 
--- inherit without any parent
+-- inherit without any child
 select cleanup();
 select usernode('A7'); -- user
 select node('B7', NULL); -- node with permission multiple inheritance

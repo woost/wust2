@@ -211,9 +211,9 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           if(isCollapsed)
-            div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand")
+            div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand")
           else
-            div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse"),
+            div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse"),
           ifCanWrite(div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit")),
           ifCanWrite(div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
@@ -266,7 +266,7 @@ object KanbanView {
             Styles.flex,
             justifyContent.center,
             div(cls := "fa-fw", Icons.expand, UI.popup := "Expand"),
-            onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes,
+            onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes,
             cursor.pointer,
             paddingBottom := "7px",
           ),
@@ -390,10 +390,10 @@ object KanbanView {
         })
       val expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes)
       val collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes)
       def toggle(compress : Boolean) = Rx {
         if(state.graph().isExpanded(state.user.now.id, node.id))
           collapse(compress)
@@ -498,7 +498,7 @@ object KanbanView {
           keyed(userNode.id),
           UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
           cursor.pointer,
-          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(userNode.id, node.id)) --> state.eventProcessor.changes,
+          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(node.id, userNode.id)) --> state.eventProcessor.changes,
         ))),
       ),
     )
@@ -637,7 +637,7 @@ object KanbanView {
       val change = {
         val newStageNode = Node.MarkdownStage(str)
         val add = GraphChanges.addNodeWithParent(newStageNode, focusedId)
-        val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newStageNode.id)
+        val expand = GraphChanges.connect(Edge.Expanded)(newStageNode.id, state.user.now.id)
         add merge expand
       }
       state.eventProcessor.changes.onNext(change)

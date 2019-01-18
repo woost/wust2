@@ -180,7 +180,7 @@ object RightSidebar {
         ),
         right = VDomModifier(
           searchInput("Add Tag", filter = _.role == NodeRole.Tag).foreach { tagId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Parent)(node.id, tagId))
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
           }
         ),
       ).apply(marginTop := "10px"),
@@ -195,7 +195,7 @@ object RightSidebar {
         ),
         right = VDomModifier(
           searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(UserId(userId), node.id))
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(node.id, UserId(userId)))
           }
         )
       ).apply(marginTop := "10px"),

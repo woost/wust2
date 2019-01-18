@@ -46,14 +46,14 @@ object GraphBenchmarks {
     import wust.ids._
     def randomGraph(size:Int, d:Double) = {
       val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-      val edges = for( a <- nodes; b <- nodes if rDouble <= d ) yield Edge.Parent(a.id, b.id)
+      val edges = for( a <- nodes; b <- nodes if rDouble <= d ) yield Edge.Child(ParentId(b.id), ChildId(a.id))
       Graph(nodes, edges)
     }
 
     def randomChannelGraph(size:Int, d:Double):(Graph, Node.User) = {
       val graph = randomGraph(size, d)
       val userNode = Node.User(UserId.fresh, NodeData.User("harals", true, 1), NodeMeta.User)
-      val edges = graph.nodes.map(n => Edge.Pinned(userNode.id, n.id))
+      val edges = graph.nodes.map(n => Edge.Pinned(n.id, userNode.id))
       (graph addEdges edges, userNode)
     }
 
@@ -69,7 +69,7 @@ object GraphBenchmarks {
       Benchmark[Graph]("parents path",
       { size =>
         val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-        val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Parent(a.id, EdgeData.Parent, b.id)}
+        val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id))
         Graph(nodes, edges)
       },
       (graph, _) =>

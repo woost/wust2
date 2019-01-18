@@ -41,7 +41,7 @@ object CreateNewPrompt {
         GraphChanges.addToParent(childNodes.now, newNode.id)
 
       val ack = if (addToChannels.now) {
-        val channelChanges = GraphChanges.connect(Edge.Pinned)(state.user.now.id, newNode.id)
+        val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, state.user.now.id)
         val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
         state.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
         ack

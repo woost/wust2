@@ -3,6 +3,7 @@ package wust.graph
 import wust.ids._
 
 object CollapsedGraph {
+  // TODO: check if source + target has to be changed after Edge.Parent refactoring
   case class LocalConnection(sourceId: NodeId, content: EdgeData, targetId: NodeId)
 }
 

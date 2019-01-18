@@ -2,7 +2,7 @@ package wust.core
 
 import wust.api.AuthUser
 import wust.db.Db
-import wust.graph.{Edge, GraphChanges, Node}
+import wust.graph._
 import wust.ids.NodeId
 import wust.util.collection._
 
@@ -64,17 +64,9 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //Allow for node where the template applies and the user did this explicitly to the template.
     //Do not allow to do this for every possible node. attackers can spam an account.
     val addEdgesCheck: Either[List[String], List[Seq[NodeId]]] = eitherSeq(changes.addEdges.map {
-      case e: Edge.Author              => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
-      case e: Edge.Member              => Right(Seq(e.nodeId))
-      case e: Edge.Parent              => Right(Seq(e.childId, e.parentId))
-      case e: Edge.LabeledProperty     => Right(Seq(e.propertyId, e.nodeId))
-      case e: Edge.Notify              => Right(Seq(e.nodeId))
-      case e: Edge.Expanded            => Right(Seq(e.nodeId))
-      case e: Edge.Assigned            => Right(Seq(e.nodeId))
-      case e: Edge.Pinned              => Right(Seq(e.nodeId))
-      case e: Edge.Invite              => Right(Seq(e.nodeId))
-      case e: Edge.DerivedFromTemplate => Right(Seq(e.nodeId, e.referenceNodeId))
-      case e: Edge.Automated           => Right(Seq(e.nodeId, e.templateNodeId))
+      case e: Edge.Author  => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
+      case e: Edge.User    => Right(Seq(e.nodeId))
+      case e: Edge.Content => Right(Seq(e.sourceId, e.targetId))
     }(breakOut))
 
     // Only allow deleting edges that you have access to.
@@ -83,17 +75,11 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //  Left(reason: String) => Not allowed to delete this edge, because $reason
     //  Right(nodeIds: Seq[NodeId]) => Allowed to delete this edge, if you have acces to all $nodeIds
     val delEdgesCheck: Either[List[String], List[Seq[NodeId]]] = eitherSeq(changes.delEdges.map {
-      case _: Edge.Author              => Left("Cannot delete author edges")
-      case e: Edge.Member              => Right(Seq(e.nodeId))
-      case e: Edge.Parent              => Right(Seq(e.childId, e.parentId))
-      case e: Edge.LabeledProperty     => Right(Seq(e.propertyId, e.nodeId))
-      case e: Edge.Notify              => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete notify edge of own user")
-      case e: Edge.Expanded            => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete expanded edge of own user")
-      case e: Edge.Assigned            => Right(Seq(e.nodeId))
-      case e: Edge.Pinned              => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete notify edge of own user")
-      case e: Edge.Invite              => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete invite edge of own user")
-      case e: Edge.DerivedFromTemplate => Right(Seq(e.nodeId, e.referenceNodeId))
-      case e: Edge.Automated           => Right(Seq(e.nodeId, e.templateNodeId))
+      case _: Edge.Author   => Left("Cannot delete author edges")
+      case e: Edge.Member   => Right(Seq(e.nodeId))
+      case e: Edge.Assigned => Right(Seq(e.nodeId))
+      case e: Edge.User     => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete edge of own user")
+      case e: Edge.Content  => Right(Seq(e.sourceId, e.targetId))
     }(breakOut))
 
     val checkNodeIds: Either[List[String], List[NodeId]] = for {

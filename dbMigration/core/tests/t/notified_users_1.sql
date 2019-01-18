@@ -33,51 +33,58 @@ end
 $$ language plpgsql;
 
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid varchar(2), userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION member(userid varchar(2), nodeid uuid, level accesslevel default 'readwrite') RETURNS void AS $$
+CREATE or replace FUNCTION member(nodeid uuid, userid varchar(2), level accesslevel default 'readwrite') RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Member', 'level', level), nodeid)
+        VALUES ( nodeid, jsonb_build_object('type', 'Member', 'level', level), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-
-CREATE or replace FUNCTION author(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION invite(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Author'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Invite'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION expanded(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION author(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Expanded'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Author'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid varchar(2), parentid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION expanded(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (node_to_uuid(childid), jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(parentid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Expanded'), user_to_uuid(userid) )
+        ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
+end
+$$ language plpgsql;
+
+CREATE or replace FUNCTION child(parentid varchar(2), childid varchar(2), deletedAt timestamp default null) RETURNS void AS $$
+begin
+    INSERT INTO edge (sourceid, data, targetid)
+        VALUES ( node_to_uuid(parentid), jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), node_to_uuid(childid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION parent(childid uuid, parentid uuid, deletedAt timestamp default null) RETURNS void AS $$
+CREATE or replace FUNCTION child(parentid uuid, childid uuid, deletedAt timestamp default null) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (childid, jsonb_build_object('type', 'Parent', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), parentid)
+        VALUES ( parentid, jsonb_build_object('type', 'Child', 'deletedAt', (EXTRACT(EPOCH FROM deletedAt) * 1000)::bigint), childid )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -90,18 +97,18 @@ begin
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION pinned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION pinned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Pinned'), node_to_uuid(nodeid))
+        VALUES ( node_to_uuid(nodeid), jsonb_build_object('type', 'Pinned'), user_to_uuid(userid) )
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data;
 end
 $$ language plpgsql;
 
-CREATE or replace FUNCTION assigned(userid varchar(2), nodeid varchar(2)) RETURNS void AS $$
+CREATE or replace FUNCTION assigned(nodeid varchar(2), userid varchar(2)) RETURNS void AS $$
 begin
     INSERT INTO edge (sourceid, data, targetid)
-        VALUES (user_to_uuid(userid), jsonb_build_object('type', 'Assigned'), node_to_uuid(nodeid))
+        VALUES (node_to_uuid(nodeid), jsonb_build_object('type', 'Assigned'), user_to_uuid(userid))
         ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data;
 end
 $$ language plpgsql;
@@ -172,7 +179,7 @@ select cleanup();
 select usernode('41');
 select node('41', 'restricted');
 select node('42', 'restricted');
-select parent('41', '42');
+select child('42', '41');
 select member('41', '41', 'readwrite');
 select notify('41', '41');
 
@@ -193,7 +200,7 @@ select cleanup();
 select usernode('51');
 select node('51', 'restricted');
 select node('52', 'restricted');
-select parent('51', '52');
+select child('52', '51');
 select member('51', '51', 'readwrite');
 select notify('52', '51');
 
@@ -209,7 +216,7 @@ select cleanup();
 select usernode('61');
 select node('61');
 select node('62', 'restricted');
-select parent('61', '62');
+select child('62', '61');
 select notify('61', '61');
 
 SELECT set_eq( --8
@@ -231,8 +238,8 @@ select usernode('72');
 select node('71', 'readwrite');
 select node('72', 'restricted');
 select node('73', 'readwrite');
-select parent('71', '72');
-select parent('72', '73');
+select child('72', '71');
+select child('73', '72');
 select member('72', '72', 'readwrite');
 select notify('73', '71');
 select notify('73', '72');
@@ -257,14 +264,14 @@ select node('82', 'restricted');
 select node('83');
 select node('84', 'restricted');
 select node('85');
-select parent('81', '82');
-select parent('82', '83');
-select parent('83', '84');
-select parent('84', '85');
-select member('81', '82', 'readwrite');
-select member('81', '84', 'readwrite');
-select member('82', '84', 'readwrite');
+select child('82', '81');
+select child('83', '82');
+select child('84', '83');
+select child('85', '84');
+select member('82', '81', 'readwrite');
+select member('84', '81', 'readwrite');
 select member('84', '82', 'readwrite');
+select member('82', '84', 'readwrite');
 select notify('85', '81');
 select notify('85', '82');
 select notify('85', '83');
@@ -298,11 +305,11 @@ select node('92');
 select node('93', 'restricted');
 select node('94');
 select node('95');
-select parent('91', '95');
-select parent('91', '92');
-select parent('92', '93');
-select parent('93', '94');
-select member('91', '93', 'readwrite');
+select child('95', '91');
+select child('92', '91');
+select child('93', '92');
+select child('94', '93');
+select member('93', '91', 'readwrite');
 select notify('94', '91');
 select notify('94', '92');
 select notify('95', '92');
@@ -328,10 +335,10 @@ select usernode('02');
 select node('01');
 select node('02');
 select node('03', 'restricted');
-select parent('01', '02');
-select parent('02', '03');
-select parent('03', '01');
-select member('01', '03');
+select child('02', '01');
+select child('03', '02');
+select child('01', '03');
+select member('03', '01');
 select notify('01', '01');
 select notify('01', '02');
 
@@ -357,8 +364,8 @@ select usernode('02');
 select node('01');
 select node('02');
 select node('03');
-select parent('01', '02');
-select parent('01', '03', (now_utc() - interval '1' hour)::timestamp);
+select child('02', '01');
+select child('03', '01', (now_utc() - interval '1' hour)::timestamp);
 select notify('02', '01');
 select notify('03', '02');
 
@@ -382,9 +389,9 @@ SELECT set_eq( --13
 -- select node('02');
 -- select node('03');
 -- select node('04');
--- select parent('01', '02');
--- select parent('02', '03');
--- select parent('03', '04');
+-- select child('02', '01');
+-- select child('03', '02');
+-- select child('04', '03');
 -- select notify('01', '01');
 -- select notify('03', '01');
 -- select notify('02', '02');
@@ -411,9 +418,9 @@ SELECT set_eq( --13
 -- select node('02');
 -- select node('03');
 -- select node('04');
--- select parent('01', '02');
--- select parent('02', '03');
--- select parent('03', '04');
+-- select child('02', '01');
+-- select child('03', '02');
+-- select child('04', '03');
 -- select notify('01', '01');
 -- select notify('03', '01');
 -- select notify('02', '02');
@@ -443,7 +450,7 @@ SELECT set_eq( --13
 -- select usernode('A1');
 -- select node('B1', 'restricted');
 -- select node('B2', 'restricted');
--- select parent('B1', 'B2');
+-- select child('B2', 'B1');
 -- select member('A1', 'B1', 'readwrite');
 -- select before('B1', 'P1', 'N1');
 -- select notify('B1', 'A1');

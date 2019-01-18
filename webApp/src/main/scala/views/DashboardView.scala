@@ -106,7 +106,7 @@ object DashboardView {
       },
       cursor.pointer,
 
-      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, focusedId)))
+      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(focusedId), ChildId(project.id))))
     )
   }
 

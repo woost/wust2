@@ -1,9 +1,10 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{Edge, GraphChanges, Node}
+import wust.graph._
 import wust.db.{Data, Db}
 import wust.ids._
+
 import scala.collection.JavaConverters._
 import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
@@ -90,7 +91,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def parentNodeByChildId(graphChanges: GraphChanges): Future[Map[NodeId, Data.Node]] = {
-    val childIdByParentId: Map[NodeId, NodeId] = graphChanges.addEdges.collect { case e: Edge.Parent => e.parentId -> e.childId }(breakOut)
+    val childIdByParentId: Map[NodeId, NodeId] = graphChanges.addEdges.collect { case e: Edge.Child => e.parentId -> e.childId }(breakOut)
 
     if(childIdByParentId.nonEmpty) {
       db.node.get(childIdByParentId.keySet).map(_.map(parentNode => childIdByParentId(parentNode.id) -> parentNode).toMap)
@@ -102,11 +103,8 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
       db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
         .map { permittedNodeIds =>
           val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
-            case e: Edge.Author => List(e.nodeId)
-            case e: Edge.Member => List(e.nodeId)
-            case e: Edge.Notify => List(e.nodeId)
-            case e: Edge.Assigned => List(e.nodeId)
-            case e => List(e.sourceId, e.targetId)
+            case e: Edge.User    => List(e.sourceId)
+            case e: Edge.Content => List(e.sourceId, e.targetId)
           })
 
           // we send replacements without a check, because they are normally only about users
