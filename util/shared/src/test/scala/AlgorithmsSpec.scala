@@ -56,6 +56,19 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       assert(dfs == List(0, 2, 1, 3))
     }
 
+    "avoid stack overflow" in {
+      val edges = NestedArrayInt(Array(
+        Array(4, 3, 2, 1),
+        Array(4, 3, 2),
+        Array[Int](),
+        Array[Int](),
+        Array[Int]()
+      ))
+
+      val dfs = depthFirstSearch(0, edges).toList
+      assert(dfs == List(0, 1, 2, 3, 4))
+    }
+
     "undirected cycle (diamond)" in {
       val edges = NestedArrayInt(Array(
         Array(1, 2),
@@ -69,7 +82,7 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
     }
   }
 
-  "depth first search cyles" - {
+  "depth first search cycles" - {
     "directed cycle" in {
       val edges = NestedArrayInt(Array(
         Array(1),
