@@ -15,9 +15,9 @@ object ZIndex {
   val overlayLow = 1000
   val tooltip = 1500
   val loading = 1750
-  val dragging = 10000
   val overlay = 12000
   val modal = 15000
+  val dragging = 20000
 }
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
@@ -876,6 +876,11 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden,
     fontSize.medium // same as in kanban card
   )
+  ".kanban-uncategorized-title .buttonbar" - (
+    padding(kanbanColumnPadding),
+    visibility.hidden,
+    fontSize.medium // same as in kanban card
+  )
 
   ".kanbancolumnheader > p" - (
     marginBottom(0 em) // default was 1 em
@@ -885,6 +890,9 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumnheader:hover .buttonbar" - (
     visibility.visible
   )
+  ".kanban-uncategorized-title:hover .buttonbar" - (
+    visibility.visible
+    )
 
   ".kanbancolumnheader .buttonbar > div," +
   ".nodecard .buttonbar > div" - (

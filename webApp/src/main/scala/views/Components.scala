@@ -758,4 +758,45 @@ object Components {
         )
       )
     }
+
+  def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VNode): VNode = {
+    div(
+      elements.map { element =>
+        div(
+          Styles.flex,
+          marginTop := "10px",
+          alignItems.center,
+          justifyContent.spaceBetween,
+
+          renderElement(element),
+
+          button(
+            tooltip.map(UI.tooltip := _),
+            cls := "ui tiny compact negative basic button",
+            marginLeft := "10px",
+            "Remove",
+            onClick(element) --> removeSink
+          ),
+        )
+      }
+    )
   }
+
+  def automatedNodesOfNode(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val automatedNodes: Rx[Seq[Node]] = Rx {
+      val graph = state.rawGraph()
+      graph.automatedNodes(graph.idToIdx(node.id))
+    }
+
+    Rx {
+      if (automatedNodes().isEmpty) VDomModifier.empty
+      else div(
+        div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
+        automatedNodes().map(node => Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px"))),
+        marginLeft := "3px", marginRight := "3px",
+        UI.popup("bottom center") := "This node is an active automation template"
+      )
+    },
+  }
+}
+

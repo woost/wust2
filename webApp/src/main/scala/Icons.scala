@@ -63,6 +63,7 @@ object Icons {
   val permissionPrivate: IconDefinition = freeSolid.faLock
   val permissionPublic: IconDefinition = freeSolid.faGlobeAmericas
 
+  val automate: IconDefinition =  freeSolid.faRobot
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
   val mentionIn: IconDefinition = freeSolid.faCopy
   val signOut: IconDefinition =  freeSolid.faSignOutAlt

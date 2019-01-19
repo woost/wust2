@@ -109,6 +109,7 @@ object PageHeader {
         padding := "0 5px",
         nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
         channelTitle.map(_(marginRight := "5px")),
+        Components.automatedNodesOfNode(state, pageNode),
         channelMembersList,
         permissionIndicator,
         paddingBottom := "5px",
@@ -148,7 +149,7 @@ object PageHeader {
         div(
           Elements.icon(Icons.filter),
           color := "green",
-          onClick.stopPropagation(Seq(state.defaultTransformation)) --> state.graphTransformations,
+          onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
           cursor.pointer,
           UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
@@ -160,7 +161,7 @@ object PageHeader {
     )
   }
 
-  private def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
+  def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       flexWrap.wrap,
@@ -629,10 +630,8 @@ object PageHeader {
         }
       ))
 
-
-    val addMemberItem = channel match {
-      case channel: Node.Content if canWrite => manageMembers(state, channel)
-      case _ => VDomModifier.empty
+    val addMemberItem: VDomModifier = channelAsContent collect {
+      case channel if canWrite => manageMembers(state, channel)
     }
     val shareItem = channelIsContent.ifTrue[VDomModifier](shareButton(state, channel))
     val searchItem = searchButton(state, channel)

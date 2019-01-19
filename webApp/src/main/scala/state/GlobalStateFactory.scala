@@ -37,8 +37,8 @@ object GlobalStateFactory {
 
     val eventProcessor = EventProcessor(
       Client.observable.event,
-      (changes, graph) => applyEnrichmentToChanges(graph, viewConfig.now)(changes),
-      changes => Client.api.changeGraph(changes.map(EmojiReplacer.replaceChangesToColons)),
+      (changes, graph) => GraphChangesAutomation.enrich(graph, viewConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
+      Client.api.changeGraph,
       Client.currentAuth
     )
 
@@ -60,6 +60,7 @@ object GlobalStateFactory {
       .debounce(0.2 second)
       .map(_ => ScreenSize.calculate())
       .unsafeToRx(ScreenSize.calculate())
+
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
@@ -263,14 +264,4 @@ object GlobalStateFactory {
 
     state
   }
-
-
-
-  private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(
-      changes: GraphChanges
-  ): GraphChanges = {
-    import changes.consistent._
-
-    changes.consistent
-}
 }

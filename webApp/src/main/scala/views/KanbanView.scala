@@ -15,7 +15,7 @@ import wust.sdk.NodeColor._
 import wust.util._
 import flatland._
 import wust.webApp.{BrowserDetect, Icons, ItemProperties}
-import wust.webApp.dragdrop.{DragContainer, DragItem}
+import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, View}
 import wust.webApp.views.Components._
@@ -110,7 +110,7 @@ object KanbanView {
           val firstWorkspaceIdx = workspaces.head
           val firstWorkspaceId = graph.nodeIds(workspaces.head)
           if(tagBarExpanded())
-            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(overflow.auto)
+            tagList(state, firstWorkspaceId, newTagFieldActive, Some(tagBarExpanded)).apply(overflow.auto)
           else
             VDomModifier(
               position.relative,
@@ -133,11 +133,11 @@ object KanbanView {
     )
   }
 
-  private def tagList(
+  def tagList(
     state: GlobalState,
     workspaceId: NodeId,
-    newTagFieldActive: Var[Boolean],
-    tagBarExpanded: Var[Boolean],
+    newTagFieldActive: Var[Boolean] = Var(false),
+    tagBarExpanded: Option[Var[Boolean]] = None,
   )(implicit ctx:Ctx.Owner) = {
     val tags:Rx[Seq[Tree]] = Rx {
       val graph = state.graph()
@@ -168,7 +168,7 @@ object KanbanView {
         Styles.flex,
         justifyContent.flexEnd,
         color.white,
-        closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> tagBarExpanded),
+        tagBarExpanded.map(tagBarExpanded => closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> tagBarExpanded)),
       ),
 
       Rx { renderTagTree(tags()) },
@@ -270,7 +270,18 @@ object KanbanView {
       cls := "kanbantoplevelcolumn",
       keyed,
       border := s"1px dashed $columnColor",
-      p(cls := "kanban-uncategorized-title", "Inbox / Todo"),
+      p(
+        cls := "kanban-uncategorized-title",
+        Styles.flex,
+        justifyContent.spaceBetween,
+        alignItems.center,
+        "Inbox / Todo",
+        div(
+          cls := "buttonbar",
+          Styles.flex,
+          GraphChangesAutomationUI.settingsButton(state, workspaceId),
+        ),
+      ),
       div(
         cls := "kanbancolumnchildren",
         registerDragContainer(state, DragContainer.Kanban.Inbox(workspaceId, sortedChildren)),
@@ -328,7 +339,9 @@ object KanbanView {
           )),
 //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(node.id)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
         )
-      }
+      },
+
+      GraphChangesAutomationUI.settingsButton(state, node.id),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -430,7 +443,7 @@ object KanbanView {
     )
   }
 
-  private def renderCard(
+  def renderCard(
     state: GlobalState,
     node: Node,
     parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to pageParentId
@@ -440,6 +453,8 @@ object KanbanView {
     activeAddCardFields: Var[Set[List[NodeId]]],
     showCheckbox:Boolean = false,
     isDone:Boolean = false,
+    dragTarget: NodeId => DragTarget = DragItem.Task.apply,
+    dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
     val editable = Var(false)
 
@@ -448,7 +463,6 @@ object KanbanView {
       val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
       nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
     }
-
 
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
@@ -776,10 +790,11 @@ object KanbanView {
         )
       else VDomModifier.empty
     ).apply(
-      Rx{ VDomModifier.ifNot(editable() || isDone)(drag(DragItem.Task(node.id))) }, // prevents dragging when selecting text
+      Rx{ VDomModifier.ifNot(editable() || isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))) }, // prevents dragging when selecting text
       keyed(node.id, parentId),
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
+      Components.automatedNodesOfNode(state, node),
       cardTags(state, node.id),
       cardProperties(state, node.id),
       Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
