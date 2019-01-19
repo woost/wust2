@@ -694,7 +694,7 @@ object KanbanView {
 
     def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
       Rx {
-        val graph = state.graph()
+        val graph = state.rawGraph()
         val nodeIdx = graph.idToIdx(nodeId)
         val tags = graph.tagParentsIdx(nodeIdx).map(graph.nodes)
         VDomModifier.ifTrue(tags.nonEmpty) {
@@ -710,7 +710,7 @@ object KanbanView {
 
     def cardProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
       Rx {
-        val graph = state.graph()
+        val graph = state.rawGraph()
         val nodeIdx = graph.idToIdx(nodeId)
         val properties = graph.propertyPairIdx(nodeIdx)
         VDomModifier.ifTrue(properties.nonEmpty) {
