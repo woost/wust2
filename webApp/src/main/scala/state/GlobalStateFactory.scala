@@ -265,33 +265,6 @@ object GlobalStateFactory {
   }
 
 
-  object EmojiTitleConverter {
-    val emojiTitleConvertor = new EmojiConvertor()
-    emojiTitleConvertor.replace_mode = "unified"
-    emojiTitleConvertor.allow_native = true
-  }
-
-  object EmojiReplacer {
-    val emojiTextConvertor = new EmojiConvertor()
-    emojiTextConvertor.colons_mode = true
-    emojiTextConvertor.text_mode = true
-    private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.map {
-      case n: Node.Content =>
-        n.data match {
-          case editable: EditableText =>
-            scribe.debug(s"replacing node emoji: ${ n.str }.")
-            editable.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str))) match {
-              case Some(emojiData) =>
-                scribe.debug(s"New representation: ${ emojiData.str }.")
-                n.copy(data = emojiData)
-              case None            => n
-            }
-          case _                      => n
-        }
-      case n                                 => n
-    }(breakOut)
-    def replaceChangesToColons(graphChanges: GraphChanges) = graphChanges.copy(addNodes = replaceToColons(graphChanges.addNodes))
-  }
 
   private def applyEnrichmentToChanges(graph: Graph, viewConfig: ViewConfig)(
       changes: GraphChanges
@@ -299,5 +272,5 @@ object GlobalStateFactory {
     import changes.consistent._
 
     changes.consistent
-  }
+}
 }
