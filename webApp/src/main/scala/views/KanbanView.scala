@@ -115,7 +115,7 @@ object KanbanView {
             VDomModifier(
               position.relative,
               div(
-                "show tags",
+                "Show Tags",
                 onClick.stopPropagation(true) --> tagBarExpanded,
                 cursor.pointer,
 
