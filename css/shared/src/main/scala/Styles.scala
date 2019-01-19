@@ -227,10 +227,6 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.normal,
   )
 
-  ".breadcrumb.tag .markdown" - (
-    display.block,
-  )
-
   ".breadcrumb.nodecard," +
   ".breadcrumb .nodecard-content" - (
     minHeight(0 em),
@@ -708,14 +704,21 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.small,
     color(c"#FEFEFE"),
     borderRadius(tagBorderRadius),
-    border(1 px, solid, transparent), // when dragging this will be replaced with a color
     padding(0 px, 3 px),
     marginRight(2 px),
     marginTop(1 px),
     marginBottom(1 px),
     whiteSpace.nowrap,
-    cursor.pointer,
-    display.inlineBlock
+    display.inlineBlock,
+    overflow.hidden, // required for textOverflow
+    maxWidth(100 %%), // required for textOverflow
+  )
+  
+  ".tag .markdown *" - (
+    /* BOTH of the following are required for text-overflow */
+    whiteSpace.nowrap,
+    overflow.hidden,
+    textOverflow := "ellipsis",
   )
 
   ".tag a" - (
@@ -724,7 +727,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".tag .markdown" - (
-    display.inlineBlock,
+    display.block, // required for textOverflow
+    overflow.hidden, // required for textOverflow
   )
 
   ".tagdot" - (

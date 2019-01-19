@@ -249,13 +249,18 @@ object Components {
     )
   }
 
-  def removableTagMod(action: () => Unit) = {
-    span(
-      "×",
-      cls := "actionbutton",
-      onClick.stopPropagation foreach {
-        action()
-      },
+  def removableTagMod(action: () => Unit):VDomModifier = {
+    VDomModifier(
+      Styles.flex,
+      display.inlineFlex,
+      span(
+        Styles.flexStatic,
+        "×",
+        cls := "actionbutton",
+        onClick.stopPropagation foreach {
+          action()
+        },
+      )
     )
   }
 
@@ -314,8 +319,10 @@ object Components {
     )(implicit ctx: Ctx.Owner): VNode = {
 
       div( // checkbox and nodetag are both inline elements because of fomanticui
+        Styles.flex,
+        alignItems.center,
         div(
-          verticalAlign.middle,
+          Styles.flexStatic,
           cls := "ui checkbox",
           ViewFilter.addFilterCheckbox(
             state,
@@ -324,7 +331,7 @@ object Components {
           ),
           label(), // needed for fomanticui
         ),
-        nodeTag(state, tagNode, pageOnClick, dragOptions)(verticalAlign.middle),
+        nodeTag(state, tagNode, pageOnClick, dragOptions),
       )
     }
 
@@ -334,7 +341,7 @@ object Components {
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
     ): VNode = {
-      val contentString = renderNodeData(tag.data, maxLength = Some(20))
+      val contentString = renderNodeData(tag.data)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
     }
 

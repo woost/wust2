@@ -7,7 +7,7 @@ import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.sdk.BaseColors
@@ -37,6 +37,7 @@ object KanbanView {
     div(
       height := "100%",
       Styles.flex,
+      justifyContent.spaceBetween,
 
       Rx {
         val page = state.page()
@@ -109,8 +110,7 @@ object KanbanView {
           val firstWorkspaceIdx = workspaces.head
           val firstWorkspaceId = graph.nodeIds(workspaces.head)
           if(tagBarExpanded())
-            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(
-              flexShrink := 0, flexGrow := 1, overflow.auto)
+            tagList(state, firstWorkspaceId, newTagFieldActive, tagBarExpanded).apply(overflow.auto)
           else
             VDomModifier(
               position.relative,
@@ -122,7 +122,8 @@ object KanbanView {
                 position.absolute,
                 top := "0",
                 right := "0",
-                backgroundColor := "rgba(255,255,255,0.9)",
+                backgroundColor := CommonStyles.sidebarBgColor,
+                color.white,
                 borderBottomLeftRadius := "5px",
                 padding := "5px",
               )
@@ -143,8 +144,6 @@ object KanbanView {
       val workspaceIdx = graph.idToIdx(workspaceId)
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
-    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
-
     def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
         checkboxNodeTag(state, node)
@@ -159,14 +158,16 @@ object KanbanView {
     }
 
     div(
-      borderLeft := s"1px solid $columnColor",
+      width := "180px",
       paddingLeft := "10px",
       paddingRight := "10px",
       paddingBottom := "10px",
+      backgroundColor := CommonStyles.sidebarBgColor,
 
       div(
         Styles.flex,
         justifyContent.flexEnd,
+        color.white,
         closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> tagBarExpanded),
       ),
 
@@ -196,7 +197,7 @@ object KanbanView {
       if(v.isEmpty) newTagFieldActive() = false
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
+    val placeHolder = ""
 
     div(
       cls := "kanbanaddnodefield",
@@ -214,7 +215,7 @@ object KanbanView {
           div(
             cls := "kanbanaddnodefieldtext",
             "+ Add Tag",
-            color := "rgba(0,0,0,0.62)",
+            color := "rgba(255,255,255,0.62)",
             onClick foreach { newTagFieldActive() = true }
           )
       }
