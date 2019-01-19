@@ -575,16 +575,6 @@ object PageHeader {
     val permissionItem = Permission.permissionItem(state, channel)
     val nodeRoleItem:VDomModifier = channelAsContent.collect {
       case channel if canWrite && channel.role != NodeRole.Stage =>
-        def nodeRoleSubItem(nodeRole: NodeRole, roleIcon: IconLookup) = div(
-          cls := "item",
-          Elements.icon(roleIcon)(marginRight := "5px"),
-          nodeRole.toString,
-          (channel.role == nodeRole).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-          onClick(GraphChanges.addNode(channel.copy(role = nodeRole))) --> state.eventProcessor.changes,
-          onClick foreach {
-            Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
-          }
-        )
 
         div(
           cls := "item",
@@ -592,7 +582,7 @@ object PageHeader {
           span(cls := "text", "Convert to ...", cursor.pointer),
           div(
             cls := "menu",
-            ConvertSelection.all.map { convert => nodeRoleSubItem(convert.role, convert.icon) }
+            ConvertSelection.all.map { convert => ConvertSelection.convertRoleSubItem(state, channel, convert.role, convert.icon) }
           )
         )
     }
@@ -761,6 +751,18 @@ case class ConvertSelection(
   description: String,
 )
 object ConvertSelection {
+
+  def convertRoleSubItem(state: GlobalState, node: Node.Content, nodeRole: NodeRole, roleIcon: IconLookup) = div(
+    cls := "item",
+    Elements.icon(roleIcon)(marginRight := "5px"),
+    nodeRole.toString,
+    (node.role == nodeRole).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
+    onClick(GraphChanges.addNode(node.copy(role = nodeRole))) --> state.eventProcessor.changes,
+    onClick foreach {
+      Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
+    }
+  )
+
   val all =
     ConvertSelection(
       role = NodeRole.Message,
