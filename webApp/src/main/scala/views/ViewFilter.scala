@@ -21,6 +21,8 @@ import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
 import wust.webApp.views.GraphOperation.GraphTransformation
 
+import scala.collection.breakOut
+
 object ViewFilter {
 
   private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
@@ -30,6 +32,7 @@ object ViewFilter {
     ViewGraphTransformation.Deleted.noDeletedButGraced(state),
     ViewGraphTransformation.Assignments.onlyAssignedTo(state),
     ViewGraphTransformation.Assignments.onlyNotAssigned(state),
+    ViewGraphTransformation.Automated.hideTemplates(state),
     //    Identity(state),
   )
 
@@ -159,6 +162,15 @@ object ViewGraphTransformation {
     )
   }
 
+  object Automated {
+    def hideTemplates(state: GlobalState) = ViewGraphTransformation(
+      state = state,
+      icon = Icons.automate,
+      description = s"Hide automation templates",
+      transform = GraphOperation.AutomatedHideTemplates,
+    )
+  }
+
   object Assignments {
     def onlyAssignedTo(state: GlobalState) = ViewGraphTransformation (
       state = state,
@@ -242,6 +254,17 @@ object GraphOperation {
         }
         graph.copy(edges = newEdges)
       }
+    }
+  }
+
+  case object AutomatedHideTemplates extends UserViewGraphTransformation {
+    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+      val templateNodeIds: Set[NodeId] = graph.edges.collect { case e: Edge.Automated => e.templateNodeId }(breakOut)
+      val newEdges = graph.edges.filter {
+        case e: Edge.Parent if templateNodeIds.contains(e.sourceId) => false
+        case _              => true
+      }
+      graph.copy(edges = newEdges)
     }
   }
 

@@ -227,6 +227,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     nodeIds(i) = nodeId
   }
 
+  def idToIdxOrThrow(id: NodeId): Int = _idToIdx.getOrElse(id, throw new Exception(s"Id '$id' not found in graph"))
   val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
   @inline def idToIdxGet(nodeId: NodeId): Option[Int] = {
     val idx = idToIdx(nodeId)
@@ -274,6 +275,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val assignedNodesDegree = new Array[Int](n)
   private val assignedUsersDegree = new Array[Int](n)
   private val propertiesDegree = new Array[Int](n)
+  private val automatedDegree = new Array[Int](n)
+  private val automatedReverseDegree = new Array[Int](n)
+  private val derivedFromTemplateDegree = new Array[Int](n)
+  private val derivedFromTemplateReverseDegree = new Array[Int](n)
 
   private val now = EpochMilli.now
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(now - (24 * 3600 * 1000))
@@ -328,17 +333,23 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case _: Edge.Assigned =>
             assignedNodesDegree(sourceIdx) += 1
             assignedUsersDegree(targetIdx) += 1
-          case _: Edge.Expanded =>
+          case _: Edge.Expanded            =>
             expandedNodesDegree(sourceIdx) += 1
-          case _: Edge.Notify =>
+          case _: Edge.Notify              =>
             notifyByUserDegree(targetIdx) += 1
-          case _: Edge.Pinned =>
+          case _: Edge.Pinned              =>
             pinnedNodeDegree(sourceIdx) += 1
-          case _: Edge.Invite =>
+          case _: Edge.Invite              =>
             inviteNodeDegree(sourceIdx) += 1
-          case _: Edge.LabeledProperty =>
+          case _: Edge.LabeledProperty     =>
             propertiesDegree(sourceIdx) += 1
-          case _ =>
+          case _: Edge.Automated           =>
+            automatedDegree(sourceIdx) += 1
+            automatedReverseDegree(targetIdx) += 1
+          case _: Edge.DerivedFromTemplate =>
+            derivedFromTemplateDegree(sourceIdx) += 1
+            derivedFromTemplateReverseDegree(targetIdx) += 1
+          case _                           =>
         }
       }
     }
@@ -367,6 +378,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
   private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
   private val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
+  private val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
+  private val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
+  private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
+  private val derivedFromTemplateRerverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
 
   consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
@@ -418,15 +433,21 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case _: Edge.Assigned =>
         assignedNodesIdxBuilder.add(sourceIdx, targetIdx)
         assignedUsersIdxBuilder.add(targetIdx, sourceIdx)
-      case _: Edge.Notify =>
+      case _: Edge.Notify              =>
         notifyByUserIdxBuilder.add(targetIdx, sourceIdx)
-      case _: Edge.Pinned =>
+      case _: Edge.Pinned              =>
         pinnedNodeIdxBuilder.add(sourceIdx, targetIdx)
-      case _: Edge.Invite =>
+      case _: Edge.Invite              =>
         inviteNodeIdxBuilder.add(sourceIdx, targetIdx)
-      case _: Edge.LabeledProperty =>
+      case _: Edge.LabeledProperty     =>
         propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-      case _ =>
+      case _: Edge.Automated           =>
+        automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
+      case _: Edge.DerivedFromTemplate =>
+        derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        derivedFromTemplateRerverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
+      case _                           =>
     }
   }
 
@@ -453,6 +474,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
   val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
+  val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
+  val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
+  val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
+  val derivedFromTemplateReverseEdgeIdx: NestedArrayInt = derivedFromTemplateRerverseEdgeIdxBuilder.result()
 
 
   def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).map(e => (e, graph.nodesById(e.targetId)))
@@ -475,6 +500,21 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
+
+  def templateNodes(idx: Int): Seq[Node] = {
+    val automatedIdxs = graph.automatedEdgeIdx(idx)
+    automatedIdxs.map { automatedIdx =>
+      val targetIdx = graph.edgesIdx.b(automatedIdx)
+      graph.nodes(targetIdx)
+    }
+  }
+  def automatedNodes(idx: Int): Seq[Node] = {
+    val automatedIdxs = graph.automatedEdgeReverseIdx(idx)
+    automatedIdxs.map { automatedIdx =>
+      val sourceIdx = graph.edgesIdx.a(automatedIdx)
+      graph.nodes(sourceIdx)
+    }
+  }
 
   val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt.apply(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).asInstanceOf[Edge.Author].data.timestamp).toArray).toArray)
 

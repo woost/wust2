@@ -194,11 +194,11 @@ class GlobalState(
   val sortableEvents = new SortableEvents(this, sortable)
 
 
-  val defaultTransformation: UserViewGraphTransformation = GraphOperation.NoDeletedParents
+  val defaultTransformations: Seq[UserViewGraphTransformation] = Seq(GraphOperation.NoDeletedParents, GraphOperation.AutomatedHideTemplates)
   // Allow filtering / transformation of the graph on globally
-  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(Seq(defaultTransformation))
+  val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(defaultTransformations)
 
-  // Always transform graph - using NoDeletedButGracedParents on default
+  // transform graph with graphTransformations
   val graph: Rx[Graph] = for {
     graphTrans <- graphTransformations
     currentGraph <- rawGraph
@@ -208,7 +208,7 @@ class GlobalState(
     val transformation: Seq[GraphTransformation] = graphTrans.map(_.transformWithViewData(p, u))
     transformation.foldLeft(currentGraph)((g, gt) => gt(g))
   }
-  val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 1 || !graphTransformations().contains(defaultTransformation) }
+  val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
 }
 
