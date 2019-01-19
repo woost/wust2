@@ -153,7 +153,7 @@ object PageHeader {
           UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
         )
       }),
-      viewSwitcher(state).apply(alignSelf.flexEnd),
+      viewSwitcher(state).apply(Styles.flexStatic, alignSelf.flexEnd),
       Rx {
         settingsMenu(state, channel, isBookmarked()).apply(buttonStyle, marginLeft := "15px")
       },
@@ -675,12 +675,8 @@ object PageHeader {
         border := s"$lineWidth solid $lineColor",
         marginBottom := s"-$lineWidth",
 
-        div(cls := "fa-fw", icon),
         Styles.flex,
         alignItems.center,
-        // will ensure that icons shrink to fit a line
-        // see: https://stackoverflow.com/questions/45819924/css-scale-items-when-resizing-in-flexbox
-        width := "100%",
 
         Rx {
           val pageStyle = state.pageStyle()
@@ -698,6 +694,8 @@ object PageHeader {
             )
           }
         },
+
+        div(cls := "fa-fw", icon),
         VDomModifier.ifTrue(numItems > 0)(span(numItems, paddingLeft := "7px")),
 
         UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
