@@ -74,7 +74,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "a028b3c")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "590d9d1")
   
 
 
