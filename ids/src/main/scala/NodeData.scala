@@ -57,13 +57,13 @@ object NodeData {
   }
   object Date extends Named
 
-  object Empty extends Named
+  case object Empty extends Named
 
-  object User extends Named
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
     def updateName(newName: String) = if (name != newName) Some(copy(name = newName.trim)) else None
   }
+  object User extends Named
 
 }
 
