@@ -99,6 +99,28 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   implicit class RichRx[T](val rx: Rx[T]) extends AnyVal {
 
+    // This function will create a new rx that will stop triggering as soon as f(value) is None once.
+    // If f(rx.now) is Some(value), we subscribe to rx and map every emitted value with f as long as it returns Some(value).
+    // If f(rx.now) is None, we just return an rx that emits only the seed.
+    def mapUntilEmpty[R](f: T => Option[R], seed: R)(implicit ctx: Ctx.Owner): Rx[R] = {
+      f(rx.now) match {
+        case Some(initialValue) =>
+          val mappedRx = Var(initialValue)
+
+          var sub: Obs = null
+          sub = rx.triggerLater { value =>
+            f(value) match {
+              case Some(result) => mappedRx() = result
+              case None => sub.kill()
+            }
+          }
+
+          mappedRx
+
+        case None => Var(seed)
+      }
+    }
+
     def toLazyTailObservable: Observable[T] = {
       Observable.create[T](Unbounded) { observer =>
         implicit val ctx = Ctx.Owner.Unsafe
