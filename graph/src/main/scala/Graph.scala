@@ -1095,11 +1095,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       // child --> ...no other channel... --> parent
       // if child channel is trasitive child of parent channel,
       // without traversing over other channels
-      val excludedChannels = new Array[Int](n)
+      val excludedChannels = ArraySet.create(n)
       pinnedNodeIdx.foreachElement(userIdx) { channelIdx =>
-        excludedChannels(channelIdx) = 1
+        excludedChannels += channelIdx
       }
-      excludedChannels(parentChannelIdx) = 0
+      excludedChannels -= parentChannelIdx
       depthFirstSearchExcludeExists(childChannelIdx, notDeletedParentsIdx, exclude = excludedChannels, search = parentChannelIdx)
     }
 

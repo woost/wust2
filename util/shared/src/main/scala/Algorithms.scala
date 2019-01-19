@@ -316,15 +316,18 @@ object algorithm {
     false
   }
 
-  def depthFirstSearchExcludeExists(start: Int, successors: NestedArrayInt, exclude: Array[Int], search: Int): Boolean = {
+  def depthFirstSearchExcludeExists(start: Int, successors: NestedArrayInt, exclude: ArraySet, search: Int): Boolean = {
     val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = ArraySet.create(successors.size)
+    @inline def stackPush(elem:Int):Unit = {
+      stack.push(elem)
+      visited += elem
+    }
 
     visited += start
     successors.foreachElement(start){ elem =>
-      if (exclude(elem) != 1) {
-        stack.push(elem)
-        visited += elem
+      if (exclude.containsNot(elem)) {
+        stackPush(elem)
       }
     }
 
@@ -333,9 +336,8 @@ object algorithm {
       if (current == search) return true
 
       successors.foreachElement(current) { next =>
-        if (visited.containsNot(next)) {
-          stack.push(next)
-          visited += next
+        if (visited.containsNot(next) && exclude.containsNot(next)) {
+          stackPush(next)
         }
       }
     }
@@ -379,18 +381,17 @@ object algorithm {
     val stack = ArrayStackInt.create(capacity = successors.size)
     val visited = ArraySet.create(successors.size)
     val result = new mutable.ArrayBuilder.ofInt
+    @inline def stackPush(elem:Int):Unit = {
+      stack.push(elem)
+      visited += elem
+    }
 
     // start is intentionally left out.
     // it is still possible that start is visited later. (in a cycle)
     // result += start
-    // visited(start) = 1
+    // visited += start
 
-    var i = 0
-    val startSuccessorCount = successors(start).length
-    while (i < startSuccessorCount) {
-      stack.push(successors(start, i))
-      i += 1
-    }
+    successors.foreachElement(start)(stackPush)
 
     while (!stack.isEmpty) {
       val current = stack.pop()
@@ -398,8 +399,7 @@ object algorithm {
 
       successors.foreachElement(current) { next =>
         if (visited.containsNot(next)) {
-          stack.push(next)
-          visited += next
+          stackPush(next)
         }
       }
     }
