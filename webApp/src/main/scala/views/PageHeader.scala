@@ -282,6 +282,7 @@ object PageHeader {
                     TabInfo(View.List, Icons.list, "tasks", numTasks),
                     TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
           singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles)),
+          // singleTab(currentView, pageStyle, TabInfo(View.Graph, Icons.graph, "Graph", 0))
         )
       }
     )

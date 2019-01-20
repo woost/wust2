@@ -98,7 +98,7 @@ object SelectedPostMenu {
         editMode.onNext(false)
       },
       emitter(insertPostHandler).foreach { content =>
-        val newNode = Node.MarkdownMessage(content)
+        val newNode = Node.MarkdownTask(content)
 
         val changes = GraphChanges(
           addNodes = Set(newNode),
@@ -107,7 +107,7 @@ object SelectedPostMenu {
         state.eventProcessor.changes.onNext(changes)
       },
       emitter(connectPostHandler).foreach { content =>
-        val newNode = Node.MarkdownMessage(content)
+        val newNode = Node.MarkdownTask(content)
 
         val changes = GraphChanges(
           addNodes = Set(newNode),

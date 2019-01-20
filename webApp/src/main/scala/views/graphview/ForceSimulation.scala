@@ -8,15 +8,16 @@ import org.scalajs.dom.{CanvasRenderingContext2D, html}
 import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
-import vectory.Vec2
+import vectory._
 import views.graphview.VisualizationType.{Containment, Edge}
 import wust.graph._
-import wust.ids.{EdgeData, NodeId}
+import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
+import flatland._
 
 import scala.concurrent.Promise
 import scala.scalajs.js
@@ -119,16 +120,28 @@ class ForceSimulation(
     postContainerElement <- postContainerElement.future
   } {
     println(log("-------------------- init simulation"))
+    // snabbdom.VNodeProxy.setDirty(backgroundElement)
+    // snabbdom.VNodeProxy.setDirty(canvasLayerElement)
+    // snabbdom.VNodeProxy.setDirty(postContainerElement)
     val background = d3.select(backgroundElement)
     val canvasLayer = d3.select(canvasLayerElement)
     val postContainer = d3.select(postContainerElement)
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
     val graphRx: Rx[Graph] = Rx {
-      //val rawGraph = state.rawGraph().consistent
       println(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
-      time(log("graph to wrapper arrays")) {
-        state.graph().pageContent(state.page())
+      time(log("filtering graph")) {
+        val page = state.page()
+        val graph = state.graph()
+        page.parentId.fold(Graph.empty) { pageParentId =>
+          val pageParentIdx = graph.idToIdx(pageParentId)
+          val taskChildrenSet = graph.taskChildrenIdx.toArraySet(pageParentIdx)
+          val tagSet = ArraySet.create(graph.size)
+          graph.nodes.foreachIndexAndElement{ (i,elem) =>
+            if(elem.role == NodeRole.Tag) tagSet += i
+          }
+          graph.filterIdx(nodeIdx => taskChildrenSet.contains(nodeIdx) || tagSet.contains(nodeIdx))
+        }
       }
     }
 
@@ -141,7 +154,9 @@ class ForceSimulation(
         "transform",
         s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
       )
+      // assert(!simData.isNaN, s"zoomed: before draw canvas x:${simData.x(0)} vx:${simData.vx(0)}")
       drawCanvas(simData, staticData, canvasContext, planeDimension)
+      // assert(!simData.isNaN, s"zoomed: after draw canvas x:${simData.x(0)} vx:${simData.vx(0)}")
       if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
     }
 
@@ -228,7 +243,9 @@ class ForceSimulation(
       simData.y(dragging) = y
 
       ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
+      ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
       ForceSimulationForces.eulerSetCenter(simData, staticData)
+      ForceSimulationForces.eulerZoneCenter(simData, staticData)
       drawCanvas(simData, staticData, canvasContext, planeDimension)
 
       hit(dragging, minimumDragHighlightRadius).foreach { target =>
@@ -315,6 +332,8 @@ class ForceSimulation(
         .attr("height", height)
 
       // this triggers zoomed()
+      println("calling zoomed...")
+      // assert(!simData.isNaN, s"resized: before zoomed x:${simData.x(0)} vx:${simData.vx(0)}")
       background.call(
         zoom.transform _,
         d3.zoomIdentity
@@ -349,8 +368,8 @@ class ForceSimulation(
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
       staticData = StaticData(graph, postSelection, transform, labelVisualization)
-      resized() // adjust zoom to possibly changed accumulated node area
       ForceSimulationForces.nanToPhyllotaxis(simData, spacing = Math.sqrt(staticData.totalReservedArea / graph.size)/2) // set initial positions for new nodes
+      resized() // adjust zoom to possibly changed accumulated node area
 
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
       startAnimated() // this also triggers the initial simulation start
@@ -416,27 +435,33 @@ class ForceSimulation(
   }
 
   def calculateAndDrawCurrentVelocities(): Unit = {
+    // assert(!simData.isNaN, s"before clone x:${simData.x(0)} vx:${simData.vx(0)}")
     val futureSimData = simData.clone()
+    // assert(!futureSimData.isNaN, s"before calculateVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
     calculateVelocities(futureSimData, staticData, planeDimension)
     drawVelocities(simData, futureSimData, staticData, canvasContext, planeDimension)
   }
 
   def step(alpha: Double = 1.0): Unit = {
     simData.alpha = alpha
+    // assert(!simData.isNaN, s"before simualtionstep x:${simData.x(0)} vx:${simData.vx(0)}")
     simulationStep(simData, staticData, planeDimension)
+    // assert(!simData.isNaN, s"after simualtionstep x:${simData.x(0)} vx:${simData.vx(0)}")
     draw()
+    // assert(!simData.isNaN, s"step: after draw x:${simData.x(0)} vx:${simData.vx(0)}")
     if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
   }
 
   def draw(): Unit = {
-    ForceSimulationForces.calculateEulerSetPolygons(simData, staticData) // TODO: separate display polygon from collision polygon?
+    ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
+    ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
     applyNodePositions(simData, staticData, postSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = false
+  private val debugDrawEnabled = true
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
@@ -561,7 +586,9 @@ object ForceSimulation {
         return stepped
       }
 
+      // assert(!simData.isNaN, s"before calculateVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
       calculateVelocities(simData, staticData, planeDimension)
+      // assert(!simData.isNaN, s"before applyVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
       applyVelocities(simData)
     }
 
@@ -576,17 +603,28 @@ object ForceSimulation {
     import ForceSimulationForces._
 
     //    console.log(staticData.asInstanceOf[js.Any])
+    // assert(!simData.isNaN, s"x:${simData.x(0)} vx:${simData.vx(0)}")
     initQuadtree(simData, staticData)
     eulerSetCenter(simData, staticData)
+    eulerZoneCenter(simData, staticData)
     calculateEulerSetPolygons(simData, staticData)
+    calculateEulerZonePolygons(simData, staticData)
 
-    rectBound(simData, staticData, planeDimension, strength = 0.1)
+    // rectBound(simData, staticData, planeDimension, strength = 0.1)
+    // assert(!simData.isNaN)
     keepMinimumNodeDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
+    // assert(!simData.isNaN)
 //    edgeLength(simData, staticData)
 
-    eulerSetClustering(simData, staticData, strength = 0.1)
-    separateOverlappingEulerSets(simData, staticData, strength = 0.1)
-    // pushOutOfWrongEulerSet(simData,staticData)
+    // eulerSetClustering(simData, staticData, strength = 0.1)
+    eulerZoneClustering(simData, staticData, strength = 0.1)
+    // eulerZoneAttraction(simData, staticData, strength = 0.1)
+    // assert(!simData.isNaN)
+    // separateOverlappingEulerSets(simData, staticData, strength = 0.1)
+    separateOverlappingEulerZones(simData, staticData, strength = 0.1)
+    // pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
+    pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
+    assert(!simData.isNaN)
   }
 
   def applyNodePositions(
@@ -610,9 +648,10 @@ object ForceSimulation {
   ): Unit = {
     val edgeCount = staticData.edgeCount
     val containmentCount = staticData.containmentCount
-    val eulerSetCount = simData.eulerSetPolygon.length
+    val eulerSetCount = simData.eulerSetCollisionPolygon.length
     val nodeCount = simData.n
     val fullCircle = 2 * Math.PI
+
 
     // clear entire canvas
     canvasContext.save()
@@ -634,70 +673,29 @@ object ForceSimulation {
 
     //     for every containment cluster
     var i = 0
-    //    val catmullRom = d3.line().curve(d3.curveCatmullRomClosed).context(canvasContext)
     while (i < eulerSetCount) {
-      val polygon = simData.eulerSetPolygon(i)
-      assert(polygon.length % 2 == 0)
-      val midpoints: Array[Vec2] = polygon.toSeq
-        .sliding(2, 2)
-        .map { case Seq(a, b) => (Vec2(a._1, a._2) + Vec2(b._1, b._2)) * 0.5 }
-        .toArray
-      var j = 0
-      val n = midpoints.length
-      val start = midpoints((j + n - 1) % n)
-      canvasContext.fillStyle = staticData.eulerSetColor(i)
-      canvasContext.beginPath()
-      canvasContext.moveTo(start.x, start.y)
-      while (j < n) {
-        val start = midpoints((j + n - 1) % n)
-        val startNode = polygon(((j - 1 + n) % n) * 2)._3
-        val end = midpoints(j)
-        val endNode = polygon((j) * 2)._3
+      val convexHull = simData.eulerSetConvexHull(i)
+      if(convexHull.size > 1) {
+        val tangents = simData.eulerSetConvexHullTangents(i)
 
-        val p1 = polygon((((j - 1 + n) % n) * 2 + 1) % polygon.length)
-        val p2 = polygon(((j) * 2) % polygon.length)
-        val cp1 = start + (Vec2(p1._1, p1._2) - start).normalized * staticData.radius(startNode) * 2
-        val cp2 = end + (Vec2(p2._1, p2._2) - end).normalized * staticData.radius(endNode) * 2
-        //        canvasContext.lineTo(midpoints(j).x, midpoints(j).y)
-        canvasContext.bezierCurveTo(cp1.x, cp1.y, cp2.x, cp2.y, end.x, end.y)
+        val n = convexHull.size * 2
+        canvasContext.fillStyle = staticData.eulerSetColor(i)
+        canvasContext.beginPath()
+        var j = 0
+        while (j < n) {
+          val circle = convexHull(j / 2)
+          val startPoint = tangents(((j-1)+n)%n)
+          val endPoint = tangents(j)
+          val startAngle = (startPoint - circle.center).angle
+          val endAngle = (endPoint - circle.center).angle
+          canvasContext.arc(circle.center.x, circle.center.y, circle.r, startAngle, endAngle, anticlockwise = false)
+          canvasContext.lineTo(tangents(j+1).x, tangents(j+1).y)
 
-        //        // start radius
-        //        canvasContext.lineWidth = 1
-        //        canvasContext.fillStyle = "rgba(182,96,242,4.0)"
-        //        canvasContext.beginPath()
-        //        canvasContext.arc(start.x, start.y, staticData.radius(startNode), startAngle = 0, endAngle = fullCircle)
-        //        canvasContext.fill()
-        //        canvasContext.closePath()
-        //
-        //        // end radius
-        //        canvasContext.lineWidth = 1
-        //        canvasContext.fillStyle = "rgba(182,242,96,4.0)"
-        //        canvasContext.beginPath()
-        //        canvasContext.arc(end.x, end.y, staticData.radius(endNode), startAngle = 0, endAngle = fullCircle)
-        //        canvasContext.fill()
-        //        canvasContext.closePath()
-        //
-        //        // cp1
-        //        canvasContext.lineWidth = 1
-        //        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
-        //        canvasContext.beginPath()
-        //        canvasContext.arc(cp1.x, cp1.y, 5, startAngle = 0, endAngle = fullCircle)
-        //        canvasContext.fill()
-        //        canvasContext.closePath()
-        ////
-        ////        // cp2
-        //        canvasContext.lineWidth = 1
-        //        canvasContext.fillStyle = "rgba(96,182,242,9.0)"
-        //        canvasContext.beginPath()
-        //        canvasContext.arc(cp2.x, cp2.y, 10, startAngle = 0, endAngle = fullCircle)
-        //        canvasContext.fill()
-        //        canvasContext.closePath()
-
-        j += 1
+          j += 2
+        }
+        canvasContext.fill()
+        canvasContext.closePath()
       }
-      canvasContext.fill()
-      canvasContext.closePath()
-      //      catmullRom(simData.eulerSetPolygons(i))
       i += 1
     }
 
@@ -819,17 +817,20 @@ object ForceSimulation {
       planeDimension: PlaneDimension
   ): Unit = {
     val fullCircle = 2 * Math.PI
+    import staticData._
+    import simData._
 
-    val edgeCount = staticData.edgeCount
-    val containmentCount = staticData.containmentCount
-    val eulerSetCount = simData.eulerSetPolygon.length
+    val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
+
+    // count in simData can be zero
+    val eulerSetCount = simData.eulerSetCollisionPolygon.length
+    val eulerZoneCount = simData.eulerZoneCollisionPolygon.length
 
     val nodeCount = simData.n
 
     // for every node
-    var i = 0
     canvasContext.lineWidth = 1
-    while (i < nodeCount) {
+    loop (nodeCount) { i =>
       val x = simData.x(i)
       val y = simData.y(i)
 
@@ -846,8 +847,6 @@ object ForceSimulation {
       canvasContext.arc(x, y, staticData.collisionRadius(i), startAngle = 0, endAngle = fullCircle)
       canvasContext.stroke()
       canvasContext.closePath()
-
-      i += 1
     }
 
     // for every containment
@@ -869,42 +868,88 @@ object ForceSimulation {
     //    }
 
     //     for every containment cluster
-    i = 0
-    val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
-    while (i < eulerSetCount) {
-      canvasContext.strokeStyle = "rgba(255,255,255,0.6)"
-      canvasContext.lineWidth = 2
+    // loop (eulerSetCount) { i =>
+    //   canvasContext.strokeStyle = "rgba(128,128,128,0.6)"
+    //   canvasContext.lineWidth = 3
+    //   canvasContext.beginPath()
+    //   polyLine(simData.eulerSetCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
+    //   canvasContext.stroke()
+
+    //   // tangents
+    //   // canvasContext.strokeStyle = "rgba(128,128,0,0.6)"
+    //   // canvasContext.lineWidth = 2
+    //   // simData.eulerSetConvexHullTangents(i).sliding(2,2).foreach { case Seq(a,b) =>
+    //   //   canvasContext.beginPath()
+    //   //   canvasContext.moveTo(a.x,a.y)
+    //   //   canvasContext.lineTo(b.x,b.y)
+    //   //   canvasContext.stroke()
+    //   // }
+
+    //   // eulerSet geometricCenter
+    //   canvasContext.strokeStyle = "#000"
+    //   canvasContext.lineWidth = 3
+    //   canvasContext.beginPath()
+    //   canvasContext.arc(
+    //     simData.eulerSetGeometricCenter(i).x,
+    //     simData.eulerSetGeometricCenter(i).y,
+    //     10,
+    //     startAngle = 0,
+    //     endAngle = fullCircle
+    //   )
+    //   canvasContext.stroke()
+    //   canvasContext.closePath()
+
+    //   // Axis aligned bounding box
+    //   drawAARect(canvasContext, rect = simData.eulerSetCollisionPolygonAABB(i), color = "rgba(0,0,0,0.1)", lineWidth = 3)
+    // }
+
+    loop (eulerZoneCount) { i =>
+      canvasContext.strokeStyle = "rgba(128,128,128,0.8)"
+      canvasContext.lineWidth = 1
       canvasContext.beginPath()
-      polyLine(simData.eulerSetPolygon(i).asInstanceOf[js.Array[js.Tuple2[Double, Double]]])
+      polyLine(simData.eulerZoneCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
       canvasContext.stroke()
 
-      // eulerSet geometricCenter
-      canvasContext.strokeStyle = "#000"
-      canvasContext.lineWidth = 3
-      canvasContext.beginPath()
-      canvasContext.arc(
-        simData.eulerSetGeometricCenterX(i),
-        simData.eulerSetGeometricCenterY(i),
-        10,
-        startAngle = 0,
-        endAngle = fullCircle
-      )
-      canvasContext.stroke()
-      canvasContext.closePath()
+      // tangents
+      // canvasContext.strokeStyle = "rgba(128,128,0,0.6)"
+      // canvasContext.lineWidth = 2
+      // simData.eulerZoneConvexHullTangents(i).sliding(2,2).foreach { case Seq(a,b) =>
+      //   canvasContext.beginPath()
+      //   canvasContext.moveTo(a.x,a.y)
+      //   canvasContext.lineTo(b.x,b.y)
+      //   canvasContext.stroke()
+      // }
+
+      // eulerZone geometricCenter
+      // canvasContext.strokeStyle = "#000"
+      // canvasContext.lineWidth = 3
+      // canvasContext.beginPath()
+      // canvasContext.arc(
+      //   simData.eulerZoneGeometricCenter(i).x,
+      //   simData.eulerZoneGeometricCenter(i).y,
+      //   10,
+      //   startAngle = 0,
+      //   endAngle = fullCircle
+      // )
+      // canvasContext.stroke()
+      // canvasContext.closePath()
 
       // Axis aligned bounding box
-      canvasContext.strokeStyle = "rgba(0,0,0,0.2)"
-      canvasContext.lineWidth = 3
-      canvasContext.beginPath()
-      canvasContext.moveTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMinY(i))
-      canvasContext.lineTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMaxY(i))
-      canvasContext.lineTo(simData.eulerSetPolygonMaxX(i), simData.eulerSetPolygonMaxY(i))
-      canvasContext.lineTo(simData.eulerSetPolygonMaxX(i), simData.eulerSetPolygonMinY(i))
-      canvasContext.lineTo(simData.eulerSetPolygonMinX(i), simData.eulerSetPolygonMinY(i))
-      canvasContext.stroke()
-
-      i += 1
+      drawAARect(canvasContext, rect = simData.eulerZoneCollisionPolygonAABB(i), color = "rgba(0,0,0,0.1)", lineWidth = 1)
     }
 
+  }
+
+  def drawAARect(context: CanvasRenderingContext2D, rect:AARect, color:String, lineWidth:Int):Unit = {
+    context.strokeStyle = color
+    context.lineWidth = lineWidth
+    context.beginPath()
+    val vertices = rect.verticesCCW
+    context.moveTo(vertices(0).x, vertices(0).y)
+    context.lineTo(vertices(1).x, vertices(1).y)
+    context.lineTo(vertices(2).x, vertices(2).y)
+    context.lineTo(vertices(3).x, vertices(3).y)
+    context.lineTo(vertices(0).x, vertices(0).y)
+    context.stroke()
   }
 }

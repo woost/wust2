@@ -1,6 +1,6 @@
 package views.graphview
 
-import d3v4.{d3, d3polygon, _}
+import d3v4.{ d3, d3polygon, _ }
 import vectory.Algorithms.LineIntersection
 import vectory._
 import views.graphview.ForceSimulationConstants._
@@ -19,7 +19,7 @@ object ForceSimulationForces {
   @inline private def sq(x: Double): Double = x * x
 
   def nanToPhyllotaxis(data: SimulationData, spacing: Double): Unit = {
-    import data.{vx, vy, x, y}
+    import data.{ vx, vy, x, y }
     val theta = Math.PI * (3 - Math.sqrt(5))
 
     var i = 0
@@ -51,17 +51,18 @@ object ForceSimulationForces {
     quadtree = d3.quadtree[Int](indices.toJSArray, x.apply _, y.apply _)
   }
 
+  //TODO: extract function for weighted center
   def eulerSetCenter(simData: SimulationData, staticData: StaticData): Unit = {
     val eulerSetCount = staticData.eulerSetCount
-    if (simData.eulerSetGeometricCenterX.length != eulerSetCount) {
-      simData.eulerSetGeometricCenterX = new Array[Double](eulerSetCount)
-      simData.eulerSetGeometricCenterY = new Array[Double](eulerSetCount)
+    if (simData.eulerSetGeometricCenter.length != eulerSetCount) {
+      simData.eulerSetGeometricCenter = Vec2Array.create(eulerSetCount)
     }
 
-    staticData.eulerSetAllNodes.foreachIndexAndElement{(i,allNodes) =>
+    staticData.eulerSetAllNodes.foreachIndexAndElement{ (i, allNodes) =>
       //TODO: faster
+      //TODO: sets of size 1 produce NaNs
       val sumOfAllRadii = allNodes.map(staticData.collisionRadius).sum
-      val radiiRatio = allNodes.map(i => 1-staticData.collisionRadius(i) / sumOfAllRadii)
+      val radiiRatio = allNodes.map(i => 1 - staticData.collisionRadius(i) / sumOfAllRadii)
       val radiiRatioNormalized = {
         val sum = radiiRatio.sum
         radiiRatio.map(_ / sum)
@@ -74,128 +75,151 @@ object ForceSimulationForces {
         cy += simData.y(nodeIdx) * radiiRatioNormalized(j)
       }
 
-      simData.eulerSetGeometricCenterX(i) = cx
-      simData.eulerSetGeometricCenterY(i) = cy
+      simData.eulerSetGeometricCenter(i) = Vec2(cx, cy)
     }
+  }
+
+  //TODO: extract function for weighted center
+  def eulerZoneCenter(simData: SimulationData, staticData: StaticData): Unit = {
+    val eulerZoneCount = staticData.eulerZoneCount
+    if (simData.eulerZoneGeometricCenter.length != eulerZoneCount) {
+      simData.eulerZoneGeometricCenter = Vec2Array.create(eulerZoneCount)
+    }
+
+    staticData.eulerZoneNodes.foreachIndexAndElement{ (i, allNodes) =>
+      simData.eulerZoneGeometricCenter(i) = {
+        assert(allNodes.nonEmpty)
+        if(allNodes.size == 1) Vec2(simData.x(allNodes(0)), simData.y(allNodes(0)))
+        else {
+          //TODO: faster
+          val sumOfAllRadii = allNodes.map(staticData.collisionRadius).sum
+          val radiiRatio = allNodes.map(i => 1 - staticData.collisionRadius(i) / sumOfAllRadii)
+          val radiiRatioNormalized = {
+            val sum = radiiRatio.sum
+            radiiRatio.map(_ / sum)
+          }
+
+          var cx = 0.0
+          var cy = 0.0
+          allNodes.foreachIndexAndElement{ (j, nodeIdx) =>
+            cx += simData.x(nodeIdx) * radiiRatioNormalized(j)
+            cy += simData.y(nodeIdx) * radiiRatioNormalized(j)
+          }
+
+          Vec2(cx, cy)
+        }
+      }
+    }
+  }
+
+  def calculatePolygons(circles: Seq[Circle]): (Array[Circle], Vec2Array, Vec2Array) = {
+    val convexHull = ConvexHullOfCircles(circles).toArray // counter clockwise order of circles
+
+    val tangents: Vec2Array = if (convexHull.size <= 1) Vec2Array.create(0) else Vec2Array(((convexHull :+ convexHull.head)
+      .sliding(2)
+      .flatMap {
+        case Array(c1, c2) =>
+          val tangent = c1.outerTangentCCW(c2).get
+          // assert(!tangent.start.x.isNaN && !tangent.start.y.isNaN, s"tangent.start $tangent ($c1, $c2)")
+          // assert(!tangent.end.x.isNaN && !tangent.end.y.isNaN, "tangent.end")
+          Array(tangent.start, tangent.end)
+      }
+      .toArray): _*)
+
+    val collisionPolygon: Vec2Array = {
+      //TODO: handle CCW order
+      //TODO: handle CCW order
+      //TODO: handle CCW order
+      //TODO: handle CCW order
+      //TODO: handle CCW order
+      //TODO: handle CCW order
+      if (convexHull.size == 0) throw new Exception("collision cluster without any convex hull")
+      else if (convexHull.size == 1) convexHull.head.sampleCircumference(4)
+      else Vec2Array(((tangents ++ tangents.take(2))
+        .sliding(4, 2).zip(convexHull.iterator.drop(1) ++ Iterator(convexHull.head))
+        .flatMap {
+          case (tangentPoints, circle) =>
+            // val point0 = tangentPoints(0)
+            val point1 = tangentPoints(1)
+            val point2 = tangentPoints(2)
+            // val point3 = tangentPoints(3)
+
+            val tangentDirection = point2 - point1
+            val a = tangentDirection.normal.normalized * circle.r
+            val tangentPoint = circle.center + a
+            // assert(!point1.x.isNaN && !point1.y.isNaN, "point1")
+            // assert(!point2.x.isNaN && !point2.y.isNaN, "point2")
+            // assert(!tangentPoint.x.isNaN && !tangentPoint.y.isNaN, "tangentPoint")
+
+            Array(point1, tangentPoint, point2)
+        }
+        .toJSArray): _*)
+    }
+
+    (convexHull, tangents, collisionPolygon)
   }
 
   def calculateEulerSetPolygons(simData: SimulationData, staticData: StaticData): Unit = {
     val eulerSetCount = staticData.eulerSetCount
-    if (simData.eulerSetPolygon.length != eulerSetCount) {
-      simData.eulerSetPolygon = new Array[js.Array[js.Tuple3[Double, Double, Int]]](eulerSetCount)
-      simData.eulerSetPolygonMinX = new Array[Double](eulerSetCount)
-      simData.eulerSetPolygonMinY = new Array[Double](eulerSetCount)
-      simData.eulerSetPolygonMaxX = new Array[Double](eulerSetCount)
-      simData.eulerSetPolygonMaxY = new Array[Double](eulerSetCount)
+    if (simData.eulerSetConvexHull.length != eulerSetCount) {
+      simData.eulerSetConvexHull = new Array[Array[Circle]](eulerSetCount)
+      simData.eulerSetConvexHullTangents = new Array[Vec2Array](eulerSetCount)
+      simData.eulerSetCollisionPolygon = new Array[Vec2Array](eulerSetCount)
+      simData.eulerSetCollisionPolygonAABB = new Array[AARect](eulerSetCount)
     }
     var i = 0
     while (i < eulerSetCount) {
       val eulerSetNodes = staticData.eulerSetAllNodes(i)
 
-      // this stores the index hidden in the points, to hide them from d3
-      val centerPoints: d3polygon.Polygon = eulerSetNodes.map(
-        j => js.Tuple3(simData.x(j), simData.y(j), j).asInstanceOf[js.Tuple2[Double, Double]]
-      )(breakOut)
-      val centerConvexHull = {
-        val hull = d3.polygonHull(centerPoints)
-        if (hull == null) centerPoints
-        else hull
-      }.asInstanceOf[js.Array[js.Tuple3[Double, Double, Int]]] // contains hull points with index in ccw order
-
-      // calculate tangents
-      // TODO: Different circle sizes are a problem, therefore the trivial convex hull of the circle centers is not enough, we need
-      // the convex hull of the circles:
-      // https://www.sciencedirect.com/science/article/pii/092577219290015K (A convex hull algorithm for discs, and applications)
-
-      val tangents: Array[(Double, Double, Int)] = (centerConvexHull :+ centerConvexHull(0))
-        .sliding(2)
-        .flatMap { points =>
-          val point1 = points(0)
-          val point2 = points(1)
-          // outer tangent with corrected atan sign: https://en.wikipedia.org/wiki/Tangent_lines_to_circles#Outer_tangent
-          val x1 = simData.x(point1._3)
-          val y1 = simData.y(point1._3)
-          val r1 = staticData.radius(point1._3)
-          val x2 = simData.x(point2._3)
-          val y2 = simData.y(point2._3)
-          val r2 = staticData.radius(point2._3)
-
-          val gamma = -atan2(y2 - y1, x2 - x1) // atan2 sets the correct sign, so that all tangents are on the right side of point order
-          val beta = asin((r2 - r1) / sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1)))
-          val alpha = gamma - beta
-
-          val x3 = x1 + r1 * cos(PI / 2 - alpha)
-          val y3 = y1 + r1 * sin(PI / 2 - alpha)
-          val x4 = x2 + r2 * cos(PI / 2 - alpha)
-          val y4 = y2 + r2 * sin(PI / 2 - alpha)
-
-          Array((x3, y3, point1._3), (x4, y4, point2._3))
-        }
-        .toArray
-
-      val polygon = (tangents ++ tangents.take(2))
-        .sliding(4, 2)
-        .flatMap { points =>
-          val i = points(1)._3
-          val point0 = Vec2(points(0)._1, points(0)._2)
-          val point1 = Vec2(points(1)._1, points(1)._2)
-          val point2 = Vec2(points(2)._1, points(2)._2)
-          val point3 = Vec2(points(3)._1, points(3)._2)
-
-          val preLine = Line(point0, point1)
-          val postLine = Line(point2, point3)
-
-          val tangentDirection = point1 - point2
-          val a = tangentDirection.normal.normalized * staticData.radius(i)
-          val center = Vec2(simData.x(i), simData.y(i))
-          val tangentPoint = center + a
-          val tangent = Line(tangentPoint, tangentPoint + tangentDirection)
-
-          val edge = (for {
-            LineIntersection(corner1, _, _) <- preLine.intersect(tangent)
-            LineIntersection(corner2, _, _) <- tangent.intersect(postLine)
-          } yield Line(corner1, corner2)).get
-
-          Array(js.Tuple3(edge.x1, edge.y1, i), js.Tuple3(edge.x2, edge.y2, i))
-        }
-        .toJSArray
-
-      simData.eulerSetPolygon(i) = polygon
-
-      // calculate axis aligned bounding box of polygon for quadtree lookup
-      // TODO: move to own function?
-      // TODO: include node spacing?
-      var j = 0
-      var minX = polygon(0)._1
-      var minY = polygon(0)._2
-      var maxX = minX
-      var maxY = minY
-      j = 1
-      while (j < polygon.length) {
-        val x = polygon(j)._1
-        val y = polygon(j)._2
-        if (x < minX) minX = x
-        else if (x > maxX) maxX = x
-        if (y < minY) minY = y
-        else if (y > maxY) maxY = y
-        j += 1
+      val borderWidth = 10
+      val circles = eulerSetNodes.map { j =>
+        val border = staticData.eulerSetDepth(i) * borderWidth
+        Circle(Vec2(simData.x(j), simData.y(j)), staticData.radius(j) + border)
       }
-      simData.eulerSetPolygonMinX(i) = minX
-      simData.eulerSetPolygonMinY(i) = minY
-      simData.eulerSetPolygonMaxX(i) = maxX
-      simData.eulerSetPolygonMaxY(i) = maxY
+
+      val (convexHull, tangents, collisionPolygon) = calculatePolygons(circles)
+
+      simData.eulerSetConvexHull(i) = convexHull
+      simData.eulerSetConvexHullTangents(i) = tangents
+      simData.eulerSetCollisionPolygon(i) = collisionPolygon
+      simData.eulerSetCollisionPolygonAABB(i) = Algorithms.axisAlignedBoundingBox(collisionPolygon)
+
+      i += 1
+    }
+  }
+
+  def calculateEulerZonePolygons(simData: SimulationData, staticData: StaticData): Unit = {
+    val eulerZoneCount = staticData.eulerZoneCount
+    if (simData.eulerZoneConvexHull.length != eulerZoneCount) {
+      simData.eulerZoneConvexHull = new Array[Array[Circle]](eulerZoneCount)
+      simData.eulerZoneConvexHullTangents = new Array[Vec2Array](eulerZoneCount)
+      simData.eulerZoneCollisionPolygon = new Array[Vec2Array](eulerZoneCount)
+      simData.eulerZoneCollisionPolygonAABB = new Array[AARect](eulerZoneCount)
+    }
+    var i = 0
+    while (i < eulerZoneCount) {
+      val eulerZoneNodes = staticData.eulerZoneNodes(i)
+
+      val circles = eulerZoneNodes.map { j =>
+        Circle(Vec2(simData.x(j), simData.y(j)), staticData.radius(j))
+      }
+
+      val (convexHull, tangents, collisionPolygon) = calculatePolygons(circles)
+
+      simData.eulerZoneConvexHull(i) = convexHull
+      simData.eulerZoneConvexHullTangents(i) = tangents
+      simData.eulerZoneCollisionPolygon(i) = collisionPolygon
+      simData.eulerZoneCollisionPolygonAABB(i) = Algorithms.axisAlignedBoundingBox(collisionPolygon)
 
       i += 1
     }
   }
 
   def clearVelocities(simData: SimulationData): Unit = {
-    var i = 0
     val nodeCount = simData.n
-    while (i < nodeCount) {
+    loop (nodeCount) { i =>
       simData.vx(i) = 0
       simData.vy(i) = 0
-      i += 1
     }
   }
 
@@ -214,12 +238,12 @@ object ForceSimulationForces {
   }
 
   def rectBound(
-      simData: SimulationData,
-      staticData: StaticData,
-      planeDimension: PlaneDimension,
-      strength: Double
+    simData: SimulationData,
+    staticData: StaticData,
+    planeDimension: PlaneDimension,
+    strength: Double
   ): Unit = {
-    import planeDimension.{simHeight => planeHeight, simWidth => planeWidth, _}
+    import planeDimension.{ simHeight => planeHeight, simWidth => planeWidth, _ }
     import simData._
     import staticData._
 
@@ -250,10 +274,10 @@ object ForceSimulationForces {
   }
 
   def keepMinimumNodeDistance(
-      simData: SimulationData,
-      staticData: StaticData,
-      distance: Double,
-      strength: Double
+    simData: SimulationData,
+    staticData: StaticData,
+    distance: Double,
+    strength: Double
   ): Unit = {
     import simData._
     import staticData._
@@ -299,16 +323,16 @@ object ForceSimulationForces {
     // If a node is far away from the center of its euler set, push it towards it
     import simData._
     import staticData._
-    @inline def saddle(x:Double, tolerance:Double): Double = {
+    @inline def saddle(x: Double, tolerance: Double): Double = {
       // a linear function with flat origin
       // https://www.wolframalpha.com/input/?i=plot+piecewise+%5B%7B%7B(x%2F50)%5E3,+-1%3C%3Dx%3C%3D250*sqrt(2)%7D,%7Bx,+x+%3E+250*sqrt(2)%7D%7D%5D
-      if(x.abs > Math.pow(tolerance, 1.5)) x
+      if (x.abs > Math.pow(tolerance, 1.5)) x
       else Math.pow(x / tolerance, 3)
     }
 
     eulerSetAllNodes.foreachIndexAndElement{ (ci, allNodes) =>
-      val geometricCenterX = eulerSetGeometricCenterX(ci)
-      val geometricCenterY = eulerSetGeometricCenterY(ci)
+      val geometricCenterX = eulerSetGeometricCenter(ci).x
+      val geometricCenterY = eulerSetGeometricCenter(ci).y
 
       //TODO: calculate tolerance in staticdata
       val tolerance = Math.sqrt(eulerSetArea(ci)) / 5 // a higher tolerance prevents clusters from moving themselves
@@ -317,10 +341,84 @@ object ForceSimulationForces {
         val dx = geometricCenterX - x(nodeIdx)
         val dy = geometricCenterY - y(nodeIdx)
         val distance = Vec2.length(dx, dy) - collisionRadius(nodeIdx) // TODO: avoid sqrt
-      //TODO: avoid Vec2 allocation and sqrt
-      val velocity = Vec2(dx, dy).normalized * strength * saddle(distance, tolerance) * alpha
+        //TODO: avoid Vec2 allocation and sqrt
+        val velocity = Vec2(dx, dy).normalized * strength * saddle(distance, tolerance) * alpha
         vx(nodeIdx) += velocity.x
         vy(nodeIdx) += velocity.y
+      }
+    }
+  }
+
+
+  def eulerZoneAttraction(
+    simData: SimulationData,
+    staticData: StaticData,
+    strength: Double
+  ): Unit = {
+    // If a node is far away from the center of its euler set, push it towards it
+    import simData._
+    import staticData._
+    @inline def saddle(x: Double, tolerance: Double): Double = {
+      // a linear function with flat origin
+      // https://www.wolframalpha.com/input/?i=plot+piecewise+%5B%7B%7B(x%2F50)%5E3,+-1%3C%3Dx%3C%3D250*sqrt(2)%7D,%7Bx,+x+%3E+250*sqrt(2)%7D%7D%5D
+      if (x.abs > Math.pow(tolerance, 1.5)) x
+      else Math.pow(x / tolerance, 3)
+    }
+
+    eulerZoneNeighbourhoods.foreach { case (zoneAIdx, zoneBIdx) =>
+      val geometricCenterA = eulerZoneGeometricCenter(zoneAIdx)
+      val geometricCenterB = eulerZoneGeometricCenter(zoneBIdx)
+      val direction = (geometricCenterA - geometricCenterB)
+      val radiusA = Math.sqrt(eulerZoneArea(zoneAIdx)) / 5
+      val radiusB = Math.sqrt(eulerZoneArea(zoneBIdx)) / 5
+      val distance = direction.length - radiusA - radiusB
+      if(distance > 0) {
+        val tolerance = radiusA + radiusB // a higher tolerance prevents clusters from moving themselves
+        val push = direction.normalized * strength * saddle(distance, tolerance) * alpha
+        eulerZoneNodes(zoneAIdx).foreachElement { nodeIdx =>
+          vx(nodeIdx) -= push.x
+          vy(nodeIdx) -= push.y
+        }
+        eulerZoneNodes(zoneBIdx).foreachElement { nodeIdx =>
+          vx(nodeIdx) += push.x
+          vy(nodeIdx) += push.y
+        }
+      }
+    }
+  }
+
+  def eulerZoneClustering(
+    simData: SimulationData,
+    staticData: StaticData,
+    strength: Double
+  ): Unit = {
+    // If a node is far away from the center of its euler set, push it towards it
+    import simData._
+    import staticData._
+    @inline def saddle(x: Double, tolerance: Double): Double = {
+      // a linear function with flat origin
+      // https://www.wolframalpha.com/input/?i=plot+piecewise+%5B%7B%7B(x%2F50)%5E3,+-1%3C%3Dx%3C%3D250*sqrt(2)%7D,%7Bx,+x+%3E+250*sqrt(2)%7D%7D%5D
+      if (x.abs > Math.pow(tolerance, 1.5)) x
+      else Math.pow(x / tolerance, 3)
+    }
+
+    eulerZoneNodes.foreachIndexAndElement{ (ci, allNodes) =>
+      val geometricCenterX = eulerZoneGeometricCenter(ci).x
+      val geometricCenterY = eulerZoneGeometricCenter(ci).y
+
+      //TODO: calculate tolerance in staticdata
+      val tolerance = Math.sqrt(eulerZoneArea(ci)) / 5 // a higher tolerance prevents clusters from moving themselves
+
+      if(allNodes.size > 1) {
+        allNodes.foreachElement { nodeIdx =>
+          val dx = geometricCenterX - x(nodeIdx)
+          val dy = geometricCenterY - y(nodeIdx)
+          val distance = Vec2.length(dx, dy) - collisionRadius(nodeIdx) // TODO: avoid sqrt
+          //TODO: avoid Vec2 allocation and sqrt
+          val velocity = Vec2(dx, dy).normalized * strength * saddle(distance, tolerance) * alpha
+          vx(nodeIdx) += velocity.x
+          vy(nodeIdx) += velocity.y
+        }
       }
     }
   }
@@ -335,10 +433,10 @@ object ForceSimulationForces {
     //TODO: speed up with quadtree?
     for {
       (ai, bi) <- eulerSetDisjunctSetPairs
-      pa = eulerSetPolygon(ai)
-      pb = eulerSetPolygon(bi)
-      if !pa(0)._1.isNaN && !pb(0)._1.isNaN // polygons contain NaNs in the first simulation step
-      pushVector <- ConvexPolygon(pa.map(t3 => Vec2(t3._1, t3._2))) intersectsMtd ConvexPolygon(pb.map(t3 => Vec2(t3._1, t3._2)))
+      pa = eulerSetCollisionPolygon(ai)
+      pb = eulerSetCollisionPolygon(bi)
+      if !pa(0).x.isNaN && !pb(0).x.isNaN // polygons contain NaNs in the first simulation step
+      pushVector <- ConvexPolygon(pa) intersectsMtd ConvexPolygon(pb)
     } {
       // No weight distributed over nodes, since we want to move the whole eulerSet with full speed
       val aPush = -pushVector * strength * alpha
@@ -350,6 +448,41 @@ object ForceSimulationForces {
       }
 
       eulerSetAllNodes(bi).foreach { i =>
+        vx(i) += bPush.x
+        vy(i) += bPush.y
+      }
+    }
+  }
+
+  def separateOverlappingEulerZones(
+    simData: SimulationData,
+    staticData: StaticData,
+    strength: Double
+  ): Unit = {
+    import simData._
+    import staticData._
+    
+    //TODO: speed up with quadtree?
+    // make use of eulerZoneAdjacencyMatrix
+    for {
+      zoneAIdx <- 0 until eulerZoneCount
+      zoneBIdx <- zoneAIdx until eulerZoneCount
+      if(zoneAIdx != zoneBIdx)
+      pa = eulerZoneCollisionPolygon(zoneAIdx)
+      pb = eulerZoneCollisionPolygon(zoneBIdx)
+      if !pa(0).x.isNaN && !pb(0).x.isNaN // polygons contain NaNs in the first simulation step
+      pushVector <- ConvexPolygon(pa) intersectsMtd ConvexPolygon(pb)
+    } {
+      // No weight distributed over nodes, since we want to move the whole eulerSet with full speed
+      val aPush = -pushVector * strength * alpha
+      val bPush = pushVector * strength * alpha
+
+      eulerZoneNodes(zoneAIdx).foreach { i =>
+        vx(i) += aPush.x
+        vy(i) += aPush.y
+      }
+
+      eulerZoneNodes(zoneBIdx).foreach { i =>
         vx(i) += bPush.x
         vy(i) += bPush.y
       }
@@ -386,55 +519,105 @@ object ForceSimulationForces {
     }
   }
 
-  def pushOutOfWrongEulerSet(simData: SimulationData, staticData: StaticData): Unit = {
+  def pushOutOfWrongEulerSet(simData: SimulationData, staticData: StaticData, strength: Double): Unit = {
     import simData._
     import staticData._
 
     var ci = 0
     val cn = eulerSetCount
     while (ci < cn) {
-      val hull = ConvexPolygon(eulerSetPolygon(ci).map(t => Vec2(t._1, t._2)))
-      //TODO: variable for eulerSetAllNodes.length
-      val forceWeight = 1.0 / (eulerSetAllNodes.length + 1) // per node
+      val hull = ConvexPolygon(eulerSetCollisionPolygon(ci))
 
-      forAllPointsInRect(
-        quadtree,
-        eulerSetPolygonMinX(ci),
-        eulerSetPolygonMinY(ci),
-        eulerSetPolygonMaxX(ci),
-        eulerSetPolygonMaxY(ci)
-      ) { ai =>
-        val center = Vec2(x(ai), y(ai))
-        val radius = staticData.radius(ai) + nodeSpacing
+      forAllPointsInRect(quadtree, eulerSetCollisionPolygonAABB(ci)) { ai =>
+          val center = Vec2(x(ai), y(ai))
+          val radius = staticData.radius(ai) + nodeSpacing
 
-        val belongsToCluster = eulerSetAllNodes(ci).contains(ai) //TODO: fast lookup with precomputed table
-        if (!belongsToCluster) {
-          val visuallyInCluster = hull intersectsMtd Circle(center, radius)
-          visuallyInCluster.foreach { pushVector =>
-            val nodePushDir = pushVector * (alpha * forceWeight)
+          val belongsToCluster = eulerSetAllNodes(ci).contains(ai) //TODO: fast lookup with precomputed table
+          if (!belongsToCluster) {
+            val visuallyInCluster = hull intersectsMtd Circle(center, radius)
+            visuallyInCluster.foreach { pushVector =>
 
-            // push node out
-            vx(ai) += nodePushDir.x
-            vy(ai) += nodePushDir.y
+              val belongsToOtherCluster: Int = eulerSetAllNodes.indexWhere((c: Array[Int]) => c.contains(ai))
 
-          //TODO: push eulerSet away
+              val nodePushDir = belongsToOtherCluster match {
+                case -1 => // does not belong to any other cluster, just push it away (shortest way defined by Mtd)
+                  pushVector * (alpha * strength)
+                case otherClusterIdx =>
+                  val otherCenter = eulerSetGeometricCenter(otherClusterIdx)
+                  if (hull includes otherCenter) // pushing towards center would make it worse....
+                    pushVector * (alpha * strength)
+                  else {
+                    val directionToCenter = (otherCenter - eulerSetGeometricCenter(ci)).normalized
+                    directionToCenter * pushVector.length * (alpha * strength)
+                  }
+              }
 
-          // // push closest nodes of cluster (forming line segment) back
-          // // TODO: the closest points are not necessarily forming the closest line segment.
-          // val (ia, ib) = min2By(containmentClusterPostIndices(ci), i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y))
-          // vel(ia * 2) += -nodePushDir.x
-          // vel(ia * 2 + 1) += -nodePushDir.y
-          // vel(ib * 2) += -nodePushDir.x
-          // vel(ib * 2 + 1) += -nodePushDir.y
+              // push node out
+              vx(ai) += nodePushDir.x
+              vy(ai) += nodePushDir.y
 
-          // containmentClusterPostIndices(ci).toSeq.sortBy(i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y)).take(2).foreach{ i =>
-          //   val i2 = i * 2
-          //   vel(i2) += -nodePushDir.x
-          //   vel(i2 + 1) += -nodePushDir.y
-          // }
+              //TODO: push eulerSet away
+
+              // // push closest nodes of cluster (forming line segment) back
+              // // TODO: the closest points are not necessarily forming the closest line segment.
+              // val (ia, ib) = min2By(containmentClusterPostIndices(ci), i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y))
+              // vel(ia * 2) += -nodePushDir.x
+              // vel(ia * 2 + 1) += -nodePushDir.y
+              // vel(ib * 2) += -nodePushDir.x
+              // vel(ib * 2 + 1) += -nodePushDir.y
+
+              // containmentClusterPostIndices(ci).toSeq.sortBy(i => Vec2.lengthSq(pos(i * 2) - center.x, pos(i * 2 + 1) - center.y)).take(2).foreach{ i =>
+              //   val i2 = i * 2
+              //   vel(i2) += -nodePushDir.x
+              //   vel(i2 + 1) += -nodePushDir.y
+              // }
+            }
           }
         }
-      }
+
+      ci += 1
+    }
+  }
+
+  def pushOutOfWrongEulerZone(simData: SimulationData, staticData: StaticData, strength: Double): Unit = {
+    import simData._
+    import staticData._
+
+    var ci = 0
+    val cn = eulerZoneCount
+    while (ci < cn) {
+      val hull = ConvexPolygon(eulerZoneCollisionPolygon(ci))
+
+      forAllPointsInRect(quadtree, eulerZoneCollisionPolygonAABB(ci)) { ai =>
+          val center = Vec2(x(ai), y(ai))
+          val radius = staticData.radius(ai) + nodeSpacing
+
+          val belongsToCluster = eulerZoneNodes(ci).contains(ai) //TODO: fast lookup with precomputed table
+          if (!belongsToCluster) {
+            val visuallyInCluster = hull intersectsMtd Circle(center, radius)
+            visuallyInCluster.foreach { pushVector =>
+
+              val belongsToOtherCluster: Int = eulerZoneNodes.indexWhere((c: Array[Int]) => c.contains(ai))
+
+              val nodePushDir = belongsToOtherCluster match {
+                case -1 => // does not belong to any other cluster, just push it away (shortest way defined by Mtd)
+                  pushVector * (alpha * strength)
+                case otherClusterIdx =>
+                  val otherCenter = eulerZoneGeometricCenter(otherClusterIdx)
+                  if (hull includes otherCenter) // pushing towards center would make it worse....
+                    pushVector * (alpha * strength)
+                  else {
+                    val directionToCenter = (otherCenter - eulerZoneGeometricCenter(ci)).normalized
+                    directionToCenter * pushVector.length * (alpha * strength)
+                  }
+              }
+
+              // push node out
+              vx(ai) += nodePushDir.x
+              vy(ai) += nodePushDir.y
+            }
+          }
+        }
 
       ci += 1
     }

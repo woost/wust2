@@ -54,6 +54,7 @@ object Icons {
   val list: IconDefinition = freeSolid.faList
   val files: IconDefinition = freeSolid.faPaperclip
   val stage: IconDefinition = freeSolid.faColumns
+  val graph: IconDefinition = freeBrands.faCloudsmith
 
   val task: IconDefinition = freeRegular.faCheckSquare
 

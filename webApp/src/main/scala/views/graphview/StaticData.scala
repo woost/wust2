@@ -2,6 +2,7 @@ package views.graphview
 
 import java.lang.Math._
 
+import flatland._
 import d3v4._
 import org.scalajs.dom.html
 import vectory.Vec2
@@ -57,6 +58,13 @@ class StaticData(
     var eulerSetArea: Array[Double],
     var eulerSetColor: Array[String],
     var eulerSetDepth: Array[Int],
+
+    var eulerZoneCount: Int,
+    var eulerZones:Array[Set[Int]],
+    var eulerZoneNodes:Array[Array[Int]],
+    var eulerZoneArea: Array[Double],
+    var eulerZoneAdjacencyMatrix:AdjacencyMatrix,
+    var eulerZoneNeighbourhoods:Array[(Int,Int)],
 ) {
   def this(nodeCount: Int, edgeCount: Int, containmentCount: Int) = this(
     nodeCount = nodeCount,
@@ -90,6 +98,13 @@ class StaticData(
     eulerSetArea = null,
     eulerSetColor = null,
     eulerSetDepth = null,
+
+    eulerZoneCount = -1,
+    eulerZones = null,
+    eulerZoneNodes = null,
+    eulerZoneArea = null,
+    eulerZoneAdjacencyMatrix = null,
+    eulerZoneNeighbourhoods = null,
   )
 }
 
@@ -193,17 +208,65 @@ object StaticData {
       }
 
       val eulerSets: Array[EulerSet] = {
-        //        staticData.parent.map{ pId =>
-        //          val p = posts(pId)
-        //
-        //        }
         graph.allParentIdsTopologicallySortedByChildren.map { nodeIdx =>
+          val depth = graph.childDepth(graph.nodeIds(nodeIdx))
           new EulerSet(
             parent = graph.nodeIds(nodeIdx),
             children = graph.descendantsIdx(nodeIdx).map(graph.nodeIds),
-            depth = graph.childDepth(graph.nodeIds(nodeIdx))
+            depth = depth
           )
         }(breakOut)
+      }
+
+      // constructing the dual graph of the euler diagram
+      // each zone represents a node,
+      // every two zones which are separated by a line of the euler diagram become an edge
+      {
+        // for each node, the set of parent nodes identifies its zone
+        println(graph.toDetailedString)
+        val zoneGrouping:Seq[(Set[Int],Seq[Int])] = graph.nodes.indices.groupBy(nodeIdx => graph.parentsIdx(nodeIdx).toSet).flatMap{
+          case (zoneParentSet, nodeIndices) if zoneParentSet.isEmpty => // All isolated nodes
+            Array(zoneParentSet -> nodeIndices.filterNot(graph.hasChildrenIdx)) // remove parents from isolated nodes
+          case (zoneParentSet, nodeIndices) if zoneParentSet.size == 1 =>
+            Array(zoneParentSet -> (nodeIndices :+ zoneParentSet.head))
+          case other => Array(other)
+        }.toSeq ++ graph.nodes.indices.filter(i => graph.hasChildrenIdx(i) && graph.childrenIdx.forall(i)(c => graph.parentsIdx.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
+        println(s"grouping:\n  "+zoneGrouping.map{case (parents, nodes) => (parents.map(i => graph.nodes(i).str), nodes.map(i => graph.nodes(i).str))}.mkString("\n  "))
+        val eulerZones:Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
+        val eulerZoneNodes:Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
+        println(s"nodes:\n"+eulerZoneNodes.zipWithIndex.map{ case (nodes,i) => s"  $i: ${nodes.mkString(",")}"}.mkString("\n"))
+
+
+        
+
+        def setDifference[T](a:Set[T], b:Set[T]) = (a union b) diff (a intersect b)
+        val zoneAdjacencyMatrix = new AdjacencyMatrix(eulerZones.size)
+        val neighbourhoodBuilder = mutable.ArrayBuilder.make[(Int,Int)]
+
+        eulerZones.foreachIndex2Combination { (zoneAIdx, zoneBIdx) =>
+            // adjacent zones should attract each other, because in the euler diagram they are separated by a line.
+            // Two zones in an euler diagram are separated by a line iff their parentSet definitions differ by exactly one element
+           if( setDifference(eulerZones(zoneAIdx),eulerZones(zoneBIdx)).size == 1 ) {
+             zoneAdjacencyMatrix.set(zoneAIdx, zoneBIdx)
+             // if(eulerZones(zoneAIdx).nonEmpty && eulerZones(zoneBIdx).nonEmpty)
+               neighbourhoodBuilder += ((zoneAIdx, zoneBIdx))
+           }
+        }
+
+        staticData.eulerZoneCount = eulerZones.length
+        staticData.eulerZones = eulerZones
+        staticData.eulerZoneNodes = eulerZoneNodes
+        staticData.eulerZoneAdjacencyMatrix = zoneAdjacencyMatrix
+        staticData.eulerZoneNeighbourhoods = neighbourhoodBuilder.result()
+
+        staticData.eulerZoneArea = new Array[Double](eulerZones.length)
+        eulerZoneNodes.foreachIndexAndElement { (i,zoneNodes) => 
+          val arbitraryFactor = 1.3
+          staticData.eulerZoneArea(i) = zoneNodes.map { nodeIdx =>
+            staticData.nodeReservedArea(nodeIdx)
+          }.sum * arbitraryFactor
+        }
+
       }
 
       //TODO: collapsed euler sets

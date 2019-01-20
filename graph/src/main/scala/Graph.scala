@@ -43,7 +43,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   }
   @inline def nodeStrDetail(nodeIdx: Int): String = {
     val node = nodes(nodeIdx)
-    s"""${nodeStr(nodeIdx)}:${node.tpe}/${node.role}"""
+    s"""$nodeIdx ${nodeStr(nodeIdx)}:${node.tpe}/${node.role}"""
   }
 
   @inline def edgeStr(edgeIdx: Int): String = {
@@ -478,7 +478,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
   val derivedFromTemplateReverseEdgeIdx: NestedArrayInt = derivedFromTemplateRerverseEdgeIdxBuilder.result()
-
 
   def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).map(e => (e, graph.nodesById(e.targetId)))
   val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>

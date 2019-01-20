@@ -37,7 +37,7 @@ object PostCreationMenu {
     div(
       emitter(inputHandler).foreach { content =>
         val author = state.user.now
-        val changes = GraphChanges.addNodeWithParent(Node.MarkdownMessage(content), state.page.now.parentId)
+        val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), state.page.now.parentId)
         state.eventProcessor.changes.onNext(changes)
 
         // TODO: move created post below menu (not working yet)

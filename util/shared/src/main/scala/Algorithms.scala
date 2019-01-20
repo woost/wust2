@@ -581,4 +581,40 @@ object algorithm {
     sorted
   }
 
+  def eulerDiagramDualGraph(parents:NestedArrayInt, children:NestedArrayInt) = {
+
+    // for each node, the set of parent nodes identifies its zone
+    val zoneGrouping:Seq[(Set[Int],Seq[Int])] = parents.indices.groupBy(nodeIdx => parents(nodeIdx).toSet).flatMap{
+      case (zoneParentSet, nodeIndices) if zoneParentSet.isEmpty => // All isolated nodes
+        Array(zoneParentSet -> nodeIndices.filterNot(children.sliceNonEmpty)) // remove parents from isolated nodes
+      case (zoneParentSet, nodeIndices) if zoneParentSet.size == 1 =>
+        Array(zoneParentSet -> (nodeIndices :+ zoneParentSet.head))
+      case other => Array(other)
+    }.toSeq ++ parents.indices.filter(i => children.sliceNonEmpty(i) && children.forall(i)(c => parents.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
+    val eulerZones:Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
+    val eulerZoneNodes:Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
+
+
+
+
+    def setDifference[T](a:Set[T], b:Set[T]) = (a union b) diff (a intersect b)
+    val neighbourhoodBuilder = mutable.ArrayBuilder.make[(Int,Int)]
+
+    eulerZones.foreachIndex2Combination { (zoneAIdx, zoneBIdx) =>
+      // Two zones in an euler diagram are separated by a line iff their parentSet definitions differ by exactly one element
+      if( setDifference(eulerZones(zoneAIdx),eulerZones(zoneBIdx)).size == 1 ) {
+        neighbourhoodBuilder += ((zoneAIdx, zoneBIdx))
+      }
+    }
+
+    val neighbourhoods = neighbourhoodBuilder.result()
+    val edges = InterleavedArray.create[Int](neighbourhoods.length)
+    neighbourhoods.foreachIndexAndElement{ (i, ab) =>
+      edges.updatea(i, ab._1)
+      edges.updateb(i, ab._2)
+    }
+
+    (eulerZones, eulerZoneNodes, edges)
+  }
+
 }
