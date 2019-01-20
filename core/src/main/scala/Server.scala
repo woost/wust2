@@ -32,6 +32,7 @@ import cats.implicits._
 import monix.execution.Scheduler
 import wust.backend.mail.MailService
 import wust.core.EmailVerificationEndpoint
+import wust.core.DbChangeGraphAuthorizer
 import wust.core.aws.S3FileUploader
 
 import scala.concurrent.Future
@@ -74,8 +75,9 @@ object Server {
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
     val emailVerificationEndpoint = new EmailVerificationEndpoint(db, jwt, config.server)
+    val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
 
-    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow, changeGraphAuthorizer)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 
