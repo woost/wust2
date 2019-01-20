@@ -7,6 +7,7 @@ import scribe.writer.file.LogPath
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
+import wust.core.{ChangeGraphAuthorization, ChangeGraphAuthorizer}
 import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
@@ -18,7 +19,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow)(implicit ec: Scheduler) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future])(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -35,96 +36,9 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
   //TODO assure timestamps of posts are correct
   //TODO: only accept one GraphChanges object: we need an api for multiple.
-  private def changeGraphInternal(
-      allChanges: List[GraphChanges],
-      user: AuthUser.Persisted
-  ): Future[ApiData.Effect[Boolean]] = {
+  private def changeGraphInternal(allChanges: List[GraphChanges], user: AuthUser.Persisted): Future[ApiData.Effect[Boolean]] = {
 
-    //  addNodes // none of the ids can already exist
-    //  addEdges // needs permissions on all involved nodeids, or nodeids are in addNodes
-    //  delEdges // needs permissions on all involved nodeids
-
-    // TODO: Workaround since userid is not accessible but is needed for assignments
-    //TODO: check like in eventdistributor instead of whitelist
-    val (changes, allWhitelistedAddEdges, allWhitelistedDelEdges) = allChanges.map { gc =>
-      val (whitelistedAddEdges, remainingAddEdges) = gc.addEdges.partition {
-        case _: Edge.Assigned => true
-        case _: Edge.Invite => true // TODO: only allow to invite users to a node you have permission to
-        case _                => false
-      }
-      val (whitelistedDelEdges, remainingDelEdges) = gc.delEdges.partition {
-        case _: Edge.Assigned => true
-        case _: Edge.Invite => true // TODO: only allow to invite users to a node you have permission to
-        case _                => false
-      }
-
-      (gc.copy(addEdges = remainingAddEdges, delEdges = remainingDelEdges), whitelistedAddEdges, whitelistedDelEdges)
-    }.unzip3
-
-    val changesAreAllowed = changes.forall { changes =>
-
-      //TODO check conns
-      // addPosts.forall(_.author == user.id) //&& conns.forall(c => !c.content.isReadOnly)
-
-      // Author checks: I am the only author
-      // TODO: memberships can only be added / deleted if the user hat the rights to do so, currently not possible. maybe allow?
-      //TODO: consistent timestamps (not in future...)
-      //TODO: white-list instead of black-list what a user can do?
-      def validAddEdges = changes.addEdges.filter {
-        case _: Edge.Member => false // filter out members, just ignore these changes.
-        case _              => true
-      }.forall {
-        case Edge.Author(authorId, _, nodeId) =>
-          authorId == user.id && changes.addNodes.map(_.id).contains(nodeId)
-        case _              => true
-      }
-
-      // assure all nodes have an author edge
-      def validNodes = {
-        val allPostsWithAuthor = changes.addEdges.collect {
-          case Edge.Author(_, _, postId) => postId
-        }
-        changes.addNodes.forall {
-          case node:Node.Content => allPostsWithAuthor.contains(node.id)
-          case node:Node.User if node.id == user.id => allPostsWithAuthor.contains(node.id) // only allowed to edit your own user node
-          case _                 => false
-        }
-      }
-
-      def validDeleteEdges = changes.delEdges.filter {
-        case _: Edge.Member => false // filter out members, just ignore these changes.
-        case _ => true
-      }.forall {
-        case _: Edge.Author => false
-        case _ => true
-      }
-
-      validAddEdges && validNodes && validDeleteEdges
-    }
-
-    // TODO: task instead of this function
-    val checkAllChanges: () => Future[SuccessResult.type] = () => {
-      val a: List[NodeId] = changes.flatMap(_.involvedNodeIds)
-      val b: List[NodeId] = changes.flatMap(
-        _.addNodes
-          .map(_.id) // we leave out addNodes, since they do not exist yet. and throws on conflict anyways
-        // TODO: This bypasses updates of nodes.
-        // I can send an updated node with an edge and the id of the updated node won't be checked
-      )
-      val usedIdsFromDb: List[NodeId] = a diff b
-
-      db.user.inaccessibleNodes(user.id, usedIdsFromDb).flatMap { conflictingIds =>
-        if (conflictingIds.isEmpty) Future.successful(SuccessResult)
-        else {
-          Future.failed(new Exception(
-            s"Graph changes not allowed, there are inaccessible node ids in this change set: ${conflictingIds
-              .map(_.toUuid)}"
-          ))
-        }
-      }
-    }
-
-    def applyChangesToDb(changes: GraphChanges)(implicit ec: TransactionalExecutionContext): () => Future[SuccessResult.type] = () => {
+    def applyChangesToDb(changes: GraphChanges)(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       import changes.consistent._
 
       for {
@@ -135,22 +49,31 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
       } yield SuccessResult
     }
 
-    if (changesAreAllowed) {
-      val result: Future[SuccessResult.type] = db.ctx.transaction { implicit ec =>
-        ((checkAllChanges +: changes.map(applyChangesToDb)) ++ List(() => db.edge.create(allWhitelistedAddEdges.flatten[Edge].map(forDb)), () => db.edge.delete(allWhitelistedDelEdges.flatten[Edge].map(forDb)))).foldLeft(Future.successful(SuccessResult)) {
-          (previousSuccess, operation) => previousSuccess.flatMap { _ => operation() }
-        }
-      }
+    val changesAuthorization =
+      Future.sequence(allChanges.map { changes => changeGraphAuthorizer.authorize(user, changes) })
+        .map(_.foldLeft[ChangeGraphAuthorization](ChangeGraphAuthorization.Allow)(ChangeGraphAuthorization.combine))
 
-      result.map { _ =>
-        val whiteListedChanges = GraphChanges.from(addEdges = allWhitelistedAddEdges.flatMap(identity)(breakOut):Set[Edge], delEdges = allWhitelistedDelEdges.flatMap(identity)(breakOut))
-        val compactChanges = (changes :+ whiteListedChanges).foldLeft(GraphChanges.empty)(_ merge _).consistent
-        Returns(true, Seq(NewGraphChanges.forPublic(user.toNode, compactChanges)))
-      }.recover { case NonFatal(e) =>
-        scribe.warn("Cannot apply changes", e)
-        Returns(false)
-      }
-    } else Future.successful(Returns.error(ApiError.Forbidden))
+    changesAuthorization.flatMap {
+      case ChangeGraphAuthorization.Allow =>
+        val appliedChanges = db.ctx.transaction { implicit ec =>
+          allChanges.foldLeft(Future.successful(SuccessResult)) { (previousFuture, changes) =>
+            // intentionally chain db-operation future, because transactions
+            // can only handle sequential db requests.
+            previousFuture.flatMap { _ => applyChangesToDb(changes) }
+          }
+        }
+
+        appliedChanges.map { _ =>
+          val compactChanges = allChanges.foldLeft(GraphChanges.empty)(_ merge _).consistent
+          Returns(true, Seq(NewGraphChanges.forPublic(user.toNode, compactChanges)))
+        }.recover { case NonFatal(e) =>
+          scribe.warn("Cannot apply changes", e)
+          Returns(false)
+        }
+      case ChangeGraphAuthorization.Deny(reason) =>
+        scribe.warn(s"ChangeGraph was denied, because: $reason")
+        Future.successful(Returns.error(ApiError.Forbidden))
+    }
   }
 
   override def addMember(
