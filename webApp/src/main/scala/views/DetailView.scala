@@ -59,7 +59,7 @@ object DetailView {
           val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
           @inline def numParents = parents.length
 
-          @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
+//          @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
 
           list(
             item(
@@ -74,6 +74,12 @@ object DetailView {
                   subject.role.toString
                 )
               ),
+//              content( // TODO: Configurable role (changeable on click)
+//                header("Role"),
+//                description(
+//                  ConvertSelection.all.map { convert => ConvertSelection.convertRoleSubItem(state, subject.asInstanceOf[Node.Content], convert.role, convert.icon) }
+//                )
+//              ),
               content( // TODO: Configurable access level (changeable on click)
                 header(s"Access (${accessLevel.value})"),
                 description(
@@ -97,9 +103,9 @@ object DetailView {
                 header(s"Parents ($numParents)"),
                 description(renderAsTag(parents))
               ),
-              content(
-                header(s"Children ($numChildren)"),
-              ),
+//              content(
+//                header(s"Children ($numChildren)"),
+//              ),
               content(
                 header("Data"),
                 description(subject.data.str)
