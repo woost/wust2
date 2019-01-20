@@ -50,7 +50,7 @@ object Edge {
     def sourceId = nodeId
     def targetId = userId
     def data = EdgeData.Notify
-    def copyId(sourceId: NodeId, targetId: NodeId) = copy(userId = UserId(sourceId), nodeId = targetId)
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
   case class Pinned(userId: UserId, nodeId: NodeId) extends Edge {
