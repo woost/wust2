@@ -149,12 +149,18 @@ class EventProcessor private (
     Observable.tailRecM(localChangesIndexedBusy.delayOnNext(200 millis)) { changes =>
       changes.flatMap {
         case (c, idx) =>
-          Observable.fromFuture(sendChanges(c)).map {
+
+          Observable.fromFuture(sendChange(c.toList)).map[Either[Observable[(Seq[GraphChanges], Long)], Long]] {
             case true =>
               Right(idx)
             case false =>
-              // TODO delay with exponential backoff
-              Left(Observable((c, idx)).sample(5 seconds))
+              //TODO: What to do now?
+              scribe.warn(s"ChangeGraph request was rejected by backend: $changes")
+              Right(idx)
+          }.onErrorRecover { case NonFatal(t) =>
+            scribe.warn(s"ChangeGraph request failed with exception '${t}'")
+            // TODO delay with exponential backoff
+            Left(Observable((c, idx)).sample(5 seconds))
           }
       }
     }.share
@@ -185,21 +191,4 @@ class EventProcessor private (
     }
     .map(_.map(_._1))
     .share
-
-  private def sendChanges(changes: Seq[GraphChanges]): Future[Boolean] = {
-    //TODO: why is import wust.util._ not enough to resolve RichFuture?
-    // We only need it for the 2.12 polyfill
-    new wust.util.RichFuture(sendChange(changes.toList)).transform {
-      case Success(success) =>
-        if (!success) {
-          scribe.warn(s"ChangeGraph request returned false: $changes")
-        }
-
-        Success(success)
-      case Failure(t) =>
-        scribe.warn(s"ChangeGraph request failed '${t}': $changes")
-
-        Success(false)
-    }
-  }
 }
