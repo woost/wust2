@@ -133,13 +133,12 @@ object WoostNotification {
 
   def banner(state: GlobalState, permissionState: PermissionState, projectName: Option[String]): VDomModifier = {
     if(permissionState == PermissionState.prompt) {
-      val name = StringOps.trimToMaxLength(projectName.getOrElse("Woost"), 20)
       val mobileText = div(
-        s"Allow $name to ",
+        s"Allow ${StringOps.trimToMaxLength(projectName.getOrElse("Woost"), 20)} to ",
         span("send notifications.", textDecoration.underline),
       )
       val desktopText = div(
-        s"$name (Woost) needs your permission to ",
+        s"${projectName.fold("Woost")(name => s"$name (Woost)")} needs your permission to ",
         span("enable notifications.", textDecoration.underline),
       )
 
