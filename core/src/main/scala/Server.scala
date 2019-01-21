@@ -15,6 +15,7 @@ import wust.backend.config.Config
 import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
 import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
 import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
+import akka.http.scaladsl.server.Route
 import wust.db.{Db, SuccessResult}
 import covenant.ws._
 import covenant.http._
@@ -30,6 +31,7 @@ import wust.util.RichFuture
 import cats.implicits._
 import monix.execution.Scheduler
 import wust.backend.mail.MailService
+import wust.core.EmailVerificationEndpoint
 import wust.core.aws.S3FileUploader
 
 import scala.concurrent.Future
@@ -71,6 +73,7 @@ object Server {
     val fileUploader = config.aws.map(new S3FileUploader(_, config.server)) //TODO local file uploader stub for dev?
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
+    val emailVerificationEndpoint = new EmailVerificationEndpoint(db, jwt, config.server)
 
     val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow)
@@ -113,21 +116,7 @@ object Server {
     } ~ (path(paths.emailVerify) & get) { // needs
       cors(corsSettings) {
         parameters('token.as[String]) { token =>
-          def link =  s"""<a href="https://${config.server.host}">Go back to app</a>"""
-          def successMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Your email address has been verified. Thank you! $link"))
-          def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot verify email address. This email verification token was already used or is invalid or expired. $link"))
-          def errorMessage = complete(StatusCodes.InternalServerError -> s"Sorry, we cannot verify your email address. Please try again later.")
-          jwt.emailActivationFromToken(token) match {
-           case Some(activation) if !JWT.isExpired(activation) =>
-             onComplete(db.user.verifyEmailAddress(activation.userId, activation.email)) {
-               case Success(true) => successMessage
-               case Success(false) => invalidMessage
-               case Failure(t) =>
-                 scribe.error("There was an error when verifying an email address", t)
-                 errorMessage
-             }
-           case _ => invalidMessage
-         }
+          emailVerificationEndpoint.verify(token)
         }
       }
     }
