@@ -66,6 +66,7 @@ object Icons {
   val automate: IconDefinition =  freeSolid.faRobot
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
   val mentionIn: IconDefinition = freeSolid.faCopy
+  val pin: IconDefinition = freeSolid.faThumbtack
   val signOut: IconDefinition =  freeSolid.faSignOutAlt
   val menu: IconDefinition = freeSolid.faCog
   val menuDropdown: Layer = fontawesome.layered(

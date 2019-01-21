@@ -32,7 +32,6 @@ object CreateNewPrompt {
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
-    val closeModal = PublishSubject[Unit]()
 
     def newMessage(msg: String): Future[Ack] = {
       val parents: List[NodeId] = if (parentNodes.now.isEmpty) List(state.user.now.id) else parentNodes.now
@@ -57,7 +56,7 @@ object CreateNewPrompt {
         ack
       }
 
-      closeModal.onNext(())
+      state.modalClose.onNext(())
       ack
     }
 
@@ -186,12 +185,12 @@ object CreateNewPrompt {
             childNodes -> state.selectedNodes.now
           )
 
-          state.modalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, close = closeModal, modalModifier = VDomModifier(
+          state.modalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "basic",
             backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
           ))))
         }
-        else closeModal.onNext(())
+        else state.modalClose.onNext(())
       }
     )
   }

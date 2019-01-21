@@ -1,7 +1,9 @@
 package wust.webApp.views
 
 import fomanticui._
-import monix.reactive.Observable
+import fontAwesome.IconLookup
+import monix.reactive.{Observable, subjects}
+import monix.reactive.subjects.{PublishSubject, ReplaySubject}
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -42,17 +44,17 @@ object UI {
       label(labelText)
     )
 
-  case class ModalConfig(header: VDomModifier, description: VDomModifier, close: Observable[Unit] = Observable.empty, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
+  case class ModalConfig(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
   def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
       configRx.flatMap(config => Ownable { implicit ctx =>
         VDomModifier(
-          emitter(Observable(config.close, globalClose).merge).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
           config.modalModifier,
-          onDomMount.asJquery.foreach { e =>
-            e.modal("show")
-          },
+
+          emitter(globalClose).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
+          onDomMount.asJquery.foreach { e => e.modal("show") },
+
           i(cls := "close icon"),
           div(
             cls := "header modal-header",
@@ -120,6 +122,36 @@ object UI {
         ),
       )
     }
+  }
+
+  case class SidebarConfig(items: VDomModifier)
+  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit]): VDomModifier = div.static(keyValue) { //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
+    val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
+
+    VDomModifier(
+      cls := "ui sidebar right icon labeled vertical menu mini",
+      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
+
+      onDomMount.asJquery.foreach { e =>
+        elemHandler.onNext(e)
+        e.sidebar(new SidebarOptions {
+          transition = "overlay"
+          exclusive = true
+          context = ".main-viewrender"
+        }).sidebar("hide")
+      },
+
+      emitter(globalClose).useLatest(onDomMount.asJquery).foreach(_.sidebar("hide")),
+
+      config.map[VDomModifier] { config =>
+        config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
+          VDomModifier(
+            onDomMount.asJquery.foreach(_.sidebar("show")),
+            config.items
+          )
+        })
+      }
+    )
   }
 
   // tooltip is CSS only. It does not work when the tooltip itself is not in the rendering area of the element. If tooltip does not work, try popup instead
@@ -202,12 +234,31 @@ object UI {
   def accordion(title: VDomModifier, content: VDomModifier): VNode = div(
     cls :="ui styled fluid accordion",
     div(
+      padding := "0px",
+      borderTop := "0px",
       cls := "title",
       i(cls := "dropdown icon"),
       title,
     ),
-    div(cls := "content", content),
+    div(
+      cls := "content",
+      padding := "0px",
+      content
+    ),
     onDomMount.asJquery.foreach(_.accordion()),
-    cursor.pointer,
   )
+
+  def content(header: VDomModifier, description: VDomModifier = VDomModifier.empty): VNode = {
+    div(
+      cls := "content",
+      div(
+        cls := "header",
+        header
+      ),
+      div(
+        cls := "description",
+        description
+      )
+    )
+  }
 }

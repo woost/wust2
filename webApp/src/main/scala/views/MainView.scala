@@ -21,6 +21,7 @@ object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      cls := "pusher",
       Rx {
         if (state.hasError()) ErrorPage()
         else main(state)
@@ -40,7 +41,9 @@ object MainView {
       cls := "mainview",
       Styles.flex,
 //      DevOnly { DevView(state) },
-      UI.modal(state.modalConfig, state.page.toLazyTailObservable.map(_ => ())), // one modal instance for the whole page that can be configured via state.modalConfig
+
+      UI.modal(state.modalConfig, state.modalClose), // one modal instance for the whole page that can be configured via state.modalConfig
+
       div(id := "draggable-mirrors", position.absolute), // draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors
       div(
         cls := "topBannerContainer",
@@ -59,6 +62,7 @@ object MainView {
           flexDirection.column,
           overflow.auto,
           position.relative, // important for position absolute of loading animation to have the correct width of its parent element
+
           {
             val breadCrumbs = Rx {
               VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic))
@@ -85,31 +89,36 @@ object MainView {
           // It is important that the view rendering is in a separate Rx.
           // This avoids rerendering the whole view when only the screen-size changed
           div(
-            Styles.flex,
-            Styles.growFull,
+            cls := "main-viewrender",
+            UI.sidebar(state.sidebarConfig, state.sidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
 
-            Rx {
-              // we can now assume, that every page parentId is contained in the graph
-              ViewRender(state.view(), state).apply(
-                Styles.growFull,
-                flexGrow := 1
-              ).prepend(
-                overflow.visible
-              )
-            },
-            Rx {
-              val page = state.page()
-              val graph = state.graph()
-              VDomModifier.ifTrue(state.view().isContent)(
-                page.parentId.map { pageParentId =>
-                  val pageParentIdx = graph.idToIdx(pageParentId)
-                  val workspaces = graph.workspacesForParent(pageParentIdx)
-                  val firstWorkspaceIdx = workspaces.head
-                  val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
-                  SharedViewElements.tagListWithToggle(state, firstWorkspaceId)
-                }
-              )
-            }
+            div(
+              Styles.flex,
+              Styles.growFull,
+              cls := "pusher",
+              Rx {
+                // we can now assume, that every page parentId is contained in the graph
+                ViewRender(state.view(), state).apply(
+                  Styles.growFull,
+                  flexGrow := 1
+                ).prepend(
+                  overflow.visible
+                )
+              },
+              Rx {
+                val page = state.page()
+                val graph = state.graph()
+                VDomModifier.ifTrue(state.view().isContent)(
+                  page.parentId.map { pageParentId =>
+                    val pageParentIdx = graph.idToIdx(pageParentId)
+                    val workspaces = graph.workspacesForParent(pageParentIdx)
+                    val firstWorkspaceIdx = workspaces.head
+                    val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
+                    SharedViewElements.tagListWithToggle(state, firstWorkspaceId)
+                  }
+                )
+              },
+            )
           ),
         ),
       )

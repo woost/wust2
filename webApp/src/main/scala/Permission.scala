@@ -5,12 +5,13 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.Elements
+import wust.webApp.views.{Elements, UI}
 
 case class PermissionDescription(
   access: NodeAccess,
@@ -56,15 +57,13 @@ object Permission {
     inheritedLevel
   }
 
-  def canWrite(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): Boolean = NodePermission.canWrite(state, channel.id).now //TODO reactive? but settingsmenu is anyhow rerendered
-
   def permissionItem(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = channel match {
-    case channel: Node.Content if canWrite(state, channel) =>
-      div(
-        cls := "item",
-        Elements.icon(Icons.userPermission)(marginRight := "5px"),
-        span(cls := "text", "Set Permissions", cursor.pointer),
-        div(
+    case channel: Node.Content =>
+      UI.accordion(
+        title = VDomModifier(
+          span("Set Permissions"),
+        ),
+        content = div(
           cls := "menu",
           Permission.all.map { item =>
             div(
@@ -85,8 +84,10 @@ object Permission {
             )
           }
         )
+      ).prepend(
+        cls := "item",
+        Elements.icon(Icons.userPermission),
       )
     case _ => VDomModifier.empty
   }
-
 }

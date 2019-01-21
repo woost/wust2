@@ -55,7 +55,6 @@ object ItemProperties {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val modalCloseTrigger = PublishSubject[Unit]
     val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
     val propertyKeyInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
     val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
@@ -142,11 +141,7 @@ object ItemProperties {
           marginTop := "10px",
           cursor.pointer,
           a(
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) foreach { vc =>
-              modalCloseTrigger.onNext(()).onComplete { _ =>
-                state.urlConfig() = vc
-              }
-            },
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) --> state.urlConfig,
             "Show detailed view",
           )
         ),
@@ -188,7 +183,6 @@ object ItemProperties {
       onClick(Ownable(implicit ctx => UI.ModalConfig(
                         header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
                         description = description,
-                        close = modalCloseTrigger,
                         modalModifier = VDomModifier(
                           cls := "mini form",
                           ),

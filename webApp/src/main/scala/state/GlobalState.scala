@@ -54,7 +54,10 @@ class GlobalState(
 
   val showTagsList: Var[Boolean] = Var(largeScreen)
 
+  val sidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
+  val sidebarClose: PublishSubject[Unit] = PublishSubject()
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
+  val modalClose: PublishSubject[Unit] = PublishSubject()
 
   val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
