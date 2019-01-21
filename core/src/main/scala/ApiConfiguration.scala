@@ -28,7 +28,18 @@ class ApiConfiguration(
     case _                                   => true
   }
 
-  override def serverFailure(error: ServerFailure): ApiError = ApiError.ServerError(error.toString)
+  override def serverFailure(error: ServerFailure): ApiError = error match {
+    case ServerFailure.HandlerError(t) =>
+      scribe.warn("Server got unexpected error from request handler", t)
+      ApiError.InternalServerError
+    case ServerFailure.DeserializerError(t) =>
+      scribe.warn("Server cannot deserialize request", t)
+      ApiError.IncompatibleApi
+    case ServerFailure.PathNotFound(path) =>
+      scribe.warn(s"Server cannot map request path: $path")
+      ApiError.IncompatibleApi
+  }
+
   override def dsl: ApiDsl[ApiEvent, ApiError, State] = Dsl
 
   override def scopeOutgoingEvents(events: List[ApiEvent]): ScopedEvents[ApiEvent] = {

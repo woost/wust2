@@ -6,12 +6,13 @@ import covenant.ws._
 import chameleon.ext.boopickle._
 import boopickle.Default._
 import java.nio.ByteBuffer
-import wust.util.collection._
 
+import wust.util.collection._
 import colorado.HCL
 import covenant.core.DefaultLogHandler
 import covenant.core.util.StopWatch
-import sloth.LogHandler
+import monix.reactive.{Observable, Observer}
+import sloth.{ClientException, ClientFailure, LogHandler}
 
 import scala.concurrent.{ExecutionContext, Future}
 import org.scalajs.dom.console
@@ -22,7 +23,7 @@ import scala.scalajs.js.JSConverters._
 import scala.util.{Failure, Success}
 import scala.collection.breakOut
 
-class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future] {
+class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext) extends LogHandler[Future] {
   import covenant.core.util.LogHelper._
 
   override def logRequest(path: List[String], arguments: Product, result: Future[_]): Unit = {
@@ -60,6 +61,13 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
       val timeStyle =
         s"color: $timeColor; background: #EEE; border-radius: 3px; padding: 2px 6px; font-weight: bold"
 
+      def logError(t: Throwable, msg: String = "Error"): Unit = console.log(
+        s"%c ➘ ${path.mkString(".")} %c $msg: ${t.getMessage} %c${watch.readHuman}",
+        boxStyle + "; border: 3px solid #C83D3A",
+        s"background: #FFF0F0; color: #FF0B0B",
+        timeStyle
+      )
+
       def logInGroup(code: => Unit): Unit = {
         console
           .asInstanceOf[js.Dynamic]
@@ -69,7 +77,8 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
       }
 
       result match {
-        case Success(response) =>
+
+        case Success(response)        =>
           response match {
             case graph: Graph => // graph is always grouped and logged as table
               logInGroup {
@@ -87,21 +96,36 @@ class BrowserLogHandler(implicit ec: ExecutionContext) extends LogHandler[Future
                 console.log(s"%c $response", s"background: $color")
               }
           }
-        case Failure(throwable) =>
-          console.log(
-            s"%c ➘ ${path.mkString(".")} %c error: ${throwable.getMessage} %c${watch.readHuman}",
-            boxStyle + "; border: 3px solid #C83D3A",
-            s"background: #FFF0F0; color: #FF0B0B",
-            timeStyle
-          )
+
+        case Failure(throwable)       => throwable match {
+
+          case ClientException(error) => error match {
+            case ClientFailure.DeserializerError(t) =>
+              apiError.onNext(())
+              logError(t, msg = "Cannot deserialize response from server")
+            case ClientFailure.TransportError(t)    =>
+              logError(t, msg = "Error in client transport")
+          }
+
+          case WsClient.ErrorException(error: ApiError) =>
+            error match {
+              case ApiError.IncompatibleApi =>
+                apiError.onNext(())
+                scribe.error(s"ApiError: API is incompatible!")
+              case error =>
+                scribe.warn(s"ApiError: $error")
+            }
+
+          case t => logError(t)
+        }
       }
     }
   }
 }
 
 private[sdk] trait NativeWustClient {
-  def apply(location: String)(implicit ec: ExecutionContext): WustClientFactory[Future] = {
-    val logger = if (LinkingInfo.developmentMode) new BrowserLogHandler
+  def apply(location: String, apiError: Observer[Unit])(implicit ec: ExecutionContext): WustClientFactory[Future] = {
+    val logger = if (LinkingInfo.developmentMode) new BrowserLogHandler(apiError)
     else new LogHandler[Future] //new DefaultLogHandler[Future](identity)
     new WustClientFactory(
       WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, logger)
