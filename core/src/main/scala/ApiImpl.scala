@@ -72,7 +72,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
         }
       case ChangeGraphAuthorization.Deny(reason) =>
         scribe.warn(s"ChangeGraph was denied, because: $reason")
-        Future.successful(Returns.error(ApiError.Forbidden))
+        Future.successful(Returns(false))
     }
   }
 
