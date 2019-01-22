@@ -36,7 +36,7 @@ object Elements {
   def scrollToBottom(elem: dom.Element): Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
     try {
-      elem.scrollTop = elem.scrollHeight - elem.clientHeight
+      elem.scrollTop = elem.scrollHeight
     } catch { case _: Throwable => } // with NonFatal(_) it fails in the tests
   }
 
@@ -55,6 +55,12 @@ object Elements {
     } // at bottom + 10 px tolerance
 
     def modifier(implicit ctx: Ctx.Owner) = VDomModifier(
+      managed(IO(
+        outwatch.dom.dsl.events.window.onResize.foreach { _ =>
+          if(isScrolledToBottom.now)
+            scrollToBottomInAnimationFrame()
+        }
+      )),
       onDomPreUpdate foreach {
         isScrolledToBottom() = isScrolledToBottomNow
       },
