@@ -49,10 +49,7 @@ object GlobalStateFactory {
 
     val isLoading = Var(false)
 
-    val hasError = OutwatchTracing.error.map{_ =>
-      hotjar.pageView("/js-error")
-      true
-    }.unsafeToRx(false)
+    val hasError = Var(false)
 
     val fileDownloadBaseUrl = Var[Option[String]](None)
 
@@ -246,6 +243,17 @@ object GlobalStateFactory {
     // eventProcessor.changesInTransit subscribe Client.storage.graphChanges.unsafeOnNext _
 
     //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
+
+    Client.apiErrorSubject.foreach { _ =>
+      hasError() = true
+    }
+    OutwatchTracing.error.foreach{ t =>
+      scribe.warn("Error in outwatch component", t)
+      hasError() = true
+    }
+    hasError.foreach { error =>
+      if (error) hotjar.pageView("/js-error")
+    }
 
     // we send client errors from javascript to the backend
     jsErrors.foreach { msg =>
