@@ -245,10 +245,11 @@ object GlobalStateFactory {
     //Client.storage.graphChanges.redirect[GraphChanges](_.scan(List.empty[GraphChanges])((prev, curr) => prev :+ curr) <-- eventProcessor.changes
 
     Client.apiErrorSubject.foreach { _ =>
+      scribe.error("API request did failed, because the API is incompatible")
       hasError() = true
     }
     OutwatchTracing.error.foreach{ t =>
-      scribe.warn("Error in outwatch component", t)
+      scribe.error("Error in outwatch component", t)
       hasError() = true
     }
     hasError.foreach { error =>
