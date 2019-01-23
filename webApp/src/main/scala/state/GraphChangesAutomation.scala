@@ -118,22 +118,25 @@ object GraphChangesAutomation {
           if (childIsTemplate) addEdges += parent // do not automate template nodes
           else {
             val automatedEdges = graph.automatedEdgeIdx(parentIdx)
-            if (automatedEdges.isEmpty) addEdges += parent
-            else {
-              UI.toast(StringOps.trimToMaxLength(childNode.str, 100), title = s"New ${childNode.role} is automated", click = () => viewConfig.update(_.focus(Page(childNode.id))))
-
-              //TODO should we do the copy for all templateNodes of this node in one go? because then we do not duplicate shared nodes of templates
-              automatedEdges.foreach { automatedEdgeIdx =>
-                val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
-                val templateNode = graph.nodes(templateNodeIdx)
-                if (templateNode.role == childNode.role) {
-                  scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
-                  val changes = copySubGraphOfNode(graph, newNode = childNode, templateNode = templateNode)
-                  addNodes ++= changes.addNodes
-                  addEdges ++= changes.addEdges
-                  delEdges ++= changes.delEdges
-                }
+            var doneSomething = false
+            //TODO should we do the copy for all templateNodes of this node in one go? because then we do not duplicate shared nodes of templates
+            automatedEdges.foreach { automatedEdgeIdx =>
+              val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
+              val templateNode = graph.nodes(templateNodeIdx)
+              if (templateNode.role == childNode.role) {
+                doneSomething = true
+                scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
+                val changes = copySubGraphOfNode(graph, newNode = childNode, templateNode = templateNode)
+                addNodes ++= changes.addNodes
+                addEdges ++= changes.addEdges
+                delEdges ++= changes.delEdges
               }
+            }
+
+            if (doneSomething) {
+              UI.toast(StringOps.trimToMaxLength(childNode.str, 100), title = s"New ${ childNode.role } is automated", click = () => viewConfig.update(_.focus(Page(childNode.id))))
+            } else {
+              addEdges += parent
             }
           }
 
