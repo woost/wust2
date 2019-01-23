@@ -232,11 +232,12 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
   }
 
-  implicit class RichVNode(val vNode: BasicVNode) extends AnyVal {
+  implicit class RichVNode(val vNode: VNode) extends AnyVal {
     def render: org.scalajs.dom.Element = {
-      val elem = document.createElement(vNode.nodeType)
-      OutWatch.renderReplace(elem, vNode).unsafeRunSync()
-      elem
+      val proxy = OutWatch.toSnabbdom(vNode).unsafeRunSync()
+      //TODO outwatch: allow to render a VNodeProxy directly.
+      OutWatch.renderReplace(document.createElement("div"), dsl.div(VNodeProxyNode(proxy))).unsafeRunSync()
+      proxy.elm.get
     }
   }
 
