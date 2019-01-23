@@ -131,17 +131,13 @@ object UI {
   def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
-    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
+    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
   }
   def popup(tooltipZIndex: Int): AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; }, tooltipZIndex)
-  def popup(position: String, zIndex: Int): AttributeBuilder[String, VDomModifier] = str => {
+  def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
+  def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
     val _position = position
-    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; }, zIndex)
-  }
-  def popupHtml: AttributeBuilder[BasicVNode, VDomModifier] = node => popup(new PopupOptions { html = node.render.outerHTML; hideOnScroll = true; exclusive = true; })
-  def popupHtml(position: String): AttributeBuilder[BasicVNode, VDomModifier] = node => {
-    val _position = position
-    popup(new PopupOptions { html = node.render.outerHTML; position = _position; hideOnScroll = true; exclusive = true; })
+    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
   }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
