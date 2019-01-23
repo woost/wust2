@@ -1,5 +1,7 @@
 package fomanticui
 
+import org.scalajs.dom
+
 import scala.scalajs.js
 import scala.scalajs.js.|
 
@@ -38,11 +40,12 @@ trait DropdownOptions extends js.Object {
 trait PopupOptions extends js.Object {
   var target: js.UndefOr[String | jquery.JQuerySelection] = js.undefined
   var inline: js.UndefOr[Boolean] = js.undefined
+  var hoverable: js.UndefOr[Boolean] = js.undefined
   var position: js.UndefOr[String] = js.undefined
   var variation: js.UndefOr[String] = js.undefined
   var content: js.UndefOr[String] = js.undefined
   var title: js.UndefOr[String] = js.undefined
-  var html: js.UndefOr[String] = js.undefined
+  var html: js.UndefOr[String | dom.Element] = js.undefined
   var scrollContext: js.UndefOr[String] = js.undefined
   var exclusive: js.UndefOr[Boolean] = js.undefined
   var hideOnScroll: js.UndefOr[Boolean] = js.undefined
