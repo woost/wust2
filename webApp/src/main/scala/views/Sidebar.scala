@@ -12,7 +12,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util.RichBoolean
-import wust.webApp.{BrowserDetect, Ownable}
+import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -118,7 +118,9 @@ object Sidebar {
           case _:Node.Content => drag(DragItem.Channel(node.id))
           case _:Node.User => drag(target = DragItem.Channel(node.id))
         },
-      ),
+
+        channelFocusButton(state, node.id)
+      )
     }
 
     def channelList(channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
@@ -194,6 +196,27 @@ object Sidebar {
     )
   }
 
+  def channelFocusButton(state: GlobalState, nodeId: NodeId): VNode = {
+    div(
+      cls := "ui icon buttons",
+      height := "22px",
+      marginRight := "4px",
+      marginLeft := "auto",
+      button(
+        cls := "ui mini compact inverted button",
+        padding := "4px",
+        renderFontAwesomeIcon(Icons.conversation)(color.gray),
+        onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Chat))),
+      ),
+      button(
+        cls := "ui mini compact inverted button",
+        padding := "4px",
+        renderFontAwesomeIcon(Icons.tasks)(color.gray),
+        onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Kanban))),
+      )
+    )
+  }
+
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
     val indentFactor = 3
     val focusBorderWidth = 2
@@ -210,7 +233,10 @@ object Sidebar {
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size)(ctx)(
-              UI.popup("right center") := (if (state.user.now.id == node.id) "Your personal Workspace" else node.str),
+              UI.popupHtml("right center") := div(
+                channelFocusButton(state, node.id)(color.gray),
+                node.str
+              ),
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
