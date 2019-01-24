@@ -135,7 +135,7 @@ object DetailView {
                 )
               ),
               content(
-                header("Data"),
+                header("Content"),
                 description(subject.data.str)
               ),
             )
