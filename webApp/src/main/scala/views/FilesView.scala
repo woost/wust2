@@ -35,25 +35,19 @@ object FilesView {
     div(
       padding := "20px",
       overflow.auto,
-      p(
-        marginBottom := "20px",
-        Components.uploadField(state, fileUploadHandler),
-      ),
+      Components.uploadField(state, fileUploadHandler),
       UI.horizonalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
-      div(
-        marginTop := "20px",
-        files.map { files =>
-          if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
-          else div(
-            Styles.flex,
-            flexDirection.row,
-            flexWrap.wrap,
-            files.map { case (id, file) =>
-              Components.renderUploadedFile(state, id, file).apply(cls := "ui bordered medium", padding := "10px", margin := "10px", border := "2px solid grey", borderRadius := "10px")
-            }
-          )
-        }
-      )
+      files.map { files =>
+        if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
+        else div(
+          Styles.flex,
+          flexDirection.row,
+          flexWrap.wrap,
+          files.map { case (id, file) =>
+            Components.renderUploadedFile(state, id, file).apply(cls := "ui bordered medium", padding := "10px", margin := "10px", border := "2px solid grey", borderRadius := "10px")
+          }
+        )
+      }
     )
   }
 }
