@@ -21,7 +21,7 @@ object FilesView {
       val graph = state.graph()
       val page = state.page()
 
-      page.parentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId))
+      page.parentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId).sortBy { case (id, _) => id }.reverse)
 
     }
 
