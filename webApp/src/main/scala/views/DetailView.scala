@@ -3,12 +3,14 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.css.Styles
 import wust.graph.Edge.LabeledProperty
 import wust.graph._
 import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.{Icons, Permission}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.Components._
 
 /*
@@ -38,6 +40,7 @@ object DetailView {
     val header = div(cls := "header")
     val description = div(cls := "description")
 
+
     div(
       overflow.auto,
       padding := "10px",
@@ -59,7 +62,8 @@ object DetailView {
           val parents = graph.parentsIdx(subjectIdx).map(graph.nodes)
           @inline def numParents = parents.length
 
-//          @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
+          @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
+          val roleChildrenCounts = graph.topLevelRoleStats(subjectId :: Nil)
 
           list(
             item(
@@ -103,9 +107,33 @@ object DetailView {
                 header(s"Parents ($numParents)"),
                 description(renderAsTag(parents))
               ),
-//              content(
-//                header(s"Children ($numChildren)"),
-//              ),
+              content(
+                header(s"Children ($numChildren)"),
+                description(
+                  roleChildrenCounts.roleCounts.collect{
+                    case (NodeRole.Message, count) =>
+                      div(
+                        Styles.flex,
+                        div(cls := "fa-fw", Icons.conversation),
+                        div(count, marginLeft := "0.5em"),
+                        onClick foreach {
+                          state.viewConfig.update(_.focusView(View.Conversation))
+                        },
+                        cursor.pointer,
+                      )
+                    case (NodeRole.Task, count) =>
+                      div(
+                        Styles.flex,
+                        div(cls := "fa-fw", Icons.tasks),
+                        div(count, marginLeft := "0.5em"),
+                        onClick foreach {
+                          state.viewConfig.update(_.focusView(View.Tasks))
+                        },
+                        cursor.pointer,
+                      )
+                  }
+                )
+              ),
               content(
                 header("Data"),
                 description(subject.data.str)
