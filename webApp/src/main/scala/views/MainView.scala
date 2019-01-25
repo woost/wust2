@@ -84,16 +84,34 @@ object MainView {
           },
           // It is important that the view rendering is in a separate Rx.
           // This avoids rerendering the whole view when only the screen-size changed
-          Rx {
-            // we can now assume, that every page parentId is contained in the graph
-            ViewRender(state.view(), state).apply(
-              Styles.growFull,
-              flexGrow := 1
-            ).prepend(
-              overflow.visible
-            )
-          },
-        )
+          div(
+            Styles.flex,
+            Styles.growFull,
+
+            Rx {
+              // we can now assume, that every page parentId is contained in the graph
+              ViewRender(state.view(), state).apply(
+                Styles.growFull,
+                flexGrow := 1
+              ).prepend(
+                overflow.visible
+              )
+            },
+            Rx {
+              val page = state.page()
+              val graph = state.graph()
+              VDomModifier.ifTrue(state.view().isContent)(
+                page.parentId.map { pageParentId =>
+                  val pageParentIdx = graph.idToIdx(pageParentId)
+                  val workspaces = graph.workspacesForParent(pageParentIdx)
+                  val firstWorkspaceIdx = workspaces.head
+                  val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
+                  SharedViewElements.tagListWithToggle(state, firstWorkspaceId)
+                }
+              )
+            }
+          ),
+        ),
       )
     )
   }

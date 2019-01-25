@@ -24,6 +24,49 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
+  case class KanbanData(workspaceId: NodeId, inboxNodes: Seq[Node], columnTree: Seq[Tree])
+  object KanbanData {
+    def calculate(graph: Graph, pageParentId: NodeId): KanbanData = {
+      val pageParentIdx = graph.idToIdx(pageParentId)
+      val workspaces = graph.workspacesForParent(pageParentIdx)
+      val firstWorkspaceIdx = workspaces.head //TODO: crashes
+      val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
+
+      val topLevelStages = graph.childrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
+      val allStages: ArraySet = {
+        val stages = ArraySet.create(graph.size)
+        topLevelStages.foreachElement(stages.add)
+        algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.childrenIdx, { idx =>
+          val isStage = graph.nodes(idx).role == NodeRole.Stage
+          if(isStage) stages += idx
+          isStage
+        })
+        stages
+      }
+
+      val inboxTasks: ArraySet = {
+        val inboxTasks = ArraySet.create(graph.size)
+        graph.childrenIdx.foreachElement(firstWorkspaceIdx) { childIdx =>
+          if(graph.nodes(childIdx).role == NodeRole.Task) {
+            @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
+
+            if(!hasStageParentInWorkspace) inboxTasks += childIdx
+          }
+        }
+        inboxTasks
+      }
+
+      val topLevelStageTrees: Seq[Tree] = topLevelStages.map { stageIdx =>
+        graph.roleTree(stageIdx, NodeRole.Stage)
+      }
+
+      val sortedTopLevelColumns: Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, firstWorkspaceId, topLevelStageTrees, (t: Tree) => t.node.id)
+      val assigneInbox: Seq[Node] = TaskOrdering.constructOrderingOf[Node](graph, firstWorkspaceId, inboxTasks.map(graph.nodes), _.id)
+
+      KanbanData(firstWorkspaceId, assigneInbox, sortedTopLevelColumns)
+    }
+  }
+
   private val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -31,7 +74,6 @@ object KanbanView {
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
     val newColumnFieldActive = Var(false)
     val newTagFieldActive = Var(false)
-    val tagBarExpanded = Var(state.largeScreen)
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
@@ -42,41 +84,9 @@ object KanbanView {
       Rx {
         val page = state.page()
         val graph = state.graph()
+
         page.parentId.map { pageParentId =>
-          val pageParentIdx = graph.idToIdx(pageParentId)
-          val workspaces = graph.workspacesForParent(pageParentIdx)
-          val firstWorkspaceIdx = workspaces.head //TODO: crashes
-          val firstWorkspaceId = graph.nodeIds(workspaces.head)
-
-          val topLevelStages = graph.childrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
-          val allStages:ArraySet = {
-            val stages = ArraySet.create(graph.size)
-            topLevelStages.foreachElement(stages.add)
-            algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.childrenIdx, {idx =>
-              val isStage = graph.nodes(idx).role == NodeRole.Stage
-              if(isStage) stages += idx
-              isStage
-            })
-            stages
-          }
-
-          val inboxTasks: ArraySet  = {
-            val inboxTasks = ArraySet.create(graph.size)
-            graph.childrenIdx.foreachElement(firstWorkspaceIdx){childIdx =>
-              if(graph.nodes(childIdx).role == NodeRole.Task) {
-                @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
-                if(!hasStageParentInWorkspace) inboxTasks += childIdx
-              }
-            }
-            inboxTasks
-          }
-
-          val topLevelStageTrees: Seq[Tree] = topLevelStages.map { stageIdx =>
-            graph.roleTree(stageIdx, NodeRole.Stage)
-          }
-
-          val sortedTopLevelColumns:Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, firstWorkspaceId, topLevelStageTrees, (t: Tree) => t.node.id)
-          val assigneInbox = inboxTasks.map(graph.nodeIds)
+          val kanbanData = KanbanData.calculate(graph, pageParentId)
 
           div(
             cls := "kanbanview",
@@ -85,7 +95,7 @@ object KanbanView {
 
             Styles.flex,
             alignItems.flexStart,
-            renderInboxColumn(state, firstWorkspaceId, path = Nil, assigneInbox, activeAddCardFields, selectedNodeIds),
+            renderInboxColumn(state, kanbanData.workspaceId, path = Nil, kanbanData.inboxNodes, activeAddCardFields, selectedNodeIds),
             div(
               cls := s"kanbancolumnarea",
               keyed,
@@ -93,131 +103,13 @@ object KanbanView {
 
               Styles.flex,
               alignItems.flexStart,
-              sortedTopLevelColumns.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
+              kanbanData.columnTree.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
 
-              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, sortedTopLevelColumns.map(_.node.id))),
+              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, kanbanData.columnTree.map(_.node.id))),
             ),
             newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
           )
         }
-      },
-      Rx {
-        val page = state.page()
-        val graph = state.graph()
-        page.parentId.map { pageParentId =>
-          val pageParentIdx = graph.idToIdx(pageParentId)
-          val workspaces = graph.workspacesForParent(pageParentIdx)
-          val firstWorkspaceIdx = workspaces.head
-          val firstWorkspaceId = graph.nodeIds(workspaces.head)
-          if(tagBarExpanded())
-            tagList(state, firstWorkspaceId, newTagFieldActive, Some(tagBarExpanded)).apply(overflow.auto)
-          else
-            VDomModifier(
-              position.relative,
-              div(
-                "Show Tags",
-                onClick.stopPropagation(true) --> tagBarExpanded,
-                cursor.pointer,
-
-                position.absolute,
-                top := "0",
-                right := "0",
-                backgroundColor := CommonStyles.sidebarBgColor,
-                color.white,
-                borderBottomLeftRadius := "5px",
-                padding := "5px",
-              )
-            )
-        }
-      }
-    )
-  }
-
-  def tagList(
-    state: GlobalState,
-    workspaceId: NodeId,
-    newTagFieldActive: Var[Boolean] = Var(false),
-    tagBarExpanded: Option[Var[Boolean]] = None,
-  )(implicit ctx:Ctx.Owner) = {
-    val tags:Rx[Seq[Tree]] = Rx {
-      val graph = state.graph()
-      val workspaceIdx = graph.idToIdx(workspaceId)
-      graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
-    }
-    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
-      case Tree.Leaf(node) =>
-        checkboxNodeTag(state, node)
-      case Tree.Parent(node, children) =>
-        VDomModifier(
-          checkboxNodeTag(state, node),
-          div(
-            paddingLeft := "10px",
-            renderTagTree(children)
-          )
-        )
-    }
-
-    div(
-      width := "180px",
-      paddingLeft := "10px",
-      paddingRight := "10px",
-      paddingBottom := "10px",
-      backgroundColor := CommonStyles.sidebarBgColor,
-
-      div(
-        Styles.flex,
-        justifyContent.flexEnd,
-        color.white,
-        tagBarExpanded.map(tagBarExpanded => closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> tagBarExpanded)),
-      ),
-
-      Rx { renderTagTree(tags()) },
-
-      addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
-
-      drag(target = DragItem.TagBar(workspaceId)),
-      registerDragContainer(state),
-    )
-  }
-
-  private def addTagField(
-    state: GlobalState,
-    parentId: NodeId,
-    workspaceId: NodeId,
-    newTagFieldActive: Var[Boolean],
-  )(implicit ctx: Ctx.Owner): VNode = {
-    def submitAction(str:String) = {
-      val createdNode = Node.MarkdownTag(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, parentId :: Nil)
-
-      state.eventProcessor.changes.onNext(change)
-    }
-
-    def blurAction(v:String): Unit = {
-      if(v.isEmpty) newTagFieldActive() = false
-    }
-
-    val placeHolder = ""
-
-    div(
-      cls := "kanbanaddnodefield",
-      keyed(parentId),
-      Rx {
-        if(newTagFieldActive())
-          inputRow(state,
-            submitAction,
-            autoFocus = true,
-            blurAction = Some(blurAction),
-            placeHolderMessage = Some(placeHolder),
-            submitIcon = freeSolid.faPlus,
-          )
-        else
-          div(
-            cls := "kanbanaddnodefieldtext",
-            "+ Add Tag",
-            color := "rgba(255,255,255,0.62)",
-            onClick foreach { newTagFieldActive() = true }
-          )
       }
     )
   }
@@ -256,13 +148,12 @@ object KanbanView {
     state: GlobalState,
     workspaceId: NodeId,
     path: List[NodeId],
-    children: Seq[NodeId],
+    children: Seq[Node],
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(workspaceId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-    val sortedChildren = TaskOrdering.constructOrderingOf[NodeId](state.graph.now, workspaceId, children, identity)
 
     div(
       // sortable: draggable needs to be direct child of container
@@ -284,8 +175,8 @@ object KanbanView {
       ),
       div(
         cls := "kanbancolumnchildren",
-        registerDragContainer(state, DragContainer.Kanban.Inbox(workspaceId, sortedChildren)),
-        sortedChildren.map(nodeId => renderCard(state, state.graph.now.nodesById(nodeId), parentId = workspaceId, pageParentId = workspaceId, path = path, selectedNodeIds,activeAddCardFields)),
+        registerDragContainer(state, DragContainer.Kanban.Inbox(workspaceId, children.map(_.id))),
+        children.map(node => renderCard(state, node, parentId = workspaceId, pageParentId = workspaceId, path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
       addCardField(state, workspaceId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
@@ -794,10 +685,10 @@ object KanbanView {
       keyed(node.id, parentId),
       overflow.hidden, // fixes unecessary scrollbar, when card has assignment
 
-      Components.automatedNodesOfNode(state, node),
-      cardTags(state, node.id),
-      cardProperties(state, node.id),
-      Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
+        Components.automatedNodesOfNode(state, node),
+        cardTags(state, node.id),
+        cardProperties(state, node.id),
+        Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
       Rx {
         val graph = state.graph()
         val userId = state.user().id

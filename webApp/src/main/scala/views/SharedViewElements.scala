@@ -14,9 +14,10 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.api.{ApiEvent, AuthUser}
-import wust.css.Styles
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids._
+import wust.sdk.NodeColor
 import wust.util._
 import wust.webApp.dragdrop.DragItem.DisableDrag
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
@@ -601,4 +602,124 @@ object SharedViewElements {
         ),
         logout(state))
     }
+
+  def tagListWithToggle(
+    state: GlobalState,
+    workspaceId: NodeId
+  )(implicit ctx:Ctx.Owner): VDomModifier = {
+    Rx {
+      if(state.showTagsList())
+        tagList(state, workspaceId).apply(overflow.auto)
+      else
+        VDomModifier(
+          position.relative,
+          div(
+            "Show Tags",
+            onClick.stopPropagation(true) --> state.showTagsList,
+            cursor.pointer,
+
+            position.absolute,
+            top := "0",
+            right := "0",
+            backgroundColor := CommonStyles.sidebarBgColor,
+            color.white,
+            borderBottomLeftRadius := "5px",
+            padding := "5px",
+            zIndex := ZIndex.overlayLow
+          )
+        )
+    }
+  }
+
+  def tagList(
+    state: GlobalState,
+    workspaceId: NodeId,
+    expandable: Boolean = true
+  )(implicit ctx:Ctx.Owner) = {
+    val newTagFieldActive = Var(false)
+
+    val tags:Rx[Seq[Tree]] = Rx {
+      val graph = state.graph()
+      val workspaceIdx = graph.idToIdx(workspaceId)
+      graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
+    }
+    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
+      case Tree.Leaf(node) =>
+        checkboxNodeTag(state, node)
+      case Tree.Parent(node, children) =>
+        VDomModifier(
+          checkboxNodeTag(state, node),
+          div(
+            paddingLeft := "10px",
+            renderTagTree(children)
+          )
+        )
+    }
+
+    div(
+      width := "180px",
+      minWidth := "180px",
+      paddingLeft := "10px",
+      paddingRight := "10px",
+      paddingBottom := "10px",
+      backgroundColor := CommonStyles.sidebarBgColor,
+
+      div(
+        Styles.flex,
+        justifyContent.flexEnd,
+        color.white,
+        VDomModifier.ifTrue(expandable)(closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> state.showTagsList)),
+      ),
+
+      Rx { renderTagTree(tags()) },
+
+      addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
+
+      drag(target = DragItem.TagBar(workspaceId)),
+      registerDragContainer(state),
+    )
+  }
+
+  private def addTagField(
+    state: GlobalState,
+    parentId: NodeId,
+    workspaceId: NodeId,
+    newTagFieldActive: Var[Boolean],
+  )(implicit ctx: Ctx.Owner): VNode = {
+    def submitAction(str:String) = {
+      val createdNode = Node.MarkdownTag(str)
+      val change = GraphChanges.addNodeWithParent(createdNode, parentId :: Nil)
+
+      state.eventProcessor.changes.onNext(change)
+    }
+
+    def blurAction(v:String): Unit = {
+      if(v.isEmpty) newTagFieldActive() = false
+    }
+
+    val placeHolder = ""
+
+    div(
+      cls := "kanbanaddnodefield",
+      keyed(parentId),
+      Rx {
+        if(newTagFieldActive())
+          inputRow(state,
+            submitAction,
+            autoFocus = true,
+            blurAction = Some(blurAction),
+            placeHolderMessage = Some(placeHolder),
+            submitIcon = freeSolid.faPlus,
+          )
+        else
+          div(
+            cls := "kanbanaddnodefieldtext",
+            "+ Add Tag",
+            color := "rgba(255,255,255,0.62)",
+            onClick foreach { newTagFieldActive() = true }
+          )
+      }
+    )
+  }
+
 }

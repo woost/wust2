@@ -51,6 +51,8 @@ class GlobalState(
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
+  val showTagsList: Var[Boolean] = Var(true)
+
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
 
   val rawGraph: Rx[Graph] = {

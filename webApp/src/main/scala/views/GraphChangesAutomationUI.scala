@@ -68,7 +68,7 @@ object GraphChangesAutomationUI {
                   )
                 },
 
-                KanbanView.tagList(state, state.page.now.parentId.get),
+                SharedViewElements.tagList(state, state.page.now.parentId.get, expandable = false),
               ),
             )
           )
