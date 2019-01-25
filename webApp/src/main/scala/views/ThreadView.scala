@@ -231,22 +231,8 @@ object ThreadView {
 
       drag(target = DragItem.Thread(nodeId :: Nil)),
 
-      div(
+      expandedNodeContentWithLeftTagColor(state, nodeId).apply(
         cls := "chat-thread-messages-outer",
-        Styles.flex,
-        div(
-          div(
-            width := "3px",
-            height := "100%",
-            backgroundColor := tagColor(nodeId).toHex,
-          ),
-          padding := "0px 8px",
-          Styles.flexStatic,
-
-          cursor.pointer,
-          UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes
-        ),
         div(
           cls := "chat-thread-messages",
           width := "100%",
@@ -344,33 +330,6 @@ object ThreadView {
       messageTags(state, nodeId, directParentIds),
       controls,
     )
-  }
-
-  private def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
-    val childrenSize = Rx {
-      val graph = state.graph()
-      graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdx(nodeId))
-    }
-    Rx {
-      if(isExpanded()) {
-        div(
-          cls := "thread-collapsebutton",
-          Icons.collapse,
-          onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
-          cursor.pointer,
-          UI.tooltip := "Collapse"
-        )
-      } else {
-        div(
-          cls := "thread-collapsebutton",
-          VDomModifier.ifTrue(childrenSize() == 0)(visibility.hidden),
-          Icons.expand,
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
-          cursor.pointer,
-          UI.tooltip := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
-        )
-      }
-    }
   }
 
   def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {

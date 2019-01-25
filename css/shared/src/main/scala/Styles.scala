@@ -613,11 +613,11 @@ object CommonStyles extends StyleSheet.Standalone {
     marginBottom(5 px),
   )
 
-  ".thread-collapsebutton" - (
+  ".expand-collapsebutton" - (
     opacity(0.5),
     fontSize(22 px),
   )
-  ".thread-collapsebutton:hover" - (
+  ".expand-collapsebutton:hover" - (
     visibility.visible.important,
     opacity(1),
   )
