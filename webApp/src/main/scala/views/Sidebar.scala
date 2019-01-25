@@ -119,7 +119,7 @@ object Sidebar {
           case _:Node.User => drag(target = DragItem.Channel(node.id))
         },
 
-        channelFocusButton(state, node.id)
+        channelFocusButton(state, node.id)(cls := "channel-line-hover-show", marginLeft := "auto")
       )
     }
 
@@ -198,19 +198,17 @@ object Sidebar {
 
   def channelFocusButton(state: GlobalState, nodeId: NodeId): VNode = {
     div(
-      cls := "ui icon buttons",
+      cls := "ui icon buttons channel-focus-buttons",
       height := "22px",
-      marginRight := "4px",
-      marginLeft := "auto",
       button(
         cls := "ui mini compact inverted button",
-        padding := "4px",
+        padding := "2px",
         renderFontAwesomeIcon(Icons.conversation)(color.gray),
         onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Chat))),
       ),
       button(
         cls := "ui mini compact inverted button",
-        padding := "4px",
+        padding := "2px",
         renderFontAwesomeIcon(Icons.tasks)(color.gray),
         onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Kanban))),
       )
@@ -234,7 +232,7 @@ object Sidebar {
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size)(ctx)(
               UI.popupHtml("right center") := div(
-                channelFocusButton(state, node.id)(color.gray),
+                channelFocusButton(state, node.id)(marginRight := "4px"),
                 node.str
               ),
 

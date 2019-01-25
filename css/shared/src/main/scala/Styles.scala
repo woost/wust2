@@ -377,6 +377,14 @@ object CommonStyles extends StyleSheet.Standalone {
     borderRadius(2 px),
   )
 
+  ".channel-line-hover-show" - (
+    visibility.hidden
+  )
+
+  ".channel-line:hover .channel-line-hover-show" - (
+    visibility.visible
+  )
+
   ".channel-name"  - (
     paddingLeft(3 px),
     paddingRight(3 px)
