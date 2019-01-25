@@ -185,6 +185,6 @@ object UI {
     })
   }
 
-  val horizonalDivider = div(cls := "ui divider")
+  val horizontalDivider = div(cls := "ui divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 }
