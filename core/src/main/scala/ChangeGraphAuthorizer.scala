@@ -55,14 +55,14 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
   val canAccessNodesAndEdges: Rule = { (user, changes) =>
 
     // Only allow adding edges that you have access to.
-    //TODO: You can add nealy every edge to a user (like pinned, expanded, ...) if you have access to the content node.
-    //We allow this because it is convenient for automation. We should have a more dedicated check?
-    //Allow for node where the template applies and the user did this explicitly to the template.
-    //Do not allow to do this for every possible node. attackers can spam an account.
     //For each edge, we decide which nodeids need to be checked for access
     //permission in order to add this edge:
     //  Left(reason: String) => Not allowed to add this edge, because $reason
     //  Right(nodeIds: Seq[NodeId]) => Allowed to add this edge, if you have acces to all $nodeIds
+    //TODO: You can add nealy every edge to a user (like pinned, expanded, ...) if you have access to the content node.
+    //We allow this because it is convenient for automation. We should have a more dedicated check?
+    //Allow for node where the template applies and the user did this explicitly to the template.
+    //Do not allow to do this for every possible node. attackers can spam an account.
     val addEdgesCheck: Either[List[String], List[Seq[NodeId]]] = eitherSeq(changes.addEdges.map {
       case e: Edge.Author              => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
       case e: Edge.Member              => Right(Seq(e.nodeId))
