@@ -344,6 +344,7 @@ object KanbanView {
     activeAddCardFields: Var[Set[List[NodeId]]],
     showCheckbox:Boolean = false,
     isDone:Boolean = false,
+    inOneLine: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
@@ -516,6 +517,7 @@ object KanbanView {
     def cardFooter(implicit ctx:Ctx.Owner) = div(
       cls := "cardfooter",
       Styles.flex,
+
       justifyContent.flexEnd,
       alignItems.flexEnd,
       flexGrow := 1,
@@ -664,10 +666,14 @@ object KanbanView {
       // removed by tkarolski, to allow dropdown menu to popup
       //overflow.hidden,
 
+      div(
+        Styles.flex,
+        flexDirection.row,
         Components.automatedNodesOfNode(state, node),
         cardTags(state, node.id),
         cardProperties(state, node.id),
         Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
+      ),
       Rx {
         val graph = state.graph()
         val userId = state.user().id
