@@ -708,6 +708,28 @@ object Components {
       )
     })
 
+    def uploadFileInput(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
+
+      input(display.none, tpe := "file",
+        onChange.foreach { e =>
+          val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
+          if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
+          else selected() = None
+        }
+      )
+    }
+
+    def defaultFileUploadHandler(state: GlobalState)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
+      val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
+
+      fileUploadHandler.foreach(_.foreach { uploadFile =>
+        SharedViewElements.uploadFileAndCreateNode(state, "", state.page.now.parentId, uploadFile)
+        fileUploadHandler() = None
+      })
+
+      fileUploadHandler
+    }
+
     def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
 
       val iconAndPopup = selected.map {
@@ -732,24 +754,15 @@ object Components {
           (icon, popupNode)
       }
 
+      val onDragOverModifier = Handler.unsafe[VDomModifier]
+
       val fileInputId = "upload-file-field"
       div(
         padding := "3px",
-        input(display.none, tpe := "file", id := fileInputId,
-          onChange.foreach { e =>
-            val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
-            if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
-            else selected() = None
-          }
-        ),
+        uploadFileInput(state, selected).apply(id := fileInputId),
         label(
-          onDragEnter.preventDefault.foreach {},
-          onDragOver.preventDefault.foreach {},
-          onDrop.preventDefault.foreach { ev =>
-            val elem = document.getElementById(fileInputId).asInstanceOf[dom.html.Input]
-            elem.files = ev.dataTransfer.files
-          },
           forId := fileInputId, // label for input will trigger input element on click.
+
           iconAndPopup.map { case (icon, popup) =>
             VDomModifier(
               UI.popupHtml("top left") := popup,
@@ -762,7 +775,17 @@ object Components {
           fontSize := "1.1rem",
           backgroundColor := "steelblue",
           color := "white",
-        )
+        ),
+
+        onDragOverModifier,
+        onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
+        onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
+        onDragOver.preventDefault --> Observer.empty,
+
+        onDrop.preventDefault.foreach { ev =>
+          val elem = document.getElementById(fileInputId).asInstanceOf[dom.html.Input]
+          elem.files = ev.dataTransfer.files
+        },
       )
     }
 

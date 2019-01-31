@@ -328,6 +328,10 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   //TODO AsEmitterBuilder type class in outwatch?
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
+
+  implicit class RichEmitterBuilder[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
+    def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
+  }
 }
 
 class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {

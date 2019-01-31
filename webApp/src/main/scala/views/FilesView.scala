@@ -25,17 +25,10 @@ object FilesView {
 
     }
 
-    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
-
-    fileUploadHandler.foreach(_.foreach { uploadFile =>
-      SharedViewElements.uploadFileAndCreateNode(state, "", state.page.now.parentId, uploadFile)
-      fileUploadHandler() = None
-    })
-
     div(
       padding := "20px",
       overflow.auto,
-      Components.uploadField(state, fileUploadHandler),
+      Components.uploadField(state, Components.defaultFileUploadHandler(state)),
       UI.horizontalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
