@@ -657,44 +657,104 @@ object PageHeader {
   }
 
   private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    def item(currentView: View, pageStyle: PageStyle, targetView: View, icon: IconDefinition, wording: String, numItems: Int) = {
+    case class TabInfo(targetView : View,
+                       icon : IconDefinition,
+                       wording : String,
+                       numItems : Int)
+    val commonTabOpts = VDomModifier(
+      border := s"$lineWidth solid $lineColor",
+      marginBottom := s"-$lineWidth",
+
+      Styles.flex,
+      alignItems.center,
+      cursor.pointer,
+    )
+    def tabBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
+      val pageStyle = state.pageStyle()
+      def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
+      if (isSelected) {
+        VDomModifier(
+          backgroundColor := pageStyle.bgLightColor,
+          borderBottomColor := pageStyle.bgLightColor,
+          )
+      } else {
+        VDomModifier(
+          backgroundColor := "#97aaba",
+          borderBottomColor := lineColor,
+          color := "rgba(0,0,0,0.7)",
+          )
+      }
+    }
+
+    def switchView(currentView : View, targetView : View) = {
+      state.viewConfig.update(_.focusView(targetView))
+      Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
+    }
+
+    val boxShadowColor = "#000000"
+
+    /// @return a single iconized tab for switching to the respective view
+    def singleTab(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       div(
         cls := "viewswitcher-item",
+        commonTabOpts,
+        VDomModifier.ifTrue(currentView.viewKey == tabInfo.targetView.viewKey)(
+          boxShadow := s"1px -1px 2px -1px ${boxShadowColor}"),
+        tabBackgroundColor(currentView, pageStyle, tabInfo),
 
-        border := s"$lineWidth solid $lineColor",
-        marginBottom := s"-$lineWidth",
+        div(cls := "fa-fw", tabInfo.icon),
+        VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
 
-        Styles.flex,
-        alignItems.center,
+        UI.tooltip("bottom right") := s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
+                                                                          s": $tabInfo.numItems $tabInfo.wording")}",
 
-        Rx {
-          val pageStyle = state.pageStyle()
-          def isSelected = currentView.viewKey == targetView.viewKey
-          if (isSelected) {
-            VDomModifier(
-              backgroundColor := pageStyle.bgLightColor,
-              borderBottomColor := pageStyle.bgLightColor,
-            )
-          } else {
-            VDomModifier(
-              backgroundColor := "#97aaba",
-              borderBottomColor := lineColor,
-              color := "rgba(0,0,0,0.7)",
-            )
-          }
-        },
-
-        div(cls := "fa-fw", icon),
-        VDomModifier.ifTrue(numItems > 0)(span(numItems, paddingLeft := "7px")),
-
-        UI.tooltip("bottom right") := s"${targetView.toString}${(numItems > 0).ifTrue[String](s": $numItems $wording")}",
-        onClick.stopPropagation foreach {
-          state.viewConfig.update(_.focusView(targetView))
-          Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
-        },
-        cursor.pointer,
+        onClick.stopPropagation foreach switchView(currentView, tabInfo.targetView)
+,
       )
     }
+
+    /// @return like singleTab, but two iconized tabs grouped together visually to switch the current view
+    def doubleTab(currentView: View, pageStyle: PageStyle, leftTabInfo : TabInfo, rightTabInfo : TabInfo) = {
+      // selecting one of the two icons activates a box shadow on the selected tab
+      val leftTabSelected = (currentView.viewKey == leftTabInfo.targetView.viewKey)
+      val rightTabSelected = (currentView.viewKey == rightTabInfo.targetView.viewKey)
+      object boxShadowOpts {
+        val leftTab = VDomModifier.ifTrue(leftTabSelected)(
+          boxShadow := s"2px -1px 1px -1px ${boxShadowColor}",
+          borderRight := "0px",
+          zIndex := 10, /// zIndex ensures the border is visible above the right tab
+          )
+        val rightTab = rightTabSelected.ifTrue[VDomModifier](
+          VDomModifier(
+            boxShadow := s"-1px 0px 1px 0px ${boxShadowColor}",
+            ))
+      }
+
+      VDomModifier (
+        div(
+          commonTabOpts,
+          cls := "viewswitcher-item",
+          boxShadowOpts.leftTab,
+          // VDomModifier.ifTrue(!leftTabSelected && !rightTabSelected)(
+          //   borderRight := "1px solid dashed #555555",
+          // ),
+          tabBackgroundColor(currentView, pageStyle, leftTabInfo),
+          onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
+          div(cls := "fa-fw", leftTabInfo.icon),
+          ),
+        div(
+          commonTabOpts,
+          cls := "viewswitcher-item",
+          marginLeft := "0px",
+          borderLeft := "0px",
+          boxShadowOpts.rightTab,
+          tabBackgroundColor(currentView, pageStyle, rightTabInfo),
+          onClick.stopPropagation foreach switchView(currentView, rightTabInfo.targetView),
+          div(cls := "fa-fw", rightTabInfo.icon),
+          VDomModifier.ifTrue(leftTabInfo.numItems > 0)(span(leftTabInfo.numItems, paddingLeft := "7px")),
+          ),
+
+      ) }
 
     div(
       marginLeft := "5px",
@@ -722,18 +782,20 @@ object PageHeader {
           // removed task / conversation views, since the toggle button was not being
           // reflected in the ui and history was bugged
           // also, the UI is sorta inconsistent, so we decided to have all views individually
-          //item(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)
+          //singleTab(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)
           //    (zIndex := ZIndex.tooltip-10),
-          //item(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)
+          //singleTab(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)
           //    (zIndex := ZIndex.tooltip-20),
-          //item(currentView, pageStyle, View.Magic, freeSolid.faMagic),
-          item(currentView, pageStyle, View.Dashboard, Icons.dashboard, "dashboard", 0)(zIndex := ZIndex.tooltip-10),
-          item(currentView, pageStyle, View.Chat, Icons.chat, "Chat", numMsg),
-          item(currentView, pageStyle, View.Thread, Icons.thread, "Thread", numMsg),
-          item(currentView, pageStyle, View.List, Icons.list, "List", numTasks),
-          item(currentView, pageStyle, View.Kanban, Icons.kanban, "Kanban", numTasks),
-          item(currentView, pageStyle, View.Files, Icons.files, "files", numFiles)(zIndex := ZIndex.tooltip-30),
-//          item(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+          //singleTab(currentView, pageStyle, View.Magic, freeSolid.faMagic),
+          singleTab(currentView, pageStyle, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0))(zIndex := ZIndex.tooltip-10),
+          doubleTab(currentView, pageStyle,
+                    TabInfo(View.Chat, Icons.chat, "Chat", numMsg),
+                    TabInfo(View.Thread, Icons.thread, "Thread", numMsg)),
+          doubleTab(currentView, pageStyle,
+                    TabInfo(View.List, Icons.list, "List", numTasks),
+                    TabInfo(View.Kanban, Icons.kanban, "Kanban", numTasks)),
+          singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles))(zIndex := ZIndex.tooltip-30),
+//          singleTab(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
       }
     )
