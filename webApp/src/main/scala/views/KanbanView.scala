@@ -382,19 +382,6 @@ object KanbanView {
 
     val isPlainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
 
-    /// Given a node, allow its content to overflow, even if a parent has overflow: hidden
-    /** see: https://stackoverflow.com/a/22927412
-      * How it works:
-      * Wraps the node with two divs, one with position:relative, one with position:absolute, then
-      * sets position:fixed on the passed node.
-      * Only problem: you need to set a width on the outermost div. */
-    def overrideOverflowCutoff(node : VNode, widthPx : Option[Int] = None) = {
-      div(position.relative,
-          (!widthPx.isEmpty).ifTrue[VDomModifier](width := s"${widthPx.get}px"),
-          div(position.absolute,
-              node(position.fixed)))
-    }
-
     val buttonBar = {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
       def menuItem(shortName : String,
@@ -469,13 +456,12 @@ object KanbanView {
         edit,
         archive
       )
-      val moreMenu = overrideOverflowCutoff(
-        div(
+      val moreMenu = div(
           // ideally this would be always visible, but since the outer div does no longer hide overflow,
           // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
           //visibility.visible, 
-          cls := "ui icon left labeled fluid dropdown",
-          Icons.ellipsisV,
+          cls := "ui icon pointing top right labeled fluid dropdown",
+          div(cls := "fa-fw", Icons.ellipsisV),
           cursor.pointer,
           UI.popup := "More",
           zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
@@ -486,11 +472,7 @@ object KanbanView {
             div(cls := "header", "Context menu", cursor.default),
             moreMenuItems.map(_(false))
           ),
-
-        ),
-        // we pass the width manually to make the pressable area big enough
-        widthPx = Some(10)
-      )
+        )
       div(
         cls := "buttonbar",
         Styles.flex,
@@ -683,7 +665,9 @@ object KanbanView {
     ).apply(
       Rx{ VDomModifier.ifNot(editable() || isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))) }, // prevents dragging when selecting text
       keyed(node.id, parentId),
-      overflow.hidden, // fixes unecessary scrollbar, when card has assignment
+      // fixes unecessary scrollbar, when card has assignment
+      // removed by tkarolski, to allow dropdown menu to popup
+      //overflow.hidden,
 
         Components.automatedNodesOfNode(state, node),
         cardTags(state, node.id),

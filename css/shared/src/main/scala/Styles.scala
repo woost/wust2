@@ -118,6 +118,11 @@ object Styles extends StyleSheet.Inline {
     (100 %%) -> style(opacity(1))
   )
 
+  val popupMenuFix = style(
+    // 100% height so there is always a display area for the popup menus
+    height(100 %%),
+    )
+
   object Woost {
     val color = c"#6636b7"
   }
@@ -637,7 +642,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
     fontWeight.normal,
-    overflowX.auto,
+    //overflowX.auto, // removed to show dropdown -- tkarolski
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
@@ -929,6 +934,7 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
+    Styles.popupMenuFix,
   )
 
   ".kanbancolumnheader" - (
@@ -948,6 +954,8 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.default,
     overflowY.auto,
     overflowX.hidden, // needed for firefox
+    //or: overflow.initial
+    Styles.popupMenuFix,
     paddingBottom(5 px) // prevents column shadow from being cut off by scrolling
   )
 
