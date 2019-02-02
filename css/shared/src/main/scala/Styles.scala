@@ -1205,10 +1205,11 @@ object CommonStyles extends StyleSheet.Standalone {
     borderBottom(1 px, solid, black)
   )
 
+  val tabsPadding = 5.px
   ".viewswitcher-item" - (
     fontSize.larger,
     height(100 %%),
-    padding(5 px),
+    padding(tabsPadding),
     borderRadius(3 px, 3 px, 0 px, 0 px),
     marginLeft(2 px),
     border(2 px, solid, tabsOutlineColor),
@@ -1224,6 +1225,24 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(tabsInactiveBackgroundColor),
     borderBottomColor(CommonStyles.tabsOutlineColor),
     color(rgba(0,0,0,0.7)),
+  )
+  val tabsBoxShadowColor = c"#000000"
+  ".viewswitcher-item.single.active" - (
+    boxShadow := s"1px -1px 2px -1px ${tabsBoxShadowColor.value}"
+  )
+  ".viewswitcher-item.double.right" - (
+    marginLeft(0 px),
+    borderLeft(0 px),
+  )
+  ".viewswitcher-item.double.left.active" - (
+    boxShadow := s"2px -1px 1px -1px ${tabsBoxShadowColor.value}",
+    // -- we reduce the border & increase padding, to keep the tab in place --
+    borderRight(0 px),
+    paddingRight((tabsPadding.n + 2).px),
+    zIndex(10), /// zIndex ensures the border is visible above the right tab
+  )
+  ".viewswitcher-item.double.right.active" - (
+    boxShadow := s"-1px 0px 1px 0px ${tabsBoxShadowColor.value}"
   )
 
   ".emoji-outer" - (

@@ -658,18 +658,22 @@ object PageHeader {
                        icon : IconDefinition,
                        wording : String,
                        numItems : Int)
-    def tabBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
+    def activeInactiveClass(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
       val pageStyle = state.pageStyle()
       def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
       if (isSelected) {
-        VDomModifier(
-          cls := "active",
-          backgroundColor := pageStyle.bgLightColor,
-          borderBottomColor := pageStyle.bgLightColor,
-          )
+        VDomModifier(cls := "active")
       } else {
         VDomModifier(cls := "inactive")
       }
+
+    }
+    def tabBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
+      val pageStyle = state.pageStyle()
+      def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
+      VDomModifier.ifTrue(isSelected)(
+        backgroundColor := pageStyle.bgLightColor,
+        borderBottomColor := pageStyle.bgLightColor)
     }
 
     def switchView(currentView : View, targetView : View) = {
@@ -677,14 +681,11 @@ object PageHeader {
       Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
     }
 
-    val boxShadowColor = "#000000"
-
     /// @return a single iconized tab for switching to the respective view
     def singleTab(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       div(
-        cls := "viewswitcher-item",
-        VDomModifier.ifTrue(currentView.viewKey == tabInfo.targetView.viewKey)(
-          boxShadow := s"1px -1px 2px -1px ${boxShadowColor}"),
+        cls := "viewswitcher-item single",
+        activeInactiveClass(currentView, pageStyle, tabInfo),
         tabBackgroundColor(currentView, pageStyle, tabInfo),
 
         div(cls := "fa-fw", tabInfo.icon),
@@ -700,37 +701,17 @@ object PageHeader {
 
     /// @return like singleTab, but two iconized tabs grouped together visually to switch the current view
     def doubleTab(currentView: View, pageStyle: PageStyle, leftTabInfo : TabInfo, rightTabInfo : TabInfo) = {
-      // selecting one of the two icons activates a box shadow on the selected tab
-      val leftTabSelected = (currentView.viewKey == leftTabInfo.targetView.viewKey)
-      val rightTabSelected = (currentView.viewKey == rightTabInfo.targetView.viewKey)
-      object boxShadowOpts {
-        val leftTab = VDomModifier.ifTrue(leftTabSelected)(
-          boxShadow := s"2px -1px 1px -1px ${boxShadowColor}",
-          borderRight := "0px",
-          zIndex := 10, /// zIndex ensures the border is visible above the right tab
-          )
-        val rightTab = rightTabSelected.ifTrue[VDomModifier](
-          VDomModifier(
-            boxShadow := s"-1px 0px 1px 0px ${boxShadowColor}",
-            ))
-      }
-
       VDomModifier (
         div(
-          cls := "viewswitcher-item",
-          boxShadowOpts.leftTab,
-          // VDomModifier.ifTrue(!leftTabSelected && !rightTabSelected)(
-          //   borderRight := "1px solid dashed #555555",
-          // ),
+          cls := "viewswitcher-item double left",
+          activeInactiveClass(currentView, pageStyle, leftTabInfo),
           tabBackgroundColor(currentView, pageStyle, leftTabInfo),
           onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
           div(cls := "fa-fw", leftTabInfo.icon),
           ),
         div(
-          cls := "viewswitcher-item",
-          marginLeft := "0px",
-          borderLeft := "0px",
-          boxShadowOpts.rightTab,
+          cls := "viewswitcher-item double right",
+          activeInactiveClass(currentView, pageStyle, rightTabInfo),
           tabBackgroundColor(currentView, pageStyle, rightTabInfo),
           onClick.stopPropagation foreach switchView(currentView, rightTabInfo.targetView),
           div(cls := "fa-fw", rightTabInfo.icon),
