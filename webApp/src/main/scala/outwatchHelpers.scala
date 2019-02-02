@@ -367,9 +367,10 @@ class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifie
   override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toObservable))
   def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder(rx, tr)
   override def -->(observer: Observer[O]): VDomModifier = {
-    implicit val ctx = Ctx.Owner.Unsafe
     outwatch.dom.managed { () =>
-      rx.foreach(observer.onNext)
+      implicit val ctx = Ctx.Owner.Unsafe
+      val obs = rx.foreach(observer.onNext)
+      Cancelable(() => obs.kill())
     }
   }
 }
