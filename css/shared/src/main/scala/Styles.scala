@@ -263,6 +263,14 @@ object CommonStyles extends StyleSheet.Standalone {
   val sidebarBgColorCSS = c"#2A3238"
   val sidebarBgColor = sidebarBgColorCSS.value
 
+  val tabsOutlineColor = c"#6B808F"
+  val tabsInactiveBackgroundColor = c"#97aaba"
+  val tabsOutlineWidth = 2.px
+
+  ".pageheader" -(
+    borderBottom(tabsOutlineWidth, solid, tabsOutlineColor),
+  )
+
   ".pageheader-channeltitle" - (
     fontSize(20 px),
     Styles.wordWrap,
@@ -1203,6 +1211,19 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(5 px),
     borderRadius(3 px, 3 px, 0 px, 0 px),
     marginLeft(2 px),
+    border(2 px, solid, tabsOutlineColor),
+    marginBottom(-tabsOutlineWidth),
+    Styles.flex,
+    alignItems.center,
+    cursor.pointer,
+  )
+  ".viewswitcher-item.active" - (
+    // bgColor set programatically to topic color
+  )
+  ".viewswitcher-item.inactive" - (
+    backgroundColor(tabsInactiveBackgroundColor),
+    borderBottomColor(CommonStyles.tabsOutlineColor),
+    color(rgba(0,0,0,0.7)),
   )
 
   ".emoji-outer" - (

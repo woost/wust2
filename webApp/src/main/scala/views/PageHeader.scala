@@ -31,14 +31,11 @@ import scala.util.{Failure, Success}
 
 
 object PageHeader {
-  val lineColor = "#6B808F"
-  val lineWidth = "2px"
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div.static(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
-        borderBottom := s"$lineWidth solid $lineColor",
 
         Rx {
           val graph = state.graph()
@@ -661,28 +658,17 @@ object PageHeader {
                        icon : IconDefinition,
                        wording : String,
                        numItems : Int)
-    val commonTabOpts = VDomModifier(
-      border := s"$lineWidth solid $lineColor",
-      marginBottom := s"-$lineWidth",
-
-      Styles.flex,
-      alignItems.center,
-      cursor.pointer,
-    )
     def tabBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
       val pageStyle = state.pageStyle()
       def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
       if (isSelected) {
         VDomModifier(
+          cls := "active",
           backgroundColor := pageStyle.bgLightColor,
           borderBottomColor := pageStyle.bgLightColor,
           )
       } else {
-        VDomModifier(
-          backgroundColor := "#97aaba",
-          borderBottomColor := lineColor,
-          color := "rgba(0,0,0,0.7)",
-          )
+        VDomModifier(cls := "inactive")
       }
     }
 
@@ -697,7 +683,6 @@ object PageHeader {
     def singleTab(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       div(
         cls := "viewswitcher-item",
-        commonTabOpts,
         VDomModifier.ifTrue(currentView.viewKey == tabInfo.targetView.viewKey)(
           boxShadow := s"1px -1px 2px -1px ${boxShadowColor}"),
         tabBackgroundColor(currentView, pageStyle, tabInfo),
@@ -732,7 +717,6 @@ object PageHeader {
 
       VDomModifier (
         div(
-          commonTabOpts,
           cls := "viewswitcher-item",
           boxShadowOpts.leftTab,
           // VDomModifier.ifTrue(!leftTabSelected && !rightTabSelected)(
@@ -743,7 +727,6 @@ object PageHeader {
           div(cls := "fa-fw", leftTabInfo.icon),
           ),
         div(
-          commonTabOpts,
           cls := "viewswitcher-item",
           marginLeft := "0px",
           borderLeft := "0px",
