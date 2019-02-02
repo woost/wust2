@@ -672,6 +672,11 @@ object PageHeader {
         borderBottomColor := pageStyle.bgLightColor)
     }
 
+    def getTooltip(tabInfo : TabInfo) =
+      UI.tooltip("bottom right") :=
+        s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
+                                            s": ${tabInfo.numItems} ${tabInfo.wording}")}"
+
     def switchView(currentView : View, targetView : View) = {
       state.urlConfig.update(_.focus(targetView))
       Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
@@ -683,12 +688,11 @@ object PageHeader {
         cls := "viewswitcher-item single",
         getActivityStateCssClass(currentView, tabInfo),
         getBackgroundColor(currentView, pageStyle, tabInfo),
+        getTooltip(tabInfo),
 
         div(cls := "fa-fw", tabInfo.icon),
         VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
 
-        UI.tooltip("bottom right") := s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
-                                                                          s": $tabInfo.numItems $tabInfo.wording")}",
 
         onClick.stopPropagation foreach switchView(currentView, tabInfo.targetView)
 ,
@@ -702,6 +706,7 @@ object PageHeader {
           cls := "viewswitcher-item double left",
           getActivityStateCssClass(currentView, leftTabInfo),
           getBackgroundColor(currentView, pageStyle, leftTabInfo),
+          getTooltip(leftTabInfo),
           onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
           div(cls := "fa-fw", leftTabInfo.icon),
           ),
@@ -709,6 +714,7 @@ object PageHeader {
           cls := "viewswitcher-item double right",
           getActivityStateCssClass(currentView, rightTabInfo),
           getBackgroundColor(currentView, pageStyle, rightTabInfo),
+          getTooltip(rightTabInfo),
           onClick.stopPropagation foreach switchView(currentView, rightTabInfo.targetView),
           div(cls := "fa-fw", rightTabInfo.icon),
           VDomModifier.ifTrue(leftTabInfo.numItems > 0)(span(leftTabInfo.numItems, paddingLeft := "7px")),
@@ -748,11 +754,11 @@ object PageHeader {
           //singleTab(currentView, pageStyle, View.Magic, freeSolid.faMagic),
           singleTab(currentView, pageStyle, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0))(zIndex := ZIndex.tooltip-10),
           doubleTab(currentView, pageStyle,
-                    TabInfo(View.Chat, Icons.chat, "Chat", numMsg),
-                    TabInfo(View.Thread, Icons.thread, "Thread", numMsg)),
+                    TabInfo(View.Chat, Icons.chat, "messages", numMsg),
+                    TabInfo(View.Thread, Icons.thread, "messages", numMsg)),
           doubleTab(currentView, pageStyle,
-                    TabInfo(View.List, Icons.list, "List", numTasks),
-                    TabInfo(View.Kanban, Icons.kanban, "Kanban", numTasks)),
+                    TabInfo(View.List, Icons.list, "tasks", numTasks),
+                    TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
           singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles))(zIndex := ZIndex.tooltip-30),
 //          singleTab(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
         )
