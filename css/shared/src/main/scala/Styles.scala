@@ -1239,10 +1239,9 @@ object CommonStyles extends StyleSheet.Standalone {
     // -- we reduce the border & increase padding, to keep the tab in place --
     borderRight(0 px),
     paddingRight((tabsPadding.n + 2).px),
-    zIndex(10), /// zIndex ensures the border is visible above the right tab
   )
   ".viewswitcher-item.double.right.active" - (
-    boxShadow := s"-1px 0px 1px 0px ${tabsBoxShadowColor.value}"
+    boxShadow := s"1px -1px 1px -1px ${tabsBoxShadowColor.value}"
   )
 
   ".emoji-outer" - (

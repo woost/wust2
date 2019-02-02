@@ -707,6 +707,9 @@ object PageHeader {
           getActivityStateCssClass(currentView, leftTabInfo),
           getBackgroundColor(currentView, pageStyle, leftTabInfo),
           getTooltip(leftTabInfo),
+          /// above tooltip sets zIndex to 1500. We need to increase it, since the right tab would otherwise hide
+          /// this tabs shadow
+          zIndex := ZIndex.tooltip + 10,
           onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
           div(cls := "fa-fw", leftTabInfo.icon),
           ),
@@ -744,23 +747,14 @@ object PageHeader {
         } else (0, 0, 0)
 
         Seq(
-          // removed task / conversation views, since the toggle button was not being
-          // reflected in the ui and history was bugged
-          // also, the UI is sorta inconsistent, so we decided to have all views individually
-          //singleTab(currentView, pageStyle, View.Conversation, Icons.conversation, "messages", numMsg)
-          //    (zIndex := ZIndex.tooltip-10),
-          //singleTab(currentView, pageStyle, View.Tasks, Icons.tasks, "tasks", numTasks)
-          //    (zIndex := ZIndex.tooltip-20),
-          //singleTab(currentView, pageStyle, View.Magic, freeSolid.faMagic),
-          singleTab(currentView, pageStyle, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0))(zIndex := ZIndex.tooltip-10),
+          singleTab(currentView, pageStyle, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)),
           doubleTab(currentView, pageStyle,
                     TabInfo(View.Chat, Icons.chat, "messages", numMsg),
                     TabInfo(View.Thread, Icons.thread, "messages", numMsg)),
           doubleTab(currentView, pageStyle,
                     TabInfo(View.List, Icons.list, "tasks", numTasks),
                     TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
-          singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles))(zIndex := ZIndex.tooltip-30),
-//          singleTab(currentView, pageStyle, View.Graph, freeBrands.faCloudsmith)
+          singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles)),
         )
       }
     )
