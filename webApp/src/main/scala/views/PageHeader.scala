@@ -29,6 +29,8 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import scala.util.{Failure, Success}
 
+import pageheader.components.{singleTab, doubleTab, TabContextParms, TabInfo}
+
 
 object PageHeader {
 
@@ -654,76 +656,6 @@ object PageHeader {
   }
 
   private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    case class TabInfo(targetView : View,
-                       icon : IconDefinition,
-                       wording : String,
-                       numItems : Int)
-    def isActiveTab(currentView: View, tabInfo : TabInfo) =
-      currentView.viewKey == tabInfo.targetView.viewKey
-
-    def getActivityStateCssClass(currentView: View, tabInfo : TabInfo) =
-      cls := (if (isActiveTab(currentView, tabInfo)) "active"
-              else "inactive")
-
-    def getBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
-      val pageStyle = state.pageStyle()
-      VDomModifier.ifTrue(isActiveTab(currentView, tabInfo))(
-        backgroundColor := pageStyle.bgLightColor,
-        borderBottomColor := pageStyle.bgLightColor)
-    }
-
-    def getTooltip(tabInfo : TabInfo) =
-      UI.tooltip("bottom right") :=
-        s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
-                                            s": ${tabInfo.numItems} ${tabInfo.wording}")}"
-
-    def switchView(currentView : View, targetView : View) = {
-      state.urlConfig.update(_.focus(targetView))
-      Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
-    }
-
-    /// @return a single iconized tab for switching to the respective view
-    def singleTab(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
-      div(
-        cls := "viewswitcher-item single",
-        getActivityStateCssClass(currentView, tabInfo),
-        getBackgroundColor(currentView, pageStyle, tabInfo),
-        getTooltip(tabInfo),
-
-        div(cls := "fa-fw", tabInfo.icon),
-        VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
-
-
-        onClick.stopPropagation foreach switchView(currentView, tabInfo.targetView)
-,
-      )
-    }
-
-    /// @return like singleTab, but two iconized tabs grouped together visually to switch the current view
-    def doubleTab(currentView: View, pageStyle: PageStyle, leftTabInfo : TabInfo, rightTabInfo : TabInfo) = {
-      VDomModifier (
-        div(
-          cls := "viewswitcher-item double left",
-          getActivityStateCssClass(currentView, leftTabInfo),
-          getBackgroundColor(currentView, pageStyle, leftTabInfo),
-          getTooltip(leftTabInfo),
-          /// above tooltip sets zIndex to 1500. We need to increase it, since the right tab would otherwise hide
-          /// this tabs shadow
-          zIndex := ZIndex.tooltip + 10,
-          onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
-          div(cls := "fa-fw", leftTabInfo.icon),
-          ),
-        div(
-          cls := "viewswitcher-item double right",
-          getActivityStateCssClass(currentView, rightTabInfo),
-          getBackgroundColor(currentView, pageStyle, rightTabInfo),
-          getTooltip(rightTabInfo),
-          onClick.stopPropagation foreach switchView(currentView, rightTabInfo.targetView),
-          div(cls := "fa-fw", rightTabInfo.icon),
-          VDomModifier.ifTrue(leftTabInfo.numItems > 0)(span(leftTabInfo.numItems, paddingLeft := "7px")),
-          ),
-      ) }
-
     div(
       marginLeft := "5px",
       Styles.flex,
@@ -746,15 +678,23 @@ object PageHeader {
           }
         } else (0, 0, 0)
 
+        val parms = TabContextParms(
+          currentView,
+          pageStyle,
+          (targetView : View) => {
+            state.urlConfig.update(_.focus(targetView))
+            Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
+          }
+        )
         Seq(
-          singleTab(currentView, pageStyle, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)),
-          doubleTab(currentView, pageStyle,
+          singleTab(parms, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)),
+          doubleTab(parms,
                     TabInfo(View.Chat, Icons.chat, "messages", numMsg),
                     TabInfo(View.Thread, Icons.thread, "messages", numMsg)),
-          doubleTab(currentView, pageStyle,
+          doubleTab(parms,
                     TabInfo(View.List, Icons.list, "tasks", numTasks),
                     TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
-          singleTab(currentView, pageStyle, TabInfo(View.Files, Icons.files, "files", numFiles)),
+          singleTab(parms, TabInfo(View.Files, Icons.files, "files", numFiles)),
         )
       }
     )
