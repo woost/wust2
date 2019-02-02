@@ -33,11 +33,11 @@ import scala.util.{Failure, Success}
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val sidebarOpen = Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
-    val viewConfig = UrlRouter.variable.imap(_.fold(ViewConfig.default)(ViewConfig.fromUrlHash))(x => Option(ViewConfig.toUrlHash(x)))
+    val urlConfig = UrlRouter.variable.imap(_.fold(UrlConfig.default)(UrlConfig.fromUrlHash))(x => Option(UrlConfig.toUrlHash(x)))
 
     val eventProcessor = EventProcessor(
       Client.observable.event,
-      (changes, graph) => GraphChangesAutomation.enrich(graph, viewConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
+      (changes, graph) => GraphChangesAutomation.enrich(graph, urlConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
       Client.api.changeGraph,
       Client.currentAuth
     )
@@ -58,7 +58,7 @@ object GlobalStateFactory {
       .map(_ => ScreenSize.calculate())
       .unsafeToRx(ScreenSize.calculate())
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, viewConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
     // would be better to statically have this base url from the index.html or something.
@@ -116,11 +116,11 @@ object GlobalStateFactory {
 
 
     // if we have a invitation token, we merge this invited user into our account and get the graph again.
-    viewConfig.foreach { viewConfig =>
+    urlConfig.foreach { viewConfig =>
       viewConfig.invitation match {
         case Some(inviteToken) => Client.auth.acceptInvitation(inviteToken).foreach { case () =>
           //clear the invitation from the viewconfig and url
-          state.viewConfig.update(_.copy(invitation = None))
+          state.urlConfig.update(_.copy(invitation = None))
 
           // get a new graph with new right after the accepted invitation
           getNewGraph(viewConfig.pageChange.page).foreach { graph =>
@@ -164,7 +164,7 @@ object GlobalStateFactory {
     // There we want tnuro issue the new-channel change.
     {
     val userAndPage = Rx {
-      (rawViewConfig(), user().toNode)
+      (urlConfig(), user().toNode)
     }
 
     var lastTransitChanges: List[GraphChanges] = Nil
@@ -267,7 +267,6 @@ object GlobalStateFactory {
 
       page.debug("page")
       view.debug("view")
-      viewConfig.debug("viewConfig") // keep until resolved: https://github.com/lihaoyi/scala.rx/pull/124
       user.debug("auth")
     }
 

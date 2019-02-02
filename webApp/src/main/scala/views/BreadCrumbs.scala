@@ -72,7 +72,7 @@ object BreadCrumbs {
                       val onClickFocus = VDomModifier(
                         cursor.pointer,
                         onClick foreach { e =>
-                          state.viewConfig.update(_.focus(Page(nid)))
+                          state.urlConfig.update(_.focus(Page(nid)))
                           e.stopPropagation()
                         }
                       )

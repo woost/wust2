@@ -206,11 +206,11 @@ object Components {
           } // Max 1 dm node with this name
           previousDmNode match {
             case Some(dmNode) if graph.can_access_node(user.id, dmNode.id) =>
-              state.viewConfig() = state.viewConfig.now.focusView(Page(dmNode.id), View.Conversation, needsGet = false)
+              state.urlConfig.update(_.focus(Page(dmNode.id), View.Conversation, needsGet = false))
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
               state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, userId, title = dmName) merge GraphChanges.notify(nodeId, userId)) // TODO: noderole message
-              state.viewConfig() = state.viewConfig.now.focusView(Page(nodeId), View.Conversation, needsGet = false)
+              state.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
               //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
               dom.window.setTimeout({() =>
                 Client.api.addMember(nodeId, dmUserId, AccessLevel.ReadWrite)
@@ -243,7 +243,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        state.viewConfig.update(_.focus(Page(tag.id)))
+        state.urlConfig.update(_.focus(Page(tag.id)))
         e.stopPropagation()
       } else cursor.default,
     )
@@ -304,7 +304,7 @@ object Components {
         backgroundColor := tagColor(tag.id).toHex,
         UI.tooltip := tag.data.str,
         if(pageOnClick) onClick foreach { e =>
-          state.viewConfig.update(_.focus(Page(tag.id)))
+          state.urlConfig.update(_.focus(Page(tag.id)))
           e.stopPropagation()
         } else cursor.default,
         drag(DragItem.Tag(tag.id)),

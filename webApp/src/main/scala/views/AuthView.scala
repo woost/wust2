@@ -42,7 +42,7 @@ object AuthView {
       if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) submitAction(userValue.now).onComplete {
         case Success(None)        =>
           userValue() = UserValue()
-          state.viewConfig() = state.viewConfig.now.redirect
+          state.urlConfig.update(_.redirect)
         case Success(Some(vnode)) =>
           errorMessageHandler.onNext(vnode)
         case Failure(t)           =>
@@ -124,9 +124,9 @@ object AuthView {
         },
         div(cls := "ui divider"),
         h3(alternativeHeader, textAlign := "center"),
-        state.viewConfig.map { cfg =>
+        state.urlConfig.map { cfg =>
           div(
-            onClick(cfg.copy(view = Some(alternativeView))) --> state.viewConfig,
+            onClick(cfg.focus(alternativeView)) --> state.urlConfig,
             cls := "ui fluid button",
             alternativeText,
             display.block,

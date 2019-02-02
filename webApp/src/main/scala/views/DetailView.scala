@@ -117,7 +117,7 @@ object DetailView {
                         div(cls := "fa-fw", Icons.conversation),
                         div(count, marginLeft := "0.5em"),
                         onClick foreach {
-                          state.viewConfig.update(_.focusView(View.Conversation))
+                          state.urlConfig.update(_.focus(View.Conversation))
                         },
                         cursor.pointer,
                       )
@@ -127,7 +127,7 @@ object DetailView {
                         div(cls := "fa-fw", Icons.tasks),
                         div(count, marginLeft := "0.5em"),
                         onClick foreach {
-                          state.viewConfig.update(_.focusView(View.Tasks))
+                          state.urlConfig.update(_.focus(View.Tasks))
                         },
                         cursor.pointer,
                       )

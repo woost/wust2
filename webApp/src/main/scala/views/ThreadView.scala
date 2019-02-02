@@ -386,7 +386,7 @@ object ThreadView {
         }
       )).filter(_ => canWriteAll),
       Some(zoomButton(onClick foreach {
-        state.viewConfig.update(_.focus(Page(selectedNode.nodeId)))
+        state.urlConfig.update(_.focus(Page(selectedNode.nodeId)))
         selectedNodes() = Set.empty[SelectedNode]
       })),
       Some(replyButton(

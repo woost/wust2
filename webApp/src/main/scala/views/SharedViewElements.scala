@@ -89,7 +89,7 @@ object SharedViewElements {
     textAreaModifiers:VDomModifier = VDomModifier.empty,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
-      state.viewConfig().shareOptions.map { share =>
+      state.urlConfig().shareOptions.map { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
@@ -464,7 +464,7 @@ object SharedViewElements {
               },
             )),
             zoomButton(
-              onClick.mapTo(state.viewConfig.now.focus(Page(nodeId))) --> state.viewConfig,
+              onClick.mapTo(state.urlConfig.now.focus(Page(nodeId))) --> state.urlConfig,
             ),
           )
         )
@@ -521,7 +521,7 @@ object SharedViewElements {
 
         val nodeId = NodeId.fresh
         state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id))
-        state.viewConfig() = state.viewConfig.now.focus(Page(nodeId), view, needsGet = false)
+        state.urlConfig.update(_.focus(Page(nodeId), view, needsGet = false))
       }
     )
   }
@@ -597,7 +597,7 @@ object SharedViewElements {
           ),
           cursor.pointer,
           onClick foreach {
-            state.viewConfig.update(_.focusView(View.UserSettings))
+            state.urlConfig.update(_.focus(View.UserSettings))
             Analytics.sendEvent("authstatus", "avatar") },
         ),
         logout(state))

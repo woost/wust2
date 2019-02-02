@@ -95,7 +95,7 @@ object GraphChangesAutomation {
   // We get the current graph + the new graph change. For each new parent edge in the graph change,
   // we check if the parent has a template node. If the parent has a template node, we want to
   // append the subgraph (which is spanned from the template node) to the newly inserted child of the parent.
-  def enrich(graph: Graph, viewConfig: Var[ViewConfig], changes: GraphChanges): GraphChanges = {
+  def enrich(graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
     val addNodes = mutable.HashSet.newBuilder[Node]
@@ -134,7 +134,7 @@ object GraphChangesAutomation {
             }
 
             if (doneSomething) {
-              UI.toast(StringOps.trimToMaxLength(childNode.str, 100), title = s"New ${ childNode.role } is automated", click = () => viewConfig.update(_.focus(Page(childNode.id))))
+              UI.toast(StringOps.trimToMaxLength(childNode.str, 100), title = s"New ${ childNode.role } is automated", click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id)))))
             } else {
               addEdges += parent
             }

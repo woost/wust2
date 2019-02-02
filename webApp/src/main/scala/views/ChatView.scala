@@ -414,7 +414,7 @@ object ChatView {
               },
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
-                  state.viewConfig() = state.viewConfig.now.focus(Page(node.id))
+                  state.urlConfig.update(_.focus(Page(node.id)))
                   selectedNodes() = Set.empty[SelectedNode]
               }, cursor.pointer),
               pinReply.map{pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4)}, padding := "3px 20px 3px 5px", onClick foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer)},
@@ -508,7 +508,7 @@ object ChatView {
         }
       )).filter(_ => canWriteAll),
       Some(zoomButton(onClick foreach {
-        state.viewConfig.update(_.focus(Page(selectedNode.nodeId)))
+        state.urlConfig.update(_.focus(Page(selectedNode.nodeId)))
         selectedNodes() = Set.empty[SelectedNode]
       })),
     ).flatten

@@ -204,13 +204,13 @@ object Sidebar {
         cls := "ui mini compact inverted button",
         padding := "2px",
         renderFontAwesomeIcon(Icons.conversation)(color.gray),
-        onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Chat))),
+        onClick.stopPropagation.foreach(state.urlConfig.update(_.focus(Page(nodeId), View.Conversation))),
       ),
       button(
         cls := "ui mini compact inverted button",
         padding := "2px",
         renderFontAwesomeIcon(Icons.tasks)(color.gray),
-        onClick.stopPropagation.foreach(state.viewConfig.update(_.focusView(Page(nodeId), View.Kanban))),
+        onClick.stopPropagation.foreach(state.urlConfig.update(_.focus(Page(nodeId), View.Tasks))),
       )
     )
   }
@@ -295,6 +295,6 @@ object Sidebar {
 //          } else
                         Page(id)
       }
-      state.viewConfig() = state.viewConfig.now.focus(newPage)
+      state.urlConfig.update(_.focus(newPage))
     }
 }

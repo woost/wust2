@@ -109,7 +109,7 @@ object DashboardView {
       ),
 
       onClick foreach {
-        state.viewConfig.update(_.focusView(page = Page(project.id), View.Dashboard))
+        state.urlConfig.update(_.focus(page = Page(project.id), View.Dashboard))
       },
       cursor.pointer,
     )
@@ -204,7 +204,7 @@ object DashboardView {
               div(cls := "fa-fw", Icons.conversation),
               div(count, marginLeft := "0.5em"),
               onClick foreach {
-                state.viewConfig.update(_.focusView(View.Conversation))
+                state.urlConfig.update(_.focus(View.Conversation))
               },
               cursor.pointer,
             )
@@ -215,7 +215,7 @@ object DashboardView {
               div(cls := "fa-fw", Icons.tasks),
               div(count, marginLeft := "0.5em"),
               onClick foreach {
-                state.viewConfig.update(_.focusView(View.Tasks))
+                state.urlConfig.update(_.focus(View.Tasks))
               },
               cursor.pointer,
             )

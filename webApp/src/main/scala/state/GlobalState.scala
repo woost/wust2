@@ -38,7 +38,7 @@ class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
   val eventProcessor: EventProcessor,
   val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
-  val rawViewConfig: Var[ViewConfig],
+  val urlConfig: Var[UrlConfig],
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
   val hasError: Rx[Boolean],
@@ -76,71 +76,68 @@ class GlobalState(
     }
   }
 
-  val viewConfig: Var[ViewConfig] = {
-      def viewHeuristic(graph:Graph, page:Page):View = {
-        val bestView:View = page.parentId.flatMap(graph.idToIdxGet) match {
-          case Some(pageParentIdx) => graph.nodes(pageParentIdx).role match {
+  val viewConfig: Rx[ViewConfig] = {
+    def viewHeuristic(graph:Graph, parentId: NodeId): Option[View] => View.Visible = {
+      case Some(view: View.Visible) => view
+      case Some(View.Tasks) =>
+        graph.idToIdxGet(parentId).fold[View.Visible](View.Empty){ parentIdx =>
+          val stageCount = graph.notDeletedChildrenIdx(parentIdx).count { childIdx =>
+            val node = graph.nodes(childIdx)
+            node.role == NodeRole.Stage && !graph.isDoneStage(node)
+          }
+
+          if (stageCount > 0) View.Kanban else View.List
+        }
+      case Some(View.Conversation) => View.Chat
+      case None =>
+        graph.idToIdxGet(parentId).fold[View.Visible](View.Empty) { parentIdx =>
+          graph.nodes(parentIdx).role match {
             case NodeRole.Project => View.Dashboard
-            case _ =>
-              val stats = graph.topLevelRoleStats(page.parentId)
+            case _                =>
+              val stats = graph.topLevelRoleStats(parentId :: Nil)
               stats.mostCommonRole match {
-                case NodeRole.Message => View.Conversation
-                case NodeRole.Task => View.Tasks
-                case _ => View.Dashboard
+                case NodeRole.Message => viewHeuristic(graph, parentId)(Some(View.Conversation))
+                case NodeRole.Task    => viewHeuristic(graph, parentId)(Some(View.Tasks))
+                case _                => View.Dashboard
               }
           }
-          case None => View.Dashboard
         }
-        scribe.info(s"viewHeuristic: '$bestView'")
-        bestView
+    }
+
+    var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
+
+    Rx {
+      if (!isLoading()) {
+        val rawPage = urlConfig().pageChange.page
+        val rawView = urlConfig().view
+
+        val sanitizedPage: Page = rawPage.copy(rawPage.parentId.filter(rawGraph().contains))
+
+        val visibleView: View.Visible = rawPage.parentId match {
+          case None => rawView match {
+            case Some(view: View.Visible) if !view.isContent => view
+            case _ => View.Welcome
+          }
+          case Some(parentId) =>
+            val bestView = viewHeuristic(rawGraph(), parentId)(rawView)
+            scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
+            bestView
+        }
+
+        lastViewConfig = ViewConfig(visibleView, sanitizedPage)
       }
 
-      var lastPage:Page = Page.empty
-      var lastGraph:Graph = rawGraph.now
-      var lastBestView:View = View.Dashboard
-
-      rawViewConfig.mapRead{ viewConfig =>
-        val rawPage = viewConfig().pageChange.page
-        val sanitizedPage = rawPage.copy(rawPage.parentId.filter(rawGraph().contains))
-        val pageChange = viewConfig().pageChange.copy(page = sanitizedPage)
-
-        val view = (viewConfig().view, rawPage.parentId) match {
-          case (None, None) => View.Welcome
-          case (Some(view), None) => if(view.isContent) View.Welcome else view
-          case (None, Some(pageParentId)) =>
-            // no specific view was given. Select one automatically:
-
-            (lastGraph != rawGraph(), lastPage != rawPage) match {
-              case (false, _) =>
-                // The graph didn't change, keep the current view.
-                lastBestView
-              case (true, false) =>
-                // The graph changed without page-change (life-updates, graph-changes by the user).
-                // We keep the current view.
-                lastGraph = rawGraph()
-                lastBestView
-              case (true, true) =>
-                // The graph changed and we are on a different page than before.
-                // The user changed the page and waited for the new graph of getGraph. Now the graph is updated.
-                // Therefore, we apply the heuristic to select a new best view.
-                val bestView = viewHeuristic(rawGraph(), rawPage)
-                lastBestView = bestView
-                lastPage = rawPage
-                lastGraph = rawGraph()
-                bestView
-            }
-              case (Some(view), Some(_)) => view
-        }
-
-        viewConfig().copy(view = Some(view), pageChange = pageChange)
+      lastViewConfig
     }
   }
 
-  val view: Rx[View] = viewConfig.map(_.view.get) // TODO: improve. we can do get, because viewConfig always has a view opposed to rawViewConfig
 
-  val page: Rx[Page] = viewConfig.map(_.pageChange.page)
-  val pageWithoutReload: Rx[Page] = viewConfig.map(_.pageChange.page)
-  val pageNotFound:Rx[Boolean] = Rx{ !rawViewConfig().pageChange.page.parentId.forall(rawGraph().contains) }
+
+  val view: Rx[View.Visible] = viewConfig.map(_.view)
+
+  val page: Rx[Page] = viewConfig.map(_.page)
+  val pageWithoutReload: Rx[Page] = viewConfig.map(_.page)
+  val pageNotFound:Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   val pageHasParents = Rx {
     page().parentId.exists(rawGraph().hasNotDeletedParents)
@@ -205,7 +202,7 @@ class GlobalState(
     graphTrans <- graphTransformations
     currentGraph <- rawGraph
     u <- user.map(_.id)
-    p <- rawViewConfig.map(_.pageChange.page.parentId)
+    p <- urlConfig.map(_.pageChange.page.parentId)
   } yield {
     val transformation: Seq[GraphTransformation] = graphTrans.map(_.transformWithViewData(p, u))
     transformation.foldLeft(currentGraph)((g, gt) => gt(g))

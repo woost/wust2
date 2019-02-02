@@ -1,18 +1,16 @@
 package wust.webApp.views
 
-import outwatch.dom.VNode
+import outwatch.dom.{dsl, VNode}
 import rx._
 import wust.webApp.state.{GlobalState, View}
 import wust.webApp.views.graphview.GraphView
 
 object ViewRender {
-  def apply(view: View, state: GlobalState)(implicit ctx: Ctx.Owner): VNode = view match {
+  def apply(view: View.Visible, state: GlobalState)(implicit ctx: Ctx.Owner): VNode = view match {
     case View.Detail           => DetailView(state)
     case View.Magic            => MagicView(state)
-    case View.Conversation     => ConversationView(state)
     case View.Files            => FilesView(state)
     case View.Split            => SplitView(state)
-    case View.Tasks            => TasksView(state)
     case View.Thread           => ThreadView(state)
     case View.Chat             => ChatView(state)
     case View.Kanban           => KanbanView(state)
@@ -24,6 +22,7 @@ object ViewRender {
     case View.Signup           => AuthView.signup(state)
     case View.Dashboard        => DashboardView(state)
     case View.UserSettings     => UserSettingsView(state)
+    case View.Empty            => dsl.div
     case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(_, state)), state)
   }
 }

@@ -754,7 +754,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentsIdx.foreachElement(nodeIdx) { nodeParentIdx =>
       if (!isInDeletedGracePeriodIdx(nodeIdx, nodeParentIdx)
         && (!parentIndices.contains(nodeParentIdx) || nodeParentIdx == nodeIdx)
-        && (nodes(nodeParentIdx).role != NodeRole.Stage || nodes(nodeParentIdx).str.trim.toLowerCase != Graph.doneTextLower))
+        && !isDoneStage(nodes(nodeParentIdx)))
         tagSet += nodes(nodeParentIdx)
     }
 
@@ -981,9 +981,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.notDeletedChildrenIdx(workspaceIdx).find { nodeIdx =>
     val node = nodes(nodeIdx)
-    node.role == NodeRole.Stage &&
-      node.str.trim.toLowerCase == Graph.doneTextLower
+    isDoneStage(node)
   }
+
+  def isDoneStage(node: Node): Boolean = node.role == NodeRole.Stage && node.str.trim.toLowerCase == Graph.doneTextLower
+
 
   def workspacesForNode(nodeIdx: Int): Array[Int] = {
     (notDeletedParentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut): Array[Int]).distinct

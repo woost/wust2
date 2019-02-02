@@ -247,7 +247,7 @@ object KanbanView {
           renderMessageCount(
             if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
             else VDomModifier(cls := "emptystat"),
-            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
             cursor.pointer
           )
         )
@@ -400,9 +400,9 @@ object KanbanView {
       }
       val createSubtasks = menuItem(
         "Create subtasks", "Create subtasks", Icons.tasks,
-        onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig)
+        onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Tasks)) --> state.urlConfig)
       val startConversation = menuItem("Start conversation", "Start conversation about this card", Icons.conversation,
-        onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig)
+        onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig)
       val archive = menuItem(
         "Archive", "Archive", Icons.delete,
         Rx {
@@ -542,7 +542,7 @@ object KanbanView {
                 cls := "emptystat",
                 UI.popup := "Create subtasks"
               ),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Tasks)) --> state.viewConfig,
+              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Tasks)) --> state.urlConfig,
               cursor.pointer,
             ),
             renderTaskProgress(),
@@ -555,7 +555,7 @@ object KanbanView {
                 cls := "emptystat",
                 UI.popup := "Start conversation about this card"
               ),
-              onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Conversation)) --> state.viewConfig,
+              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
               cursor.pointer,
             ),
           )
@@ -683,7 +683,7 @@ object KanbanView {
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "0", right := "0"),
-//      onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
+//      onDblClick.stopPropagation(state.urlConfig.now.copy(page = Page(node.id))) --> state.urlConfig,
     )
   }
 

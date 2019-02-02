@@ -25,12 +25,18 @@ private object ParsingHelpers {
 import ParsingHelpers._
 
 private sealed trait UrlOption {
-  def update(config: ViewConfig, text: String): DecodeResult[ViewConfig]
+  def update(config: UrlConfig, text: String): DecodeResult[UrlConfig]
 }
 private object UrlOption {
 
   object view extends UrlOption {
     val key = "view"
+
+    private def decodeVisibleView(s: String): DecodeResult[View.Visible] =
+      decodeView(s).flatMap {
+        case view: View.Visible => Right(view)
+        case view => Left(DecodeError.TypeError(s"Expected View.Visible, but got: '$view'"))
+      }
 
     private def decodeView(s: String): DecodeResult[View] =
       View.map.get(s).fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
@@ -42,8 +48,8 @@ private object UrlOption {
           val views = opsViews.split("\\||,|\\?|/").filter(_.nonEmpty)
           ViewOperator.fromString.lift(opString) match {
             case Some(op) =>
-              decodeView(view).flatMap { view =>
-                decodeSeq(views.map(decodeView)).map { views =>
+              decodeVisibleView(view).flatMap { view =>
+                decodeSeq(views.map(decodeVisibleView)).map { views =>
                   View.Tiled(op, NonEmptyList(view, views.toList))
                 }
               }
@@ -52,7 +58,7 @@ private object UrlOption {
         }
       })
 
-    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { view =>
         config.copy(view = Some(view))
       }
@@ -66,7 +72,7 @@ private object UrlOption {
           Page(NodeId(Cuid.fromBase58(parentId)))
       })
 
-    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { page =>
         config.copy(pageChange = PageChange(page))
       }
@@ -75,7 +81,7 @@ private object UrlOption {
   object redirectTo extends UrlOption {
     val key = "redirectTo"
 
-    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(view.regex, text).map { view =>
         config.copy(redirectTo = Some(view))
       }
@@ -86,7 +92,7 @@ private object UrlOption {
 
     val regex = Regex[ShareOptions](rx"^title:([^,]*),text:([^:]*),url:(.*)$$")
 
-    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { shareOptions =>
         config.copy(shareOptions = Some(shareOptions))
       }
@@ -97,14 +103,14 @@ private object UrlOption {
 
     val regex = Regex[String](rx"^(.+)$$")
 
-    def update(config: ViewConfig, text: String): DecodeResult[ViewConfig] =
+    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { invitation =>
         config.copy(invitation = Some(invitation))
       }
   }
 }
 
-object ViewConfigParser {
+object UrlConfigParser {
 
   private val allOptionsRegex = Regex[(String,String)](rx"([^&=]+)=([^&]*)&?")
   private val allOptionsMap = Map(
@@ -115,9 +121,9 @@ object ViewConfigParser {
     UrlOption.invitation.key -> UrlOption.invitation,
   )
 
-  def parse(text: String): ViewConfig = {
+  def parse(text: String): UrlConfig = {
     val matched = decodeSeq(allOptionsRegex.eval(text).toList)
-    val result = matched.map(_.foldLeft[ViewConfig](ViewConfig.default) { case (cfg, (key, value)) =>
+    val result = matched.map(_.foldLeft[UrlConfig](UrlConfig.default) { case (cfg, (key, value)) =>
       allOptionsMap.get(key) match {
         case Some(option) => option.update(cfg, value) match {
           case Right(cfg) => cfg
@@ -135,13 +141,13 @@ object ViewConfigParser {
       case Right(cfg) => cfg
       case Left(err)  =>
         scribe.warn(s"Cannot parse url, falling back to default view config: ${ err.getMessage }")
-        ViewConfig.default
+        UrlConfig.default
     }
   }
 }
 
-object ViewConfigWriter {
-  def write(cfg: ViewConfig): String = {
+object UrlConfigWriter {
+  def write(cfg: UrlConfig): String = {
     val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view.viewKey)
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"

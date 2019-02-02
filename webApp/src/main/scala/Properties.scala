@@ -142,15 +142,15 @@ object ItemProperties {
           marginTop := "10px",
           cursor.pointer,
           a(
-            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(nodeId), View.Detail)) foreach { vc =>
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) foreach { vc =>
               modalCloseTrigger.onNext(()).onComplete { _ =>
-                state.viewConfig() = vc
+                state.urlConfig() = vc
               }
             },
             "Show detailed view",
           )
         ),
-      ),
+      )
     }
 
     def handleAddProperty(propertyKey: String, propertyValue: String, propertyType: String)(implicit ctx: Ctx.Owner): Unit = {

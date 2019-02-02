@@ -256,7 +256,7 @@ object PageHeader {
           cursor.pointer,
           padding := "3px",
           Components.nodeCard(nodeRes._1),
-          onClick.stopPropagation.mapTo(state.viewConfig.now.focus(Page(nodeRes._1.id))) --> state.viewConfig,
+          onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeRes._1.id))) --> state.urlConfig,
           onClick.stopPropagation(()) --> closeModal
         ),
       )
@@ -410,7 +410,7 @@ object PageHeader {
     def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
       if(membership.userId == state.user.now.id) {
         if(dom.window.confirm("Do you really want to remove yourself from this workspace?")) {
-          state.viewConfig() = state.viewConfig.now.copy(pageChange = PageChange(Page.empty))
+          state.urlConfig.update(_.focus(Page.empty))
           modalCloseTrigger.onNext(())
         } else return
       }
@@ -626,7 +626,7 @@ object PageHeader {
             GraphChanges.delete(channel.id, state.graph.now.parents(channel.id).toSet)
               .merge(GraphChanges.disconnect(Edge.Pinned)(state.user.now.id, channel.id))
           )
-          UI.toast(s"Archived '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.viewConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
+          UI.toast(s"Archived '${StringOps.trimToMaxLength(channel.str, 10)}'", click = () => state.urlConfig.update(_.focus(Page(channel.id))), level = UI.ToastLevel.Success)
         }
       ))
 
@@ -687,7 +687,7 @@ object PageHeader {
     }
 
     def switchView(currentView : View, targetView : View) = {
-      state.viewConfig.update(_.focusView(targetView))
+      state.urlConfig.update(_.focus(targetView))
       Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
     }
 

@@ -10,64 +10,71 @@ sealed trait View {
   def isContent: Boolean = true
 }
 object View {
-  case object Detail extends View {
+  sealed trait Visible extends View
+  case object Detail extends Visible {
     def viewKey = "detail"
   }
-  case object Magic extends View {
+  case object Magic extends Visible {
     def viewKey = "magic"
   }
-  case object Split extends View {
+  case object Split extends Visible {
     def viewKey = "split"
   }
-  case object Conversation extends View {
-    def viewKey = "conversation"
-  }
-  case object Tasks extends View {
-    def viewKey = "tasks"
-  }
-  case object Thread extends View {
+  case object Thread extends Visible {
     def viewKey = "thread"
   }
-  case object Chat extends View {
+  case object Chat extends Visible {
     def viewKey = "chat"
   }
-  case object Files extends View {
+  case object Files extends Visible {
     def viewKey = "files"
   }
-  case object Kanban extends View {
+  case object Kanban extends Visible {
     def viewKey = "kanban"
   }
-  case object List extends View {
+  case object List extends Visible {
     def viewKey = "list"
   }
-  case object Property extends View {
+  case object Property extends Visible {
     def viewKey = "property"
   }
-  case object Graph extends View {
+  case object Graph extends Visible {
     def viewKey = "graph"
   }
-  case object Dashboard extends View {
+  case object Dashboard extends Visible {
     def viewKey = "dashboard"
   }
-  case object Login extends View {
+  case object Login extends Visible {
     def viewKey = "login"
     override def isContent = false
   }
-  case object Signup extends View {
+  case object Signup extends Visible {
     def viewKey = "signup"
     override def isContent = false
   }
-  case object Welcome extends View {
+  case object Welcome extends Visible {
     def viewKey = "welcome"
     override def isContent = false
   }
-  case object UserSettings extends View {
+  case object UserSettings extends Visible {
     def viewKey = "usersettings"
     override def isContent = false
   }
-  case class Tiled(operator: ViewOperator, views: NonEmptyList[View]) extends View {
+  case object Empty extends Visible {
+    def viewKey = "empty"
+    override def isContent = true
+  }
+  case class Tiled(operator: ViewOperator, views: NonEmptyList[Visible]) extends Visible {
     def viewKey = views.map(_.viewKey).toList.mkString(operator.separator)
     override def isContent = views.exists(_.isContent)
+  }
+
+  sealed trait Heuristic extends View
+  case object Conversation extends Heuristic {
+    def viewKey = "conversation"
+  }
+  case object Tasks extends Heuristic {
+    def viewKey = "tasks"
   }
 
   def list: List[View] = macro SubObjects.list[View]

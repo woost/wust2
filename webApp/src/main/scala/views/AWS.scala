@@ -91,7 +91,7 @@ object AWS {
           promise success Some(key)
         case Success(FileUploadConfiguration.QuotaExceeded) =>
           promise success None
-          UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => state.viewConfig.update(_.focusView(View.UserSettings)))
+          UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => state.urlConfig.update(_.focus(View.UserSettings)))
         case Success(FileUploadConfiguration.ServiceUnavailable) =>
           promise success None
           UI.toast("Sorry, the file-upload service is currently unavailable. Please try again later!")

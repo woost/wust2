@@ -48,7 +48,7 @@ object Topbar {
     "Woost",
     color := "white",
     textDecoration := "none",
-    onClick(ViewConfig.default) --> state.viewConfig,
+    onClick(UrlConfig.default) --> state.urlConfig,
     onClick foreach {
       Analytics.sendEvent("logo", "clicked")
     },
@@ -183,7 +183,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Signup",
-        onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.Signup)) --> state.viewConfig,
+        onClick.mapTo(state.urlConfig.now.showViewWithRedirect(View.Signup)) --> state.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "signup")
         },
@@ -191,7 +191,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Login",
-        onClick.mapTo(state.viewConfig.now.showViewWithRedirect(View.Login)) --> state.viewConfig,
+        onClick.mapTo(state.urlConfig.now.showViewWithRedirect(View.Login)) --> state.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "login")
         },
@@ -204,7 +204,7 @@ object Topbar {
       "Logout",
       onClick foreach {
         Client.auth.logout().foreach { _ =>
-          state.viewConfig() = state.viewConfig.now.focusView(Page.empty, View.Login)
+          state.urlConfig.update(_.focus(Page.empty, View.Login))
         }
         Analytics.sendEvent("topbar", "logout")
       }

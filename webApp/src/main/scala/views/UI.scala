@@ -115,7 +115,7 @@ object UI {
             icon,
             cursor.pointer,
             fontSize.xxLarge,
-            onClick.stopPropagation.mapTo(state.viewConfig.now.focusView(Page(node.id), View.Property)) --> state.viewConfig,
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Property)) --> state.urlConfig,
           ),
         ),
       )
