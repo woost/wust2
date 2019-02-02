@@ -58,8 +58,8 @@ object SplitView {
     div(
       Styles.growFull,
       Styles.flex,
-      viewBox(Icons.conversation, Icons.tasks, Kind.MaximizeLeft, Kind.MaximizeRight)(ConversationView(state)),
-      viewBox(Icons.tasks, Icons.conversation, Kind.MaximizeRight, Kind.MaximizeLeft)(TasksView(state))
+      viewBox(Icons.conversation, Icons.tasks, Kind.MaximizeLeft, Kind.MaximizeRight)(ChatView(state)),
+      viewBox(Icons.tasks, Icons.conversation, Kind.MaximizeRight, Kind.MaximizeLeft)(ListView(state))
     )
   }
 }
