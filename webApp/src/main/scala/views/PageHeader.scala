@@ -658,20 +658,16 @@ object PageHeader {
                        icon : IconDefinition,
                        wording : String,
                        numItems : Int)
-    def activeInactiveClass(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
-      val pageStyle = state.pageStyle()
-      def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
-      if (isSelected) {
-        VDomModifier(cls := "active")
-      } else {
-        VDomModifier(cls := "inactive")
-      }
+    def isActiveTab(currentView: View, tabInfo : TabInfo) =
+      currentView.viewKey == tabInfo.targetView.viewKey
 
-    }
-    def tabBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
+    def getActivityStateCssClass(currentView: View, tabInfo : TabInfo) =
+      cls := (if (isActiveTab(currentView, tabInfo)) "active"
+              else "inactive")
+
+    def getBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = Rx {
       val pageStyle = state.pageStyle()
-      def isSelected = currentView.viewKey == tabInfo.targetView.viewKey
-      VDomModifier.ifTrue(isSelected)(
+      VDomModifier.ifTrue(isActiveTab(currentView, tabInfo))(
         backgroundColor := pageStyle.bgLightColor,
         borderBottomColor := pageStyle.bgLightColor)
     }
@@ -685,8 +681,8 @@ object PageHeader {
     def singleTab(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       div(
         cls := "viewswitcher-item single",
-        activeInactiveClass(currentView, pageStyle, tabInfo),
-        tabBackgroundColor(currentView, pageStyle, tabInfo),
+        getActivityStateCssClass(currentView, tabInfo),
+        getBackgroundColor(currentView, pageStyle, tabInfo),
 
         div(cls := "fa-fw", tabInfo.icon),
         VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
@@ -704,20 +700,19 @@ object PageHeader {
       VDomModifier (
         div(
           cls := "viewswitcher-item double left",
-          activeInactiveClass(currentView, pageStyle, leftTabInfo),
-          tabBackgroundColor(currentView, pageStyle, leftTabInfo),
+          getActivityStateCssClass(currentView, leftTabInfo),
+          getBackgroundColor(currentView, pageStyle, leftTabInfo),
           onClick.stopPropagation foreach switchView(currentView, leftTabInfo.targetView),
           div(cls := "fa-fw", leftTabInfo.icon),
           ),
         div(
           cls := "viewswitcher-item double right",
-          activeInactiveClass(currentView, pageStyle, rightTabInfo),
-          tabBackgroundColor(currentView, pageStyle, rightTabInfo),
+          getActivityStateCssClass(currentView, rightTabInfo),
+          getBackgroundColor(currentView, pageStyle, rightTabInfo),
           onClick.stopPropagation foreach switchView(currentView, rightTabInfo.targetView),
           div(cls := "fa-fw", rightTabInfo.icon),
           VDomModifier.ifTrue(leftTabInfo.numItems > 0)(span(leftTabInfo.numItems, paddingLeft := "7px")),
           ),
-
       ) }
 
     div(
