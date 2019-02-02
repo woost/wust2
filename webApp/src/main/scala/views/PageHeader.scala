@@ -446,7 +446,7 @@ object PageHeader {
         form(
           onDomMount.asHtml.foreach { element = _ },
 
-          input(tpe := "text", style := "position: fixed; left: -10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
+          input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
 
           showEmailInvite.map {
             case true => VDomModifier(
