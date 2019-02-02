@@ -456,23 +456,18 @@ object KanbanView {
         edit,
         archive
       )
-      val moreMenu = div(
-          // ideally this would be always visible, but since the outer div does no longer hide overflow,
-          // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
-          //visibility.visible, 
-          cls := "ui icon pointing top right labeled fluid dropdown",
-          div(cls := "fa-fw", Icons.ellipsisV),
-          cursor.pointer,
-          UI.popup := "More",
-          zIndex := ZIndex.overlay,                               // leave zIndex here since otherwise it gets overwritten
-          Elements.withoutDefaultPassiveEvents,                   // revert default passive events, else dropdown is not working
-          onDomMount.asJquery.foreach(_.dropdown("hide")),   // https://semantic-ui.com/modules/dropdown.html#/usage
-          div(
-            cls := "menu",
-            div(cls := "header", "Context menu", cursor.default),
-            moreMenuItems.map(_(false))
-          ),
-        )
+      // ideally this would be always visible, but since the outer div does no longer hide overflow,
+      // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
+      //visibility.visible,
+      val moreMenu = UI.dropdownMenu(VDomModifier(
+        div(cls := "header", "Context menu", cursor.default),
+        moreMenuItems.map(_(false))
+      )).apply(
+        cls := "pointing top right",
+        div(cls := "fa-fw", Icons.ellipsisV),
+        UI.popup := "More",
+      )
+
       div(
         cls := "buttonbar",
         Styles.flex,
