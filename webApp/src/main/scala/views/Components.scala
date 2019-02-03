@@ -468,10 +468,6 @@ object Components {
       readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
     }
 
-    def writeDragTarget(elem: dom.html.Element, dragTarget: => DragTarget): Unit = {
-      writePropertyIntoElement(elem, DragItem.targetPropName, dragTarget)
-    }
-
     def readDragPayload(elem: dom.html.Element): js.UndefOr[DragPayload] = {
       readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
     }
@@ -484,16 +480,8 @@ object Components {
       readPropertyFromElement[DragContainer](elem, DragContainer.propName)
     }
 
-    def writeDragContainer(elem: dom.html.Element, dragContainer: => DragContainer): Unit = {
-      writePropertyIntoElement(elem, DragContainer.propName, dragContainer)
-    }
-
     def readDraggableDraggedAction(elem: dom.html.Element): js.UndefOr[() => Unit] = {
       readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
-    }
-
-    def writeDraggableDraggedAction(elem: dom.html.Element, action: => () => Unit): Unit = {
-      writePropertyIntoElement(elem, DragItem.draggedActionPropName, action)
     }
 
     def dragWithHandle(item: DragPayloadAndTarget):VDomModifier = dragWithHandle(item,item)
@@ -505,10 +493,8 @@ object Components {
         cls := "draggable", // makes this element discoverable for the Draggable library
         cls := "drag-feedback", // visual feedback for drag-start
         VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
-        onDomMount.asHtml foreach { elem =>
-          writeDragPayload(elem, payload)
-          writeDragTarget(elem, target)
-        }
+        prop(DragItem.payloadPropName) := (() => payload),
+        prop(DragItem.targetPropName) := (() => target),
       )
     }
     def drag(item: DragPayloadAndTarget):VDomModifier = drag(item,item)
@@ -525,8 +511,8 @@ object Components {
         outline := "none", // hides focus outline
         cls := "sortable-container",
 
+        prop(DragContainer.propName) := (() => container),
         managedElement.asHtml { elem =>
-          writeDragContainer(elem, container)
           state.sortable.addContainer(elem)
           Cancelable { () => state.sortable.removeContainer(elem) }
         }
@@ -536,11 +522,7 @@ object Components {
     def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
       EmitterBuilder.ofModifier[Unit] { sink =>
         IO {
-          VDomModifier(
-            onDomMount.asHtml foreach { elem =>
-              writeDraggableDraggedAction(elem, () => sink.onNext(Unit))
-            }
-          )
+          prop(DragItem.draggedActionPropName) := (() => sink.onNext(Unit))
         }
       }
 
