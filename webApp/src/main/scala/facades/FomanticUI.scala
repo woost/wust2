@@ -21,6 +21,8 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def popup(options: PopupOptions): Unit = js.native
 
+  def accordion(): Unit = js.native
+
   def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
 }

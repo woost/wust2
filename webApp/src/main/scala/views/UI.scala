@@ -199,4 +199,16 @@ object UI {
       items
     )
   )
+
+  def accordion(title: VDomModifier, content: VDomModifier): VNode = div(
+    cls :="ui styled fluid accordion",
+    div(
+      cls := "title",
+      i(cls := "dropdown icon"),
+      title,
+    ),
+    div(cls := "content", content),
+    onDomMount.asJquery.foreach(_.accordion()),
+    cursor.pointer,
+  )
 }
