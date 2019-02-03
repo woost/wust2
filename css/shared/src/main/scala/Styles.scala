@@ -280,7 +280,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val tabsOutlineColor = c"#6B808F"
   val tabsInactiveBackgroundColor = c"#97aaba"
-  val tabsOutlineWidth = 2.px
+  val tabsOutlineWidth = 1.px
 
   ".moveable-window" - (
     position.absolute,
@@ -1246,14 +1246,41 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(tabsPadding),
     borderRadius(3 px, 3 px, 0 px, 0 px),
     marginLeft(2 px),
-    border(2 px, solid, tabsOutlineColor),
+    border(tabsOutlineWidth, solid, tabsOutlineColor),
     marginBottom(-tabsOutlineWidth),
     Styles.flex,
     alignItems.center,
     cursor.pointer,
   )
-  ".viewswitcher-item.active" - (
-    // bgColor set programatically to topic color
+  ".viewswitcher-item .lcorner, .viewswitcher-item .rcorner " - (
+    position.absolute,
+    // based on radius of corner borders
+    width(6 px),
+    height(6 px),
+    zIndex(10000),
+    bottom(-1 px), /// overlaps with line below tabs
+    overflow.hidden
+  )
+  ".viewswitcher-item.inactive .lcorner, .viewswitcher-item.inactive .rcorner " - (
+    bottom(0 px), // when inactive, do not overlap with below line
+  )
+  ".viewswitcher-item.inactive .lcorner span, .viewswitcher-item.inactive .rcorner span" - (
+    bottom(-1 px), // when inactive, do not overlap with below line
+    )
+  ".viewswitcher-item .lcorner" - (
+    left(-6 px),
+    display.inlineGrid
+  )
+  ".viewswitcher-item .lcorner span" - (
+    position.relative,
+    borderStyle.solid,
+    borderBottomColor(tabsOutlineColor),
+    borderBottomRightRadius(5 px),
+    borderWidth(0 px, 1 px, 1 px, 0 px),
+    boxShadow := s"2px 2px 0px 1px ${tabsInactiveBackgroundColor.value}",
+    marginRight(0.5 px)
+  )
+  ".viewswitcher-item.active .lcorner span" - (
   )
   ".viewswitcher-item.inactive" - (
     backgroundColor(tabsInactiveBackgroundColor),
@@ -1272,7 +1299,7 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := s"2px -1px 1px -1px ${tabsBoxShadowColor.value}",
     // -- we reduce the border & increase padding, to keep the tab in place --
     borderRight(0 px),
-    paddingRight((tabsPadding.n + 2).px),
+    paddingRight((tabsPadding.n + tabsOutlineWidth.n).px),
   )
   ".viewswitcher-item.double.right.active" - (
     boxShadow := s"1px -1px 1px -1px ${tabsBoxShadowColor.value}"

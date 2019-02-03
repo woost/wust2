@@ -55,6 +55,9 @@ object components {
     modifiers.modActivityStateCssClass(parms.currentView, tabInfo),
     modifiers.modTopicBackgroundColor(parms.currentView, parms.pageStyle, tabInfo),
     modifiers.modTooltip(tabInfo),
+    VDomModifier.ifTrue(isActiveTab(parms.currentView, tabInfo))(
+      zIndex := 1560
+    ),
   )
 
 
@@ -70,6 +73,12 @@ object components {
 
       // content
       div(cls := "fa-fw", tabInfo.icon),
+      span(cls := "lcorner", span(
+             VDomModifier.ifTrue(isActiveTab(parms.currentView, tabInfo))(
+               boxShadow := s"2px 2px 0px 1px ${parms.pageStyle.bgLightColor}",
+             )
+           )),
+      span(cls := "rcorner", span())
       )
   }
 
