@@ -195,7 +195,6 @@ object UI {
     cursor.pointer,
     div(
       cls := "menu",
-      div(cls := "header", "Context menu", cursor.default),
       items
     )
   )
