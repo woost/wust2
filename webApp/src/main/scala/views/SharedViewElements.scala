@@ -614,15 +614,16 @@ object SharedViewElements {
         VDomModifier(
           position.relative,
           div(
-            "Show Tags",
+            "Tags",
             onClick.stopPropagation(true) --> state.showTagsList,
             cursor.pointer,
 
             position.absolute,
-            top := "0",
+            top := "50px",
             right := "0",
             backgroundColor := CommonStyles.sidebarBgColor,
             color.white,
+            borderTopLeftRadius := "5px",
             borderBottomLeftRadius := "5px",
             padding := "5px",
             zIndex := ZIndex.overlayLow
