@@ -399,11 +399,14 @@ object ChatView {
               paddingLeft := "0.5em",
               node.role match {
                 case NodeRole.Task =>
-                  Rx {
-                    val graph = state.graph()
-                    val directContentParents = graph.parentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role != NodeRole.Stage => graph.nodeIds(idx)}
-                    nodeCardWithCheckbox(state, node, directContentParents).apply(backgroundColor := "transparent", boxShadow := "none")
-                  }
+                  div(
+                    Styles.flex,
+                    cls := "nodecard-content",
+                    cls := "enable-text-selection",
+                    fontSize.smaller,
+                    "Task: ",
+                    renderNodeData(node.data, maxLength = Some(100))
+                  )
                 case _ =>
                   div(
                     cls := "nodecard-content",
@@ -435,7 +438,7 @@ object ChatView {
     algorithm.depthFirstSearchAfterStartsWithContinue(starts = Array(pageParentIdx), graph.childrenIdx, continue = {nodeIdx =>
       val node = graph.nodes(nodeIdx)
       node.role match {
-        case NodeRole.Message | NodeRole.Task =>
+        case NodeRole.Message =>
           nodeSet.add(nodeIdx)
           nodeCount += 1
         case _ =>
