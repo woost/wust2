@@ -182,7 +182,7 @@ object ItemProperties {
         contentModifier = VDomModifier(
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
         ),
-      ))) --> state.modalConfig
+      ))) --> state.uiModalConfig
     )
   }
 }

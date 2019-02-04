@@ -38,7 +38,7 @@ object UploadingFile {
 class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
   val eventProcessor: EventProcessor,
-  val sidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
+  val leftSidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val urlConfig: Var[UrlConfig],
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
@@ -54,10 +54,10 @@ class GlobalState(
 
   val showTagsList: Var[Boolean] = Var(largeScreen)
 
-  val sidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
-  val sidebarClose: PublishSubject[Unit] = PublishSubject()
-  val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
-  val modalClose: PublishSubject[Unit] = PublishSubject()
+  val uiSidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
+  val uiSidebarClose: PublishSubject[Unit] = PublishSubject()
+  val uiModalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
+  val uiModalClose: PublishSubject[Unit] = PublishSubject()
 
   val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)

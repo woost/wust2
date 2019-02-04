@@ -88,7 +88,7 @@ object Topbar {
   }
 
   def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state.sidebarOpen
+    import state.leftSidebarOpen
     div(
       padding := "10px",
       fontSize := "20px",
@@ -98,8 +98,8 @@ object Topbar {
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick.stopPropagation foreach {
-        Analytics.sendEvent("hamburger", if(sidebarOpen.now) "close" else "open")
-        sidebarOpen() = !sidebarOpen.now
+        Analytics.sendEvent("hamburger", if(leftSidebarOpen.now) "close" else "open")
+        leftSidebarOpen() = !leftSidebarOpen.now
       }
     )
   }

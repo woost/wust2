@@ -148,7 +148,7 @@ object Components {
           case t if t.startsWith("image/") =>
             val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              state.modalConfig.onNext(Ownable(_ => ModalConfig(description, image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
+              state.uiModalConfig.onNext(Ownable(_ => ModalConfig(description, image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
           case "application/pdf"           =>

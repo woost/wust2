@@ -22,71 +22,51 @@ import wust.webApp.views.SharedViewElements._
 
 import scala.collection.breakOut
 
-object Sidebar {
+object LeftSidebar {
 
   def apply(state: GlobalState): VNode = {
     val smallIconSize = 40
 
     def authStatus(implicit ctx: Ctx.Owner) = SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
 
-    def closedSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
-      cls := "sidebar",
-      minWidth := s"${ smallIconSize }px",
-      Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
-      channelIcons(state, smallIconSize),
-      newProjectButton(state, "+").apply(
-        cls := "newChannelButton-small " + buttonStyles,
-        UI.popup("right center") := "New Project",
-        onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
-      ),
-      onSwipeRight(true) --> state.sidebarOpen,
+    GenericSidebar.left(
+      state.leftSidebarOpen,
+      config = Ownable { implicit ctx => GenericSidebar.Config(
+        mainModifier = VDomModifier(
+          registerDragContainer(state, DragContainer.Sidebar),
+          drag(target = DragItem.Sidebar),
+        ),
+        openModifier = VDomModifier(
+          Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
+          channels(state),
+          newProjectButton(state).apply(
+            cls := "newChannelButton-large " + buttonStyles,
+            onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
+          ),
+        ),
+        overlayOpenModifier = VDomModifier(
+          Rx {
+            VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(authStatus)
+          },
+        ),
+        expandedOpenModifier = VDomModifier(
+          Rx {
+            VDomModifier.ifNot(state.topbarIsVisible())(authStatus)
+          },
+          maxWidth := "202px"
+        ),
+        closedModifier = Some(VDomModifier(
+          minWidth := s"${ smallIconSize }px",
+          Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
+          channelIcons(state, smallIconSize),
+          newProjectButton(state, "+").apply(
+            cls := "newChannelButton-small " + buttonStyles,
+            UI.popup("right center") := "New Project",
+            onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
+          )
+        ))
+      )}
     )
-
-    def openSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
-      cls := "sidebar",
-      Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
-      channels(state),
-      newProjectButton(state).apply(
-        cls := "newChannelButton-large " + buttonStyles,
-        onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
-      ),
-    )
-
-    def overlayOpenSidebar(implicit ctx: Ctx.Owner) = VDomModifier(
-      cls := "overlay-sidebar",
-      onClick(false) --> state.sidebarOpen,
-      onSwipeLeft(false) --> state.sidebarOpen,
-      div(
-        openSidebar,
-        authStatus
-      )
-    )
-
-    def sidebarWithOverlay(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-      closedSidebar,
-      Rx {
-        state.sidebarOpen() match {
-          case true  => div(overlayOpenSidebar)
-          case false => VDomModifier.empty
-        }
-      }
-    )
-
-    def sidebarWithExpand(implicit ctx: Ctx.Owner): VDomModifier = Rx {
-      state.sidebarOpen() match {
-        case true  => VDomModifier(openSidebar, (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](authStatus), maxWidth := "202px") // maxWith = 200px sidebar + 2px border
-        case false => closedSidebar
-      }
-    }
-
-    div.static(keyValue)(Ownable { implicit ctx =>
-      VDomModifier(
-        if (BrowserDetect.isMobile) sidebarWithOverlay
-        else sidebarWithExpand,
-        registerDragContainer(state, DragContainer.Sidebar),
-        drag(target = DragItem.Sidebar),
-      )
-    })
   }
 
   val buttonStyles = "tiny compact inverted grey"

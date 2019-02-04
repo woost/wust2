@@ -136,15 +136,15 @@ object PageSettingsMenu {
       Styles.flex,
       justifyContent.spaceBetween,
       b(cursor.default, "Workspace Settings"),
-      i(cursor.pointer, cls := "close icon", onClick(()) --> state.sidebarClose)
+      i(cursor.pointer, cls := "close icon", onClick(()) --> state.uiSidebarClose)
     )
 
     div(
       Icons.menuDropdown,
       onClick.foreach {
         //TODO better way to check whether sidebar is currently active for toggling.
-        if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.sidebarClose.onNext(())
-        else state.sidebarConfig.onNext(Ownable(implicit ctx => UI.SidebarConfig(header :: sidebarItems)))
+        if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
+        else state.uiSidebarConfig.onNext(Ownable(implicit ctx => UI.SidebarConfig(header :: sidebarItems)))
         ()
       }
     )
@@ -218,7 +218,7 @@ object PageSettingsMenu {
           padding := "3px",
           Components.nodeCard(nodeRes._1),
           onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeRes._1.id))) --> state.urlConfig,
-          onClick.stopPropagation(()) --> state.modalClose
+          onClick.stopPropagation(()) --> state.uiModalClose
         ),
       )
 
@@ -309,7 +309,7 @@ object PageSettingsMenu {
       onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description,
         modalModifier = cls := "form",
         contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
-      ))) --> state.modalConfig
+      ))) --> state.uiModalConfig
     )
   }
 
@@ -373,7 +373,7 @@ object PageSettingsMenu {
       if(membership.userId == state.user.now.id) {
         if(dom.window.confirm("Do you really want to remove yourself from this workspace?")) {
           state.urlConfig.update(_.focus(Page.empty))
-          state.modalClose.onNext(())
+          state.uiModalClose.onNext(())
         } else return
       }
 
@@ -494,7 +494,7 @@ object PageSettingsMenu {
         contentModifier = VDomModifier(
           backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
         )
-      ))) --> state.modalConfig
+      ))) --> state.uiModalConfig
     )
   }
 

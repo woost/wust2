@@ -117,7 +117,7 @@ object GraphChangesAutomationUI {
       ),
 
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig(state, nodeId))) --> state.modalConfig
+      onClick(Ownable(implicit ctx => modalConfig(state, nodeId))) --> state.uiModalConfig
     )
   }
 }

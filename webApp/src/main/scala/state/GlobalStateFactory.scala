@@ -64,8 +64,8 @@ object GlobalStateFactory {
 
     // close sidebar on viewconfig change
     viewConfig.triggerLater {
-      state.sidebarClose.onNext(())
-      state.modalClose.onNext(())
+      state.uiSidebarClose.onNext(())
+      state.uiModalClose.onNext(())
       ()
     }
 

@@ -346,17 +346,28 @@ object CommonStyles extends StyleSheet.Standalone {
     alignContent.stretch,
   )
 
+  ".overlay-right-sidebar" - (
+    right(0 px),
+  )
+
+  ".overlay-left-sidebar" - (
+    left(0 px),
+  )
+
   ".overlay-sidebar" - (
     zIndex(ZIndex.overlay),
     position.absolute,
-    left(0 px),
     top(0 px),
     height(100 %%),
     width(100 %%),
     background := "rgba(0,0,0,0.3)"
   )
 
-  ".overlay-sidebar > .sidebar" - (
+  ".overlay-right-sidebar > .sidebar" - (
+    marginLeft(50 px)
+  )
+
+  ".overlay-left-sidebar > .sidebar" - (
     marginRight(50 px)
   )
 

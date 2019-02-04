@@ -42,7 +42,7 @@ object MainView {
       Styles.flex,
 //      DevOnly { DevView(state) },
 
-      UI.modal(state.modalConfig, state.modalClose), // one modal instance for the whole page that can be configured via state.modalConfig
+      UI.modal(state.uiModalConfig, state.uiModalClose), // one modal instance for the whole page that can be configured via state.modalConfig
 
       div(id := "draggable-mirrors", position.absolute), // draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors
       div(
@@ -54,7 +54,7 @@ object MainView {
         Styles.flex,
         Styles.growFull,
         position.relative, // needed for mobile expanded sidebar
-        Sidebar(state),
+        LeftSidebar(state),
         backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           Styles.flex,
@@ -90,7 +90,8 @@ object MainView {
           // This avoids rerendering the whole view when only the screen-size changed
           div(
             cls := "main-viewrender",
-            UI.sidebar(state.sidebarConfig, state.sidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
+
+            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
 
             div(
               Styles.flex,
@@ -118,7 +119,7 @@ object MainView {
                   }
                 )
               },
-            )
+            ),
           ),
         ),
       )

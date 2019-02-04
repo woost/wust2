@@ -56,7 +56,7 @@ object CreateNewPrompt {
         ack
       }
 
-      state.modalClose.onNext(())
+      state.uiModalClose.onNext(())
       ack
     }
 
@@ -185,12 +185,12 @@ object CreateNewPrompt {
             childNodes -> state.selectedNodes.now
           )
 
-          state.modalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier = VDomModifier(
+          state.uiModalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "basic",
             backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
           ))))
         }
-        else state.modalClose.onNext(())
+        else state.uiModalClose.onNext(())
       }
     )
   }
