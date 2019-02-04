@@ -26,7 +26,7 @@ import scala.scalajs.js
  */
 object ItemProperties {
 
-  val naming = "Manage custom fields"
+  val naming = "Custom fields"
 
   def iconByNodeData(data: NodeData): VDomModifier = data match {
     //    case _: NodeData.Integer => Icons.propertyInt
@@ -41,10 +41,8 @@ object ItemProperties {
                       (implicit ctx: Ctx.Owner) : VNode = {
     manageProperties(state, nodeId,
                      div(
-                       cursor.pointer,
                        div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property)
                      ))}
-
 
   def manageProperties(state: GlobalState, nodeId: NodeId,
                        contents : VNode)(implicit ctx: Ctx.Owner): VNode = {
@@ -55,7 +53,6 @@ object ItemProperties {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val modalCloseTrigger = PublishSubject[Unit]
     val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
     val propertyKeyInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
     val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
@@ -142,11 +139,7 @@ object ItemProperties {
           marginTop := "10px",
           cursor.pointer,
           a(
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) foreach { vc =>
-              modalCloseTrigger.onNext(()).onComplete { _ =>
-                state.urlConfig() = vc
-              }
-            },
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) --> state.urlConfig,
             "Show detailed view",
           )
         ),
@@ -172,12 +165,6 @@ object ItemProperties {
       }
     }
 
-    def handleRemoveProperty(propertyData: EdgeData.LabeledProperty, propertyId: NodeId)(implicit ctx: Ctx.Owner): Unit = {
-      state.eventProcessor.changes.onNext(
-        GraphChanges.disconnect(Edge.LabeledProperty)(nodeId, propertyData, propertyId)
-      )
-    }
-
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
       Styles.flex,
       alignItems.center,
@@ -185,22 +172,18 @@ object ItemProperties {
     )
 
     contents(
+      cursor.pointer,
       onClick(Ownable(implicit ctx => UI.ModalConfig(
-                        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
-                        description = description,
-                        close = modalCloseTrigger,
-                        modalModifier = VDomModifier(
-                          cls := "mini form",
-                          ),
-                        contentModifier = VDomModifier(
-                          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
-                        ),
-                        ))) --> state.modalConfig
+        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
+        description = description,
+        modalModifier = VDomModifier(
+          cls := "mini form",
+        ),
+        contentModifier = VDomModifier(
+          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
+        ),
+      ))) --> state.modalConfig
     )
-
-    
-
   }
-
 }
 

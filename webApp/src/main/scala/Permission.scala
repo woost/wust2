@@ -5,12 +5,13 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.Elements
+import wust.webApp.views.{Components, Elements, UI}
 
 case class PermissionDescription(
   access: NodeAccess,
@@ -43,7 +44,7 @@ object Permission {
         icon = Icons.permissionPrivate
       )
 
-  val all: List[PermissionDescription] = inherit :: public :: `private` :: Nil
+  val all: List[PermissionDescription] = `private` :: public :: inherit :: Nil
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
       val level = graph.accessLevelOfNode(nodeId)
@@ -56,37 +57,30 @@ object Permission {
     inheritedLevel
   }
 
-  def canWrite(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): Boolean = NodePermission.canWrite(state, channel.id).now //TODO reactive? but settingsmenu is anyhow rerendered
-
-  def permissionItem(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = channel match {
-    case channel: Node.Content if canWrite(state, channel) =>
-      div(
-        cls := "item",
-        Elements.icon(Icons.userPermission)(marginRight := "5px"),
-        span(cls := "text", "Set Permissions", cursor.pointer),
-        div(
-          cls := "menu",
-          Permission.all.map { item =>
-            div(
-              cls := "item",
-              Elements.icon(item.icon)(marginRight := "5px"),
-              // value := selection.value,
-              Rx {
-                item.inherited match {//TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
-                  case None => item.value
-                  case Some(inheritance) => s"Inherited (${inheritance(state.graph(), channel.id).value})"
-                }
-              },
-              (channel.meta.accessLevel == item.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-              onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access)))) --> state.eventProcessor.changes,
-              onClick foreach {
-                Analytics.sendEvent("pageheader", "changepermission", item.access.str)
+  def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
+    div(
+      cls := "item",
+      Elements.icon(Icons.userPermission),
+      span("Set Permissions"),
+      Components.horizontalMenu(
+        Permission.all.map { item =>
+          Components.MenuItem(
+            title = Elements.icon(item.icon),
+            description = Rx {
+              item.inherited match {//TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+                case None => item.value
+                case Some(inheritance) => s"Inherited (${inheritance(state.graph(), channel.id).value})"
               }
-            )
-          }
-        )
+            },
+            active = channel.meta.accessLevel == item.access,
+            clickAction = { () =>
+              state.eventProcessor.changes.onNext(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
+              Analytics.sendEvent("pageheader", "changepermission", item.access.str)
+            }
+          )
+        }
       )
-    case _ => VDomModifier.empty
+    )
   }
 
 }

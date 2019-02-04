@@ -61,6 +61,14 @@ object GlobalStateFactory {
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
+
+    // close sidebar on viewconfig change
+    viewConfig.triggerLater {
+      state.sidebarClose.onNext(())
+      state.modalClose.onNext(())
+      ()
+    }
+
     // would be better to statically have this base url from the index.html or something.
     def renewFileDownloadBaseUrl(): Unit = {
       def scheduleRenewal(seconds: Int): Unit = {

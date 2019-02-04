@@ -21,7 +21,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def popup(options: PopupOptions): Unit = js.native
 
-  def accordion(): Unit = js.native
+  def accordion(args: String*): Unit = js.native
 
   def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
@@ -129,6 +129,7 @@ trait SidebarOptions extends js.Object {
   var returnScroll: js.UndefOr[Boolean] = js.undefined
   var delaySetup: js.UndefOr[Boolean] = js.undefined
   var transition: js.UndefOr[String] = js.undefined
+  var mobileTransition: js.UndefOr[String] = js.undefined
   var selector: js.UndefOr[SidebarSelectorOption] = js.undefined
 }
 

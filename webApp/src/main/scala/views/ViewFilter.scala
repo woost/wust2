@@ -26,7 +26,7 @@ import scala.collection.breakOut
 object ViewFilter {
 
   private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
-    ViewGraphTransformation.Deleted.inGracePeriod(state),
+//    ViewGraphTransformation.Deleted.inGracePeriod(state),
     ViewGraphTransformation.Deleted.onlyDeleted(state),
     ViewGraphTransformation.Deleted.noDeleted(state),
     ViewGraphTransformation.Deleted.noDeletedButGraced(state),
@@ -36,62 +36,57 @@ object ViewFilter {
     //    Identity(state),
   )
 
-  // TODO sidebar
-//  def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
-//
-//    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
-//
-//    div(
-//      cls := "ui right vertical inverted labeled icon menu sidebar visible",
-//      //      zIndex := ZIndex.overlay,
-//      filterItems,
-//      onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
-//        elem
-//          .sidebar(new SidebarOptions {
-//            transition = "overlay"
-//            context = side
-//          })
-//        //          .sidebar("setting", "transition", "overlay")
-//      }: Function[(JQuerySelection, JQuerySelection), Unit])
-//    )
-//  }
-
   def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
+    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
     val filterColor = state.isFilterActive.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
 
-    div(
-      cls := "item",
-      Elements.icon(Icons.filter)(marginRight := "5px"),
-      filterColor,
-      span(cls := "text", "Filter", cursor.default),
-      div(
-        cls := "menu",
-        filterItems,
-        // This does not work because
+    UI.accordion(
+      title = VDomModifier(
+        filterColor,
+        span("Filter"),
+      ),
+      content = div(
+        Components.verticalMenu(
+          filterTransformations.map { transformation =>
+            Components.MenuItem(
+              title = transformation.icon,
+              description = transformation.description,
+              active = state.graphTransformations.map(_.contains(transformation.transform)),
+              clickAction = { () =>
+                state.graphTransformations.update { transformations =>
+                  if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
+                  else transformations :+ transformation.transform
+                }
+                Analytics.sendEvent("filter", transformation.toString)
+              }
+            )
+          }
+        ),
         div(
-          cls := "item",
-          Elements.icon(Icons.noFilter)(marginRight := "5px"),
-          span(cls := "text", "Reset ALL filters", cursor.pointer),
+          cursor.pointer,
+          Elements.icon(Icons.noFilter),
+          span("Reset ALL filters"),
           onClick(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations,
           onClick foreach { Analytics.sendEvent("filter", "reset") },
         )
       ),
+    ).prepend(
+      Elements.icon(Icons.filter),
     )
   }
 
-  def addLabeledFilterCheckbox(state: GlobalState, filterName: String, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
-    val domId = scala.util.Random.nextString(8)
+  def addLabeledFilterCheckbox(state: GlobalState, filterName: String, header: VDomModifier, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
     val checkbox = addFilterCheckbox(state, filterName, transform)
 
     div(
-      cls := "ui checkbox",
-      checkbox(id := domId),
-      label(
-        `for` := domId,
-        description,
-      )
+      cls := "item",
+      div(
+        cls := "ui checkbox toggle",
+        checkbox,
+      ),
+      header,
+      description
     )
   }
 
@@ -116,16 +111,7 @@ case class ViewGraphTransformation(
   transform: UserViewGraphTransformation,
   icon: VDomModifier,
   description: String,
-){
-
-  def render(implicit ctx: Ctx.Owner): BasicVNode = {
-    div(
-      cls := "item",
-      ViewFilter.addLabeledFilterCheckbox(state, transform.toString, description, transform).apply(cls := "toggle"),
-      Elements.icon(icon)(marginLeft := "5px"),
-    )
-  }
-}
+)
 
 object ViewGraphTransformation {
   def identity(state: GlobalState) = ViewGraphTransformation(
@@ -151,13 +137,13 @@ object ViewGraphTransformation {
     def noDeleted(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
-      description = "Do not show deleted items",
+      description = "Hide deleted items",
       transform = GraphOperation.NoDeletedParents,
     )
     def noDeletedButGraced(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
-      description = "Do not show older deleted items",
+      description = "Hide older deleted items",
       transform = GraphOperation.NoDeletedButGracedParents,
     )
   }
@@ -181,7 +167,7 @@ object ViewGraphTransformation {
     def onlyNotAssigned(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.task,
-      description = "Show items that are not assigned",
+      description = "Show unassigned items",
       transform = GraphOperation.OnlyNotAssigned,
     )
   }

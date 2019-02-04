@@ -54,7 +54,10 @@ class GlobalState(
 
   val showTagsList: Var[Boolean] = Var(largeScreen)
 
+  val sidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
+  val sidebarClose: PublishSubject[Unit] = PublishSubject()
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
+  val modalClose: PublishSubject[Unit] = PublishSubject()
 
   val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
@@ -107,12 +110,16 @@ class GlobalState(
 
     var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
 
+    val viewAndPageAndSanitizedPage: Rx[(Option[View], Page, Page)] = Rx {
+      val rawPage = urlConfig().pageChange.page
+      val rawView = urlConfig().view
+      (rawView, rawPage, rawPage.copy(rawPage.parentId.filter(rawGraph().contains)))
+    }
+
     Rx {
       if (!isLoading()) {
-        val rawPage = urlConfig().pageChange.page
-        val rawView = urlConfig().view
-
-        val sanitizedPage: Page = rawPage.copy(rawPage.parentId.filter(rawGraph().contains))
+        val tmp = viewAndPageAndSanitizedPage()
+        val (rawView, rawPage, sanitizedPage) = tmp
 
         val visibleView: View.Visible = rawPage.parentId match {
           case None => rawView match {
@@ -120,7 +127,7 @@ class GlobalState(
             case _ => View.Welcome
           }
           case Some(parentId) =>
-            val bestView = viewHeuristic(rawGraph(), parentId)(rawView)
+            val bestView = viewHeuristic(rawGraph.now, parentId)(rawView) // use rawGraph.now to not trigger on every graph change
             scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
             bestView
         }

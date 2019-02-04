@@ -18,8 +18,6 @@ object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
   def modalConfig(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
-    val modalClose = PublishSubject[Unit]
-
     val header: VDomModifier = Rx {
       state.rawGraph().nodesByIdGet(nodeId).map { node =>
         UI.ModalConfig.defaultHeader(state, node, "Automation", Icons.automate)
@@ -100,7 +98,7 @@ object GraphChangesAutomationUI {
       },
     )
 
-    UI.ModalConfig(header = header, description = description, actions = Some(actions), close = modalClose)
+    UI.ModalConfig(header = header, description = description, actions = Some(actions))
   }
 
   // a settings button for automation that opens the modal on click.

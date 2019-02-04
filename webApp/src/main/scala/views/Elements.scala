@@ -150,7 +150,7 @@ object Elements {
       )
     }}
 
-  def topBanner(desktopText: Option[VNode], mobileText: Option[VNode]): VDomModifier = {
+  def topBanner(desktopText: => Option[VNode], mobileText: => Option[VNode]): VDomModifier = {
     val displayHandler = Var("flex")
     val text = if(BrowserDetect.isPhone) mobileText orElse desktopText else desktopText
     text match {

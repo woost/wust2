@@ -626,7 +626,7 @@ object Components {
       )
     }
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, components: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
       var elem: JQuerySelection = null
       div(
         keyed,
@@ -683,7 +683,7 @@ object Components {
           ),
           i(cls := "search icon"),
         ),
-        div(cls := "results"),
+        div(cls := "results", resultsModifier),
 
         onDomMount.asJquery.foreach { e =>
           elem = e
@@ -809,7 +809,66 @@ object Components {
         marginLeft := "3px", marginRight := "3px",
         UI.popup("bottom center") := "This node is an active automation template"
       )
-    },
+    }
+  }
+
+  case class MenuItem(title: VDomModifier, description: VDomModifier, active: Rx[Boolean], clickAction: () => Unit)
+  object MenuItem {
+    def apply(title: VDomModifier, description: VDomModifier, active: Boolean, clickAction: () => Unit): MenuItem =
+      new MenuItem(title, description, Var(active), clickAction)
+  }
+  def verticalMenu(items: Seq[MenuItem]): VNode = menu(
+    items,
+    outerModifier = VDomModifier(
+      width := "100%",
+      Styles.flex,
+      flexDirection.column,
+      alignItems.flexStart,
+    ),
+    innerModifier = VDomModifier(
+      width := "100%",
+      flexGrow := 0,
+      Styles.flex,
+      alignItems.center,
+      justifyContent.spaceBetween,
+      paddingBottom := "10px"
+    )
+  )
+  def horizontalMenu(items: Seq[MenuItem]): VNode = menu(
+    items.map(item => item.copy(title = VDomModifier(item.title, marginBottom := "5px"))),
+    outerModifier = VDomModifier(
+      Styles.flex,
+      justifyContent.spaceEvenly,
+      alignItems.flexStart,
+    ),
+    innerModifier = VDomModifier(
+      flexGrow := 0,
+      width := "50px",
+      Styles.flex,
+      flexDirection.column,
+      alignItems.center,
+    )
+  )
+
+  def menu(items: Seq[MenuItem], innerModifier: VDomModifier, outerModifier: VDomModifier): VNode = {
+    div(
+      paddingTop := "10px",
+      outerModifier,
+
+      items.map { item =>
+        div(
+          Ownable(implicit ctx => Rx {
+            if(item.active()) color.black else color := "rgba(0, 0, 0, 0.30)"
+          }),
+          div(item.title),
+          div(item.description),
+          onClick.foreach { item.clickAction() },
+          cursor.pointer,
+
+          innerModifier
+        )
+      }
+    )
   }
 }
 
