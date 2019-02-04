@@ -510,6 +510,7 @@ object Components {
         //          border := "2px solid violet",
         outline := "none", // hides focus outline
         cls := "sortable-container",
+        snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
 
         prop(DragContainer.propName) := (() => container),
         managedElement.asHtml { elem =>
