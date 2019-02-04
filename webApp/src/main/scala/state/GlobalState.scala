@@ -108,27 +108,31 @@ class GlobalState(
         }
     }
 
+    var lastSanitizedPage: Page = null
     var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
 
     Rx {
       if (!isLoading()) {
+
         val rawPage = urlConfig().pageChange.page
         val rawView = urlConfig().view
 
         val sanitizedPage: Page = rawPage.copy(rawPage.parentId.filter(rawGraph().contains))
-
-        val visibleView: View.Visible = rawPage.parentId match {
-          case None => rawView match {
-            case Some(view: View.Visible) if !view.isContent => view
-            case _ => View.Welcome
+        if (sanitizedPage != lastSanitizedPage) {
+          val visibleView: View.Visible = rawPage.parentId match {
+            case None => rawView match {
+              case Some(view: View.Visible) if !view.isContent => view
+              case _ => View.Welcome
+            }
+            case Some(parentId) =>
+              val bestView = viewHeuristic(rawGraph(), parentId)(rawView)
+              scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
+              bestView
           }
-          case Some(parentId) =>
-            val bestView = viewHeuristic(rawGraph(), parentId)(rawView)
-            scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
-            bestView
-        }
 
-        lastViewConfig = ViewConfig(visibleView, sanitizedPage)
+          lastSanitizedPage = sanitizedPage
+          lastViewConfig = ViewConfig(visibleView, sanitizedPage)
+        }
       }
 
       lastViewConfig

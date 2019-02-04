@@ -11,7 +11,7 @@ import wust.ids._
 import wust.util._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Elements, UI}
+import wust.webApp.views.{Components, Elements, UI}
 
 case class PermissionDescription(
   access: NodeAccess,
@@ -44,7 +44,7 @@ object Permission {
         icon = Icons.permissionPrivate
       )
 
-  val all: List[PermissionDescription] = inherit :: public :: `private` :: Nil
+  val all: List[PermissionDescription] = `private` :: public :: inherit :: Nil
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
       val level = graph.accessLevelOfNode(nodeId)
@@ -59,35 +59,30 @@ object Permission {
 
   def permissionItem(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = channel match {
     case channel: Node.Content =>
-      UI.accordion(
-        title = VDomModifier(
-          span("Set Permissions"),
-        ),
-        content = div(
-          cls := "menu",
+      div(
+        cls := "item",
+        Elements.icon(Icons.userPermission),
+        span("Set Permissions"),
+        Components.horizontalMenu(
           Permission.all.map { item =>
-            div(
-              cls := "item",
-              Elements.icon(item.icon)(marginRight := "5px"),
-              // value := selection.value,
-              Rx {
+            Components.MenuItem(
+              title = Elements.icon(item.icon),
+              description = Rx {
                 item.inherited match {//TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
                   case None => item.value
                   case Some(inheritance) => s"Inherited (${inheritance(state.graph(), channel.id).value})"
                 }
               },
-              (channel.meta.accessLevel == item.access).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-              onClick(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access)))) --> state.eventProcessor.changes,
-              onClick foreach {
+              active = channel.meta.accessLevel == item.access,
+              clickAction = { () =>
+                state.eventProcessor.changes.onNext(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
                 Analytics.sendEvent("pageheader", "changepermission", item.access.str)
               }
             )
           }
         )
-      ).prepend(
-        cls := "item",
-        Elements.icon(Icons.userPermission),
       )
     case _ => VDomModifier.empty
   }
+
 }

@@ -130,12 +130,14 @@ object UI {
 
     VDomModifier(
       cls := "ui sidebar right icon labeled vertical menu mini",
-      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
+//      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
+      width := "200px",
 
       onDomMount.asJquery.foreach { e =>
         elemHandler.onNext(e)
         e.sidebar(new SidebarOptions {
           transition = "overlay"
+          mobileTransition = "overlay"
           exclusive = true
           context = ".main-viewrender"
         }).sidebar("hide")
@@ -234,7 +236,7 @@ object UI {
   def accordion(title: VDomModifier, content: VDomModifier): VNode = div(
     cls :="ui styled fluid accordion",
     div(
-      padding := "0px",
+      paddingTop := "0px",
       borderTop := "0px",
       cls := "title",
       i(cls := "dropdown icon"),

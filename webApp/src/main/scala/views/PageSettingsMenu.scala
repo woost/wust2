@@ -54,16 +54,7 @@ object PageSettingsMenu {
       }
       val nodeRoleItem:VDomModifier = Rx {
         channelAsContent().collect {
-          case channel if canWrite() && channel.role != NodeRole.Stage =>
-            UI.accordion(
-              title = VDomModifier(
-                span("Convert to ..."),
-              ),
-              content = ConvertSelection.all.map { convert => ConvertSelection.convertRoleSubItem(state, channel, convert.role, convert.icon) }
-            ).prepend(
-              cls := "item",
-              Elements.icon(Icons.convertItem),
-            )
+          case channel if canWrite() && channel.role != NodeRole.Stage => ConvertSelection.menuItem(state, channel)
         }
       }
 
@@ -71,10 +62,8 @@ object PageSettingsMenu {
         div(
           cls := "item",
           Elements.icon(Icons.mentionIn),
-          searchInGraph(state.graph, placeholder = "Mention in...", filter = _.isInstanceOf[Node.Content]).foreach { nodeId =>
-            state.eventProcessor.changes.onNext(
-              GraphChanges.addToParent(channelId, nodeId)
-            )
+          searchInGraph(state.graph, placeholder = "Link into", showParents = false, filter = _.isInstanceOf[Node.Content], resultsModifier = width := "100%").foreach { nodeId =>
+            state.eventProcessor.changes.onNext(GraphChanges.addToParent(channelId, nodeId))
           }
         )
       }
@@ -127,9 +116,18 @@ object PageSettingsMenu {
       val notificationItem = Rx {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
-      val filterItem = ViewFilter.renderMenu(state)
+      val filterItem = ViewFilter.renderMenu(state).apply(cls := "item")
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      val managePropertiesItem = ItemProperties.manageProperties(state, channelId,
+        div(
+          cursor.pointer,
+          cls := "item",
+          Elements.icon(Icons.property),
+          span(ItemProperties.naming),
+        )
+      )
+
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, managePropertiesItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
     def header(implicit ctx: Ctx.Owner): VDomModifier = div(
@@ -485,10 +483,10 @@ object PageSettingsMenu {
       cls := "item",
       cursor.pointer,
       Elements.icon(Icons.users),
-      span("Manage Members"),
+      span("Members"),
 
       onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(
-        header = UI.ModalConfig.defaultHeader(state, node, "Manage Members", Icons.users),
+        header = UI.ModalConfig.defaultHeader(state, node, "Members", Icons.users),
         description = description,
         modalModifier = VDomModifier(
           cls := "mini form",
@@ -521,16 +519,27 @@ object PageSettingsMenu {
   )
   object ConvertSelection {
 
-    def convertRoleSubItem(state: GlobalState, node: Node.Content, nodeRole: NodeRole, roleIcon: IconLookup) = div(
-      cls := "item",
-      Elements.icon(roleIcon),
-      nodeRole.toString,
-      (node.role == nodeRole).ifTrueOption(i(cls := "check icon", margin := "0 0 0 20px")),
-      onClick(GraphChanges.addNode(node.copy(role = nodeRole))) --> state.eventProcessor.changes,
-      onClick foreach {
-        Analytics.sendEvent("pageheader", "changerole", nodeRole.toString)
-      }
-    )
+    def menuItem(state: GlobalState, node: Node.Content): VNode = {
+
+      div(
+        cls := "item",
+        Elements.icon(Icons.convertItem),
+        span("Convert to"),
+        Components.horizontalMenu(
+          ConvertSelection.all.map { convert =>
+            Components.MenuItem(
+              title = Elements.icon(convert.icon),
+              description = convert.role.toString,
+              active = node.role == convert.role,
+              clickAction = { () =>
+                state.eventProcessor.changes.onNext(GraphChanges.addNode(node.copy(role = convert.role)))
+                Analytics.sendEvent("pageheader", "changerole", convert.role.toString)
+              }
+            )
+          }
+        )
+      )
+    }
 
     val all =
       ConvertSelection(

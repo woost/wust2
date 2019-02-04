@@ -36,29 +36,9 @@ object ViewFilter {
     //    Identity(state),
   )
 
-  // TODO sidebar
-//  def renderSidebar(state: GlobalState, sidebarContext: ValueObservable[JQuerySelection], sidebarOpenHandler: ValueObservable[String])(implicit ctx: Ctx.Owner): VNode = {
-//
-//    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
-//
-//    div(
-//      cls := "ui right vertical inverted labeled icon menu sidebar visible",
-//      //      zIndex := ZIndex.overlay,
-//      filterItems,
-//      onDomMount.asJquery.transform(_.combineLatest(sidebarContext.observable)).foreach({ case (elem, side) =>
-//        elem
-//          .sidebar(new SidebarOptions {
-//            transition = "overlay"
-//            context = side
-//          })
-//        //          .sidebar("setting", "transition", "overlay")
-//      }: Function[(JQuerySelection, JQuerySelection), Unit])
-//    )
-//  }
-
   def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val filterItems: List[VDomModifier] = allTransformations(state).map(_.render)
+    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
     val filterColor = state.isFilterActive.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
 
     UI.accordion(
@@ -67,21 +47,31 @@ object ViewFilter {
         span("Filter"),
       ),
       content = div(
-        div(
-          cls := "ui list",
-          filterItems
+        Components.verticalMenu(
+          filterTransformations.map { transformation =>
+            Components.MenuItem(
+              title = transformation.icon,
+              description = transformation.description,
+              active = state.graphTransformations.map(_.contains(transformation.transform)),
+              clickAction = { () =>
+                state.graphTransformations.update { transformations =>
+                  if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
+                  else transformations :+ transformation.transform
+                }
+                Analytics.sendEvent("filter", transformation.toString)
+              }
+            )
+          }
         ),
-        // This does not work because
         div(
-          cls := "item",
           cursor.pointer,
-          UI.content(header = Elements.icon(Icons.noFilter), span("Reset ALL filters")),
+          Elements.icon(Icons.noFilter),
+          span("Reset ALL filters"),
           onClick(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations,
           onClick foreach { Analytics.sendEvent("filter", "reset") },
         )
       ),
     ).prepend(
-      cls := "item",
       Elements.icon(Icons.filter),
     )
   }
@@ -95,7 +85,8 @@ object ViewFilter {
         cls := "ui checkbox toggle",
         checkbox,
       ),
-      UI.content(header = header, description = description)
+      header,
+      description
     )
   }
 
@@ -120,12 +111,7 @@ case class ViewGraphTransformation(
   transform: UserViewGraphTransformation,
   icon: VDomModifier,
   description: String,
-){
-
-  def render(implicit ctx: Ctx.Owner): VNode = {
-    ViewFilter.addLabeledFilterCheckbox(state, transform.toString, Elements.icon(icon), description, transform)
-  }
-}
+)
 
 object ViewGraphTransformation {
   def identity(state: GlobalState) = ViewGraphTransformation(
