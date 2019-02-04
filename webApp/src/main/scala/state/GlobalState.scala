@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import wust.webApp.BrowserDetect
 import draggable._
 import googleAnalytics.Analytics
 import monix.eval.Task
@@ -51,7 +52,7 @@ class GlobalState(
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val showTagsList: Var[Boolean] = Var(true)
+  val showTagsList: Var[Boolean] = Var(!BrowserDetect.isMobile)
 
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
 
