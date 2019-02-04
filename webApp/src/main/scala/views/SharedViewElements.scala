@@ -453,7 +453,7 @@ object SharedViewElements {
             replyButton(
               onClick foreach { replyAction }
             ),
-            DevOnly(ItemProperties.manageProperties(state, nodeId)),
+            ItemProperties.manageProperties(state, nodeId),
             ifCanWrite(editButton(
               onClick.mapTo(!editMode.now) --> editMode
             )),

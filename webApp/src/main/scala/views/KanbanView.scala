@@ -1,7 +1,6 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
-import wust.webApp.DevOnly
 
 import collection.breakOut
 import outwatch.dom._
@@ -431,9 +430,9 @@ object KanbanView {
         ItemProperties.naming, ItemProperties.naming, Icons.property,
         span())
       def properties(compressed : Boolean) = {
-        DevOnly(ItemProperties.manageProperties(
+        ItemProperties.manageProperties(
                   state, node.id,
-                  propertiesBuilder(compressed)))
+                  propertiesBuilder(compressed))
       }
       def toggle(compress : Boolean) = Rx {
         if(state.graph().isExpanded(state.user.now.id, node.id))
