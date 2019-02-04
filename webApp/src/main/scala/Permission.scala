@@ -61,7 +61,7 @@ object Permission {
     div(
       cls := "item",
       Elements.icon(Icons.userPermission),
-      span("Set Permissions"),
+      span("Permissions"),
       Components.horizontalMenu(
         Permission.all.map { item =>
           Components.MenuItem(

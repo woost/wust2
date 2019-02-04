@@ -62,7 +62,7 @@ object PageSettingsMenu {
         div(
           cls := "item",
           Elements.icon(Icons.mentionIn),
-          searchInGraph(state.graph, placeholder = "Link into", showParents = false, filter = _.isInstanceOf[Node.Content], resultsModifier = width := "100%").foreach { nodeId =>
+          searchInGraph(state.graph, placeholder = "Link into...", showParents = false, filter = _.isInstanceOf[Node.Content], resultsModifier = width := "100%").foreach { nodeId =>
             state.eventProcessor.changes.onNext(GraphChanges.addToParent(channelId, nodeId))
           }
         )
@@ -524,7 +524,7 @@ object PageSettingsMenu {
       div(
         cls := "item",
         Elements.icon(Icons.convertItem),
-        span("Convert to"),
+        span("Convert"),
         Components.horizontalMenu(
           ConvertSelection.all.map { convert =>
             Components.MenuItem(
