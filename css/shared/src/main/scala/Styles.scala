@@ -82,6 +82,14 @@ object Styles extends StyleSheet.Inline {
     display.flex,
   )
 
+  val inlineFlex = style(
+    /* fixes overflow:scroll inside flexbox (https://stackoverflow.com/questions/28636832/firefox-overflow-y-not-working-with-nested-flexbox/28639686#28639686) */
+    minWidth(0 px),
+    /* fixes full page scrolling when messages are too long */
+    minHeight(0 px),
+    display.inlineFlex,
+  )
+
   val flexStatic = style(
     flexGrow(0),
     flexShrink(0)

@@ -251,8 +251,7 @@ object Components {
 
   def removableTagMod(action: () => Unit):VDomModifier = {
     VDomModifier(
-      Styles.flex,
-      display.inlineFlex,
+      Styles.inlineFlex,
       span(
         Styles.flexStatic,
         "×",
@@ -490,6 +489,7 @@ object Components {
       target: DragTarget = DragItem.DisableDrag,
     ): VDomModifier = {
       VDomModifier(
+        //TODO: draggable bug: draggable sets display:none, then does not restore the old value https://github.com/Shopify/draggable/issues/318
         cls := "draggable", // makes this element discoverable for the Draggable library
         cls := "drag-feedback", // visual feedback for drag-start
         VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
