@@ -522,7 +522,7 @@ object Components {
     def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
       EmitterBuilder.ofModifier[Unit] { sink =>
         IO {
-          prop(DragItem.draggedActionPropName) := (() => sink.onNext(Unit))
+          prop(DragItem.draggedActionPropName) := (() => () => sink.onNext(Unit))
         }
       }
 
