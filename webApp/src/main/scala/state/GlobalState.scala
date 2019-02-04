@@ -52,7 +52,7 @@ class GlobalState(
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val showTagsList: Var[Boolean] = Var(!BrowserDetect.isMobile)
+  val showTagsList: Var[Boolean] = Var(largeScreen)
 
   val modalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
 
