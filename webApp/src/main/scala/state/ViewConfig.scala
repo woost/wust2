@@ -25,7 +25,7 @@ case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Opt
 
   def showViewWithRedirect(newView: View): UrlConfig = copy(view = Some(newView), redirectTo = view.filter(canRedirectTo) orElse redirectTo)
 
-  def redirect: UrlConfig = redirectTo.fold(this)(view => copy(view = Some(view), redirectTo = None))
+  def redirect: UrlConfig = copy(view = redirectTo, redirectTo = None)
 
   @inline def focus(view: View): UrlConfig = copy(view = Some(view), redirectTo = None)
   @inline def focus(page: Page, view: View): UrlConfig = focus(page, Some(view))
