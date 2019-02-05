@@ -151,9 +151,10 @@ object Components {
               state.uiModalConfig.onNext(Ownable(_ => ModalConfig(description, image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
-          case "application/pdf"           =>
-            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf")
-            embeddedPdf(maxHeight := maxImageHeight, width := "100%")
+            //TODO pdf preview does not work with "content-disposition: attachment"-header
+//          case "application/pdf"           =>
+//            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf")
+//            embeddedPdf(maxHeight := maxImageHeight, width := "100%")
           case _                           => VDomModifier.empty
         }
       )
