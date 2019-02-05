@@ -60,7 +60,7 @@ object Permission {
   def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
       cls := "item",
-      Elements.icon(Icons.userPermission),
+//      Elements.icon(Icons.userPermission),
       span("Permissions"),
       Components.horizontalMenu(
         Permission.all.map { item =>

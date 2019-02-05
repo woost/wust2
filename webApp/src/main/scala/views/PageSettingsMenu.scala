@@ -529,7 +529,7 @@ object PageSettingsMenu {
 
       div(
         cls := "item",
-        Elements.icon(Icons.convertItem),
+//        Elements.icon(Icons.convertItem),
         span("Convert"),
         Components.horizontalMenu(
           ConvertSelection.all.map { convert =>
