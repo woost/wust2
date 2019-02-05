@@ -612,23 +612,24 @@ object SharedViewElements {
         tagList(state, workspaceId).apply(overflow.auto)
       else
         VDomModifier(
-          position.relative,
-          div(
-            "Tags",
-            onClick.stopPropagation(true) --> state.showTagsList,
-            cursor.pointer,
+        position.relative,
+        div(
+          "Tags",
+          styles.extra.transform := "rotate(90deg)",
+          onClick.stopPropagation(true) --> state.showTagsList,
+          cursor.pointer,
 
-            position.absolute,
-            top := "50px",
-            right := "0",
-            backgroundColor := CommonStyles.sidebarBgColor,
-            color.white,
-            borderTopLeftRadius := "5px",
-            borderBottomLeftRadius := "5px",
-            padding := "5px",
-            zIndex := ZIndex.overlayLow
-          )
+          position.absolute,
+          bottom := "100px",
+          right := "0",
+          backgroundColor := CommonStyles.sidebarBgColor,
+          color.white,
+          borderBottomRightRadius := "5px",
+          borderBottomLeftRadius := "5px",
+          padding := "3px",
+          zIndex := ZIndex.overlayLow
         )
+      )
     }
   }
 
