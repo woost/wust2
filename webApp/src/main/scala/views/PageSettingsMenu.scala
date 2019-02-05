@@ -38,8 +38,8 @@ object PageSettingsMenu {
     state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
   }
 
-  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    def sidebarItems(implicit ctx: Ctx.Owner): List[VDomModifier] = {
+  def sidebarConfig(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+    def sidebarItems: List[VDomModifier] = {
       val isBookmarked = nodeIsBookmarked(state, channelId)
 
       val channelAsNode: Rx[Option[Node]] = Rx {
@@ -130,7 +130,7 @@ object PageSettingsMenu {
       List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, managePropertiesItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
-    def header(implicit ctx: Ctx.Owner): VDomModifier = div(
+    def header: VDomModifier = div(
       padding := "5px 5px 5px 15px",
       color.gray,
       Styles.flex,
@@ -139,14 +139,20 @@ object PageSettingsMenu {
       i(cursor.pointer, cls := "close icon", onClick(()) --> state.uiSidebarClose)
     )
 
+    UI.SidebarConfig(header :: sidebarItems)
+  }
+
+  def toggleSidebar(state: GlobalState, channelId: NodeId): Unit = {
+    //TODO better way to check whether sidebar is currently active for toggling.
+    if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
+    else state.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig(state, channelId)))
+    ()
+  }
+
+  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Icons.menuDropdown,
-      onClick.foreach {
-        //TODO better way to check whether sidebar is currently active for toggling.
-        if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
-        else state.uiSidebarConfig.onNext(Ownable(implicit ctx => UI.SidebarConfig(header :: sidebarItems)))
-        ()
-      }
+      onClick.foreach { toggleSidebar(state, channelId) }
     )
   }
 
