@@ -755,7 +755,7 @@ object SharedViewElements {
           Icons.collapse,
           onClick.mapTo(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
-          UI.tooltip := "Collapse"
+          UI.popup := "Collapse"
         )
       } else {
         div(
@@ -764,7 +764,7 @@ object SharedViewElements {
           Icons.expand,
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
-          UI.tooltip := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
+          UI.popup := (if (childrenSize() == 1) "Expand 1 item" else s"Expand ${childrenSize()} items")
         )
       }
     }
