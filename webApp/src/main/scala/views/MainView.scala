@@ -90,9 +90,6 @@ object MainView {
           // This avoids rerendering the whole view when only the screen-size changed
           div(
             cls := "main-viewrender",
-
-            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
-
             div(
               Styles.flex,
               Styles.growFull,
@@ -106,20 +103,14 @@ object MainView {
                   overflow.visible
                 )
               },
-              Rx {
-                val page = state.page()
-                val graph = state.graph()
-                VDomModifier.ifTrue(state.view().isContent)(
-                  page.parentId.map { pageParentId =>
-                    val pageParentIdx = graph.idToIdx(pageParentId)
-                    val workspaces = graph.workspacesForParent(pageParentIdx)
-                    val firstWorkspaceIdx = workspaces.head
-                    val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
-                    SharedViewElements.tagListWithToggle(state, firstWorkspaceId)
-                  }
-                )
-              },
             ),
+
+            Styles.flex,
+            Styles.growFull,
+            position.relative, // needed for mobile expanded sidebar
+
+            SharedViewElements.tagListWindow(state),
+            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
           ),
         ),
       )

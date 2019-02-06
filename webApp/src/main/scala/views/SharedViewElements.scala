@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import wust.webApp.DevOnly
+import wust.webApp._
 import dateFns.DateFns
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -26,7 +26,6 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Topbar.{login, logout}
-import wust.webApp.{BrowserDetect, Client, Icons, ItemProperties}
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -603,40 +602,76 @@ object SharedViewElements {
         logout(state))
     }
 
-  def tagListWithToggle(
-    state: GlobalState,
-    workspaceId: NodeId
-  )(implicit ctx:Ctx.Owner): VDomModifier = {
-    Rx {
-      if(state.showTagsList())
-        tagList(state, workspaceId).apply(overflow.auto)
-      else
-        VDomModifier(
-        position.relative,
-        div(
-          "Tags",
-          styles.extra.transform := "rotate(90deg)",
-          onClick.stopPropagation(true) --> state.showTagsList,
-          cursor.pointer,
+  def tagListWindow(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier.ifNot(BrowserDetect.isMobile) {
+    MoveableElement.withToggleSwitch(
+      "Tags",
+      toggle = state.showTagsList,
+      enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
+      initialPosition = MoveableElement.RightPosition(100, 400),
+        Ownable(implicit ctx => VDomModifier(
+          width := "180px",
+          height := "300px",
+          overflowY.scroll,
+          resize := "both",
+          Rx {
+            val page = state.page()
+            val graph = state.graph()
+            VDomModifier.ifTrue(state.view().isContent)(
+              backgroundColor := state.pageStyle().bgColor,
+              color := "gray",
+              page.parentId.map { pageParentId =>
+                val pageParentIdx = graph.idToIdx(pageParentId)
+                val workspaces = graph.workspacesForParent(pageParentIdx)
+                val firstWorkspaceIdx = workspaces.head
+                val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
+                SharedViewElements.tagList(state, firstWorkspaceId).prepend(
+                  padding := "5px",
+                )
+              }
+            )
+          }
+        ))
+    )
+  }
 
-          position.absolute,
-          bottom := "100px",
-          right := "0",
-          backgroundColor := CommonStyles.sidebarBgColor,
-          color.white,
-          borderBottomRightRadius := "5px",
-          borderBottomLeftRadius := "5px",
-          padding := "3px",
-          zIndex := ZIndex.overlayLow
-        )
-      )
+  def tagListBar(
+    state: GlobalState,
+    workspaceId: NodeId,
+    expandable: Boolean = true
+  )(implicit ctx:Ctx.Owner) = {
+    val tags:Rx[Seq[Tree]] = Rx {
+      val graph = state.graph()
+      val workspaceIdx = graph.idToIdx(workspaceId)
+      graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
+    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
+      case Tree.Leaf(node) =>
+        checkboxNodeTag(state, node)
+      case Tree.Parent(node, children) =>
+        VDomModifier(
+          checkboxNodeTag(state, node),
+          div(
+            paddingLeft := "10px",
+            renderTagTree(children)
+          )
+        )
+    }
+
+    tagList(state, workspaceId).prepend(
+      cls := "taglist",
+      backgroundColor := CommonStyles.sidebarBgColor,
+      div(
+        Styles.flex,
+        justifyContent.flexEnd,
+        color.white,
+        VDomModifier.ifTrue(expandable)(closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> state.showTagsList)),
+      ),
+    )
   }
 
   def tagList(
     state: GlobalState,
     workspaceId: NodeId,
-    expandable: Boolean = true
   )(implicit ctx:Ctx.Owner) = {
     val newTagFieldActive = Var(false)
 
@@ -659,20 +694,6 @@ object SharedViewElements {
     }
 
     div(
-      width := "180px",
-      minWidth := "180px",
-      paddingLeft := "10px",
-      paddingRight := "10px",
-      paddingBottom := "10px",
-      backgroundColor := CommonStyles.sidebarBgColor,
-
-      div(
-        Styles.flex,
-        justifyContent.flexEnd,
-        color.white,
-        VDomModifier.ifTrue(expandable)(closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> state.showTagsList)),
-      ),
-
       Rx { renderTagTree(tags()) },
 
       addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
@@ -717,7 +738,7 @@ object SharedViewElements {
           div(
             cls := "kanbanaddnodefieldtext",
             "+ Add Tag",
-            color := "rgba(255,255,255,0.62)",
+            color := "gray",
             onClick foreach { newTagFieldActive() = true }
           )
       }

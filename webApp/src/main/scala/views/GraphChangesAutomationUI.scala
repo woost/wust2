@@ -66,7 +66,7 @@ object GraphChangesAutomationUI {
                   )
                 },
 
-                SharedViewElements.tagList(state, state.page.now.parentId.get, expandable = false),
+                SharedViewElements.tagListBar(state, state.page.now.parentId.get, expandable = false),
               ),
             )
           )

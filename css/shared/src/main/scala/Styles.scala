@@ -17,6 +17,7 @@ object ZIndex {
   val loading = 1750
   val overlay = 12000
   val modal = 15000
+  val uiSidebar = 16000
   val dragging = 20000
 }
 
@@ -194,6 +195,12 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.growFull
   )
 
+  ".taglist" - (
+    width(180.px),
+    paddingLeft(10.px),
+    paddingRight(10.px),
+    paddingBottom(10.px),
+  )
   ".pagenotfound" - (
     opacity(0),
     animationName(Styles.fadeInKf),
