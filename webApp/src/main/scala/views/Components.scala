@@ -427,6 +427,7 @@ object Components {
         input(
           tpe := "checkbox",
           checked <-- isChecked,
+          onClick.stopPropagation --> Observer.empty,
           onChange.checked foreach { checking =>
             val graph = state.graph.now
             directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
