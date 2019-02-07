@@ -46,6 +46,8 @@ object MoveableElement {
   }
   def apply(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
     var mouseDownOffset: Option[LeftPosition] = None
+    var currentWidth: Option[Double] = None
+    var currentHeight: Option[Double] = None
     var currentPosition: LeftPosition = null
     var domElem: dom.html.Element = null
 
@@ -88,7 +90,9 @@ object MoveableElement {
           ),
 
           div(
-            bodyModifier
+            bodyModifier,
+            currentWidth.map(currentWidth => width := s"${currentWidth}px"),
+            currentHeight.map(currentHeight => height := s"${currentHeight}px"),
           ),
 
           emitter(events.window.onResize).foreach { setPosition() },
@@ -107,6 +111,10 @@ object MoveableElement {
           },
         ))
       case false =>
+        if (domElem != null) {
+          currentHeight = Some(domElem.offsetHeight)
+          currentWidth = Some(domElem.offsetWidth)
+        }
         VDomModifier.empty
     }
   }
