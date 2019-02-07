@@ -282,6 +282,14 @@ object CommonStyles extends StyleSheet.Standalone {
   val tabsInactiveBackgroundColor = c"#97aaba"
   val tabsOutlineWidth = 2.px
 
+  ".moveable-window" - (
+    position.absolute,
+    zIndex(ZIndex.overlayLow),
+    border(2.px, solid,  CommonStyles.sidebarBgColorCSS),
+    borderRadius(4.px, 4.px, 4.px, 4.px),
+    boxShadow := "5px 10px 18px -6px rgba(0,0,0,0.75)"
+  )
+
   ".pageheader" -(
     borderBottom(tabsOutlineWidth, solid, tabsOutlineColor),
   )

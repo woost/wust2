@@ -61,11 +61,7 @@ object MoveableElement {
     show.map {
       case true =>
         div.static(toggle.hashCode)(VDomModifier(
-          position.absolute,
-          zIndex := ZIndex.overlayLow,
-
-          border := s"2px solid ${CommonStyles.sidebarBgColor}",
-          borderRadius := "4px 4px 4px 4px",
+          cls := "moveable-window",
 
           div(
             Styles.flex,
