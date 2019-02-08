@@ -1259,6 +1259,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(tabsInactiveBackgroundColor),
     borderBottomColor(CommonStyles.tabsOutlineColor),
     color(rgba(0,0,0,0.7)),
+    opacity(0.5),
   )
   val tabsBoxShadowColor = c"#000000"
   ".viewswitcher-item.single.active" - (
@@ -1291,6 +1292,11 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".emoji-sizer" - (
     fontSize.larger,
+  )
+
+
+  ".main-viewrender" - (
+    boxShadow := "0px -1px 5px 0px"
   )
 }
 

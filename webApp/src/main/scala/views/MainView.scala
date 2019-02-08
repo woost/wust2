@@ -90,6 +90,7 @@ object MainView {
           // This avoids rerendering the whole view when only the screen-size changed
           div(
             cls := "main-viewrender",
+            backgroundColor <-- state.pageStyle.map(_.bgLightColor),
             div(
               Styles.flex,
               Styles.growFull,
