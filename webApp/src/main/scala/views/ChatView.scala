@@ -45,7 +45,8 @@ object ChatView {
 
   final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with state.selectednode. also in sync with threadview
 
     val scrollHandler = new ScrollBottomHandler
@@ -65,6 +66,8 @@ object ChatView {
     val pageCounter = PublishSubject[Int]()
     val shouldLoadInfinite = Var[Boolean](false)
 
+    val nodeStyle = focusedNodeId.map(PageStyle(_))
+
     div(
       keyed,
       Styles.flex,
@@ -77,12 +80,12 @@ object ChatView {
       div(
         cls := "chat-history",
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+        backgroundColor <-- nodeStyle.map(_.bgLightColor),
         Rx {
-          state.page().parentId map { pageParentId =>
+          focusedNodeId().map { nodeId =>
             VDomModifier(
-              chatHistory(state, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite),
-              outerDragOptions(pageParentId)
+              chatHistory(state, nodeId, currentReply, selectedNodes, inputFieldFocusTrigger, pageCounter, shouldLoadInfinite, focusedNodeId.map(_ => ())),
+              outerDragOptions(nodeId)
             )
           }
         },
@@ -91,21 +94,21 @@ object ChatView {
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.modifier,
         // on page change, always scroll down
-        emitterRx(state.page).foreach {
+        emitterRx(focusedNodeId).foreach {
           scrollHandler.scrollToBottomInAnimationFrame()
         }
       ),
-      emitterRx(state.page).foreach { currentReply() = Set.empty[NodeId] },
+      emitterRx(focusedNodeId).foreach { currentReply() = Set.empty[NodeId] },
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
       Rx {
         val graph = state.graph()
         div(
           Styles.flexStatic,
 
-          backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+          backgroundColor <-- nodeStyle.map(_.bgLightColor),
           Styles.flex,
           currentReply().map { replyNodeId =>
-            val isDeletedNow = graph.isDeletedNow(replyNodeId, state.page().parentId)
+            val isDeletedNow = graph.isDeletedNow(replyNodeId, focusedNodeId())
             val node = graph.nodesById(replyNodeId)
             div(
               padding := "5px",
@@ -131,7 +134,7 @@ object ChatView {
 
           val replyNodes: Set[NodeId] = {
             if(currentReply.now.nonEmpty) currentReply.now
-            else state.page.now.parentId.toSet
+            else focusedNodeId.now.toSet
           }
 
           val ack = fileUploadHandler.now match {
@@ -149,7 +152,7 @@ object ChatView {
         }
 
         if(!BrowserDetect.isMobile) {
-          state.page.triggerLater {
+          focusedNodeId.triggerLater {
             inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
             ()
           }
@@ -163,14 +166,13 @@ object ChatView {
     )
   }
 
-  private def chatHistory(state: GlobalState, pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def chatHistory(state: GlobalState, pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean], reinitPaging: Rx[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
-    state.page.foreach { _ => pageCounter() = initialPageCounter }
+    reinitPaging.foreach { _ => pageCounter() = initialPageCounter }
 
     val messages = Rx {
       state.screenSize() // on screensize change, rerender whole chat history
-      val page = state.page()
       val graph = state.graph()
 
       selectChatMessages(pageParentId, graph)
@@ -189,7 +191,6 @@ object ChatView {
     VDomModifier(
       Rx {
         val graph = state.graph()
-        val page = state.page()
         val pageCount = pageCounter()
         val groups = calculateMessageGrouping(messages().takeRight(pageCount), graph, pageParentId)
 
@@ -291,7 +292,7 @@ object ChatView {
 
                 val editMode = Var(false)
 
-                renderMessageRow(state, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
+                renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
             },
           )
@@ -300,7 +301,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -334,7 +335,7 @@ object ChatView {
     }
 
     val stageParents = Rx {
-      val stages = state.graph().getRoleParents(nodeId, NodeRole.Stage).filterNot(_ == state.page().parentId).toList
+      val stages = state.graph().getRoleParents(nodeId, NodeRole.Stage).filterNot(_ == pageParentId).toList
       directParentIds.filterNot(stages.contains)
     }
 

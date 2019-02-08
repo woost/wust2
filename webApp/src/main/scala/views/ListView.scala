@@ -23,7 +23,8 @@ import wust.util.collection._
 object ListView {
   import SharedViewElements._
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       justifyContent.spaceBetween,
@@ -33,11 +34,11 @@ object ListView {
         padding := "10px",
         flexGrow := 2,
 
-        addListItemInputField(state),
+        addListItemInputField(state, focusedNodeId),
 
         Rx {
           val graph = state.graph()
-          state.page().parentId.map { pageParentId =>
+          focusedNodeId().map { pageParentId =>
 
             val kanbanData = KanbanView.KanbanData.calculate(graph, pageParentId)
             // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
@@ -148,10 +149,10 @@ object ListView {
     )
   }
 
-  private def addListItemInputField(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, state.page.now.parentId)
+      val change = GraphChanges.addNodeWithParent(createdNode, focusedNodeId.now)
       state.eventProcessor.changes.onNext(change)
     }
 
@@ -160,7 +161,7 @@ object ListView {
     val inputFieldFocusTrigger = PublishSubject[Unit]
 
     if(!BrowserDetect.isMobile) {
-      state.page.triggerLater {
+      focusedNodeId.triggerLater {
         inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
         ()
       }
