@@ -58,7 +58,9 @@ object GlobalStateFactory {
       .map(_ => ScreenSize.calculate())
       .unsafeToRx(ScreenSize.calculate())
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
+    val showTagsList = Client.storage.taglistOpen.imap(_ getOrElse screenSize.now == ScreenSize.Large)(Some(_))
+
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
 

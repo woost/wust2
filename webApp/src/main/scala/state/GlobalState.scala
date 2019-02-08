@@ -39,6 +39,7 @@ class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
   val eventProcessor: EventProcessor,
   val leftSidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
+  val showTagsList: Var[Boolean], //TODO: replace with ADT Open/Closed
   val urlConfig: Var[UrlConfig],
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
@@ -51,8 +52,6 @@ class GlobalState(
   val user: Rx[AuthUser] = auth.map(_.user)
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
-
-  val showTagsList: Var[Boolean] = Var(largeScreen)
 
   val uiSidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
   val uiSidebarClose: PublishSubject[Unit] = PublishSubject()
