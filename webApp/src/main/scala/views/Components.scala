@@ -281,7 +281,8 @@ object Components {
     span(
       cls := "node tag",
       contentString,
-      backgroundColor := tagColor(property.id).toHex,
+      border := "1px solid gray",
+      color.gray
     )
   }
 
