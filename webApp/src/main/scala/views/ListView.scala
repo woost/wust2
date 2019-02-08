@@ -23,8 +23,8 @@ import wust.util.collection._
 object ListView {
   import SharedViewElements._
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId), autoFocusInsert = true)
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       justifyContent.spaceBetween,
@@ -34,7 +34,7 @@ object ListView {
         padding := "10px",
         flexGrow := 2,
 
-        addListItemInputField(state, focusedNodeId),
+        addListItemInputField(state, focusedNodeId, autoFocusInsert = autoFocusInsert),
 
         Rx {
           val graph = state.graph()
@@ -149,7 +149,7 @@ object ListView {
     )
   }
 
-  private def addListItemInputField(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
       val change = GraphChanges.addNodeWithParent(createdNode, focusedNodeId.now)
@@ -160,7 +160,7 @@ object ListView {
 
     val inputFieldFocusTrigger = PublishSubject[Unit]
 
-    if(!BrowserDetect.isMobile) {
+    if(!BrowserDetect.isMobile && autoFocusInsert) {
       focusedNodeId.triggerLater {
         inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
         ()
@@ -171,7 +171,7 @@ object ListView {
       Rx {
         inputRow(state, submitAction(state.user().id),
           preFillByShareApi = true,
-          autoFocus = !BrowserDetect.isMobile,
+          autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           triggerFocus = inputFieldFocusTrigger,
           placeHolderMessage = Some(placeHolder),
           submitIcon = freeSolid.faPlus

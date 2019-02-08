@@ -45,8 +45,8 @@ object ChatView {
 
   final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId), autoFocusInsert = true)
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with state.selectednode. also in sync with threadview
 
     val scrollHandler = new ScrollBottomHandler
@@ -151,14 +151,14 @@ object ChatView {
           ack
         }
 
-        if(!BrowserDetect.isMobile) {
+        if(!BrowserDetect.isMobile && autoFocusInsert) {
           focusedNodeId.triggerLater {
             inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
             ()
           }
         }
 
-        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && autoFocusInsert, triggerFocus = inputFieldFocusTrigger)(ctx)(
           Styles.flexStatic,
           Rx{ backgroundColor :=? bgColor()}
         )
