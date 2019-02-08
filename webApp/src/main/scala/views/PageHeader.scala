@@ -184,6 +184,7 @@ object PageHeader {
   }
 
   private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val inLoadingState = Var[Boolean](false)
     div(
       marginLeft := "5px",
       Styles.flex,
@@ -210,6 +211,8 @@ object PageHeader {
           currentView,
           pageStyle,
           (targetView : View) => {
+            state.isContentLoading() = true
+            println("Setting isContentLoading to true")
             state.urlConfig.update(_.focus(targetView))
             Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
           }
@@ -224,8 +227,9 @@ object PageHeader {
                     TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
           singleTab(parms, TabInfo(View.Files, Icons.files, "files", numFiles)),
           // singleTab(parms, TabInfo(View.Graph, Icons.graph, "Graph", 0))
-        )
-      }
+          )
+      },
+
     )
 
   }

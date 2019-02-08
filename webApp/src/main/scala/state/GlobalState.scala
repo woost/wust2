@@ -50,6 +50,8 @@ class GlobalState(
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
+  val isContentLoading = Var[Boolean](false)
+
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
   val showTagsList: Var[Boolean] = Var(largeScreen)

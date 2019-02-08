@@ -109,7 +109,8 @@ object KanbanView {
             newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
           )
         }
-      }
+      },
+      //onDomMount.async.foreach(state.isContentLoading() = false)
     )
   }
 

@@ -31,6 +31,10 @@ object MainView {
 
 
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
+    trait ContentLoadingState
+    case object ContentHidden extends ContentLoadingState
+    case object ContentLoading extends ContentLoadingState
+    case object ContentLoaded extends ContentLoadingState
 
     val notificationBanner = Rx {
       val projectName = state.page().parentId.map(pid => state.graph().nodesById(pid).str)
@@ -88,30 +92,62 @@ object MainView {
           },
           // It is important that the view rendering is in a separate Rx.
           // This avoids rerendering the whole view when only the screen-size changed
-          div(
-            cls := "main-viewrender",
+          Rx {
+            val contentLoadingState = Var[ContentLoadingState](
+              if(state.isContentLoading()) {
+                println("Initializing contentLoadingState to ContentHidden")
+                ContentHidden
+              }
+              else
+              {
+                println("Initializing contentLoadingState to ContentLoaded")
+                ContentLoaded
+              })
             div(
+              cls := "main-viewrender",
+              div(
+                Styles.flex,
+                Styles.growFull,
+                cls := "pusher",
+                Rx {
+                  VDomModifier.ifTrue(contentLoadingState() == ContentHidden)(
+                    "loading",
+                    onDomMount.async.foreach {
+                      println("Setting contentLoadingState to ContentLoading")
+                      contentLoadingState() = ContentLoading
+                    }
+                  )
+                },
+                Rx {
+                  // we can now assume, that every page parentId is contained in the graph
+                  VDomModifier.ifTrue(contentLoadingState() != ContentHidden) {
+                    ViewRender(state.view(), state).apply(
+                      VDomModifier.ifTrue(contentLoadingState() == ContentLoading)(display.none),
+                      Styles.growFull,
+                      flexGrow := 1,
+                      VDomModifier.ifTrue(contentLoadingState() != ContentLoaded) {
+                        onPostPatch.async.foreach{
+                          println("Setting contentLoadingState to ContentLoaded")
+                          println("Setting isContentLoading to false")
+                          contentLoadingState() = ContentLoaded
+                          state.isContentLoading() = false
+                        }
+                      }
+                    ).prepend(
+                      overflow.visible
+                    )
+                  }
+                },
+                ),
+
               Styles.flex,
               Styles.growFull,
-              cls := "pusher",
-              Rx {
-                // we can now assume, that every page parentId is contained in the graph
-                ViewRender(state.view(), state).apply(
-                  Styles.growFull,
-                  flexGrow := 1
-                ).prepend(
-                  overflow.visible
-                )
-              },
-            ),
+              position.relative, // needed for mobile expanded sidebar
 
-            Styles.flex,
-            Styles.growFull,
-            position.relative, // needed for mobile expanded sidebar
-
-            SharedViewElements.tagListWindow(state),
-            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
-          ),
+              SharedViewElements.tagListWindow(state),
+              UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
+              )
+          },
         ),
       )
     )
