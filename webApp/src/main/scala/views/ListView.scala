@@ -44,6 +44,8 @@ object ListView {
             // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
 
             VDomModifier(
+              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, kanbanData.columnTree.map(_.node.id))),
+
               renderInboxColumn(state, pageParentId = pageParentId, kanbanData.inboxNodes),
 
               renderColumns(state, graph, parentId = pageParentId, pageParentId = pageParentId, children = kanbanData.columnTree),
@@ -73,13 +75,15 @@ object ListView {
   }
 
   private def renderInboxColumn(state: GlobalState, pageParentId: NodeId, children: Seq[Node])(implicit ctx: Ctx.Owner): VNode = {
+    val taskChildren = children.collect { case node if node.role == NodeRole.Task => node }
     div(
-      registerDragContainer(state, DragContainer.List(pageParentId, children.map(_.id))),
+      registerDragContainer(state, DragContainer.Kanban.Inbox(pageParentId, children.map(_.id))),
+      minHeight := "10px",
 
       Styles.flex,
       flexDirection.columnReverse,
 
-      children.collect { case node if node.role == NodeRole.Task =>
+      taskChildren.map { node =>
         renderKanbanLikeCard(state, parentId = pageParentId, pageParentId = pageParentId, node = node, isDone = false)
       }
     )
@@ -106,7 +110,8 @@ object ListView {
                 renderColumns(state, graph, parentId = parentId, pageParentId = pageParentId, children = sortedChildren, isDone = nodeIsDone).apply(
                   Styles.flex,
                   flexDirection.columnReverse,
-                  // TODO: registerDragContainer(state, DragContainer.List(node.id, sortedChildren.map(_.node.id))),
+                  minHeight := "10px",
+                  registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), pageParentId)),
                 )
               ))
             case NodeRole.Task => renderKanbanLikeCard(state, parentId = parentId, pageParentId = pageParentId, node = node, isDone = isDone)
