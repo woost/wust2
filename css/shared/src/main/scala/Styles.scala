@@ -1300,6 +1300,27 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 }
 
+
+/// Stores standalone styles that should be rendered into the page / a generated css file
+class StyleRegistry
+{
+  var styles = List[StyleSheet.Standalone]()
+
+  /// @return A string containing all registered styles
+  def renderAll : String = {
+    styles.foldLeft("") { case (r, style) => r ++ style.renderA[String] }
+  }
+
+  /// Add a standalone style to this registry
+  def add(style : StyleSheet.Standalone) : Unit = {
+    styles :+= style
+  }
+}
+
 object StyleRendering {
-  def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String]
+  val registry = new StyleRegistry
+  def renderAll: String = CommonStyles.renderA[String] ++ Styles.renderA[String] ++ registry.renderAll
+
+  // -- manually add styles that do not reside here. Note: these must lie in the css project (e.g. as a link) --
+  registry.add(wust.webApp.views.newview.Styles)
 }

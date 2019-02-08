@@ -76,6 +76,10 @@ object View {
   case object Tasks extends Heuristic {
     def viewKey = "tasks"
   }
+  case object New extends Visible {
+    def viewKey = "new"
+    override def isContent = true
+  }
 
   def list: List[View] = macro SubObjects.list[View]
   def contentList: List[View] = list.filter(_.isContent)

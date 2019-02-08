@@ -24,5 +24,6 @@ object ViewRender {
     case View.UserSettings     => UserSettingsView(state)
     case View.Empty            => dsl.div
     case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(_, state)), state)
+    case View.New              => newview.NewView(state)
   }
 }
