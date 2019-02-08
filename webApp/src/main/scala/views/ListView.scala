@@ -31,7 +31,7 @@ object ListView {
 
       div(
         overflow.auto,
-        padding := "10px",
+        padding := "5px",
         flexGrow := 2,
 
         addListItemInputField(state, focusedNodeId, autoFocusInsert = autoFocusInsert),

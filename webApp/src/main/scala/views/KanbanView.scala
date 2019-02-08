@@ -67,7 +67,8 @@ object KanbanView {
   }
 
   private val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
 
 
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
@@ -81,10 +82,9 @@ object KanbanView {
       justifyContent.spaceBetween,
 
       Rx {
-        val page = state.page()
         val graph = state.graph()
 
-        page.parentId.map { pageParentId =>
+        focusedNodeId().map { pageParentId =>
           val kanbanData = KanbanData.calculate(graph, pageParentId)
 
           div(
@@ -124,7 +124,6 @@ object KanbanView {
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
-    val pageParentIdx = graph.idToIdx(pageParentId)
     tree match {
       case Tree.Parent(node, stageChildren) if node.role == NodeRole.Stage =>
         if(graph.isExpanded(state.user.now.id, node.id)) {
@@ -508,11 +507,6 @@ object KanbanView {
       } else VDomModifier(cls := "emptystat")
     }
 
-    def partitionedTaskChildren(nodeId:NodeId, graph:Graph):(Seq[Int], Seq[Int]) = {
-      val nodeIdx = graph.idToIdx(nodeId)
-      graph.taskChildrenIdx(nodeIdx).partition(graph.isDone)
-    }
-
     def cardFooter(implicit ctx:Ctx.Owner) = div(
       cls := "cardfooter",
       Styles.flex,
@@ -610,43 +604,6 @@ object KanbanView {
       }
     }
 
-    def subCards(graph:Graph)(implicit ctx: Ctx.Owner) = {
-      div(
-        boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
-        margin := "5px",
-        padding := "1px 5px 6px 5px",
-        borderRadius := "3px",
-        backgroundColor := "#EFEFEF",
-        partitionedTaskChildren(node.id, graph) match {
-          case (doneTasks, todoTasks) =>
-            val sortedTodoTasks = TaskOrdering.constructOrderingOf[Int](graph, node.id, todoTasks, graph.nodeIds)
-            VDomModifier(
-              div(
-                minHeight := "50px",
-                sortedTodoTasks.map{ childIdx =>
-                  val childNode = graph.nodes(childIdx)
-                  renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path, selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true).apply(
-                    marginTop := "5px",
-                  )
-                },
-                // sortable: draggable needs to be direct child of container
-                registerDragContainer(state, DragContainer.Kanban.Card(node.id, sortedTodoTasks.map(graph.nodeIds))),
-              ),
-              div(
-                doneTasks.map{ childIdx =>
-                  val childNode = graph.nodes(childIdx)
-                  renderCard(state,childNode,parentId = node.id, pageParentId = node.id, path = node.id :: path,selectedNodeIds = selectedNodeIds, activeAddCardFields = activeAddCardFields, showCheckbox = true, isDone = true).apply(
-                    marginTop := "5px",
-                    opacity := 0.5,
-                  )
-                }
-              )
-            )
-        },
-        addCardField(state, node.id, path = path, activeAddCardFields, scrollHandler = None, textColor = Some("rgba(0,0,0,0.62)")).apply(padding := "8px 0px 0px 0px")
-      )
-    }
-
     nodeCardEditable(
       state, node,
       maxLength = Some(maxLength),
@@ -677,7 +634,12 @@ object KanbanView {
         val graph = state.graph()
         val userId = state.user().id
         VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
-          subCards(graph)
+          ListView(state, Var(Some(node.id))).apply(
+            boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
+            margin := "3px",
+            borderRadius := "3px",
+            backgroundColor := "#EFEFEF",
+          )
         )
       },
 
