@@ -611,7 +611,7 @@ object SharedViewElements {
         Ownable(implicit ctx => VDomModifier(
           width := "180px",
           height := "300px",
-          overflowY.scroll,
+          overflowY.auto,
           resize := "both",
           Rx {
             val page = state.page()
