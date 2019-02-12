@@ -11,10 +11,10 @@ import wust.sdk.{BaseColors, NodeColor}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webApp.views.Elements._
-import monix.reactive.subjects.{ BehaviorSubject, PublishSubject }
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import rx._
-import wust.css.{ Styles, ZIndex }
-import wust.graph.{ Graph, Page, Node, GraphChanges }
+import wust.css.{Styles, ZIndex}
+import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -71,7 +71,7 @@ object DashboardView {
           li(
             Styles.flexStatic,
             listStyle := "none",
-            renderSubproject(state, projectInfo, graph)
+            renderSubproject(state, pageParentId, projectInfo, graph)
           )
         },
         li(
@@ -86,7 +86,7 @@ object DashboardView {
   }
 
   /// Render the overview of a single (sub-) project
-  def renderSubproject(state: GlobalState, project: Node, graph:Graph): VNode = {
+  def renderSubproject(state: GlobalState, pageParentId: NodeId, project: Node, graph:Graph): VNode = {
     div(
       border := "3px solid",
       borderRadius := "3px",
@@ -112,6 +112,8 @@ object DashboardView {
         state.urlConfig.update(_.focus(page = Page(project.id), View.Dashboard))
       },
       cursor.pointer,
+
+      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, pageParentId)))
     )
   }
 
