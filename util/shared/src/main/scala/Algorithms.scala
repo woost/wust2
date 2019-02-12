@@ -581,16 +581,21 @@ object algorithm {
     sorted
   }
 
-  def eulerDiagramDualGraph(parents:NestedArrayInt, children:NestedArrayInt) = {
+  def eulerDiagramDualGraph(parents:NestedArrayInt, children:NestedArrayInt, isEulerSet: Int => Boolean): (Array[Set[Int]], NestedArrayInt, InterleavedArray[Int]) = {
 
     // for each node, the set of parent nodes identifies its zone
-    val zoneGrouping:Seq[(Set[Int],Seq[Int])] = parents.indices.groupBy(nodeIdx => parents(nodeIdx).toSet).flatMap{
-      case (zoneParentSet, nodeIndices) if zoneParentSet.isEmpty => // All isolated nodes
-        Array(zoneParentSet -> nodeIndices.filterNot(children.sliceNonEmpty)) // remove parents from isolated nodes
-      case (zoneParentSet, nodeIndices) if zoneParentSet.size == 1 =>
-        Array(zoneParentSet -> (nodeIndices :+ zoneParentSet.head))
+    val zoneGrouping:Seq[(Set[Int],Seq[Int])] = parents.indices
+      .groupBy{nodeIdx =>
+        val parentSet = parents(nodeIdx).toSet
+          // remove redundant higher-level parents
+          parentSet.filter(parentIdx => children(parentIdx).filter(parentSet).count(isEulerSet) == 0)
+      }.flatMap{
+      case (parentSet, nodeIndices) if parentSet.isEmpty => // All isolated nodes
+        Array(parentSet -> nodeIndices.filterNot(isEulerSet)) // remove parents from isolated nodes
+      case (parentSet, nodeIndices) if parentSet.size == 1 => // non overlapping area of eulerset
+        Array(parentSet -> (nodeIndices.filterNot(isEulerSet) :+ parentSet.head))
       case other => Array(other)
-    }.toSeq ++ parents.indices.filter(i => children.sliceNonEmpty(i) && children.forall(i)(c => parents.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
+    }.toSeq.filter(_._2.nonEmpty) ++ parents.indices.filter(i => (children.sliceNonEmpty(i) || isEulerSet(i)) && children.forall(i)(c => parents.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
     val eulerZones:Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
     val eulerZoneNodes:Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
 
@@ -602,7 +607,9 @@ object algorithm {
 
     eulerZones.foreachIndex2Combination { (zoneAIdx, zoneBIdx) =>
       // Two zones in an euler diagram are separated by a line iff their parentSet definitions differ by exactly one element
-      if( setDifference(eulerZones(zoneAIdx),eulerZones(zoneBIdx)).size == 1 ) {
+      @inline def zonesDifferByExactlyOneElement = setDifference(eulerZones(zoneAIdx),eulerZones(zoneBIdx)).size == 1
+      @inline def zonesAreNotEmptyZone = eulerZones(zoneAIdx).nonEmpty && eulerZones(zoneBIdx).nonEmpty
+      if( zonesAreNotEmptyZone && zonesDifferByExactlyOneElement ) {
         neighbourhoodBuilder += ((zoneAIdx, zoneBIdx))
       }
     }
@@ -614,7 +621,7 @@ object algorithm {
       edges.updateb(i, ab._2)
     }
 
-    (eulerZones, eulerZoneNodes, edges)
+    (eulerZones, NestedArrayInt(eulerZoneNodes), edges)
   }
 
 }

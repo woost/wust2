@@ -406,4 +406,89 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
       assert(depths == Map(4 -> 0, 3 -> 1, 2 -> 2, 1 -> 3, 0 -> 4))
     }
   }
+
+  "euler diagram dual graph" - {
+    "full flat example" in {
+      val parents = NestedArrayInt(Array(
+        /* 0: A */ Array[Int](),
+        /* 1: B */ Array[Int](),
+        /* 2: C */ Array[Int](),
+        /* 3: I */ Array[Int](),
+        /* 4: 1 */ Array[Int](0, 2),
+        /* 5: 2 */ Array[Int](0, 1),
+        /* 6: 3 */ Array[Int](1),
+        /* 7: 7 */ Array[Int](),
+      ))
+      val eulerSets = Set(0,1,2,3)
+      val children = parents.transposed
+      val (eulerZones, eulerZoneNodes, edges) = eulerDiagramDualGraph(parents, children, eulerSets)
+      eulerZones.toSet must contain theSameElementsAs Set(
+        /* A  */ Set(0),
+        /* AC */ Set(0,2),
+        /* C  */ Set(2),
+        /* AB */ Set(0,1),
+        /* B  */ Set(1),
+        /* _  */ Set(),
+        /* I  */ Set(3),
+      )
+      /* A  -> A  */ eulerZoneNodes(eulerZones.indexOf(Set(0  ))).toSet mustEqual Set(0)
+      /* AC -> 1  */ eulerZoneNodes(eulerZones.indexOf(Set(0,2))).toSet mustEqual Set(4)
+      /* C  -> C  */ eulerZoneNodes(eulerZones.indexOf(Set(2  ))).toSet mustEqual Set(2)
+      /* AB -> A  */ eulerZoneNodes(eulerZones.indexOf(Set(0,1))).toSet mustEqual Set(5)
+      /* B  -> B3 */ eulerZoneNodes(eulerZones.indexOf(Set(1  ))).toSet mustEqual Set(6, 1)
+      /* _  -> I7 */ eulerZoneNodes(eulerZones.indexOf(Set(   ))).toSet mustEqual Set(7)
+      /* I  -> I  */ eulerZoneNodes(eulerZones.indexOf(Set(3  ))).toSet mustEqual Set(3)
+
+      edges.map{case (a,b) => Set(a,b)}.toSet must contain theSameElementsAs Set(
+        Set(eulerZones.indexOf(Set(2)), eulerZones.indexOf(Set(0,2))),
+        Set(eulerZones.indexOf(Set(0,2)), eulerZones.indexOf(Set(0))),
+        Set(eulerZones.indexOf(Set(0)), eulerZones.indexOf(Set(0,1))),
+        Set(eulerZones.indexOf(Set(0,1)), eulerZones.indexOf(Set(1))),
+      )
+    }
+
+    "full nested example" in {
+      val parents = NestedArrayInt(Array(
+        /* 0: D */ Array[Int](),
+        /* 1: E */ Array[Int](0),
+        /* 2: F */ Array[Int](0),
+        /* 3: G */ Array[Int](0),
+        /* 4: H */ Array[Int](),
+        /* 5: 4 */ Array[Int](3),
+        /* 6: 5 */ Array[Int](1,3),
+        /* 7: 6 */ Array[Int](1,4),
+        /* 8: 8 */ Array[Int](0),
+        /* 9: 9 */ Array[Int](0, 1),
+      ))
+      val eulerSets = Set(0,1,2,3,4)
+      val children = parents.transposed
+      val (eulerZones, eulerZoneNodes, edges) = eulerDiagramDualGraph(parents, children, eulerSets)
+      eulerZones.toSet must contain theSameElementsAs Set(
+        /* D  */ Set(0  ),
+        /* F  */ Set(2  ),
+        /* G  */ Set(3  ),
+        /* EG */ Set(1,3),
+        /* EH */ Set(1,4),
+        /* H  */ Set(4  ),
+        /* E  */ Set(1  ),
+      )
+      /* D  -> D8 */  eulerZoneNodes(eulerZones.indexOf(Set(0  ))).toSet mustEqual Set(8, 0)
+      /* F  -> F  */  eulerZoneNodes(eulerZones.indexOf(Set(2  ))).toSet mustEqual Set(2)
+      /* G  -> G4 */  eulerZoneNodes(eulerZones.indexOf(Set(3  ))).toSet mustEqual Set(3,5)
+      /* EG -> 5  */  eulerZoneNodes(eulerZones.indexOf(Set(1,3))).toSet mustEqual Set(6)
+      /* EH -> 6  */  eulerZoneNodes(eulerZones.indexOf(Set(1,4))).toSet mustEqual Set(7)
+      /* H  -> H  */  eulerZoneNodes(eulerZones.indexOf(Set(4  ))).toSet mustEqual Set(4)
+      /* E  -> E9 */  eulerZoneNodes(eulerZones.indexOf(Set(1  ))).toSet mustEqual Set(1,9)
+
+      edges.map{case (a,b) => Set(eulerZones(a),eulerZones(b))}.toSet must contain theSameElementsAs Set(
+//        Set(Set(0), Set(1)),
+//        Set(Set(0), Set(2)),
+//        Set(Set(0), Set(3)),
+        Set(Set(3), Set(1,3)),
+        Set(Set(1,3), Set(1)),
+        Set(Set(1), Set(1,4)),
+        Set(Set(1,4), Set(4)),
+      )
+    }
+  }
 }

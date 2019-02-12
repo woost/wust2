@@ -622,7 +622,7 @@ object ForceSimulation {
     // assert(!simData.isNaN)
     // separateOverlappingEulerSets(simData, staticData, strength = 0.1)
     separateOverlappingEulerZones(simData, staticData, strength = 0.1)
-    // pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
+//    pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
     pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
     assert(!simData.isNaN)
   }

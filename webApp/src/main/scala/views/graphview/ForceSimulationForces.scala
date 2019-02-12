@@ -86,7 +86,7 @@ object ForceSimulationForces {
       simData.eulerZoneGeometricCenter = Vec2Array.create(eulerZoneCount)
     }
 
-    staticData.eulerZoneNodes.foreachIndexAndElement{ (i, allNodes) =>
+    staticData.eulerZoneNodes.foreachIndexAndSlice { (i, allNodes) =>
       simData.eulerZoneGeometricCenter(i) = {
         assert(allNodes.nonEmpty)
         if(allNodes.size == 1) Vec2(simData.x(allNodes(0)), simData.y(allNodes(0)))
@@ -402,7 +402,7 @@ object ForceSimulationForces {
       else Math.pow(x / tolerance, 3)
     }
 
-    eulerZoneNodes.foreachIndexAndElement{ (ci, allNodes) =>
+    eulerZoneNodes.foreachIndexAndElement{ (ci:Int, allNodes:ArraySliceInt) =>
       val geometricCenterX = eulerZoneGeometricCenter(ci).x
       val geometricCenterY = eulerZoneGeometricCenter(ci).y
 
@@ -597,7 +597,7 @@ object ForceSimulationForces {
             val visuallyInCluster = hull intersectsMtd Circle(center, radius)
             visuallyInCluster.foreach { pushVector =>
 
-              val belongsToOtherCluster: Int = eulerZoneNodes.indexWhere((c: Array[Int]) => c.contains(ai))
+              val belongsToOtherCluster: Int = eulerZoneNodes.indexWhere((c: ArraySliceInt) => c.contains(ai))
 
               val nodePushDir = belongsToOtherCluster match {
                 case -1 => // does not belong to any other cluster, just push it away (shortest way defined by Mtd)

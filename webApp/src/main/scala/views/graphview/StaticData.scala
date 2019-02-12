@@ -11,6 +11,7 @@ import views.graphview.VisualizationType.{Containment, Edge, Tag}
 import wust.graph.{Node, _}
 import wust.ids._
 import wust.sdk.NodeColor._
+import wust.util.algorithm
 import wust.util.time.time
 
 import scala.Double.NaN
@@ -61,10 +62,10 @@ class StaticData(
 
     var eulerZoneCount: Int,
     var eulerZones:Array[Set[Int]],
-    var eulerZoneNodes:Array[Array[Int]],
+    var eulerZoneNodes: NestedArrayInt,
     var eulerZoneArea: Array[Double],
     var eulerZoneAdjacencyMatrix:AdjacencyMatrix,
-    var eulerZoneNeighbourhoods:Array[(Int,Int)],
+    var eulerZoneNeighbourhoods:InterleavedArray[Int],
 ) {
   def this(nodeCount: Int, edgeCount: Int, containmentCount: Int) = this(
     nodeCount = nodeCount,
@@ -224,43 +225,15 @@ object StaticData {
       {
         // for each node, the set of parent nodes identifies its zone
         println(graph.toDetailedString)
-        val zoneGrouping:Seq[(Set[Int],Seq[Int])] = graph.nodes.indices.groupBy(nodeIdx => graph.parentsIdx(nodeIdx).toSet).flatMap{
-          case (zoneParentSet, nodeIndices) if zoneParentSet.isEmpty => // All isolated nodes
-            Array(zoneParentSet -> nodeIndices.filterNot(graph.hasChildrenIdx)) // remove parents from isolated nodes
-          case (zoneParentSet, nodeIndices) if zoneParentSet.size == 1 =>
-            Array(zoneParentSet -> (nodeIndices :+ zoneParentSet.head))
-          case other => Array(other)
-        }.toSeq ++ graph.nodes.indices.filter(i => graph.hasChildrenIdx(i) && graph.childrenIdx.forall(i)(c => graph.parentsIdx.sliceLength(c) != 1)).map(i => (Set(i), Seq(i)))
-        println(s"grouping:\n  "+zoneGrouping.map{case (parents, nodes) => (parents.map(i => graph.nodes(i).str), nodes.map(i => graph.nodes(i).str))}.mkString("\n  "))
-        val eulerZones:Array[Set[Int]] = zoneGrouping.map(_._1)(breakOut)
-        val eulerZoneNodes:Array[Array[Int]] = zoneGrouping.map(_._2.toArray)(breakOut)
-        println(s"nodes:\n"+eulerZoneNodes.zipWithIndex.map{ case (nodes,i) => s"  $i: ${nodes.mkString(",")}"}.mkString("\n"))
-
-
-        
-
-        def setDifference[T](a:Set[T], b:Set[T]) = (a union b) diff (a intersect b)
-        val zoneAdjacencyMatrix = new AdjacencyMatrix(eulerZones.size)
-        val neighbourhoodBuilder = mutable.ArrayBuilder.make[(Int,Int)]
-
-        eulerZones.foreachIndex2Combination { (zoneAIdx, zoneBIdx) =>
-            // adjacent zones should attract each other, because in the euler diagram they are separated by a line.
-            // Two zones in an euler diagram are separated by a line iff their parentSet definitions differ by exactly one element
-           if( setDifference(eulerZones(zoneAIdx),eulerZones(zoneBIdx)).size == 1 ) {
-             zoneAdjacencyMatrix.set(zoneAIdx, zoneBIdx)
-             // if(eulerZones(zoneAIdx).nonEmpty && eulerZones(zoneBIdx).nonEmpty)
-               neighbourhoodBuilder += ((zoneAIdx, zoneBIdx))
-           }
-        }
-
+        val (eulerZones, eulerZoneNodes, edges) = algorithm.eulerDiagramDualGraph(graph.parentsIdx, graph.childrenIdx, graph.nodes.indices.filter(idx => graph.nodes(idx).role == NodeRole.Tag).toSet)
         staticData.eulerZoneCount = eulerZones.length
         staticData.eulerZones = eulerZones
         staticData.eulerZoneNodes = eulerZoneNodes
-        staticData.eulerZoneAdjacencyMatrix = zoneAdjacencyMatrix
-        staticData.eulerZoneNeighbourhoods = neighbourhoodBuilder.result()
+//        staticData.eulerZoneAdjacencyMatrix = zoneAdjacencyMatrix
+        staticData.eulerZoneNeighbourhoods = edges
 
         staticData.eulerZoneArea = new Array[Double](eulerZones.length)
-        eulerZoneNodes.foreachIndexAndElement { (i,zoneNodes) => 
+        eulerZoneNodes.foreachIndexAndSlice { (i,zoneNodes) =>
           val arbitraryFactor = 1.3
           staticData.eulerZoneArea(i) = zoneNodes.map { nodeIdx =>
             staticData.nodeReservedArea(nodeIdx)
