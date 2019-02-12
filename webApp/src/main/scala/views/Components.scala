@@ -716,7 +716,7 @@ object Components {
       fileUploadHandler
     }
 
-    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]], tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
       val iconAndPopup = selected.map {
         case None =>
@@ -751,7 +751,7 @@ object Components {
 
           iconAndPopup.map { case (icon, popup) =>
             VDomModifier(
-              UI.popupHtml("top left") := popup,
+              UI.popupHtml(tooltipDirection) := popup,
               icon
             )
           },
