@@ -19,7 +19,7 @@ import wust.util.macros.{InlineList, SubObjects}
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.GraphOperation.GraphTransformation
+import wust.webApp.views.GraphOperation.{GraphFilter, GraphTransformation}
 
 import scala.collection.breakOut
 
@@ -175,87 +175,102 @@ object ViewGraphTransformation {
 }
 
 sealed trait UserViewGraphTransformation {
-  def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation
+  def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter
+  def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation =
+    GraphOperation.filterToTransformation(filterWithViewData(pageId, userId))
 }
 object GraphOperation {
   type GraphTransformation = Graph => Graph
+  type GraphFilter = Graph => (Graph, Array[Edge])
+
+  def filterToTransformation(graphFilter: GraphFilter): GraphTransformation = {
+    graphFilter.andThen {
+      case (graph: Graph, newEdges: Array[Edge]) => graph.copy(edges = newEdges)
+    }
+  }
+
+  def stackFilter(firstFilter: GraphFilter, secondFilter: GraphFilter, logicFilter: (Array[Edge], Array[Edge]) => Array[Edge] = (a1, a2) => a1.intersect(a2)): Graph => (Graph, Array[Edge]) = { graph: Graph =>
+    val (_, e1) = firstFilter(graph)
+    val (_, e2) = secondFilter(graph)
+    (graph, logicFilter(e1, e2))
+  }
 
   case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      pageId.fold(graph) { _ =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { _ =>
         val tagIdx = graph.idToIdx(tagId)
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.sourceId).role) =>
             if(graph.tagParentsIdx.contains(graph.idToIdx(e.sourceId))(tagIdx)) true else false
           case _              => true
         }
-        graph.copy(edges = newEdges)
+        (graph, newEdges)
       }
     }
   }
 
   case object InDeletedGracePeriodParents extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      pageId.fold(graph) { pid =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => graph.isInDeletedGracePeriod(e.sourceId, pid)
           case _              => true
         }
-        graph.copy(edges = newEdges)
+        (graph, newEdges)
       }
     }
   }
 
   case object OnlyDeletedParents extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      pageId.fold(graph) { pid =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { pid =>
         val pageIdx = graph.idToIdx(pid)
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => graph.isDeletedNow(e.sourceId, pid) || graph.isInDeletedGracePeriod(e.sourceId, pid)
           case _              => true
         }
-        graph.copy(edges = newEdges)
+        (graph, newEdges)
       }
     }
   }
 
   case object NoDeletedParents extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      pageId.fold(graph) { pid =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid)
           case _              => true
         }
-        graph.copy(edges = newEdges)
+        (graph, newEdges)
       }
     }
   }
 
   case object NoDeletedButGracedParents extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
-      pageId.fold(graph) { pid =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { pid =>
         val newEdges = graph.edges.filter {
           case e: Edge.Parent if e.targetId == pid => !graph.isDeletedNow(e.sourceId, pid) || graph.isInDeletedGracePeriod(e.sourceId, pid)
           case _              => true
         }
-        graph.copy(edges = newEdges)
+        (graph, newEdges)
       }
     }
   }
 
   case object AutomatedHideTemplates extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       val templateNodeIds: Set[NodeId] = graph.edges.collect { case e: Edge.Automated => e.templateNodeId }(breakOut)
       val newEdges = graph.edges.filter {
         case e: Edge.Parent if templateNodeIds.contains(e.sourceId) => false
         case _              => true
       }
-      graph.copy(edges = newEdges)
+      (graph, newEdges)
     }
   }
 
   case object OnlyAssignedTo extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned if e.sourceId == userId => e.targetId
       }
@@ -263,12 +278,12 @@ object GraphOperation {
         case e: Edge.Parent if graph.nodesById(e.sourceId).role == NodeRole.Task => assignedNodeIds.contains(e.sourceId)
         case _              => true
       }
-      graph.copy(edges = newEdges)
+      (graph, newEdges)
     }
   }
 
   case object OnlyNotAssigned extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = { graph: Graph =>
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       val assignedNodeIds = graph.edges.collect {
         case e: Edge.Assigned => e.targetId
       }
@@ -276,11 +291,13 @@ object GraphOperation {
         case e: Edge.Parent => assignedNodeIds.contains(e.sourceId)
         case _              => false
       }
-      graph.copy(edges = newEdges)
+      (graph, newEdges)
     }
   }
 
   case object Identity extends UserViewGraphTransformation {
-    def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation = identity[Graph]
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      (graph, graph.edges)
+    }
   }
 }

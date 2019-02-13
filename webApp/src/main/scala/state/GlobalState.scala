@@ -22,7 +22,7 @@ import wust.webApp.views._
 import wust.css.Styles
 import wust.util.algorithm
 import wust.webApp.Ownable
-import wust.webApp.views.GraphOperation.GraphTransformation
+import wust.webApp.views.GraphOperation.{GraphFilter, GraphTransformation}
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -211,8 +211,10 @@ class GlobalState(
     u <- user.map(_.id)
     p <- urlConfig.map(_.pageChange.page.parentId)
   } yield {
-    val transformation: Seq[GraphTransformation] = graphTrans.map(_.transformWithViewData(p, u))
-    transformation.foldLeft(currentGraph)((g, gt) => gt(g))
+    val filterSeq: Seq[GraphFilter] = graphTrans.map(_.filterWithViewData(p, u))
+    val filter = filterSeq.reduce(GraphOperation.stackFilter(_,_))
+    val transformation = GraphOperation.filterToTransformation(filter)
+    transformation(currentGraph)
   }
   val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
