@@ -70,7 +70,7 @@ object ListView {
       isDone = isDone,
       inOneLine = true
     ).apply(
-      margin := "4px",
+      margin := "2px 4px",
     )
   }
 
