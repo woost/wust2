@@ -25,11 +25,12 @@ class SimulationData(
   var eulerSetCollisionPolygonAABB: Array[AARect],
   var eulerSetGeometricCenter: Vec2Array,
 
-  var eulerZoneConvexHull: Array[Array[Circle]],
-  var eulerZoneConvexHullTangents: Array[Vec2Array],
   var eulerZoneCollisionPolygon: Array[Vec2Array],
   var eulerZoneCollisionPolygonAABB: Array[AARect],
   var eulerZoneGeometricCenter: Vec2Array,
+
+  var eulerSetConnectedComponentCollisionPolygon: Array[Vec2Array],
+  var eulerSetConnectedComponentCollisionPolygonAABB: Array[AARect],
 ) {
   def this(n: Int) = this(
     n = n,
@@ -45,11 +46,12 @@ class SimulationData(
     eulerSetCollisionPolygonAABB = Array.empty,
     eulerSetGeometricCenter = Vec2Array.create(0),
 
-    eulerZoneConvexHull = Array.empty,
-    eulerZoneConvexHullTangents = Array.empty,
     eulerZoneCollisionPolygon = Array.empty,
     eulerZoneCollisionPolygonAABB = Array.empty,
     eulerZoneGeometricCenter = Vec2Array.create(0),
+
+    eulerSetConnectedComponentCollisionPolygon = Array.empty,
+    eulerSetConnectedComponentCollisionPolygonAABB = Array.empty,
   )
 
   override def clone(): SimulationData = {
@@ -72,11 +74,12 @@ class SimulationData(
       eulerSetCollisionPolygonAABB = eulerSetCollisionPolygonAABB.clone(),
       eulerSetGeometricCenter = Vec2Array(eulerSetGeometricCenter: _*),
 
-      eulerZoneConvexHull = eulerZoneConvexHull.map(_.clone()),
-      eulerZoneConvexHullTangents = eulerZoneConvexHullTangents.map(arr => Vec2Array(arr: _*)),
       eulerZoneCollisionPolygon = eulerZoneCollisionPolygon.map(arr => Vec2Array(arr: _*)),
       eulerZoneCollisionPolygonAABB = eulerZoneCollisionPolygonAABB.clone(),
       eulerZoneGeometricCenter = Vec2Array(eulerZoneGeometricCenter: _*),
+
+      eulerSetConnectedComponentCollisionPolygon = eulerSetConnectedComponentCollisionPolygon.map(arr => Vec2Array(arr: _*)),
+      eulerSetConnectedComponentCollisionPolygonAABB = eulerSetConnectedComponentCollisionPolygonAABB.clone(),
     )
   }
 

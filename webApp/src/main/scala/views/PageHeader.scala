@@ -214,7 +214,7 @@ object PageHeader {
             Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
           }
         )
-        Seq(
+        VDomModifier(
           singleTab(parms, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)),
           doubleTab(parms,
                     TabInfo(View.Chat, Icons.chat, "messages", numMsg),
@@ -223,7 +223,7 @@ object PageHeader {
                     TabInfo(View.List, Icons.list, "tasks", numTasks),
                     TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
           singleTab(parms, TabInfo(View.Files, Icons.files, "files", numFiles)),
-          // singleTab(parms, TabInfo(View.Graph, Icons.graph, "Graph", 0))
+          DevOnly(singleTab(parms, TabInfo(View.Graph, Icons.graph, "Graph", 0)))
         )
       }
     )

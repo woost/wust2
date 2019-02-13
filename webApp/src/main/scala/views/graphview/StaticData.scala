@@ -65,8 +65,10 @@ class StaticData(
     var eulerZones:Array[Set[Int]],
     var eulerZoneNodes: NestedArrayInt,
     var eulerZoneArea: Array[Double],
-    var eulerZoneAdjacencyMatrix:AdjacencyMatrix,
     var eulerZoneNeighbourhoods:InterleavedArray[Int],
+
+    var eulerSetConnectedComponentCount:Int,
+    var eulerSetConnectedComponentNodes: NestedArrayInt,
 ) {
   def this(nodeCount: Int, edgeCount: Int, containmentCount: Int) = this(
     nodeCount = nodeCount,
@@ -106,8 +108,10 @@ class StaticData(
     eulerZones = null,
     eulerZoneNodes = null,
     eulerZoneArea = null,
-    eulerZoneAdjacencyMatrix = null,
     eulerZoneNeighbourhoods = null,
+
+    eulerSetConnectedComponentCount = -1,
+    eulerSetConnectedComponentNodes = null,
   )
 }
 
@@ -118,8 +122,8 @@ class AdjacencyMatrix(nodeCount: Int) {
   @inline def apply(source: Int, target: Int): Boolean = data(index(source, target))
 }
 
-class EulerSet(val parent: NodeId, val children: Array[NodeId], val depth: Int) {
-  val allNodes: Array[NodeId] = children :+ parent
+class EulerSet(val parent: Int, val children: Array[Int], val depth: Int) {
+  val allNodes: Array[Int] = children :+ parent
 }
 
 object StaticData {
@@ -214,24 +218,54 @@ object StaticData {
         graph.allParentIdsTopologicallySortedByChildren.map { nodeIdx =>
           val depth = graph.childDepth(graph.nodeIds(nodeIdx))
           new EulerSet(
-            parent = graph.nodeIds(nodeIdx),
-            children = graph.descendantsIdx(nodeIdx).map(graph.nodeIds),
+            parent = nodeIdx,
+            children = graph.descendantsIdx(nodeIdx),
             depth = depth
           )
         }(breakOut)
       }
 
+      {
+        // create connected components of eulersets
+        val used = ArraySet.create(eulerSets.length)
+        val current = mutable.ArrayBuilder.make[Int]
+        val eulerSetConnectedComponentsBuilder = mutable.ArrayBuilder.make[Array[Int]]
+
+        def add(i:Int):Unit = {
+          if(used.containsNot(i)) {
+            val eulerSet = eulerSets(i)
+            current ++= eulerSet.allNodes
+            used += i
+            eulerSets.foreachIndexAndElement { (otherI,otherEulerSet) =>
+              if( graph.parentsIdx(otherEulerSet.parent).toSet == graph.parentsIdx(eulerSet.parent).toSet && (eulerSet.allNodes intersect otherEulerSet.allNodes).nonEmpty)
+                add(otherI)
+            }
+          }
+        }
+        eulerSets.foreachIndex{ i =>
+          if(used.containsNot(i)) {
+            add(i)
+            eulerSetConnectedComponentsBuilder += current.result()
+            current.clear()
+          }
+        }
+
+        val eulerSetConnectedComponents = eulerSetConnectedComponentsBuilder.result()
+        staticData.eulerSetConnectedComponentCount = eulerSetConnectedComponents.length
+        staticData.eulerSetConnectedComponentNodes = NestedArrayInt(eulerSetConnectedComponents)
+        println(s"COUNT: ${eulerSetConnectedComponents.length}")
+      }
+
+      {
       // constructing the dual graph of the euler diagram
       // each zone represents a node,
       // every two zones which are separated by a line of the euler diagram become an edge
-      {
         // for each node, the set of parent nodes identifies its zone
         println(graph.toDetailedString)
         val (eulerZones, eulerZoneNodes, edges) = algorithm.eulerDiagramDualGraph(graph.parentsIdx, graph.childrenIdx, graph.nodes.indices.filter(idx => graph.nodes(idx).role == NodeRole.Tag).toSet)
         staticData.eulerZoneCount = eulerZones.length
         staticData.eulerZones = eulerZones
         staticData.eulerZoneNodes = eulerZoneNodes
-//        staticData.eulerZoneAdjacencyMatrix = zoneAdjacencyMatrix
         staticData.eulerZoneNeighbourhoods = edges
 
         staticData.eulerZoneArea = new Array[Double](eulerZones.length)
@@ -272,21 +306,21 @@ object StaticData {
       staticData.eulerSetStrokeColor = new Array[String](eulerSetCount)
       staticData.eulerSetDepth = new Array[Int](eulerSetCount)
       while (i < eulerSetCount) {
-        staticData.eulerSetChildren(i) = eulerSets(i).children.map(nodeIdToIndex)
-        staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes.map(nodeIdToIndex)
-        staticData.eulerSetParent(i) = nodeIdToIndex(eulerSets(i).parent)
+        staticData.eulerSetChildren(i) = eulerSets(i).children
+        staticData.eulerSetAllNodes(i) = eulerSets(i).allNodes
+        staticData.eulerSetParent(i) = eulerSets(i).parent
         staticData.eulerSetDepth(i) = eulerSets(i).depth
 
         val arbitraryFactor = 1.3
         staticData.eulerSetArea(i) = eulerSets(i).allNodes.map { pid =>
-          val pi = nodeIdToIndex(pid)
+          val pi = pid
           staticData.nodeReservedArea(pi)
         }.sum * arbitraryFactor
 
-        val color = d3.lab(eulerBgColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
+        val color = d3.lab(eulerBgColor(graph.nodeIds(eulerSets(i).parent)).toHex) //TODO: use d3.rgb or make colorado handle opacity
         color.opacity = 0.35
         staticData.eulerSetColor(i) = color.toString
-        staticData.eulerSetStrokeColor(i) = eulerBgColor(eulerSets(i).parent).toHex
+        staticData.eulerSetStrokeColor(i) = eulerBgColor(graph.nodeIds(eulerSets(i).parent)).toHex
 
         i += 1
       }

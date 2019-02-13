@@ -183,11 +183,34 @@ object ForceSimulationForces {
     }
   }
 
+  def calculateEulerSetConnectedComponentsPolygons(simData: SimulationData, staticData: StaticData): Unit = {
+    val eulerSetConnectedComponentCount = staticData.eulerSetConnectedComponentCount
+    if (simData.eulerSetConnectedComponentCollisionPolygon.length != eulerSetConnectedComponentCount) {
+      simData.eulerSetConnectedComponentCollisionPolygon = new Array[Vec2Array](eulerSetConnectedComponentCount)
+      simData.eulerSetConnectedComponentCollisionPolygonAABB = new Array[AARect](eulerSetConnectedComponentCount)
+    }
+    var i = 0
+    while (i < eulerSetConnectedComponentCount) {
+      val eulerSetConnectedComponentNodes = staticData.eulerSetConnectedComponentNodes(i)
+
+      val borderWidth = 10
+      val circles = eulerSetConnectedComponentNodes.map { j =>
+        val margin = 40
+        Circle(Vec2(simData.x(j), simData.y(j)), staticData.radius(j) + margin)
+      }
+
+      val (convexHull, tangents, collisionPolygon) = calculatePolygons(circles)
+
+      simData.eulerSetConnectedComponentCollisionPolygon(i) = collisionPolygon
+      simData.eulerSetConnectedComponentCollisionPolygonAABB(i) = Algorithms.axisAlignedBoundingBox(collisionPolygon)
+
+      i += 1
+    }
+  }
+
   def calculateEulerZonePolygons(simData: SimulationData, staticData: StaticData): Unit = {
     val eulerZoneCount = staticData.eulerZoneCount
-    if (simData.eulerZoneConvexHull.length != eulerZoneCount) {
-      simData.eulerZoneConvexHull = new Array[Array[Circle]](eulerZoneCount)
-      simData.eulerZoneConvexHullTangents = new Array[Vec2Array](eulerZoneCount)
+    if (simData.eulerZoneCollisionPolygon.length != eulerZoneCount) {
       simData.eulerZoneCollisionPolygon = new Array[Vec2Array](eulerZoneCount)
       simData.eulerZoneCollisionPolygonAABB = new Array[AARect](eulerZoneCount)
     }
@@ -196,13 +219,12 @@ object ForceSimulationForces {
       val eulerZoneNodes = staticData.eulerZoneNodes(i)
 
       val circles = eulerZoneNodes.map { j =>
-        Circle(Vec2(simData.x(j), simData.y(j)), staticData.radius(j))
+        val margin = 40
+        Circle(Vec2(simData.x(j), simData.y(j)), staticData.radius(j) + margin)
       }
 
       val (convexHull, tangents, collisionPolygon) = calculatePolygons(circles)
 
-      simData.eulerZoneConvexHull(i) = convexHull
-      simData.eulerZoneConvexHullTangents(i) = tangents
       simData.eulerZoneCollisionPolygon(i) = collisionPolygon
       simData.eulerZoneCollisionPolygonAABB(i) = Algorithms.axisAlignedBoundingBox(collisionPolygon)
 
@@ -511,6 +533,39 @@ object ForceSimulationForces {
       }
 
       eulerSetAllNodes(eulerSetIdx).foreach { i =>
+        vx(i) += bPush.x
+        vy(i) += bPush.y
+      }
+    }
+  }
+
+  def separateZonesFromSetConnectedComponents(
+    simData: SimulationData,
+    staticData: StaticData,
+    strength: Double
+  ): Unit = {
+    import simData._
+    import staticData._
+    //TODO: speed up with quadtree?
+    for {
+      eulerZoneIdx <- 0 until eulerZoneCount
+      eulerSetConnectedComponentIdx <- 0 until eulerSetConnectedComponentCount
+      if !(eulerZoneNodes(eulerZoneIdx).toSet subsetOf eulerSetConnectedComponentNodes(eulerSetConnectedComponentIdx).toSet)
+      pa = eulerZoneCollisionPolygon(eulerZoneIdx)
+      pb = eulerSetConnectedComponentCollisionPolygon(eulerSetConnectedComponentIdx)
+      if !pa(0).x.isNaN && !pb(0).x.isNaN // polygons contain NaNs in the first simulation step
+      pushVector <- ConvexPolygon(pa) intersectsMtd ConvexPolygon(pb)
+    } {
+      // No weight distributed over nodes, since we want to move the whole eulerSetConnectedComponent with full speed
+      val aPush = -pushVector * strength * alpha
+      val bPush = pushVector * strength * alpha
+
+      eulerZoneNodes(eulerZoneIdx).foreach { i =>
+        vx(i) += aPush.x
+        vy(i) += aPush.y
+      }
+
+      eulerSetConnectedComponentNodes(eulerSetConnectedComponentIdx).foreach { i =>
         vx(i) += bPush.x
         vy(i) += bPush.y
       }

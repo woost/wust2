@@ -244,6 +244,7 @@ class ForceSimulation(
 
       ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
       ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
+      ForceSimulationForces.calculateEulerSetConnectedComponentsPolygons(simData, staticData)
       ForceSimulationForces.eulerSetCenter(simData, staticData)
       ForceSimulationForces.eulerZoneCenter(simData, staticData)
       drawCanvas(simData, staticData, canvasContext, planeDimension)
@@ -455,6 +456,7 @@ class ForceSimulation(
   def draw(): Unit = {
     ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
     ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
+      ForceSimulationForces.calculateEulerSetConnectedComponentsPolygons(simData, staticData)
     applyNodePositions(simData, staticData, postSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
@@ -609,6 +611,7 @@ object ForceSimulation {
     eulerZoneCenter(simData, staticData)
     calculateEulerSetPolygons(simData, staticData)
     calculateEulerZonePolygons(simData, staticData)
+    calculateEulerSetConnectedComponentsPolygons(simData, staticData)
 
     rectBound(simData, staticData, planeDimension, strength = 0.1)
     // assert(!simData.isNaN)
@@ -616,15 +619,17 @@ object ForceSimulation {
     // assert(!simData.isNaN)
 //    edgeLength(simData, staticData)
 
-    eulerSetClustering(simData, staticData, strength = 0.1)
+    eulerSetClustering(simData, staticData, strength = 0.05)
     eulerZoneClustering(simData, staticData, strength = 0.1)
     // eulerZoneAttraction(simData, staticData, strength = 0.1)
     // assert(!simData.isNaN)
     separateOverlappingEulerSets(simData, staticData, strength = 0.1)
     separateOverlappingEulerZones(simData, staticData, strength = 0.1)
     separateZonesFromSets(simData, staticData, strength = 0.1)
-    // pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
-    // pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
+    separateZonesFromSetConnectedComponents(simData, staticData, strength = 0.1)
+
+    pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
+    pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
     // assert(!simData.isNaN)
   }
 
@@ -673,6 +678,7 @@ object ForceSimulation {
     //    }
 
     //     for every containment cluster
+    canvasContext.lineWidth = 3
     loop (eulerSetCount) { i =>
       val convexHull = simData.eulerSetConvexHull(i)
       if(convexHull.size > 1) {
@@ -824,6 +830,7 @@ object ForceSimulation {
     // count in simData can be zero
     val eulerSetCount = simData.eulerSetCollisionPolygon.length
     val eulerZoneCount = simData.eulerZoneCollisionPolygon.length
+    val eulerSetConnectedComponentCount = simData.eulerSetConnectedComponentCollisionPolygon.length
 
     val nodeCount = simData.n
 
@@ -902,8 +909,19 @@ object ForceSimulation {
       drawAARect(canvasContext, rect = simData.eulerSetCollisionPolygonAABB(i), color = "rgba(0,0,0,0.1)", lineWidth = 3)
     }
 
+    loop (eulerSetConnectedComponentCount) { i =>
+      canvasContext.strokeStyle = "rgba(0,0,255,0.6)"
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      polyLine(simData.eulerSetConnectedComponentCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
+      canvasContext.stroke()
+
+      // Axis aligned bounding box
+      drawAARect(canvasContext, rect = simData.eulerSetConnectedComponentCollisionPolygonAABB(i), color = "rgba(0,0,255,0.1)", lineWidth = 3)
+    }
+
     loop (eulerZoneCount) { i =>
-      canvasContext.fillStyle = "rgba(128,128,128,0.8)"
+      canvasContext.fillStyle = "rgba(128,128,128,0.4)"
       canvasContext.lineWidth = 1
       canvasContext.beginPath()
       polyLine(simData.eulerZoneCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
