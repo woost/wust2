@@ -498,7 +498,7 @@ object KanbanView {
             div(
               height := "3px",
               padding := "0",
-              width := s"${math.max(progress, 1)}%",
+              width := s"${math.max(progress, 0)}%",
               backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
               UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
             ),
