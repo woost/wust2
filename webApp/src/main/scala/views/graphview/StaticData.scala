@@ -58,6 +58,7 @@ class StaticData(
     var eulerSetAllNodes: Array[Array[Int]],
     var eulerSetArea: Array[Double],
     var eulerSetColor: Array[String],
+    var eulerSetStrokeColor: Array[String],
     var eulerSetDepth: Array[Int],
 
     var eulerZoneCount: Int,
@@ -98,6 +99,7 @@ class StaticData(
     eulerSetAllNodes = null,
     eulerSetArea = null,
     eulerSetColor = null,
+    eulerSetStrokeColor = null,
     eulerSetDepth = null,
 
     eulerZoneCount = -1,
@@ -267,6 +269,7 @@ object StaticData {
       staticData.eulerSetParent = new Array[Int](eulerSetCount)
       staticData.eulerSetArea = new Array[Double](eulerSetCount)
       staticData.eulerSetColor = new Array[String](eulerSetCount)
+      staticData.eulerSetStrokeColor = new Array[String](eulerSetCount)
       staticData.eulerSetDepth = new Array[Int](eulerSetCount)
       while (i < eulerSetCount) {
         staticData.eulerSetChildren(i) = eulerSets(i).children.map(nodeIdToIndex)
@@ -281,8 +284,9 @@ object StaticData {
         }.sum * arbitraryFactor
 
         val color = d3.lab(eulerBgColor(eulerSets(i).parent).toHex) //TODO: use d3.rgb or make colorado handle opacity
-        color.opacity = 0.7
+        color.opacity = 0.35
         staticData.eulerSetColor(i) = color.toString
+        staticData.eulerSetStrokeColor(i) = eulerBgColor(eulerSets(i).parent).toHex
 
         i += 1
       }

@@ -119,7 +119,8 @@ object ForceSimulationForces {
       .sliding(2)
       .flatMap {
         case Array(c1, c2) =>
-          val tangent = c1.outerTangentCCW(c2).get
+          // assumed: if c1 and c2 are part of the convex hull, they have by definition a tangent.
+          val tangent = c1.outerTangentCCW(c2).get //TODO: can be none (c1 and c)
           // assert(!tangent.start.x.isNaN && !tangent.start.y.isNaN, s"tangent.start $tangent ($c1, $c2)")
           // assert(!tangent.end.x.isNaN && !tangent.end.y.isNaN, "tangent.end")
           Array(tangent.start, tangent.end)
@@ -127,12 +128,6 @@ object ForceSimulationForces {
       .toArray): _*)
 
     val collisionPolygon: Vec2Array = {
-      //TODO: handle CCW order
-      //TODO: handle CCW order
-      //TODO: handle CCW order
-      //TODO: handle CCW order
-      //TODO: handle CCW order
-      //TODO: handle CCW order
       if (convexHull.size == 0) throw new Exception("collision cluster without any convex hull")
       else if (convexHull.size == 1) convexHull.head.sampleCircumference(4)
       else Vec2Array(((tangents ++ tangents.take(2))
@@ -483,6 +478,39 @@ object ForceSimulationForces {
       }
 
       eulerZoneNodes(zoneBIdx).foreach { i =>
+        vx(i) += bPush.x
+        vy(i) += bPush.y
+      }
+    }
+  }
+
+  def separateZonesFromSets(
+    simData: SimulationData,
+    staticData: StaticData,
+    strength: Double
+  ): Unit = {
+    import simData._
+    import staticData._
+    //TODO: speed up with quadtree?
+    for {
+      eulerZoneIdx <- 0 until eulerZoneCount
+      eulerSetIdx <- 0 until eulerSetCount
+      if !(eulerZoneNodes(eulerZoneIdx).toSet subsetOf eulerSetAllNodes(eulerSetIdx).toSet)
+      pa = eulerZoneCollisionPolygon(eulerZoneIdx)
+      pb = eulerSetCollisionPolygon(eulerSetIdx)
+      if !pa(0).x.isNaN && !pb(0).x.isNaN // polygons contain NaNs in the first simulation step
+      pushVector <- ConvexPolygon(pa) intersectsMtd ConvexPolygon(pb)
+    } {
+      // No weight distributed over nodes, since we want to move the whole eulerSet with full speed
+      val aPush = -pushVector * strength * alpha
+      val bPush = pushVector * strength * alpha
+
+      eulerZoneNodes(eulerZoneIdx).foreach { i =>
+        vx(i) += aPush.x
+        vy(i) += aPush.y
+      }
+
+      eulerSetAllNodes(eulerSetIdx).foreach { i =>
         vx(i) += bPush.x
         vy(i) += bPush.y
       }

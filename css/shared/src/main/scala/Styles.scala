@@ -538,8 +538,11 @@ object CommonStyles extends StyleSheet.Standalone {
     textRendering := "optimizeLegibility",
     position.absolute,
     padding(3 px, 5 px),
-    /* border-radius : 3px; */ /* affects graph rendering performance */
     cursor.default,
+  )
+
+  ".graphnode.nodecard" - (
+    borderRadius(6 px),
   )
 
   ".graphnode-tag" - (

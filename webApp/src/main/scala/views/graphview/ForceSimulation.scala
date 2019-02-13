@@ -461,7 +461,7 @@ class ForceSimulation(
 }
 
 object ForceSimulation {
-  private val debugDrawEnabled = true
+  private val debugDrawEnabled = false
   import ForceSimulationConstants._
   @inline def log(msg: String) = s"ForceSimulation: $msg"
 
@@ -610,21 +610,22 @@ object ForceSimulation {
     calculateEulerSetPolygons(simData, staticData)
     calculateEulerZonePolygons(simData, staticData)
 
-    // rectBound(simData, staticData, planeDimension, strength = 0.1)
+    rectBound(simData, staticData, planeDimension, strength = 0.1)
     // assert(!simData.isNaN)
     keepMinimumNodeDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
     // assert(!simData.isNaN)
 //    edgeLength(simData, staticData)
 
-    // eulerSetClustering(simData, staticData, strength = 0.1)
+    eulerSetClustering(simData, staticData, strength = 0.1)
     eulerZoneClustering(simData, staticData, strength = 0.1)
     // eulerZoneAttraction(simData, staticData, strength = 0.1)
     // assert(!simData.isNaN)
-    // separateOverlappingEulerSets(simData, staticData, strength = 0.1)
+    separateOverlappingEulerSets(simData, staticData, strength = 0.1)
     separateOverlappingEulerZones(simData, staticData, strength = 0.1)
-//    pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
-    pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
-    assert(!simData.isNaN)
+    separateZonesFromSets(simData, staticData, strength = 0.1)
+    // pushOutOfWrongEulerSet(simData,staticData, strength = 0.1)
+    // pushOutOfWrongEulerZone(simData,staticData, strength = 0.1)
+    // assert(!simData.isNaN)
   }
 
   def applyNodePositions(
@@ -672,14 +673,14 @@ object ForceSimulation {
     //    }
 
     //     for every containment cluster
-    var i = 0
-    while (i < eulerSetCount) {
+    loop (eulerSetCount) { i =>
       val convexHull = simData.eulerSetConvexHull(i)
       if(convexHull.size > 1) {
         val tangents = simData.eulerSetConvexHullTangents(i)
 
         val n = convexHull.size * 2
         canvasContext.fillStyle = staticData.eulerSetColor(i)
+        canvasContext.strokeStyle = staticData.eulerSetStrokeColor(i)
         canvasContext.beginPath()
         var j = 0
         while (j < n) {
@@ -694,22 +695,20 @@ object ForceSimulation {
           j += 2
         }
         canvasContext.fill()
+        canvasContext.stroke()
         canvasContext.closePath()
       }
-      i += 1
     }
 
     // for every connection
-    i = 0
     canvasContext.lineWidth = 3
     canvasContext.strokeStyle = "#333"
     canvasContext.beginPath()
-    while (i < edgeCount) {
+    loop (edgeCount) { i =>
       val source = staticData.source(i)
       val target = staticData.target(i)
       canvasContext.moveTo(simData.x(source), simData.y(source))
       canvasContext.lineTo(simData.x(target), simData.y(target))
-      i += 1
     }
     canvasContext.stroke()
     canvasContext.closePath()
@@ -868,47 +867,47 @@ object ForceSimulation {
     //    }
 
     //     for every containment cluster
-    // loop (eulerSetCount) { i =>
-    //   canvasContext.strokeStyle = "rgba(128,128,128,0.6)"
-    //   canvasContext.lineWidth = 3
-    //   canvasContext.beginPath()
-    //   polyLine(simData.eulerSetCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
-    //   canvasContext.stroke()
+    loop (eulerSetCount) { i =>
+      canvasContext.strokeStyle = "rgba(128,128,128,0.6)"
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      polyLine(simData.eulerSetCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
+      canvasContext.stroke()
 
-    //   // tangents
-    //   // canvasContext.strokeStyle = "rgba(128,128,0,0.6)"
-    //   // canvasContext.lineWidth = 2
-    //   // simData.eulerSetConvexHullTangents(i).sliding(2,2).foreach { case Seq(a,b) =>
-    //   //   canvasContext.beginPath()
-    //   //   canvasContext.moveTo(a.x,a.y)
-    //   //   canvasContext.lineTo(b.x,b.y)
-    //   //   canvasContext.stroke()
-    //   // }
+      // tangents
+      // canvasContext.strokeStyle = "rgba(128,128,0,0.6)"
+      // canvasContext.lineWidth = 2
+      // simData.eulerSetConvexHullTangents(i).sliding(2,2).foreach { case Seq(a,b) =>
+      //   canvasContext.beginPath()
+      //   canvasContext.moveTo(a.x,a.y)
+      //   canvasContext.lineTo(b.x,b.y)
+      //   canvasContext.stroke()
+      // }
 
-    //   // eulerSet geometricCenter
-    //   canvasContext.strokeStyle = "#000"
-    //   canvasContext.lineWidth = 3
-    //   canvasContext.beginPath()
-    //   canvasContext.arc(
-    //     simData.eulerSetGeometricCenter(i).x,
-    //     simData.eulerSetGeometricCenter(i).y,
-    //     10,
-    //     startAngle = 0,
-    //     endAngle = fullCircle
-    //   )
-    //   canvasContext.stroke()
-    //   canvasContext.closePath()
+      // eulerSet geometricCenter
+      canvasContext.strokeStyle = "#000"
+      canvasContext.lineWidth = 3
+      canvasContext.beginPath()
+      canvasContext.arc(
+        simData.eulerSetGeometricCenter(i).x,
+        simData.eulerSetGeometricCenter(i).y,
+        10,
+        startAngle = 0,
+        endAngle = fullCircle
+      )
+      canvasContext.stroke()
+      canvasContext.closePath()
 
-    //   // Axis aligned bounding box
-    //   drawAARect(canvasContext, rect = simData.eulerSetCollisionPolygonAABB(i), color = "rgba(0,0,0,0.1)", lineWidth = 3)
-    // }
+      // Axis aligned bounding box
+      drawAARect(canvasContext, rect = simData.eulerSetCollisionPolygonAABB(i), color = "rgba(0,0,0,0.1)", lineWidth = 3)
+    }
 
     loop (eulerZoneCount) { i =>
-      canvasContext.strokeStyle = "rgba(128,128,128,0.8)"
+      canvasContext.fillStyle = "rgba(128,128,128,0.8)"
       canvasContext.lineWidth = 1
       canvasContext.beginPath()
       polyLine(simData.eulerZoneCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)
-      canvasContext.stroke()
+      canvasContext.fill()
 
       // tangents
       // canvasContext.strokeStyle = "rgba(128,128,0,0.6)"
