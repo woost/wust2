@@ -1,5 +1,7 @@
 package views.graphview
 
+import monix.execution.Cancelable
+import monix.execution.cancelables.CompositeCancelable
 import d3v4._
 import wust.webApp.BrowserDetect
 import org.scalajs.dom
@@ -72,23 +74,27 @@ class ForceSimulation(
   var running = false
   //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
 
-  private val backgroundElement = Promise[dom.html.Element]
-  private val canvasLayerElement = Promise[dom.html.Canvas]
-  private val postContainerElement = Promise[dom.html.Element]
+  private val backgroundElement = Var[Option[dom.html.Element]](None)
+  private val canvasLayerElement = Var[Option[dom.html.Canvas]](None)
+  private val nodeContainerElement = Var[Option[dom.html.Element]](None)
 
   var isCtrlPressed = false
   
   if (!BrowserDetect.isMobile)
     keyDown(KeyCode.Ctrl).foreach { isCtrlPressed = _ }
 
+  var simulationCancelable:Cancelable = Cancelable()
   val component: VNode = {
     import outwatch.dom.dsl._
     import outwatch.dom.dsl.styles.extra._
 
     div(
-      onDomMount.asHtml foreach { e =>
-        backgroundElement.success(e)
+      managedElement.asHtml { elem =>
+        snabbdom.VNodeProxy.setDirty(elem)
+        backgroundElement() = Some(elem)
+        Cancelable { () => backgroundElement() = None; simulationCancelable.cancel() }
       },
+      snabbdom.VNodeProxy.repairDomBeforePatch,
       position := "relative",
       width := "100%",
       height := "100%",
@@ -96,15 +102,20 @@ class ForceSimulation(
       // Mouse events from all children pass through to backgroundElement (e.g. zoom).
       canvas(
         position := "absolute",
-        onDomMount.map(_.asInstanceOf[dom.html.Canvas]) foreach { (e) =>
-          canvasLayerElement.success(e)
+        managedElement.asHtml { elem =>
+          snabbdom.VNodeProxy.setDirty(elem)
+          canvasLayerElement() = Some(elem.asInstanceOf[dom.html.Canvas])
+          Cancelable { () => canvasLayerElement() = None; simulationCancelable.cancel() }
         },
-        // pointerEvents := "none" // background handles mouse events
+        snabbdom.VNodeProxy.repairDomBeforePatch,
       ),
       div(
-        onDomMount.asHtml foreach { e =>
-          postContainerElement.success(e); ()
+        managedElement.asHtml { elem =>
+          snabbdom.VNodeProxy.setDirty(elem)
+          nodeContainerElement() = Some(elem)
+          Cancelable { () => nodeContainerElement() = None; simulationCancelable.cancel() }
         },
+        snabbdom.VNodeProxy.repairDomBeforePatch,
         width := "100%",
         height := "100%",
         position := "absolute",
@@ -114,18 +125,23 @@ class ForceSimulation(
     )
   }
 
-  for {
-    backgroundElement <- backgroundElement.future
-    canvasLayerElement <- canvasLayerElement.future
-    postContainerElement <- postContainerElement.future
-  } {
+  Rx {
+    (backgroundElement(), canvasLayerElement(), nodeContainerElement()) match {
+      case (Some(backgroundElement), Some(canvasLayerElement), Some(nodeContainerElement)) =>
+        simulationCancelable.cancel()
+        simulationCancelable = initSimulation(backgroundElement, canvasLayerElement, nodeContainerElement)
+      case _ =>
+    }
+  }
+
+
+  def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Cancelable = {
+    val cancelable = CompositeCancelable()
+
     println(log("-------------------- init simulation"))
-    // snabbdom.VNodeProxy.setDirty(backgroundElement)
-    // snabbdom.VNodeProxy.setDirty(canvasLayerElement)
-    // snabbdom.VNodeProxy.setDirty(postContainerElement)
     val background = d3.select(backgroundElement)
     val canvasLayer = d3.select(canvasLayerElement)
-    val postContainer = d3.select(postContainerElement)
+    val nodeContainer = d3.select(nodeContainerElement)
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
     val graphRx: Rx[Graph] = Rx {
@@ -150,7 +166,7 @@ class ForceSimulation(
       transform = d3.event.transform // since zoomed is called via d3 event, transform was set by d3
       // println(log(s"zoomed: ${transform.k}"))
       canvasContext.setTransform(transform.k, 0, 0, transform.k, transform.x, transform.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
-      postContainer.style(
+      nodeContainer.style(
         "transform",
         s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
       )
@@ -166,6 +182,7 @@ class ForceSimulation(
       .scaleExtent(js.Array(0.01, 10))
       .on("zoom", () => zoomed())
       .clickDistance(10) // interpret short drags as clicks
+    cancelable += Cancelable(() => zoom.on("zoom", null))
 
     background
       .call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
@@ -194,8 +211,9 @@ class ForceSimulation(
           }
         }
       )
+    cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
 
-    events.window.onResize.foreach { _ =>
+    cancelable += events.window.onResize.foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
@@ -304,10 +322,10 @@ class ForceSimulation(
       import rect.{height, width}
       val resizedFromZero = (planeDimension.width == 0 || planeDimension.height == 0) && width > 0 && height > 0
       if (resizedFromZero) { // happens when graphview was rendered in a hidden element
-        // since postContainer had size zero, all posts also had size zero,
-        // so we have to resize postContainer and then reinitialize the node sizes in static data
+        // since nodeContainer had size zero, all posts also had size zero,
+        // so we have to resize nodeContainer and then reinitialize the node sizes in static data
         transform = d3.zoomIdentity
-        postContainer.style(
+        nodeContainer.style(
           "transform",
           s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
         )
@@ -358,12 +376,12 @@ class ForceSimulation(
       stop()
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
-      postSelection = postContainer.selectAll[Node]("div.graphnode")
+      postSelection = nodeContainer.selectAll[Node]("div.graphnode")
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
       updateDomNodes(graph.nodes.toJSArray, postSelection, onClick) // d3 data join
-      postSelection = postContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
+      postSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
@@ -375,6 +393,10 @@ class ForceSimulation(
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
       startAnimated() // this also triggers the initial simulation start
     }
+
+    cancelable += Cancelable(() => stop())
+
+    cancelable
   }
 
   def startHidden(): Unit = {
