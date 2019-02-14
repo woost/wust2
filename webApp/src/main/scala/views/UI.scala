@@ -106,7 +106,7 @@ object UI {
               Styles.flex,
               alignItems.center,
               nodeAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
-              renderNodeData(node.data)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+              renderNodeData(node.data, maxLength = Some(100))(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             ),
             div(modalHeaderText),
