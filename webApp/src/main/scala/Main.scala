@@ -79,7 +79,7 @@ object Main {
       breaks = true // If true, add <br> on a single line break (copies GitHub). Requires gfm be true.
       highlight = ((code: String, lang: js.UndefOr[String]) => { // Only gets called for code blocks
         lang.toOption match {
-          case Some(l) => "<div class = \"hljs\">" + Highlight.highlight(l, code).value + "</div>"
+          case Some(l) if Highlight.getLanguage(l).isDefined => "<div class = \"hljs\">" + Highlight.highlight(l, code).value + "</div>"
           case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
         }
       }): js.Function2[String, js.UndefOr[String], String]

@@ -12,6 +12,7 @@ object Highlight extends js.Object {
   def highlightAuto(value: String, languageSubset: js.UndefOr[js.Array[String]] = js.undefined): AutoHighlightResult = js.native
 //  def highlightBlock(block: HTMLElement): HTMLElement = js.native ???
   def configure(options: HighlightOptions): String = js.native
+  def getLanguage(name: String): js.UndefOr[js.Any] = js.native
 }
 
 @js.native
