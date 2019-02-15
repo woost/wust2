@@ -13,6 +13,7 @@ import rx._
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
+import wust.ids.View
 import wust.util.RichBoolean
 import wust.webApp.{Client, Ownable}
 import wust.webApp.outwatchHelpers._

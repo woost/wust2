@@ -2,7 +2,7 @@ package wust.webApp.parsers
 
 import cats.data.NonEmptyList
 import wust.graph.Page
-import wust.ids.{Cuid, NodeId}
+import wust.ids.{Cuid, NodeId, View, ViewOperator}
 import wust.webApp.state._
 import kantan.regex._
 import kantan.regex.implicits._

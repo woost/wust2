@@ -16,7 +16,8 @@ object ZIndex {
   val tooltip = 1500
   val loading = 1750
   val overlay = 12000
-  val modal = 15000
+  val formOverlay = 13000
+  val uiModal = 15000
   val uiSidebar = 16000
   val dragging = 20000
 }
@@ -126,11 +127,6 @@ object Styles extends StyleSheet.Inline {
     (0 %%) -> style(opacity(0)),
     (100 %%) -> style(opacity(1))
   )
-
-  val popupMenuFix = style(
-    // 100% height so there is always a display area for the popup menus
-    height(100 %%),
-    )
 
   object Woost {
     val color = c"#6636b7"
@@ -333,10 +329,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".ui.dimmer.modals" - (
-    zIndex(ZIndex.modal)
+    zIndex(ZIndex.uiModal)
   )
   ".ui.modal" - (
-    zIndex(ZIndex.modal + 1),
+    zIndex(ZIndex.uiModal + 1),
   )
 
 //  ".modal-header" - ( )
@@ -369,6 +365,27 @@ object CommonStyles extends StyleSheet.Standalone {
     left(0 px),
   )
 
+  ".expanded-sidebar" - (
+    height(100 %%),
+    zIndex(ZIndex.overlay),
+  )
+
+  ".expanded-left-sidebar > .sidebar-open" - (
+    maxWidth(202.px),
+    width(202.px),
+  )
+
+  ".expanded-right-sidebar > .sidebar-open" - (
+    maxWidth(500.px),
+    width(500.px),
+  )
+
+  ".expanded-left-sidebar > .sidebar-close" - (
+  )
+
+  ".expanded-right-sidebar > .sidebar-close" - (
+  )
+
   ".overlay-sidebar" - (
     zIndex(ZIndex.overlay),
     position.absolute,
@@ -379,7 +396,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".overlay-right-sidebar > .sidebar" - (
-    marginLeft(50 px)
+    marginLeft(100 px)
   )
 
   ".overlay-left-sidebar > .sidebar" - (
@@ -687,7 +704,7 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
     fontWeight.normal,
-    //overflowX.auto, // removed to show dropdown -- tkarolski
+    overflowX.auto,
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
@@ -884,7 +901,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".nodecard .buttonbar" - (
-    backgroundColor(nodeCardBackgroundColor),
     padding(2 px, 4 px),
     visibility.hidden
   )
@@ -979,7 +995,6 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
-    Styles.popupMenuFix,
   )
 
   ".kanbancolumnheader" - (
@@ -1000,7 +1015,6 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowY.auto,
     overflowX.hidden, // needed for firefox
     //or: overflow.initial
-    Styles.popupMenuFix,
     paddingBottom(5 px) // prevents column shadow from being cut off by scrolling
   )
 

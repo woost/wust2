@@ -1,7 +1,7 @@
 package wust.ids.serialize
 
 import wust.ids._
-import io.circe._, io.circe.generic.extras.semiauto._, io.circe.generic.extras.Configuration
+import io.circe._, io.circe.generic.extras.auto._, io.circe.generic.extras.semiauto._, io.circe.generic.extras.Configuration
 import supertagged._
 import java.util.UUID
 import scala.util.Try
@@ -59,5 +59,8 @@ trait Circe {
   implicit val connectionContentEncoder6: Encoder[EdgeData.DerivedFromTemplate] = deriveEncoder[EdgeData.DerivedFromTemplate]
   implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
   implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
+
+  implicit val viewEncoder: Encoder[View] = deriveEncoder[View]
+  implicit val viewDecoder: Decoder[View] = deriveDecoder[View]
 }
 object Circe extends Circe

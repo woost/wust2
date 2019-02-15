@@ -10,6 +10,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers._
 import rx._
 import wust.css.{Styles, ZIndex}
+import wust.ids.View
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Ownable}
 import wust.webApp.views.Components._
@@ -88,7 +89,7 @@ object UI {
     import wust.graph.{Node, Page}
     import wust.sdk.BaseColors
     import wust.sdk.NodeColor._
-    import wust.webApp.state.{GlobalState, View}
+    import wust.webApp.state.GlobalState
     import wust.webApp.views.Components.renderNodeData
 
     def defaultHeader(state: GlobalState, node: Node, modalHeaderText: String, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -117,7 +118,6 @@ object UI {
             icon,
             cursor.pointer,
             fontSize.xxLarge,
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Property)) --> state.urlConfig,
           ),
         ),
       )
@@ -125,7 +125,7 @@ object UI {
   }
 
   case class SidebarConfig(items: VDomModifier)
-  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit]): VDomModifier = div.static(keyValue) { //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
+  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VDomModifier = div.static(keyValue) { //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
     val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
 
     VDomModifier(
@@ -140,7 +140,7 @@ object UI {
           transition = "overlay"
           mobileTransition = "overlay"
           exclusive = true
-          context = ".main-viewrender"
+          context = targetSelector.orUndefined
         }).sidebar("hide")
       },
 
@@ -166,7 +166,7 @@ object UI {
   def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
-    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
+    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
   def popup(tooltipZIndex: Int): AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; }, tooltipZIndex)
   def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })

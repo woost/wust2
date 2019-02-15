@@ -846,7 +846,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>
     graph.descendantsIdx(graph.idToIdx(pageParentId)).flatMap { nodeIdx =>
       graph.nodes(nodeIdx) match {
-        case Node.Content(id, file: NodeData.File, _, _) => Some(id -> file)
+        case Node.Content(id, file: NodeData.File, _, _, _) => Some(id -> file)
         case _ => None
       }
     }

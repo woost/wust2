@@ -118,16 +118,7 @@ object PageSettingsMenu {
       }
       val filterItem = ViewFilter.renderMenu(state).apply(cls := "item")
 
-      val managePropertiesItem = ItemProperties.manageProperties(state, channelId,
-        div(
-          cursor.pointer,
-          cls := "item",
-          Elements.icon(Icons.property),
-          span(ItemProperties.naming),
-        )
-      )
-
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, managePropertiesItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
     def header: VDomModifier = div(
@@ -152,6 +143,7 @@ object PageSettingsMenu {
   def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Icons.menuDropdown,
+      cursor.pointer,
       onClick.foreach { toggleSidebar(state, channelId) }
     )
   }

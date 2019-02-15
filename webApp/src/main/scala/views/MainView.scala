@@ -8,10 +8,11 @@ import rx._
 import wust.api.AuthUser
 import wust.css.{Styles, ZIndex}
 import wust.graph.Page
+import wust.sdk.NodeColor
 import wust.util._
-import wust.webApp.{Client, DevOnly, WoostNotification}
+import wust.webApp.{Client, DevOnly, Ownable, WoostNotification}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize, View}
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 
 import scala.concurrent.Future
@@ -55,7 +56,6 @@ object MainView {
         Styles.growFull,
         position.relative, // needed for mobile expanded sidebar
         LeftSidebar(state),
-        backgroundColor <-- state.pageStyle.map(_.bgColor),
         div(
           Styles.flex,
           Styles.growFull,
@@ -71,10 +71,11 @@ object MainView {
               state.view().isContent
             }
             Rx {
-              VDomModifier.ifTrue(viewIsContent())(
+              VDomModifier.ifTrue(viewIsContent())(div(
+                backgroundColor <-- state.pageStyle.map(_.bgColor),
                 breadCrumbs,
                 PageHeader(state).apply(Styles.flexStatic)
-              )
+              ))
             }
           },
           Rx {
@@ -82,6 +83,7 @@ object MainView {
               if (state.isLoading())
                 Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor)
               else if (state.pageNotFound())
+
                 PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle.now.bgLightColor, Styles.growFull)
               else VDomModifier.empty
             } else VDomModifier.empty
@@ -90,10 +92,10 @@ object MainView {
           // This avoids rerendering the whole view when only the screen-size changed
           div(
             cls := "main-viewrender",
-            backgroundColor <-- state.pageStyle.map(_.bgLightColor),
             div(
               Styles.flex,
               Styles.growFull,
+              backgroundColor <-- state.pageStyle.map(_.bgLightColor),
               cls := "pusher",
               Rx {
                 // we can now assume, that every page parentId is contained in the graph
@@ -111,9 +113,12 @@ object MainView {
             position.relative, // needed for mobile expanded sidebar
 
             SharedViewElements.tagListWindow(state),
-            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
+            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender")), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
           ),
         ),
+
+        position.relative,
+        RightSidebar(state),
       )
     )
   }

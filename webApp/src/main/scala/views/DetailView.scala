@@ -4,13 +4,12 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.graph.Edge.LabeledProperty
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.ids.{NodeData, NodeId, NodeRole, View}
 import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.{Icons, Permission}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, View}
+import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 
 /*
@@ -94,7 +93,7 @@ object DetailView {
               content( // TODO: Configurable property value (changeable on click)
                 header(s"Properties ($numProperties)"),
                 description(
-                  if(properties.nonEmpty) properties.map { case (propertyKey: LabeledProperty, propertyValue: Node) =>
+                  if(properties.nonEmpty) properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
                     Components.removablePropertyTag(state, propertyKey, propertyValue)
                   } else "-"
                 )

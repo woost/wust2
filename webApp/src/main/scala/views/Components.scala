@@ -17,8 +17,7 @@ import jquery.JQuerySelection
 import wust.api.UploadedFile
 import wust.css.{Styles, ZIndex}
 import wust.graph._
-import wust.ids.NodeData.EditableText
-import wust.ids.{NodeData, _}
+import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.StringOps._
 import wust.util._
@@ -26,7 +25,7 @@ import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, UploadingFile, View}
+import wust.webApp.state.{GlobalState, PageChange, UploadingFile}
 import wust.webApp.views.Elements._
 import wust.webApp.views.UI.ModalConfig
 
@@ -264,6 +263,38 @@ object Components {
     )
   }
 
+  def removablePropertySection(
+    state: GlobalState,
+    key: Edge.LabeledProperty,
+    property: Node,
+  )(implicit ctx: Ctx.Owner): VNode = {
+
+    val icon = ItemProperties.iconByNodeData(property.data)
+
+    div(
+      div(
+        color.gray,
+        Elements.icon(icon)(marginRight := "5px"),
+        b(key.data.key, ":"),
+        div(
+          Components.removableTagMod(() =>
+            state.eventProcessor.changes.onNext(GraphChanges(delEdges = Set(key)))
+          )
+        ),
+      ),
+      div(
+        padding := "0px 10px 0px 10px",
+        Styles.flex,
+        justifyContent.flexEnd,
+        renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(100)).apply(
+          cursor.pointer,
+          onClick.foreach { state.urlConfig.update(_.focus(Page(property.id))) },
+        )
+      )
+    )
+  }
+
+
   def propertyTag(
     state: GlobalState,
     key: Edge.LabeledProperty,
@@ -315,6 +346,7 @@ object Components {
     def checkboxNodeTag(
       state: GlobalState,
       tagNode: Node,
+      tagModifier: VDomModifier = VDomModifier.empty,
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
     )(implicit ctx: Ctx.Owner): VNode = {
@@ -332,9 +364,23 @@ object Components {
           ),
           label(), // needed for fomanticui
         ),
-        nodeTag(state, tagNode, pageOnClick, dragOptions),
+        nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
       )
     }
+
+    def removableAssignedUser(state: GlobalState, user: Node.User, assignedNodeId: NodeId): VNode = {
+      div(
+        padding := "2px",
+        borderRadius := "3px",
+        backgroundColor := "white",
+        color.black,
+        Styles.flex,
+        Avatar.user(user.id)(height := "20px"),
+        div(marginLeft := "5px", displayUserName(user.data)),
+        removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(user.id, assignedNodeId)))
+      )
+    }
+
 
     def nodeTag(
       state: GlobalState,
@@ -406,6 +452,20 @@ object Components {
         Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
       )
     }
+
+  def nodeCardEditableOnClick(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    val editMode = Var(false)
+    renderNodeCard(
+      node,
+      contentInject = VDomModifier(
+        prependInject,
+        editableNodeOnClick(state, node, maxLength),
+        contentInject
+      ),
+    ).apply(
+      Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
+    )
+  }
 
     def taskCheckbox(state:GlobalState, node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
       val isChecked:Rx[Boolean] = Rx {
@@ -537,10 +597,9 @@ object Components {
       )
     }
 
-    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None)(
+    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false))(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      val editMode = Var(false)
       editableNode(state, node, editMode, maxLength)(ctx)(
         onClick.stopPropagation.stopImmediatePropagation foreach {
           if(!editMode.now) {
@@ -557,7 +616,7 @@ object Components {
 
       node match {
 
-        case node@Node.Content(_, textData: NodeData.EditableText, _, _) =>
+        case node@Node.Content(_, textData: NodeData.EditableText, _, _, _) =>
           val editRender = editableTextNode(state, editMode, initialRender, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
           editableNodeContent(state, node, editMode, initialRender, editRender)
 
@@ -629,10 +688,11 @@ object Components {
       )
     }
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, components: Boolean = true, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
       var elem: JQuerySelection = null
       div(
         keyed,
+        elementModifier,
         cls := "ui category search",
         div(
           cls := "ui icon input",
@@ -775,8 +835,9 @@ object Components {
       )
     }
 
-  def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VNode): VNode = {
+  def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
     div(
+      width := "100%",
       elements.map { element =>
         div(
           Styles.flex,
@@ -791,7 +852,7 @@ object Components {
             cls := "ui tiny compact negative basic button",
             marginLeft := "10px",
             "Remove",
-            onClick(element) --> removeSink
+            onClick.stopPropagation(element) --> removeSink
           ),
         )
       }
@@ -873,5 +934,16 @@ object Components {
       }
     )
   }
+
+  def sidebarNodeFocusMod(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    cursor.pointer,
+    onClick.foreach {
+      val nextNode = if (state.rightSidebarNode.now == Some(nodeId)) None else Some(nodeId)
+      state.rightSidebarNode() = nextNode
+    },
+    state.rightSidebarNode.map(_ contains nodeId).map { isFocused =>
+      VDomModifier.ifTrue(isFocused)(boxShadow := "inset 0 0 5px 3px #ddd")
+    }
+  )
 }
 

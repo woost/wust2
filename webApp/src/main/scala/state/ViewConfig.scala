@@ -2,6 +2,7 @@ package wust.webApp.state
 
 import wust.api.Authentication
 import wust.graph._
+import wust.ids.View
 import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 
 // ViewConfig and UrlConfig are the configurations driving our application ui.
@@ -27,6 +28,7 @@ case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Opt
 
   def redirect: UrlConfig = copy(view = redirectTo, redirectTo = None)
 
+  @inline def focus(view: Option[View]): UrlConfig = copy(view = view, redirectTo = None)
   @inline def focus(view: View): UrlConfig = copy(view = Some(view), redirectTo = None)
   @inline def focus(page: Page, view: View): UrlConfig = focus(page, Some(view))
   @inline def focus(page: Page, view: View, needsGet: Boolean): UrlConfig = focus(page, Some(view), needsGet)

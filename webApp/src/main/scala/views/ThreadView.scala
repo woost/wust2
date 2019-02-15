@@ -37,16 +37,17 @@ object ThreadView {
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
-  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[NodeId])(val editMode:Var[Boolean], val showReplyField:Var[Boolean]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[NodeId])(val showReplyField:Var[Boolean]) extends SelectedNodeBase
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
     val scrollHandler = new ScrollBottomHandler
 
     val outerDragOptions = VDomModifier(
       registerDragContainer(state),
-      Rx { state.page().parentId.map(pageParentId => drag(target = DragItem.Workspace(pageParentId))) },
+      Rx { parentId().map(pageParentId => drag(target = DragItem.Workspace(pageParentId))) },
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -65,15 +66,14 @@ object ThreadView {
       div(
         cls := "chat-history",
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        backgroundColor <-- state.pageStyle.map(_.bgLightColor),
-        chatHistory(state, selectedNodes, pageCounter, shouldLoadInfinite),
+        chatHistory(state, parentId, selectedNodes, pageCounter, shouldLoadInfinite),
         outerDragOptions,
 
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.modifier,
         // on page change, always scroll down
-        emitterRx(state.page).foreach {
+        emitterRx(parentId).foreach {
           scrollHandler.scrollToBottomInAnimationFrame()
         }
       ),
@@ -81,8 +81,8 @@ object ThreadView {
         def submitAction(str:String) = {
           scrollHandler.scrollToBottomInAnimationFrame()
           val ack = fileUploadHandler.now match {
-            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), state.page.now.parentId))
-            case Some(uploadFile) => uploadFileAndCreateNode(state, str, state.page.now.parentId, uploadFile)
+            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), parentId.now))
+            case Some(uploadFile) => uploadFileAndCreateNode(state, str, parentId.now, uploadFile)
           }
 
           ack
@@ -91,7 +91,7 @@ object ThreadView {
         val inputFieldFocusTrigger = PublishSubject[Unit]
 
         if(!BrowserDetect.isMobile) {
-          state.page.triggerLater {
+          parentId.triggerLater {
             inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
             ()
           }
@@ -102,16 +102,16 @@ object ThreadView {
     )
   }
 
-  private def chatHistory(state: GlobalState, selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def chatHistory(state: GlobalState, parentId: Rx[Option[NodeId]], selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
-    state.page.foreach { _ => pageCounter() = initialPageCounter }
+    parentId.foreach { _ => pageCounter() = initialPageCounter }
 
     val messages = Rx {
-      val page = state.page()
+      val pageParentId = parentId()
       val graph = state.graph()
 
-      calculateThreadMessages(page.parentId, graph)
+      calculateThreadMessages(pageParentId, graph)
     }
 
     var prevMessageSize = -1
@@ -127,10 +127,10 @@ object ThreadView {
     VDomModifier(
       Rx {
         state.screenSize() // on screensize change, rerender whole chat history
-        val page = state.page()
+        val pageParentId = parentId()
         val pageCount = pageCounter()
 
-        renderThreadGroups(state, messages().takeRight(pageCount), page.parentId, page.parentId.toSet, selectedNodes, true)
+        renderThreadGroups(state, messages().takeRight(pageCount), pageParentId, pageParentId.toSet, selectedNodes, true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
@@ -190,12 +190,10 @@ object ThreadView {
 
             val isDeletedNow =  state.graph.map(_.isDeletedNow(nodeId, directParentIds))
 
-            val editMode = Var(false)
-
             val inCycle = transitiveParentIds.contains(nodeId)
 
             if(inCycle)
-              renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+              renderMessageRow(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
             else {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
@@ -209,7 +207,7 @@ object ThreadView {
               }
 
               VDomModifier(
-                renderMessageRow(state, nodeId, directParentIds, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
+                renderMessageRow(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
                     renderExpandedThread(state, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
@@ -283,13 +281,13 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, editMode = editMode, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
         Styles.flex,
         alignItems.center,
         freeSolid.faSyncAlt,
@@ -298,17 +296,17 @@ object ThreadView {
         color := "#666",
         boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
       ),
-      messageDragOptions(state, nodeId, selectedNodes, editMode),
+      messageDragOptions(state, nodeId, selectedNodes),
     ))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, editMode = editMode, replyAction = showReplyField() = !showReplyField.now)
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(editMode, showReplyField), isSelected = isSelected)
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = showReplyField() = !showReplyField.now)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(showReplyField), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId, directParentIds)(editMode, showReplyField))
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId, directParentIds)(showReplyField))
         else {
           // stopPropagation prevents deselecting by clicking on background
           val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId, directParentIds)(editMode, showReplyField)))
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId, directParentIds)(showReplyField)))
         }
       }
     }
@@ -379,12 +377,6 @@ object ThreadView {
   //TODO share code with chatview?
   private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): (SelectedNode, Boolean) => List[VNode] = (selectedNode, canWriteAll) => if(state.graph.now.contains(selectedNode.nodeId)) {
     List(
-      Some(editButton(
-        onClick foreach {
-          selectedNode.editMode() = true
-          selectedNodes() = Set.empty[SelectedNode]
-        }
-      )).filter(_ => canWriteAll),
       Some(zoomButton(onClick foreach {
         state.urlConfig.update(_.focus(Page(selectedNode.nodeId)))
         selectedNodes() = Set.empty[SelectedNode]

@@ -4,7 +4,6 @@ import wust.webApp.dragdrop.{DragContainer, DragItem}
 import fontAwesome.freeSolid
 import SharedViewElements._
 import wust.webApp.{BrowserDetect, Icons, ItemProperties}
-import wust.webApp.state.View
 import wust.webApp.Icons
 import outwatch.dom._
 import wust.sdk.{BaseColors, NodeColor}
@@ -34,7 +33,8 @@ object DashboardView {
   }
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexDirection.column,
@@ -42,7 +42,7 @@ object DashboardView {
       padding := "20px",
 
       Rx {
-        state.page().parentId.map { pageParentId =>
+        parentId().map { pageParentId =>
           //TODO: renderSubprojects mit summary
           VDomModifier(
             renderSubprojects(state, pageParentId),
@@ -109,7 +109,7 @@ object DashboardView {
       ),
 
       onClick foreach {
-        state.urlConfig.update(_.focus(page = Page(project.id), View.Dashboard))
+        state.urlConfig.update(_.focus(Page(project.id)))
       },
       cursor.pointer,
 
@@ -181,7 +181,6 @@ object DashboardView {
     val commonStyles = VDomModifier(
       fontSize := "2em",
       alignItems.center,
-      backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(pageParentId)).toHex,
       margin := "10px 10px 10px 0px",
       padding := "10px",
       borderRadius := "3px",

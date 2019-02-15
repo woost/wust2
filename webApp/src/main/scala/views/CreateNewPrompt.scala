@@ -5,9 +5,8 @@ import jquery.JQuerySelection
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.graph._
-import wust.ids.{NodeAccess, NodeData, NodeId, NodeRole}
-import wust.webApp.state.{GlobalState, PageChange, View}
+import wust.ids._
+import wust.webApp.state.{GlobalState, PageChange}
 import Components._
 import cats.effect.IO
 import colorado.{Color, RGB}
@@ -16,7 +15,7 @@ import monix.execution.Ack
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import wust.css.Styles
-import wust.graph.Edge.Pinned
+import wust.graph._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.webApp.outwatchHelpers._
 import wust.util._
@@ -42,7 +41,7 @@ object CreateNewPrompt {
         GraphChanges.addToParent(childNodes.now, newNode.id)
 
       val ack = if (addToChannels.now) {
-        val channelChanges = GraphChanges.connect(Pinned)(state.user.now.id, newNode.id)
+        val channelChanges = GraphChanges.connect(Edge.Pinned)(state.user.now.id, newNode.id)
         val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
         state.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
         ack

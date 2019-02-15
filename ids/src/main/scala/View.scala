@@ -1,4 +1,4 @@
-package wust.webApp.state
+package wust.ids
 
 import cats.data.NonEmptyList
 import wust.util.macros.SubObjects
@@ -11,15 +11,6 @@ sealed trait View {
 }
 object View {
   sealed trait Visible extends View
-  case object Detail extends Visible {
-    def viewKey = "detail"
-  }
-  case object Magic extends Visible {
-    def viewKey = "magic"
-  }
-  case object Split extends Visible {
-    def viewKey = "split"
-  }
   case object Thread extends Visible {
     def viewKey = "thread"
   }
@@ -34,9 +25,6 @@ object View {
   }
   case object List extends Visible {
     def viewKey = "list"
-  }
-  case object Property extends Visible {
-    def viewKey = "property"
   }
   case object Graph extends Visible {
     def viewKey = "graph"

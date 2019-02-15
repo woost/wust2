@@ -16,12 +16,13 @@ import wust.util._
 import scala.concurrent.Future
 
 object FilesView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
+  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
     val files: Rx.Dynamic[Seq[(NodeId, NodeData.File)]] = Rx {
       val graph = state.graph()
-      val page = state.page()
+      val pageParentId = parentId()
 
-      page.parentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId).sortBy { case (id, _) => id }.reverse)
+      pageParentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId).sortBy { case (id, _) => id }.reverse)
 
     }
 
