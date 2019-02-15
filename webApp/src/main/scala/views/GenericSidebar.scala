@@ -19,19 +19,23 @@ object GenericSidebar {
     def openSwipe = (if (isRight) onSwipeLeft(true) else onSwipeRight(true)) --> sidebarOpen
     def closeSwipe = (if (isRight) onSwipeRight(false) else onSwipeLeft(false)) --> sidebarOpen
     def directionOverlayModifier = if (isRight) cls := "overlay-right-sidebar" else cls := "overlay-left-sidebar"
+    def directionExpandedModifier = if (isRight) cls := "expanded-right-sidebar" else cls := "expanded-left-sidebar"
     def directionSidebarModifier = if (isRight) cls := "right-sidebar" else cls := "left-sidebar"
 
-    def closedSidebar(config: Config) = config.closedModifier.map { closedModifier =>
-      VDomModifier(
-        cls := "sidebar",
-        directionSidebarModifier,
-        openSwipe,
-        closedModifier
-      )
-    }
+    def closedSidebar(config: Config) = VDomModifier(
+      cls := "sidebar-close",
+      config.closedModifier.map { closedModifier =>
+        VDomModifier(
+          cls := "sidebar",
+          directionSidebarModifier,
+          openSwipe,
+          closedModifier
+        )
+      }
+    )
 
     def openSidebar(config: Config) = VDomModifier(
-      cls := "sidebar",
+      cls := "sidebar sidebar-open",
       directionSidebarModifier,
       config.openModifier
     )
@@ -39,12 +43,13 @@ object GenericSidebar {
     def overlayOpenSidebar(config: Config) = VDomModifier(
       cls := "overlay-sidebar",
       directionOverlayModifier,
-      onClick(false) --> sidebarOpen,
+      onClick.onlyOwnEvents(false) --> sidebarOpen,
       onSwipeLeft(false) --> sidebarOpen,
       closeSwipe,
+
       div(
         openSidebar(config),
-        config.overlayOpenModifier
+        config.overlayOpenModifier,
       )
     )
 
@@ -58,12 +63,18 @@ object GenericSidebar {
       }
     )
 
-    def sidebarWithExpand(config: Config)(implicit ctx: Ctx.Owner): VDomModifier = Rx {
-      sidebarOpen() match {
-        case true  => VDomModifier(openSidebar(config), config.expandedOpenModifier)
-        case false => VDomModifier(closedSidebar(config))
-      }
-    }
+    def sidebarWithExpand(config: Config)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+      cls := "expanded-sidebar",
+      directionExpandedModifier,
+      div(
+        Rx {
+          sidebarOpen() match {
+            case true  => VDomModifier(openSidebar(config), config.expandedOpenModifier)
+            case false => VDomModifier(closedSidebar(config))
+          }
+        }
+      )
+    )
 
     div.static(keyValue)(config.flatMap(config => Ownable { implicit ctx =>
       VDomModifier(

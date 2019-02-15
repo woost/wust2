@@ -48,6 +48,7 @@ object LeftSidebar {
           Rx {
             VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(authStatus)
           },
+          onClick(false) --> state.leftSidebarOpen
         ),
         expandedOpenModifier = VDomModifier(
           Rx {
@@ -87,7 +88,7 @@ object LeftSidebar {
         channelIcon(state, node, selected, 30),
 
         {
-          val rendered = renderNodeData(node.data, maxLength = Some(100))(cls := "channel-name")
+          val rendered = renderNodeData(node.data, maxLength = Some(60))(cls := "channel-name")
           if (state.user.now.id == node.id) b(rendered) else rendered
         },
 
@@ -98,8 +99,6 @@ object LeftSidebar {
           case _:Node.Content => drag(DragItem.Channel(node.id))
           case _:Node.User => drag(target = DragItem.Channel(node.id))
         },
-
-        channelFocusButton(state, node.id)(cls := "channel-line-hover-show", marginLeft := "auto")
       )
     }
 
@@ -176,25 +175,6 @@ object LeftSidebar {
     )
   }
 
-  def channelFocusButton(state: GlobalState, nodeId: NodeId): VNode = {
-    div(
-      cls := "ui icon buttons channel-focus-buttons",
-      height := "22px",
-      button(
-        cls := "ui mini compact inverted button",
-        padding := "2px",
-        renderFontAwesomeIcon(Icons.conversation)(color.gray),
-        onClick.stopPropagation.foreach(state.urlConfig.update(_.focus(Page(nodeId), View.Conversation))),
-      ),
-      button(
-        cls := "ui mini compact inverted button",
-        padding := "2px",
-        renderFontAwesomeIcon(Icons.tasks)(color.gray),
-        onClick.stopPropagation.foreach(state.urlConfig.update(_.focus(Page(nodeId), View.Tasks))),
-      )
-    )
-  }
-
   def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
     val indentFactor = 3
     val focusBorderWidth = 2
@@ -211,10 +191,7 @@ object LeftSidebar {
             val depth = rawDepth min maxVisualizedDepth
             val isSelected = page.parentId.contains(node.id)
             channelIcon(state, node, isSelected, size)(ctx)(
-              UI.popupHtml("right center") := div(
-                channelFocusButton(state, node.id)(marginRight := "4px"),
-                node.str
-              ),
+              UI.popup("right center") := node.str,
 
               onChannelClick(ChannelAction.Node(node.id))(state),
               onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
@@ -262,6 +239,10 @@ object LeftSidebar {
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
     onClick foreach { e =>
       val page = state.page.now
+      val newView = page.parentId.flatMap { parentId =>
+        val node = state.graph.now.nodesById(parentId)
+        node.views.flatMap(_.headOption)
+      }
       //TODO if (e.shiftKey) {
       val newPage = action match {
         case ChannelAction.Node(id)   =>
@@ -275,6 +256,6 @@ object LeftSidebar {
 //          } else
                         Page(id)
       }
-      state.urlConfig.update(_.focus(newPage))
+      state.urlConfig.update(_.focus(newPage, newView))
     }
 }

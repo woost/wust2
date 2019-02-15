@@ -48,6 +48,8 @@ class GlobalState(
   val screenSize: Rx[ScreenSize],
 )(implicit ctx: Ctx.Owner) {
 
+  val rightSidebarNode: Var[Option[NodeId]] = Var(None)
+
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
 
@@ -80,32 +82,6 @@ class GlobalState(
   }
 
   val viewConfig: Rx[ViewConfig] = {
-    def viewHeuristic(graph:Graph, parentId: NodeId): Option[View] => View.Visible = {
-      case Some(view: View.Visible) => view
-      case Some(View.Tasks) =>
-        graph.idToIdxGet(parentId).fold[View.Visible](View.Empty){ parentIdx =>
-          val stageCount = graph.notDeletedChildrenIdx(parentIdx).count { childIdx =>
-            val node = graph.nodes(childIdx)
-            node.role == NodeRole.Stage && !graph.isDoneStage(node)
-          }
-
-          if (stageCount > 0) View.Kanban else View.List
-        }
-      case Some(View.Conversation) => View.Chat
-      case None =>
-        graph.idToIdxGet(parentId).fold[View.Visible](View.Empty) { parentIdx =>
-          graph.nodes(parentIdx).role match {
-            case NodeRole.Project => View.Dashboard
-            case _                =>
-              val stats = graph.topLevelRoleStats(parentId :: Nil)
-              stats.mostCommonRole match {
-                case NodeRole.Message => viewHeuristic(graph, parentId)(Some(View.Conversation))
-                case NodeRole.Task    => viewHeuristic(graph, parentId)(Some(View.Tasks))
-                case _                => View.Dashboard
-              }
-          }
-        }
-    }
 
     var lastViewConfig: ViewConfig = ViewConfig(View.Empty, Page.empty)
 
@@ -126,7 +102,7 @@ class GlobalState(
             case _ => View.Welcome
           }
           case Some(parentId) =>
-            val bestView = viewHeuristic(rawGraph.now, parentId)(rawView) // use rawGraph.now to not trigger on every graph change
+            val bestView = ViewHeuristic(rawGraph.now, parentId, rawView) // use rawGraph.now to not trigger on every graph change
             scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
             bestView
         }

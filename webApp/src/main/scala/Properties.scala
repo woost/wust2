@@ -72,6 +72,9 @@ object ItemProperties {
       VDomModifier(
         form(
           onDomMount.asHtml.foreach { element = _ },
+          Styles.flex,
+          flexDirection.column,
+          alignItems.center,
           select(
             inputSizeMods,
             option(
@@ -121,28 +124,7 @@ object ItemProperties {
               },
             ),
           )
-        ),
-        div(
-          marginTop := "10px",
-          maxHeight := s"${0.5*dom.window.innerHeight}px",
-          overflow.auto,
-          Rx{
-            val graph = state.graph()
-            val propertyEdgesIdx = graph.propertiesEdgeIdx(graph.idToIdx(nodeId))
-            val propertyEdges = propertyEdgesIdx.map(eIdx => graph.edges(eIdx).asInstanceOf[Edge.LabeledProperty])
-            val propertyData = propertyEdges.map(e => (e, graph.nodesById(e.propertyId)))
-
-            propertyData.map(data => propertyRow(data._1, data._2))
-          },
-        ),
-        div(
-          marginTop := "10px",
-          cursor.pointer,
-          a(
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeId), View.Detail)) --> state.urlConfig,
-            "Show detailed view",
-          )
-        ),
+        )
       )
     }
 
@@ -163,6 +145,8 @@ object ItemProperties {
 
         state.eventProcessor.changes.onNext (gc) foreach { _ => clear.onNext (()) }
       }
+
+      state.uiModalClose.onNext(())
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(

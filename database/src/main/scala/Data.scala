@@ -4,6 +4,10 @@ import java.time.{Instant, LocalDateTime, ZoneOffset}
 
 import wust.ids._
 
+import io.circe.parser._
+import io.circe.syntax._
+import wust.ids.serialize.Circe._
+
 import scala.collection.mutable
 
 object Data {
@@ -13,7 +17,8 @@ object Data {
     id: NodeId,
     data: NodeData,
     role: NodeRole,
-    accessLevel: NodeAccess
+    accessLevel: NodeAccess,
+    views: Option[List[View]]
   )
 
   case class User(
@@ -74,6 +79,7 @@ object Data {
     data: NodeData,
     role: NodeRole,
     accessLevel: NodeAccess,
+    views: Option[String],
     targetIds: List[NodeId],
     edgeData: List[EdgeData]
   ) {
@@ -87,7 +93,17 @@ object Data {
       nodes.sizeHint(rows.length)
 
       rows.foreach { row =>
-        nodes += Node(row.nodeId, row.data, row.role, row.accessLevel)
+        //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
+        //Now we let quill decode views to Option[String] and decode the list ourselves...meh
+        val viewList: Option[List[View]] = row.views.map { views =>
+          val viewStrings = views
+            .drop(2).dropRight(2)
+            .split("""","""")
+            .map(_.replaceAll("""\\"""", """""""))
+            .toList
+          viewStrings.flatMap(str => decode[View](str).right.toOption)
+        }
+        nodes += Node(row.nodeId, row.data, row.role, row.accessLevel, viewList)
 
         (row.targetIds zip row.edgeData).foreach { case (targetId, edgeData) =>
           edges += Edge(row.nodeId, edgeData, targetId)

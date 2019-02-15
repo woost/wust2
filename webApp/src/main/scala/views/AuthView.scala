@@ -8,10 +8,11 @@ import rx._
 import wust.api.{AuthResult, AuthUser}
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, View}
+import wust.webApp.state.{GlobalState, PageChange}
 import wust.webApp.views.Elements._
 import cats.effect.IO
 import org.scalajs.dom
+import wust.ids.View
 import wust.graph.Page
 import wust.util._
 import Components._

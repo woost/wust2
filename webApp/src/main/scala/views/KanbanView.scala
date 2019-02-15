@@ -8,7 +8,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
-import wust.ids.{NodeId, NodeRole, UserId}
+import wust.ids.{NodeId, NodeRole, UserId, View}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -16,7 +16,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, NodePermission, View}
+import wust.webApp.state.{GlobalState, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -196,7 +196,7 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
-    val columnTitle = editableNode(state, node, editMode = editable, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
+    val columnTitle = editableNode(state, node, editable, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
 
     val messageChildrenCount = Rx {
       val graph = state.graph()
@@ -346,8 +346,6 @@ object KanbanView {
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val editable = Var(false)
-
     val assignment = Rx {
       val graph = state.graph()
       val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
@@ -397,11 +395,6 @@ object KanbanView {
         )
         builder _
       }
-      val createSubtasks = menuItem(
-        "Create subtasks", "Create subtasks", Icons.tasks,
-        onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Tasks)) --> state.urlConfig)
-      val startConversation = menuItem("Start conversation", "Start conversation about this card", Icons.conversation,
-        onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig)
       val archive = menuItem(
         "Archive", "Archive", Icons.delete,
         Rx {
@@ -416,68 +409,29 @@ object KanbanView {
             selectedNodeIds.update(_ - node.id)
           }
         })
-      val edit = menuItem(
-        "Edit", "Edit", Icons.edit, 
-        onClick.stopPropagation(true) --> editable
-      )
       val expand = menuItem(
         "Expand", "Expand", Icons.expand,
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
       val collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
         onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes)
-      val propertiesBuilder = menuItem(
-        ItemProperties.naming, ItemProperties.naming, Icons.property,
-        span())
-      def properties(compressed : Boolean) = {
-        ItemProperties.manageProperties(
-                  state, node.id,
-                  propertiesBuilder(compressed))
-      }
       def toggle(compress : Boolean) = Rx {
         if(state.graph().isExpanded(state.user.now.id, node.id))
           collapse(compress)
         else
-          expand(compress),
+          expand(compress)
       }
-      /// these are only visible via the more menu
-      val moreMenuItems = Seq[(Boolean) => VDomModifier](
-        createSubtasks,
-        startConversation,
-        toggle _,
-        edit,
-        archive,
-        properties
-      )
+
       /// these are always visible on hover
       val immediateMenuItems = Seq[(Boolean) => VDomModifier](
         toggle _,
-        edit,
         archive
-      )
-      // ideally this would be always visible, but since the outer div does no longer hide overflow,
-      // the ellipsis are always visible, even if they are overlapped by the „Add card“ area
-      //visibility.visible,
-      val moreMenu = UI.dropdownMenu(VDomModifier(
-        div(cls := "header", "Context menu", cursor.default),
-        moreMenuItems.map(_(false))
-      )).apply(
-        cls := "pointing top right",
-        div(cls := "fa-fw", Icons.ellipsisV),
-        UI.popup := "More",
       )
 
       div(
         cls := "buttonbar",
         Styles.flex,
-        Rx {
-          if(editable()) {
-            VDomModifier.empty
-          } else VDomModifier(
-            immediateMenuItems.map(_(true)),
-          )
-        },
-        Rx { (!editable()).ifTrue[VDomModifier](moreMenu) }
+        immediateMenuItems.map(_(true))
       )
     }
 
@@ -604,11 +558,10 @@ object KanbanView {
       }
     }
 
-    nodeCardEditable(
-      state, node,
+    nodeCard(
+      node,
       maxLength = Some(maxLength),
-      editMode = editable,
-      contentInject = if(isDone) textDecoration.lineThrough else VDomModifier.empty
+      contentInject = VDomModifier(Components.sidebarNodeFocusMod(state, node.id), if(isDone) textDecoration.lineThrough else VDomModifier.empty),
       ).prepend(
       if(showCheckbox)
         VDomModifier(
@@ -616,11 +569,10 @@ object KanbanView {
         )
       else VDomModifier.empty
     ).apply(
-      Rx{ VDomModifier.ifNot(editable() || isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))) }, // prevents dragging when selecting text
+      VDomModifier.ifNot(isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
       keyed(node.id, parentId),
       // fixes unecessary scrollbar, when card has assignment
-      // removed by tkarolski, to allow dropdown menu to popup
-      //overflow.hidden,
+      overflow.hidden,
 
       div(
         Styles.flex,

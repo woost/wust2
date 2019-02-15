@@ -4,10 +4,11 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles,Styles}
+import wust.css.{CommonStyles, Styles}
+import wust.ids.View
 import wust.ids.NodeRole
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize, View}
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.SharedViewElements._
 import wust.util._
 import wust.webApp.views.Components._

@@ -85,7 +85,9 @@ object SharedViewElements {
     placeHolderMessage:Option[String] = None,
     preFillByShareApi:Boolean = false,
     submitIcon:VDomModifier = freeRegular.faPaperPlane,
+    showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers:VDomModifier = VDomModifier.empty,
+    allowEmptyString: Boolean = false
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
       state.urlConfig().shareOptions.map { share =>
@@ -104,7 +106,7 @@ object SharedViewElements {
     )
 
     var currentTextArea: dom.html.TextArea = null
-    def handleInput(str: String): Unit = if (str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
+    def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       val submitted = submitAction(str)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
 
@@ -168,7 +170,7 @@ object SharedViewElements {
       }
     ))
 
-    val submitButton = BrowserDetect.isMobile.ifTrue[VDomModifier](
+    val submitButton = VDomModifier.ifTrue(showSubmitIcon)(
       div( // clickable box around circular button
         padding := "3px",
         button(
@@ -307,7 +309,7 @@ object SharedViewElements {
     }
   }
 
-  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
+  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
 
     val node = Rx {
       // we need to get the latest node content from the graph
@@ -340,7 +342,7 @@ object SharedViewElements {
               renderedMessageModifier,
             )
           case _ =>
-            nodeCardEditable(state, node, editMode = editMode).apply(
+            nodeCard(node).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
 
@@ -354,7 +356,7 @@ object SharedViewElements {
     }
 
     Rx {
-      node().map(render(_, isDeletedNow()))
+      node().map(node => render(node, isDeletedNow()).apply(cursor.pointer, Components.sidebarNodeFocusMod(state, node.id)))
     }
   }
 
@@ -381,19 +383,17 @@ object SharedViewElements {
     },
   )
 
-  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]], editMode: Var[Boolean])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
       val node = graph.nodesById(nodeId)
-      VDomModifier.ifNot(editMode()){ // prevents dragging when selecting text
-        val selection = selectedNodes()
-        // payload is call by name, so it's always the current selectedNodeIds
-        def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
-        VDomModifier(
-          nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
-          onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
-        )
-      }
+      val selection = selectedNodes()
+      // payload is call by name, so it's always the current selectedNodeIds
+      def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
+      VDomModifier(
+        nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
+        onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
+      )
     },
   )
 
@@ -432,7 +432,7 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], editMode: Var[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 
@@ -452,19 +452,12 @@ object SharedViewElements {
             replyButton(
               onClick foreach { replyAction }
             ),
-            ItemProperties.manageProperties(state, nodeId),
-            ifCanWrite(editButton(
-              onClick.mapTo(!editMode.now) --> editMode
-            )),
             ifCanWrite(deleteButton(
               onClick foreach {
                 state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
                 selectedNodes.update(_.filterNot(_.nodeId == nodeId))
               },
             )),
-            zoomButton(
-              onClick.mapTo(state.urlConfig.now.focus(Page(nodeId))) --> state.urlConfig,
-            ),
           )
         )
       }
@@ -512,16 +505,51 @@ object SharedViewElements {
   }
 
   def newProjectButton(state: GlobalState, label: String = "New Project", view: Option[View] = None): VNode = {
+    def newProject(name: String) = {
+      val newName = if (name.trim.isEmpty) GraphChanges.newProjectName else name
+      val nodeId = NodeId.fresh
+      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName))
+      state.urlConfig.update(_.focus(Page(nodeId), view, needsGet = false))
+
+      Ack.Continue
+    }
+
+    val modalConfig = Ownable { implicit ctx =>
+      UI.ModalConfig(
+        header = VDomModifier(
+          "Create a new Project"
+        ),
+        description = VDomModifier(
+          SharedViewElements.inputRow(
+            state = state,
+            submitAction = name => newProject(name),
+            autoFocus = true,
+            placeHolderMessage = Some("A new Project"),
+            allowEmptyString = true,
+            submitIcon = freeSolid.faPlus,
+            showSubmitIcon = true,
+            textAreaModifiers = VDomModifier(
+              color.white,
+              backgroundColor := "rgba(255, 255, 255, 0.1)"
+
+            )
+          ),
+        ),
+        modalModifier = VDomModifier(
+          cls := "basic",
+          width := "400px"
+        )
+      )
+    }
+
     button(
       cls := "ui button",
       label,
       onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
 
-        val nodeId = NodeId.fresh
-        state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id))
-        state.urlConfig.update(_.focus(Page(nodeId), view, needsGet = false))
-      }
+        state.uiModalConfig.onNext(modalConfig)
+      },
     )
   }
 
@@ -607,30 +635,30 @@ object SharedViewElements {
       "Tags",
       toggle = state.showTagsList,
       enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
+      resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
       initialPosition = MoveableElement.RightPosition(100, 400),
-        Ownable(implicit ctx => VDomModifier(
-          width := "180px",
-          height := "300px",
-          overflowY.auto,
-          resize := "both",
-          Rx {
-            val page = state.page()
-            val graph = state.graph()
-            VDomModifier.ifTrue(state.view().isContent)(
-              backgroundColor := state.pageStyle().bgColor,
-              color := "gray",
-              page.parentId.map { pageParentId =>
-                val pageParentIdx = graph.idToIdx(pageParentId)
-                val workspaces = graph.workspacesForParent(pageParentIdx)
-                val firstWorkspaceIdx = workspaces.head
-                val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
-                SharedViewElements.tagList(state, firstWorkspaceId).prepend(
-                  padding := "5px",
-                )
-              }
-            )
-          }
-        ))
+      bodyModifier = Ownable(implicit ctx => VDomModifier(
+        width := "180px",
+        height := "300px",
+        overflowY.auto,
+        resize := "both",
+        Rx {
+          val page = state.page()
+          val graph = state.graph()
+          VDomModifier.ifTrue(state.view().isContent)(
+            backgroundColor := state.pageStyle().bgLightColor,
+            page.parentId.map { pageParentId =>
+              val pageParentIdx = graph.idToIdx(pageParentId)
+              val workspaces = graph.workspacesForParent(pageParentIdx)
+              val firstWorkspaceIdx = workspaces.head
+              val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
+              SharedViewElements.tagList(state, firstWorkspaceId).prepend(
+                padding := "5px",
+              )
+            }
+          )
+        }
+      ))
     )
   }
 
@@ -680,21 +708,26 @@ object SharedViewElements {
       val workspaceIdx = graph.idToIdx(workspaceId)
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
-    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
+
+    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
+      state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(tag.id, parentId))
+    ))
+
+    def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
-        checkboxNodeTag(state, node)
+        renderTag(parentId, node)
       case Tree.Parent(node, children) =>
         VDomModifier(
-          checkboxNodeTag(state, node),
+          renderTag(parentId, node),
           div(
             paddingLeft := "10px",
-            renderTagTree(children)
+            renderTagTree(node.id, children)
           )
         )
     }
 
     div(
-      Rx { renderTagTree(tags()) },
+      Rx { renderTagTree(workspaceId, tags()) },
 
       addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
 

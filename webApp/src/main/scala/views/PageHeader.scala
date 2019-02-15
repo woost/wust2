@@ -10,8 +10,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.Node.User
-import wust.graph._
+import wust.graph.{Node, Edge, GraphChanges}
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
@@ -28,8 +27,7 @@ import wust.webApp.views.UI.ModalConfig
 import scala.collection.breakOut
 import scala.scalajs.js
 import scala.util.{Failure, Success}
-
-import pageheader.components.{singleTab, doubleTab, TabContextParms, TabInfo}
+import pageheader.components.{TabContextParms, TabInfo, customTab, doubleTab, singleTab}
 
 
 object PageHeader {
@@ -49,31 +47,28 @@ object PageHeader {
     })
   }
 
-  private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VNode = {
-    val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(250)
-    val channelTitle = NodePermission.canWrite(state, pageNode.id).map { canWrite =>
+  private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(60)
+
+    val commonMods = VDomModifier(
+      cls := "pageheader-channeltitle",
+    )
+
+    val channelTitle = NodePermission.canWrite(state, pageNode.id).flatMap { canWrite =>
       pageNode.role match {
         case NodeRole.Message | NodeRole.Task =>
           val node =
-            if(!canWrite) nodeCard(pageNode)
-            else {
-              val editable = Var(false)
-              nodeCardEditable(state, pageNode, editable).apply(onClick.stopPropagation(true) --> editable)
-              // editableNodeOnClick(state, pageNode, state.eventProcessor.changes, maxLength)(ctx)(
-              //   onClick foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-              // )
-            }
-          node(cls := "pageheader-channeltitle")
+            if(!canWrite) nodeCard(pageNode, maxLength = maxLength)
+            else nodeCard(pageNode, maxLength = maxLength).apply(Components.sidebarNodeFocusMod(state, pageNode.id))
+          Rx(node(commonMods))
 
         case _ => // usually NodeRole.Project
-          val node =
-            if(!canWrite) renderNodeData(pageNode.data, maxLength)
-            else {
-              editableNodeOnClick(state, pageNode, maxLength)(ctx)(
-                onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "editchanneltitle") }
-              )
-            }
-          node(cls := "pageheader-channeltitle")
+          Rx {
+            val node =
+              if(!canWrite) renderNodeData(pageNode.data, maxLength = maxLength)
+              else renderNodeData(pageNode.data, maxLength = maxLength).apply(Components.sidebarNodeFocusMod(state, pageNode.id))
+            node(commonMods)
+          }
 
       }
     }
@@ -86,7 +81,7 @@ object PageHeader {
 
     val permissionIndicator = Rx {
       val level = Permission.resolveInherited(state.graph(), pageNode.id)
-      div(level.icon, UI.tooltip("bottom center") := level.description, zIndex := ZIndex.tooltip - 15)
+      div(level.icon, UI.popup("bottom center") := level.description, zIndex := ZIndex.tooltip - 15)
     }
 
     div(
@@ -96,22 +91,24 @@ object PageHeader {
       backgroundColor := BaseColors.pageBg.copy(h = hue(pageNode.id)).toHex,
 
       Styles.flex,
-      alignItems.center,
+      alignItems.flexEnd,
       flexWrap.wrap,
 
       div(
-        Styles.flex,
-        alignItems.center,
-        justifyContent.flexStart,
-        flexGrow := 1,
-        flexShrink := 2,
-        padding := "0 5px",
-        nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
-        channelTitle.map(_ (marginRight := "5px")),
-        Components.automatedNodesOfNode(state, pageNode),
-        channelMembersList,
-        permissionIndicator,
-        paddingBottom := "5px",
+        div(
+          Styles.flex,
+          alignItems.center,
+          justifyContent.flexStart,
+          flexGrow := 1,
+          flexShrink := 2,
+          padding := "0 5px",
+          nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
+          channelTitle.map(_(marginRight := "5px")),
+          Components.automatedNodesOfNode(state, pageNode),
+          channelMembersList,
+          permissionIndicator,
+          paddingBottom := "5px",
+        ),
       ),
       menu(state, pageNode).apply(alignSelf.flexEnd, marginLeft.auto),
     )
@@ -145,10 +142,10 @@ object PageHeader {
           color := "green",
           onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
           cursor.pointer,
-          UI.tooltip("bottom right") := "A filter is active. Click to reset to default.",
+          UI.popup("bottom right") := "A filter is active. Click to reset to default.",
         )
       }),
-      viewSwitcher(state).apply(Styles.flexStatic, alignSelf.flexEnd),
+      viewSwitcher(state, channel.id).apply(Styles.flexStatic, alignSelf.flexEnd),
       Rx {
         PageSettingsMenu(state, channel.id).apply(buttonStyle, marginLeft := "15px")
       },
@@ -175,7 +172,7 @@ object PageHeader {
           ),
           Styles.flexStatic,
           cursor.grab,
-          UI.tooltip("bottom center") := Components.displayUserName(user.data)
+          UI.popup("bottom center") := Components.displayUserName(user.data)
         )(
           drag(payload = DragItem.User(user.id)),
         ))(breakOut): js.Array[VNode]
@@ -183,7 +180,188 @@ object PageHeader {
     )
   }
 
-  private def viewSwitcher(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def viewSwitcher(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    viewSwitcher(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
+  }
+  def viewSwitcher(state: GlobalState, channelId: NodeId, viewVar: Var[View])(implicit ctx: Ctx.Owner): VNode = {
+    viewSwitcher(state, channelId, viewVar, viewVar() = _)
+  }
+  def viewSwitcher(state: GlobalState, channelId: NodeId, viewRx: Rx[View], viewAction: View => Unit)(implicit ctx: Ctx.Owner): VNode = {
+
+    def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
+      case View.Dashboard => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
+      case View.Chat => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
+      case View.Thread => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
+      case View.List => TabInfo(View.List, Icons.list, "tasks", numTasks)
+      case View.Kanban => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
+      case View.Files => TabInfo(View.Files, Icons.files, "files", numFiles)
+      case View.Graph => TabInfo(View.Graph, Icons.graph, "Graph", numFiles)
+      case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
+    }
+
+    val viewDefs =
+      View.Dashboard ::
+      View.Chat ::
+      View.Thread ::
+      View.List ::
+      View.Kanban ::
+      View.Files ::
+      (if (DevOnly.isTrue) View.Graph :: Nil else Nil)
+
+    def addNewView(newView: View) = if (viewDefs.contains(newView)) { // only allow defined views
+      val node = state.graph.now.nodesByIdGet(channelId)
+      node.foreach { node =>
+        val currentViews = node.views match {
+          case None        => ViewHeuristic.bestView(state.graph.now, node) :: Nil // no definitions yet, take the current view and additionally a new one
+          case Some(views) => views // just add a new view
+        }
+
+        if (!currentViews.contains(newView)) {
+          val newNode = node match {
+            case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
+            case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+          }
+
+          if (viewRx.now != newView) {
+            viewAction(newView)
+          }
+
+          state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+          state.uiModalClose.onNext(())
+        }
+      }
+    }
+
+    def resetViews() = {
+      val node = state.graph.now.nodesByIdGet(channelId)
+      node.foreach { node =>
+        if (node.views.isDefined) {
+          val newNode = node match {
+            case n: Node.Content => n.copy(views = None)
+            case n: Node.User => n.copy(views = None)
+          }
+
+          val newView = ViewHeuristic.bestView(state.graph.now, node)
+          if (viewRx.now != newView) {
+            viewAction(newView)
+          }
+
+          state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+        }
+      }
+    }
+
+    def removeView(view: View) = {
+      val node = state.graph.now.nodesByIdGet(channelId)
+      node.foreach { node =>
+        val filteredViews = node.views match {
+          case None        => Nil
+          case Some(views) => views.filterNot(_ == view)
+        }
+        val newNode = node match {
+          case n: Node.Content => n.copy(views = Some(filteredViews))
+          case n: Node.User => n.copy(views = Some(filteredViews))
+        }
+
+        //switch to remaining view
+        val newView = filteredViews.headOption.getOrElse(View.Empty)
+        if (viewRx.now == view && viewRx.now != newView) {
+          viewAction(newView)
+        }
+
+        state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+      }
+    }
+
+    def addNewViewTab = customTab(Icons.ellipsisV, tooltip = "Add another view", action = { () =>
+      val config = Ownable { implicit ctx =>
+
+        val node = Rx {
+          state.graph().nodesById(channelId)
+        }
+
+        UI.ModalConfig(
+          header = "Select a view",
+          description = VDomModifier(
+            Styles.flex,
+            flexDirection.column,
+            alignItems.center,
+
+            Rx {
+              val existingViews = node().views match {
+                case None        => List(ViewHeuristic.bestView(state.graph(), node()))
+                case Some(views) => views
+              }
+              val possibleViews = viewDefs.filterNot(existingViews.contains)
+              VDomModifier(
+                possibleViews.map { view =>
+                  val info = viewToTabInfo(view, 0, 0, 0)
+                  div(
+                    marginBottom := "10px",
+                    cls := "ui button",
+                    Elements.icon(info.icon),
+                    view.toString,
+                    onClick.stopPropagation.foreach(addNewView(view)),
+                    cursor.pointer
+                  )
+                },
+
+                div(
+                  Styles.flex,
+                  flexDirection.column,
+                  alignItems.center,
+                  width := "100%",
+                  opacity := 0.5,
+                  marginTop := "20px",
+                  padding := "10px",
+
+                  b(
+                    "Current views:",
+                    alignSelf.flexStart
+                  ),
+
+                  if (existingViews.isEmpty) div("Nothing, yet.")
+                  else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
+                    val info = viewToTabInfo(view, 0, 0, 0)
+                    VDomModifier(
+                      marginTop := "8px",
+                      div(
+                        Styles.flex,
+                        alignItems.center,
+                        Elements.icon(info.icon),
+                        view.toString
+                      )
+                    )
+                  },
+
+                  node().views.map { _ =>
+                    div(
+                      alignSelf.flexEnd,
+                      marginLeft := "auto",
+                      marginTop := "10px",
+                      cls := "ui button inverted mini",
+                      "Reset to default",
+                      cursor.pointer,
+                      onClick.stopPropagation.foreach { resetViews() }
+                    )
+                  }
+                )
+              )
+            }
+          ),
+          modalModifier = VDomModifier(
+            cls := "basic",
+            width := "300px",
+          )
+        )
+      }
+
+      state.uiModalConfig.onNext(config)
+      ()
+    })
+
+    viewRx.foreach { view => addNewView(view) }
+
     div(
       marginLeft := "5px",
       Styles.flex,
@@ -192,42 +370,36 @@ object PageHeader {
       minWidth.auto,
 
       Rx {
-        val currentView = state.view()
-        val pageStyle = state.pageStyle()
+        val currentView = viewRx()
+        val pageStyle = PageStyle.ofNode(Some(channelId))
+        val graph = state.graph()
+        val channelNode = graph.nodesByIdGet(channelId)
+
+        def bestView = graph.nodesByIdGet(channelId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
 
         val (numMsg, numTasks, numFiles) = if(!BrowserDetect.isPhone) {
-          state.page.now.parentId.fold((0, 0, 0)) { pid =>
-            val graph = state.graph.now
-            val nodeIdx = graph.idToIdx(pid)
-            val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
-            val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
-            val filesCount = graph.pageFiles(pid).length
-            (messageChildrenCount, taskChildrenCount, filesCount)
-          }
+          val nodeIdx = graph.idToIdx(channelId)
+          val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+          val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
+          val filesCount = graph.pageFiles(channelId).length
+          (messageChildrenCount, taskChildrenCount, filesCount)
         } else (0, 0, 0)
 
         val parms = TabContextParms(
           currentView,
           pageStyle,
           (targetView : View) => {
-            state.urlConfig.update(_.focus(targetView))
-            Analytics.sendEvent("viewswitcher", "switch", currentView.viewKey)
+            viewAction(targetView)
+            Analytics.sendEvent("viewswitcher", "switch", targetView.viewKey)
           }
         )
-        VDomModifier(
-          singleTab(parms, TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)),
-          doubleTab(parms,
-                    TabInfo(View.Chat, Icons.chat, "messages", numMsg),
-                    TabInfo(View.Thread, Icons.thread, "messages", numMsg)),
-          doubleTab(parms,
-                    TabInfo(View.List, Icons.list, "tasks", numTasks),
-                    TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)),
-          singleTab(parms, TabInfo(View.Files, Icons.files, "files", numFiles)),
-          DevOnly(singleTab(parms, TabInfo(View.Graph, Icons.graph, "Graph", 0)))
-        )
+
+        val viewTabs = channelNode.flatMap(_.views).getOrElse(bestView :: Nil).map { view =>
+          singleTab(parms, viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
+        }
+
+        viewTabs :+ addNewViewTab
       }
     )
-
   }
-
 }

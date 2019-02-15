@@ -62,6 +62,9 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
       _.fold[NodeAccess](NodeAccess.Inherited)(AccessLevel.fromString andThen NodeAccess.Level)
     }
 
+  implicit val encodingView: MappedEncoding[View, String] = MappedEncoding(encodeJson[View])
+  implicit val decodingView: MappedEncoding[String, View] = MappedEncoding(decodeJson[View])
+
   implicit val encodingAccessLevel: MappedEncoding[AccessLevel, String] =
     MappedEncoding { _.str }
   implicit val decodingAccessLevel: MappedEncoding[String, AccessLevel] =

@@ -43,7 +43,7 @@ import scala.util.{Failure, Success}
 object ChatView {
   import SharedViewElements._
 
-  final case class SelectedNode(nodeId: NodeId)(val editMode: Var[Boolean], val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId: NodeId)(val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId), autoFocusInsert = true)
   def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
@@ -66,8 +66,6 @@ object ChatView {
     val pageCounter = PublishSubject[Int]()
     val shouldLoadInfinite = Var[Boolean](false)
 
-    val nodeStyle = focusedNodeId.map(PageStyle(_))
-
     div(
       keyed,
       Styles.flex,
@@ -80,7 +78,6 @@ object ChatView {
       div(
         cls := "chat-history",
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        backgroundColor <-- nodeStyle.map(_.bgLightColor),
         Rx {
           focusedNodeId().map { nodeId =>
             VDomModifier(
@@ -105,7 +102,6 @@ object ChatView {
         div(
           Styles.flexStatic,
 
-          backgroundColor <-- nodeStyle.map(_.bgLightColor),
           Styles.flex,
           currentReply().map { replyNodeId =>
             val isDeletedNow = graph.isDeletedNow(replyNodeId, focusedNodeId())
@@ -290,9 +286,7 @@ object ChatView {
 
                 val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
 
-                val editMode = Var(false)
-
-                renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, editMode = editMode, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
+                renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
             },
           )
@@ -301,7 +295,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], editMode: Var[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup:Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger:PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -320,16 +314,16 @@ object ChatView {
       else VDomModifier.empty
     } else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, editMode = editMode, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes, editMode))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, editMode = editMode, replyAction = replyAction)
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(editMode, directParentIds), isSelected = isSelected)
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes))
+    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
+    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(editMode, directParentIds))
+        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
           val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(editMode, directParentIds)))
+          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(directParentIds)))
         }
       }
     }
@@ -507,7 +501,6 @@ object ChatView {
     List(
       Some(editButton(
         onClick foreach {
-          selectedNode.editMode() = true
           selectedNodes() = Set.empty[SelectedNode]
         }
       )).filter(_ => canWriteAll),

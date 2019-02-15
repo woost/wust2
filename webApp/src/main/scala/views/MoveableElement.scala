@@ -18,7 +18,7 @@ object MoveableElement {
   case class LeftPosition(left: Double, top: Double) extends Position
   case class RightPosition(right: Double, bottom: Double) extends Position
 
-  def withToggleSwitch(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def withToggleSwitch(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
     div(
       enabled.map {
         case true =>
@@ -41,10 +41,10 @@ object MoveableElement {
         case false =>
           VDomModifier.empty
       },
-      apply(title, toggle, enabled, initialPosition, bodyModifier)
+      apply(title, toggle, enabled, resizeEvent, initialPosition, bodyModifier)
     )
   }
-  def apply(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def apply(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
     var mouseDownOffset: Option[LeftPosition] = None
     var currentWidth: Option[Double] = None
     var currentHeight: Option[Double] = None
@@ -95,6 +95,7 @@ object MoveableElement {
             currentHeight.map(currentHeight => height := s"${currentHeight}px"),
           ),
 
+          emitter(resizeEvent).async.foreach { setPosition() },
           emitter(events.window.onResize).foreach { setPosition() },
           onDomMount.foreach { elem =>
             domElem = elem.asInstanceOf[dom.html.Element]

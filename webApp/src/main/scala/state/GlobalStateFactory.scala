@@ -63,9 +63,25 @@ object GlobalStateFactory {
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
+    urlConfig.map(_.pageChange).triggerLater { pc =>
+      if (pc.needsGet) {
+        state.rightSidebarNode() = None
+      }
+    }
+
+    // on mobile left and right sidebars overlay the screen.
+    // close the right sidebar when the left sidebar is opened on mobile.
+    // you can never open the right sidebar when the left sidebar is open,
+    if (BrowserDetect.isMobile) {
+      leftSidebarOpen.triggerLater { open =>
+        if (open) {
+          state.rightSidebarNode() = None
+        }
+      }
+    }
 
     // close sidebar on viewconfig change
-    viewConfig.triggerLater {
+    page.triggerLater {
       state.uiSidebarClose.onNext(())
       state.uiModalClose.onNext(())
       ()

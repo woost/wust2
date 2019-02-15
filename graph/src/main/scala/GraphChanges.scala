@@ -124,7 +124,8 @@ object GraphChanges {
     }(breakOut)
   )
 
-  def newProject(nodeId: NodeId, userId: UserId, title: String = "Untitled Project"): GraphChanges = {
+  val newProjectName = "Untitled Project"
+  def newProject(nodeId: NodeId, userId: UserId, title: String = newProjectName): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.Markdown(title),

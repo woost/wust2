@@ -4,6 +4,7 @@ import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.css.ZIndex
+import wust.ids.View
 import wust.util._
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
@@ -57,7 +58,6 @@ object components {
     modifiers.modTooltip(tabInfo),
   )
 
-
   /// @return Most basic tab element that is further refined inside e.g. singleTab / doubleTab
   def tabSkeleton(parms : TabContextParms, tabInfo : TabInfo) = {
     div(
@@ -70,7 +70,18 @@ object components {
 
       // content
       div(cls := "fa-fw", tabInfo.icon),
-      )
+    )
+  }
+
+  def customTab(icon: IconDefinition, tooltip: String, action: () => Unit) = {
+    div(
+      cls := "viewswitcher-item single inactive",
+      UI.tooltip("bottom right") := tooltip,
+
+      onClick.foreach(action()),
+
+      div(cls := "fa-fw", icon),
+    )
   }
 
   /// @return a single iconized tab for switching to the respective view
