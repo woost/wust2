@@ -22,7 +22,6 @@ object MainView {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      cls := "pusher",
       Rx {
         if (state.hasError()) ErrorPage()
         else main(state)
@@ -44,8 +43,6 @@ object MainView {
       cls := "mainview",
       Styles.flex,
 //      DevOnly { DevView(state) },
-
-      UI.modal(state.uiModalConfig, state.uiModalClose), // one modal instance for the whole page that can be configured via state.modalConfig
 
       div(id := "draggable-mirrors", position.absolute), // draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors
 
@@ -93,6 +90,10 @@ object MainView {
           // This avoids rerendering the whole view when only the screen-size changed
           div(
             cls := "main-viewrender",
+
+            Styles.flex,
+            Styles.growFull,
+
             div(
               Styles.flex,
               Styles.growFull,
@@ -116,16 +117,12 @@ object MainView {
               },
             ),
 
-            Styles.flex,
-            Styles.growFull,
-            position.relative, // needed for mobile expanded sidebar
-
-            SharedViewElements.tagListWindow(state),
-            UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender")), // one sidebar instance for the whole page that can be configured via state.sidebarConfig
+            position.relative, // needed for taglist window
+            SharedViewElements.tagListWindow(state)
           ),
         ),
 
-        position.relative,
+        position.relative, // needed for expanded right sidebar on mobile
         RightSidebar(state),
       )
     )

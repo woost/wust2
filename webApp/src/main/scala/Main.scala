@@ -14,7 +14,7 @@ import wust.graph.GraphChanges
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.MainView
+import wust.webApp.views.{MainView, UI}
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
@@ -34,7 +34,12 @@ object Main {
 
     DevOnly { enableEventLogging(state) }
 
+    // render main content
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
+    // render single modal instance for the whole page that can be configured via state.uiModalConfig
+    OutWatch.renderReplace("#modal-placeholder", UI.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
+    // render single sidebar instance for the whole page that can be configured via state.uiSidebarConfig
+    OutWatch.renderReplace("#sidebar-placeholder", UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }
 
   private def setupDom(): Unit = {
