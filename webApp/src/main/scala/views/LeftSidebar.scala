@@ -239,10 +239,6 @@ object LeftSidebar {
   private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
     onClick foreach { e =>
       val page = state.page.now
-      val newView = page.parentId.flatMap { parentId =>
-        val node = state.graph.now.nodesById(parentId)
-        node.views.flatMap(_.headOption)
-      }
       //TODO if (e.shiftKey) {
       val newPage = action match {
         case ChannelAction.Node(id)   =>
@@ -256,6 +252,6 @@ object LeftSidebar {
 //          } else
                         Page(id)
       }
-      state.urlConfig.update(_.focus(newPage, newView))
+      state.urlConfig.update(_.focus(newPage))
     }
 }
