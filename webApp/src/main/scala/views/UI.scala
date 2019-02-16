@@ -46,7 +46,7 @@ object UI {
     )
 
   case class ModalConfig(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
-  def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit]): VDomModifier = div.static(keyValue)(div( //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
+  def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit]): VNode = div(
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
       configRx.flatMap(config => Ownable { implicit ctx =>
@@ -83,7 +83,7 @@ object UI {
         )
       })
     }
-  ))
+  )
 
   object ModalConfig {
     import wust.graph.{Node, Page}
@@ -125,10 +125,10 @@ object UI {
   }
 
   case class SidebarConfig(items: VDomModifier)
-  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VDomModifier = div.static(keyValue) { //intentianally wrap in order to have a static node around the moving modal that semnatic ui moves into the body
+  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
     val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
 
-    VDomModifier(
+    div(
       cls := "ui sidebar right icon labeled vertical menu mini",
 //      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
       width := "200px",
