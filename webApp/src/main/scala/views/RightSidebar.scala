@@ -74,7 +74,9 @@ object RightSidebar {
     div(
       state.rightSidebarNode.map(_.map { nodeId =>
         val bestView = state.graph.now.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(state.graph.now, _))
-        val viewVar = Var[View](bestView)
+        val viewVar = Var[View.Visible](bestView)
+        def viewAction(view: View) = viewVar() = ViewHeuristic.visibleView(state.graph.now, nodeId, view)
+
         VDomModifier(
           div(
             Styles.flex,
@@ -87,15 +89,17 @@ object RightSidebar {
               cursor.pointer,
               onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId))) }
             ),
-            PageHeader.viewSwitcher(state, nodeId, viewVar),
+            PageHeader.viewSwitcher(state, nodeId, viewVar, viewAction),
           ),
           Rx {
-            val view = viewVar().asInstanceOf[View.Visible] // TODO
-            ViewRender(view, state, state.rightSidebarNode).apply(
-              width := "100%",
-              height := "500px",
-              viewModifier
-            )
+            val view = viewVar()
+            state.rightSidebarNode().map { sidebarNodeId =>
+              ViewRender(state, FocusState(view, sidebarNodeId, sidebarNodeId, isNested = true, viewAction, nodeId => state.rightSidebarNode() = Some(nodeId)), view).apply(
+                width := "100%",
+                height := "500px",
+                viewModifier
+              )
+            }
           }
         )
       })

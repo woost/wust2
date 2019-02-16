@@ -16,7 +16,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, NodePermission}
+import wust.webApp.state.{FocusState, GlobalState, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -25,9 +25,9 @@ object KanbanView {
 
   case class KanbanData(workspaceId: NodeId, inboxNodes: Seq[Node], columnTree: Seq[Tree])
   object KanbanData {
-    def calculate(graph: Graph, pageParentId: NodeId): KanbanData = {
-      val pageParentIdx = graph.idToIdx(pageParentId)
-      val workspaces = graph.workspacesForParent(pageParentIdx)
+    def calculate(graph: Graph, focusedId: NodeId): KanbanData = {
+      val focusedIdx = graph.idToIdx(focusedId)
+      val workspaces = graph.workspacesForParent(focusedIdx)
       val firstWorkspaceIdx = workspaces.head //TODO: crashes
       val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
 
@@ -67,9 +67,7 @@ object KanbanView {
   }
 
   private val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
-
+  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
     val newColumnFieldActive = Var(false)
@@ -83,32 +81,29 @@ object KanbanView {
 
       Rx {
         val graph = state.graph()
+        val kanbanData = KanbanData.calculate(graph, focusState.focusedId)
 
-        focusedNodeId().map { pageParentId =>
-          val kanbanData = KanbanData.calculate(graph, pageParentId)
+        div(
+          cls := "kanbanview",
 
+          overflow.auto,
+
+          Styles.flex,
+          alignItems.flexStart,
+          renderInboxColumn(state, focusState, kanbanData.workspaceId, path = Nil, kanbanData.inboxNodes, activeAddCardFields, selectedNodeIds),
           div(
-            cls := "kanbanview",
-
-            overflow.auto,
+            cls := s"kanbancolumnarea",
+            keyed,
+            Styles.flexStatic,
 
             Styles.flex,
             alignItems.flexStart,
-            renderInboxColumn(state, kanbanData.workspaceId, path = Nil, kanbanData.inboxNodes, activeAddCardFields, selectedNodeIds),
-            div(
-              cls := s"kanbancolumnarea",
-              keyed,
-              Styles.flexStatic,
+            kanbanData.columnTree.map(tree => renderStageTree(state, graph, tree, parentId = focusState.focusedId, focusState = focusState, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
 
-              Styles.flex,
-              alignItems.flexStart,
-              kanbanData.columnTree.map(tree => renderStageTree(state, graph, tree, parentId = pageParentId, pageParentId = pageParentId, path = Nil, activeAddCardFields, selectedNodeIds, isTopLevel = true)),
-
-              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, kanbanData.columnTree.map(_.node.id))),
-            ),
-            newColumnArea(state, pageParentId, newColumnFieldActive).apply(Styles.flexStatic),
-          )
-        }
+            registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, kanbanData.columnTree.map(_.node.id))),
+          ),
+          newColumnArea(state, focusState.focusedId, newColumnFieldActive).apply(Styles.flexStatic),
+        )
       }
     )
   }
@@ -118,7 +113,7 @@ object KanbanView {
     graph: Graph,
     tree: Tree,
     parentId: NodeId,
-    pageParentId: NodeId,
+    focusState: FocusState,
     path: List[NodeId],
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds:Var[Set[NodeId]],
@@ -129,14 +124,14 @@ object KanbanView {
         if(graph.isExpanded(state.user.now.id, node.id)) {
           val cardChildren = graph.taskChildrenIdx(graph.idToIdx(node.id)).map(idx => Tree.Leaf(graph.nodes(idx)))
           val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, stageChildren ++ cardChildren, (t: Tree) => t.node.id)
-          renderColumn(state, graph, node, sortedChildren, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
+          renderColumn(state, graph, node, sortedChildren, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
         }
         else
-          renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
+          renderColumn(state, graph, node, Nil, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
       case Tree.Leaf(node) if node.role == NodeRole.Stage =>
-          renderColumn(state, graph, node, Nil, parentId, pageParentId, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
+          renderColumn(state, graph, node, Nil, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
       case Tree.Leaf(node) if node.role == NodeRole.Task =>
-          renderCard(state, node, parentId, pageParentId, path, selectedNodeIds, activeAddCardFields)
+          renderCard(state, node, parentId, focusState, path, selectedNodeIds, activeAddCardFields)
       case _ => VDomModifier.empty // if card is not also direct child of page, it is probably a mistake
     }
   }
@@ -144,6 +139,7 @@ object KanbanView {
 
   private def renderInboxColumn(
     state: GlobalState,
+    focusState: FocusState,
     workspaceId: NodeId,
     path: List[NodeId],
     children: Seq[Node],
@@ -168,13 +164,13 @@ object KanbanView {
         div(
           cls := "buttonbar",
           Styles.flex,
-          GraphChangesAutomationUI.settingsButton(state, workspaceId),
+          GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = workspaceId)),
         ),
       ),
       div(
         cls := "kanbancolumnchildren",
         registerDragContainer(state, DragContainer.Kanban.Inbox(workspaceId, children.map(_.id))),
-        children.map(node => renderCard(state, node, parentId = workspaceId, pageParentId = workspaceId, path = path, selectedNodeIds,activeAddCardFields)),
+        children.map(node => renderCard(state, node, parentId = workspaceId, focusState = focusState.copy(focusedId = workspaceId), path = path, selectedNodeIds,activeAddCardFields)),
         scrollHandler.modifier,
       ),
       addCardField(state, workspaceId, path = Nil, activeAddCardFields, Some(scrollHandler), textColor = Some("rgba(0,0,0,0.62)"))
@@ -187,7 +183,7 @@ object KanbanView {
     node: Node,
     children: Seq[Tree],
     parentId: NodeId,
-    pageParentId: NodeId,
+    focusState: FocusState,
     path: List[NodeId],
     activeAddCardFields: Var[Set[List[NodeId]]],
     selectedNodeIds:Var[Set[NodeId]],
@@ -230,27 +226,10 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton(state, node.id),
+      GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = node.id)),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
-
-    val stageCommentZoom = Rx{
-      // hide comment zoom, when addNodeField is active
-      val fullPath = node.id :: path
-      val active = activeAddCardFields() contains fullPath
-      active.ifFalse[VDomModifier](
-        div(
-          cls := "childstats",
-          renderMessageCount(
-            if (messageChildrenCount() > 0) VDomModifier(messageChildrenCount())
-            else VDomModifier(cls := "emptystat"),
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
-            cursor.pointer
-          )
-        )
-      )
-    }
 
     div(
       // sortable: draggable needs to be direct child of container
@@ -291,14 +270,14 @@ object KanbanView {
             cursor.pointer,
             paddingBottom := "7px",
           ),
-          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)), // allows to drop cards on collapsed columns
+          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = focusState.focusedId)), // allows to drop cards on collapsed columns
         )
       ) else VDomModifier(
         div(
           cls := "kanbancolumnchildren",
-          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = pageParentId)),
+          registerDragContainer(state, DragContainer.Kanban.Column(node.id, children.map(_.node.id), workspace = focusState.focusedId)),
           keyed(node.id, parentId),
-          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, pageParentId = pageParentId, path = node.id :: path, activeAddCardFields, selectedNodeIds)),
+          children.map(tree => renderStageTree(state, graph, tree, parentId = node.id, focusState = focusState, path = node.id :: path, activeAddCardFields, selectedNodeIds)),
           scrollHandler.modifier,
         ),
       ),
@@ -335,8 +314,8 @@ object KanbanView {
   def renderCard(
     state: GlobalState,
     node: Node,
-    parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to pageParentId
-    pageParentId: NodeId,
+    parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to focusState.focusedId
+    focusState: FocusState,
     path: List[NodeId],
     selectedNodeIds:Var[Set[NodeId]],
     activeAddCardFields: Var[Set[List[NodeId]]],
@@ -586,7 +565,7 @@ object KanbanView {
         val graph = state.graph()
         val userId = state.user().id
         VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
-          ListView(state, Var(Some(node.id))).apply(
+          ListView(state, focusState = focusState.copy(focusedId = node.id)).apply(
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
             margin := "3px",
             borderRadius := "3px",
@@ -653,11 +632,11 @@ object KanbanView {
     )
   }
 
-  private def newColumnArea(state: GlobalState, pageParentId:NodeId, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def newColumnArea(state: GlobalState, focusedId:NodeId, fieldActive: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     def submitAction(str:String) = {
       val change = {
         val newStageNode = Node.MarkdownStage(str)
-        val add = GraphChanges.addNodeWithParent(newStageNode, pageParentId)
+        val add = GraphChanges.addNodeWithParent(newStageNode, focusedId)
         val expand = GraphChanges.connect(Edge.Expanded)(state.user.now.id, newStageNode.id)
         add merge expand
       }

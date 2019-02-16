@@ -23,8 +23,9 @@ object PageStyle {
     )
   }
 
-  def apply(view: View, page: Page) = create(view.isContent, page.parentId)
-  def ofNode(nodeId: Option[NodeId]) = create(true, nodeId)
+  @inline def apply(view: View, page: Page): PageStyle = create(view.isContent, page.parentId)
+  @inline def ofNode(nodeId: Option[NodeId]): PageStyle = create(true, nodeId)
+  @inline def ofNode(nodeId: NodeId): PageStyle = ofNode(Some(nodeId))
 }
 
 case class PageStyle(

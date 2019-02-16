@@ -24,7 +24,7 @@ import monix.reactive.Observable
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{FocusState, GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -39,15 +39,14 @@ object ThreadView {
 
   final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[NodeId])(val showReplyField:Var[Boolean]) extends SelectedNodeBase
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
     val scrollHandler = new ScrollBottomHandler
 
     val outerDragOptions = VDomModifier(
       registerDragContainer(state),
-      Rx { parentId().map(pageParentId => drag(target = DragItem.Workspace(pageParentId))) },
+      drag(target = DragItem.Workspace(focusState.focusedId))
     )
 
     val pageCounter = PublishSubject[Int]()
@@ -66,23 +65,19 @@ object ThreadView {
       div(
         cls := "chat-history",
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        chatHistory(state, parentId, selectedNodes, pageCounter, shouldLoadInfinite),
+        chatHistory(state, focusState, selectedNodes, pageCounter, shouldLoadInfinite),
         outerDragOptions,
 
         // clicking on background deselects
         onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
         scrollHandler.modifier,
-        // on page change, always scroll down
-        emitterRx(parentId).foreach {
-          scrollHandler.scrollToBottomInAnimationFrame()
-        }
       ),
       {
         def submitAction(str:String) = {
           scrollHandler.scrollToBottomInAnimationFrame()
           val ack = fileUploadHandler.now match {
-            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), parentId.now))
-            case Some(uploadFile) => uploadFileAndCreateNode(state, str, parentId.now, uploadFile)
+            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), focusState.focusedId))
+            case Some(uploadFile) => uploadFileAndCreateNode(state, str, List(focusState.focusedId), uploadFile)
           }
 
           ack
@@ -90,28 +85,19 @@ object ThreadView {
 
         val inputFieldFocusTrigger = PublishSubject[Unit]
 
-        if(!BrowserDetect.isMobile) {
-          parentId.triggerLater {
-            inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
-            ()
-          }
-        }
-
-        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
       }
     )
   }
 
-  private def chatHistory(state: GlobalState, parentId: Rx[Option[NodeId]], selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def chatHistory(state: GlobalState, focusState: FocusState, selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
-    parentId.foreach { _ => pageCounter() = initialPageCounter }
 
     val messages = Rx {
-      val pageParentId = parentId()
       val graph = state.graph()
 
-      calculateThreadMessages(pageParentId, graph)
+      calculateThreadMessages(List(focusState.focusedId), graph)
     }
 
     var prevMessageSize = -1
@@ -127,10 +113,9 @@ object ThreadView {
     VDomModifier(
       Rx {
         state.screenSize() // on screensize change, rerender whole chat history
-        val pageParentId = parentId()
         val pageCount = pageCounter()
 
-        renderThreadGroups(state, messages().takeRight(pageCount), pageParentId, pageParentId.toSet, selectedNodes, true)
+        renderThreadGroups(state, messages().takeRight(pageCount), Set(focusState.focusedId), Set(focusState.focusedId), selectedNodes, true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },

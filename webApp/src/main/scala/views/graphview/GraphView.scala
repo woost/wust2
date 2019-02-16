@@ -9,23 +9,25 @@ import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FocusState, GlobalState, PageStyle}
 
 import scala.scalajs.LinkingInfo
 
 object GraphView {
-  def apply(state: GlobalState, controls: Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, focusState: FocusState, controls: Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
 
-    val forceSimulation = new ForceSimulation(state, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
+    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
 
-    state.jsErrors.foreach { _ =>
-      forceSimulation.stop()
-    }
+    val nodeStyle = PageStyle.ofNode(focusState.focusedId)
 
     div(
+      emitter(state.jsErrors).foreach { _ =>
+        forceSimulation.stop()
+      },
+
       overflow.auto, // fits graph visualization perfectly into view
 
-      backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+      backgroundColor := nodeStyle.bgLightColor,
       controls.ifTrueOption {
         div(
           position := "absolute",
@@ -54,7 +56,7 @@ object GraphView {
       },
       forceSimulation.component(
         forceSimulation.postCreationMenus.map(_.map { menu =>
-          PostCreationMenu(state, menu, Var(forceSimulation.transform))
+          PostCreationMenu(state, focusState, menu, Var(forceSimulation.transform))
         }),
         forceSimulation.selectedNodeId.map(_.map {
           case (pos, id) =>
@@ -62,6 +64,7 @@ object GraphView {
               pos,
               id,
               state,
+              focusState,
               forceSimulation.selectedNodeId,
               Var(forceSimulation.transform)
             )

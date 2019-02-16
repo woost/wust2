@@ -17,7 +17,7 @@ import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, FocusState}
 import wust.webApp.views.Components._
 import flatland._
 
@@ -50,6 +50,7 @@ object ForceSimulationConstants {
 
 class ForceSimulation(
     state: GlobalState,
+    focusState: FocusState,
     onDrop: (NodeId, NodeId) => Unit,
     onDropWithCtrl: (NodeId, NodeId) => Unit
 )(implicit ctx: Ctx.Owner) {
@@ -147,17 +148,14 @@ class ForceSimulation(
     val graphRx: Rx[Graph] = Rx {
       println(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
       time(log("filtering graph")) {
-        val page = state.page()
         val graph = state.graph()
-        page.parentId.fold(Graph.empty) { pageParentId =>
-          val pageParentIdx = graph.idToIdx(pageParentId)
-          val taskChildrenSet = graph.taskChildrenIdx.toArraySet(pageParentIdx)
-          val tagSet = ArraySet.create(graph.size)
-          graph.nodes.foreachIndexAndElement{ (i,elem) =>
-            if(elem.role == NodeRole.Tag) tagSet += i
-          }
-          graph.filterIdx(nodeIdx => taskChildrenSet.contains(nodeIdx) || tagSet.contains(nodeIdx))
+        val focusedIdx = graph.idToIdx(focusState.focusedId)
+        val taskChildrenSet = graph.taskChildrenIdx.toArraySet(focusedIdx)
+        val tagSet = ArraySet.create(graph.size)
+        graph.nodes.foreachIndexAndElement{ (i,elem) =>
+          if(elem.role == NodeRole.Tag) tagSet += i
         }
+        graph.filterIdx(nodeIdx => taskChildrenSet.contains(nodeIdx) || tagSet.contains(nodeIdx))
       }
     }
 
