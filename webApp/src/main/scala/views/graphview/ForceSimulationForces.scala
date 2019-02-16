@@ -242,15 +242,11 @@ object ForceSimulationForces {
 
   def applyVelocities(simData: SimulationData): Unit = {
     import simData._
-    var i = 0
-    val n = simData.n
-    while (i < n) {
+    loop (simData.n) { i =>
       vx(i) *= velocityDecay
       vy(i) *= velocityDecay
       x(i) += vx(i)
       y(i) += vy(i)
-
-      i += 1
     }
   }
 

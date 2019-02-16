@@ -45,12 +45,15 @@ object GraphView {
           button("start hidden", onClick foreach {
             forceSimulation.startHidden()
           }),
+          button("stop", onClick foreach {
+            forceSimulation.stop()
+          }),
           button("step", onClick foreach {
             forceSimulation.step()
             ()
           }),
-          button("stop", onClick foreach {
-            forceSimulation.stop()
+          button("reposition", onClick foreach {
+            forceSimulation.reposition()
           })
         )
       },

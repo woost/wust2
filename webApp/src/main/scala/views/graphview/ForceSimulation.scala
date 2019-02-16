@@ -330,7 +330,7 @@ class ForceSimulation(
         staticData = StaticData(graphRx.now, postSelection, transform, labelVisualization)
       }
 
-      val arbitraryFactor = 1.3
+      val arbitraryFactor = 2.5
       // TODO: handle cases:
       // - long window with big blob in the middle
       val scale = Math.sqrt((width * height) / (staticData.totalReservedArea * arbitraryFactor)) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
@@ -385,7 +385,7 @@ class ForceSimulation(
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
       staticData = StaticData(graph, postSelection, transform, labelVisualization)
-      ForceSimulationForces.nanToPhyllotaxis(simData, spacing = Math.sqrt(staticData.totalReservedArea / graph.size)/2) // set initial positions for new nodes
+      initNodePositions()
       dom.window.setTimeout(() => resized(), 0) // defer size detection until rendering is finished. Else initial size can be wrong.
 
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
@@ -395,6 +395,10 @@ class ForceSimulation(
     cancelable += Cancelable(() => stop())
 
     cancelable
+  }
+
+  def initNodePositions():Unit = {
+    ForceSimulationForces.nanToPhyllotaxis(simData, spacing = 30) // set initial positions for new nodes
   }
 
   def startHidden(): Unit = {
@@ -435,6 +439,19 @@ class ForceSimulation(
   def stop(): Unit = {
     println(log("stopped"))
     running = false
+  }
+
+  def reposition(): Unit = {
+    stop()
+    loop (simData.n) { i =>
+      simData.vx(i) *= 0
+      simData.vy(i) *= 0
+      simData.x(i) += Double.NaN
+      simData.y(i) += Double.NaN
+    }
+    initNodePositions()
+    draw()
+    if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
   }
 
   def animationStep(timestamp: Double): Unit = {
@@ -633,9 +650,9 @@ object ForceSimulation {
     calculateEulerZonePolygons(simData, staticData)
     calculateEulerSetConnectedComponentsPolygons(simData, staticData)
 
-    rectBound(simData, staticData, planeDimension, strength = 0.1)
+    rectBound(simData, staticData, planeDimension, strength = 0.5)
     // assert(!simData.isNaN)
-    keepMinimumNodeDistance(simData, staticData, distance = nodeSpacing, strength = 0.2)
+    keepMinimumNodeDistance(simData, staticData, distance = nodeSpacing, strength = 0.5)
     // assert(!simData.isNaN)
 //    edgeLength(simData, staticData)
 
@@ -739,7 +756,7 @@ object ForceSimulation {
     canvasContext.stroke()
     canvasContext.closePath()
 
-    if (debugDrawEnabled) debugDraw(simData, staticData, canvasContext, planeDimension)
+    if (debugDrawEnabled) DebugDraw.draw(simData, staticData, canvasContext, planeDimension)
   }
 
   def drawVelocities(
