@@ -197,7 +197,7 @@ object PageHeader {
       case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
     }
 
-    val viewDefs =
+    val viewDefs: List[View.Visible] =
       View.Dashboard ::
       View.Chat ::
       View.Thread ::
@@ -206,7 +206,7 @@ object PageHeader {
       View.Files ::
       (if (DevOnly.isTrue) View.Graph :: Nil else Nil)
 
-    def addNewView(newView: View) = if (viewDefs.contains(newView)) { // only allow defined views
+    def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         val currentViews = node.views match {
@@ -249,7 +249,7 @@ object PageHeader {
       }
     }
 
-    def removeView(view: View) = {
+    def removeView(view: View.Visible) = {
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         val filteredViews = node.views match {
