@@ -4,7 +4,6 @@ import wust.ids._
 import wust.util.collection.RichCollection
 
 import scala.collection.breakOut
-import wust.graph.EdgeComponents._
 
 case class GraphChanges(
   addNodes: collection.Set[Node] = Set.empty,

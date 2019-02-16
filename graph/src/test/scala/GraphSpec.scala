@@ -3,7 +3,6 @@ package wust.graph
 import org.scalatest._
 import wust.ids._
 import wust.util.collection._
-import wust.graph.EdgeComponents._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))

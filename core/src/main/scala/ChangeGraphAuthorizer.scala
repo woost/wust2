@@ -2,8 +2,7 @@ package wust.core
 
 import wust.api.AuthUser
 import wust.db.Db
-import wust.graph.EdgeComponents.{ContentEdge, NodeUserEdge}
-import wust.graph.{Edge, GraphChanges, Node}
+import wust.graph._
 import wust.ids.NodeId
 import wust.util.collection._
 

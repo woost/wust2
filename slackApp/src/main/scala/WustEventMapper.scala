@@ -14,7 +14,6 @@ import monix.execution.Scheduler
 import scala.collection.Set
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
-import wust.graph.EdgeComponents._
 
 sealed trait GraphChangeEvent
 case class WustEventMapper(slackAppToken: String, persistenceAdapter: PersistenceAdapter)(

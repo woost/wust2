@@ -4,7 +4,6 @@ import wust.api.{AuthUser, UserDetail, WebPushSubscription}
 import wust.db.Data
 import wust.graph._
 import wust.ids._
-import wust.graph.EdgeComponents._
 
 object DbConversions {
   private def nodeMeta(node: Data.Node) = new NodeMeta(

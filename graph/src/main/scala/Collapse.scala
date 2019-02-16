@@ -3,7 +3,6 @@ package wust.graph
 import wust.graph.CollapsedGraph.LocalConnection
 import wust.ids._
 import wust.util.algorithm._
-import wust.graph.EdgeComponents._
 
 import scala.collection.breakOut
 

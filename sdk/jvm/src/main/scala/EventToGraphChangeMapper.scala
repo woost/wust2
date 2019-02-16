@@ -1,8 +1,7 @@
 package wust.sdk
 
-import wust.graph.{Edge, GraphChanges, Node, NodeMeta}
+import wust.graph._
 import wust.ids._
-import wust.graph.EdgeComponents._
 
 object EventToGraphChangeMapper {
 

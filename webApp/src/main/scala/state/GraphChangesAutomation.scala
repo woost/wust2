@@ -6,7 +6,6 @@ import akka.stream.scaladsl.Source
 import flatland.{ArraySet, ArrayStackInt}
 import monix.reactive.Observable
 import rx.Var
-import wust.graph.EdgeComponents.Edge
 import wust.graph._
 import wust.ids.{EdgeData, EpochMilli, NodeId, TemplateId}
 import wust.util.macros.InlineList

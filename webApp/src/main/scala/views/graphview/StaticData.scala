@@ -8,11 +8,10 @@ import org.scalajs.dom.html
 import vectory.Vec2
 import views.graphview.ForceSimulationConstants._
 import views.graphview.VisualizationType.{Containment, Edge, Tag}
-import wust.graph.{Node, _}
+import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
-import wust.graph.EdgeComponents._
 
 import scala.Double.NaN
 import scala.collection.mutable.ArrayBuffer

@@ -12,7 +12,6 @@ import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
-import wust.graph.EdgeComponents._
 
 import scala.collection.mutable
 import scala.collection.breakOut

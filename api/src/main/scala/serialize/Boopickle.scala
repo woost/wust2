@@ -3,7 +3,6 @@ package wust.api.serialize
 import wust.graph._
 import wust.api._
 import boopickle.Default._
-import wust.graph.EdgeComponents._
 
 object Boopickle extends wust.ids.serialize.Boopickle {
 

@@ -1,7 +1,7 @@
 package wust.backend
 
 import wust.api._
-import wust.graph.{Edge, GraphChanges, Node}
+import wust.graph._
 import wust.db.{Data, Db}
 import wust.ids._
 
@@ -15,7 +15,6 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.collection.parallel.ExecutionContextTaskSupport
 import wust.backend.config.PushNotificationConfig
 import wust.db.Data.RawPushData
-import wust.graph.EdgeComponents._
 
 import scala.collection.parallel.immutable.ParSeq
 import scala.util.{Failure, Success}

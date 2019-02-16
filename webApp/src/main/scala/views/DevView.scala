@@ -11,7 +11,6 @@ import wust.ids._
 import wust.util.time.StopWatch
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.graph.EdgeComponents._
 
 import scala.collection.mutable
 import scala.concurrent.duration.{span => _}

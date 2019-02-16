@@ -10,7 +10,6 @@ import scala.collection.{ breakOut, mutable }
 import scala.collection.immutable
 import scala.collection
 import flatland._
-import wust.graph.EdgeComponents._
 
 object Graph {
   val empty = new Graph(Array.empty, Array.empty)

@@ -3,11 +3,10 @@ package wust.slack
 import akka.actor.ActorSystem
 import org.scalatest._
 import slack.api.SlackApiClient
-import wust.graph.{Edge, GraphChanges, Node, NodeMeta}
+import wust.graph._
 import wust.ids._
 import wust.sdk.WustClient
 import wust.slack.Data._
-import wust.graph.EdgeComponents._
 
 import scala.concurrent.Future
 

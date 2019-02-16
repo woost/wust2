@@ -13,7 +13,6 @@ import github4s.free.domain.{Comment, Issue, User => GHUser}
 import github4s.jvm.Implicits._
 import com.redis._
 import wust.serviceUtil.StringOps
-import wust.graph.EdgeComponents._
 
 object GitHubImporter {
 

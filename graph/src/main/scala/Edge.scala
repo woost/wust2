@@ -2,7 +2,7 @@ package wust.graph
 
 import wust.ids._
 
-object EdgeComponents {
+//object EdgeComponents {
   sealed trait Edge {
     def sourceId: NodeId
     def targetId: NodeId
@@ -21,7 +21,7 @@ object EdgeComponents {
 
   sealed trait ContentEdge extends Edge
 
-}
+//}
 
 /**
   * Here, all edge types are implemented.
@@ -33,7 +33,7 @@ object EdgeComponents {
   */
 object Edge {
 
-  import EdgeComponents._
+//  import EdgeComponents._
 
   // User-Edges
   case class Assigned(nodeId: NodeId, userId: UserId) extends NodeUserEdge {

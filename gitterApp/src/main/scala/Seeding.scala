@@ -1,11 +1,10 @@
 package wust.gitter
 
-import wust.graph.{Edge, Node}
+import wust.graph._
 import wust.ids._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import wust.graph.EdgeComponents._
 
 object GitterImporter {
   import scala.collection.JavaConverters._

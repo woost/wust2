@@ -38,7 +38,6 @@ import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 import wust.api.Authentication.Token
 import wust.serviceUtil.StringOps
-import wust.graph.EdgeComponents._
 
 object Constants {
   //TODO
