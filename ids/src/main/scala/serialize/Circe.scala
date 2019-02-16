@@ -60,7 +60,7 @@ trait Circe {
   implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
   implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
 
-  implicit val viewEncoder: Encoder[View] = deriveEncoder[View]
-  implicit val viewDecoder: Decoder[View] = deriveDecoder[View]
+  implicit val viewVisibleEncoder: Encoder[View.Visible] = deriveEncoder[View.Visible]
+  implicit val viewVisibleDecoder: Decoder[View.Visible] = deriveDecoder[View.Visible]
 }
 object Circe extends Circe

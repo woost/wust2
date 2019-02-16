@@ -18,7 +18,7 @@ object Data {
     data: NodeData,
     role: NodeRole,
     accessLevel: NodeAccess,
-    views: Option[List[View]]
+    views: Option[List[View.Visible]]
   )
 
   case class User(
@@ -95,13 +95,13 @@ object Data {
       rows.foreach { row =>
         //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
         //Now we let quill decode views to Option[String] and decode the list ourselves...meh
-        val viewList: Option[List[View]] = row.views.map { views =>
+        val viewList: Option[List[View.Visible]] = row.views.map { views =>
           val viewStrings = views
             .drop(2).dropRight(2)
             .split("""","""")
             .map(_.replaceAll("""\\"""", """""""))
             .toList
-          viewStrings.flatMap(str => decode[View](str).right.toOption)
+          viewStrings.flatMap(str => decode[View.Visible](str).right.toOption)
         }
         nodes += Node(row.nodeId, row.data, row.role, row.accessLevel, viewList)
 
