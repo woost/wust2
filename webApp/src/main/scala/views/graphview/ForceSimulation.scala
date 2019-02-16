@@ -386,7 +386,7 @@ class ForceSimulation(
       // For each node, we calculate its rendered size, radius etc.
       staticData = StaticData(graph, postSelection, transform, labelVisualization)
       ForceSimulationForces.nanToPhyllotaxis(simData, spacing = Math.sqrt(staticData.totalReservedArea / graph.size)/2) // set initial positions for new nodes
-      resized() // adjust zoom to possibly changed accumulated node area
+      dom.window.setTimeout(() => resized(), 0) // defer size detection until rendering is finished. Else initial size can be wrong.
 
       println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
       startAnimated() // this also triggers the initial simulation start
