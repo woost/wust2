@@ -180,13 +180,11 @@ object PageHeader {
     )
   }
 
+  //TODO FocusState?
   def viewSwitcher(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     viewSwitcher(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
   }
-  def viewSwitcher(state: GlobalState, channelId: NodeId, viewVar: Var[View])(implicit ctx: Ctx.Owner): VNode = {
-    viewSwitcher(state, channelId, viewVar, viewVar() = _)
-  }
-  def viewSwitcher(state: GlobalState, channelId: NodeId, viewRx: Rx[View], viewAction: View => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def viewSwitcher(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit)(implicit ctx: Ctx.Owner): VNode = {
 
     def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
       case View.Dashboard => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)

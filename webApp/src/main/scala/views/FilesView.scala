@@ -1,29 +1,19 @@
 package wust.webApp.views
 
-import monix.execution.Ack
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.{Styles, ZIndex}
-import wust.graph.Node
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
-import wust.util._
-
-import scala.concurrent.Future
+import wust.webApp.state.{FocusState, GlobalState}
 
 object FilesView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val files: Rx.Dynamic[Seq[(NodeId, NodeData.File)]] = Rx {
       val graph = state.graph()
-      val pageParentId = parentId()
 
-      pageParentId.fold(Seq.empty[(NodeId, NodeData.File)])(parentId => graph.pageFiles(parentId).sortBy { case (id, _) => id }.reverse)
-
+      graph.pageFiles(focusState.focusedId).sortBy { case (id, _) => id }.reverse
     }
 
     div(

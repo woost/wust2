@@ -63,12 +63,6 @@ object GlobalStateFactory {
     val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
-    urlConfig.map(_.pageChange).triggerLater { pc =>
-      if (pc.needsGet) {
-        state.rightSidebarNode() = None
-      }
-    }
-
     // on mobile left and right sidebars overlay the screen.
     // close the right sidebar when the left sidebar is opened on mobile.
     // you can never open the right sidebar when the left sidebar is open,
@@ -80,11 +74,19 @@ object GlobalStateFactory {
       }
     }
 
-    // close sidebar on viewconfig change
-    page.triggerLater {
+    def closeAllOverlays(): Unit = {
       state.uiSidebarClose.onNext(())
       state.uiModalClose.onNext(())
-      ()
+      state.rightSidebarNode() = None
+    }
+
+    page.triggerLater {
+      closeAllOverlays()
+    }
+    view.map(_.isContent).triggerLater { isContent =>
+      if (!isContent) {
+        closeAllOverlays()
+      }
     }
 
     // would be better to statically have this base url from the index.html or something.
@@ -153,6 +155,7 @@ object GlobalStateFactory {
             eventProcessor.localEvents.onNext(ReplaceGraph(graph))
           }
         }
+        //TODO: signal status of invitation to user in UI
         case None => ()
       }
     }

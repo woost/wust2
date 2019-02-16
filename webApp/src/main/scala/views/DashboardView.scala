@@ -16,7 +16,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.util._
 
@@ -26,38 +26,31 @@ import wust.util._
 // - activity
 object DashboardView {
 
-  def getProjectList(graph: Graph, pageParentId: NodeId): Seq[Node] = {
-    val pageParentIdx = graph.idToIdx(pageParentId)
+  private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
+    val pageParentIdx = graph.idToIdx(focusedId)
     val directSubProjects = graph.projectChildrenIdx(pageParentIdx)
     directSubProjects.map(graph.nodes)
   }
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId))
-  def apply(state: GlobalState, parentId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexDirection.column,
       justifyContent.flexStart,
       padding := "20px",
 
-      Rx {
-        parentId().map { pageParentId =>
-          //TODO: renderSubprojects mit summary
-          VDomModifier(
-            renderSubprojects(state, pageParentId),
-            renderProjectStats(state, pageParentId)
-          )
-        }
-      }
+      //TODO: renderSubprojects mit summary
+      renderSubprojects(state, focusState),
+      renderProjectStats(state, focusState)
     )
   }
 
   /// Render all subprojects as a list
-  def renderSubprojects(state: GlobalState, pageParentId:NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderSubprojects(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val graph = state.graph()
-      val projectNodes = getProjectList(graph, pageParentId)
+      val projectNodes = getProjectList(graph, focusState.focusedId)
       ul(
         Styles.flexStatic,
 
@@ -71,14 +64,14 @@ object DashboardView {
           li(
             Styles.flexStatic,
             listStyle := "none",
-            renderSubproject(state, pageParentId, projectInfo, graph)
+            renderSubproject(state, graph, focusState.focusedId, projectInfo)
           )
         },
         li(
           listStyle := "none",
           Styles.flexStatic,
 
-          newSubProjectButton(state, pageParentId)
+          newSubProjectButton(state, focusState.focusedId)
         ),
         registerDragContainer(state)
       )
@@ -86,7 +79,7 @@ object DashboardView {
   }
 
   /// Render the overview of a single (sub-) project
-  def renderSubproject(state: GlobalState, pageParentId: NodeId, project: Node, graph:Graph): VNode = {
+  private def renderSubproject(state: GlobalState, graph: Graph, focusedId: NodeId, project: Node): VNode = {
     div(
       border := "3px solid",
       borderRadius := "3px",
@@ -113,17 +106,17 @@ object DashboardView {
       },
       cursor.pointer,
 
-      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, pageParentId)))
+      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, focusedId)))
     )
   }
 
 
-  def newSubProjectButton(state: GlobalState, pageParentId:NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def newSubProjectButton(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val fieldActive = Var(false)
     def submitAction(str:String) = {
       val change = {
         val newProjectNode = Node.MarkdownProject(str)
-        GraphChanges.addNodeWithParent(newProjectNode, pageParentId)
+        GraphChanges.addNodeWithParent(newProjectNode, focusedId)
       }
       state.eventProcessor.changes.onNext(change)
     }
@@ -176,7 +169,7 @@ object DashboardView {
     )
   }
 
-  def renderProjectStats(state: GlobalState, pageParentId: NodeId)(implicit ctx:Ctx.Owner):VNode = {
+  private def renderProjectStats(state: GlobalState, focusState: FocusState)(implicit ctx:Ctx.Owner):VNode = {
     //TODO: move styling into css classes
     val commonStyles = VDomModifier(
       fontSize := "2em",
@@ -196,7 +189,7 @@ object DashboardView {
 
       Rx {
         val graph = state.graph()
-        val stats = graph.topLevelRoleStats(pageParentId :: Nil)
+        val stats = graph.topLevelRoleStats(focusState.focusedId :: Nil)
         stats.roleCounts.collect{
           case (NodeRole.Message, count) => 
             div(
@@ -205,7 +198,7 @@ object DashboardView {
               div(cls := "fa-fw", Icons.conversation),
               div(count, marginLeft := "0.5em"),
               onClick foreach {
-                state.urlConfig.update(_.focus(View.Conversation))
+                focusState.viewAction(View.Conversation)
               },
               cursor.pointer,
             )
@@ -216,7 +209,7 @@ object DashboardView {
               div(cls := "fa-fw", Icons.tasks),
               div(count, marginLeft := "0.5em"),
               onClick foreach {
-                state.urlConfig.update(_.focus(View.Tasks))
+                focusState.viewAction(View.Tasks)
               },
               cursor.pointer,
             )

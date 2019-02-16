@@ -15,7 +15,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.util.collection._
@@ -23,8 +23,7 @@ import wust.util.collection._
 object ListView {
   import SharedViewElements._
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.page.map(_.parentId), autoFocusInsert = true)
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       justifyContent.spaceBetween,
@@ -34,35 +33,32 @@ object ListView {
         padding := "5px",
         flexGrow := 2,
 
-        addListItemInputField(state, focusedNodeId, autoFocusInsert = autoFocusInsert),
+        addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
 
         Rx {
           val graph = state.graph()
-          focusedNodeId().map { pageParentId =>
 
-            val kanbanData = KanbanView.KanbanData.calculate(graph, pageParentId)
-            // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
+          val kanbanData = KanbanView.KanbanData.calculate(graph, focusState.focusedId)
+          // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
 
-            VDomModifier(
-              registerDragContainer(state, DragContainer.Kanban.ColumnArea(pageParentId, kanbanData.columnTree.map(_.node.id))),
+          VDomModifier(
+            registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, kanbanData.columnTree.map(_.node.id))),
 
-              renderInboxColumn(state, pageParentId = pageParentId, kanbanData.inboxNodes),
+            renderInboxColumn(state, focusState, kanbanData.inboxNodes),
 
-              renderColumns(state, graph, parentId = pageParentId, pageParentId = pageParentId, children = kanbanData.columnTree),
-            )
-          }
-
+            renderColumns(state, graph, focusState, parentId = focusState.focusedId, children = kanbanData.columnTree),
+          )
         }
       )
     )
   }
 
-  def renderKanbanLikeCard(state: GlobalState, parentId: NodeId, pageParentId: NodeId, node: Node, isDone: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  def renderKanbanLikeCard(state: GlobalState, focusState: FocusState, parentId: NodeId, node: Node, isDone: Boolean)(implicit ctx: Ctx.Owner): VNode = {
     KanbanView.renderCard(
       state = state,
       node = node,
       parentId = parentId,
-      pageParentId = pageParentId,
+      focusState = focusState,
       path = Nil,
       selectedNodeIds = Var(Set.empty),
       activeAddCardFields = Var(Set.empty),
@@ -74,28 +70,28 @@ object ListView {
     )
   }
 
-  private def renderInboxColumn(state: GlobalState, pageParentId: NodeId, children: Seq[Node])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderInboxColumn(state: GlobalState, focusState: FocusState, children: Seq[Node])(implicit ctx: Ctx.Owner): VNode = {
     val taskChildren = children.collect { case node if node.role == NodeRole.Task => node }
     div(
-      registerDragContainer(state, DragContainer.Kanban.Inbox(pageParentId, children.map(_.id))),
+      registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children.map(_.id))),
       minHeight := "10px",
 
       Styles.flex,
       flexDirection.columnReverse,
 
       taskChildren.map { node =>
-        renderKanbanLikeCard(state, parentId = pageParentId, pageParentId = pageParentId, node = node, isDone = false)
+        renderKanbanLikeCard(state, focusState = focusState, parentId = focusState.focusedId, node = node, isDone = false)
       }
     )
   }
 
-  private def renderColumns(state: GlobalState, graph: Graph, parentId: NodeId, pageParentId: NodeId, children: Seq[Tree], isDone: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumns(state: GlobalState, graph: Graph, focusState: FocusState, parentId: NodeId, children: Seq[Tree], isDone: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     div(
       children.collect {
         case Tree.Leaf(node) =>
           node.role match {
-            case NodeRole.Stage => renderStageColumn(state, pageParentId, parentId, node, VDomModifier.empty)
-            case NodeRole.Task => renderKanbanLikeCard(state, parentId = parentId, pageParentId = pageParentId, node = node, isDone = isDone)
+            case NodeRole.Stage => renderStageColumn(state, parentId, node, VDomModifier.empty)
+            case NodeRole.Task => renderKanbanLikeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
             case _ => VDomModifier.empty
           }
         case Tree.Parent(node, children) =>
@@ -105,23 +101,23 @@ object ListView {
               val cardChildren = graph.taskChildrenIdx(graph.idToIdx(node.id)).map(idx => Tree.Leaf(graph.nodes(idx)))
               val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, children ++ cardChildren, (t: Tree) => t.node.id)
               val nodeIsDone = graph.isDoneStage(node)
-              renderStageColumn(state, parentId, pageParentId, node, VDomModifier(
+              renderStageColumn(state, parentId, node, VDomModifier(
                 VDomModifier.ifTrue(nodeIsDone)(opacity := 0.5),
-                renderColumns(state, graph, parentId = parentId, pageParentId = pageParentId, children = sortedChildren, isDone = nodeIsDone).apply(
+                renderColumns(state, graph, focusState, parentId = parentId, children = sortedChildren, isDone = nodeIsDone).apply(
                   Styles.flex,
                   flexDirection.columnReverse,
                   minHeight := "10px",
-                  registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), pageParentId)),
+                  registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), focusState.focusedId)),
                 )
               ))
-            case NodeRole.Task => renderKanbanLikeCard(state, parentId = parentId, pageParentId = pageParentId, node = node, isDone = isDone)
+            case NodeRole.Task => renderKanbanLikeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
             case _ => VDomModifier.empty
           }
       }
     )
   }
 
-  private def renderStageColumn(state: GlobalState, parentId: NodeId, pageParentId: NodeId, stage: Node, innerModifier: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderStageColumn(state: GlobalState, parentId: NodeId, stage: Node, innerModifier: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
     val isExpanded = Rx {
       val graph = state.graph()
       val user = state.user()
@@ -154,30 +150,20 @@ object ListView {
     )
   }
 
-  private def addListItemInputField(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, focusedNodeId.now)
+      val change = GraphChanges.addNodeWithParent(createdNode, focusedNodeId)
       state.eventProcessor.changes.onNext(change)
     }
 
     val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
-
-    val inputFieldFocusTrigger = PublishSubject[Unit]
-
-    if(!BrowserDetect.isMobile && autoFocusInsert) {
-      focusedNodeId.triggerLater {
-        inputFieldFocusTrigger.onNext(Unit) // re-gain focus on page-change
-        ()
-      }
-    }
 
     div(
       Rx {
         inputRow(state, submitAction(state.user().id),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
-          triggerFocus = inputFieldFocusTrigger,
           placeHolderMessage = Some(placeHolder),
           submitIcon = freeSolid.faPlus
         )(ctx)(Styles.flexStatic)

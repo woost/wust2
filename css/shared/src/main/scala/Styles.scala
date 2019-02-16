@@ -14,12 +14,12 @@ object ZIndex {
   val selected = 400
   val overlayLow = 1000
   val tooltip = 1500
-  val loading = 1750
   val overlay = 12000
   val formOverlay = 13000
   val uiModal = 15000
   val uiSidebar = 16000
   val dragging = 20000
+  val loading = 25000
 }
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {

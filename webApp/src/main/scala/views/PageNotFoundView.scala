@@ -11,6 +11,7 @@ import wust.webApp.state.GlobalState
 object PageNotFoundView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
+      Styles.growFull,
       Styles.flex,
       justifyContent.spaceAround,
       flexDirection.column,

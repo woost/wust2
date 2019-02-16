@@ -10,7 +10,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, FocusState}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
@@ -22,6 +22,7 @@ object SelectedPostMenu {
       pos: Vec2,
       nodeId: NodeId,
       state: GlobalState,
+      focusState: FocusState,
       selectedNodeId: Var[Option[(Vec2, NodeId)]],
       transformRx: Rx[d3v4.Transform]
   )(implicit owner: Ctx.Owner) = {
@@ -122,7 +123,7 @@ object SelectedPostMenu {
       width := "300px",
       transform <-- transformStyle,
       div(
-        rxPost.map(p => actionMenu(p, state, selectedNodeId)(zIndex := -10)), // z-index to overlap shadow
+        rxPost.map(p => actionMenu(p, state, focusState, selectedNodeId)(zIndex := -10)), // z-index to overlap shadow
         cls := "shadow",
         editableTitle,
         padding := "3px 5px",
@@ -163,6 +164,7 @@ object SelectedPostMenu {
   def actionMenu(
       post: Node,
       graphState: GlobalState,
+      focusState: FocusState,
       selectedNodeId: Var[Option[(Vec2, NodeId)]]
   ) = {
     div(
@@ -179,7 +181,7 @@ object SelectedPostMenu {
       Styles.flex,
       justifyContent.spaceAround,
       alignItems.stretch,
-      menuActions.filter(_.showIf(post, graphState)).map { action =>
+      menuActions(focusState.focusedId).filter(_.showIf(post, graphState)).map { action =>
         div(
           Styles.flex,
           flexDirection.column,
@@ -211,7 +213,7 @@ object SelectedPostMenu {
       showIf: (Node, GlobalState) => Boolean = (_, _) => true
   )
 
-  val menuActions: List[MenuAction] = List(
+  def menuActions(focusedId: NodeId): List[MenuAction] = List(
     MenuAction("Focus", { (p: Node, state: GlobalState) =>
       state.urlConfig.update(_.focus(Page(p.id)))
     }),
@@ -229,7 +231,7 @@ object SelectedPostMenu {
     MenuAction(
       "Delete", { (p: Node, state: GlobalState) =>
         state.eventProcessor.changes.onNext(
-          GraphChanges.delete(p.id, state.graph.now.parents(p.id).toSet intersect state.page.now.parentId.toSet)
+          GraphChanges.delete(p.id, state.graph.now.parents(p.id).toSet intersect Set(focusedId))
         )
       }
     ),

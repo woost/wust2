@@ -8,12 +8,12 @@ import vectory._
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
 
 object PostCreationMenu {
-  def apply(state: GlobalState, pos: Vec2, transformRx: Rx[d3v4.Transform])(
+  def apply(state: GlobalState, focusState: FocusState, pos: Vec2, transformRx: Rx[d3v4.Transform])(
       implicit owner: Ctx.Owner
   ) = {
 //    import graphState.rxNodeIdToSimPost
@@ -37,7 +37,7 @@ object PostCreationMenu {
     div(
       emitter(inputHandler).foreach { content =>
         val author = state.user.now
-        val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), state.page.now.parentId)
+        val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), focusState.focusedId)
         state.eventProcessor.changes.onNext(changes)
 
         // TODO: move created post below menu (not working yet)
