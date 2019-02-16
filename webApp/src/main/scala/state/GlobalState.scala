@@ -29,12 +29,6 @@ import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.scalajs.js
 
-sealed trait UploadingFile
-object UploadingFile {
-  case class Waiting(dataUrl: String) extends UploadingFile
-  case class Error(dataUrl: String, retry: Task[Unit]) extends UploadingFile
-}
-
 class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
   val eventProcessor: EventProcessor,
