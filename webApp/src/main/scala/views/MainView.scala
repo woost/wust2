@@ -104,14 +104,12 @@ object MainView {
                 VDomModifier(
                   backgroundColor := pageStyle.bgLightColor,
 
-                  FocusState.fromGlobal(state, viewConfig).map { focusState =>
-                    ViewRender(state, focusState, viewConfig.view).apply(
-                      Styles.growFull,
-                      flexGrow := 1
-                    ).prepend(
-                      overflow.visible
-                    )
-                  }
+                  ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
+                    Styles.growFull,
+                    flexGrow := 1
+                  ).prepend(
+                    overflow.visible
+                  )
                 )
                 // we can now assume, that every page parentId is contained in the graph
               },
