@@ -12,15 +12,6 @@ import wust.ids._
     def copyId(sourceId: NodeId, targetId: NodeId): Edge
   }
 
-  sealed trait NodeUserEdge extends Edge {
-    def userId: UserId
-    def nodeId: NodeId
-    def sourceId: NodeId = nodeId
-    def targetId: NodeId = userId
-  }
-
-  sealed trait ContentEdge extends Edge
-
 //}
 
 /**
@@ -32,6 +23,15 @@ import wust.ids._
   * holds the NodeId of the content node and the second parameter holds the property value.
   */
 object Edge {
+
+  sealed trait NodeUserEdge extends Edge {
+    def userId: UserId
+    def nodeId: NodeId
+    def sourceId: NodeId = nodeId
+    def targetId: NodeId = userId
+  }
+
+  sealed trait ContentEdge extends Edge
 
 //  import EdgeComponents._
 

@@ -103,8 +103,8 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
       db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
         .map { permittedNodeIds =>
           val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
-            case e: NodeUserEdge  => List(e.sourceId)
-            case e: ContentEdge   => List(e.sourceId, e.targetId)
+            case e: Edge.NodeUserEdge  => List(e.sourceId)
+            case e: Edge.ContentEdge   => List(e.sourceId, e.targetId)
           })
 
           // we send replacements without a check, because they are normally only about users

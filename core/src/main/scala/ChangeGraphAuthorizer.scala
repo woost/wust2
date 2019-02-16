@@ -65,8 +65,8 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //Do not allow to do this for every possible node. attackers can spam an account.
     val addEdgesCheck: Either[List[String], List[Seq[NodeId]]] = eitherSeq(changes.addEdges.map {
       case e: Edge.Author   => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
-      case e: NodeUserEdge  => Right(Seq(e.nodeId))
-      case e: ContentEdge   => Right(Seq(e.sourceId, e.targetId))
+      case e: Edge.NodeUserEdge  => Right(Seq(e.nodeId))
+      case e: Edge.ContentEdge   => Right(Seq(e.sourceId, e.targetId))
     }(breakOut))
 
     // Only allow deleting edges that you have access to.
@@ -78,8 +78,8 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
       case _: Edge.Author   => Left("Cannot delete author edges")
       case e: Edge.Member   => Right(Seq(e.nodeId))
       case e: Edge.Assigned => Right(Seq(e.nodeId))
-      case e: NodeUserEdge  => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete edge of own user")
-      case e: ContentEdge   => Right(Seq(e.sourceId, e.targetId))
+      case e: Edge.NodeUserEdge  => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete edge of own user")
+      case e: Edge.ContentEdge   => Right(Seq(e.sourceId, e.targetId))
     }(breakOut))
 
     val checkNodeIds: Either[List[String], List[NodeId]] = for {
