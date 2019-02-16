@@ -55,18 +55,23 @@ object PageHeader {
     )
 
     val channelTitle = NodePermission.canWrite(state, pageNode.id).flatMap { canWrite =>
+      def writableMod = VDomModifier(
+        borderRadius := "3px",
+        Components.sidebarNodeFocusMod(state, pageNode.id)
+      )
+
       pageNode.role match {
         case NodeRole.Message | NodeRole.Task =>
           val node =
             if(!canWrite) nodeCard(pageNode, maxLength = maxLength)
-            else nodeCard(pageNode, maxLength = maxLength).apply(Components.sidebarNodeFocusMod(state, pageNode.id))
+            else nodeCard(pageNode, maxLength = maxLength).apply(writableMod)
           Rx(node(commonMods))
 
         case _ => // usually NodeRole.Project
           Rx {
             val node =
               if(!canWrite) renderNodeData(pageNode.data, maxLength = maxLength)
-              else renderNodeData(pageNode.data, maxLength = maxLength).apply(Components.sidebarNodeFocusMod(state, pageNode.id))
+              else renderNodeData(pageNode.data, maxLength = maxLength).apply(writableMod)
             node(commonMods)
           }
 
