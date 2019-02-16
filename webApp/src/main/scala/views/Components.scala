@@ -15,7 +15,7 @@ import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import rx._
 import jquery.JQuerySelection
 import wust.api.UploadedFile
-import wust.css.{Styles, ZIndex}
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
@@ -932,12 +932,12 @@ object Components {
 
   def sidebarNodeFocusMod(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     cursor.pointer,
-    onClick.foreach {
+    onClick.stopPropagation.foreach {
       val nextNode = if (state.rightSidebarNode.now == Some(nodeId)) None else Some(nodeId)
       state.rightSidebarNode() = nextNode
     },
     state.rightSidebarNode.map(_ contains nodeId).map { isFocused =>
-      VDomModifier.ifTrue(isFocused)(boxShadow := "inset 0 0 5px 3px #ddd")
+      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 2px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
 }

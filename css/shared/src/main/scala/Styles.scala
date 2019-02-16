@@ -1073,6 +1073,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   val selectedNodesBgColor = c"#85D5FF"
+  val selectedNodesBgColorCSS = c"#85D5FF".value
   ".selectednodes" - (
     backgroundColor(selectedNodesBgColor),
     paddingRight(5 px),
