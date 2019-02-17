@@ -363,7 +363,7 @@ object PageHeader {
       ()
     })
 
-    viewRx.foreach { view => addNewView(view) }
+    viewRx.triggerLater { view => addNewView(view) }
 
     div(
       marginLeft := "5px",
