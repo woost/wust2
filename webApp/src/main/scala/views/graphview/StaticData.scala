@@ -158,8 +158,8 @@ object StaticData {
       var maxRadius = 0.0
       var reservedArea = 0.0
       selection.each[html.Element] { (elem: html.Element, node: Node, i: Int) =>
-        if(graph.hasChildren(node.id)) {
-          staticData.bgColor(i) = nodeColorWithContext(graph, node.id).toCSS
+        if(graph.nodesById(node.id).role == NodeRole.Tag) {
+          staticData.bgColor(i) = tagColor(node.id).toCSS
           staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
           staticData.nodeCssClass(i) = "nodecard"

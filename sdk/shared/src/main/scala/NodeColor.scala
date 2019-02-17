@@ -52,20 +52,4 @@ object NodeColor {
 
   def mixedDirectParentColors(graph: Graph, nodeId: NodeId): Option[Color] =
     NonEmptyList.fromList(graph.parents(nodeId).map(eulerBgColor).toList).map(mixColors)
-
-  def nodeColorWithContext(graph: Graph, nodeId: NodeId): Color = {
-    val nodeDefaultColor = RGB("#f8f8f8")
-
-    if (graph.hasChildren(nodeId)) {
-      eulerBgColor(nodeId)
-    } else {
-      if (graph.hasParents(nodeId)) {
-        mixedDirectParentColors(graph, nodeId).fold(RGB("#FFFFFF").lab)(
-          mixed => mixColors(mixed, nodeDefaultColor)
-        )
-      } else
-        nodeDefaultColor
-    }
-  }
-
 }
