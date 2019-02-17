@@ -2,6 +2,8 @@ package wust.webApp.views
 
 import fomanticui._
 import fontAwesome.IconLookup
+import jquery.JQuerySelection
+import monix.execution.Cancelable
 import monix.reactive.{Observable, subjects}
 import monix.reactive.subjects.{PublishSubject, ReplaySubject}
 import org.scalajs.dom
@@ -262,6 +264,75 @@ object UI {
         cls := "description",
         description
       )
+    )
+  }
+
+  case class ColumnEntry(sortValue: String, value: VDomModifier)
+  object ColumnEntry {
+    def apply(value: String): ColumnEntry = ColumnEntry(value, value)
+  }
+  case class Column(name: String, entries: List[ColumnEntry])
+  case class ColumnSort(index: Int, direction: String)
+  def sortableTable(columns: List[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
+    val rows = columns.map(_.entries).transpose
+
+    val jqHandler = Handler.unsafe[JQuerySelection]
+
+    table(
+      cls := "ui sortable celled collapsing unstackable table",
+
+      managedElement { elem =>
+        val jq = jquery.JQuery.$(elem.asInstanceOf[dom.html.Element])
+        jqHandler.onNext(jq)
+
+        jq.tablesort()
+        val data = jq.data("tablesort").asInstanceOf[TableSortInstance]
+        dom.console.log(data)
+
+        sort.now.foreach { sort =>
+          // get the th elements in this elem
+          val tr = elem.children(0).children(0) // table  > thead > tr
+          if (sort.index >= 0 && sort.index < tr.children.length) {
+            val th = jquery.JQuery.$(tr.children(sort.index).asInstanceOf[dom.html.TableHeaderCell])
+
+            // need to update data object
+            data.index = sort.index
+            data.direction = sort.direction
+
+            data.sort(th, sort.direction)
+          }
+        }
+
+        data.$table.on("tablesort:complete", { () =>
+          sort() = if (data.direction != null) Some(ColumnSort(data.index, data.direction)) else None
+        })
+
+        Cancelable(() => data.destroy())
+      },
+
+      thead(
+        tr(
+          columns.zipWithIndex.map { case (columnEntry, idx) =>
+            th(columnEntry.name)
+          }
+        )
+      ),
+      tbody(
+        rows.map { columnEntries =>
+          tr(
+            columnEntries.map { columnEntry =>
+              // we purposely set prop(data-x) instead of data.x attribute. because otherwise tablesort plugin somehow does not see updated sort values.
+              td(prop("data-sort-value") := columnEntry.sortValue, columnEntry.value)
+            }
+          )
+        }
+      ),
+//      tfoot(
+//        tr(
+//          th(col1),
+//          th(col2)
+//        )
+//      )
     )
   }
 }

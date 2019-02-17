@@ -75,7 +75,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "6a75afa")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "a492eab")
 
   // rpc
   val covenant = new {

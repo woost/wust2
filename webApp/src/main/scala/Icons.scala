@@ -49,6 +49,7 @@ object Icons {
   val conversation: IconDefinition = freeRegular.faComments
   val chat: IconDefinition = freeRegular.faComments
   val thread: IconDefinition = freeSolid.faStream
+  val table: IconDefinition = freeSolid.faTable
   val tasks: IconDefinition = freeSolid.faTasks
   val kanban: IconDefinition = freeSolid.faColumns
   val list: IconDefinition = freeSolid.faList

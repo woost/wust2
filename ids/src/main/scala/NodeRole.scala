@@ -16,4 +16,9 @@ object NodeRole {
   @inline def default: NodeRole = Message
 
   def all: List[NodeRole] = macro SubObjects.list[NodeRole]
+
+  def fromString(str: String): Option[NodeRole] = {
+    val lowercaseStr = str.toLowerCase
+    all.find(_.productPrefix.toLowerCase == lowercaseStr)
+  }
 }

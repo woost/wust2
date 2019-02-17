@@ -1,5 +1,6 @@
 package fomanticui
 
+import jquery.JQuerySelection
 import org.scalajs.dom
 
 import scala.scalajs.js
@@ -25,6 +26,22 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
+
+  def tablesort(): Unit= js.native
+
+  def on(eventName: String, f: js.Function): Unit = js.native
+
+  def data(name: String): js.Any = js.native
+}
+
+trait TableSortInstance extends js.Object {
+  var $table: JQuerySelection 			  // The <table> being sorted.
+  var index: Int				              // The column index of tablesort.$th (or null).
+  var direction: String		            // The direction of the current sort, either 'asc' or 'desc' (or null if unsorted).
+  def settings: js.Any		            // Settings for this instance (see below).
+
+  def sort(th: JQuerySelection, direction: String): Unit
+  def destroy(): Unit
 }
 
 trait DropdownEntry extends js.Object {

@@ -26,6 +26,7 @@ if (!fs.existsSync(dummyOutputFile)) {
 // gather resources
 const cssFolder = Path.join(dirs.project, 'src/css');
 const htmlFolder = Path.join(dirs.project, 'src/html');
+const jsFolder = Path.join(dirs.project, 'src/js');
 const cssFiles = glob.sync(Path.join(cssFolder, '*.css'));
 const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 
@@ -36,13 +37,14 @@ const staticCopyAssets = [
     { from: 'node_modules/emoji-datasource/img/apple/sheets/32.png', to: 'emoji-datasource/sheet_apple_32.png'},
     { from: 'node_modules/highlight.js/styles/atom-one-dark.css', to: 'highlight/atom-one-light.css'},
     { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
+    { from: Path.join(jsFolder, 'tablesort.min.js'), to: 'jquery-tablesort.min.js'},
     { from: 'node_modules/clipboard/dist/clipboard.min.js', to: 'clipboard.min.js'},
     { from: 'node_modules/emoji-js/lib/emoji.min.js', to: 'emoji.min.js'},
     { from: 'node_modules/fomantic-ui-css/semantic.min.css', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/semantic.min.js', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' }
 ];
-const staticIncludeAssets = [ 'jquery.min.js', 'clipboard.min.js', 'emoji.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
+const staticIncludeAssets = [ 'jquery.min.js', 'jquery-tablesort.min.js', 'clipboard.min.js', 'emoji.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
 
 const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
 

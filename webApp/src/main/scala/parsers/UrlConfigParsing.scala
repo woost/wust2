@@ -38,8 +38,13 @@ private object UrlOption {
         case view => Left(DecodeError.TypeError(s"Expected View.Visible, but got: '$view'"))
       }
 
-    private def decodeView(s: String): DecodeResult[View] =
-      View.map.get(s).fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
+    private def decodeView(s: String): DecodeResult[View] = {
+      val split = s.split(":")
+      val viewName = split(0)
+      val parameters = split.drop(1).toList
+      val result = View.map.get(viewName).flatMap(_(parameters))
+      result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
+    }
 
     val regex = Regex[(String, Option[String])](rx"^(\w+)((\||,|\?|/)\w+)*?$$")
       .map(_.flatMap { case (view, opsViews) =>

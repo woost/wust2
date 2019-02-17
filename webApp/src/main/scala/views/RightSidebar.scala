@@ -192,7 +192,7 @@ object RightSidebar {
       UI.horizontalDivider("Custom Fields").apply(ItemProperties.manageProperties(state, node.id, button(cls := "ui button mini", freeSolid.faPlus, marginLeft := "10px"))),
 
       div(
-        propertyEdges.map { propertyEdge =>
+        propertyEdges.sortBy(_.data.key).map { propertyEdge =>
           graph.nodesByIdGet(propertyEdge.propertyId).map { property =>
             Components.removablePropertySection(state, propertyEdge, property).apply(
               commonPropMod

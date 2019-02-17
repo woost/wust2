@@ -11,6 +11,10 @@ sealed trait View {
 }
 object View {
   sealed trait Visible extends View
+  case class Table(roles: List[NodeRole]) extends Visible {
+    def viewKey = s"table${roles.map(_.toString.toLowerCase).mkString(":", ":", "")}"
+    override def toString = s"Table(${roles.mkString(",")})"
+  }
   case object Thread extends Visible {
     def viewKey = "thread"
   }
@@ -68,7 +72,16 @@ object View {
   def list: List[View] = macro SubObjects.list[View]
   def contentList: List[View] = list.filter(_.isContent)
 
-  val map: Map[String, View] = list.map(v => v.viewKey -> v)(breakOut)
+  val map: Map[String, List[String] => Option[View]] = {
+
+    val staticMap: Map[String, List[String] => Option[View]] = list.map(v => v.viewKey -> ((_: List[String]) => Some(v)))(breakOut)
+    val parameterMap: Map[String, List[String] => Option[View]] = Map(
+      "table" -> { params => Some(Table(params.flatMap(s => NodeRole.fromString(s))(breakOut))) }
+      //TODO viewops for TiledView should be done here too. currently hardcoded in UrlParsing
+    )
+
+    staticMap ++ parameterMap
+  }
 }
 
 sealed trait ViewOperator {

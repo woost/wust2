@@ -198,7 +198,8 @@ object PageHeader {
       case View.List => TabInfo(View.List, Icons.list, "tasks", numTasks)
       case View.Kanban => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
       case View.Files => TabInfo(View.Files, Icons.files, "files", numFiles)
-      case View.Graph => TabInfo(View.Graph, Icons.graph, "Graph", numFiles)
+      case View.Graph => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
+      case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
       case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
     }
 
@@ -209,7 +210,7 @@ object PageHeader {
       View.List ::
       View.Kanban ::
       View.Files ::
-      (if (DevOnly.isTrue) View.Graph :: Nil else Nil)
+      (if (DevOnly.isTrue) View.Graph :: View.Table(NodeRole.Message :: Nil) :: View.Table(NodeRole.Task :: Nil) :: Nil else Nil)
 
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
       val node = state.graph.now.nodesByIdGet(channelId)

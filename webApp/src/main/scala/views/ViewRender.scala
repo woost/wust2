@@ -23,6 +23,7 @@ object ViewRender {
     def withFocusState(focusState: FocusState): PartialFunction[View.Visible, VNode] = withoutFocusState orElse {
       case View.Chat             => ChatView(state, focusState)
       case View.Thread           => ThreadView(state, focusState)
+      case View.Table(roles)     => TableView(state, focusState, roles)
       case View.List             => ListView(state, focusState)
       case View.Kanban           => KanbanView(state, focusState)
       case View.Graph            => GraphView(state, focusState)
