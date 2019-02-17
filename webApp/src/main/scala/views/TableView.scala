@@ -33,7 +33,7 @@ object TableView {
   def table(state: GlobalState, graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
-    def columnEntryOfNodes(row: NodeId, nodes: Array[Node], valueModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    def columnEntryOfNodes(row: NodeId, nodes: Array[Node], valueModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = nodes.map {
         case node: Node.Content => node.str
         case user: Node.User    => Components.displayUserName(user.data) // sort users by display name
@@ -41,11 +41,12 @@ object TableView {
       value = VDomModifier(
         nodes.map {
           case tag: Node.Content if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
-          case node: Node.Content                            => Components.renderNodeDataWithFile(state, node.id, node.data, maxLength = Some(50)) //TODO editable?
+          case node: Node.Content                            => Components.editableNodeOnClick(state, node, maxLength = Some(50))
           case user: Node.User                               => Components.removableAssignedUser(state, user, row)
         },
         valueModifier
-      )
+      ),
+      rowModifier = rowModifier
     )
 
     val (childrenIdxs, nodeToProperties): (Seq[Int], Array[Map[String, Array[Edge.LabeledProperty]]]) = {
@@ -71,7 +72,7 @@ object TableView {
         "Node",
         childrenIdxs.map { childrenIdx =>
           val node = graph.nodes(childrenIdx)
-          columnEntryOfNodes(node.id, Array(node), Components.sidebarNodeFocusMod(state, node.id))
+          columnEntryOfNodes(node.id, Array(node), valueModifier = Components.sidebarNodeFocusClickMod(state, node.id), rowModifier = Components.sidebarNodeFocusVisualizeMod(state, node.id))
         }(breakOut)
       ) ::
       UI.Column(

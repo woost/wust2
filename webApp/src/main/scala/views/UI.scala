@@ -267,7 +267,7 @@ object UI {
     )
   }
 
-  case class ColumnEntry(sortValue: String, value: VDomModifier)
+  case class ColumnEntry(sortValue: String, value: VDomModifier, rowModifier: VDomModifier = VDomModifier.empty)
   object ColumnEntry {
     def apply(value: String): ColumnEntry = ColumnEntry(value, value)
   }
@@ -321,8 +321,11 @@ object UI {
         rows.map { columnEntries =>
           tr(
             columnEntries.map { columnEntry =>
-              // we purposely set prop(data-x) instead of data.x attribute. because otherwise tablesort plugin somehow does not see updated sort values.
-              td(prop("data-sort-value") := columnEntry.sortValue, columnEntry.value)
+              VDomModifier(
+                columnEntry.rowModifier,
+                // we purposely set prop(data-x) instead of data.x attribute. because otherwise tablesort plugin somehow does not see updated sort values.
+                td(prop("data-sort-value") := columnEntry.sortValue, columnEntry.value)
+              )
             }
           )
         }
