@@ -15,11 +15,12 @@ import wust.webApp.state.{FocusState, GlobalState, PageStyle}
 import scala.scalajs.LinkingInfo
 
 object GraphView {
-  def apply(state: GlobalState, focusState: FocusState, controls: Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
+  def apply(state: GlobalState, focusState: FocusState)(implicit owner: Ctx.Owner) = {
 
     val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _, _))
 
     val nodeStyle = PageStyle.ofNode(focusState.focusedId)
+    val showControls = Var(LinkingInfo.developmentMode)
 
     div(
       position.relative, // for absolute positioned menu overlays
@@ -30,33 +31,38 @@ object GraphView {
       overflow.auto, // fits graph visualization perfectly into view
 
       backgroundColor := nodeStyle.bgLightColor,
-      controls.ifTrueOption {
-        div(
-          position := "absolute",
-          zIndex := ZIndex.controls,
-          button("start", onMouseDown foreach {
-            forceSimulation.startAnimated()
-            forceSimulation.simData.alphaDecay = 0
-          }, onMouseUp foreach {
-            forceSimulation.startAnimated()
-          }),
-          button("play", onClick foreach {
-            forceSimulation.startAnimated()
-            forceSimulation.simData.alphaDecay = 0
-          }),
-          button("start hidden", onClick foreach {
-            forceSimulation.startHidden()
-          }),
-          button("stop", onClick foreach {
-            forceSimulation.stop()
-          }),
-          button("step", onClick foreach {
-            forceSimulation.step()
-            ()
-          }),
-          button("reposition", onClick foreach {
-            forceSimulation.reposition()
-          })
+      Rx{
+        VDomModifier.ifTrue(showControls())(
+          div(
+            position := "absolute",
+            zIndex := ZIndex.controls,
+            button("start", onMouseDown foreach {
+              forceSimulation.startAnimated()
+              forceSimulation.simData.alphaDecay = 0
+            }, onMouseUp foreach {
+              forceSimulation.startAnimated()
+            }),
+            button("play", onClick foreach {
+              forceSimulation.startAnimated()
+              forceSimulation.simData.alphaDecay = 0
+            }),
+            button("start hidden", onClick foreach {
+              forceSimulation.startHidden()
+            }),
+            button("stop", onClick foreach {
+              forceSimulation.stop()
+            }),
+            button("step", onClick foreach {
+              forceSimulation.step()
+              ()
+            }),
+            button("reposition", onClick foreach {
+              forceSimulation.reposition()
+            }),
+            button("hide controls", onClick foreach {
+              showControls() = false
+            })
+          )
         )
       },
       forceSimulation.component,
