@@ -10,7 +10,7 @@ object ViewHeuristic {
     case None =>
       graph.idToIdxGet(parentId).fold[View.Visible](View.Empty) { parentIdx =>
         val node = graph.nodes(parentIdx)
-        node.views.fold[View.Visible](bestView(graph, node))(views => visibleView(graph, parentId, views.headOption.getOrElse(View.Empty)))
+        bestView(graph, node)
       }
   }
 
@@ -29,7 +29,11 @@ object ViewHeuristic {
 
   }
 
-  def bestView(graph: Graph, node: Node): View.Visible = node.role match {
+  def bestView(graph: Graph, node: Node): View.Visible = {
+    node.views.fold[View.Visible](fallbackView(graph, node))(views => visibleView(graph, node.id, views.headOption.getOrElse(View.Empty)))
+  }
+
+  def fallbackView(graph: Graph, node: Node): View.Visible = node.role match {
     case NodeRole.Project => View.Dashboard
     case NodeRole.Message => visibleView(graph, node.id, View.Conversation)
     case NodeRole.Task    => visibleView(graph, node.id, View.Tasks)
