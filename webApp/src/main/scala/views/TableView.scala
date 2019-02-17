@@ -1,12 +1,15 @@
 package wust.webApp.views
 
 import flatland.ArraySliceInt
+import fontAwesome.freeSolid
+import monix.reactive.subjects.PublishSubject
 import rx._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.css.Styles
-import wust.graph.{Edge, Graph, Node}
-import wust.ids.{NodeId, NodeRole}
+import wust.graph.{Edge, Graph, GraphChanges, Node}
+import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.webApp.Icons
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 
@@ -101,7 +104,28 @@ object TableView {
       )
     }(breakOut)
 
-    UI.sortableTable(nodeColumns ::: propertyColumns, sort)
+    VDomModifier(
+      UI.sortableTable(nodeColumns ::: propertyColumns, sort),
+
+      button(
+        cls := "ui button",
+        freeSolid.faPlus,
+        cursor.pointer,
+        onClick.stopPropagation.foreach {
+          val targetRole = roles match {
+            case head :: _ => head
+            case Nil       => NodeRole.default
+          }
+
+          val newNode = Node.Content(NodeData.Markdown(""), targetRole)
+
+          sort() = None // reset sorting again, so the new node appears at the bottom :)
+          state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, focusedId))
+
+          ()
+        }
+      )
+    )
   }
 
 }
