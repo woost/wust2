@@ -141,8 +141,8 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
     $$
 );
 
@@ -166,8 +166,8 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('A1'),node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Pinned"}']::text[]),
-        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, array[]::uuid[], array[]::text[])
+        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('A1'),node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Pinned"}']::text[]),
+        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, null::jsonb[], array[]::uuid[], array[]::text[])
     $$
 );
 
@@ -189,10 +189,10 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01')]::uuid[], array['{"type": "Pinned"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01')]::uuid[], array['{"type": "Pinned"}']::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
     $$
 );
 
@@ -216,8 +216,22 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('A1'), node_to_uuid('A1')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
-        (node_to_uuid('A1'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')), '{"type": "Message"}'::jsonb, null, array[]::uuid[], array[]::text[])
+        (user_to_uuid('A2'),
+            jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0),
+            '{"type": "Message"}'::jsonb,
+            'restricted'::accesslevel,
+            null::jsonb[],
+            array[node_to_uuid('A1'), node_to_uuid('A1')]::uuid[],
+            array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]
+        ),
+        (node_to_uuid('A1'),
+            jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('A1')),
+            '{"type": "Message"}'::jsonb,
+            null,
+            null::jsonb[],
+            array[]::uuid[],
+            array[]::text[]
+        )
     $$
 );
 
@@ -240,7 +254,14 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('A2'), jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[]::uuid[], array[]::text[])
+        (user_to_uuid('A2'),
+            jsonb_build_object('type', 'User', 'name', 'A2', 'isImplicit', false, 'revision', 0),
+            '{"type": "Message"}'::jsonb,
+            'restricted'::accesslevel,
+            null::jsonb[],
+            array[]::uuid[],
+            array[]::text[]
+        )
     $$
 );
 
@@ -260,10 +281,10 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[node_to_uuid('01'), node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
-        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
-        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[]::uuid[], array[]::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[node_to_uuid('01'), node_to_uuid('01')]::uuid[], array['{"type": "Member", "level": "readwrite"}', '{"type": "Invite"}']::text[]),
+        (node_to_uuid('01'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('01')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('02')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('02'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('02')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[node_to_uuid('03')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[]),
+        (node_to_uuid('03'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('03')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[]::uuid[], array[]::text[])
     $$
 );
 
@@ -331,8 +352,8 @@ select set_eq(
     $$,
     -- table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, targetids uuid[], edgeData text[])
     $$ values
-        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, array[user_to_uuid('0A')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
-        (node_to_uuid('11'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('11')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, array[user_to_uuid('0A')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[])
+        (user_to_uuid('0A'), jsonb_build_object('type', 'User', 'name', '0A', 'isImplicit', false, 'revision', 0), '{"type": "Message"}'::jsonb, 'restricted'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Member", "level": "readwrite"}']::text[]),
+        (node_to_uuid('11'), jsonb_build_object('type', 'PlainText', 'content', node_to_uuid('11')), '{"type": "Message"}'::jsonb, 'readwrite'::accesslevel, null::jsonb[], array[user_to_uuid('0A')]::uuid[], array['{"type": "Parent", "deletedAt": null}']::text[])
     $$
 );
 
