@@ -1,5 +1,6 @@
 package views.graphview
 
+import wust.webApp.dragdrop.DragItem
 import monix.execution.Cancelable
 import monix.execution.cancelables.CompositeCancelable
 import d3v4._
@@ -121,7 +122,8 @@ class ForceSimulation(
         height := "100%",
         position := "absolute",
         // pointerEvents := "none", // background handles mouse events
-        transformOrigin := "top left" // same as svg/canvas default
+        transformOrigin := "top left", // same as svg/canvas default
+        registerDragContainer(state)
       )
     )
   }
@@ -543,10 +545,11 @@ object ForceSimulation {
           // TODO: is outwatch rendering slow here? Should we use d3 instead?
           val postWidth = calcPostWidth(node)
           div(
+            cls := "graphnode",
             postWidth,
             renderNodeData(node.data),
-            cls := "graphnode",
             // pointerEvents.auto, // re-enable mouse events
+            drag(target = DragItem.Task(node.id))
           ).render
         })
         .on("click", onClick)

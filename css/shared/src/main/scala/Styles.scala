@@ -1135,6 +1135,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- draggable node
   ".node.draggable--over," +
+  ".graphnode.draggable--over," +
   ".chat-expanded-thread.draggable--over," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
