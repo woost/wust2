@@ -49,6 +49,8 @@ object PostCreationMenu {
         //      }
       },
       position.absolute,
+      top := "0",
+      left := "0",
       //TODO: prevent drag events to bubble to background
       onClick foreach(_.stopPropagation()), // prevent click from bubbling to background
       transform <-- transformStyle,

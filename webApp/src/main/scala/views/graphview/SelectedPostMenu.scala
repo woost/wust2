@@ -119,6 +119,8 @@ object SelectedPostMenu {
         state.eventProcessor.changes.onNext(changes)
       },
       position.absolute,
+      top := "0",
+      left := "0",
       onClick foreach(_.stopPropagation()), // prevent click from bubbling to background, TODO: same for dragging
       width := "300px",
       transform <-- transformStyle,

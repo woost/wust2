@@ -21,6 +21,7 @@ object GraphView {
     val nodeStyle = PageStyle.ofNode(focusState.focusedId)
 
     div(
+      position.relative, // for absolute positioned menu overlays
       emitter(state.jsErrors).foreach { _ =>
         forceSimulation.stop()
       },
@@ -57,9 +58,9 @@ object GraphView {
           })
         )
       },
-      forceSimulation.component(
+      forceSimulation.component,
         forceSimulation.postCreationMenus.map(_.map { menu =>
-          PostCreationMenu(state, focusState, menu, Var(forceSimulation.transform))
+        PostCreationMenu(state, focusState, menu, forceSimulation.transform)
         }),
         forceSimulation.selectedNodeId.map(_.map {
           case (pos, id) =>
@@ -69,11 +70,10 @@ object GraphView {
               state,
               focusState,
               forceSimulation.selectedNodeId,
-              Var(forceSimulation.transform)
+            forceSimulation.transform
             )
         })
       )
-    )
   }
 
   def onDrop(state: GlobalState)(dragging: NodeId, target: NodeId): Unit = {

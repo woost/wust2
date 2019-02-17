@@ -72,7 +72,7 @@ class ForceSimulation(
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
   private var canvasContext: CanvasRenderingContext2D = _
-  var transform: Transform = d3.zoomIdentity
+  var transform: Var[Transform] = Var(d3.zoomIdentity)
   var running = false
   //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
 
@@ -163,17 +163,18 @@ class ForceSimulation(
 
     // will be called, when user zoomed the view
     def zoomed(): Unit = {
-      transform = d3.event.transform // since zoomed is called via d3 event, transform was set by d3
+      val tr = d3.event.transform // since zoomed is called via d3 event, transform was set by d3
       // println(log(s"zoomed: ${transform.k}"))
-      canvasContext.setTransform(transform.k, 0, 0, transform.k, transform.x, transform.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
+      canvasContext.setTransform(tr.k, 0, 0, tr.k, tr.x, tr.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
       nodeContainer.style(
         "transform",
-        s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
+        s"translate(${tr.x}px,${tr.y}px) scale(${tr.k})"
       )
       // assert(!simData.isNaN, s"zoomed: before draw canvas x:${simData.x(0)} vx:${simData.vx(0)}")
       drawCanvas(simData, staticData, canvasContext, planeDimension)
       // assert(!simData.isNaN, s"zoomed: after draw canvas x:${simData.x(0)} vx:${simData.vx(0)}")
       if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
+      transform() = tr
     }
 
     // Drag & Zoom example: https://bl.ocks.org/mbostock/3127661b6f13f9316be745e77fdfb084
@@ -191,13 +192,13 @@ class ForceSimulation(
           println("clicked background")
 
           // if visualization was broken, fix it
-          if (transform.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
+          if (transform.now.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
             // fixes visualization
             resized()
             startAnimated()
           } else {
             if (postCreationMenus.now.isEmpty && selectedNodeId.now.isEmpty) {
-              val pos = transform.invert(d3.mouse(background.node))
+              val pos = transform.now.invert(d3.mouse(background.node))
               postCreationMenus() = List(Vec2(pos(0), pos(1)))
             } else {
               // TODO:
@@ -221,8 +222,8 @@ class ForceSimulation(
 
     def dragSubject(d: Node, i: Int): Coordinates = {
       new Coordinates(
-        x = simData.x(i) * transform.k,
-        y = simData.y(i) * transform.k
+        x = simData.x(i) * transform.now.k,
+        y = simData.y(i) * transform.now.k
       )
     }
 
@@ -235,8 +236,8 @@ class ForceSimulation(
     def hit(dragging: Int, minRadius: Double): Option[Int] = {
       if (simData.n <= 1) return None
 
-      val x = d3.event.x / transform.k
-      val y = d3.event.y / transform.k
+      val x = d3.event.x / transform.now.k
+      val y = d3.event.y / transform.now.k
 
       val target = simData.quadtree.find(x, y) // ,staticData.maxRadius
       def distance = Vec2.length(x - simData.x(target), y - simData.y(target))
@@ -247,8 +248,8 @@ class ForceSimulation(
 
     def dragging(n: html.Element, d: Node, dragging: Int): Unit = {
       running = false
-      val x = d3.event.x / transform.k
-      val y = d3.event.y / transform.k
+      val x = d3.event.x / transform.now.k
+      val y = d3.event.y / transform.now.k
 
       d3.select(n)
         .style("transform", {
@@ -324,12 +325,13 @@ class ForceSimulation(
       if (resizedFromZero) { // happens when graphview was rendered in a hidden element
         // since nodeContainer had size zero, all posts also had size zero,
         // so we have to resize nodeContainer and then reinitialize the node sizes in static data
-        transform = d3.zoomIdentity
+        val tr = d3.zoomIdentity
         nodeContainer.style(
           "transform",
-          s"translate(${transform.x}px,${transform.y}px) scale(${transform.k})"
+          s"translate(${tr.x}px,${tr.y}px) scale(${tr.k})"
         )
-        staticData = StaticData(graphRx.now, postSelection, transform, labelVisualization)
+        staticData = StaticData(graphRx.now, postSelection, tr, labelVisualization)
+        transform() = tr
       }
 
       val arbitraryFactor = 2.5
@@ -386,7 +388,7 @@ class ForceSimulation(
       // afterwards we write the data back to our new arrays in simData
       simData = createSimDataFromDomBackup(postSelection)
       // For each node, we calculate its rendered size, radius etc.
-      staticData = StaticData(graph, postSelection, transform, labelVisualization)
+      staticData = StaticData(graph, postSelection, transform.now, labelVisualization)
       initNodePositions()
       dom.window.setTimeout(() => resized(), 0) // defer size detection until rendering is finished. Else initial size can be wrong.
 
