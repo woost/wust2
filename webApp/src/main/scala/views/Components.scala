@@ -281,10 +281,7 @@ object Components {
         padding := "0px 10px 0px 10px",
         Styles.flex,
         justifyContent.flexEnd,
-        renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(100)).apply(
-          cursor.pointer,
-          onClick.foreach { state.urlConfig.update(_.focus(Page(property.id))) },
-        )
+        editableNodeOnClick(state, property, maxLength = Some(100))
       )
     )
   }
@@ -605,82 +602,7 @@ object Components {
     }
 
     def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
-      //TODO: this validation code whether a node is writeable should be shared with the backend.
-
-      val initialRender: Var[VNode] = Var(renderNodeDataWithFile(state, node.id, node.data, maxLength))
-
-      node match {
-
-        case node@Node.Content(_, textData: NodeData.EditableText, _, _, _) =>
-          val editRender = editableTextNode(state, editMode, initialRender, maxLength, node.data.str, str => textData.updateStr(str).map(data => node.copy(data = data)))
-          editableNodeContent(state, node, editMode, initialRender, editRender)
-
-        //TODO: integer, floating point, etc.
-
-        case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
-          val editRender = editableTextNode(state, editMode, initialRender, maxLength, user.data.name, str => user.data.updateName(str).map(data => user.copy(data = data)))
-          editableNodeContent(state, user, editMode, initialRender, editRender)
-
-        case _ => initialRender.now
-      }
-    }
-
-    def editableTextNode(state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], maxLength: Option[Int], nodeStr: String, applyStringToNode: String => Option[Node])(implicit ctx: Ctx.Owner): VDomModifier = {
-      import scala.concurrent.duration._
-
-      def save(contentEditable:HTMLElement): Unit = {
-        if(editMode.now) {
-          val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
-          if (text.nonEmpty) {
-            applyStringToNode(text) match {
-              case Some(updatedNode) =>
-                Var.set(
-                  initialRender -> renderNodeDataWithFile(state, updatedNode.id, updatedNode.data, maxLength),
-                  editMode -> false
-                )
-
-                val changes = GraphChanges.addNode(updatedNode)
-                state.eventProcessor.changes.onNext(changes)
-              case None =>
-                editMode() = false
-            }
-          }
-        }
-      }
-
-      VDomModifier(
-        onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-        onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-        nodeStr, // Markdown source code
-        contentEditable := true,
-        cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-        whiteSpace.preWrap, // preserve white space in Markdown code
-        backgroundColor := "#FFF",
-        color := "#000",
-        cursor.auto,
-
-        onFocus foreach { e => document.execCommand("selectAll", false, null) },
-        onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-        BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-          onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-          onEscape foreach { editMode() = false }
-          //TODO how to revert back if you wrongly edited something on mobile?
-        )),
-        onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
-      )
-    }
-
-    def editableNodeContent(state: GlobalState, node: Node, editMode: Var[Boolean], initialRender: Rx[VNode], editRender: VDomModifier)(
-      implicit ctx: Ctx.Owner
-    ): VNode = {
-
-      p( // has different line-height than div and is used for text by markdown
-        outline := "none", // hides contenteditable outline
-        keyed, // when updates come in, don't disturb current editing session
-        Rx {
-          if(editMode()) editRender else initialRender()
-        },
-      )
+      EditableNodeContent(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength))
     }
 
     def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
