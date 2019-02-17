@@ -87,7 +87,7 @@ object RightSidebar {
               color.white,
               Icons.zoom,
               cursor.pointer,
-              onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId))) }
+              onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
             ),
             PageHeader.viewSwitcher(state, nodeId, viewVar, viewAction),
           ),
