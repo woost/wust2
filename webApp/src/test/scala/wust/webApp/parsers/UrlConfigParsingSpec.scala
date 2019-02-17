@@ -3,8 +3,8 @@ package wust.webApp.parsers
 import cats.data.NonEmptyList
 import org.scalatest._
 import wust.graph.Page
-import wust.ids.{Cuid, NodeId}
-import wust.webApp.state.{PageChange, View, UrlConfig, ViewOperator}
+import wust.ids.{Cuid, NodeId, View, ViewOperator}
+import wust.webApp.state.{PageChange, UrlConfig}
 
 class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
   def createUrlConfig(view: Option[View], page: Page, prevView: Option[View]) = UrlConfig(view, PageChange(page), prevView, None, None)
