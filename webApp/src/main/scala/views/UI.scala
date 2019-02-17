@@ -287,7 +287,6 @@ object UI {
 
         jq.tablesort()
         val data = jq.data("tablesort").asInstanceOf[TableSortInstance]
-        dom.console.log(data)
 
         sort.now.foreach { sort =>
           // get the th elements in this elem
