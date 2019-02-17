@@ -853,11 +853,19 @@ object Components {
   }
 
   def sidebarNodeFocusMod(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    sidebarNodeFocusClickMod(state, nodeId),
+    sidebarNodeFocusVisualizeMod(state, nodeId)
+  )
+
+  def sidebarNodeFocusClickMod(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     cursor.pointer,
     onClick.stopPropagation.foreach {
       val nextNode = if (state.rightSidebarNode.now == Some(nodeId)) None else Some(nodeId)
       state.rightSidebarNode() = nextNode
     },
+  )
+
+  def sidebarNodeFocusVisualizeMod(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     state.rightSidebarNode.map(_ contains nodeId).map { isFocused =>
       VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 2px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
