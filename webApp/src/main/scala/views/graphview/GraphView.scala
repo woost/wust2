@@ -1,5 +1,6 @@
 package wust.webApp.views.graphview
 
+import wust.webApp.dragdrop.{DragItem, DragTarget, DragPayload, DragActions, DragPayloadAndTarget}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -16,7 +17,7 @@ import scala.scalajs.LinkingInfo
 object GraphView {
   def apply(state: GlobalState, focusState: FocusState, controls: Boolean = LinkingInfo.developmentMode)(implicit owner: Ctx.Owner) = {
 
-    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _), onDropWithCtrl(state)(_, _))
+    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _, _))
 
     val nodeStyle = PageStyle.ofNode(focusState.focusedId)
 
@@ -59,30 +60,48 @@ object GraphView {
         )
       },
       forceSimulation.component,
-        forceSimulation.postCreationMenus.map(_.map { menu =>
+      forceSimulation.postCreationMenus.map(_.map { menu =>
         PostCreationMenu(state, focusState, menu, forceSimulation.transform)
-        }),
-        forceSimulation.selectedNodeId.map(_.map {
-          case (pos, id) =>
-            SelectedPostMenu(
-              pos,
-              id,
-              state,
-              focusState,
-              forceSimulation.selectedNodeId,
+      }),
+      forceSimulation.selectedNodeId.map(_.map {
+        case (pos, id) =>
+          SelectedPostMenu(
+            pos,
+            id,
+            state,
+            focusState,
+            forceSimulation.selectedNodeId,
             forceSimulation.transform
-            )
-        })
-      )
+          )
+      })
+    )
   }
 
-  def onDrop(state: GlobalState)(dragging: NodeId, target: NodeId): Unit = {
-    val graph = state.graph.now
-    state.eventProcessor.changes.onNext(GraphChanges.moveInto(graph, dragging, target))
+  private val roleToDragItem:PartialFunction[(NodeId, NodeRole), DragPayloadAndTarget] = {
+    case (nodeId, NodeRole.Task) => DragItem.Task(nodeId)
+    case (nodeId, NodeRole.Message) => DragItem.Message(nodeId)
+    case (nodeId, NodeRole.Project) => DragItem.Project(nodeId)
+    case (nodeId, NodeRole.Tag) => DragItem.Tag(nodeId)
   }
 
-  def onDropWithCtrl(state: GlobalState)(dragging: NodeId, target: NodeId): Unit = {
+  def onDrop(state: GlobalState)(draggingId: NodeId, targetId: NodeId, ctrl: Boolean): Boolean = {
     val graph = state.graph.now
-    state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Parent)(dragging, target))
+
+    def payload:Option[DragPayload] = { roleToDragItem.lift((draggingId,graph.nodesById(draggingId).role)) }
+    def target:Option[DragTarget] = { roleToDragItem.lift((targetId, graph.nodesById(targetId).role)) }
+
+    val changes = for {
+      payload <- payload
+      target <- target
+      changes <- DragActions.dragAction.lift((payload, target, ctrl, false))
+      
+    } yield changes(graph, state.user.now.id)
+    
+    changes match {
+      case Some(changes) => 
+        state.eventProcessor.changes.onNext(changes)
+        true
+      case None => false
+    } 
   }
 }

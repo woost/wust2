@@ -89,32 +89,33 @@ object DragActions {
     }
   }
 
-  val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (SortableStopEvent, Graph, UserId) => GraphChanges] = {
+  val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (Graph, UserId) => GraphChanges] = {
     import DragItem._
     import wust.graph.GraphChanges.{ linkOrMoveInto, linkInto, movePinnedChannel, assign }
     {
-      case (payload: ContentNode, target: ContentNode, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: ContentNode, target: Thread, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeIds, graph, ctrl)
-      case (payload: ContentNode, target: Workspace, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: ContentNode, target: Channel, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeIds, graph, ctrl)
+      case (payload: ContentNode, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: ContentNode, target: BreadCrumb, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Tag, false, false) => (graph, userId) => linkInto(payload.nodeId, target.nodeId, graph)
+      case (payload: ContentNode, target: BreadCrumb, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: SelectedNode, target: ContentNode, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: ContentNode, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: Workspace, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: Channel, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNodes, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
 
-      case (payload: Channel, target: Channel, false, false) => (sortableStopEvent, graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
-      case (payload: Channel, target: Sidebar.type, false, false) => (sortableStopEvent, graph, userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
-      case (payload: Channel, target: ContentNode, ctrl, false) => (sortableStopEvent, graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
+      case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
+      case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
+      case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
 
-      case (payload: Tag, target: ContentNode, false, false) => (sortableStopEvent, graph, userId) => linkInto(target.nodeId, payload.nodeId, graph)
-      case (payload: Tag, target: Tag, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: Tag, target: TagBar, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: Tag, target: Channel, ctrl, false) => (sortableStopEvent, graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => linkInto(target.nodeId, payload.nodeId, graph)
+      case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
 
-      case (payload: User, target: Task, false, false) => (sortableStopEvent, graph, userId) => assign(payload.userId, target.nodeId)
+      case (payload: User, target: Task, false, false) => (graph, userId) => assign(payload.userId, target.nodeId)
     }
   }
 

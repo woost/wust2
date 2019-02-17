@@ -52,8 +52,7 @@ object ForceSimulationConstants {
 class ForceSimulation(
     state: GlobalState,
     focusState: FocusState,
-    onDrop: (NodeId, NodeId) => Unit,
-    onDropWithCtrl: (NodeId, NodeId) => Unit
+    onDrop: (NodeId, NodeId, Boolean) => Boolean,
 )(implicit ctx: Ctx.Owner) {
   //TODO: sometimes dragging parent into child crashes simulation
   import ForceSimulation._
@@ -74,7 +73,7 @@ class ForceSimulation(
   private var canvasContext: CanvasRenderingContext2D = _
   var transform: Var[Transform] = Var(d3.zoomIdentity)
   var running = false
-  //  val positionRequests = mutable.HashMap.empty[NodeId, (Double, Double)]
+  var dragStartPos:Vec2 = Vec2.zero
 
   private val backgroundElement = Var[Option[dom.html.Element]](None)
   private val canvasLayerElement = Var[Option[dom.html.Canvas]](None)
@@ -231,6 +230,7 @@ class ForceSimulation(
       running = false
       ForceSimulationForces.initQuadtree(simData, staticData)
       simData.quadtree.remove(dragging)
+      dragStartPos = Vec2(d3.event.x, d3.event.y)
     }
 
     def hit(dragging: Int, minRadius: Double): Option[Int] = {
@@ -294,12 +294,13 @@ class ForceSimulation(
 
     def dropped(n: html.Element, d: Node, dragging: Int): Unit = {
       hit(dragging, minimumDragHighlightRadius).foreach { target =>
-        if (isCtrlPressed)
-          onDropWithCtrl(staticData.posts(dragging).id, staticData.posts(target).id)
-        else
-          onDrop(staticData.posts(dragging).id, staticData.posts(target).id)
+        val successful = onDrop(staticData.posts(dragging).id, staticData.posts(target).id, isCtrlPressed)
+        if(!successful) {
+          simData.x(dragging) = dragStartPos.x
+          simData.y(dragging) = dragStartPos.y
+          draw()
+        }
       }
-      //TODO: if nothing was changed, jump back to drag start with animation
     }
 
     def onClick(node: Node, i: Int): Unit = {
