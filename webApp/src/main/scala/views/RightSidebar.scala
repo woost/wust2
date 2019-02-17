@@ -54,7 +54,7 @@ object RightSidebar {
               minHeight := "300px",
               flex := "1",
               margin := "0px 5px 0px 5px",
-              padding := "5px",
+              padding := "3px",
               boxMod,
               overflowY.auto,
 
@@ -107,13 +107,23 @@ object RightSidebar {
   }
 
   def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
+    val editMode = Var(false)
 
     div(
       Rx {
         focusedNodeId().flatMap { nodeId =>
           state.graph().nodesByIdGet(nodeId).map { node =>
             VDomModifier(
-              Components.nodeCardEditableOnClick(state, node),
+              div(
+                Styles.flex,
+                alignItems.flexStart,
+                Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginRight := "3px"),
+                div(
+                  Icons.edit,
+                  cursor.pointer,
+                  onClick.stopPropagation(true) --> editMode,
+                )
+              ),
               nodeProperties(state, state.graph(), node)
             )
           }
