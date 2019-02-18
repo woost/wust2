@@ -140,14 +140,14 @@ class ForceSimulation(
     val cancelable = CompositeCancelable()
     cancelable += Cancelable(() => scribe.info("canceling simulation"))
 
-    println(log("-------------------- init simulation"))
+    scribe.info(log("-------------------- init simulation"))
     val background = d3.select(backgroundElement)
     val canvasLayer = d3.select(canvasLayerElement)
     val nodeContainer = d3.select(nodeContainerElement)
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
     val graphRx: Rx[Graph] = Rx {
-      println(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
+      scribe.info(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
       time(log("filtering graph")) {
         val graph = state.graph()
         val focusedIdx = graph.idToIdx(focusState.focusedId)
@@ -163,7 +163,7 @@ class ForceSimulation(
     // will be called, when user zoomed the view
     def zoomed(): Unit = {
       val tr = d3.event.transform // since zoomed is called via d3 event, transform was set by d3
-      // println(log(s"zoomed: ${transform.k}"))
+      // scribe.info(log(s"zoomed: ${transform.k}"))
       canvasContext.setTransform(tr.k, 0, 0, tr.k, tr.x, tr.y) // set transformation matrix (https://developer.mozilla.org/de/docs/Web/API/CanvasRenderingContext2D/setTransform)
       nodeContainer.style(
         "transform",
@@ -188,7 +188,7 @@ class ForceSimulation(
       .call(zoom) // mouse events only get catched in background layer, then trigger zoom events, which in turn trigger zoomed()
       .on(
         "click", { () =>
-          println("clicked background")
+          scribe.info("clicked background")
 
           // if visualization was broken, fix it
           if (transform.now.k.isNaN) { // happens, when background size = 0, which happens when rendered invisibly
@@ -305,7 +305,7 @@ class ForceSimulation(
 
     def onClick(node: Node, i: Int): Unit = {
 
-      println(s"clicked node[$i]")
+      scribe.info(s"clicked node[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
       //TODO:
@@ -339,7 +339,7 @@ class ForceSimulation(
       // TODO: handle cases:
       // - long window with big blob in the middle
       val scale = Math.sqrt((width * height) / (staticData.totalReservedArea * arbitraryFactor)) min 1.5 // scale = sqrt(ratio) because areas grow quadratically
-//      println(log(s"resized: $width x $height, fromZero: $resizedFromZero, scale: $scale"))
+//      scribe.info(log(s"resized: $width x $height, fromZero: $resizedFromZero, scale: $scale"))
       planeDimension = PlaneDimension(
         xOffset = -width / 2 / scale,
         yOffset = -height / 2 / scale,
@@ -354,7 +354,7 @@ class ForceSimulation(
         .attr("height", height)
 
       // this triggers zoomed()
-      println("calling zoomed...")
+      scribe.info("calling zoomed...")
       // assert(!simData.isNaN, s"resized: before zoomed x:${simData.x(0)} vx:${simData.vx(0)}")
       background.call(
         zoom.transform _,
@@ -371,7 +371,7 @@ class ForceSimulation(
       // The set of posts has changed,
       // we have to update the indices of the simulation data arrays
 
-      println(
+      scribe.info(
         log(
           s"updating simulation[${Option(simData).fold("_")(_.n.toString)} -> ${graph.nodes.length}]..."
         )
@@ -393,7 +393,7 @@ class ForceSimulation(
       initNodePositions()
       dom.window.setTimeout(() => resized(), 0) // defer size detection until rendering is finished. Else initial size can be wrong.
 
-      println(log(s"Simulation and Post Data initialized. [${simData.n}]"))
+      scribe.info(log(s"Simulation and Post Data initialized. [${simData.n}]"))
       startAnimated() // this also triggers the initial simulation start
     }
 
@@ -407,7 +407,7 @@ class ForceSimulation(
   }
 
   def startHidden(): Unit = {
-    println(log("started"))
+    scribe.info(log("started"))
     simData.alpha = 1
     if (!running) {
       running = true
@@ -419,7 +419,7 @@ class ForceSimulation(
   }
 
   def startAnimated(alpha: Double = 1, alphaMin: Double = 0.01): Unit = {
-    println(log("started"))
+    scribe.info(log("started"))
 
     val ticks = 150 // Default = 300
     val forceFactor = 0.3
@@ -434,7 +434,7 @@ class ForceSimulation(
   }
 
   def resumeAnimated(): Unit = {
-    println(log("resumed"))
+    scribe.info(log("resumed"))
     if (!running) {
       running = true
       animationStep(0)
@@ -442,7 +442,7 @@ class ForceSimulation(
   }
 
   def stop(): Unit = {
-    println(log("stopped"))
+    scribe.info(log("stopped"))
     running = false
   }
 
@@ -613,7 +613,7 @@ object ForceSimulation {
     import simData._
     if (alpha < alphaMin) return false
     alpha += (alphaTarget - alpha) * alphaDecay
-    //    println(log("step: " + alpha))
+    //    scribe.info(log("step: " + alpha))
     true
   }
 
