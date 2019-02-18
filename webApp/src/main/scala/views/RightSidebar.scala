@@ -120,6 +120,7 @@ object RightSidebar {
                 Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginRight := "3px"),
                 div(
                   Icons.edit,
+                  padding := "5px",
                   cursor.pointer,
                   onClick.stopPropagation(true) --> editMode,
                 )
