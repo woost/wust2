@@ -172,7 +172,7 @@ object RightSidebar {
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          propertySingle.tags.map { tag =>
+          propertySingle.info.tags.map { tag =>
             Components.removableNodeTag(state, tag, taggedNodeId = node.id)
           },
         ),
@@ -187,7 +187,7 @@ object RightSidebar {
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          propertySingle.assignedUsers.map { user =>
+          propertySingle.info.assignedUsers.map { user =>
             Components.removableAssignedUser(state, user, node.id)
           },
         ),

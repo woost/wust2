@@ -59,19 +59,19 @@ object TableView {
     val nodeColumns: List[UI.Column] =
       UI.Column(
         "Node",
-        propertyGroup.data.map { property =>
+        propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, Array(property.node), valueModifier = Components.sidebarNodeFocusClickMod(state, property.node.id), rowModifier = Components.sidebarNodeFocusVisualizeMod(state, property.node.id))
         }(breakOut)
       ) ::
       UI.Column(
         "Tags",
-        propertyGroup.data.map { property =>
+        propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, property.tags)
         }(breakOut)
       ) ::
       UI.Column(
         "Assigned",
-        propertyGroup.data.map { property =>
+        propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, property.assignedUsers)
         }(breakOut)
       ) ::
@@ -87,7 +87,7 @@ object TableView {
     }(breakOut)
 
     VDomModifier(
-      UI.sortableTable(nodeColumns ::: propertyColumns, sort),
+        UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
       button(
         cls := "ui button",
