@@ -46,12 +46,12 @@ object ItemProperties {
     )
   }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, targetNodeIds: Option[Array[NodeId]] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None)(implicit ctx: Ctx.Owner): VNode = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
     val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
-    val propertyKeyInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
+    val propertyKeyInputProcess = BehaviorSubject[String](prefilledKey).transformObservable(o => Observable(o, clear.map(_ => "")).merge)
     val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
 
     def description(implicit ctx: Ctx.Owner) = {
@@ -91,9 +91,9 @@ object ItemProperties {
             inputSizeMods,
             tpe := "text",
             placeholder := "Property Name",
-            value <-- clear,
             cls <-- propertyTypeSelection.map(t => if(t == NodeData.Empty.tpe) "disabled" else ""),
             onInput.value --> propertyKeyInputProcess,
+            value <-- propertyKeyInputProcess
           ),
           input(
             cls := "ui fluid action input",
