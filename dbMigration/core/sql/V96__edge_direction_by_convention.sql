@@ -290,22 +290,23 @@ begin
         content(id) AS (
             select id from node where id = any(accessible_page_parents) -- strangely this is faster than `select unnest(starts)`
             union -- discards duplicates, therefore handles cycles and diamond cases
-            select contentedge.target_nodeid
-                FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
-                    and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
+            -- select contentedge.target_nodeid
+            --     FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
+            --         and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
+            select child.target_childid FROM content INNER JOIN child ON child.source_parentid = content.id and can_access_node_in_down_traversal(userid, child.target_childid)
+
             -- union
             -- select useredge.target_userid
             --     from content inner join useredge on useredge.source_nodeid = content.id
-        ),
-        transitive_parents(id) AS (
+        )
+        , transitive_parents(id) AS (
             select id from node where id = any(accessible_page_parents)
             union
             select contentedge.source_nodeid
                 FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
                     and can_access_node(userid, contentedge.source_nodeid)
         )
-        -- ),
-        -- usernodes(id) as (
+        -- , usernodes(id) as (
         --     select id from node where id = any(accessible_page_parents)
         --     union
         --     select useredge.target_userid
@@ -322,7 +323,8 @@ begin
         select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id and can_access_node(userid, edge.sourceid)
         union
         -- transitive parents describe the path/breadcrumbs to the page
-        select * FROM transitive_parents;
+        select * FROM transitive_parents
+        ;
 end
 $$ language plpgsql stable strict;
 
