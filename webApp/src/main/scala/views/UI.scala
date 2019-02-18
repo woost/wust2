@@ -280,6 +280,7 @@ object UI {
 
     table(
       cls := "ui sortable celled collapsing unstackable table",
+      margin := "0px", // clear margin we got from fomantic ui
 
       managedElement { elem =>
         val jq = jquery.JQuery.$(elem.asInstanceOf[dom.html.Element])
