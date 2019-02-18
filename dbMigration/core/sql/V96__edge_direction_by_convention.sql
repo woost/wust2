@@ -32,8 +32,60 @@ set
 from parentconversion
 where edge.sourceid = parentconversion.sourceid and edge.targetid = parentconversion.targetid and edge.data->>'type' = 'Parent';
 
+create function traversable(edgetype text) returns boolean as $$
+    select case edgetype
+        when 'Child' then true
+        when 'LabeledProperty' then true
+        when 'Automated' then true
+        when 'DerivedFromTemplate' then true
+        else false
+    end
+$$ language sql stable;
+
+create function multiedge(edgetype text) returns boolean as $$
+    select case edgetype
+        when 'Author' then true
+        else false
+    end
+$$ language sql stable;
+
+-- when edge.data->>'type' = 'Child' then
+--     jsonb_build_object('type', 'Child', 'deletedAt', data->>'deletedAt', 'ordering', data->>'ordering')
+-- when edge.data->>'type' = 'LabeledProperty' then
+--     jsonb_build_object('type', 'LabeledProperty', 'key', data->>'key')
+-- when edge.data->>'type' = 'DerivedFromTemplate' then
+--     jsonb_build_object('type', 'DerivedFromTemplate', 'timestamp', data->>'timestamp')
+-- when edge.data->>'type' = 'Automated' then
+--     jsonb_build_object('type', 'Automated')
+
+-- when edge.data->>'type' = 'Assigned' then
+--     jsonb_build_object('type', 'Assigned')
+-- when edge.data->>'type' = 'Author' then
+--     jsonb_build_object('type', 'Author', 'timestamp', data->>'timestamp')
+-- when edge.data->>'type' = 'Expanded' then
+--     jsonb_build_object('type', 'Expanded')
+-- when edge.data->>'type' = 'Invite' then
+--     jsonb_build_object('type', 'Invite')
+-- when edge.data->>'type' = 'Member' then
+--     jsonb_build_object('type', 'Member', 'level', data->>'level')
+-- when edge.data->>'type' = 'Notify' then
+--     jsonb_build_object('type', 'Notify')
+-- when edge.data->>'type' = 'Pinned' then
+--     jsonb_build_object('type', 'Pinned')
+
+
 -- force reindex of all indices based on edge;
 reindex table edge;
+drop index edge_unique_index;
+create UNIQUE index edge_unique_index
+    on edge
+    using btree(sourceid, (data->>'type'), targetid)
+    where not(multiedge((data->>'type')::text));
+
+create index edge_traversable_index
+    on edge
+    using btree(sourceid, (data->>'type'), targetid)
+    where traversable((data->>'type')::text);
 
 -- Recreate views
 drop view author;
@@ -56,20 +108,16 @@ create view pinned as select sourceid as source_nodeid, targetid as target_useri
 create view child as select sourceid as source_parentid, targetid as target_childid, data from edge where data->>'type' = 'Child';
 create view automated as select sourceid as source_nodeid, targetid as target_nodeid, data from edge where data->>'type' = 'Automated';
 create view property as select sourceid as source_nodeid, targetid as target_nodeid, data from edge where data->>'type' = 'LabeledProperty';
-create view implements as select sourceid as source_nodeid, targetid as target_nodeid, data from edge where data->>'type' = 'Implements';
+create view derived as select sourceid as source_nodeid, targetid as target_nodeid, data from edge where data->>'type' = 'DerivedFromTemplate';
 
-create view nodeuseredge as
+create view useredge as
     select sourceid as source_nodeid, targetid as target_userid, data
     from edge
-    where not(data->>'type' = any(
-            array[ 'Child', 'LabeledProperty', 'Implements', 'Automated' ]
-    ));
+    where not(traversable((data->>'type')::text));
 create view contentedge as
     select sourceid as source_nodeid, targetid as target_nodeid, data
     from edge
-    where data->>'type' = any(
-            array[ 'Child', 'LabeledProperty', 'Implements', 'Automated' ]
-    );
+    where traversable((data->>'type')::text);
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
 -- ATTENTION: THE C&P REGION BELOW IS REWRITTEN --
@@ -209,9 +257,9 @@ create aggregate array_merge_agg(anyarray) (
 --     FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
 --         and can_access_node_in_down_traversal(userid, edge.contentedge.target_nodeid)
 --     union
---     select nodeuseredge.target_userid
---     FROM content INNER JOIN nodeuseredge ON nodeuseredge.source_nodeid = content.id
---         and can_access_node_in_down_traversal(userid, nodeuseredge.source_nodeid)
+--     select useredge.target_userid
+--     FROM content INNER JOIN useredge ON useredge.source_nodeid = content.id
+--         and can_access_node_in_down_traversal(userid, useredge.source_nodeid)
 -- $$ language sql stable strict;
 
 create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
@@ -239,9 +287,9 @@ begin
         usernodes(id) as (
             select id from node where id = any(accessible_page_parents)
             union
-            select nodeuseredge.target_userid
-                FROM content INNER JOIN nodeuseredge ON nodeuseredge.source_nodeid = content.id
-                    and can_access_node_in_down_traversal(userid, nodeuseredge.source_nodeid)
+            select useredge.target_userid
+                FROM content INNER JOIN useredge ON useredge.source_nodeid = content.id
+                    and can_access_node_in_down_traversal(userid, useredge.source_nodeid)
         )
 
         -- all transitive children

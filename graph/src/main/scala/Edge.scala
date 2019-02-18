@@ -21,7 +21,7 @@ sealed trait Edge {
   */
 object Edge {
 
-  sealed trait User  extends Edge {
+  sealed trait User extends Edge {
     def userId: UserId
     def nodeId: NodeId
     def sourceId: NodeId = nodeId
@@ -30,13 +30,15 @@ object Edge {
 
   sealed trait Content extends Edge
 
+  sealed trait Multiple
+
   // User-Edges
   case class Assigned(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Assigned
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Author(nodeId: NodeId, data: EdgeData.Author, userId: UserId) extends Edge.User {
+  case class Author(nodeId: NodeId, data: EdgeData.Author, userId: UserId) extends Edge.User with Edge.Multiple {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
@@ -95,18 +97,17 @@ object Edge {
   }
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId): Edge = data match {
-
     case EdgeData.Assigned                  => new Edge.Assigned(sourceId, UserId(targetId))
-    case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
     case EdgeData.Expanded                  => new Edge.Expanded(sourceId, UserId(targetId))
     case EdgeData.Invite                    => new Edge.Invite(sourceId, UserId(targetId))
-    case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
     case EdgeData.Notify                    => new Edge.Notify(sourceId, UserId(targetId))
     case EdgeData.Pinned                    => new Edge.Pinned(sourceId, UserId(targetId))
+    case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
+    case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
 
     case EdgeData.Automated                 => new Edge.Automated(sourceId, TemplateId(targetId))
     case data: EdgeData.Child               => new Edge.Child(ParentId(sourceId), data, ChildId(targetId))
-    case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, PropertyId(targetId))
     case data: EdgeData.DerivedFromTemplate => new Edge.DerivedFromTemplate(sourceId, data, TemplateId(targetId))
+    case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, PropertyId(targetId))
   }
 }

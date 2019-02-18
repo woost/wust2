@@ -111,7 +111,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${nodeId}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${lift(userId)})
-          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
+          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE not(multiedge((data->>'type')::text)) DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.sourceId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_))).map { x =>
@@ -203,7 +203,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val upsert = quote { e: Edge =>
       val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE not(multiedge((data->>'type')::text)) DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
