@@ -46,7 +46,7 @@ object ItemProperties {
     )
   }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None)(implicit ctx: Ctx.Owner): VNode = {
+  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
@@ -125,6 +125,8 @@ object ItemProperties {
             ))
           }
         ),
+
+        descriptionModifier
       )
     }
 
@@ -140,6 +142,14 @@ object ItemProperties {
       }
 
       propertyNodeOpt.foreach { propertyNode =>
+
+        val propertyEdgeData = EdgeData.LabeledProperty(propertyKey)
+        def addProperty(targetNodeId: NodeId): GraphChanges = {
+          val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+          val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, newPropertyNode.id)
+          GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
+        }
+
         val changes = targetNodeIds match {
           case Some(targetNodeIds) =>
             val graph = state.graph.now
@@ -148,17 +158,11 @@ object ItemProperties {
                 graph.edges(edgeIdx).asInstanceOf[Edge.LabeledProperty].data.key == propertyKey
               }
 
-              if (alreadyExists) GraphChanges.empty else {
-                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-                val propertyEdge = Edge.LabeledProperty(targetNodeId, EdgeData.LabeledProperty(propertyKey), newPropertyNode.id)
-                GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
-              }
+              if (alreadyExists) GraphChanges.empty else addProperty(targetNodeId)
             }
 
-            changes.fold(GraphChanges.empty)(_ merge _)
-          case None =>
-            val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey), propertyNode.id)
-            GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
+            changes.fold(GraphChanges.empty)(_ merge _) merge extendNewProperty(propertyEdgeData, propertyNode)
+          case None => addProperty(nodeId) merge extendNewProperty(propertyEdgeData, propertyNode)
         }
 
         state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }

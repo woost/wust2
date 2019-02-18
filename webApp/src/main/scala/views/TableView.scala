@@ -5,8 +5,8 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
-import wust.graph.{Graph, GraphChanges, Node}
-import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.graph.{Edge, Graph, GraphChanges, Node}
+import wust.ids.{EdgeData, NodeData, NodeId, NodeRole}
 import wust.webApp.ItemProperties
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
@@ -93,18 +93,22 @@ object TableView {
           columnEntryOfNodes(group.nodeId, group.values.map(_.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
               cls := "orange",
-              ItemProperties.manageProperties(state, nodeId = group.nodeId, prefilledKey = property.key, contents = div(
-                Styles.flex,
-                justifyContent.spaceAround,
-                Styles.growFull,
-                freeSolid.faPlus,
-                cursor.pointer,
-                UI.popup("center left") := "Add a new Value",
-              ))
+              ItemProperties.manageProperties(state, nodeId = group.nodeId, prefilledKey = property.key,
+                contents = div(
+                  Styles.flex,
+                  justifyContent.spaceAround,
+                  Styles.growFull,
+                  freeSolid.faPlus,
+                  cursor.pointer,
+                  UI.popup("center left") := "Add a new Value",
+                ),
+              )
             ))
         }(breakOut)
       )
     }(breakOut)
+
+    val keepPropertyAsDefault = Var(false)
 
     VDomModifier(
       div(
@@ -113,12 +117,32 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
-        ItemProperties.manageProperties(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)), contents = button(
-          cls := "ui mini button",
-          freeSolid.faPlus,
-          cursor.pointer,
-          UI.popup("center left") := "Add a new Column"
-        ))
+        ItemProperties.manageProperties(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
+          contents = button(
+            cls := "ui mini button",
+            freeSolid.faPlus,
+            cursor.pointer,
+            UI.popup("center left") := "Add a new Column"
+          ),
+          descriptionModifier = div(
+            margin := "10px",
+            UI.toggle("Keep as default", keepPropertyAsDefault)
+          ),
+          extendNewProperty = { (edgeData, propertyNode) =>
+            if (keepPropertyAsDefault.now) {
+              val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+              val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+              GraphChanges(
+                addNodes = Set(templateNode, newPropertyNode),
+                addEdges = Set(
+                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
+                  Edge.Automated(focusedId, templateNodeId = templateNode.id),
+                  Edge.Parent(templateNode.id, parentId = focusedId)
+                )
+              )
+            } else GraphChanges.empty
+          }
+        )
       ),
 
       button(
