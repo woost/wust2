@@ -139,15 +139,29 @@ object ItemProperties {
         case _                      => None
       }
 
-      propertyNodeOpt.foreach { templatePropertyNode =>
-        val changes = targetNodeIds.getOrElse(Array(nodeId)).map { targetNodeId =>
-          val propertyNode = templatePropertyNode.copy(id = NodeId.fresh)
-          val propertyEdge = Edge.LabeledProperty(targetNodeId, EdgeData.LabeledProperty(propertyKey), propertyNode.id)
-          GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
+      propertyNodeOpt.foreach { propertyNode =>
+        val changes = targetNodeIds match {
+          case Some(targetNodeIds) =>
+            val graph = state.graph.now
+            val changes = targetNodeIds.map { targetNodeId =>
+              val alreadyExists = state.graph.now.propertiesEdgeIdx.exists(graph.idToIdxOrThrow(targetNodeId)) { edgeIdx =>
+                graph.edges(edgeIdx).asInstanceOf[Edge.LabeledProperty].data.key == propertyKey
+              }
+
+              if (alreadyExists) GraphChanges.empty else {
+                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+                val propertyEdge = Edge.LabeledProperty(targetNodeId, EdgeData.LabeledProperty(propertyKey), newPropertyNode.id)
+                GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
+              }
+            }
+
+            changes.fold(GraphChanges.empty)(_ merge _)
+          case None =>
+            val propertyEdge = Edge.LabeledProperty(nodeId, EdgeData.LabeledProperty(propertyKey), propertyNode.id)
+            GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
         }
 
-        val gc = changes.fold(GraphChanges.empty)(_ merge _)
-        state.eventProcessor.changes.onNext(gc) foreach { _ => clear.onNext (()) }
+        state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
       }
 
       state.uiModalClose.onNext(())
