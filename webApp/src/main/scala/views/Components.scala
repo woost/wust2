@@ -597,7 +597,8 @@ object Components {
           if(!editMode.now) {
             editMode() = true
           }
-        }
+        },
+        minWidth := "20px", minHeight := "20px", // minimal clicking area for empty content
       )
     }
 
