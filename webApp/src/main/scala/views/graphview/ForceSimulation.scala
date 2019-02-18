@@ -90,12 +90,15 @@ class ForceSimulation(
     import outwatch.dom.dsl.styles.extra._
 
     div(
+      keyed, // forces onDestroy (forbids reuse of dom node),
+      // so that this dirty dom is not reused (https://github.com/OutWatch/outwatch/issues/287)
+      // somehow postpatch is not triggered, so that the dom is not automatically repaired...
+      // snabbdom.VNodeProxy.repairDomBeforePatch,
       managedElement.asHtml { elem =>
-        snabbdom.VNodeProxy.setDirty(elem)
+        // snabbdom.VNodeProxy.setDirty(elem)
         backgroundElement() = Some(elem)
         Cancelable { () => backgroundElement() = None; simulationCancelable.cancel() }
       },
-      snabbdom.VNodeProxy.repairDomBeforePatch,
       position := "relative",
       width := "100%",
       height := "100%",
@@ -104,19 +107,15 @@ class ForceSimulation(
       canvas(
         position := "absolute",
         managedElement.asHtml { elem =>
-          snabbdom.VNodeProxy.setDirty(elem)
           canvasLayerElement() = Some(elem.asInstanceOf[dom.html.Canvas])
           Cancelable { () => canvasLayerElement() = None; simulationCancelable.cancel() }
         },
-        snabbdom.VNodeProxy.repairDomBeforePatch,
       ),
       div(
         managedElement.asHtml { elem =>
-          snabbdom.VNodeProxy.setDirty(elem)
           nodeContainerElement() = Some(elem)
           Cancelable { () => nodeContainerElement() = None; simulationCancelable.cancel() }
         },
-        snabbdom.VNodeProxy.repairDomBeforePatch,
         width := "100%",
         height := "100%",
         position := "absolute",
@@ -139,6 +138,7 @@ class ForceSimulation(
 
   def initSimulation(backgroundElement:dom.html.Element, canvasLayerElement: dom.html.Canvas, nodeContainerElement: dom.html.Element)(implicit ctx: Ctx.Owner):Cancelable = {
     val cancelable = CompositeCancelable()
+    cancelable += Cancelable(() => scribe.info("canceling simulation"))
 
     println(log("-------------------- init simulation"))
     val background = d3.select(backgroundElement)
