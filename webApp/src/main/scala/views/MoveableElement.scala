@@ -30,12 +30,12 @@ object MoveableElement {
 
             position.absolute,
             bottom := "100px",
-            right := "0",
+            right := "-3px", //TODO: why do we need this?
             backgroundColor := CommonStyles.sidebarBgColor,
             color.white,
             borderBottomRightRadius := "5px",
             borderBottomLeftRadius := "5px",
-            padding := "3px",
+            padding := "5px",
             zIndex := ZIndex.overlayLow
           )
         case false =>
@@ -70,6 +70,7 @@ object MoveableElement {
             justifyContent.spaceBetween,
             backgroundColor := CommonStyles.sidebarBgColor,
             color := "white",
+            padding := "2px",
 
             b(title, paddingLeft := "5px"),
             div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> toggle),
