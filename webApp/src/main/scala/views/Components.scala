@@ -282,7 +282,7 @@ object Components {
             div(
               editableNodeOnClick(state, property.node, maxLength = Some(100)),
               Components.removableTagMod(() =>
-                state.eventProcessor.changes.onNext(GraphChanges(delEdges = properties.map(_.edge)(breakOut)))
+                state.eventProcessor.changes.onNext(GraphChanges(delEdges = Set(property.edge)))
               )
             )
           )
