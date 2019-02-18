@@ -192,7 +192,6 @@ object UI {
         values = options.toJSArray
       })),
 
-      input(tpe := "hidden", attr("name") := "gender"),
       i(cls := "dropdown icon"),
       options.find(_.selected.getOrElse(false)).map(e => div(cls := "default text", e.value))
     )
