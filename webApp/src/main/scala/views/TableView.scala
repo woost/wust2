@@ -10,6 +10,7 @@ import wust.ids.{NodeData, NodeId, NodeRole}
 import wust.webApp.ItemProperties
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 
 import scala.collection.breakOut
 
@@ -31,7 +32,12 @@ object TableView {
   def table(state: GlobalState, graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
-    def columnEntryOfNodes(row: NodeId, nodes: Array[_ <: Node], valueModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    val targetRole = roles match {
+      case head :: _ => head
+      case Nil       => NodeRole.default
+    }
+
+    def columnEntryOfNodes(row: NodeId, nodes: Array[_ <: Node], cellModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = nodes.map {
         case node: Node.Content => node.str
         case user: Node.User    => Components.displayUserName(user.data) // sort users by display name
@@ -42,7 +48,7 @@ object TableView {
           case node: Node.Content                            => Components.editableNodeOnClick(state, node, maxLength = Some(50))
           case user: Node.User                               => Components.removableAssignedUser(state, user, row)
         },
-        valueModifier
+        cellModifier
       ),
       rowModifier = rowModifier
     )
@@ -61,7 +67,9 @@ object TableView {
       UI.Column(
         "Node",
         propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, Array(property.node), valueModifier = Components.sidebarNodeFocusClickMod(state, property.node.id), rowModifier = Components.sidebarNodeFocusVisualizeMod(state, property.node.id))
+          columnEntryOfNodes(property.node.id, Array(property.node),
+            cellModifier = Components.sidebarNodeFocusClickMod(state, property.node.id),
+            rowModifier = Components.sidebarNodeFocusVisualizeMod(state, property.node.id))
         }(breakOut)
       ) ::
       UI.Column(
@@ -82,7 +90,18 @@ object TableView {
       UI.Column(
         property.key,
         property.groups.map { group =>
-          columnEntryOfNodes(group.nodeId, group.values.map(_.node))
+          columnEntryOfNodes(group.nodeId, group.values.map(_.node),
+            cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
+              cls := "orange",
+              ItemProperties.manageProperties(state, nodeId = group.nodeId, prefilledKey = property.key, contents = div(
+                Styles.flex,
+                justifyContent.spaceAround,
+                Styles.growFull,
+                freeSolid.faPlus,
+                cursor.pointer,
+                UI.popup("center left") := "Add a new Value",
+              ))
+            ))
         }(breakOut)
       )
     }(breakOut)
@@ -95,23 +114,20 @@ object TableView {
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
         ItemProperties.manageProperties(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)), contents = button(
-          cls := "ui button",
+          cls := "ui mini button",
           freeSolid.faPlus,
           cursor.pointer,
+          UI.popup("center left") := "Add a new Column"
         ))
       ),
 
       button(
-        cls := "ui button",
+        cls := "ui mini button",
         freeSolid.faPlus,
         cursor.pointer,
-        onClick.stopPropagation.foreach {
-          val targetRole = roles match {
-            case head :: _ => head
-            case Nil       => NodeRole.default
-          }
-
-          val newNode = Node.Content(NodeData.Markdown(""), targetRole)
+        UI.popup("center right") := "Add a new Row",
+        onClickNewNamePrompt(state, header = "Add a new Row", placeholderMessage = Some(s"A new ${targetRole}")).foreach { str =>
+          val newNode = Node.Content(NodeData.Markdown(str), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, focusedId))
