@@ -36,11 +36,11 @@ object RightSidebar {
       config = Ownable { implicit ctx => GenericSidebar.Config(
         openModifier = VDomModifier(
           div(
-            marginTop := "-20px",
             width := "20px",
-            cls := "fa-fw", freeSolid.faTimes,
+            cls := "fa-fw", freeSolid.faAngleDoubleRight,
             cursor.pointer,
-            onClick(None) --> state.rightSidebarNode
+            onClick(None) --> state.rightSidebarNode,
+            backgroundColor := CommonStyles.sidebarBgColor,
           ),
           div(
             color.black,
