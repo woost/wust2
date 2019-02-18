@@ -24,57 +24,61 @@ object RightSidebar {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = state.rightSidebarNode.zoom(_.isDefined)((node, enabled) => if (enabled) node else None)
-    val nodeStyle = state.rightSidebarNode.map(PageStyle.ofNode)
 
+    GenericSidebar.right(
+      toggleVar,
+      config = Ownable { implicit ctx => GenericSidebar.Config(
+        openModifier = content(state, state.rightSidebarNode, state.rightSidebarNode() = _)
+      )}
+    )
+  }
+
+  def content(state: GlobalState, focusedNodeId: NodeId, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner):VDomModifier = content(state, Var(Some(focusedNodeId)), parentIdAction)
+  // TODO rewrite to rely on static focusid
+  private def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
     val boxMod = VDomModifier(
       borderRadius := "3px",
       backgroundColor <-- nodeStyle.map(_.bgLightColor),
     )
 
-    GenericSidebar.right(
-      toggleVar,
-      config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = VDomModifier(
-          div(
-            width := "20px",
-            cls := "fa-fw", freeSolid.faAngleDoubleRight,
-            cursor.pointer,
-            onClick(None) --> state.rightSidebarNode,
-            backgroundColor := CommonStyles.sidebarBgColor,
-          ),
-          div(
-            color.black,
-            height := "100%",
-            Styles.flex,
-            flexDirection.column,
-            justifyContent.spaceBetween,
-            overflowY.auto,
+    VDomModifier(
+      div(
+        width := "20px",
+        cls := "fa-fw", freeSolid.faAngleDoubleRight,
+        cursor.pointer,
+        onClick(None).foreach(parentIdAction),
+        backgroundColor := CommonStyles.sidebarBgColor,
+      ),
+      div(
+        color.black,
+        height := "100%",
+        Styles.flex,
+        flexDirection.column,
+        justifyContent.spaceBetween,
+        overflowY.auto,
 
-            nodeDetailsMenu(state, state.rightSidebarNode).apply(
-              minHeight := "300px",
-              flex := "1",
-              margin := "0px 5px 0px 5px",
-              padding := "3px",
-              boxMod,
-              overflowY.auto,
+        nodeDetailsMenu(state, focusedNodeId).apply(
+          minHeight := "300px",
+          flex := "1",
+          margin := "0px 5px 0px 5px",
+          padding := "3px",
+          boxMod,
+          overflowY.auto,
 
-            ),
-            viewContent(state, boxMod).apply(
-              flexShrink := 0,
-              margin := "5px",
-            )
-          )
+        ),
+        viewContent(state, focusedNodeId, parentIdAction, boxMod).apply(
+          flexShrink := 0,
+          margin := "5px",
         )
-      )}
+      )
     )
   }
-
-  private def viewContent(state: GlobalState, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
-
+  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
     div(
-      state.rightSidebarNode.map(_.map { nodeId =>
-        val bestView = state.graph.now.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(state.graph.now, _))
-        val viewVar = Var[View.Visible](bestView)
+      focusedNodeId.map(_.map { nodeId =>
+        val initialView = state.graph.now.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(state.graph.now, _))
+        val viewVar = Var[View.Visible](initialView)
         def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(state.graph.now, nodeId, view)
 
         VDomModifier(
@@ -93,13 +97,11 @@ object RightSidebar {
           ),
           Rx {
             val view = viewVar()
-            state.rightSidebarNode().map { sidebarNodeId =>
-              ViewRender(state, FocusState(view, sidebarNodeId, sidebarNodeId, isNested = true, viewAction, nodeId => state.rightSidebarNode() = Some(nodeId)), view).apply(
-                width := "100%",
-                height := "500px",
-                viewModifier
-              )
-            }
+            ViewRender(state, FocusState(view, nodeId, nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+              width := "100%",
+              height := "500px",
+              viewModifier
+            )
           }
         )
       })
