@@ -19,6 +19,7 @@ import wust.webApp.views.UI.ModalConfig
 import wust.webUtil.StringOps._
 
 import scala.scalajs.js
+import scala.collection.breakOut
 
 /*
  * Here, the managing of node properties is done.
@@ -37,19 +38,15 @@ object ItemProperties {
     case _                                         => Icons.propertyText
   }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId)
-                      (implicit ctx: Ctx.Owner) : VNode = {
-    manageProperties(state, nodeId,
-                     div(
-                       div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property)
-                     ))}
+  def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) : VNode = {
+    manageProperties(
+      state,
+      nodeId,
+      div(div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property))
+    )
+  }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId,
-                       contents : VNode)(implicit ctx: Ctx.Owner): VNode = {
-
-    // todo: check if node is instance of node.content ?
-    val graph = state.graph.now
-    val node = graph.nodesById(nodeId)
+  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, targetNodeIds: Option[Array[NodeId]] = None)(implicit ctx: Ctx.Owner): VNode = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
@@ -98,40 +95,43 @@ object ItemProperties {
             cls <-- propertyTypeSelection.map(t => if(t == NodeData.Empty.tpe) "disabled" else ""),
             onInput.value --> propertyKeyInputProcess,
           ),
-          VDomModifier(
-            input(
-              cls := "ui fluid action input",
-              inputSizeMods,
-              value <-- clear,
-              onInput.value --> propertyValueInputProcess,
-              cls <-- propertyKeyInputProcess.map(k => if(k.isEmpty) "disabled" else ""),
-              propertyTypeSelection.map(inputFieldMod),
-              Elements.valueWithEnter(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
-                if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                  handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
-                }
-              },
-            ),
-            div(
-              cls := "ui primary button approve",
-              cls <-- propertyValueInputProcess.map(v => if(v.isEmpty) "disabled" else ""),
-              inputSizeMods,
-              "Add property",
-              onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
-                if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                  handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
-                }
-              },
-            ),
-          )
-        )
+          input(
+            cls := "ui fluid action input",
+            inputSizeMods,
+            value <-- clear,
+            onInput.value --> propertyValueInputProcess,
+            cls <-- propertyKeyInputProcess.map(k => if(k.isEmpty) "disabled" else ""),
+            propertyTypeSelection.map(inputFieldMod),
+            Elements.valueWithEnter(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+              if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+              }
+            },
+          ),
+          div(
+            cls := "ui primary button approve",
+            cls <-- propertyValueInputProcess.map(v => if(v.isEmpty) "disabled" else ""),
+            inputSizeMods,
+            "Add property",
+            onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
+              if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
+              }
+            },
+          ),
+          targetNodeIds.map { targetNodeIds =>
+            VDomModifier.ifTrue(targetNodeIds.size > 1)(i(
+              s"* The properties you set here will be applied to ${targetNodeIds.size} nodes."
+            ))
+          }
+        ),
       )
     }
 
     def handleAddProperty(propertyKey: String, propertyValue: String, propertyType: String)(implicit ctx: Ctx.Owner): Unit = {
 
       // TODO: Users and reuse
-      val propertyNodeOpt: Option[Node] = propertyType match {
+      val propertyNodeOpt: Option[Node.Content] = propertyType match {
         case NodeData.Integer.tpe   => safeToInt(propertyValue).map(number => Node.Content(NodeData.Integer(number), NodeRole.Neutral))
         case NodeData.Decimal.tpe   => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Decimal(number), NodeRole.Neutral))
         case NodeData.Date.tpe      => safeToEpoch(propertyValue).map(datum => Node.Content(NodeData.Date(datum), NodeRole.Neutral))
@@ -139,11 +139,15 @@ object ItemProperties {
         case _                      => None
       }
 
-      propertyNodeOpt.foreach { propertyNode =>
-        val propertyEdge = Edge.LabeledProperty (nodeId, EdgeData.LabeledProperty (propertyKey), propertyNode.id)
-        val gc = GraphChanges (addNodes = Set (propertyNode), addEdges = Set (propertyEdge) )
+      propertyNodeOpt.foreach { templatePropertyNode =>
+        val changes = targetNodeIds.getOrElse(Array(nodeId)).map { targetNodeId =>
+          val propertyNode = templatePropertyNode.copy(id = NodeId.fresh)
+          val propertyEdge = Edge.LabeledProperty(targetNodeId, EdgeData.LabeledProperty(propertyKey), propertyNode.id)
+          GraphChanges(addNodes = Set(propertyNode), addEdges = Set(propertyEdge))
+        }
 
-        state.eventProcessor.changes.onNext (gc) foreach { _ => clear.onNext (()) }
+        val gc = changes.fold(GraphChanges.empty)(_ merge _)
+        state.eventProcessor.changes.onNext(gc) foreach { _ => clear.onNext (()) }
       }
 
       state.uiModalClose.onNext(())
@@ -158,7 +162,10 @@ object ItemProperties {
     contents(
       cursor.pointer,
       onClick(Ownable(implicit ctx => UI.ModalConfig(
-        header = ModalConfig.defaultHeader(state, node, naming, Icons.property),
+        header = Rx {
+          val graph = state.graph()
+          ModalConfig.defaultHeader(state, graph.nodesById(nodeId), naming, Icons.property)
+        },
         description = description,
         modalModifier = VDomModifier(
           cls := "mini form",
