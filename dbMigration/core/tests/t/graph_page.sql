@@ -316,14 +316,14 @@ select set_eq(
             'readwrite'::accesslevel,
             array[user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B'),user_to_uuid('0B')]::uuid[],
             array_sort(array['{"type": "Assigned"}','{"type": "Author"}','{"type": "Child", "deletedAt": null}','{"type": "Expanded"}','{"type": "Member", "level": "readwrite"}','{"type": "Notify"}','{"type": "Pinned"}']::text[])
-        ),
-        (user_to_uuid('0B'),
-            jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0),
-            '{"type": "Message"}'::jsonb,
-            'restricted'::accesslevel,
-            array[]::uuid[],
-            array[]::text[]
         )
+        -- , (user_to_uuid('0B'),
+        --     jsonb_build_object('type', 'User', 'name', '0B', 'isImplicit', false, 'revision', 0),
+        --     '{"type": "Message"}'::jsonb,
+        --     'restricted'::accesslevel,
+        --     array[]::uuid[],
+        --     array[]::text[]
+        -- )
     $$
 );
 

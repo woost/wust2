@@ -155,6 +155,23 @@ drop aggregate array_merge_agg(anyarray);
 drop function array_intersect;
 drop function array_merge;
 
+create or replace function traversable(edgetype text) returns boolean as $$
+    select case edgetype
+        when 'Child' then true
+        when 'LabeledProperty' then true
+        when 'Automated' then true
+        when 'DerivedFromTemplate' then true
+        else false
+    end
+$$ language sql stable;
+
+create or replace  function multiedge(edgetype text) returns boolean as $$
+    select case edgetype
+        when 'Author' then true
+        else false
+    end
+$$ language sql stable;
+
 create function millis_to_timestamp(millis anyelement) returns timestamp with time zone as $$
     select to_timestamp(millis::bigint / 1000)
 $$ language sql stable;
@@ -276,6 +293,9 @@ begin
             select contentedge.target_nodeid
                 FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
                     and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
+            -- union
+            -- select useredge.target_userid
+            --     from content inner join useredge on useredge.source_nodeid = content.id
         ),
         transitive_parents(id) AS (
             select id from node where id = any(accessible_page_parents)
@@ -283,20 +303,21 @@ begin
             select contentedge.source_nodeid
                 FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
                     and can_access_node(userid, contentedge.source_nodeid)
-        ),
-        usernodes(id) as (
-            select id from node where id = any(accessible_page_parents)
-            union
-            select useredge.target_userid
-                FROM content INNER JOIN useredge ON useredge.source_nodeid = content.id
-                    and can_access_node_in_down_traversal(userid, useredge.source_nodeid)
         )
+        -- ),
+        -- usernodes(id) as (
+        --     select id from node where id = any(accessible_page_parents)
+        --     union
+        --     select useredge.target_userid
+        --         FROM content INNER JOIN useredge ON useredge.source_nodeid = content.id
+        --             and can_access_node_in_down_traversal(userid, useredge.source_nodeid)
+        -- )
 
         -- all transitive children
         select * from content
         union
-        select * from usernodes
-        union
+        -- select * from usernodes
+        -- union
         -- direct parents of content, useful to know tags of content nodes
         select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id and can_access_node(userid, edge.sourceid)
         union

@@ -351,7 +351,7 @@ select member('B4', 'A4', 'readwrite');
 
 select set_eq(
     $$ select * from graph_traversed_page_nodes(array[node_to_uuid('B4')], user_to_uuid('A4')) $$,
-    $$ values (node_to_uuid('B4')), (node_to_uuid('C4')), (user_to_uuid('A4')) $$
+    $$ values (node_to_uuid('B4')), (node_to_uuid('C4')) $$ --, (user_to_uuid('A4')) $$
 );
 
 -- 23) case 5:
@@ -363,7 +363,7 @@ select member('B5', 'A5', 'readwrite');
 
 select set_eq(
     $$ select * from graph_traversed_page_nodes(array[node_to_uuid('B5')], user_to_uuid('A5')) $$,
-    $$ values (node_to_uuid('C5')), (node_to_uuid('B5')), (user_to_uuid('A5')) $$
+    $$ values (node_to_uuid('C5')), (node_to_uuid('B5')) $$ --, (user_to_uuid('A5')) $$
 );
 
 
@@ -376,7 +376,7 @@ select member('B6', 'A6', 'readwrite');
 
 select set_eq(
     $$ select * from graph_traversed_page_nodes(array[node_to_uuid('B6')], user_to_uuid('A6')) $$,
-    $$ values (node_to_uuid('B6')), (node_to_uuid('C6')), (user_to_uuid('A6')) $$
+    $$ values (node_to_uuid('B6')), (node_to_uuid('C6')) $$ --, (user_to_uuid('A6')) $$
 );
 
 
