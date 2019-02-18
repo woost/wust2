@@ -1,15 +1,12 @@
 package wust.webApp.views
 
-import flatland.ArraySliceInt
 import fontAwesome.freeSolid
-import monix.reactive.subjects.PublishSubject
-import rx._
 import outwatch.dom._
 import outwatch.dom.dsl._
+import rx._
 import wust.css.Styles
-import wust.graph.{Edge, Graph, GraphChanges, Node}
+import wust.graph.{Graph, GraphChanges, Node}
 import wust.ids.{NodeData, NodeId, NodeRole}
-import wust.webApp.Icons
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 
@@ -33,7 +30,7 @@ object TableView {
   def table(state: GlobalState, graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
-    def columnEntryOfNodes(row: NodeId, nodes: Array[Node], valueModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    def columnEntryOfNodes(row: NodeId, nodes: Array[_ <: Node], valueModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = nodes.map {
         case node: Node.Content => node.str
         case user: Node.User    => Components.displayUserName(user.data) // sort users by display name
@@ -49,58 +46,42 @@ object TableView {
       rowModifier = rowModifier
     )
 
-    val (childrenIdxs, nodeToProperties): (Seq[Int], Array[Map[String, Array[Edge.LabeledProperty]]]) = {
-      val array = new Array[Map[String, Array[Edge.LabeledProperty]]](graph.nodes.length)
-      val childrenIdxs = {
-        val arr = graph.notDeletedChildrenIdx(focusedIdx)
-        if (roles.isEmpty) arr else arr.filter { childrenIdx =>
-          val node = graph.nodes(childrenIdx)
-          roles.contains(node.role)
-        }
+    val childrenIdxs: Array[Int] = {
+      val arr = graph.notDeletedChildrenIdx(focusedIdx).toArray
+      if (roles.isEmpty) arr else arr.filter { childrenIdx =>
+        val node = graph.nodes(childrenIdx)
+        roles.contains(node.role)
       }
-      childrenIdxs.foreach { childIdx =>
-        array(childIdx) = graph.propertiesEdgeIdx.map(childIdx)(idx => graph.edges(idx).asInstanceOf[Edge.LabeledProperty]).groupBy(_.data.key)
-      }
-
-      (childrenIdxs, array)
     }
 
-    val sortedProperties = nodeToProperties.flatMap { map => if (map == null) Nil else map.keys }.distinct.sorted // TODO order
+    val propertyGroup = PropertyData.Group(graph, childrenIdxs)
 
     val nodeColumns: List[UI.Column] =
       UI.Column(
         "Node",
-        childrenIdxs.map { childrenIdx =>
-          val node = graph.nodes(childrenIdx)
-          columnEntryOfNodes(node.id, Array(node), valueModifier = Components.sidebarNodeFocusClickMod(state, node.id), rowModifier = Components.sidebarNodeFocusVisualizeMod(state, node.id))
+        propertyGroup.data.map { property =>
+          columnEntryOfNodes(property.node.id, Array(property.node), valueModifier = Components.sidebarNodeFocusClickMod(state, property.node.id), rowModifier = Components.sidebarNodeFocusVisualizeMod(state, property.node.id))
         }(breakOut)
       ) ::
       UI.Column(
         "Tags",
-        childrenIdxs.map { childrenIdx =>
-          val nodeId = graph.nodeIds(childrenIdx)
-          val tags = graph.tagParentsIdx.map(childrenIdx)(idx => graph.nodes(idx))
-          columnEntryOfNodes(nodeId, tags)
+        propertyGroup.data.map { property =>
+          columnEntryOfNodes(property.node.id, property.tags)
         }(breakOut)
       ) ::
       UI.Column(
         "Assigned",
-        childrenIdxs.map { childrenIdx =>
-          val nodeId = graph.nodeIds(childrenIdx)
-          val assignedUsers = graph.assignedUsersIdx.map(childrenIdx)(idx => graph.nodes(idx))
-          columnEntryOfNodes(nodeId, assignedUsers)
+        propertyGroup.data.map { property =>
+          columnEntryOfNodes(property.node.id, property.assignedUsers)
         }(breakOut)
       ) ::
       Nil
 
-    val propertyColumns: List[UI.Column] = sortedProperties.map { propertyString =>
+    val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
       UI.Column(
-        propertyString,
-        childrenIdxs.map { childrenIdx =>
-          val nodeId = graph.nodeIds(childrenIdx)
-          val propertyEdges = nodeToProperties(childrenIdx).getOrElse(propertyString, Array())
-          val propertyNodes = propertyEdges.map(edge => graph.nodesById(edge.propertyId))
-          columnEntryOfNodes(nodeId, propertyNodes)
+        property.key,
+        property.groups.map { group =>
+          columnEntryOfNodes(group.nodeId, group.values.map(_.node))
         }(breakOut)
       )
     }(breakOut)

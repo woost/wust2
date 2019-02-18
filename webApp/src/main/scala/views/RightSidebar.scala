@@ -75,7 +75,7 @@ object RightSidebar {
       state.rightSidebarNode.map(_.map { nodeId =>
         val bestView = state.graph.now.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(state.graph.now, _))
         val viewVar = Var[View.Visible](bestView)
-        def viewAction(view: View) = viewVar() = ViewHeuristic.visibleView(state.graph.now, nodeId, view)
+        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(state.graph.now, nodeId, view)
 
         VDomModifier(
           div(
@@ -106,7 +106,7 @@ object RightSidebar {
     )
   }
 
-  def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
     div(
@@ -135,9 +135,7 @@ object RightSidebar {
   private def nodeProperties(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
     val nodeIdx = graph.idToIdxOrThrow(node.id)
 
-    val assignedUsers = graph.assignedUsersIdx(nodeIdx).map(idx => graph.nodes(idx).asInstanceOf[Node.User])
-    val tags = graph.tagParentsIdx(nodeIdx).map(idx => graph.nodes(idx).asInstanceOf[Node.Content])
-    val propertyEdges = graph.propertiesEdgeIdx(nodeIdx).map(idx => graph.edges(idx).asInstanceOf[Edge.LabeledProperty])
+    val propertySingle = PropertyData.Single(graph, nodeIdx)
 
     val commonPropMod = VDomModifier(
       width := "100%",
@@ -174,7 +172,7 @@ object RightSidebar {
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          tags.map { tag =>
+          propertySingle.tags.map { tag =>
             Components.removableNodeTag(state, tag, taggedNodeId = node.id)
           },
         ),
@@ -189,7 +187,7 @@ object RightSidebar {
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          assignedUsers.map { user =>
+          propertySingle.assignedUsers.map { user =>
             Components.removableAssignedUser(state, user, node.id)
           },
         ),
@@ -202,12 +200,10 @@ object RightSidebar {
       UI.horizontalDivider("Custom Fields").apply(ItemProperties.manageProperties(state, node.id, button(cls := "ui button mini", freeSolid.faPlus, marginLeft := "10px"))),
 
       div(
-        propertyEdges.sortBy(_.data.key).map { propertyEdge =>
-          graph.nodesByIdGet(propertyEdge.propertyId).map { property =>
-            Components.removablePropertySection(state, propertyEdge, property).apply(
-              commonPropMod
-            )
-          }
+        propertySingle.properties.map { property =>
+          Components.removablePropertySection(state, property.key, property.values).apply(
+            commonPropMod
+          )
         },
       ),
     )

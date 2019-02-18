@@ -260,28 +260,33 @@ object Components {
 
   def removablePropertySection(
     state: GlobalState,
-    key: Edge.LabeledProperty,
-    property: Node,
+    key: String,
+    properties: Array[PropertyData.PropertyValue],
   )(implicit ctx: Ctx.Owner): VNode = {
-
-    val icon = ItemProperties.iconByNodeData(property.data)
 
     div(
       div(
         color.gray,
-        Elements.icon(icon)(marginRight := "5px"),
-        b(key.data.key, ":"),
-        div(
-          Components.removableTagMod(() =>
-            state.eventProcessor.changes.onNext(GraphChanges(delEdges = Set(key)))
-          )
-        ),
+        b(key, ":"),
       ),
       div(
-        padding := "0px 10px 0px 10px",
         Styles.flex,
-        justifyContent.flexEnd,
-        editableNodeOnClick(state, property, maxLength = Some(100))
+        flexDirection.column,
+        alignItems.flexEnd,
+        padding := "0px 10px 0px 10px",
+
+        properties.map { property =>
+          div(
+            Styles.flex,
+            Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
+            div(
+              editableNodeOnClick(state, property.node, maxLength = Some(100)),
+              Components.removableTagMod(() =>
+                state.eventProcessor.changes.onNext(GraphChanges(delEdges = properties.map(_.edge)(breakOut)))
+              )
+            )
+          )
+        }
       )
     )
   }
