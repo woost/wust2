@@ -7,6 +7,7 @@ import rx._
 import wust.css.Styles
 import wust.graph.{Graph, GraphChanges, Node}
 import wust.ids.{NodeData, NodeId, NodeRole}
+import wust.webApp.ItemProperties
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 
@@ -87,7 +88,18 @@ object TableView {
     }(breakOut)
 
     VDomModifier(
+      div(
+        width := "100%",
+        Styles.flex,
+        alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
+
+        ItemProperties.manageProperties(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)), contents = button(
+          cls := "ui button",
+          freeSolid.faPlus,
+          cursor.pointer,
+        ))
+      ),
 
       button(
         cls := "ui button",
