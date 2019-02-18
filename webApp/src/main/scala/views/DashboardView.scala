@@ -64,7 +64,7 @@ object DashboardView {
           li(
             Styles.flexStatic,
             listStyle := "none",
-            renderSubproject(state, graph, focusState.focusedId, projectInfo)
+            renderSubproject(state, graph, focusState, projectInfo)
           )
         },
         li(
@@ -79,7 +79,7 @@ object DashboardView {
   }
 
   /// Render the overview of a single (sub-) project
-  private def renderSubproject(state: GlobalState, graph: Graph, focusedId: NodeId, project: Node): VNode = {
+  private def renderSubproject(state: GlobalState, graph: Graph, focusState: FocusState, project: Node): VNode = {
     div(
       border := "3px solid",
       borderRadius := "3px",
@@ -102,11 +102,11 @@ object DashboardView {
       ),
 
       onClick foreach {
-        state.urlConfig.update(_.focus(Page(project.id)))
+        focusState.parentIdAction(project.id)
       },
       cursor.pointer,
 
-      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, focusedId)))
+      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Parent)(project.id, focusState.focusedId)))
     )
   }
 
