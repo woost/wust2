@@ -137,7 +137,7 @@ object DebugDraw {
     }
 
     loop (eulerZoneCount) { i =>
-      canvasContext.fillStyle = "rgba(128,128,128,0.4)"
+      canvasContext.fillStyle = "rgba(255,255,255,0.4)"
       canvasContext.lineWidth = 1
       canvasContext.beginPath()
       polyLine(simData.eulerZoneCollisionPolygon(i).map(v => js.Tuple2(v.x, v.y)).toJSArray)

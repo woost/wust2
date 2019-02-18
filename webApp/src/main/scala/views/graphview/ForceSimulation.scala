@@ -59,7 +59,6 @@ class ForceSimulation(
   import ForceSimulationConstants._
 
   val postCreationMenus: Var[List[Vec2]] = Var(Nil)
-  val selectedNodeId: Var[Option[(Vec2, NodeId)]] = Var(None)
 
   //TODO why partial?
   private var labelVisualization: PartialFunction[EdgeData.Type, VisualizationType] = {
@@ -196,17 +195,11 @@ class ForceSimulation(
             resized()
             startAnimated()
           } else {
-            if (postCreationMenus.now.isEmpty && selectedNodeId.now.isEmpty) {
+            if (postCreationMenus.now.isEmpty) {
               val pos = transform.now.invert(d3.mouse(background.node))
               postCreationMenus() = List(Vec2(pos(0), pos(1)))
             } else {
-              // TODO:
-              // Var.set(
-              //   Var.Assignment(postCreationMenus, Nil),
-              //   Var.Assignment(selectedNodeId, None)
-              // )
               postCreationMenus() = Nil
-              selectedNodeId() = None
             }
           }
         }
@@ -303,19 +296,13 @@ class ForceSimulation(
       }
     }
 
-    def onClick(node: Node, i: Int): Unit = {
+    def nodeOnClick(node: Node, i: Int): Unit = {
 
       scribe.info(s"clicked node[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
-      //TODO:
-      //   // Var.set(
-      //   //   VarTuple(rxFocusedSimPost, rxFocusedSimPost.now.map(_.id).setOrToggle(p.id)),
-      //     //   VarTuple(graphState.state.postCreatorMenus, Nil)
-      //   // )
-      val pos = Vec2(simData.x(i), simData.y(i))
-      selectedNodeId() = Some((pos, node.id))
-      postCreationMenus() = Nil
+      val nextNode = if (state.rightSidebarNode.now == Some(node.id)) None else Some(node.id)
+      state.rightSidebarNode() = nextNode
     }
 
     // should be called when the size of the visualization changed
@@ -383,7 +370,7 @@ class ForceSimulation(
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, postSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomNodes(graph.nodes.toJSArray, postSelection, onClick) // d3 data join
+      updateDomNodes(graph.nodes.toJSArray, postSelection, nodeOnClick) // d3 data join
       postSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
       registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
@@ -523,7 +510,7 @@ object ForceSimulation {
   def updateDomNodes(
       posts: js.Array[Node],
       postSelection: Selection[Node],
-      onClick: (Node, Int) => Unit
+      nodeOnClick: (Node, Int) => Unit
   ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
     val node = postSelection.data(posts, (p: Node) => p.id.toString)
@@ -537,7 +524,7 @@ object ForceSimulation {
       node
         .html((node: Node) => htmlNodeData(node.data))
         .style("width", (node: Node) => calcPostWidth(node).getOrElse(js.undefined)) //TODO: does not update size when editing small node and write a long content
-        .on("click", onClick) //TODO: does d3 provide a wrong index?
+        .on("click", nodeOnClick) //TODO: does d3 provide a wrong index?
     }
 
     time(log(s"adding new posts to dom[${node.enter().size()}]")) {
@@ -555,7 +542,7 @@ object ForceSimulation {
             drag(target = DragItem.Task(node.id))
           ).render
         })
-        .on("click", onClick)
+        .on("click", nodeOnClick)
     }
   }
 

@@ -69,17 +69,6 @@ object GraphView {
       forceSimulation.postCreationMenus.map(_.map { menu =>
         PostCreationMenu(state, focusState, menu, forceSimulation.transform)
       }),
-      forceSimulation.selectedNodeId.map(_.map {
-        case (pos, id) =>
-          SelectedPostMenu(
-            pos,
-            id,
-            state,
-            focusState,
-            forceSimulation.selectedNodeId,
-            forceSimulation.transform
-          )
-      })
     )
   }
 
