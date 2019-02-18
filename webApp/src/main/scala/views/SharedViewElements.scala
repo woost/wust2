@@ -12,6 +12,7 @@ import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.api.{ApiEvent, AuthUser}
 import wust.css.{CommonStyles, Styles, ZIndex}
@@ -514,42 +515,11 @@ object SharedViewElements {
       Ack.Continue
     }
 
-    val modalConfig = Ownable { implicit ctx =>
-      UI.ModalConfig(
-        header = VDomModifier(
-          "Create a new Project"
-        ),
-        description = VDomModifier(
-          SharedViewElements.inputRow(
-            state = state,
-            submitAction = name => newProject(name),
-            autoFocus = true,
-            placeHolderMessage = Some("A new Project"),
-            allowEmptyString = true,
-            submitIcon = freeSolid.faPlus,
-            showSubmitIcon = true,
-            textAreaModifiers = VDomModifier(
-              color.white,
-              backgroundColor := "rgba(255, 255, 255, 0.1)"
-
-            )
-          ),
-        ),
-        modalModifier = VDomModifier(
-          cls := "basic",
-          width := "400px"
-        )
-      )
-    }
-
     button(
       cls := "ui button",
       label,
-      onClick.stopPropagation foreach { ev =>
-        ev.target.asInstanceOf[dom.html.Element].blur()
-
-        state.uiModalConfig.onNext(modalConfig)
-      },
+      onClickNewNamePrompt(state, header = "Create a new Project", placeholderMessage = Some("A new Project")).foreach(newProject(_)),
+      onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
 
@@ -822,5 +792,41 @@ object SharedViewElements {
         )
       }
     }
+  }
+
+  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
+    val modalConfig = Ownable { implicit ctx =>
+      UI.ModalConfig(
+        header = header,
+        description = VDomModifier(
+          SharedViewElements.inputRow(
+            state = state,
+            submitAction = { str =>
+              state.uiModalClose.onNext(())
+              sink.onNext(str)
+            },
+            autoFocus = true,
+            placeHolderMessage = placeholderMessage,
+            allowEmptyString = true,
+            submitIcon = freeSolid.faPlus,
+            showSubmitIcon = true,
+            textAreaModifiers = VDomModifier(
+              color.white,
+              backgroundColor := "rgba(255, 255, 255, 0.1)"
+
+            )
+          ),
+        ),
+        modalModifier = VDomModifier(
+          cls := "basic",
+          width := "400px"
+        )
+      )
+    }
+
+    VDomModifier(
+      onClick.stopPropagation(modalConfig) --> state.uiModalConfig,
+      cursor.pointer
+    )
   }
 }
