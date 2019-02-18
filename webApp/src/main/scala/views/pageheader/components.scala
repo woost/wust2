@@ -73,14 +73,9 @@ object components {
     )
   }
 
-  def customTab(icon: IconDefinition, tooltip: String, action: () => Unit) = {
+  def customTab = {
     div(
       cls := "viewswitcher-item single inactive",
-      UI.tooltip("bottom right") := tooltip,
-
-      onClick.foreach(action()),
-
-      div(cls := "fa-fw", icon),
     )
   }
 

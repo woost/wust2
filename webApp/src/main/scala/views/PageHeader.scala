@@ -22,7 +22,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.webApp.views.UI.ModalConfig
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -232,7 +231,6 @@ object PageHeader {
           }
 
           state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
-          state.uiModalClose.onNext(())
         }
       }
     }
@@ -278,92 +276,83 @@ object PageHeader {
       }
     }
 
-    def addNewViewTab = customTab(Icons.ellipsisV, tooltip = "Add another view", action = { () =>
-      val config = Ownable { implicit ctx =>
+    val node = Rx {
+      state.graph().nodesById(channelId)
+    }
 
-        val node = Rx {
-          state.graph().nodesById(channelId)
+    def addNewTabDropdown = UI.dropdownMenu(
+      padding := "5px",
+      div(cls := "item", display.none), //TODO ui dropdown needs at least one element
+
+      Rx {
+        val existingViews = node().views match {
+          case None        => List(ViewHeuristic.bestView(state.graph(), node()))
+          case Some(views) => views
         }
+        val possibleViews = viewDefs.filterNot(existingViews.contains)
 
-        UI.ModalConfig(
-          header = "Select a view",
-          description = VDomModifier(
+        VDomModifier(
+          div(
             Styles.flex,
             flexDirection.column,
-            alignItems.center,
-
-            Rx {
-              val existingViews = node().views match {
-                case None        => List(ViewHeuristic.bestView(state.graph(), node()))
-                case Some(views) => views
-              }
-              val possibleViews = viewDefs.filterNot(existingViews.contains)
-              VDomModifier(
-                possibleViews.map { view =>
-                  val info = viewToTabInfo(view, 0, 0, 0)
-                  div(
-                    marginBottom := "10px",
-                    cls := "ui button",
-                    Elements.icon(info.icon),
-                    view.toString,
-                    onClick.stopPropagation.foreach(addNewView(view)),
-                    cursor.pointer
-                  )
-                },
-
-                div(
-                  Styles.flex,
-                  flexDirection.column,
-                  alignItems.center,
-                  width := "100%",
-                  opacity := 0.5,
-                  marginTop := "20px",
-                  padding := "10px",
-
-                  b(
-                    "Current views:",
-                    alignSelf.flexStart
-                  ),
-
-                  if (existingViews.isEmpty) div("Nothing, yet.")
-                  else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
-                    val info = viewToTabInfo(view, 0, 0, 0)
-                    VDomModifier(
-                      marginTop := "8px",
-                      div(
-                        Styles.flex,
-                        alignItems.center,
-                        Elements.icon(info.icon),
-                        view.toString
-                      )
-                    )
-                  },
-
-                  node().views.map { _ =>
-                    div(
-                      alignSelf.flexEnd,
-                      marginLeft := "auto",
-                      marginTop := "10px",
-                      cls := "ui button inverted mini",
-                      "Reset to default",
-                      cursor.pointer,
-                      onClick.stopPropagation.foreach { resetViews() }
-                    )
-                  }
-                )
+            alignItems.flexEnd,
+            possibleViews.map { view =>
+              val info = viewToTabInfo(view, 0, 0, 0)
+              div(
+                marginBottom := "5px",
+                cls := "ui button mini",
+                Elements.icon(info.icon),
+                view.toString,
+                onClick.stopPropagation.foreach(addNewView(view)),
+                cursor.pointer
               )
             }
           ),
-          modalModifier = VDomModifier(
-            cls := "basic",
-            width := "300px",
+
+          div(
+            Styles.flex,
+            flexDirection.column,
+            alignItems.center,
+            width := "100%",
+            marginTop := "20px",
+            padding := "5px",
+
+            b(
+              "Current views:",
+              alignSelf.flexStart
+            ),
+
+            if (existingViews.isEmpty) div("Nothing, yet.")
+            else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
+              val info = viewToTabInfo(view, 0, 0, 0)
+              VDomModifier(
+                marginTop := "8px",
+                div(
+                  Styles.flex,
+                  alignItems.center,
+                  Elements.icon(info.icon),
+                  view.toString
+                )
+              )
+            },
+
+            node().views.map { _ =>
+              div(
+                alignSelf.flexEnd,
+                marginLeft := "auto",
+                marginTop := "10px",
+                cls := "ui button mini",
+                "Reset to default",
+                cursor.pointer,
+                onClick.stopPropagation.foreach { resetViews() }
+              )
+            }
           )
         )
       }
+    ).prepend(freeSolid.faEllipsisV)
 
-      state.uiModalConfig.onNext(config)
-      ()
-    })
+    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow)
 
     viewRx.triggerLater { view => addNewView(view) }
 
@@ -371,7 +360,7 @@ object PageHeader {
       marginLeft := "5px",
       Styles.flex,
       justifyContent.center,
-      alignItems.center,
+      alignItems.flexEnd,
       minWidth.auto,
 
       Rx {
@@ -404,7 +393,8 @@ object PageHeader {
         }
 
         viewTabs :+ addNewViewTab
-      }
+      },
+
     )
   }
 }

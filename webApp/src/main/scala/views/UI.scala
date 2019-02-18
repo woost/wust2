@@ -225,14 +225,15 @@ object UI {
   val horizontalDivider = div(cls := "ui divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 
-  def dropdownMenu(items: VDomModifier): VNode = div(
-    cls := "ui icon labeled fluid dropdown",
+  def dropdownMenu(items: VDomModifier*): VNode = div(
+    cls := "ui pointing link inline dropdown",
+    i(cls := "icon dropdown"),
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
-    onDomMount.asJquery.foreach(_.dropdown("hide")),
+    onDomMount.asJquery.foreach(_.dropdown()),
     cursor.pointer,
     div(
       cls := "menu",
-      items
+      div(items),
     )
   )
 
