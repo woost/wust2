@@ -257,18 +257,18 @@ object PageHeader {
     def removeView(view: View.Visible) = {
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
-        val filteredViews = node.views match {
-          case None        => Nil
-          case Some(views) => views.filterNot(_ == view)
-        }
+        val existingViews = node.views.getOrElse(Nil)
+        val filteredViews = existingViews.filterNot(_ == view)
         val newNode = node match {
           case n: Node.Content => n.copy(views = Some(filteredViews))
           case n: Node.User => n.copy(views = Some(filteredViews))
         }
 
         //switch to remaining view
-        val newView = filteredViews.headOption.getOrElse(View.Empty)
-        if (viewRx.now == view && viewRx.now != newView) {
+        if (viewRx.now == view) {
+          val currPosition = existingViews.indexWhere(_ == view)
+          val nextPosition = currPosition - 1
+          val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
           viewAction(newView)
         }
 
