@@ -182,7 +182,9 @@ object ItemProperties {
       onClick(Ownable(implicit ctx => UI.ModalConfig(
         header = Rx {
           val graph = state.graph()
-          ModalConfig.defaultHeader(state, graph.nodesById(nodeId), naming, Icons.property)
+          graph.nodesByIdGet(nodeId).map { node =>
+            ModalConfig.defaultHeader(state, node, naming, Icons.property)
+          }
         },
         description = description,
         modalModifier = VDomModifier(
