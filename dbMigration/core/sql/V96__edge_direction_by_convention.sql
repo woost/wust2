@@ -51,7 +51,7 @@ begin
     else return false;
     end if;
 end;
-$$ language plpgsql;
+$$ language plpgsql immutable strict;
 
 create function multiedge(edgetype text) returns boolean as $$
     select case edgetype
@@ -303,9 +303,11 @@ begin
             union -- discards duplicates, therefore handles cycles and diamond cases
             select edge.targetid
                 from content inner join edge on edge.sourceid = content.id
-                    and (select traversable(edge.data->>'type'))
+                    -- and traversable(edge.data->>'type') = true
+                    and (case edge.data->>'type' when 'Child' then true else false end) = true
                     -- and edge.data->>'type' = 'Child'
                     and can_access_node_in_down_traversal(userid, edge.targetid)
+                -- where traversable(edge.data->>'type') = true
            -- select contentedge.target_nodeid
            --     FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
            --         and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
