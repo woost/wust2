@@ -236,22 +236,21 @@ object LeftSidebar {
   object ChannelAction {
     case class Node(id: NodeId) extends AnyVal with ChannelAction
   }
-  private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) =
+  private def onChannelClick(action: ChannelAction)(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier(
+    // action match {
+    //   case ChannelAction.Node(id) => sidebarNodeFocusVisualizeMod(state.rightSidebarNode, id)
+    //   case _                      => VDomModifier.empty
+    // },
     onClick foreach { e =>
       val page = state.page.now
-      //TODO if (e.shiftKey) {
-      val newPage = action match {
+      action match {
         case ChannelAction.Node(id)   =>
-//          if(e.ctrlKey) {
-//            val filtered = page.parentIds.filterNot(_ == id)
-//            val parentIds =
-//              if(filtered.size == page.parentIds.size) page.parentIds :+ id
-//              else if(filtered.nonEmpty) filtered
-//              else Seq(id)
-//            page.copy(parentIds = parentIds)
-//          } else
-                        Page(id)
+         // if(e.shiftKey) {
+         //   state.rightSidebarNode() = if (state.rightSidebarNode.now.contains(id)) None else Some(id)
+         // } else {
+           state.urlConfig.update(_.focus(Page(id)))
+         // }
       }
-      state.urlConfig.update(_.focus(newPage))
     }
+  )
 }
