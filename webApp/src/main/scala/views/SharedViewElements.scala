@@ -6,7 +6,7 @@ import fontAwesome._
 import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.execution.Ack
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.window
@@ -794,38 +794,38 @@ object SharedViewElements {
     }
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
-    val modalConfig = Ownable { implicit ctx =>
-      UI.ModalConfig(
-        header = header,
-        description = VDomModifier(
-          SharedViewElements.inputRow(
-            state = state,
-            submitAction = { str =>
-              state.uiModalClose.onNext(())
-              sink.onNext(str)
-            },
-            autoFocus = true,
-            placeHolderMessage = placeholderMessage,
-            allowEmptyString = true,
-            submitIcon = freeSolid.faPlus,
-            showSubmitIcon = true,
-            textAreaModifiers = VDomModifier(
-              color.white,
-              backgroundColor := "rgba(255, 255, 255, 0.1)"
+  def newNamePropmptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None)(implicit ctx: Ctx.Owner) = {
+    UI.ModalConfig(
+      header = header,
+      description = VDomModifier(
+        SharedViewElements.inputRow(
+          state = state,
+          submitAction = { str =>
+            state.uiModalClose.onNext(())
+            newNameSink.onNext(str)
+          },
+          autoFocus = true,
+          placeHolderMessage = placeholderMessage,
+          allowEmptyString = true,
+          submitIcon = freeSolid.faPlus,
+          showSubmitIcon = true,
+          textAreaModifiers = VDomModifier(
+            color.white,
+            backgroundColor := "rgba(255, 255, 255, 0.1)"
 
-            )
-          ),
+          )
         ),
-        modalModifier = VDomModifier(
-          cls := "basic",
-          width := "400px"
-        )
+      ),
+      modalModifier = VDomModifier(
+        cls := "basic",
+        width := "400px"
       )
-    }
+    )
+  }
 
+  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
     VDomModifier(
-      onClick.stopPropagation(modalConfig) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => newNamePropmptModalConfig(state, sink, header, placeholderMessage) }) --> state.uiModalConfig,
       cursor.pointer
     )
   }
