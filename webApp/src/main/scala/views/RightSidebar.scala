@@ -200,7 +200,6 @@ object RightSidebar {
           }
         )
       ).apply(marginTop := "10px"),
-      UI.horizontalDivider("Custom Fields").apply(ItemProperties.manageProperties(state, node.id, button(cls := "ui button mini", freeSolid.faPlus, marginLeft := "10px"))),
 
       div(
         propertySingle.properties.map { property =>
@@ -208,6 +207,13 @@ object RightSidebar {
             commonPropMod
           )
         },
+      ),
+      div(
+        Styles.flex,
+        justifyContent.flexEnd,
+        ItemProperties.manageProperties(state, node.id, 
+          button("+ Add Custom field", cls := "ui compact button mini", marginTop := "10px", marginLeft := "10px")
+        )
       ),
     )
   }
