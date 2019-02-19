@@ -56,7 +56,7 @@ object PageHeader {
     val channelTitle = NodePermission.canWrite(state, pageNode.id).flatMap { canWrite =>
       def writableMod = VDomModifier(
         borderRadius := "3px",
-        Components.sidebarNodeFocusMod(state, pageNode.id)
+        Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id)
       )
 
       pageNode.role match {

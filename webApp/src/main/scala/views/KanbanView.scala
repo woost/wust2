@@ -540,7 +540,7 @@ object KanbanView {
     nodeCard(
       node,
       maxLength = Some(maxLength),
-      contentInject = VDomModifier(Components.sidebarNodeFocusMod(state, node.id), if(isDone) textDecoration.lineThrough else VDomModifier.empty),
+      contentInject = VDomModifier(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id), if(isDone) textDecoration.lineThrough else VDomModifier.empty),
       ).prepend(
       if(showCheckbox)
         VDomModifier(

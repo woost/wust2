@@ -68,8 +68,8 @@ object TableView {
         "Node",
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, Array(property.node),
-            cellModifier = Components.sidebarNodeFocusClickMod(state, property.node.id),
-            rowModifier = Components.sidebarNodeFocusVisualizeMod(state, property.node.id))
+            cellModifier = Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id),
+            rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id))
         }(breakOut)
       ) ::
       UI.Column(
