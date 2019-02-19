@@ -77,9 +77,10 @@ object RightSidebar {
   private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
     div(
       focusedNodeId.map(_.map { nodeId =>
-        val initialView = state.graph.now.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(state.graph.now, _))
+        val graph = state.rawGraph.now
+        val initialView = graph.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
         val viewVar = Var[View.Visible](initialView)
-        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(state.graph.now, nodeId, view)
+        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, nodeId, view)
 
         VDomModifier(
           div(
@@ -114,7 +115,7 @@ object RightSidebar {
     div(
       Rx {
         focusedNodeId().flatMap { nodeId =>
-          state.graph().nodesByIdGet(nodeId).map { node =>
+          state.rawGraph().nodesByIdGet(nodeId).map { node =>
             VDomModifier(
               div(
                 Styles.flex,
@@ -127,7 +128,7 @@ object RightSidebar {
                   onClick.stopPropagation(true) --> editMode,
                 )
               ),
-              nodeProperties(state, state.graph(), node)
+              nodeProperties(state, state.rawGraph(), node)
             )
           }
         }
@@ -162,7 +163,7 @@ object RightSidebar {
     )
 
     def searchInput(placeholder: String, filter: Node => Boolean) =
-      Components.searchInGraph(state.graph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, inputModifiers = VDomModifier(
+      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, inputModifiers = VDomModifier(
         width := "120px",
         padding := "2px 10px 2px 10px",
       ), elementModifier = VDomModifier(
