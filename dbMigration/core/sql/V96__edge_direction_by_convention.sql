@@ -32,15 +32,17 @@ set
 from parentconversion
 where edge.sourceid = parentconversion.sourceid and edge.targetid = parentconversion.targetid and edge.data->>'type' = 'Parent';
 
-create function traversable(edgetype text) returns boolean as $$
-    select case edgetype
-        when 'Child' then true
-        when 'LabeledProperty' then true
-        when 'Automated' then true
-        when 'DerivedFromTemplate' then true
-        else false
-    end
-$$ language sql stable;
+-- if edgetype = 'Automated' or 'Child' or 'DerivedFromTemplate' or 'LabeledProperty'
+create or replace function traversable(edgetype text) returns boolean as $$
+begin
+	if edgetype = 'Child'
+	then
+		return true;
+	else
+		return false;
+	end if;
+end;
+$$ language plpgsql;
 
 create function multiedge(edgetype text) returns boolean as $$
     select case edgetype
@@ -82,10 +84,10 @@ create UNIQUE index edge_unique_index
     using btree(sourceid, (data->>'type'), targetid)
     where not(multiedge((data->>'type')::text));
 
-create index edge_traversable_index
-    on edge
-    using btree(sourceid, (data->>'type'), targetid)
-    where traversable((data->>'type')::text);
+-- create index edge_traversable_index
+--     on edge
+--     using btree(sourceid, (data->>'type'), targetid)
+--     where traversable((data->>'type')::text);
 
 -- Recreate views
 drop view author;
@@ -155,15 +157,15 @@ drop aggregate array_merge_agg(anyarray);
 drop function array_intersect;
 drop function array_merge;
 
-create or replace function traversable(edgetype text) returns boolean as $$
-    select case edgetype
-        when 'Child' then true
-        when 'LabeledProperty' then true
-        when 'Automated' then true
-        when 'DerivedFromTemplate' then true
-        else false
-    end
-$$ language sql stable;
+-- create or replace function traversable(edgetype text) returns boolean as $$
+--     select case edgetype
+--         -- when 'Automated' then true
+--         when 'Child' then true
+--         -- when 'DerivedFromTemplate' then true
+--         -- when 'LabeledProperty' then true
+--         else false
+--     end
+-- $$ language sql stable;
 
 create or replace  function multiedge(edgetype text) returns boolean as $$
     select case edgetype
@@ -290,10 +292,14 @@ begin
         content(id) AS (
             select id from node where id = any(accessible_page_parents) -- strangely this is faster than `select unnest(starts)`
             union -- discards duplicates, therefore handles cycles and diamond cases
-            -- select contentedge.target_nodeid
-            --     FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
-            --         and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
-            select child.target_childid FROM content INNER JOIN child ON child.source_parentid = content.id and can_access_node_in_down_traversal(userid, child.target_childid)
+            select edge.targetid
+                from content inner join edge on edge.sourceid = content.id
+                    and traversable(edge.data->>'type')
+                    -- and edge.data->>'type' = 'Child'
+                    and can_access_node_in_down_traversal(userid, edge.targetid)
+           -- select contentedge.target_nodeid
+           --     FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
+           --         and can_access_node_in_down_traversal(userid, contentedge.target_nodeid)
 
             -- union
             -- select useredge.target_userid
