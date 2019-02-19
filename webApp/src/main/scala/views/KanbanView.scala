@@ -166,7 +166,7 @@ object KanbanView {
           cls := "buttonbar",
           drag(DragItem.DisableDrag),
           Styles.flex,
-          GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = workspaceId)),
+          GraphChangesAutomationUI.settingsButton(state, workspaceId),
         ),
       ),
       div(
@@ -229,7 +229,7 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = node.id)),
+      GraphChangesAutomationUI.settingsButton(state, node.id),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
