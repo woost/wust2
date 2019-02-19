@@ -25,12 +25,13 @@ object MoveableElement {
           div(
             title,
             styles.extra.transform := "rotate(90deg)",
+            styles.extra.transformOrigin := "top right",
             onClick.stopPropagation.foreach { toggle.update(!_) },
             cursor.pointer,
 
             position.absolute,
             bottom := "100px",
-            right := "-3px", //TODO: why do we need this?
+            right := "0",
             backgroundColor := CommonStyles.sidebarBgColor,
             color.white,
             borderBottomRightRadius := "5px",
