@@ -49,7 +49,7 @@ object ItemProperties {
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
-      val inputSizeMods = VDomModifier(width := "250px", marginTop := "4px")
+      val inputSizeMods = VDomModifier(width := "200px", marginTop := "4px")
 
       val inputFieldMod: NodeData.Type => VDomModifier = {
         case NodeData.Integer.tpe   => Elements.integerInputMod
