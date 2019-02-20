@@ -132,7 +132,7 @@ object ListView {
       ),
       div(
         Styles.flex,
-        renderExpandCollapseButton(state, stage.id, isExpanded),
+        renderExpandCollapseButton(state, stage.id, isExpanded, alwaysShow = true),
         renderNodeData(stage.data).apply(paddingLeft := "5px")
       ),
 

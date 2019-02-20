@@ -767,7 +767,7 @@ object SharedViewElements {
     )
   }
 
-  def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+  def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean], alwaysShow: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
       val graph = state.graph()
       graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdx(nodeId))
@@ -784,7 +784,7 @@ object SharedViewElements {
       } else {
         div(
           cls := "expand-collapsebutton",
-          VDomModifier.ifTrue(childrenSize() == 0)(visibility.hidden),
+          VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
           Icons.expand,
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, nodeId)) --> state.eventProcessor.changes,
           cursor.pointer,
