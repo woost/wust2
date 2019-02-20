@@ -460,15 +460,10 @@ object KanbanView {
         Rx{
           VDomModifier(
             renderTaskCount(
-              if (taskStats().taskChildrenCount > 0) VDomModifier(
-                s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
-                UI.popup := "Zoom to show subtasks",
-              )
-              else VDomModifier(
-                cls := "emptystat",
-                UI.popup := "Create subtasks"
-              ),
-              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Tasks)) --> state.urlConfig,
+              if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
+              else VDomModifier(cls := "emptystat"),
+              UI.popup := "Expand subtasks",
+              onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(state.user.now.id, node.id)) --> state.eventProcessor.changes,
               cursor.pointer,
             ),
             renderTaskProgress(),
