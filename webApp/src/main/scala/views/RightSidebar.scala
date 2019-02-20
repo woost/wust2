@@ -55,8 +55,7 @@ object RightSidebar {
         height := "100%",
         Styles.flex,
         flexDirection.column,
-        justifyContent.spaceBetween,
-        overflowY.auto,
+        justifyContent.flexStart,
 
         nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
           minHeight := "300px",
@@ -68,14 +67,16 @@ object RightSidebar {
 
         ),
         viewContent(state, focusedNodeId, parentIdAction, boxMod).apply(
-          flexShrink := 0,
           margin := "5px",
+          height := "100%",
         )
       )
     )
   }
   private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
     div(
+      Styles.flex,
+      flexDirection.column,
       focusedNodeId.map(_.map { nodeId =>
         val graph = state.rawGraph.now
         val initialView = graph.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
@@ -84,9 +85,10 @@ object RightSidebar {
 
         VDomModifier(
           div(
+            Styles.flexStatic,
             Styles.flex,
             justifyContent.spaceBetween,
-            alignItems.center,
+            alignItems.flexEnd,
             div(
               padding := "3px",
               color.white,
@@ -95,14 +97,17 @@ object RightSidebar {
               onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
             ),
             PageHeader.viewSwitcher(state, nodeId, viewVar, viewAction),
+            marginBottom := "2px", // since we have no line, undo the negative margin
           ),
           Rx {
             val view = viewVar()
-            ViewRender(state, FocusState(view, nodeId, nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
-              width := "100%",
-              height := "500px",
-              viewModifier
-            )
+              ViewRender(state, FocusState(view, nodeId, nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+                Styles.growFull,
+                flexGrow := 1,
+                viewModifier
+                ).prepend(
+                  overflow.visible
+                )
           }
         )
       })
@@ -173,6 +178,17 @@ object RightSidebar {
       ))
 
     div(
+      div(
+        marginTop := "10px",
+        Styles.flex,
+        justifyContent.flexEnd,
+        ItemProperties.managePropertiesDropdown(state, node.id).prepend(
+          button(
+            cls := "ui compact button mini",
+            "+ Custom field"
+          )
+        )
+      ),
       renderSplit(
         left = VDomModifier(
           Styles.flex,
@@ -204,17 +220,6 @@ object RightSidebar {
         )
       ).apply(marginTop := "10px"),
 
-      div(
-        marginTop := "10px",
-        Styles.flex,
-        justifyContent.flexEnd,
-        ItemProperties.managePropertiesDropdown(state, node.id).prepend(
-          button(
-            cls := "ui compact button mini",
-            "+ Custom field"
-          )
-        )
-      ),
       div(
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
