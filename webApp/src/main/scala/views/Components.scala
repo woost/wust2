@@ -876,5 +876,10 @@ object Components {
       VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 2px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
+  def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    sidebarNode.map(_ contains nodeId).map { isFocused =>
+      VDomModifier.ifTrue(isFocused)(boxShadow := s"4px 0px 2px -2px ${CommonStyles.selectedNodesBgColorCSS}")
+    }
+  )
 }
 

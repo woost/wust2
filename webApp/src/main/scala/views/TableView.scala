@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
+import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -37,7 +37,7 @@ object TableView {
       case Nil       => NodeRole.default
     }
 
-    def columnEntryOfNodes(row: NodeId, nodes: Array[_ <: Node], cellModifier: VDomModifier = VDomModifier.empty, rowModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    def columnEntryOfNodes(row: NodeId, nodes: Array[_ <: Node], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = nodes.map {
         case node: Node.Content => node.str
         case user: Node.User    => Components.displayUserName(user.data) // sort users by display name
@@ -49,8 +49,7 @@ object TableView {
           case user: Node.User                               => Components.removableAssignedUser(state, user, row)
         },
         cellModifier
-      ),
-      rowModifier = rowModifier
+      )
     )
 
     val childrenIdxs: Array[Int] = {
@@ -65,11 +64,26 @@ object TableView {
 
     val nodeColumns: List[UI.Column] =
       UI.Column(
+        "",
+        propertyGroup.infos.map { property =>
+          UI.ColumnEntry("",
+            VDomModifier(
+             backgroundColor := "#f9fafb", // same color as header of table
+             Components.sidebarNodeFocusVisualizeRightMod(state.rightSidebarNode, property.node.id),
+             div(
+                freeRegular.faEye,
+                Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id)
+              )
+            ),
+            rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id)
+          )
+        }(breakOut),
+        sortable = false
+      ) ::
+      UI.Column(
         "Node",
         propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, Array(property.node),
-            cellModifier = Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id),
-            rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id))
+          columnEntryOfNodes(property.node.id, Array(property.node))
         }(breakOut)
       ) ::
       UI.Column(

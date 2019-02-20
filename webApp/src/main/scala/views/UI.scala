@@ -275,7 +275,7 @@ object UI {
   object ColumnEntry {
     def apply(value: String): ColumnEntry = ColumnEntry(value, value)
   }
-  case class Column(name: String, entries: List[ColumnEntry])
+  case class Column(name: String, entries: List[ColumnEntry], sortable: Boolean = true)
   case class ColumnSort(index: Int, direction: String)
   def sortableTable(columns: List[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
     val rows = columns.map(_.entries).transpose
@@ -316,8 +316,8 @@ object UI {
 
       thead(
         tr(
-          columns.zipWithIndex.map { case (columnEntry, idx) =>
-            th(columnEntry.name)
+          columns.zipWithIndex.map { case (column, idx) =>
+            th(column.name, VDomModifier.ifNot(column.sortable)(cls := "no-sort"))
           }
         )
       ),
