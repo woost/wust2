@@ -127,7 +127,7 @@ object RightSidebar {
               div(
                 Styles.flex,
                 alignItems.flexStart,
-                Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginRight := "3px"),
+                Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginRight := "3px", cls := "enable-text-selection"),
                 div(
                   Icons.edit,
                   padding := "5px",
