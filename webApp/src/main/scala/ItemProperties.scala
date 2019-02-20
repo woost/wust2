@@ -29,6 +29,7 @@ import scala.collection.breakOut
 object ItemProperties {
 
   val naming = "Custom fields"
+  val defaultType = NodeData.PlainText.tpe
 
   def iconByNodeData(data: NodeData): VDomModifier = data match {
     //    case _: NodeData.Integer => Icons.propertyInt
@@ -39,7 +40,7 @@ object ItemProperties {
     case _                                         => Icons.propertyText
   }
 
-  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = None, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
@@ -56,7 +57,7 @@ object ItemProperties {
         case NodeData.Decimal.tpe   => Elements.decimalInputMod
         case NodeData.Date.tpe      => Elements.dateInputMod
         case NodeData.PlainText.tpe => Elements.textInputMod
-        case _                      =>  VDomModifier(disabled, placeholder := "Select a property type")
+        case _                      =>  VDomModifier(disabled, placeholder := "Select a field type")
       }
 
       VDomModifier(
@@ -65,24 +66,11 @@ object ItemProperties {
           Styles.flex,
           flexDirection.column,
           alignItems.center,
-          select(
-            inputSizeMods,
-            option(
-              value := "none", "Select a property type",
-              selected <-- propertyTypeSelection.map(_ == NodeData.Empty.tpe),
-              disabled,
-            ),
-            option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ == NodeData.Integer.tpe)),
-            option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ == NodeData.Decimal.tpe)),
-            option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ == NodeData.Date.tpe)),
-            option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ == NodeData.PlainText.tpe)),
-            onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
-          ),
           input(
             cls := "ui fluid action input",
             inputSizeMods,
             tpe := "text",
-            placeholder := "Property Name",
+            placeholder := "Field Name",
             cls <-- propertyTypeSelection.map(t => if(t == NodeData.Empty.tpe) "disabled" else ""),
             onInput.value --> propertyKeyInputProcess,
             value <-- propertyKeyInputProcess
@@ -100,11 +88,24 @@ object ItemProperties {
               }
             },
           ),
+          select(
+            inputSizeMods,
+            option(
+              value := "none", "Select a field type",
+              selected <-- propertyTypeSelection.map(_ == NodeData.Empty.tpe),
+              disabled,
+            ),
+            option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ == NodeData.Integer.tpe)),
+            option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ == NodeData.Decimal.tpe)),
+            option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ == NodeData.Date.tpe)),
+            option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ == NodeData.PlainText.tpe)),
+            onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
+          ),
           div(
             cls := "ui primary button approve",
             cls <-- propertyValueInputProcess.map(v => if(v.isEmpty) "disabled" else ""),
             inputSizeMods,
-            "Add property",
+            "Add Custom Field",
             onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
               if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
                 handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
@@ -169,7 +170,7 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = None, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item

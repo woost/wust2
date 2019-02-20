@@ -265,6 +265,10 @@ object Components {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     div(
+      Styles.flex,
+      justifyContent.spaceBetween,
+      flexWrap.wrap,
+      alignItems.flexStart,
       div(
         color.gray,
         b(key, ":"),
@@ -273,7 +277,7 @@ object Components {
         Styles.flex,
         flexDirection.column,
         alignItems.flexEnd,
-        padding := "0px 10px 0px 10px",
+        padding := "0px 10px",
 
         properties.map { property =>
           div(
