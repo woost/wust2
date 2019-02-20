@@ -350,9 +350,9 @@ object PageHeader {
           )
         )
       }
-    ), dropdownModifier = cls := "top right").prepend(freeSolid.faEllipsisV)
+    ), dropdownModifier = cls := "top right").prepend(div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"))
 
-    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow)
+    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 
     viewRx.triggerLater { view => addNewView(view) }
 
