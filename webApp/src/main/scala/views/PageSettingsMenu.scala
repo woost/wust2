@@ -1,6 +1,5 @@
 package wust.webApp.views
 
-import clipboard.ClipboardJS
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
@@ -150,16 +149,14 @@ object PageSettingsMenu {
 
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
 
-    new ClipboardJS(".shareurlholder")
-
-    val urlHolderCls = "shareurlholder"
     val shareTitle = channel.data.str
     val shareUrl = dom.window.location.href
     val shareDesc = s"Share: $shareTitle"
 
     div(
+      Elements.copiableToClipboard,
       cursor.pointer,
-      cls := s"$urlHolderCls item",
+      cls := "item",
       Elements.icon(Icons.share),
       span("Share Link"),
       dataAttr("clipboard-text") := shareUrl,
@@ -187,8 +184,7 @@ object PageSettingsMenu {
             case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
           }
         } else {
-
-          UI.toast(title = shareDesc, msg = "Link copied to clipboard")
+           UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         }
       },
       onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "share") }

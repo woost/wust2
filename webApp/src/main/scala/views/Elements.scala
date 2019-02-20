@@ -189,6 +189,17 @@ object Elements {
     }
   }
 
+  val copiableToClipboard: VDomModifier = {
+    import clipboard.ClipboardJS
+
+    VDomModifier(
+      managedElement.asHtml { elem =>
+        val clip = new ClipboardJS(elem)
+        Cancelable(() => clip.destroy())
+      }
+    )
+  }
+
   val onTap: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("tap")
   val onPress: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("press")
   val onSwipeRight: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swiperight")
