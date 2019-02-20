@@ -15,7 +15,6 @@ import wust.util.StringOps._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.{Components, Elements, UI}
-import wust.webApp.views.UI.ModalConfig
 import wust.webUtil.StringOps._
 
 import scala.scalajs.js
@@ -23,7 +22,9 @@ import scala.collection.breakOut
 
 /*
  * Here, the managing of node properties is done.
- * Currently, this is done with providing a modal which enables the user to add properties to a node.
+ * This is done via a simple form.
+ * Either just get the form: managePropertiesContent
+ * Or get a dropdown of this content: managePropertiesDropdown
  */
 object ItemProperties {
 
@@ -38,19 +39,11 @@ object ItemProperties {
     case _                                         => Icons.propertyText
   }
 
-  def manageProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) : VNode = {
-    manageProperties(
-      state,
-      nodeId,
-      div(div(cls := "fa-fw", UI.popup("bottom right") := naming, Icons.property))
-    )
-  }
-
-  def manageProperties(state: GlobalState, nodeId: NodeId, contents: VNode, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = None, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = BehaviorSubject[NodeData.Type](NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
+    val propertyTypeSelection = BehaviorSubject[NodeData.Type](prefilledType getOrElse NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
     val propertyKeyInputProcess = BehaviorSubject[String](prefilledKey).transformObservable(o => Observable(o, clear.map(_ => "")).merge)
     val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
 
@@ -76,14 +69,13 @@ object ItemProperties {
             inputSizeMods,
             option(
               value := "none", "Select a property type",
-              selected,
-              selected <-- clear.map(_ => true),
+              selected <-- propertyTypeSelection.map(_ == NodeData.Empty.tpe),
               disabled,
             ),
-            option( value := NodeData.Integer.tpe, "Integer Number" ),
-            option( value := NodeData.Decimal.tpe, "Decimal Number" ),
-            option( value := NodeData.Date.tpe, "Date" ),
-            option( value := NodeData.PlainText.tpe, "Text" ),
+            option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ == NodeData.Integer.tpe)),
+            option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ == NodeData.Decimal.tpe)),
+            option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ == NodeData.Date.tpe)),
+            option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ == NodeData.PlainText.tpe)),
             onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
           ),
           input(
@@ -121,12 +113,11 @@ object ItemProperties {
           ),
           targetNodeIds.map { targetNodeIds =>
             VDomModifier.ifTrue(targetNodeIds.size > 1)(i(
+              padding := "4px",
               s"* The properties you set here will be applied to ${targetNodeIds.size} nodes."
             ))
           }
         ),
-
-        descriptionModifier
       )
     }
 
@@ -167,8 +158,6 @@ object ItemProperties {
 
         state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
       }
-
-      state.uiModalClose.onNext(())
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
@@ -177,24 +166,19 @@ object ItemProperties {
       Components.removablePropertyTag(state, propertyKey, propertyValue),
     )
 
-    contents(
-      cursor.pointer,
-      onClick(Ownable(implicit ctx => UI.ModalConfig(
-        header = Rx {
-          val graph = state.graph()
-          graph.nodesByIdGet(nodeId).map { node =>
-            ModalConfig.defaultHeader(state, node, naming, Icons.property)
-          }
-        },
-        description = description,
-        modalModifier = VDomModifier(
-          cls := "mini form",
-        ),
-        contentModifier = VDomModifier(
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(nodeId)).toHex
-        ),
-      ))) --> state.uiModalConfig
-    )
+    description
+  }
+
+  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = None, prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
+    UI.dropdownMenu(VDomModifier(
+      padding := "5px",
+      div(cls := "item", display.none), // dropdown menu needs an item
+      div(
+        cls := "ui mini form",
+        managePropertiesContent(state, nodeId, prefilledType, prefilledKey, targetNodeIds, extendNewProperty),
+        descriptionModifier
+      )
+    ), dropdownModifier = dropdownModifier)
   }
 }
 

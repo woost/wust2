@@ -87,21 +87,18 @@ object TableView {
       Nil
 
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
+      val predictedType = property.groups.headOption.flatMap(g => g.values.headOption.map(_.node).map(_.data.tpe))
       UI.Column(
         property.key,
         property.groups.map { group =>
           columnEntryOfNodes(group.nodeId, group.values.map(_.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
               cls := "orange",
-              ItemProperties.manageProperties(state, nodeId = group.nodeId, prefilledKey = property.key,
-                contents = div(
-                  Styles.flex,
-                  justifyContent.spaceAround,
-                  Styles.growFull,
-                  freeSolid.faPlus,
-                  cursor.pointer,
-                  UI.popup("center left") := "Add a new Value",
-                ),
+              div(
+                Styles.flex,
+                justifyContent.spaceAround,
+                Styles.growFull,
+                ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key).prepend(freeSolid.faPlus)
               )
             ))
         }(breakOut)
@@ -117,36 +114,33 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
-        ItemProperties.manageProperties(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
-          contents = button(
-            cls := "ui mini button",
-            freeSolid.faPlus,
-            cursor.pointer,
-            UI.popup("center left") := "Add a new Column"
-          ),
-          descriptionModifier = div(
-            margin := "10px",
-            UI.toggle("Keep as default", keepPropertyAsDefault)
-          ),
-          extendNewProperty = { (edgeData, propertyNode) =>
-            if (keepPropertyAsDefault.now) {
-              val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-              val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
-              GraphChanges(
-                addNodes = Set(templateNode, newPropertyNode),
-                addEdges = Set(
-                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
-                  Edge.Automated(focusedId, templateNodeId = templateNode.id),
-                  Edge.Parent(templateNode.id, parentId = focusedId)
+        button(
+          cls := "ui mini compact button",
+          ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
+            descriptionModifier = div(
+              padding := "10px",
+              UI.toggle("Keep as default", keepPropertyAsDefault)
+            ),
+            extendNewProperty = { (edgeData, propertyNode) =>
+              if (keepPropertyAsDefault.now) {
+                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+                val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+                GraphChanges(
+                  addNodes = Set(templateNode, newPropertyNode),
+                  addEdges = Set(
+                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
+                    Edge.Automated(focusedId, templateNodeId = templateNode.id),
+                    Edge.Parent(templateNode.id, parentId = focusedId)
+                  )
                 )
-              )
-            } else GraphChanges.empty
-          }
+              } else GraphChanges.empty
+            }
+          ).prepend(freeSolid.faPlus)
         )
       ),
 
       button(
-        cls := "ui mini button",
+        cls := "ui mini compact button",
         freeSolid.faPlus,
         cursor.pointer,
         UI.popup("center right") := "Add a new Row",

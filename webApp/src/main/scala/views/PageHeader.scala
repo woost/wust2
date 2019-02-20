@@ -280,7 +280,7 @@ object PageHeader {
       state.graph().nodesById(channelId)
     }
 
-    def addNewTabDropdown = UI.dropdownMenu(
+    def addNewTabDropdown = UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
@@ -350,7 +350,7 @@ object PageHeader {
           )
         )
       }
-    ).prepend(freeSolid.faEllipsisV)
+    ), dropdownModifier = cls := "top right").prepend(freeSolid.faEllipsisV)
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow)
 

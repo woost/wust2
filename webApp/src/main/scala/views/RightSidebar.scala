@@ -202,18 +202,20 @@ object RightSidebar {
       ).apply(marginTop := "10px"),
 
       div(
+        marginTop := "10px",
+        Styles.flex,
+        justifyContent.flexEnd,
+        button(
+          cls := "ui compact button mini",
+          ItemProperties.managePropertiesDropdown(state, node.id).prepend("+ Custom field")
+        )
+      ),
+      div(
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
             commonPropMod
           )
         },
-      ),
-      div(
-        Styles.flex,
-        justifyContent.flexEnd,
-        ItemProperties.manageProperties(state, node.id, 
-          button("+ Add Custom field", cls := "ui compact button mini", marginTop := "10px", marginLeft := "10px")
-        )
       ),
     )
   }
