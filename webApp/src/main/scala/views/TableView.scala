@@ -114,28 +114,30 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
-        button(
-          cls := "ui mini compact button",
-          ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
-            descriptionModifier = div(
-              padding := "10px",
-              UI.toggle("Keep as default", keepPropertyAsDefault)
-            ),
-            extendNewProperty = { (edgeData, propertyNode) =>
-              if (keepPropertyAsDefault.now) {
-                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-                val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
-                GraphChanges(
-                  addNodes = Set(templateNode, newPropertyNode),
-                  addEdges = Set(
-                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
-                    Edge.Automated(focusedId, templateNodeId = templateNode.id),
-                    Edge.Parent(templateNode.id, parentId = focusedId)
-                  )
+        ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
+          descriptionModifier = div(
+            padding := "10px",
+            UI.toggle("Keep as default", keepPropertyAsDefault)
+          ),
+          extendNewProperty = { (edgeData, propertyNode) =>
+            if (keepPropertyAsDefault.now) {
+              val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+              val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+              GraphChanges(
+                addNodes = Set(templateNode, newPropertyNode),
+                addEdges = Set(
+                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = newPropertyNode.id),
+                  Edge.Automated(focusedId, templateNodeId = templateNode.id),
+                  Edge.Parent(templateNode.id, parentId = focusedId)
                 )
-              } else GraphChanges.empty
-            }
-          ).prepend(freeSolid.faPlus)
+              )
+            } else GraphChanges.empty
+          }
+        ).prepend(
+          button(
+            cls := "ui mini compact button",
+            freeSolid.faPlus
+          )
         )
       ),
 
