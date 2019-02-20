@@ -58,7 +58,7 @@ object RightSidebar {
         justifyContent.spaceBetween,
         overflowY.auto,
 
-        nodeDetailsMenu(state, focusedNodeId).apply(
+        nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
           minHeight := "300px",
           flex := "1",
           margin := "0px 5px 0px 5px",
@@ -109,14 +109,16 @@ object RightSidebar {
     )
   }
 
-  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
     div(
       Rx {
         focusedNodeId().flatMap { nodeId =>
           state.rawGraph().nodesByIdGet(nodeId).map { node =>
+            val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
             VDomModifier(
+              VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
               div(
                 Styles.flex,
                 alignItems.flexStart,
