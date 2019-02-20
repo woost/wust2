@@ -57,7 +57,7 @@ object GraphChangesAutomation {
     // descendant. If we do, we just keep this node, else we will create a copy
     // of the descendant node. We want to have a copy of each descendant of the
     // template.
-    graph.descendantsIdx(templateNodeIdx).foreach { descendantIdx =>
+    graph.notDeletedDescendantsIdx(templateNodeIdx).foreach { descendantIdx =>
       graph.nodes(descendantIdx) match {
         case node: Node.Content =>
           alreadyExistingNodes.get(node.id) match {
