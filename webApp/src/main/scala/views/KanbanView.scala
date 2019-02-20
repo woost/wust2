@@ -163,6 +163,7 @@ object KanbanView {
         "Inbox / Todo",
         div(
           cls := "buttonbar",
+          drag(DragItem.DisableDrag),
           Styles.flex,
           GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = workspaceId)),
         ),
@@ -203,6 +204,7 @@ object KanbanView {
 
     val buttonBar = div(
       cls := "buttonbar",
+      drag(DragItem.DisableDrag),
       Styles.flex,
       Rx {
         def ifCanWrite(mod: => VDomModifier): VDomModifier = VDomModifier.ifTrue(canWrite())(mod)
@@ -409,6 +411,7 @@ object KanbanView {
 
       div(
         cls := "buttonbar",
+        drag(DragItem.DisableDrag),
         Styles.flex,
         immediateMenuItems.map(_(true))
       )
