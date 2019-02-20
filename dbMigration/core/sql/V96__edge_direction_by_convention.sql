@@ -45,13 +45,24 @@ where edge.sourceid = parentconversion.sourceid and edge.targetid = parentconver
 -- $$ language plpgsql;
 
 -- if edgetype = 'Automated' or 'Child' or 'DerivedFromTemplate' or 'LabeledProperty'
-create or replace function traversable(edgetype text) returns boolean as $$
-begin
-    if (edgetype = 'Child') then return true;
-    else return false;
-    end if;
-end;
-$$ language plpgsql immutable strict;
+-- create or replace function traversable(edgetype text) returns boolean as $$
+-- begin
+--     if (edgetype = 'Child') then return true;
+--     else return false;
+--     end if;
+-- end;
+-- $$ language plpgsql immutable strict;
+-- create table traversable (
+--     edgetype text primary key
+-- );
+-- insert into traversable(edgetype)
+-- values ('Child');
+create function traversable(edgetype text) returns boolean as $$
+    select case edgetype
+        when 'Child' then true
+        else false
+    end
+$$ language sql immutable;
 
 create function multiedge(edgetype text) returns boolean as $$
     select case edgetype
@@ -84,6 +95,11 @@ $$ language sql stable;
 -- when edge.data->>'type' = 'Pinned' then
 --     jsonb_build_object('type', 'Pinned')
 
+-- !!!!! drop all index
+-- drop index edge_unique_index;
+-- drop index edge_index;
+-- drop index idx_edge_targetid;
+-- drop index idx_edge_type;
 
 -- force reindex of all indices based on edge;
 reindex table edge;
@@ -93,10 +109,11 @@ create UNIQUE index edge_unique_index
     using btree(sourceid, (data->>'type'), targetid)
     where not(multiedge((data->>'type')::text));
 
--- create index edge_traversable_index
---     on edge
---     using btree(sourceid, (data->>'type'), targetid)
---     where traversable((data->>'type')::text);
+create index edge_traversable_index
+    on edge
+    using btree(sourceid, (data->>'type'), targetid)
+    where traversable((data->>'type')::text);
+    -- where exists(select from traversable where edgetype = data->>'type');
 
 -- Recreate views
 drop view author;
@@ -125,10 +142,12 @@ create view useredge as
     select sourceid as source_nodeid, targetid as target_userid, data
     from edge
     where not(traversable(data->>'type'));
+    -- where not(exists(select from traversable where edgetype = data->>'type'));
 create view contentedge as
     select sourceid as source_nodeid, targetid as target_nodeid, data
     from edge
     where traversable(data->>'type');
+    -- where exists(select from traversable where edgetype = data->>'type');
 
 -- !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! --
 -- ATTENTION: THE C&P REGION BELOW IS REWRITTEN --
@@ -302,9 +321,12 @@ begin
             select id from node where id = any(accessible_page_parents) -- strangely this is faster than `select unnest(starts)`
             union -- discards duplicates, therefore handles cycles and diamond cases
             select edge.targetid
-                from content inner join edge on edge.sourceid = content.id
-                    -- and traversable(edge.data->>'type') = true
-                    and (case edge.data->>'type' when 'Child' then true else false end) = true
+                from content
+                inner join edge on edge.sourceid = content.id
+                -- inner join traversable on edgetype = (edge.data->>'type')::text
+                    -- and exists(select from traversable where edgetype = (edge.data->>'type')::text)
+                    and traversable(edge.data->>'type')
+                    -- and (case edge.data->>'type' when 'Child' then true else false end) = true
                     -- and edge.data->>'type' = 'Child'
                     and can_access_node_in_down_traversal(userid, edge.targetid)
                 -- where traversable(edge.data->>'type') = true
