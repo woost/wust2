@@ -118,7 +118,7 @@ object RightSidebar {
           state.rawGraph().nodesByIdGet(nodeId).map { node =>
             val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
             VDomModifier(
-              VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
+              VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
               div(
                 Styles.flex,
                 alignItems.flexStart,
