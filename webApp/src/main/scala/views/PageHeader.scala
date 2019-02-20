@@ -209,8 +209,10 @@ object PageHeader {
       View.List ::
       View.Kanban ::
       View.Files ::
-      View.Graph :: 
-      (if (DevOnly.isTrue) View.Table(NodeRole.Message :: Nil) :: View.Table(NodeRole.Task :: Nil) :: Nil else Nil)
+      View.Graph ::
+      View.Table(NodeRole.Message :: Nil) ::
+      View.Table(NodeRole.Task :: Nil) ::
+      Nil
 
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
       val node = state.graph.now.nodesByIdGet(channelId)
