@@ -16,7 +16,7 @@ object PropertyData {
   object BasicInfo {
     def apply(graph: Graph, nodeIdx: Int): BasicInfo = {
       val node: Node = graph.nodes(nodeIdx)
-      val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content])
+      val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content]).sortBy(_.data.str)
       val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.User])
       val properties: Map[String, Array[PropertyValue]] = graph.propertiesEdgeIdx.map(nodeIdx) { idx =>
         val edge = graph.edges(idx).asInstanceOf[Edge.LabeledProperty]
