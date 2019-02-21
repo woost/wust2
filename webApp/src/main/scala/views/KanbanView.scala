@@ -31,11 +31,11 @@ object KanbanView {
       val firstWorkspaceIdx = workspaces.head //TODO: crashes
       val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
 
-      val topLevelStages = graph.childrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
+      val topLevelStages = graph.notDeletedChildrenIdx(firstWorkspaceIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
       val allStages: ArraySet = {
         val stages = ArraySet.create(graph.size)
         topLevelStages.foreachElement(stages.add)
-        algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.childrenIdx, { idx =>
+        algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.notDeletedChildrenIdx, { idx =>
           val isStage = graph.nodes(idx).role == NodeRole.Stage
           if(isStage) stages += idx
           isStage
@@ -45,9 +45,9 @@ object KanbanView {
 
       val inboxTasks: ArraySet = {
         val inboxTasks = ArraySet.create(graph.size)
-        graph.childrenIdx.foreachElement(firstWorkspaceIdx) { childIdx =>
+        graph.notDeletedChildrenIdx.foreachElement(firstWorkspaceIdx) { childIdx =>
           if(graph.nodes(childIdx).role == NodeRole.Task) {
-            @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
+            @inline def hasStageParentInWorkspace = graph.notDeletedParentsIdx(childIdx).exists(allStages.contains)
 
             if(!hasStageParentInWorkspace) inboxTasks += childIdx
           }
