@@ -13,7 +13,7 @@ defaults: &defaults
   environment:
     TERM: xterm-256color
   docker:
-    - image: fdietze/docker-alpine-scala-webdev:d16a70243e466dde30ffcfde5e98d1ac62747ef4
+    - image: fdietze/docker-alpine-scala-webdev:374f36e6e5b70cc47eec6c409295b6518b3d8d2d
 
 restore_cache: &restore_cache
   restore_cache:
