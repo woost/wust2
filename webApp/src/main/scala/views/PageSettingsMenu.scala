@@ -141,7 +141,7 @@ object PageSettingsMenu {
 
   def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      Icons.menuDropdown,
+      Icons.menu,
       cursor.pointer,
       onClick.foreach { toggleSidebar(state, channelId) }
     )
