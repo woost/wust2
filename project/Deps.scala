@@ -112,17 +112,17 @@ object Deps {
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
   }
 
-  val webpackVersion = "4.23.1"
-  val webpackDevServerVersion = "3.1.10"
+  val webpackVersion = "4.29.5"
+  val webpackDevServerVersion = "3.2.0"
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
-    val marked = "marked" -> "0.5.2"
+    val marked = "marked" -> "0.6.1"
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
-    val highlight = "highlight.js" -> "9.13.1"
-    val dateFns = "date-fns" -> "v2.0.0-alpha.25"
+    val highlight = "highlight.js" -> "9.14.2"
+    val dateFns = "date-fns" -> "v2.0.0-alpha.27"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
-    val fomanticUi = "fomantic-ui-css" -> "2.7.1"
+    val fomanticUi = "fomantic-ui-css" -> "2.7.2"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
     val hammerjs = "hammerjs" -> "2.0.8"
@@ -136,21 +136,21 @@ object Deps {
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47
         // "webpack-subresource-integrity" -> "1.1.0-rc.4" ::
         "html-webpack-plugin" -> "3.2.0" ::
-        "html-webpack-include-assets-plugin" -> "1.0.4" ::
-        "clean-webpack-plugin" -> "0.1.19" ::
+        "html-webpack-include-assets-plugin" -> "1.0.7" ::
+        "clean-webpack-plugin" -> "1.0.1" ::
         "compression-webpack-plugin" -> "2.0.0" ::
-        "@gfx/zopfli" -> "1.0.8" :: // zopfli compiled to webassembly
-        "brotli-webpack-plugin" -> "1.0.0" ::
+        "@gfx/zopfli" -> "1.0.11" :: // zopfli compiled to webassembly
+        "brotli-webpack-plugin" -> "1.1.0" ::
         // "node-sass" -> "4.7.2" ::
         // "sass-loader" -> "6.0.7" ::
-        "css-loader" -> "1.0.0" ::
-        "style-loader" -> "0.23.0" ::
+        "css-loader" -> "2.1.0" ::
+        "style-loader" -> "0.23.1" ::
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
-        "webpack-merge" -> "4.1.4" ::
-        "copy-webpack-plugin" -> "4.5.2" ::
+        "webpack-merge" -> "4.2.1" ::
+        "copy-webpack-plugin" -> "5.0.0" ::
         "workbox-webpack-plugin" -> "3.6.3" ::
         "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
-        "cssnano" -> "4.1.4" ::
+        "cssnano" -> "4.1.10" ::
         Nil
   }
 
