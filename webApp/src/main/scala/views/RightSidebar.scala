@@ -184,11 +184,12 @@ object RightSidebar {
         marginTop := "10px",
         Styles.flex,
         justifyContent.flexEnd,
-        ItemProperties.managePropertiesDropdown(state, node.id).prepend(
+        div(
           button(
             cls := "ui compact button mini",
             "+ Custom field"
-          )
+          ),
+          ItemProperties.managePropertiesDropdown(state, node.id),
         )
       ),
       renderSplit(

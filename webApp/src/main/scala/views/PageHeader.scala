@@ -285,77 +285,80 @@ object PageHeader {
       state.graph().nodesById(channelId)
     }
 
-    def addNewTabDropdown = UI.dropdownMenu(VDomModifier(
-      padding := "5px",
-      div(cls := "item", display.none), //TODO ui dropdown needs at least one element
+    def addNewTabDropdown = div(
+      div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
+      UI.dropdownMenu(VDomModifier(
+        padding := "5px",
+        div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-      Rx {
-        val existingViews = node().views match {
-          case None        => List(ViewHeuristic.bestView(state.graph(), node()))
-          case Some(views) => views
-        }
-        val possibleViews = viewDefs.filterNot(existingViews.contains)
+        Rx {
+          val existingViews = node().views match {
+            case None        => List(ViewHeuristic.bestView(state.graph(), node()))
+            case Some(views) => views
+          }
+          val possibleViews = viewDefs.filterNot(existingViews.contains)
 
-        VDomModifier(
-          div(
-            Styles.flex,
-            flexDirection.column,
-            alignItems.flexEnd,
-            possibleViews.map { view =>
-              val info = viewToTabInfo(view, 0, 0, 0)
-              div(
-                marginBottom := "5px",
-                cls := "ui button mini",
-                Elements.icon(info.icon),
-                view.toString,
-                onClick.stopPropagation.foreach(addNewView(view)),
-                cursor.pointer
-              )
-            }
-          ),
-
-          div(
-            Styles.flex,
-            flexDirection.column,
-            alignItems.center,
-            width := "100%",
-            marginTop := "20px",
-            padding := "5px",
-
-            b(
-              "Current views:",
-              alignSelf.flexStart
+          VDomModifier(
+            div(
+              Styles.flex,
+              flexDirection.column,
+              alignItems.flexEnd,
+              possibleViews.map { view =>
+                val info = viewToTabInfo(view, 0, 0, 0)
+                div(
+                  marginBottom := "5px",
+                  cls := "ui button mini",
+                  Elements.icon(info.icon),
+                  view.toString,
+                  onClick.stopPropagation.foreach(addNewView(view)),
+                  cursor.pointer
+                )
+              }
             ),
 
-            if (existingViews.isEmpty) div("Nothing, yet.")
-            else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
-              val info = viewToTabInfo(view, 0, 0, 0)
-              VDomModifier(
-                marginTop := "8px",
-                div(
-                  Styles.flex,
-                  alignItems.center,
-                  Elements.icon(info.icon),
-                  view.toString
-                )
-              )
-            },
+            div(
+              Styles.flex,
+              flexDirection.column,
+              alignItems.center,
+              width := "100%",
+              marginTop := "20px",
+              padding := "5px",
 
-            node().views.map { _ =>
-              div(
-                alignSelf.flexEnd,
-                marginLeft := "auto",
-                marginTop := "10px",
-                cls := "ui button mini",
-                "Reset to default",
-                cursor.pointer,
-                onClick.stopPropagation.foreach { resetViews() }
-              )
-            }
+              b(
+                "Current views:",
+                alignSelf.flexStart
+              ),
+
+              if (existingViews.isEmpty) div("Nothing, yet.")
+              else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
+                val info = viewToTabInfo(view, 0, 0, 0)
+                VDomModifier(
+                  marginTop := "8px",
+                  div(
+                    Styles.flex,
+                    alignItems.center,
+                    Elements.icon(info.icon),
+                    view.toString
+                  )
+                )
+              },
+
+              node().views.map { _ =>
+                div(
+                  alignSelf.flexEnd,
+                  marginLeft := "auto",
+                  marginTop := "10px",
+                  cls := "ui button mini",
+                  "Reset to default",
+                  cursor.pointer,
+                  onClick.stopPropagation.foreach { resetViews() }
+                )
+              }
+            )
           )
-        )
-      }
-    ), dropdownModifier = cls := "top left").prepend(div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"))
+        }
+      ), dropdownModifier = cls := "top left")
+    )
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 

@@ -170,7 +170,7 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
