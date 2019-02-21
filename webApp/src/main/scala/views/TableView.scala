@@ -70,10 +70,10 @@ object TableView {
             VDomModifier(
              backgroundColor := "#f9fafb", // same color as header of table
              Components.sidebarNodeFocusVisualizeRightMod(state.rightSidebarNode, property.node.id),
+             Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id),
              div(
                fontSize.xxSmall,
                idx + 1,
-               Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id)
              )
             ),
             rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id)
