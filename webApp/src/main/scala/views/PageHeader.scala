@@ -96,8 +96,9 @@ object PageHeader {
 
       Styles.flex,
       alignItems.flexEnd,
-      flexWrap.wrap,
+      flexWrap := "wrap-reverse",
 
+      viewSwitcher(state, pageNode.id).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
       div(
         div(
           Styles.flex,
@@ -127,32 +128,34 @@ object PageHeader {
 
     val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
 
+    val filterStatus = state.isFilterActive.map(_.ifTrue[VDomModifier] {
+      div(
+        Elements.icon(Icons.filter),
+        color := "green",
+        onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
+        cursor.pointer,
+        UI.popup("bottom right") := "A filter is active. Click to reset to default.",
+        )
+    })
+
+    val pinButton = Rx {
+      val hideBookmarkButton = isSpecialNode() || isBookmarked()
+      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channel).apply(
+        Styles.flexStatic,
+        marginTop := "3px",
+        marginBottom := "3px",
+        ))
+    }
+
     div(
       Styles.flex,
       alignItems.center,
       minWidth.auto,
-      Rx {
-        val hideBookmarkButton = isSpecialNode() || isBookmarked()
-        hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channel).apply(
-          Styles.flexStatic,
-          marginTop := "3px",
-          marginBottom := "3px",
-        ))
-      },
+
+      pinButton,
       //      notifyControl(state, channel).apply(buttonStyle),
-      state.isFilterActive.map(_.ifTrue[VDomModifier] {
-        div(
-          Elements.icon(Icons.filter),
-          color := "green",
-          onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
-          cursor.pointer,
-          UI.popup("bottom right") := "A filter is active. Click to reset to default.",
-        )
-      }),
-      viewSwitcher(state, channel.id).apply(Styles.flexStatic, alignSelf.flexEnd),
-      Rx {
-        PageSettingsMenu(state, channel.id).apply(buttonStyle, marginLeft := "15px")
-      },
+      filterStatus,
+      PageSettingsMenu(state, channel.id).apply(buttonStyle, marginLeft := "15px"),
     )
   }
 
