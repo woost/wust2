@@ -86,7 +86,6 @@ jobs:
             docker save -o /docker-images/db-migration.tar "$DOCKER_REGISTRY/woost/db-migration"
             docker save -o /docker-images/core.tar "$DOCKER_REGISTRY/woost/core"
             docker save -o /docker-images/web.tar "$DOCKER_REGISTRY/woost/web"
-            docker save -o /docker-images/slack.tar "$DOCKER_REGISTRY/woost/slack"
       - persist_to_workspace:
           root: /docker-images
           paths: "*.tar"
@@ -104,30 +103,27 @@ jobs:
             docker load -i /docker-images/db-migration.tar
             docker load -i /docker-images/core.tar
             docker load -i /docker-images/web.tar
-            docker load -i /docker-images/slack.tar
       - run: ci/publish-docker
 
 workflows:
   version: 2
-  # commit:
-  #   jobs:
-  #     - build-test-unit:
-  #         filters:
-  #           branches:
-  #             only:
-  #               - master
-  #               - /rc-.*/
-  #               - circleci
-  #     - hold:
-  #         type: approval
-  #         requires:
-  #           - build-test-unit
-  #     - test-integration:
-  #         requires:
-  #           - hold
-  #     - deploy:
-  #         requires:
-  #           - test-integration
+  commit:
+    jobs:
+      - build-test-unit:
+          filters:
+            branches:
+              only:
+                - circleci
+      - hold:
+          type: approval
+          requires:
+            - build-test-unit
+      - test-integration:
+          requires:
+            - hold
+      - deploy:
+          requires:
+            - test-integration
 
   nightly:
     triggers:
