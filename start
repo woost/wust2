@@ -131,30 +131,20 @@ function self() {
         postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading production database and restoring in local database..."
         ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_psqlbatch -h localhost -U wust --file=-
-        export $env_slack_postgres
-        echo "clearing local slack database..."
-        postgres_slack_psqlbatch -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        echo "downloading production database slack and restoring in local database..."
-        ssh -C harald docker exec -i "woostappslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_psqlbatch -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgrestorefromstaging)
         echo "clearing local database..."
         postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         echo "downloading staging database and restoring in local database..."
         ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_psqlbatch -h localhost -U wust --file=-
-        export $env_slack_postgres
-        echo "clearing local slack database..."
-        postgres_slack_psqlbatch -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        echo "downloading staging database slack and restoring in local database..."
-        ssh -C harald docker exec -i "wooststagingslack_postgres_1" pg_dump --clean --if-exists -h localhost -U $SLACK_POSTGRES_USER | postgres_slack_psqlbatch -h localhost -U $SLACK_POSTGRES_USER --file=-
         ;;
     pgclean)
         export $env_postgres_secret $env_postgres_local
 
         case "$2" in
         all)
-            export $env_slack_postgres
             postgres_core_psqlbatch -h localhost -U $POSTGRES_USER -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+            export $env_slack_postgres
             postgres_slack_psqlbatch -h localhost -U $SLACK_POSTGRES_USER  -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
             ;;
         core)

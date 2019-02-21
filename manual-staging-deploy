@@ -12,12 +12,8 @@ docker images | grep latest
 echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" "$DOCKER_REGISTRY" --password-stdin;
 
 docker push "$DOCKER_REGISTRY/woost/db-migration:latest-core"
-docker push "$DOCKER_REGISTRY/woost/db-migration:latest-slack"
 docker push "$DOCKER_REGISTRY/woost/core:latest"
 docker push "$DOCKER_REGISTRY/woost/web:latest"
-# docker push "$DOCKER_REGISTRY/woost/github"
-# docker push "$DOCKER_REGISTRY/woost/gitter"
-docker push "$DOCKER_REGISTRY/woost/slack:latest"
 
 [[ -n "$STAGING_URL" ]] || exit 0
 echo "Triggering staging deploy..."

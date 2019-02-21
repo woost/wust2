@@ -12,9 +12,6 @@ echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" "$DOCKER_RE
 docker push "$DOCKER_REGISTRY/woost/db-migration"
 docker push "$DOCKER_REGISTRY/woost/core"
 docker push "$DOCKER_REGISTRY/woost/web"
-# docker push "$DOCKER_REGISTRY/woost/github"
-# docker push "$DOCKER_REGISTRY/woost/gitter"
-docker push "$DOCKER_REGISTRY/woost/slack"
 
 if [[ "$CIRCLE_BRANCH" == "master" ]] && [[ -n "$STAGING_URL" ]]; then
     echo "Triggering staging deploy..."

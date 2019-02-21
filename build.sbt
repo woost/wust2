@@ -187,10 +187,7 @@ lazy val root = project
     utilJS,
     utilJVM,
     systemTest,
-    dbMigration,
-    slackApp,
-    gitterApp,
-    githubApp
+    dbMigration
   )
   .settings(
     publish := {},
@@ -233,12 +230,12 @@ lazy val root = project
     ),
     addCommandAlias(
       "testJVM",
-      "; set scalacOptions += \"-Xcheckinit\"; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test; slackApp/test; gitterApp/test; githubApp/test"
+      "; set scalacOptions += \"-Xcheckinit\"; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test;"
     ),
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
     // watchSources := Seq(apiJS, apiJVM, database, core, sdkJS, sdkJVM, graphJS, graphJVM, utilJS, utilJVM, systemTest, dbMigration, slackApp).flatMap(p => (watchSources in p).value)
-    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in serviceUtil).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in cssJS).value ++ (watchSources in cssJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value ++ (watchSources in slackApp).value ++ (watchSources in gitterApp).value ++ (watchSources in githubApp).value
+    watchSources := (watchSources in apiJS).value ++ (watchSources in apiJVM).value ++ (watchSources in serviceUtil).value ++ (watchSources in database).value ++ (watchSources in core).value ++ (watchSources in sdkJS).value ++ (watchSources in sdkJVM).value ++ (watchSources in idsJS).value ++ (watchSources in idsJVM).value ++ (watchSources in cssJS).value ++ (watchSources in cssJVM).value ++ (watchSources in graphJS).value ++ (watchSources in graphJVM).value ++ (watchSources in utilJS).value ++ (watchSources in utilJVM).value ++ (watchSources in systemTest).value ++ (watchSources in dbMigration).value
   )
 
 lazy val util = crossProject(JSPlatform, JVMPlatform)
