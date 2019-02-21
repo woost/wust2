@@ -140,7 +140,8 @@ object Deps {
         "clean-webpack-plugin" -> "1.0.1" ::
         "compression-webpack-plugin" -> "2.0.0" ::
         "@gfx/zopfli" -> "1.0.11" :: // zopfli compiled to webassembly
-        "brotli-webpack-plugin" -> "1.1.0" ::
+        // "brotli-webpack-plugin" -> "1.1.0" ::
+        "brotli-webpack-plugin" -> "git://github.com/GRBurst/brotli-webpack-plugin.git#c0a8fff" ::
         // "node-sass" -> "4.7.2" ::
         // "sass-loader" -> "6.0.7" ::
         "css-loader" -> "2.1.0" ::
