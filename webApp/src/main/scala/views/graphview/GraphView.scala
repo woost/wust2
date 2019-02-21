@@ -65,6 +65,18 @@ object GraphView {
           )
         )
       },
+      div(
+        position := "absolute",
+        top := "5px",
+        right := "5px",
+        zIndex := ZIndex.controls,
+        button("Auto align", cls := "ui secondary button", onMouseDown foreach {
+          forceSimulation.startAnimated()
+          forceSimulation.simData.alphaDecay = 0
+        }, onMouseUp foreach {
+          forceSimulation.startAnimated()
+        }),
+      ),
       forceSimulation.component,
       forceSimulation.postCreationMenus.map(_.map { menu =>
         PostCreationMenu(state, focusState, menu, forceSimulation.transform)
