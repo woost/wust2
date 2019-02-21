@@ -3,6 +3,7 @@ package views.graphview
 import wust.webApp.dragdrop.DragItem
 import monix.execution.Cancelable
 import monix.execution.cancelables.CompositeCancelable
+import monix.reactive.Observable
 import d3v4._
 import wust.webApp.BrowserDetect
 import org.scalajs.dom
@@ -206,7 +207,7 @@ class ForceSimulation(
       )
     cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
 
-    cancelable += events.window.onResize.foreach { _ =>
+    cancelable += Observable(events.window.onResize, state.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
