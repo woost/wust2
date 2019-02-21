@@ -21,6 +21,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def toast(options: ToastOptions): Unit = js.native
 
   def popup(options: PopupOptions): Unit = js.native
+  def popup(args: String*): Unit = js.native
 
   def accordion(args: String*): Unit = js.native
 
