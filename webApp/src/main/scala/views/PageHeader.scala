@@ -355,7 +355,7 @@ object PageHeader {
           )
         )
       }
-    ), dropdownModifier = cls := "top right").prepend(div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"))
+    ), dropdownModifier = cls := "top left").prepend(div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"))
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 
