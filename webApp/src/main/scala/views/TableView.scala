@@ -4,7 +4,7 @@ import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
 import wust.webApp.ItemProperties
@@ -132,7 +132,12 @@ object TableView {
         ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
           descriptionModifier = div(
             padding := "10px",
-            UI.toggle("Keep as default", keepPropertyAsDefault)
+            div(
+              UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
+              GraphChangesAutomationUI.settingsButton(state, focusedId, activeColor = CommonStyles.selectedNodesBgColorCSS).prepend(
+                span("Manage automations", textDecoration.underline, marginRight := "5px")
+              )
+            )
           ),
           extendNewProperty = { (edgeData, propertyNode) =>
             if (keepPropertyAsDefault.now) {
