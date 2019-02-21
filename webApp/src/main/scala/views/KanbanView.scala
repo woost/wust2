@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import fontAwesome.freeSolid
 
+import monix.reactive.Observer
 import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -563,6 +564,7 @@ object KanbanView {
         val userId = state.user().id
         VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
           ListView(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
+            onClick.stopPropagation --> Observer.empty,
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
             margin := "3px",
             borderRadius := "3px",
