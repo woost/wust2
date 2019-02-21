@@ -23,7 +23,7 @@ object EdgeData {
   object Member extends Named
 
   case class Child(deletedAt: Option[EpochMilli], ordering: Option[BigDecimal]) extends Named with EdgeData {
-    override def toString: String = s"Parent(${
+    override def toString: String = s"Child(${
       List(
         deletedAt.map(deletedAt => s"deletedAt=${deletedAt.humanReadable}"),
         ordering.map(ordering => s"ordering=$ordering")
