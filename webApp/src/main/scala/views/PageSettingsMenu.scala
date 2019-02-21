@@ -89,13 +89,13 @@ object PageSettingsMenu {
             cursor.pointer,
             cls := "item",
             Elements.icon(Icons.delete),
-            span("Archive"),
+            span("Archive from all Views"),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
                 GraphChanges.delete(channelId, state.graph.now.parents(channelId).toSet)
                   .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
               )
-              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }'", click = () => state.urlConfig.update(_.focus(Page(channelId))), level = UI.ToastLevel.Success)
+              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) } from all views'", level = UI.ToastLevel.Success)
             }
           )
         })
@@ -125,7 +125,7 @@ object PageSettingsMenu {
       color.gray,
       Styles.flex,
       justifyContent.spaceBetween,
-      b(cursor.default, "Workspace Settings"),
+      b(cursor.default, "Settings"),
       i(cursor.pointer, cls := "close icon", onClick(()) --> state.uiSidebarClose)
     )
 
