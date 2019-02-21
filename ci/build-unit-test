@@ -27,4 +27,4 @@ sbt \
  -Dquill.macro.log=false \
  compile \
  testJVM \
- testJSNonPure \
+ testJSNonPure

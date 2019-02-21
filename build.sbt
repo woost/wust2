@@ -230,7 +230,7 @@ lazy val root = project
     ),
     addCommandAlias(
       "testJVM",
-      "; set scalacOptions += \"-Xcheckinit\"; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test;"
+      "; set scalacOptions += \"-Xcheckinit\"; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test"
     ),
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?
