@@ -499,16 +499,16 @@ object Components {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
                     val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                  val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
+                    val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
-                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
-              val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
+                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
+                val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
                 state.eventProcessor.changes.onNext(changes)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node for every workspace exists
-              val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
+                val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
                 state.eventProcessor.changes.onNext(changes)
               }
             }

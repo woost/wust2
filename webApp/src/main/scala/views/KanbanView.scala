@@ -9,7 +9,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
-import wust.ids.{NodeId, NodeRole, UserId, View}
+import wust.ids.{ChildId, NodeId, NodeRole, ParentId, UserId, View}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -382,11 +382,13 @@ object KanbanView {
         Rx {
           onClick.stopPropagation foreach {
             val graph = state.graph()
+            val focusedIdx = graph.idToIdx(focusState.focusedId)
             val nodeIdx = graph.idToIdx(node.id)
-            val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
-            val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+            val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+            val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
+            val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else GraphChanges.delete(node.id, focusState.focusedId)
 
-            val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
+            val changes = removeFromWorkspaces merge GraphChanges.delete(node.id, parentId)
             state.eventProcessor.changes.onNext(changes)
             selectedNodeIds.update(_ - node.id)
           }
