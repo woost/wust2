@@ -27,8 +27,8 @@ object UserSettingsView {
 
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
-      height := "100%",
       padding := "20px",
+      overflow.auto,
       Rx {
         val user = state.user()
         VDomModifier(

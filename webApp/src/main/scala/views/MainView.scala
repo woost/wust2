@@ -108,7 +108,7 @@ object MainView {
                     Styles.growFull,
                     flexGrow := 1
                   ).prepend(
-                    overflow.visible
+                    overflow.visible // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
                   )
                 )
                 // we can now assume, that every page parentId is contained in the graph
