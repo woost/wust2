@@ -55,8 +55,15 @@ object UI {
         VDomModifier(
           config.modalModifier,
 
-          emitter(globalClose).useLatest(onDomMount.asJquery).foreach(_.modal("hide")),
-          onDomMount.asJquery.foreach { e => e.modal("show") },
+          emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
+            e.modal("hide")
+            // kill the ctx owner, so we stop updating this node when it is closed.
+            ctx.contextualRx.kill()
+          },
+          managedElement.asJquery { e =>
+            e.modal("show")
+            Cancelable(() => e.modal("destroy"))
+          },
 
           i(cls := "close icon"),
           div(
@@ -136,22 +143,25 @@ object UI {
       width := "200px",
       zIndex := ZIndex.uiSidebar,
 
-      onDomMount.asJquery.foreach { e =>
-        elemHandler.onNext(e)
-        e.sidebar(new SidebarOptions {
-          transition = "overlay"
-          mobileTransition = "overlay"
-          exclusive = true
-          context = targetSelector.orUndefined
-        }).sidebar("hide")
-      },
-
-      emitter(globalClose).useLatest(onDomMount.asJquery).foreach(_.sidebar("hide")),
-
       config.map[VDomModifier] { config =>
         config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
           VDomModifier(
-            onDomMount.asJquery.foreach(_.sidebar("show")),
+            emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
+              e.sidebar("hide")
+              // kill the ctx owner, so we stop updating this node when it is closed.
+              ctx.contextualRx.kill()
+            },
+            managedElement.asJquery { e =>
+              elemHandler.onNext(e)
+              e.sidebar(new SidebarOptions {
+                transition = "overlay"
+                mobileTransition = "overlay"
+                exclusive = true
+                context = targetSelector.orUndefined
+              }).sidebar("show")
+
+              Cancelable(() => e.sidebar("destroy"))
+            },
             config.items
           )
         })
