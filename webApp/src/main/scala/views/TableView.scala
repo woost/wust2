@@ -65,15 +65,16 @@ object TableView {
     val nodeColumns: List[UI.Column] =
       UI.Column(
         "",
-        propertyGroup.infos.map { property =>
+        propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
           UI.ColumnEntry("",
             VDomModifier(
              backgroundColor := "#f9fafb", // same color as header of table
              Components.sidebarNodeFocusVisualizeRightMod(state.rightSidebarNode, property.node.id),
              div(
-                freeRegular.faEye,
-                Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id)
-              )
+               fontSize.xxSmall,
+               idx + 1,
+               Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id)
+             )
             ),
             rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id)
           )
