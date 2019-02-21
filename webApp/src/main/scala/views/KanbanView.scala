@@ -538,13 +538,12 @@ object KanbanView {
     nodeCard(
       node,
       maxLength = Some(maxLength),
-      contentInject = VDomModifier(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id), if(isDone) textDecoration.lineThrough else VDomModifier.empty),
+      contentInject = VDomModifier(if(isDone) textDecoration.lineThrough else VDomModifier.empty),
       ).prepend(
-      if(showCheckbox)
-        VDomModifier(
-          taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
-        )
-      else VDomModifier.empty
+      Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+      VDomModifier.ifTrue(showCheckbox)(
+        taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
+      )
     ).apply(
       VDomModifier.ifNot(isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
       keyed(node.id, parentId),
