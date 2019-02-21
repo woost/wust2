@@ -601,6 +601,8 @@ object SharedViewElements {
     }
 
   def tagListWindow(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier.ifNot(BrowserDetect.isMobile) {
+    val newTagFieldActive: Var[Boolean] = Var(false)
+
     MoveableElement.withToggleSwitch(
       "Tags",
       toggle = state.showTagsList,
@@ -622,7 +624,7 @@ object SharedViewElements {
               val workspaces = graph.workspacesForParent(pageParentIdx)
               val firstWorkspaceIdx = workspaces.head
               val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
-              SharedViewElements.tagList(state, firstWorkspaceId).prepend(
+              SharedViewElements.tagList(state, firstWorkspaceId, newTagFieldActive).prepend(
                 padding := "5px",
               )
             }
@@ -670,8 +672,8 @@ object SharedViewElements {
   def tagList(
     state: GlobalState,
     workspaceId: NodeId,
+    newTagFieldActive: Var[Boolean] = Var(false)
   )(implicit ctx:Ctx.Owner) = {
-    val newTagFieldActive = Var(false)
 
     val tags:Rx[Seq[Tree]] = Rx {
       val graph = state.graph()
