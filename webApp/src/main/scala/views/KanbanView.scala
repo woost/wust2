@@ -565,6 +565,7 @@ object KanbanView {
         VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
           ListView(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
             onClick.stopPropagation --> Observer.empty,
+            drag(DragItem.DisableDrag),
             boxShadow := "inset rgba(158, 158, 158, 0.45) 0px 1px 0px 1px",
             margin := "3px",
             borderRadius := "3px",
