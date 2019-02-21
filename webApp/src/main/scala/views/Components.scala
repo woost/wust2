@@ -790,11 +790,14 @@ object Components {
 
     Rx {
       if (automatedNodes().isEmpty) VDomModifier.empty
-      else div(
-        div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
-        automatedNodes().map(node => Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px"))),
-        marginLeft := "3px", marginRight := "3px",
-        UI.popup("bottom center") := "This node is an active automation template"
+      else VDomModifier(
+        automatedNodes().map { node =>
+          div(
+            div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
+            UI.popup("bottom center") := "This node is an active automation template")
+            Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
+          )
+        }
       )
     }
   }

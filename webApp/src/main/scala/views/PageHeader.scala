@@ -109,7 +109,7 @@ object PageHeader {
           padding := "0 5px",
           nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
           channelTitle.map(_(marginRight := "5px")),
-          Components.automatedNodesOfNode(state, pageNode),
+          div(Styles.flex, Components.automatedNodesOfNode(state, pageNode)),
           channelMembersList,
           permissionIndicator,
           paddingBottom := "5px",
