@@ -22,13 +22,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   private var currentOverContainerEvent: js.UndefOr[DragOverContainerEvent] = js.undefined
 
   private var ctrlDown = false
-  if (BrowserDetect.isMobile) {
+  if (!BrowserDetect.isMobile) {
     keyDown(KeyCode.Ctrl).foreach(ctrlDown = _)
   }
 
   //TODO: keyup-event for Shift does not work in chrome. It reports Capslock.
   private var shiftDown = false
-  //  if (BrowserDetect.isMobile) {
+  //  if (!BrowserDetect.isMobile) {
   //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
   //  }
 

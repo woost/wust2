@@ -39,7 +39,7 @@ object DragValidation {
   def validateSortInformation(e: SortableSortEvent, lastDragOverContainerEvent: DragOverContainerEvent, ctrl: Boolean, shift: Boolean): Unit = {
     extractSortInformation(e, lastDragOverContainerEvent) match {
       case (JSDefined(sourceContainer), JSDefined(payload), JSDefined(overContainer)) =>
-        if(sortAction.isDefinedAt((sourceContainer, payload, overContainer, ctrl, shift))) {
+        if(sortAction.isDefinedAt((payload, sourceContainer, overContainer, ctrl, shift))) {
           scribe.info(s"valid sort action: $payload: $sourceContainer -> $overContainer")
         } else {
           e.cancel()
@@ -75,7 +75,7 @@ object DragValidation {
         // target is null, since sort actions do not look at the target. The target moves away automatically.
         val successful = sortAction.runWith { calculateChange =>
           state.eventProcessor.changes.onNext(calculateChange(e, state.graph.now, state.user.now.id))
-        }((sourceContainer, payload, overContainer, ctrl, shift))
+        }((payload, sourceContainer, overContainer, ctrl, shift))
 
         if(successful) {
           scribe.info(s"sort action successful: $payload: $sourceContainer -> $overContainer")
@@ -92,29 +92,29 @@ object DragValidation {
 
   def performDrag(state:GlobalState, e: SortableStopEvent, currentOverEvent:DragOverEvent, ctrl: Boolean, shift: Boolean): Unit = {
     scribe.info("performing drag...")
-         val afterDraggedActionOpt = readDraggableDraggedAction(e.dragEvent.originalSource)
-         val payloadOpt = readDragPayload(e.dragEvent.originalSource)
-         val targetOpt = readDragTarget(currentOverEvent.over)
-         (payloadOpt, targetOpt) match {
-           case (JSDefined(payload), JSDefined(target)) =>
-             val successful = dragAction.runWith { calculateChange =>
-               state.eventProcessor.changes.onNext(calculateChange(state.graph.now, state.user.now.id))
-             }((payload, target, ctrl, shift))
+    val afterDraggedActionOpt = readDraggableDraggedAction(e.dragEvent.originalSource)
+    val payloadOpt = readDragPayload(e.dragEvent.originalSource)
+    val targetOpt = readDragTarget(currentOverEvent.over)
+    (payloadOpt, targetOpt) match {
+     case (JSDefined(payload), JSDefined(target)) =>
+       val successful = dragAction.runWith { calculateChange =>
+         state.eventProcessor.changes.onNext(calculateChange(state.graph.now, state.user.now.id))
+       }((payload, target, ctrl, shift))
 
-             if(successful) {
-               scribe.info(s"drag action successful: $payload -> $target")
-               Analytics.sendEvent("drag", "drop", s"${ payload.productPrefix }-${ target.productPrefix }${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
-               afterDraggedActionOpt.foreach{action =>
-                 scribe.info(s"performing afterDraggedAction...")
-                 action.apply()
-               }
-             }
-             else {
-               scribe.info(s"drag action not defined: $payload -> $target")
-               Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
-             }
-           case (payload, target) =>
-             scribe.info(s"incomplete drag information: $payload -> $target)")
+       if(successful) {
+         scribe.info(s"drag action successful: $payload -> $target")
+         Analytics.sendEvent("drag", "drop", s"${ payload.productPrefix }-${ target.productPrefix }${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+         afterDraggedActionOpt.foreach{action =>
+           scribe.info(s"performing afterDraggedAction...")
+           action.apply()
          }
+       }
+       else {
+         scribe.info(s"drag action not defined: $payload -> $target")
+         Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
+       }
+     case (payload, target) =>
+       scribe.info(s"incomplete drag information: $payload -> $target)")
+    }
   }
 }
