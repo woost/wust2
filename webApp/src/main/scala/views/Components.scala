@@ -520,7 +520,7 @@ object Components {
     }
 
     def nodeCardWithCheckbox(state:GlobalState, node: Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner): VNode = {
-      nodeCard(node).prepend(
+      nodeCardWithFile(state, node).prepend(
         Styles.flex,
         alignItems.flexStart,
         taskCheckbox(state, node, directParentIds)

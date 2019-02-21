@@ -343,7 +343,7 @@ object SharedViewElements {
               renderedMessageModifier,
             )
           case _ =>
-            nodeCard(node).apply(
+            nodeCardWithFile(state, node).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
 
