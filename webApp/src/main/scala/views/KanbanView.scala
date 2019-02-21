@@ -479,8 +479,11 @@ object KanbanView {
           VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
             renderTaskCount(
               s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
-              UI.popup := "Expand subtasks",
-              onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes,
+              UI.popup := "Subtasks",
+              onClick.stopPropagation.mapTo {
+                val edge = Edge.Expanded(node.id, state.user.now.id)
+                if (state.graph.now.isExpanded(state.user.now.id, node.id)) GraphChanges(delEdges = Set(edge)) else GraphChanges(addEdges = Set(edge))
+              } --> state.eventProcessor.changes,
               cursor.pointer,
             ),
             renderTaskProgress(taskStats()),
