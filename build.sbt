@@ -453,6 +453,7 @@ lazy val webApp = project
       Deps.npm.mobileDetect ::
       Deps.npm.jsSha256 ::
       Deps.npm.clipboardjs ::
+      Deps.npm.jqueryTablesort ::
       Nil
   )
 
