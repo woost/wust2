@@ -1274,6 +1274,9 @@ object CommonStyles extends StyleSheet.Standalone {
   ".viewswitcher-item.active" - (
     // bgColor set programatically to topic color
   )
+  ".viewswitcher-item.active:hover" - (
+    zIndex(1500)
+  )
   ".viewswitcher-item.inactive" - (
     backgroundColor :=! s"${tabsInactiveBackgroundColor.value + "55"}",
     border :=! s"2px solid ${ tabsOutlineColor.value + "55"} ",
