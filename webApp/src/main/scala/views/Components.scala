@@ -301,7 +301,7 @@ object Components {
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
-    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
   ): VNode = {
 
     val icon = ItemProperties.iconByNodeData(property.data)
@@ -340,7 +340,7 @@ object Components {
           state.urlConfig.update(_.focus(Page(tag.id)))
           e.stopPropagation()
         } else cursor.default,
-        drag(DragItem.Tag(tag.id)),
+        drag(DragItem.Tag(tag.id), target = DragItem.DisableDrag),
       )
     }
 
@@ -349,7 +349,7 @@ object Components {
       tagNode: Node,
       tagModifier: VDomModifier = VDomModifier.empty,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     )(implicit ctx: Ctx.Owner): VNode = {
 
       div( // checkbox and nodetag are both inline elements because of fomanticui
@@ -387,7 +387,7 @@ object Components {
       state: GlobalState,
       tag: Node,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
       val contentString = renderNodeData(tag.data)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
