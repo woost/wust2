@@ -1275,11 +1275,13 @@ object CommonStyles extends StyleSheet.Standalone {
     // bgColor set programatically to topic color
   )
   ".viewswitcher-item.inactive" - (
-    backgroundColor(tabsInactiveBackgroundColor),
+    backgroundColor :=! s"${tabsInactiveBackgroundColor.value + "55"}",
+    border :=! s"2px solid ${ tabsOutlineColor.value + "55"} ",
     borderBottomColor(CommonStyles.tabsOutlineColor),
     color(rgba(0,0,0,0.7)),
-    opacity(0.5),
   )
+  ".viewswitcher-item.inactive span" - (opacity(0.5))
+  ".viewswitcher-item.inactive .fa-fw" - (opacity(0.5))
   val tabsBoxShadowColor = c"#000000"
   ".viewswitcher-item.single.active" - (
     boxShadow := s"1px -1px 2px -1px ${tabsBoxShadowColor.value}"
@@ -1315,6 +1317,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".main-viewrender" - (
+    // FIXME: overlapped by tabs
     boxShadow := "0px -1px 5px 0px"
   )
 }
