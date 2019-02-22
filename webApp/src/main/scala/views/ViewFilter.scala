@@ -237,8 +237,9 @@ object GraphOperation {
   case object NoDeletedParents extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { pid =>
+        val descendants = graph.descendants(pid)
         val newEdges = graph.edges.filter {
-          case e: Edge.Child if e.parentId == pid => !graph.isDeletedNow(e.childId, pid)
+          case e: Edge.Child if descendants.contains(e.childId) => !graph.isDeletedNow(e.childId, pid)
           case _                                  => true
         }
         (graph, newEdges)

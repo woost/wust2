@@ -398,27 +398,25 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         val childIsMessage = nodes(targetIdx).role == NodeRole.Message
         val childIsTask = nodes(targetIdx).role == NodeRole.Task
         val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-		val childIsProject = nodes(targetIdx).role == NodeRole.Project
+		    val childIsProject = nodes(targetIdx).role == NodeRole.Project
         val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+
         parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
         childrenIdxBuilder.add(sourceIdx, targetIdx)
+
+        if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+
         e.data.deletedAt match {
           case None            =>
-            if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
           case Some(deletedAt) =>
             if(deletedAt isAfter now) { // in the future
-              if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-              if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
               notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
               notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
               futureDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
@@ -738,9 +736,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
-    //      !inDeletedGracePeriodParentIdx.contains(nodeIdx)(parentIdx) && !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
-    //    !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
     !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
+//    notDeletedChildrenIdx.get(parentIdx, nodeIdx).isEmpty
   }
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
