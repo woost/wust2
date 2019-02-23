@@ -64,7 +64,6 @@ object RightSidebar {
           Seq(
             ("Details",
              nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
-               minHeight := "300px",
                flex := "1",
                margin := "0px 5px 0px 5px",
                padding := "3px",
