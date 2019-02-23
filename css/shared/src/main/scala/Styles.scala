@@ -388,6 +388,23 @@ object CommonStyles extends StyleSheet.Standalone {
   ".expanded-right-sidebar > .sidebar-close" - (
   )
 
+  ".expanded-right-sidebar .accordion" - (
+    //overflowY.scroll,
+    display.flex,
+    flexDirection.column,
+    height(100 %%)
+  )
+
+  ".expanded-right-sidebar .accordion .content" - (
+    flex := "0 1 auto"
+  )
+  ".expanded-right-sidebar .accordion .content:nth-child(4)" - (
+    overflowY.hidden,
+    flexGrow(1),
+    flexBasis := "50%"
+  )
+
+
   ".overlay-sidebar" - (
     zIndex(ZIndex.overlay),
     position.absolute,

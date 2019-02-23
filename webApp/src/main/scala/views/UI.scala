@@ -270,7 +270,7 @@ object UI {
         div(
           paddingTop := "0px",
           borderTop := "0px",
-          cls := "title",
+          cls := "title" + (if (initialActive.contains(index)) " active" else ""),
           i(cls := "dropdown icon"),
           title,
           ),
