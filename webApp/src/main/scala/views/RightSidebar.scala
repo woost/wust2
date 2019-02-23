@@ -33,9 +33,13 @@ object RightSidebar {
     )
   }
 
-  def content(state: GlobalState, focusedNodeId: NodeId, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner):VDomModifier = content(state, Var(Some(focusedNodeId)), parentIdAction)
+  def content(state: GlobalState, focusedNodeId: NodeId, parentIdAction: Option[NodeId] => Unit)
+             (implicit ctx: Ctx.Owner):VDomModifier =
+    content(state, Var(Some(focusedNodeId)), parentIdAction)
+
   // TODO rewrite to rely on static focusid
-  private def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)
+                     (implicit ctx: Ctx.Owner) = {
     val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
     val boxMod = VDomModifier(
       borderRadius := "3px",
@@ -50,27 +54,34 @@ object RightSidebar {
         onClick(None).foreach(parentIdAction),
         backgroundColor := CommonStyles.sidebarBgColor,
       ),
+      breadcrumb(state, focusedNodeId, parentIdAction),
       div(
         color.black,
         height := "100%",
         Styles.flex,
         flexDirection.column,
         justifyContent.flexStart,
-
-        nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
-          minHeight := "300px",
-          flex := "1",
-          margin := "0px 5px 0px 5px",
-          padding := "3px",
-          boxMod,
-          overflowY.auto,
-
+        UI.accordion(
+          Seq(
+            ("Details",
+             nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
+               minHeight := "300px",
+               flex := "1",
+               margin := "0px 5px 0px 5px",
+               padding := "3px",
+               boxMod,
+               overflowY.auto,
+               )),
+            ("Views",
+             viewContent(state, focusedNodeId, parentIdAction, boxMod).apply(
+               margin := "5px",
+               height := "100%",
+               ) )),
+          styles = "inverted fluid",
+          exclusive = false,
+          initialActive = Seq(0, 1)
         ),
-        viewContent(state, focusedNodeId, parentIdAction, boxMod).apply(
-          margin := "5px",
-          height := "100%",
         )
-      )
     )
   }
   private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
@@ -114,6 +125,16 @@ object RightSidebar {
     )
   }
 
+  def breadcrumb( state: GlobalState, focusedNodeId: Rx[ Option[ NodeId ] ],
+                  parentIdAction: Option[ NodeId ] => Unit )
+                ( implicit ctx: Ctx.Owner ) = Rx {
+    focusedNodeId().flatMap{ nodeId =>
+      state.rawGraph().nodesByIdGet(nodeId).map { node =>
+        val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
+        VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
+      }
+    }
+  }
   private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
@@ -123,7 +144,7 @@ object RightSidebar {
           state.rawGraph().nodesByIdGet(nodeId).map { node =>
             val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
             VDomModifier(
-              VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
+              //breadcrumb(state, focusedNodeId, parentIdAction),
               div(
                 Styles.flex,
                 alignItems.flexStart,

@@ -255,22 +255,36 @@ object UI {
       items,
     )
   )
+  def accordion(title: VDomModifier, content: VDomModifier): VNode =
+    accordion(Seq((title, content)))
 
-  def accordion(title: VDomModifier, content: VDomModifier): VNode = div(
-    cls :="ui styled fluid accordion",
-    div(
-      paddingTop := "0px",
-      borderTop := "0px",
-      cls := "title",
-      i(cls := "dropdown icon"),
-      title,
-    ),
-    div(
-      cls := "content",
-      padding := "0px",
-      content
-    ),
-    onDomMount.asJquery.foreach(_.accordion()),
+  def accordion(content: Seq[(VDomModifier, VDomModifier)],
+                styles: String = "styled fluid",
+                collapsible : Boolean = true,
+                exclusive : Boolean = true,
+                duration : Int = 250,
+                initialActive : Seq[Int] = Seq.empty): VNode = div(
+    cls := s"ui ${ styles } accordion",
+    content.zipWithIndex.map { case ((title, content), index) =>
+      VDomModifier(
+        div(
+          paddingTop := "0px",
+          borderTop := "0px",
+          cls := "title",
+          i(cls := "dropdown icon"),
+          title,
+          ),
+        div(
+          cls := "content" + (if (initialActive.contains(index)) " active" else ""),
+          padding := "0px",
+          content
+        )
+      )
+    },
+    onDomMount.asJquery.foreach(_.accordion(fomanticui.AccordeonOptions(
+                                              collapsible = collapsible,
+                                              exclusive = exclusive,
+                                              duration = duration))),
   )
 
   def content(header: VDomModifier, description: VDomModifier = VDomModifier.empty): VNode = {

@@ -24,6 +24,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def popup(args: String*): Unit = js.native
 
   def accordion(args: String*): Unit = js.native
+  def accordion(args: AccordeonOptions): Unit = js.native
 
   def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
@@ -49,6 +50,20 @@ trait DropdownEntry extends js.Object {
   var name: js.UndefOr[String] = js.undefined
   var value: js.UndefOr[String] = js.undefined
   var selected: js.UndefOr[Boolean] = js.undefined
+}
+
+trait AccordeonOptions extends js.Object {
+  val collapsible: js.UndefOr[Boolean] = js.undefined
+  val exclusive: js.UndefOr[Boolean] = js.undefined
+  val duration: js.UndefOr[Int] = js.undefined
+}
+
+object AccordeonOptions {
+  def apply(collapsible : Boolean, exclusive : Boolean, duration : Int) : AccordeonOptions = {
+    js.Dynamic.literal(collapsible = collapsible,
+                       exclusive = exclusive,
+                       duration = duration).asInstanceOf[AccordeonOptions]
+  }
 }
 
 trait DropdownOptions extends js.Object {
