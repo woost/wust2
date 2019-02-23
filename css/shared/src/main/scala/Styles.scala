@@ -188,7 +188,8 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".mainview" - (
     flexDirection.column,
-    Styles.growFull
+    Styles.growFull,
+    Styles.flex
   )
 
   ".taglist" - (

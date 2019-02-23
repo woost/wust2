@@ -40,89 +40,93 @@ object MainView {
     }
 
     VDomModifier(
-      cls := "mainview",
       Styles.flex,
-//      DevOnly { DevView(state) },
+      Styles.growFull,
 
       div(id := "draggable-mirrors", position.absolute), // draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors
 
       div(
-        cls := "topBannerContainer",
+        cls := "mainview",
+//      DevOnly { DevView(state) },
+
+        div(
+          cls := "topBannerContainer",
+          Rx {
+            WoostNotification.banner(state, state.permissionState(), projectName())
+          }
+        ),
+
         Rx {
-          WoostNotification.banner(state, state.permissionState(), projectName())
-        }
-      ),
+          VDomModifier.ifTrue(state.topbarIsVisible())(Topbar(state)(width := "100%", Styles.flexStatic))
+        },
 
-      Rx {
-        VDomModifier.ifTrue(state.topbarIsVisible())(Topbar(state)(width := "100%", Styles.flexStatic))
-      },
-
-      div(
-        Styles.flex,
-        Styles.growFull,
-        position.relative, // needed for mobile expanded sidebar
-        LeftSidebar(state),
         div(
           Styles.flex,
           Styles.growFull,
-          flexDirection.column,
-          overflow.auto,
-          position.relative, // important for position absolute of loading animation to have the correct width of its parent element
-
-          Rx {
-            VDomModifier.ifTrue(viewIsContent())(div(
-              backgroundColor <-- state.pageStyle.map(_.bgColor),
-              VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic)),
-              PageHeader(state).apply(Styles.flexStatic)
-            ))
-          },
-
-          //TODO: combine with second rx! but it does not work because it would not overlay everthing as it does now.
-          Rx {
-            if(viewIsContent()) {
-              if (state.isLoading()) Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
-              else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
-              else VDomModifier.empty
-            } else VDomModifier.empty
-          },
-
-          // It is important that the view rendering is in a separate Rx.
-          // This avoids rerendering the whole view when only the screen-size changed
+          position.relative, // needed for mobile expanded sidebar
+          LeftSidebar(state),
           div(
-            cls := "main-viewrender",
-
             Styles.flex,
             Styles.growFull,
+            flexDirection.column,
+            overflow.auto,
+            position.relative, // important for position absolute of loading animation to have the correct width of its parent element
 
+            Rx {
+              VDomModifier.ifTrue(viewIsContent())(div(
+                backgroundColor <-- state.pageStyle.map(_.bgColor),
+                VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic)),
+                PageHeader(state).apply(Styles.flexStatic)
+              ))
+            },
+
+            //TODO: combine with second rx! but it does not work because it would not overlay everthing as it does now.
+            Rx {
+              if(viewIsContent()) {
+                if (state.isLoading()) Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
+                else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
+                else VDomModifier.empty
+              } else VDomModifier.empty
+            },
+
+            // It is important that the view rendering is in a separate Rx.
+            // This avoids rerendering the whole view when only the screen-size changed
             div(
+              cls := "main-viewrender",
+
               Styles.flex,
               Styles.growFull,
-              cls := "pusher",
-              Rx {
-                val viewConfig = state.viewConfig()
-                val pageStyle = PageStyle(viewConfig.view, viewConfig.page)
-                VDomModifier(
-                  backgroundColor := pageStyle.bgLightColor,
 
-                  ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
-                    Styles.growFull,
-                    flexGrow := 1
-                  ).prepend(
-                    overflow.visible // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
+              div(
+                Styles.flex,
+                Styles.growFull,
+                cls := "pusher",
+                Rx {
+                  val viewConfig = state.viewConfig()
+                  val pageStyle = PageStyle(viewConfig.view, viewConfig.page)
+                  VDomModifier(
+                    backgroundColor := pageStyle.bgLightColor,
+
+                    ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
+                      Styles.growFull,
+                      flexGrow := 1
+                    ).prepend(
+                      overflow.visible // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
+                    )
                   )
-                )
-                // we can now assume, that every page parentId is contained in the graph
-              },
-            ),
+                  // we can now assume, that every page parentId is contained in the graph
+                },
+              ),
 
-            position.relative, // needed for taglist window
-            SharedViewElements.tagListWindow(state)
+              position.relative, // needed for taglist window
+              SharedViewElements.tagListWindow(state)
+            ),
           ),
         ),
+      ),
 
-        position.relative, // needed for expanded right sidebar on mobile
-        RightSidebar(state),
-      )
+      position.relative, // needed for expanded right sidebar on mobile
+      RightSidebar(state),
     )
   }
 }
