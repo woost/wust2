@@ -301,7 +301,7 @@ object Components {
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
-    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
   ): VNode = {
 
     val icon = ItemProperties.iconByNodeData(property.data)
@@ -340,7 +340,7 @@ object Components {
           state.urlConfig.update(_.focus(Page(tag.id)))
           e.stopPropagation()
         } else cursor.default,
-        drag(DragItem.Tag(tag.id)),
+        drag(DragItem.Tag(tag.id), target = DragItem.DisableDrag),
       )
     }
 
@@ -349,7 +349,7 @@ object Components {
       tagNode: Node,
       tagModifier: VDomModifier = VDomModifier.empty,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     )(implicit ctx: Ctx.Owner): VNode = {
 
       div( // checkbox and nodetag are both inline elements because of fomanticui
@@ -387,7 +387,7 @@ object Components {
       state: GlobalState,
       tag: Node,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId)),
+      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
       val contentString = renderNodeData(tag.data)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
@@ -477,11 +477,7 @@ object Components {
           val workspaces = graph.workspacesForParent(parentIdx)
           graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
         }
-        val parentIdsWithDone = directParentIds.filter{ parentId =>
-          val role = graph.nodesById(parentId).role
-          role != NodeRole.Stage && role != NodeRole.Tag
-        }
-        parentIdsWithDone.nonEmpty && parentIdsWithDone.forall(nodeIsDoneInParent)
+        directParentIds.forall(nodeIsDoneInParent)
       }
 
       div(
@@ -499,16 +495,16 @@ object Components {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
                     val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                  val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
+                    val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
-                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage => graph.nodeIds(idx)}
-              val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
+                val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
+                val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
                 state.eventProcessor.changes.onNext(changes)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node for every workspace exists
-              val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
+                val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
                 state.eventProcessor.changes.onNext(changes)
               }
             }
@@ -794,11 +790,14 @@ object Components {
 
     Rx {
       if (automatedNodes().isEmpty) VDomModifier.empty
-      else div(
-        div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
-        automatedNodes().map(node => Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px"))),
-        marginLeft := "3px", marginRight := "3px",
-        UI.popup("bottom center") := "This node is an active automation template"
+      else VDomModifier(
+        automatedNodes().map { node =>
+          div(
+            div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
+            UI.popup("bottom center") := "This node is an active automation template")
+            Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
+          )
+        }
       )
     }
   }

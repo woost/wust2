@@ -131,6 +131,7 @@ object Deps {
     val mobileDetect = "mobile-detect" -> "1.4.3"
     val jsSha256 = "js-sha256" -> "0.9.0"
     val clipboardjs = "clipboard" -> "2.0.4"
+    val jqueryTablesort = "jquery-tablesort" -> "0.0.11"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47

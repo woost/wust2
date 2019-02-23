@@ -103,7 +103,7 @@ object ListView {
               val nodeIsDone = graph.isDoneStage(node)
               renderStageColumn(state, parentId, node, VDomModifier(
                 VDomModifier.ifTrue(nodeIsDone)(opacity := 0.5),
-                renderColumns(state, graph, focusState, parentId = parentId, children = sortedChildren, isDone = nodeIsDone).apply(
+                renderColumns(state, graph, focusState, parentId = node.id, children = sortedChildren, isDone = nodeIsDone).apply(
                   Styles.flex,
                   flexDirection.columnReverse,
                   minHeight := "10px",

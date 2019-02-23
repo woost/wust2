@@ -15,9 +15,19 @@ import wust.webApp.state.{FocusState, GlobalState, PageStyle}
 import scala.scalajs.LinkingInfo
 
 object GraphView {
+  private val roleToDragItemPayload:PartialFunction[(NodeId, NodeRole), DragPayload] = {
+    case (nodeId, NodeRole.Tag) => DragItem.Tag(nodeId)
+  }
+  private val roleToDragItemTarget:PartialFunction[(NodeId, NodeRole), DragTarget] = {
+    case (nodeId, NodeRole.Task) => DragItem.Task(nodeId)
+    case (nodeId, NodeRole.Message) => DragItem.Message(nodeId)
+    case (nodeId, NodeRole.Project) => DragItem.Project(nodeId)
+    case (nodeId, NodeRole.Tag) => DragItem.Tag(nodeId)
+  }
+
   def apply(state: GlobalState, focusState: FocusState)(implicit owner: Ctx.Owner) = {
 
-    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _, _))
+    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _, _), roleToDragItemPayload, roleToDragItemTarget)
 
     val nodeStyle = PageStyle.ofNode(focusState.focusedId)
     val showControls = Var(LinkingInfo.developmentMode)
@@ -84,24 +94,14 @@ object GraphView {
     )
   }
 
-  private val roleToDragItem:PartialFunction[(NodeId, NodeRole), DragPayloadAndTarget] = {
-    case (nodeId, NodeRole.Task) => DragItem.Task(nodeId)
-    case (nodeId, NodeRole.Message) => DragItem.Message(nodeId)
-    case (nodeId, NodeRole.Project) => DragItem.Project(nodeId)
-    case (nodeId, NodeRole.Tag) => DragItem.Tag(nodeId)
-  }
-
   def onDrop(state: GlobalState)(draggingId: NodeId, targetId: NodeId, ctrl: Boolean): Boolean = {
     val graph = state.graph.now
 
-    def payload:Option[DragPayload] = { roleToDragItem.lift((draggingId,graph.nodesById(draggingId).role)) }
-    def target:Option[DragTarget] = { roleToDragItem.lift((targetId, graph.nodesById(targetId).role)) }
+    def payload:DragPayload = { roleToDragItemPayload.applyOrElse((draggingId, graph.nodesById(draggingId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
+    def target:DragTarget = { roleToDragItemTarget.applyOrElse((targetId, graph.nodesById(targetId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
 
     val changes = for {
-      payload <- payload
-      target <- target
       changes <- DragActions.dragAction.lift((payload, target, ctrl, false))
-      
     } yield changes(graph, state.user.now.id)
     
     changes match {

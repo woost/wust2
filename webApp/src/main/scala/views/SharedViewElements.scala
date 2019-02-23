@@ -634,41 +634,6 @@ object SharedViewElements {
     )
   }
 
-  def tagListBar(
-    state: GlobalState,
-    workspaceId: NodeId,
-    expandable: Boolean = true
-  )(implicit ctx:Ctx.Owner) = {
-    val tags:Rx[Seq[Tree]] = Rx {
-      val graph = state.graph()
-      val workspaceIdx = graph.idToIdx(workspaceId)
-      graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
-    }
-    def renderTagTree(trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
-      case Tree.Leaf(node) =>
-        checkboxNodeTag(state, node)
-      case Tree.Parent(node, children) =>
-        VDomModifier(
-          checkboxNodeTag(state, node),
-          div(
-            paddingLeft := "10px",
-            renderTagTree(children)
-          )
-        )
-    }
-
-    tagList(state, workspaceId).prepend(
-      cls := "taglist",
-      backgroundColor := CommonStyles.sidebarBgColor,
-      div(
-        Styles.flex,
-        justifyContent.flexEnd,
-        color.white,
-        VDomModifier.ifTrue(expandable)(closeButton(paddingRight := "0px", onClick.stopPropagation(false) --> state.showTagsList)),
-      ),
-    )
-  }
-
   def tagList(
     state: GlobalState,
     workspaceId: NodeId,
@@ -683,7 +648,7 @@ object SharedViewElements {
 
     def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
       state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
-    ))
+    ), dragOptions = id => drag(DragItem.Tag(id)))
 
     def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>

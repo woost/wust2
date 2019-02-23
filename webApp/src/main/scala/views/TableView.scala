@@ -4,7 +4,7 @@ import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
 import wust.webApp.ItemProperties
@@ -109,13 +109,16 @@ object TableView {
           columnEntryOfNodes(group.nodeId, group.values.map(_.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
               cls := "orange",
+              display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
               div(
-                Styles.flex,
-                justifyContent.spaceAround,
                 Styles.growFull,
-                ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key).prepend(freeSolid.faPlus)
-              )
-            ))
+                Styles.flex,
+                alignItems.center,
+                div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
+              ),
+                ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key),
+            )
+          )
         }(breakOut)
       )
     }(breakOut)
@@ -129,30 +132,36 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
-        ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
-          descriptionModifier = div(
-            padding := "10px",
-            UI.toggle("Keep as default", keepPropertyAsDefault)
-          ),
-          extendNewProperty = { (edgeData, propertyNode) =>
-            if (keepPropertyAsDefault.now) {
-              val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-              val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
-              GraphChanges(
-                addNodes = Set(templateNode, newPropertyNode),
-                addEdges = Set(
-                  Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(newPropertyNode.id)),
-                  Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id)),
-                  Edge.Child(childId = ChildId(templateNode.id), parentId = ParentId(focusedId))
-                )
-              )
-            } else GraphChanges.empty
-          }
-        ).prepend(
+        div(
           button(
             cls := "ui mini compact button",
             freeSolid.faPlus
-          )
+          ),
+          ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
+            descriptionModifier = div(
+              padding := "10px",
+              div(
+                UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
+                GraphChangesAutomationUI.settingsButton(state, focusedId, activeColor = CommonStyles.selectedNodesBgColorCSS).prepend(
+                  span("Manage automations", textDecoration.underline, marginRight := "5px")
+                )
+              )
+            ),
+            extendNewProperty = { (edgeData, propertyNode) =>
+              if (keepPropertyAsDefault.now) {
+                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+                val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+                GraphChanges(
+                  addNodes = Set(templateNode, newPropertyNode),
+                  addEdges = Set(
+                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(newPropertyNode.id)),
+                    Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id)),
+                    Edge.Child(childId = ChildId(templateNode.id), parentId = ParentId(focusedId))
+                  )
+                )
+              } else GraphChanges.empty
+            }
+          ),
         )
       ),
 

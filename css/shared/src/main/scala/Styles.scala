@@ -925,17 +925,6 @@ object CommonStyles extends StyleSheet.Standalone {
       fontWeight.normal,
       color(c"rgba(255, 255, 255, 0.81)"),
     )
-  ".childstats .emptystat" - (
-    visibility.hidden,
-  )
-  ".kanbancolumnfooter:hover .childstats .emptystat," +
-  ".nodecard:hover > .cardfooter > .childstats .emptystat" - (
-    visibility.visible,
-  )
-
-  ".nodecard .cardfooter" - (
-    width(100 %%),
-  )
 
   ".nodecard .childstat:hover" - (
     color(c"rgb(71, 71, 71)")

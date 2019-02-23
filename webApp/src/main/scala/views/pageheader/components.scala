@@ -53,7 +53,7 @@ object components {
 
     /// @return A tooltip modifier
     def modTooltip(tabInfo : TabInfo) =
-      UI.tooltip("bottom right") :=
+      UI.tooltip("bottom left") :=
         s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
                                             s": ${tabInfo.numItems} ${tabInfo.wording}")}"
   }

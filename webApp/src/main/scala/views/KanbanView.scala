@@ -1,15 +1,15 @@
 package wust.webApp.views
 
 import fontAwesome.freeSolid
-
 import monix.reactive.Observer
+
 import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
-import wust.ids.{NodeId, NodeRole, UserId, View}
+import wust.ids.{ChildId, NodeId, NodeRole, ParentId, UserId, View}
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -166,7 +166,7 @@ object KanbanView {
           cls := "buttonbar",
           drag(DragItem.DisableDrag),
           Styles.flex,
-          GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = workspaceId)),
+          GraphChangesAutomationUI.settingsButton(state, workspaceId),
         ),
       ),
       div(
@@ -229,7 +229,7 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton(state, focusState.copy(focusedId = node.id)),
+      GraphChangesAutomationUI.settingsButton(state, node.id),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -359,8 +359,6 @@ object KanbanView {
       TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount, propertiesCount)
     }
 
-    val isPlainCard = Rx { taskStats().isEmpty && assignment().isEmpty }
-
     val buttonBar = {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
       def menuItem(shortName : String,
@@ -382,11 +380,13 @@ object KanbanView {
         Rx {
           onClick.stopPropagation foreach {
             val graph = state.graph()
+            val focusedIdx = graph.idToIdx(focusState.focusedId)
             val nodeIdx = graph.idToIdx(node.id)
-            val workspaces:Array[NodeId] = graph.workspacesForNode(nodeIdx).map(graph.nodeIds)
-            val stageParents:Array[NodeId] = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).map(graph.nodeIds)(breakOut)
+            val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+            val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
+            val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else GraphChanges.delete(node.id, focusState.focusedId)
 
-            val changes = GraphChanges.delete(node.id, workspaces) merge GraphChanges.delete(node.id, stageParents)
+            val changes = removeFromWorkspaces merge GraphChanges.delete(node.id, parentId)
             state.eventProcessor.changes.onNext(changes)
             selectedNodeIds.update(_ - node.id)
           }
@@ -418,73 +418,41 @@ object KanbanView {
       )
     }
 
-    val renderTaskProgress = Rx {
-      if (taskStats().taskChildrenCount > 0) {
-
-        val progress = taskStats().progress
-        VDomModifier(
+    def renderTaskProgress(taskstats: TaskStats) = Rx {
+      val progress = taskstats.progress
+      VDomModifier(
+        div(
+          cls := "childstat",
+          Styles.flex,
+          flexGrow := 1,
+          alignItems.flexEnd,
+          minWidth := "40px",
+          backgroundColor := "#eee",
+          borderRadius := "2px",
+          margin := "3px 10px",
           div(
-            cls := "childstat",
-            Styles.flex,
-            flexGrow := 1,
-            alignItems.flexEnd,
-            minWidth := "40px",
-            backgroundColor := "#eee",
-            borderRadius := "2px",
-            margin := "3px 10px",
-            div(
-              height := "3px",
-              padding := "0",
-              width := s"${math.max(progress, 0)}%",
-              backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
-              UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
-            ),
+            height := "3px",
+            padding := "0",
+            width := s"${math.max(progress, 0)}%",
+            backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
+            UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
           ),
-        )
-      } else VDomModifier(cls := "emptystat")
+        ),
+      )
     }
 
-    def cardFooter(implicit ctx:Ctx.Owner) = div(
-      cls := "cardfooter",
+    val cardDescription = VDomModifier(
       Styles.flex,
+      flexWrap.wrap,
 
-      justifyContent.flexEnd,
-      alignItems.flexEnd,
-      flexGrow := 1,
+      Components.automatedNodesOfNode(state, node),
+      cardTags(state, node.id),
+      cardProperties(state, node.id),
 
       div(
-        cls := "childstats",
+        marginLeft.auto,
         Styles.flex,
-        flexDirection.row,
-        alignItems.center,
-        flexGrow := 1,
-        Rx{
-          VDomModifier(
-            renderTaskCount(
-              if (taskStats().taskChildrenCount > 0) VDomModifier(s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}")
-              else VDomModifier(cls := "emptystat"),
-              UI.popup := "Expand subtasks",
-              onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes,
-              cursor.pointer,
-            ),
-            renderTaskProgress(),
-            renderMessageCount(
-              if (taskStats().messageChildrenCount > 0) VDomModifier(
-                taskStats().messageChildrenCount,
-                UI.popup := "Zoom to show comments",
-              )
-              else VDomModifier(
-                cls := "emptystat",
-                UI.popup := "Start conversation about this card"
-              ),
-              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
-              cursor.pointer,
-            ),
-          )
-        },
-      ),
-      div(
-        Styles.flex,
+        justifyContent.flexEnd,
         flexWrap.wrap,
         assignment.map(_.map(userNode => div(
           Styles.flexStatic,
@@ -502,45 +470,45 @@ object KanbanView {
       ),
     )
 
-    def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
-      Rx {
-        val graph = state.rawGraph()
-        val nodeIdx = graph.idToIdx(nodeId)
-        val tags = graph.tagParentsIdx(nodeIdx).map(graph.nodes)
-        VDomModifier.ifTrue(tags.nonEmpty) {
-          div(
-            margin := "5px",
-            marginTop := "0",
-            textAlign.right,
-            tags.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId)),
-          )
-        }
-      }
-    }
+    val cardFooter = div(
+      cls := "childstats",
+      Styles.flex,
+      alignItems.center,
+      Rx{
+        VDomModifier(
+          VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
+            renderTaskCount(
+              s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+              UI.popup := "Subtasks",
+              onClick.stopPropagation.mapTo {
+                val edge = Edge.Expanded(node.id, state.user.now.id)
+                if (state.graph.now.isExpanded(state.user.now.id, node.id)) GraphChanges(delEdges = Set(edge)) else GraphChanges(addEdges = Set(edge))
+              } --> state.eventProcessor.changes,
+              cursor.pointer,
+            ),
+            renderTaskProgress(taskStats()),
+          ),
 
-    def cardProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
-      Rx {
-        val graph = state.rawGraph()
-        val nodeIdx = graph.idToIdx(nodeId)
-        val properties = graph.propertyPairIdx(nodeIdx)
-        VDomModifier.ifTrue(properties.nonEmpty) {
-          div(
-            margin := "5px",
-            marginTop := "0",
-            textAlign.right,
-            properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
-              Components.removablePropertyTag(state, propertyKey, propertyValue)
-            }
-          )
-        }
-      }
-    }
+          VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
+            renderMessageCount(
+              taskStats().messageChildrenCount,
+              UI.popup := "Zoom to show comments",
+            ),
+            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
+            cursor.pointer,
+          ),
+        )
+      },
+    )
 
     nodeCard(
       node,
       maxLength = Some(maxLength),
-      contentInject = VDomModifier(if(isDone) textDecoration.lineThrough else VDomModifier.empty),
-      ).prepend(
+      contentInject = VDomModifier(
+        VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
+        VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px") // marginRight to not interfere with button bar...
+      ),
+    ).prepend(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
       VDomModifier.ifTrue(showCheckbox)(
         taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
@@ -551,14 +519,9 @@ object KanbanView {
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
 
-      div(
-        Styles.flex,
-        flexDirection.row,
-        Components.automatedNodesOfNode(state, node),
-        cardTags(state, node.id),
-        cardProperties(state, node.id),
-        Rx { VDomModifier.ifTrue(!isPlainCard())(cardFooter) },
-      ),
+      VDomModifier.ifNot(inOneLine)(div(margin := "0 3px 0 3px", alignItems.center, cardDescription)),
+      cardFooter,
+
       Rx {
         val graph = state.graph()
         val userId = state.user().id
@@ -578,6 +541,26 @@ object KanbanView {
       buttonBar(position.absolute, top := "0", right := "0"),
 //      onDblClick.stopPropagation(state.urlConfig.now.copy(page = Page(node.id))) --> state.urlConfig,
     )
+  }
+
+  private def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+    Rx {
+      val graph = state.rawGraph()
+      val nodeIdx = graph.idToIdx(nodeId)
+      val tags = graph.tagParentsIdx(nodeIdx).map(graph.nodes)
+      tags.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId))
+    }
+  }
+
+  private def cardProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
+    Rx {
+      val graph = state.rawGraph()
+      val nodeIdx = graph.idToIdx(nodeId)
+      val properties = graph.propertyPairIdx(nodeIdx)
+      properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
+        Components.removablePropertyTag(state, propertyKey, propertyValue)
+      }
+    }
   }
 
   private def addCardField(

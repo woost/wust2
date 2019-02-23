@@ -240,7 +240,7 @@ object UI {
   val horizontalDivider = div(cls := "ui divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 
-  def dropdownMenu(items: VDomModifier, dropdownModifier: VDomModifier = VDomModifier.empty): VNode = div(
+  def dropdownMenu(items: VDomModifier, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
 //    i(cls := "icon dropdown"),

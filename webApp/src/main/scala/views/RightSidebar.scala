@@ -33,12 +33,8 @@ object RightSidebar {
     )
   }
 
-  def content(state: GlobalState, focusedNodeId: NodeId, parentIdAction: Option[NodeId] => Unit)
-             (implicit ctx: Ctx.Owner):VDomModifier =
-    content(state, Var(Some(focusedNodeId)), parentIdAction)
-
   // TODO rewrite to rely on static focusid
-  private def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)
+  def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)
                      (implicit ctx: Ctx.Owner) = {
     val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
     val boxMod = VDomModifier(
@@ -47,6 +43,9 @@ object RightSidebar {
     )
 
     VDomModifier(
+      Styles.flex,
+      flexDirection.column,
+
       div(
         width := "20px",
         cls := "fa-fw", freeSolid.faAngleDoubleRight,
@@ -203,11 +202,12 @@ object RightSidebar {
         marginTop := "10px",
         Styles.flex,
         justifyContent.flexEnd,
-        ItemProperties.managePropertiesDropdown(state, node.id).prepend(
+        div(
           button(
             cls := "ui compact button mini",
             "+ Custom field"
-          )
+          ),
+          ItemProperties.managePropertiesDropdown(state, node.id),
         )
       ),
       renderSplit(
