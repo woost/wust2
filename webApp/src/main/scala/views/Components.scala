@@ -264,14 +264,20 @@ object Components {
     properties: Array[PropertyData.PropertyValue],
   )(implicit ctx: Ctx.Owner): VNode = {
 
+    val editKey = Var(false)
+
     div(
       Styles.flex,
       justifyContent.spaceBetween,
       flexWrap.wrap,
       alignItems.flexStart,
-      div(
+      b(
         color.gray,
-        b(key, ":"),
+        Styles.flex,
+        EditableContent.textModifier(state, key, editKey, key => span(key), key => GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = key)))(breakOut))),
+        ":",
+        cursor.pointer,
+        onClick.stopPropagation(true) --> editKey,
       ),
       div(
         Styles.flex,
@@ -608,7 +614,7 @@ object Components {
     }
 
     def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
-      EditableNodeContent(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength))
+      EditableContent.ofNode(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength))
     }
 
     def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
