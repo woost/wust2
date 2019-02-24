@@ -36,9 +36,11 @@ object PostCreationMenu {
 
     div(
       emitter(inputHandler).foreach { content =>
-        val author = state.user.now
-        val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), focusState.focusedId)
-        state.eventProcessor.changes.onNext(changes)
+        if(content.nonEmpty) {
+          val author = state.user.now
+          val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), focusState.focusedId)
+          state.eventProcessor.changes.onNext(changes)
+        }
 
         // TODO: move created post below menu (not working yet)
         //      val simPostOpt = rxNodeIdToSimPost.now.get(newPost.id)
