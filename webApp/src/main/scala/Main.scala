@@ -75,7 +75,7 @@ object Main {
     val linkRenderer = newRenderer.link
     newRenderer.link = {(renderer, href, title, text) => 
       val html = linkRenderer(renderer, href, title, text)
-      html.replaceFirst("^<a ", "<a target=\"_blank\" rel=\"nofollow\" ")
+      html.replaceFirst("^<a ", s"""<a target="_blank" rel="${Elements.safeRelForTargetBlank} nofollow" """)
     }
 
     Marked.setOptions(new MarkedOptions {

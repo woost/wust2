@@ -383,4 +383,12 @@ object Elements {
       )
     }
   }
+
+  val safeRelForTargetBlank = "noopener noreferrer"
+
+  // https://www.jitbit.com/alexblog/256-targetblank---the-most-underestimated-vulnerability-ever/
+  val safeTargetBlank = VDomModifier(
+    rel := safeRelForTargetBlank,
+    target := "_blank"
+  )
 }

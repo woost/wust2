@@ -45,7 +45,7 @@ object Components {
   val woostTeamEmailLink = 
     VDomModifier(
       cls := "enable-text-selection",
-      a(href := "mailto:team@woost.space", "team@woost.space", target := "_blank")
+      a(href := "mailto:team@woost.space", "team@woost.space", Elements.safeTargetBlank)
     )
 
   def displayUserName(user: NodeData.User): String = {
