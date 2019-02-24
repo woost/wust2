@@ -39,7 +39,9 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
           def addColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          def disconnetColumn: GraphChanges = if (from.parentId != into.parentId) GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId)) else GraphChanges.empty
+          def disconnetColumn: GraphChanges = if (from.parentId != into.parentId)
+            GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
+            else GraphChanges.empty
           if(ctrl)
             addColumn
           else
@@ -50,14 +52,15 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId))
-          def disconnect: GraphChanges = if (from.workspace != into.workspace)
-              GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId)) merge
-              GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def disconnectColumn = GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
+              GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
             else GraphChanges.empty
+
           if(ctrl)
             addTargetColumn merge addTargetWorkspace
           else
-            addTargetColumn merge addTargetWorkspace merge disconnect
+            addTargetColumn merge addTargetWorkspace merge disconnectColumn merge disconnectWorkspace
 
       // e.g. Subtask into Column
       case (payload: DragItem.Task, from: Kanban.Inbox, intoColumn: Kanban.Column, ctrl, false) =>
