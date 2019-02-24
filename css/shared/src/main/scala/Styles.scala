@@ -347,8 +347,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".sidebar" - (
     color.white,
-    background := sidebarBgColorCSS,
-    borderRight(2 px, solid, sidebarBgColorCSS),
+    backgroundColor(sidebarBgColorCSS),
     Styles.flexStatic,
     height(100 %%),
     Styles.flex,
@@ -356,6 +355,13 @@ object CommonStyles extends StyleSheet.Standalone {
     justifyContent.flexStart,
     alignItems.stretch,
     alignContent.stretch,
+  )
+
+  ".left-sidebar" - (
+    borderRight(2 px, solid, sidebarBgColorCSS),
+  )
+  ".right-sidebar" - (
+    borderLeft(2 px, solid, sidebarBgColorCSS),
   )
 
   ".overlay-right-sidebar" - (
