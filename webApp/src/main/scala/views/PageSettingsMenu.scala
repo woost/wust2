@@ -89,13 +89,13 @@ object PageSettingsMenu {
             cursor.pointer,
             cls := "item",
             Elements.icon(Icons.delete),
-            span("Archive from all Views"),
+            span("Archive at all places"),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
                 GraphChanges.delete(channelId, state.graph.now.parents(channelId).toSet)
                   .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
               )
-              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) } from all views'", level = UI.ToastLevel.Success)
+              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) } at all places'", level = UI.ToastLevel.Success)
             }
           )
         })
