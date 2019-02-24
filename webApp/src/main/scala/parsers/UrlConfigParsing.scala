@@ -57,7 +57,7 @@ private object UrlOption {
           ViewOperator.fromString.lift(opString) match {
             case Some(op) =>
               decodeVisibleView(view).flatMap { view =>
-                decodeSeq(views.map(decodeVisibleView)).map { views =>
+                decodeSeq(opsViews.map(decodeVisibleView)).map { views =>
                   View.Tiled(op, NonEmptyList(view, views.toList))
                 }
               }
