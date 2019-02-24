@@ -119,7 +119,7 @@ object MainView {
               ),
 
               position.relative, // needed for taglist window
-              SharedViewElements.tagListWindow(state)
+              TagList.moveableWindow(state)
             ),
           ),
         ),
