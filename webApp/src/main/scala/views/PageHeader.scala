@@ -144,7 +144,7 @@ object PageHeader {
         val nodeIdx = graph.idToIdx(channel.id)
         val members = graph.membersByIndex(nodeIdx)
 
-        (members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members )     .map(user => div(
+        members.map(user => div(
           Avatar.user(user.id)(
             marginLeft := "2px",
             width := "22px",
