@@ -50,42 +50,23 @@ object PageHeader {
     val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(60)
 
     val commonMods = VDomModifier(
+      width := "100%",
       cls := "pageheader-channeltitle",
-    )
-
-    val channelTitle = NodePermission.canWrite(state, pageNode.id).flatMap { canWrite =>
-      def writableMod = VDomModifier(
       borderRadius := "3px",
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id)
     )
 
-      pageNode.role match {
-        case NodeRole.Message | NodeRole.Task =>
-          val node =
-            if(!canWrite) nodeCard(pageNode, maxLength = maxLength)
-            else nodeCard(pageNode, maxLength = maxLength).apply(writableMod)
-          Rx(node(commonMods))
-
-        case _ => // usually NodeRole.Project
-          Rx {
-            val node =
-              if(!canWrite) renderNodeData(pageNode.data, maxLength = maxLength)
-              else renderNodeData(pageNode.data, maxLength = maxLength).apply(writableMod)
-            node(commonMods)
-          }
-
-      }
-    }
+    val channelTitle = Components.roleSpecificRenderAsOneLineText(pageNode).apply(commonMods)
 
 
     val channelMembersList = Rx {
       val hasBigScreen = state.screenSize() != ScreenSize.Small
-      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginRight := "10px", lineHeight := "0")) // line-height:0 fixes vertical alignment
+      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment
     }
 
     val permissionIndicator = Rx {
       val level = Permission.resolveInherited(state.graph(), pageNode.id)
-      div(level.icon, UI.popup("bottom center") := level.description, zIndex := ZIndex.tooltip - 15)
+      div(level.icon, UI.popup("bottom center") := level.description, zIndex := ZIndex.tooltip - 15, marginRight := "5px")
     }
 
     div(
@@ -100,33 +81,29 @@ object PageHeader {
 
       ViewSwitcher(state, pageNode.id).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
       div(
-        div(
-          Styles.flex,
-          alignItems.center,
-          justifyContent.flexStart,
-          flexGrow := 1,
-          flexShrink := 2,
-          padding := "0 5px",
-          nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
-          channelTitle.map(_(marginRight := "5px")),
-          div(Styles.flex, Components.automatedNodesOfNode(state, pageNode)),
-          channelMembersList,
-          permissionIndicator,
-          paddingBottom := "5px",
-        ),
+        Styles.flex,
+        alignItems.center,
+        justifyContent.flexStart,
+        flexGrow := 1,
+        flexShrink := 2,
+        nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
+        channelTitle(marginRight := "5px"),
+        div(Styles.flex, Components.automatedNodesOfNode(state, pageNode)),
+        channelMembersList,
+        permissionIndicator,
+        menuItems(state, pageNode)
       ),
-      menu(state, pageNode).apply(alignSelf.flexEnd, marginLeft.auto),
     )
   }
 
-  private def menu(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def menuItems(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     val isSpecialNode = Rx {
       //TODO we should use the permission system here and/or share code with the settings menu function
       channel.id == state.user().id
     }
     val isBookmarked = PageSettingsMenu.nodeIsBookmarked(state, channel.id)
 
-    val buttonStyle = VDomModifier(Styles.flexStatic, margin := "5px", fontSize := "20px", cursor.pointer)
+    val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
     val filterStatus = state.isFilterActive.map(_.ifTrue[VDomModifier] {
       div(
@@ -135,41 +112,39 @@ object PageHeader {
         onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
         cursor.pointer,
         UI.popup("bottom right") := "A filter is active. Click to reset to default.",
-        )
+        marginRight := "5px"
+      )
     })
 
     val pinButton = Rx {
       val hideBookmarkButton = isSpecialNode() || isBookmarked()
       hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channel).apply(
-        Styles.flexStatic,
-        marginTop := "3px",
-        marginBottom := "3px",
-        ))
+        cls := "mini",
+        buttonStyle,
+        marginRight := "5px"
+      ))
     }
 
-    div(
-      Styles.flex,
-      alignItems.center,
-      minWidth.auto,
-
+    VDomModifier(
       pinButton,
-      //      notifyControl(state, channel).apply(buttonStyle),
       filterStatus,
-      PageSettingsMenu(state, channel.id).apply(buttonStyle, marginLeft := "15px"),
+      PageSettingsMenu(state, channel.id).apply(buttonStyle, fontSize := "20px", marginLeft := "5px"),
     )
   }
 
   def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
-      flexWrap.wrap,
+      cls := "tiny-scrollbar",
+      overflowX.auto, // make scrollable for long member lists
+      overflowY.hidden,
       registerDragContainer(state),
       Rx {
         val graph = state.graph()
         val nodeIdx = graph.idToIdx(channel.id)
         val members = graph.membersByIndex(nodeIdx)
 
-        members.map(user => div(
+        (members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members ++ members )     .map(user => div(
           Avatar.user(user.id)(
             marginLeft := "2px",
             width := "22px",

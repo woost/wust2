@@ -88,7 +88,7 @@ object LeftSidebar {
         channelIcon(state, node, selected, 30),
 
         {
-          val rendered = renderNodeData(node.data, maxLength = Some(60))(cls := "channel-name")
+          val rendered = renderAsOneLineText(node)(cls := "channel-name")
           if (state.user.now.id == node.id) b(rendered) else rendered
         },
 

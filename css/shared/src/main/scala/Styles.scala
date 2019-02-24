@@ -433,6 +433,16 @@ object CommonStyles extends StyleSheet.Standalone {
     marginRight(50 px)
   )
 
+  // webkit
+  ".tiny-scrollbar::-webkit-scrollbar" - (
+    width(5.px),
+    height(5.px)
+  )
+  // firefox
+  ".tiny-scrollbar" - (
+    Attr.real("scrollbar-width") := "tiny"
+  )
+
   ".customChannelIcon" - (
     Styles.flex,
     alignItems.center,

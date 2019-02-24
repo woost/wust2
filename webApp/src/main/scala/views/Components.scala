@@ -88,6 +88,35 @@ object Components {
     case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
   }
 
+  def roleSpecificRender[T](node: Node, nodeCard: => T, nodePlain: => T): T = {
+    node.role match {
+      case NodeRole.Message | NodeRole.Task => nodeCard
+      case _ => nodePlain // usually NodeRole.Project
+    }
+  }
+
+  def renderAsOneLineText(node: Node): VNode = {
+    val textContent = {
+      val lines = node.str.lines
+      if (lines.hasNext) lines.next else ""
+    }
+
+    p(
+      overflow.hidden,
+      textOverflow.ellipsis,
+      whiteSpace.nowrap,
+      textContent
+    )
+  }
+
+  def roleSpecificRenderAsOneLineText(node: Node): VNode = {
+    val textNode = renderAsOneLineText(node)
+    roleSpecificRender[VNode](node,
+      nodeCard = renderNodeCard(node, contentInject = textNode),
+      nodePlain = textNode.apply(padding := "3px")
+    )
+  }
+
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
     import file._
 
