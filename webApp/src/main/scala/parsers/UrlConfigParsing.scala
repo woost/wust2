@@ -46,11 +46,14 @@ private object UrlOption {
       result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
     }
 
-    val regex = Regex[(String, Option[String])](rx"^(\w+)((\||,|\?|/)\w+)*?$$")
-      .map(_.flatMap { case (view, opsViews) =>
-        opsViews.fold(decodeView(view)) { opsViews =>
-          val opString = opsViews.head.toString
-          val views = opsViews.split("\\||,|\\?|/").filter(_.nonEmpty)
+    val regex = Regex[String](rx"^(\w|\:|\||,|\?|/)+$$")
+      .map(_.flatMap { viewStr =>
+        val views = viewStr.split("\\||,|\\?|/").filter(_.nonEmpty)
+        val view = views.head
+        val opsViews = views.drop(1)
+        if (opsViews.isEmpty) decodeView(view)
+        else {
+          val opString = viewStr.substring(view.length, view.length + 1) // TODO only support one operator. nested tiling?
           ViewOperator.fromString.lift(opString) match {
             case Some(op) =>
               decodeVisibleView(view).flatMap { view =>
