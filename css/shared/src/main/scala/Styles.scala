@@ -586,6 +586,8 @@ object CommonStyles extends StyleSheet.Standalone {
     position.absolute,
     padding(3 px, 5 px),
     cursor.default,
+    minHeight(2 em),
+    minWidth(1.5 em),
   )
 
   ".graphnode.nodecard" - (
