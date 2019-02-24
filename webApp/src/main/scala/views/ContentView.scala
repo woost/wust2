@@ -27,6 +27,7 @@ object ContentView {
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
+      keyed,
       Styles.flex,
       Styles.growFull,
       overflow.auto,
