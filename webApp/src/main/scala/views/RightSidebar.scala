@@ -16,6 +16,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
+import wust.webApp.BrowserDetect
 import wust.webApp.{Icons, ItemProperties, Ownable}
 
 import scala.collection.breakOut
@@ -34,56 +35,80 @@ object RightSidebar {
   }
 
   // TODO rewrite to rely on static focusid
-  def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)
-                     (implicit ctx: Ctx.Owner) = {
+  def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
-    val boxMod = VDomModifier(
-      borderRadius := "3px",
-      backgroundColor <-- nodeStyle.map(_.bgLightColor),
-    )
 
-    VDomModifier(
+    def accordionEntry(name: String, body: VDomModifier, flexValue: String = "1"): (VDomModifier, VDomModifier) = {
+      VDomModifier(
+        marginTop := "5px",
+        b(name),
+      ) -> VDomModifier(
+        div(
+          body,
+          height := "100%",
+          margin := "5px",
+        ),
+        height := "100%",
+        flex := flexValue,
+      ),
+    }
+
+    div(
+      overflow.auto,
+      Styles.growFull,
       Styles.flex,
       flexDirection.column,
+      borderRadius := "3px",
+      margin := "5px",
+      color.black,
+      backgroundColor <-- nodeStyle.map(_.bgLightColor),
 
       div(
-        width := "20px",
-        cls := "fa-fw", freeSolid.faAngleDoubleRight,
-        cursor.pointer,
-        onClick(None).foreach(parentIdAction),
-        backgroundColor := CommonStyles.sidebarBgColor,
+        Styles.flex,
+        alignItems.center,
+        div(
+          width := "20px",
+          cls := "fa-fw", freeSolid.faAngleDoubleRight,
+          cursor.pointer,
+          onClick(None).foreach(parentIdAction),
+        ),
+        div(
+          marginLeft := "5px",
+          nodeBreadcrumbs(state, focusedNodeId, parentIdAction),
+        ),
       ),
-      breadcrumb(state, focusedNodeId, parentIdAction),
       div(
-        color.black,
         height := "100%",
         Styles.flex,
         flexDirection.column,
         justifyContent.flexStart,
         UI.accordion(
           Seq(
-            ("Details",
-             nodeDetailsMenu(state, focusedNodeId, parentIdAction).apply(
-               flex := "1",
-               margin := "0px 5px 0px 5px",
-               padding := "3px",
-               boxMod,
-               overflowY.auto,
-               )),
-            ("Views",
-             viewContent(state, focusedNodeId, parentIdAction, boxMod).apply(
-               margin := "5px",
-               height := "100%",
-               ) )),
-          styles = "inverted fluid",
-          exclusive = false,
-          initialActive = Seq(0, 1)
-        ),
+            accordionEntry("Content", VDomModifier(
+              nodeContent(state, focusedNodeId, parentIdAction),
+              overflowY.auto,
+            ), flexValue = "1 1 0%"),
+            accordionEntry("Properties", VDomModifier(
+              nodeDetailsMenu(state, focusedNodeId, parentIdAction),
+              overflowY.auto,
+            ), flexValue = "1 1 0%"),
+            accordionEntry("Views", VDomModifier(
+              viewContent(state, focusedNodeId, parentIdAction),
+            ), flexValue = "1 1 30%"),
+          ),
+          styles = "styled fluid",
+          exclusive = false, //BrowserDetect.isMobile,
+          initialActive = Seq(0, 1, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
+        ).apply(
+          height := "100%",
+          backgroundColor <-- nodeStyle.map(_.bgLightColor), //explicitly overwrite bg color from accordion.
+          boxShadow := "none", //explicitly overwrite boxshadow from accordion.
         )
+      )
     )
   }
-  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, viewModifier: VDomModifier)(implicit ctx: Ctx.Owner) = {
-    div(
+  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    VDomModifier(
       Styles.flex,
       flexDirection.column,
       focusedNodeId.map(_.map { nodeId =>
@@ -96,66 +121,74 @@ object RightSidebar {
           div(
             Styles.flexStatic,
             Styles.flex,
-            justifyContent.spaceBetween,
-            alignItems.flexEnd,
+            alignItems.center,
+            ViewSwitcher(state, nodeId, viewVar, viewAction),
+            borderBottom := "2px solid black",
             div(
+              marginLeft := "10px",
               padding := "3px",
-              color.white,
               Icons.zoom,
               cursor.pointer,
               onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
             ),
-            ViewSwitcher(state, nodeId, viewVar, viewAction),
-            marginBottom := "2px", // since we have no line, undo the negative margin
           ),
           Rx {
             val view = viewVar()
               ViewRender(state, FocusState(view, nodeId, nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
                 Styles.growFull,
                 flexGrow := 1,
-                viewModifier
-                ).prepend(
-                  overflow.visible
-                )
+              ).prepend(
+                overflow.visible,
+              )
           }
         )
       })
     )
   }
 
-  def breadcrumb( state: GlobalState, focusedNodeId: Rx[ Option[ NodeId ] ],
-                  parentIdAction: Option[ NodeId ] => Unit )
-                ( implicit ctx: Ctx.Owner ) = Rx {
-    focusedNodeId().flatMap{ nodeId =>
-      state.rawGraph().nodesByIdGet(nodeId).map { node =>
-        val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
-        VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
-      }
-    }
-  }
-  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
-    val editMode = Var(false)
-
-    div(
+  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    VDomModifier(
       Rx {
         focusedNodeId().flatMap { nodeId =>
           state.rawGraph().nodesByIdGet(nodeId).map { node =>
             val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
-            VDomModifier(
-              //breadcrumb(state, focusedNodeId, parentIdAction),
+            VDomModifier.ifTrue(hasParents)(BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")),
+          }
+        }
+      }
+    )
+  }
+
+  private def nodeContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    val editMode = Var(false)
+
+    VDomModifier(
+      Rx {
+        focusedNodeId().flatMap { nodeId =>
+          state.rawGraph().nodesByIdGet(nodeId).map { node =>
+            div(
+              Styles.flex,
+              alignItems.flexStart,
+              Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginLeft := "3px", cls := "enable-text-selection"),
               div(
-                Styles.flex,
-                alignItems.flexStart,
-                Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginRight := "3px", cls := "enable-text-selection"),
-                div(
-                  Icons.edit,
-                  padding := "5px",
-                  cursor.pointer,
-                  onClick.stopPropagation(true) --> editMode,
-                )
-              ),
-              nodeProperties(state, state.rawGraph(), node)
+                Icons.edit,
+                padding := "4px",
+                cursor.pointer,
+                onClick.stopPropagation(true) --> editMode,
+              )
             )
+          }
+        }
+      }
+    )
+  }
+
+  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    VDomModifier(
+      Rx {
+        focusedNodeId().flatMap { nodeId =>
+          state.rawGraph().nodesByIdGet(nodeId).map { node =>
+            nodeProperties(state, state.rawGraph(), node)
           }
         }
       }
@@ -169,7 +202,7 @@ object RightSidebar {
 
     val commonPropMod = VDomModifier(
       width := "100%",
-      marginTop := "10px",
+      marginBottom := "10px",
       paddingLeft := "3px",
     )
 
@@ -196,9 +229,8 @@ object RightSidebar {
         padding := "3px 0px 3px 0px",
       ))
 
-    div(
+    VDomModifier(
       div(
-        marginTop := "10px",
         Styles.flex,
         justifyContent.flexEnd,
         div(
@@ -206,7 +238,7 @@ object RightSidebar {
             cls := "ui compact button mini",
             "+ Custom field"
           ),
-          ItemProperties.managePropertiesDropdown(state, node.id),
+          ItemProperties.managePropertiesDropdown(state, node.id, dropdownModifier = cls := "left"),
         )
       ),
       renderSplit(

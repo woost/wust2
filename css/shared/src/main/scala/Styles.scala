@@ -406,15 +406,6 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowY.hidden,
     flex := "0 1 auto"
   )
-  // upper content box
-  ".expanded-right-sidebar .accordion .content:nth-child(2)" - (
-    display.flex, // allows inner element to grow, which then displays a scrollbar
-  )
-  // lower content box
-  ".expanded-right-sidebar .accordion .content:nth-child(4)" - (
-    flexGrow(1),
-    flexBasis := "50%"
-  )
 
 
   ".overlay-sidebar" - (
