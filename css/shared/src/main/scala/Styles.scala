@@ -14,6 +14,7 @@ object ZIndex {
   val selected = 400
   val overlayLow = 1000
   val tooltip = 1500
+  val overlayMiddle = 1600
   val loading = 1750
   val overlay = 12000
   val formOverlay = 13000

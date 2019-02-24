@@ -37,7 +37,7 @@ object MoveableElement {
             borderBottomRightRadius := "5px",
             borderBottomLeftRadius := "5px",
             padding := "5px",
-            zIndex := ZIndex.overlayLow
+            zIndex := ZIndex.overlayMiddle
           )
         case false =>
           VDomModifier.empty
