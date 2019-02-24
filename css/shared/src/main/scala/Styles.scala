@@ -756,9 +756,8 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content" - (
     Styles.wordWrap,
-    /* display.inlineBlock, */
-    border(1 px, solid, transparent), /* placeholder for the dashed border when dragging */
-    minHeight(2 em), // height when card is empty
+    padding(1 px),
+    minHeight(2 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 
   ".nodecard-content pre" - (
