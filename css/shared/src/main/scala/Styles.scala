@@ -375,7 +375,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".expanded-sidebar" - (
     height(100 %%),
     zIndex(ZIndex.overlay),
-    boxShadow := "-2px 4px 5px 0px #6b5959",
+    boxShadow := "-2px 4px 5px 0px rgba(0,0,0,0.5)",
   )
 
   ".expanded-left-sidebar > .sidebar-open" - (
