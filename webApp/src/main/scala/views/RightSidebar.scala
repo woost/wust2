@@ -105,7 +105,7 @@ object RightSidebar {
               cursor.pointer,
               onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
             ),
-            PageHeader.viewSwitcher(state, nodeId, viewVar, viewAction),
+            ViewSwitcher(state, nodeId, viewVar, viewAction),
             marginBottom := "2px", // since we have no line, undo the negative margin
           ),
           Rx {
