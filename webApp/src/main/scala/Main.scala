@@ -14,7 +14,7 @@ import wust.graph.GraphChanges
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.{MainView, UI}
+import wust.webApp.views.{MainView, UI, Elements}
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
