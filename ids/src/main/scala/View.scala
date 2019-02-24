@@ -52,6 +52,10 @@ object View {
     def viewKey = "usersettings"
     override def isContent = false
   }
+  case object Content extends Visible {
+    def viewKey = "content"
+    override def isContent = true
+  }
   case object Empty extends Visible {
     def viewKey = "empty"
     override def isContent = true
