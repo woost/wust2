@@ -807,7 +807,7 @@ object Components {
 
           button(
             tooltip.map(UI.tooltip := _),
-            cls := "ui tiny compact negative basic button",
+            cls := "ui mini compact negative basic button",
             marginLeft := "10px",
             "Remove",
             onClick.stopPropagation(element) --> removeSink
