@@ -96,7 +96,7 @@ object DashboardView {
 
       nodeAvatar(project, size = 30)(marginRight := "5px", flexShrink := 0),
       h1(
-        renderNodeData(project.data),
+        renderAsOneLineText(project),
         fontSize := "1.5em",
         margin := "0 0.5em",
       ),
