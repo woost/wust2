@@ -42,14 +42,15 @@ object RightSidebar {
       VDomModifier(
         marginTop := "5px",
         b(name),
+        Styles.flexStatic,
       ) -> VDomModifier(
         div(
           body,
-          height := "100%",
           margin := "5px",
+          height := "100%",
         ),
-        height := "100%",
         flex := flexValue,
+        height := "100%",
       ),
     }
 
@@ -77,33 +78,31 @@ object RightSidebar {
           nodeBreadcrumbs(state, focusedNodeId, parentIdAction),
         ),
       ),
-      div(
+      UI.accordion(
+        Seq(
+          accordionEntry("Content", VDomModifier(
+            nodeContent(state, focusedNodeId, parentIdAction),
+            overflowY.auto,
+          ), flexValue = "1 1 0%"),
+          accordionEntry("Properties", VDomModifier(
+            nodeDetailsMenu(state, focusedNodeId, parentIdAction),
+            overflowY.auto,
+          ), flexValue = "1 1 0%"),
+          accordionEntry("Views", VDomModifier(
+            viewContent(state, focusedNodeId, parentIdAction),
+          ), flexValue = "1 1 30%"),
+        ),
+        styles = "styled fluid",
+        exclusive = false, //BrowserDetect.isMobile,
+        initialActive = Seq(0, 1, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
+      ).apply(
         height := "100%",
+        marginBottom := "5px",
         Styles.flex,
         flexDirection.column,
         justifyContent.flexStart,
-        UI.accordion(
-          Seq(
-            accordionEntry("Content", VDomModifier(
-              nodeContent(state, focusedNodeId, parentIdAction),
-              overflowY.auto,
-            ), flexValue = "1 1 0%"),
-            accordionEntry("Properties", VDomModifier(
-              nodeDetailsMenu(state, focusedNodeId, parentIdAction),
-              overflowY.auto,
-            ), flexValue = "1 1 0%"),
-            accordionEntry("Views", VDomModifier(
-              viewContent(state, focusedNodeId, parentIdAction),
-            ), flexValue = "1 1 30%"),
-          ),
-          styles = "styled fluid",
-          exclusive = false, //BrowserDetect.isMobile,
-          initialActive = Seq(0, 1, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
-        ).apply(
-          height := "100%",
-          backgroundColor <-- nodeStyle.map(_.bgLightColor), //explicitly overwrite bg color from accordion.
-          boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-        )
+        backgroundColor <-- nodeStyle.map(_.bgLightColor), //explicitly overwrite bg color from accordion.
+        boxShadow := "none", //explicitly overwrite boxshadow from accordion.
       )
     )
   }
