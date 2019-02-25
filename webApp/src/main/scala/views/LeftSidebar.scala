@@ -54,7 +54,6 @@ object LeftSidebar {
           Rx {
             VDomModifier.ifNot(state.topbarIsVisible())(authStatus)
           },
-          maxWidth := "202px"
         ),
         closedModifier = Some(VDomModifier(
           minWidth := s"${ smallIconSize }px",
