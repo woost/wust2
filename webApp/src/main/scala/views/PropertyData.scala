@@ -12,7 +12,9 @@ object PropertyData {
   case class SingleProperty(key: String, values: Array[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]])
+  case class BasicInfo(node: Node, tags: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]]) {
+    def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
+  }
   object BasicInfo {
     def apply(graph: Graph, nodeIdx: Int): BasicInfo = {
       val node: Node = graph.nodes(nodeIdx)
