@@ -318,14 +318,14 @@ self.addEventListener('notificationclick', e => {
                     log("Found woost window => opening node.");
 
                     const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : ("/#view=conversation&page=" + channelId);
+                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : ("/#page=" + channelId);
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             log("No matching client found. Opening new window.");
 
-            return self.clients.openWindow("/#view=conversation&page=" + channelId).then(function (client) { client.focus(); });
+            return self.clients.openWindow("/#page=" + channelId).then(function (client) { client.focus(); });
 
         })
     );
