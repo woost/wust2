@@ -62,20 +62,14 @@ object Components {
     case NodeData.Markdown(content)  => markdownString(content)
     case NodeData.PlainText(content) => escapeHtml(content)
     case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
-    case file: NodeData.File         => s"File: ${ escapeHtml(file.key) }"
-    case d: NodeData.Integer         => d.str
-    case d: NodeData.Decimal         => d.str
-    case d: NodeData.Date            => d.str
+    case d                           => d.str
   }
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
-    case file: NodeData.File         => div(trimToMaxLength(file.str, maxLength))
-    case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Decimal         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
+    case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
   def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = nodeData match {
@@ -83,9 +77,7 @@ object Components {
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
-    case d: NodeData.Integer         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Decimal         => div(trimToMaxLength(d.str, maxLength))
-    case d: NodeData.Date            => div(trimToMaxLength(d.str, maxLength))
+    case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
   def roleSpecificRender[T](node: Node, nodeCard: => T, nodePlain: => T): T = {
