@@ -7,7 +7,6 @@ import wust.css.{Styles, ZIndex}
 import wust.ids._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
-import wust.webUtil.StringOps
 
 object FilesView {
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
