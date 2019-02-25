@@ -169,7 +169,10 @@ object RightSidebar {
             div(
               Styles.flex,
               alignItems.flexStart,
-              Components.nodeCardEditable(state, node, editMode).apply(width := "100%", marginLeft := "3px", cls := "enable-text-selection"),
+              Components.roleSpecificRender[VNode](node,
+                nodeCard = Components.nodeCardEditable(state, node, editMode),
+                nodePlain = Components.editableNode(state, node, editMode),
+              ).apply(width := "100%", marginLeft := "3px", cls := "enable-text-selection"),
               div(
                 Icons.edit,
                 padding := "4px",
