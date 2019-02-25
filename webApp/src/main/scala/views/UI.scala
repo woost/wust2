@@ -267,8 +267,7 @@ object UI {
     content.zipWithIndex.map { case ((title, content), index) =>
       VDomModifier(
         div(
-          paddingTop := "0px",
-          borderTop := "0px",
+          padding := "0px",
           cls := "title" + (if (initialActive.contains(index)) " active" else ""),
           i(cls := "dropdown icon"),
           title,
