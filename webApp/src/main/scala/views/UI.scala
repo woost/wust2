@@ -243,7 +243,6 @@ object UI {
   def dropdownMenu(items: VDomModifier, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
-//    i(cls := "icon dropdown"),
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
     managedElement.asJquery { elem =>
       elem.dropdown("hide")
