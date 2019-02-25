@@ -242,7 +242,7 @@ object RightSidebar {
             cls := "ui compact button mini",
             "+ Custom field"
           ),
-          ItemProperties.managePropertiesDropdown(state, node.id, dropdownModifier = cls := "left"),
+          ItemProperties.managePropertiesDropdown(state, node.id),
         )
       ),
       renderSplit(
