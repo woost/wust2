@@ -87,7 +87,7 @@ object GraphChangesAutomationUI {
         cursor.pointer,
 
         onClick.mapTo {
-          val templateNode = Node.MarkdownTask(s"Template for '${state.graph.now.nodesById(focusedId).str}'")
+          val templateNode = Node.MarkdownTask("Template")
           GraphChanges(addEdges = Set(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Set(templateNode))
         } --> state.eventProcessor.changes,
       ),
