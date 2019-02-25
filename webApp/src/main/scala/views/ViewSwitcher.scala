@@ -152,7 +152,7 @@ object ViewSwitcher {
                 val info = viewToTabInfo(view, 0, 0, 0)
                 div(
                   marginBottom := "5px",
-                  cls := "ui button mini",
+                  cls := "ui button compact mini",
                   Elements.icon(info.icon),
                   view.toString,
                   onClick.stopPropagation.foreach(addNewView(view)),
@@ -193,7 +193,7 @@ object ViewSwitcher {
                   alignSelf.flexEnd,
                   marginLeft := "auto",
                   marginTop := "10px",
-                  cls := "ui button mini",
+                  cls := "ui button compact mini",
                   "Reset to default",
                   cursor.pointer,
                   onClick.stopPropagation.foreach { resetViews() }
