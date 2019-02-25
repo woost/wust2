@@ -493,9 +493,9 @@ object KanbanView {
             renderMessageCount(
               taskStats().messageChildrenCount,
               UI.popup := "Zoom to show comments",
+              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
+              cursor.pointer,
             ),
-            onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
-            cursor.pointer,
           ),
         )
       },
