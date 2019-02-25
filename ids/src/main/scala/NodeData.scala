@@ -3,7 +3,7 @@ package wust.ids
 import supertagged._
 
 sealed trait NodeData {
-  def str: String //TODO: define this properly
+  def str: String //TODO: define this properly via typeclass to plugin from the outside.
   val tpe: NodeData.Type
 }
 object NodeData {
