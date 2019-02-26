@@ -24,7 +24,7 @@ import scala.collection.breakOut
 object RightSidebar {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, state.rightSidebarNode() = _)
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = Var(focusedNodeId.now.isDefined)
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
     toggleVar.triggerLater(show => if (!show) parentIdAction(None))
@@ -32,7 +32,7 @@ object RightSidebar {
     GenericSidebar.right(
       toggleVar,
       config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = content(state, focusedNodeId, parentIdAction)
+        openModifier = VDomModifier(content(state, focusedNodeId, parentIdAction), openModifier)
       )}
     )
   }

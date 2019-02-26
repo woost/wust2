@@ -76,7 +76,8 @@ object GenericSidebar {
       )
     )
 
-    div.static(keyValue)(config.flatMap(config => Ownable { implicit ctx =>
+    // TODO make static again. currently not because outer subscriptions on the callsite do not like us not rerendering (looking at you: GraphChangesAutomationUI). MainView is fine with it.
+    div(config.flatMap(config => Ownable { implicit ctx =>
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay(config)
         else sidebarWithExpand(config),
