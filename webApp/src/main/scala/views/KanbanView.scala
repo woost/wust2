@@ -454,19 +454,9 @@ object KanbanView {
         Styles.flex,
         justifyContent.flexEnd,
         flexWrap.wrap,
-        assignment.map(_.map(userNode => div(
-          Styles.flexStatic,
-          Avatar.user(userNode.id)(
-            marginRight := "2px",
-            width := "22px",
-            height := "22px",
-            cls := "avatar",
-          ),
-          keyed(userNode.id),
-          UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
-          cursor.pointer,
-          onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(node.id, userNode.id)) --> state.eventProcessor.changes,
-        ))),
+        assignment.map(_.map(userNode =>
+          Components.removableUserAvatar(state, userNode, targetNodeId = node.id)
+        )),
       ),
     )
 

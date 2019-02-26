@@ -365,6 +365,22 @@ object Components {
     )
   }
 
+  def removableUserAvatar(state: GlobalState, userNode: Node.User, targetNodeId: NodeId): VNode = {
+    div(
+      Styles.flexStatic,
+      Avatar.user(userNode.id)(
+        marginRight := "2px",
+        width := "22px",
+        height := "22px",
+        cls := "avatar",
+        ),
+      keyed(userNode.id),
+      UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+      cursor.pointer,
+      onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> state.eventProcessor.changes,
+    )
+  }
+
   def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false): VNode = {
     propertyTag(state, key, propertyNode, pageOnClick)(removableTagMod(action))
   }
