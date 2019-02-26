@@ -285,7 +285,7 @@ object UserSettingsView {
         height := "50px",
         padding := "4px",
       ),
-      editableNode(state, user.toNode, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center),
+      editableNode(state, user.toNode, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
       button(
         cls := "ui button primary tiny",
         marginLeft := "20px",
