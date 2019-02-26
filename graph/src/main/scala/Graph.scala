@@ -403,12 +403,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
         childrenIdxBuilder.add(sourceIdx, targetIdx)
+
+        if(childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+
         e.data.deletedAt match {
           case None            =>
             if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -418,7 +420,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
               if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
               if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
-              if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
               notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
               notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
               futureDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)

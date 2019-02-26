@@ -271,6 +271,20 @@ object Components {
     )
   }
 
+  def unremovableTagMod(action: () => Unit):VDomModifier = {
+    VDomModifier(
+      Styles.inlineFlex,
+      span(
+        Styles.flexStatic,
+        Icons.undelete,
+        cls := "actionbutton",
+        onClick.stopPropagation foreach {
+          action()
+        },
+      )
+    )
+  }
+
   def removableTagMod(action: () => Unit):VDomModifier = {
     VDomModifier(
       Styles.inlineFlex,

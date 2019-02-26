@@ -85,8 +85,6 @@ object DashboardView {
       borderRadius := "3px",
       margin := "0.5em",
       padding := "10px",
-      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
-      borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(project.id)).toHex,
 
       drag(DragItem.Project(project.id)),
       cls := "node", // for draghighlight
@@ -106,7 +104,21 @@ object DashboardView {
       },
       cursor.pointer,
 
-      Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
+      if(graph.isDeletedNow(project.id, focusState.focusedId)) {
+        VDomModifier(
+          backgroundColor := "darkgrey",
+          borderColor := "grey",
+          cls := "node-deleted",
+          Components.unremovableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
+        )
+      } else {
+        VDomModifier(
+          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
+          borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(project.id)).toHex,
+          Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
+        )
+      },
+
     )
   }
 
