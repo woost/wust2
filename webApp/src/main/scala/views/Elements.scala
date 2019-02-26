@@ -17,7 +17,7 @@ import org.scalajs.dom.{KeyboardEvent, MouseEvent}
 import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, SyncEmitterBuilder}
+import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder}
 import wust.util._
 import wust.css.Styles
 import wust.webApp.BrowserDetect
@@ -32,6 +32,8 @@ import scala.scalajs.js
 // They could be contributed to outwatch and used in other projects
 
 object Elements {
+  case class UnsafeHTML(html: String) extends AnyVal
+  val innerHTML: PropBuilder[UnsafeHTML] = prop[UnsafeHTML]("innerHTML", _.html)
 
   def scrollToBottom(elem: dom.Element): Unit = {
     //TODO: scrollHeight is not yet available in jsdom tests: https://github.com/tmpvar/jsdom/issues/1013
@@ -354,7 +356,7 @@ object Elements {
   )
 
 
-  def markdownVNode(str: String) = div(cls := "markdown", div(prop("innerHTML") := markdownString(str))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def markdownVNode(str: String) = div(cls := "markdown", div(innerHTML := UnsafeHTML(markdownString(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
   def markdownString(str: String): String = EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
 
   def escapeHtml(content: String): String = {

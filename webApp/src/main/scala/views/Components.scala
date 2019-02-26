@@ -1,6 +1,7 @@
 package wust.webApp.views
 
 import cats.effect.IO
+import emojijs.EmojiConvertor
 import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -87,18 +88,23 @@ object Components {
     }
   }
 
+  def renderText(str: String): VNode = {
+    p(
+      overflow.hidden,
+      textOverflow.ellipsis,
+      whiteSpace.nowrap,
+      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
+    )
+  }
+  def renderText(node: Node): VNode = renderText(node.str)
+
   def renderAsOneLineText(node: Node): VNode = {
     val textContent = {
       val lines = node.str.lines
       if (lines.hasNext) lines.next else ""
     }
 
-    p(
-      overflow.hidden,
-      textOverflow.ellipsis,
-      whiteSpace.nowrap,
-      textContent
-    )
+    renderText(textContent)
   }
 
   def roleSpecificRenderAsOneLineText(node: Node): VNode = {
