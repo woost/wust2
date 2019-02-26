@@ -1,6 +1,6 @@
 package wust.webApp.dragdrop
 
-import wust.ids.{ NodeId, UserId }
+import wust.ids.{ NodeRole, NodeId, UserId }
 
 sealed trait DragPayload extends Product with Serializable
 sealed trait DragTarget extends Product with Serializable
@@ -28,6 +28,14 @@ object DragItem {
 
   case class SelectedNode(nodeId: NodeId) extends DragPayload { override def toString = s"SelectedNode(${nodeId.shortHumanReadable})" }
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload { override def toString = s"SelectedNodes(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
+
+  def fromNodeRole(nodeId: NodeId, role: NodeRole): Option[DragPayloadAndTarget] = Some(role) collect {
+    case NodeRole.Task => DragItem.Task(nodeId)
+    case NodeRole.Message => DragItem.Message(nodeId)
+    case NodeRole.Project => DragItem.Project(nodeId)
+    case NodeRole.Tag => DragItem.Tag(nodeId)
+    case NodeRole.Stage => DragItem.Stage(nodeId)
+  }
 
   val payloadPropName = "_wust_dragpayload"
   val targetPropName = "_wust_dragtarget"
