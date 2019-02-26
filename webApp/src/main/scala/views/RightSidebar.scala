@@ -44,20 +44,16 @@ object RightSidebar {
         b(name),
         Styles.flexStatic,
       ) -> VDomModifier(
-        div(
-          body,
-          margin := "5px",
-          height := "100%",
-        ),
+        body,
+        margin := "5px",
         flex := flexValue,
         height := "100%",
-      ),
+      )
     }
 
     div(
-      overflow.auto,
       Styles.growFull,
-      Styles.flex,
+      Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
       borderRadius := "3px",
       margin := "5px",
