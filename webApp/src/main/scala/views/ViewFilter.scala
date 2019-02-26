@@ -211,9 +211,9 @@ object GraphOperation {
 
   case object InDeletedGracePeriodParents extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { pid =>
+      pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Child if e.parentId == pid => graph.isInDeletedGracePeriod(e.childId, pid)
+          case e: Edge.Child => graph.isInDeletedGracePeriod(e.childId, e.parentId)
           case _                                     => true
         }
         (graph, newEdges)
@@ -223,10 +223,9 @@ object GraphOperation {
 
   case object OnlyDeletedParents extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { pid =>
-        val pageIdx = graph.idToIdx(pid)
+      pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Child if e.parentId == pid => graph.isDeletedNow(e.childId, pid) || graph.isInDeletedGracePeriod(e.childId, pid)
+          case e: Edge.Child => graph.isDeletedNow(e.childId, e.parentId) || graph.isInDeletedGracePeriod(e.childId, e.parentId)
           case _                                     => true
         }
         (graph, newEdges)
@@ -236,9 +235,9 @@ object GraphOperation {
 
   case object NoDeletedParents extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { pid =>
+      pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Child if e.parentId == pid => !graph.isDeletedNow(e.childId, pid)
+          case e: Edge.Child  => !graph.isDeletedNow(e.childId, e.parentId)
           case _                                  => true
         }
         (graph, newEdges)
@@ -248,9 +247,9 @@ object GraphOperation {
 
   case object NoDeletedButGracedParents extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { pid =>
+      pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Child if e.parentId == pid => !graph.isDeletedNow(e.childId, pid) || graph.isInDeletedGracePeriod(e.childId, pid)
+          case e: Edge.Child => !graph.isDeletedNow(e.childId, e.parentId) || graph.isInDeletedGracePeriod(e.childId, e.parentId)
           case _                                     => true
         }
         (graph, newEdges)

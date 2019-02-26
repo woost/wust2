@@ -178,13 +178,15 @@ class GlobalState(
   val graph: Rx[Graph] = for {
     graphTrans <- graphTransformations
     currentGraph <- rawGraph
-    u <- user.map(_.id)
-    p <- urlConfig.map(_.pageChange.page.parentId)
+    userId <- user.map(_.id)
+    pageId <- urlConfig.map(_.pageChange.page.parentId)
   } yield {
-    val filterSeq: Seq[GraphFilter] = graphTrans.map(_.filterWithViewData(p, u))
-    val filter = filterSeq.reduce(GraphOperation.stackFilter(_,_))
-    val transformation = GraphOperation.filterToTransformation(filter)
-    transformation(currentGraph)
+    if(currentGraph.nonEmpty && pageId.map(pid => currentGraph.contains(pid)).getOrElse(false)) {
+      val filterSeq: Seq[GraphFilter] = graphTrans.map(_.filterWithViewData(pageId, userId))
+      val filter = filterSeq.reduce(GraphOperation.stackFilter(_, _))
+      val transformation = GraphOperation.filterToTransformation(filter)
+      transformation(currentGraph)
+    } else currentGraph
   }
   val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
