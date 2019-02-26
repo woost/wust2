@@ -201,7 +201,13 @@ object GraphOperation {
         val tagIdx = graph.idToIdx(tagId)
         val newEdges = graph.edges.filter {
           case e: Edge.Child if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.childId).role) =>
-            if(graph.tagParentsIdx.contains(graph.idToIdx(e.childId))(tagIdx)) true else false
+            val childIdx = graph.idToIdx(e.childId)
+            if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
+            else {
+              val tagDescendants = graph.descendantsIdx(tagIdx)
+              if(tagDescendants.contains(childIdx)) true
+              else false
+            }
           case _                                                                                                                   => true
         }
         (graph, newEdges)
