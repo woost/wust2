@@ -418,7 +418,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".overlay-right-sidebar > .sidebar" - (
-    marginLeft(100 px)
+    marginLeft(70 px)
   )
 
   ".overlay-left-sidebar > .sidebar" - (
