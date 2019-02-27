@@ -158,6 +158,7 @@ object AuthView {
               "discard all content now",
               onClick.preventDefault foreach {
                 if(dom.window.confirm("This will delete all your content, you created as an unregistered user. Do you want to continue?")) {
+                  state.urlConfig.update(cfg => cfg.copy(redirectTo = None, pageChange = PageChange(Page.empty))) // clear page, so we do not access an old page anymore
                   Client.auth.logout()
                 }
                 ()
