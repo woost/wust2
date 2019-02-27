@@ -66,18 +66,30 @@ object GraphChangesAutomationUI {
 
             div(
               padding := "10px",
-              b("This node has automation templates. Each will be applied to every child of this node.", fontSize.small, marginBottom := "5px"),
+              div(
+                b("Active automation templates:"),
+                div(fontSize.xSmall, "Each will be applied to every child of this node."),
+                marginBottom := "10px",
+              ),
 
-              state.rawGraph.map(_.nodesByIdGet(state.page.now.parentId.get).map(PageHeader.channelMembers(state, _))),
+              div(
+                padding := "10px",
+                Styles.flex,
+                alignItems.center,
+                b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
+                state.rawGraph.map(_.nodesByIdGet(state.page.now.parentId.get).map(PageHeader.channelMembers(state, _))),
+              ),
 
               Components.registerDragContainer(state),
+
               Components.removeableList[Node](
                 templates,
                 state.eventProcessor.changes.redirectMap(templateNode => GraphChanges(delEdges = Set(Edge.Automated(focusedId, TemplateId(templateNode.id))))),
-              ) { templateNode =>
+              )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
                   Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                    padding := "3px",
                     width := "200px",
                     div(
                       Styles.flex,
@@ -112,7 +124,7 @@ object GraphChangesAutomationUI {
                   ).prepend(
                     b(color.gray, templateNode.role.toString)
                   )
-              }
+              }).apply(paddingLeft := "10px"),
             ),
 
             position.relative, // needed for right sidebar
