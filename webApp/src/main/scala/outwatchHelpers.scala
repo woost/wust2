@@ -15,11 +15,12 @@ import wust.util.Empty
 import wust.webUtil.RxInstances
 import wust.webUtil.macros.KeyHash
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
+import wust.webApp.views.EditInteraction
 
 package outwatchHelpers {
 
@@ -295,6 +296,8 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     abstractTreeToVNode(icon.`abstract`(0))
   }
 
+  def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
+
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
 
@@ -331,6 +334,15 @@ package object outwatchHelpers extends KeyHash with RxInstances {
 
   implicit class RichEmitterBuilder[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
+  }
+  implicit class RichEmitterBuilderEditInteraction[T,R](val builder: EmitterBuilder[EditInteraction[T],R]) extends AnyVal {
+    def editValue: EmitterBuilder[T, R] = builder.collect {
+      case EditInteraction.Input(value) => value
+    }
+    def editValueOption: EmitterBuilder[Option[T], R] = builder.collect {
+      case EditInteraction.Input(value) => Some(value)
+      case EditInteraction.Error(_, _) => None
+    }
   }
 }
 
@@ -371,6 +383,17 @@ class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifie
       implicit val ctx = Ctx.Owner.Unsafe
       val obs = rx.foreach(observer.onNext)
       Cancelable(() => obs.kill())
+    }
+  }
+}
+
+class CombinedObserver[T](observers: Seq[Observer[T]])(implicit ec: ExecutionContext) extends Observer[T] {
+  def onError(ex: Throwable): Unit = observers.foreach(_.onError(ex))
+  def onComplete(): Unit = observers.foreach(_.onComplete())
+  def onNext(elem: T): scala.concurrent.Future[monix.execution.Ack] = {
+    Future.sequence(observers.map(_.onNext(elem))).map { acks =>
+      val stops = acks.collect { case Ack.Stop => Ack.Stop }
+      stops.headOption getOrElse Ack.Continue
     }
   }
 }

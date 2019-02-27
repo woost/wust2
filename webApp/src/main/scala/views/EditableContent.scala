@@ -1,7 +1,10 @@
 package wust.webApp.views
 
-import org.scalajs.dom.document
-import org.scalajs.dom.raw.HTMLElement
+import monix.reactive.{Observable, Observer}
+import monix.reactive.subjects.PublishSubject
+import org.scalajs.dom
+import outwatch.Sink
+import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -9,6 +12,7 @@ import wust.graph._
 import wust.ids._
 import wust.util._
 import wust.webApp._
+import wust.css.Styles
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Elements._
@@ -18,73 +22,95 @@ import scala.scalajs.js
 
 object EditableContent {
 
-  private def epochMilliToInputValue(epoch: EpochMilli): String = {
-    val date = new js.Date(epoch.toLong)
-    date.toISOString.slice(0, 10)
+  sealed trait ErrorMode
+  object ErrorMode {
+    case object Cancel extends ErrorMode
+    case object Show extends ErrorMode
+    case object Ignore extends ErrorMode
   }
 
-  private val nodeDataToInputFieldMod: PartialFunction[NodeData, VDomModifier] = {
-    case data: NodeData.Integer      => VDomModifier(Elements.integerInputMod, value := data.str)
-    case data: NodeData.Decimal      => VDomModifier(Elements.decimalInputMod, value := data.str)
-    case data: NodeData.Date         => VDomModifier(Elements.dateInputMod, value := epochMilliToInputValue(data.content))
-    case data: NodeData.EditableText => VDomModifier(Elements.textInputMod, value := data.str)
+  sealed trait SubmitMode
+  object SubmitMode {
+    case class Emitter(builder: List[EmitterBuilder[dom.Event, VDomModifier]]) extends SubmitMode
+    def OnChange = Emitter(dsl.onChange :: Nil)
+    def OnInput = Emitter(dsl.onInput :: Nil)
+    def OnEnter = Emitter(Elements.onEnter :: Nil)
+    def Off = Emitter(Nil)
+    case object Explicit extends SubmitMode
   }
 
-  private def updateNodeData(str: String, data: NodeData.Content): Option[NodeData.Content] = data match {
-    case data: NodeData.Integer      => StringOps.safeToInt(str).collect { case i if i != data.content => data.copy(content = i) }
-    case data: NodeData.Decimal      => StringOps.safeToInt(str).collect { case i if i != data.content => data.copy(content = i) }
-    case data: NodeData.Date         => wust.webUtil.StringOps.safeToEpoch(str).collect { case i if i != data.content => data.copy(content = i) }
-    case data: NodeData.EditableText => data.updateStr(str)
-    case _                           => None
-  }
-
-  private val commonEditMods = VDomModifier(
-    cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-    whiteSpace.preWrap, // preserve white space in Markdown code
+  case class Config(
+    inputModifier: VDomModifier = VDomModifier.empty,
+    submitMode: SubmitMode = SubmitMode.Explicit,
+    errorMode: ErrorMode = ErrorMode.Show,
+    selectTextOnFocus: Boolean = true,
   )
-
-  private def saveElement[T](state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], renderFn: T => VNode, stringToElement: String => Option[T], toGraphChanges: T => GraphChanges)(implicit ctx: Ctx.Owner): String => Unit = { text =>
-    if(editMode.now && text.nonEmpty) {
-      stringToElement(text) match {
-        case Some(updatedElement) =>
-          Var.set(
-            initialRender -> renderFn(updatedElement),
-            editMode -> false
-          )
-
-          val changes = toGraphChanges(updatedElement)
-          state.eventProcessor.changes.onNext(changes)
-        case None =>
-          editMode() = false
-      }
-    }
-  }
-
-
-  //TODO wrap in form to check reportvalidity on inputfield constraints!
-  private def editTextInputField[T](state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], renderFn: T => VNode, stringToElement: String => Option[T], toGraphChanges: T => GraphChanges)(implicit ctx: Ctx.Owner): VNode = {
-    val save = saveElement(state, editMode, initialRender, renderFn, stringToElement, toGraphChanges)
-
-    input(
-      onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-      onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
-
-      commonEditMods,
-
-      onBlur.value.transform(_.delayOnNext(200 millis)) foreach { save(_) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-      BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-        onEnter.value foreach { save(_) },
-        onEscape foreach { editMode() = false }
-      )),
+  object Config {
+    def default = Config()
+    def cancelOnError = Config(
+      errorMode = ErrorMode.Cancel
+    )
+    def off = Config(
+      submitMode = SubmitMode.Off,
+      errorMode = ErrorMode.Ignore
     )
   }
 
-  private def editTextModifier[T](state: GlobalState, editMode: Var[Boolean], initialRender: Var[VNode], renderFn: T => VNode, stringToElement: String => Option[T], toGraphChanges: T => GraphChanges)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val save = { contentEditable:HTMLElement =>
-      val text = contentEditable.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // textContent would remove line-breaks in firefox
-      saveElement(state, editMode, initialRender, renderFn, stringToElement, toGraphChanges).apply(text)
-    }
+  //TODO elegant wrap in form to check reportvalidity on inputfield constraints?
 
+  @inline def inputField[T: EditParser]: EmitterBuilder[EditInteraction[T], VDomModifier] = inputField[T](Config.default)
+  def inputField[T: EditParser](config: Config): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier{ action =>
+    val subject = PublishSubject[EditInteraction[T]]
+    div(
+      width := "100%",
+      Styles.flex,
+      flexDirection.column,
+      alignItems.center,
+      input(
+        onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+        onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
+
+        emitter(subject) --> action,
+        Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsInside(_)) },
+
+        commonEditMods(config, subject, extractString = _.asInstanceOf[dom.html.Input].value),
+      ),
+
+      Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsOutside(_)) },
+    )
+  }
+
+  def inputField[T: EditParser: ValueStringifier](current: T, config: Config = Config.default): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+    val subject = PublishSubject[EditInteraction[T]]
+
+    val newConfig = config.copy(
+      inputModifier = VDomModifier(
+        config.inputModifier,
+        subject.prepend(EditInteraction.Input(current)).scan("")(foldUserValue).map(value := _)
+      )
+    )
+
+    VDomModifier(
+      emitter(subject) --> action,
+      inputField(newConfig)(distinctParser(EditInteraction.Input(current))) --> subject,
+    )
+  }
+
+  @inline def inputFieldRx[T: EditParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = inputFieldRxInteraction[T](zoomOutToEditInteraction(current), config)
+  def inputFieldRxInteraction[T: EditParser: ValueStringifier](current: Var[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val newConfig = config.copy(
+      inputModifier = VDomModifier(
+        config.inputModifier,
+        current.fold("")(foldUserValue).map(value := _)
+      )
+    )
+
+    inputField[T](newConfig)(distinctParser(current.now)) --> current,
+  }
+
+  @inline def inputInline[T: EditParser]: EmitterBuilder[EditInteraction[T], VDomModifier] = inputInline[T](Config.default)
+  def inputInline[T: EditParser](config: Config): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier{ action =>
+    val subject = PublishSubject[EditInteraction[T]]
     VDomModifier(
       onDomMount.asHtml --> inNextAnimationFrame { elem => elem.focus() },
       onDomUpdate.asHtml --> inNextAnimationFrame { elem => elem.focus() },
@@ -93,73 +119,191 @@ object EditableContent {
       color := "#000",
       cursor.auto,
 
-      commonEditMods,
+      emitter(subject) --> action,
+      Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsInside(_)) },
 
-      onFocus foreach { e => document.execCommand("selectAll", false, null) },
-      onBlur.transform(_.delayOnNext(200 millis)) foreach { e => save(e.target.asInstanceOf[HTMLElement]) }, // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-      BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-        onEnter foreach { e => save(e.target.asInstanceOf[HTMLElement]) },
-        onEscape foreach { editMode() = false }
-        //TODO how to revert back if you wrongly edited something on mobile?
-      )),
-      onClick.stopPropagation foreach {} // prevent e.g. selecting node, but only when editing
+      commonEditMods(config, subject, extractString = _.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]), // innerText because textContent would remove line-breaks in firefox
     )
   }
 
-  private def editOrRender(editMode: Var[Boolean], initialRender: Rx[VNode], editRender: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
+  def inputInline[T: EditParser: ValueStringifier](current: T, config: Config = Config.default): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+    val subject = PublishSubject[EditInteraction[T]]
+
+    val newConfig = config.copy(
+      inputModifier = VDomModifier(
+        config.inputModifier,
+        subject.prepend(EditInteraction.Input(current)).scan("")(foldUserValue)
+      )
+    )
+
+    VDomModifier(
+      emitter(subject) --> action,
+      inputInline[T](newConfig)(distinctParser(EditInteraction.Input(current))) --> subject
+    )
+  }
+
+  @inline def inputInlineRx[T: EditParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = inputInlineRxInteraction[T](zoomOutToEditInteraction(current), config)
+  def inputInlineRxInteraction[T: EditParser: ValueStringifier](current: Var[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val newConfig = config.copy(
+      inputModifier = VDomModifier(
+        config.inputModifier,
+        current.fold("")(foldUserValue)
+      )
+    )
+
+    inputInline[T](newConfig)(distinctParser(current.now)) --> current,
+  }
+
+  def inputFieldOrRender[T: EditParser : ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+    val initialElement: Var[T] = Var(current)
+
+    val editRender = inputField[T](current, config) --> action.redirectMap(handleEditInteractionInOrRender(editMode, initialElement))
+    editOrRender(editMode, initialElement.map(renderFn), editRender)
+  }
+
+  def inputInlineOrRender[T: EditParser : ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+    val initialElement: Var[T] = Var(current)
+
+    val editRender = inputInline[T](current, config) --> action.redirectMap(handleEditInteractionInOrRender(editMode, initialElement))
+    editOrRender(editMode, initialElement.map(renderFn), editRender)
+  }
+
+  def ofNode(node: Node, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
+
+    EditParser.forNode(node).map { implicit editParser =>
+      node.data match {
+        case _: NodeData.EditableText => inputInline[Node](node, config) --> action
+        case _ => inputField[Node](node) --> action
+      }
+    }
+  }
+
+  def ofNodeOrRender(node: Node, editMode: Var[Boolean], renderFn: Node => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
+
+    EditParser.forNode(node).fold[VDomModifier](renderFn(node)) { implicit editParser =>
+      node.data match {
+        case _: NodeData.EditableText | _: NodeData.User => inputInlineOrRender[Node](node, editMode, renderFn, config) --> action
+        case _ => inputFieldOrRender[Node](node, editMode, renderFn, config) --> action
+      }
+    }
+  }
+
+  private def commonEditMods[T: EditParser](config: Config, rawAction: Observer[EditInteraction[T]], extractString: dom.EventTarget => String) = {
+    var lastValue: EditInteraction[T] = null
+    val action = rawAction.redirectCollect[EditInteraction[T]] { case e if lastValue != e =>
+      lastValue = e
+      handleEditInteraction[T](config)(e)
+    }
+    VDomModifier(
+      cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
+      whiteSpace.preWrap, // preserve white space in Markdown code
+
+      EditParser[T].inputModifier,
+
+      onClick.stopPropagation --> Observer.empty, // prevent e.g. selecting node, but only when editing
+
+      VDomModifier.ifTrue(config.selectTextOnFocus)(
+        onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
+      ),
+
+      config.submitMode match {
+        case SubmitMode.Explicit => VDomModifier(
+          onBlur.transform(_.delayOnNext(200 millis)).map { e => // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
+            EditParser[T].parse(extractString(e.target))
+          } --> action,
+          BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
+            onEnter.map(e => EditParser[T].parse(extractString(e.target))) --> action,
+            onEscape(EditInteraction.Cancel) --> action
+            //TODO how to revert back if you wrongly edited something on mobile?
+          )),
+        )
+        case SubmitMode.Emitter(builders) => VDomModifier(
+          builders.map(_.map(e => EditParser[T].parse(extractString(e.target))) --> action)
+        )
+
+      },
+
+      config.inputModifier,
+    )
+  }
+
+  private def editOrRender(editMode: Var[Boolean], initialRender: Rx[VDomModifier], editRender: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
 
     p( // has different line-height than div and is used for text by markdown
       outline := "none", // hides contenteditable outline
       keyed, // when updates come in, don't disturb current editing session
       Rx {
-        if(editMode()) editRender else initialRender()
+        if(editMode()) VDomModifier(keyed, editRender) else VDomModifier(keyed, initialRender())
       },
     )
   }
 
-  def ofNode(state: GlobalState, node: Node, editMode: Var[Boolean], renderFn: Node => VNode)(implicit ctx: Ctx.Owner): VNode = {
-    val initialRender: Var[VNode] = Var(renderFn(node))
+  private def handleEditInteraction[T](config: Config): EditInteraction[T] => EditInteraction[T] = {
+    case e@EditInteraction.Error(origin, error) =>
+      scribe.info(s"Edit Parser failed on value '$origin': $error")
+      config.errorMode match {
+        case ErrorMode.Cancel => EditInteraction.Cancel
+        case _ => e
+      }
+    case e => e
+  }
 
-    node match {
-      case node: Node.Content =>
-        val editRender = node.data match {
-          case textData: NodeData.EditableText => Some(
-            VDomModifier(editTextModifier[Node](state, editMode, initialRender, renderFn, str => textData.updateStr(str).map(data => node.copy(data = data)), GraphChanges.addNode(_)), textData.str)
-          )
-          case nodeData => nodeDataToInputFieldMod.lift(nodeData).map { inputMod =>
-            editTextInputField[Node](state, editMode, initialRender, renderFn, str => updateNodeData(str, nodeData).map(data => node.copy(data = data)), GraphChanges.addNode(_)).apply(inputMod)
-          }
-        }
+  private def handleEditInteractionInOrRender[T](editMode: Var[Boolean], initialElement: Var[T]): EditInteraction[T] => EditInteraction[T] = {
+    case e@EditInteraction.Cancel =>
+      editMode() = false
+      e
+    case e@EditInteraction.Input(t) =>
+      Var.set(
+        editMode -> false,
+        initialElement -> t
+      )
+      e
 
-        editRender.fold(initialRender.now)(editOrRender(editMode, initialRender, _))
+    case e => e
+  }
 
-      case user: Node.User if !user.data.isImplicit && user.id == state.user.now.id =>
-        val editRender = VDomModifier(editTextModifier[Node](state, editMode, initialRender, renderFn, str => user.data.updateName(str).map(data => user.copy(data = data)), GraphChanges.addNode(_)), user.data.name)
-        editOrRender(editMode, initialRender, editRender)
-
-      case _ => initialRender.now
+  private def showErrorsOutside[T](interaction: EditInteraction[T]): VDomModifier = {
+    interaction match {
+      case EditInteraction.Error(_, error) => div(
+        cls := "ui pointing red basic mini label",
+        error
+      )
+      case _ =>
+        VDomModifier.empty
     }
   }
 
-  def textModifier(state: GlobalState, element: String, editMode: Var[Boolean], renderFn: String => VNode, toGraphChanges: String => GraphChanges)(implicit ctx: Ctx.Owner): VNode = {
-    val initialRender: Var[VNode] = Var(renderFn(element))
-
-    val editRender = VDomModifier(editTextModifier[String](state, editMode, initialRender, renderFn, Some(_), toGraphChanges), element)
-    editOrRender(editMode, initialRender, editRender)
+  private def showErrorsInside[T](interaction: EditInteraction[T]): VDomModifier = {
+    interaction match {
+      case EditInteraction.Error(_, error) => VDomModifier(
+        boxShadow := s"0 0 1px 1px #e0b4b4",
+        borderColor := "#e0b4b4",
+        backgroundColor := "#fff6f6",
+        color := "#9f3a38",
+      )
+      case _ =>
+        VDomModifier.empty
+    }
   }
 
-  def textInputField(state: GlobalState, element: String, editMode: Var[Boolean], renderFn: String => VNode, toGraphChanges: String => GraphChanges)(implicit ctx: Ctx.Owner): VNode =
-    customInputField[String](state, element, editMode, renderFn, Some(_), toGraphChanges, VDomModifier(Elements.textInputMod, value := element))
-  def integerInputField(state: GlobalState, element: Int, editMode: Var[Boolean], renderFn: Int => VNode, toGraphChanges: Int => GraphChanges)(implicit ctx: Ctx.Owner): VNode =
-    customInputField[Int](state, element, editMode, renderFn, StringOps.safeToInt(_), toGraphChanges, VDomModifier(Elements.integerInputMod, value := element.toString))
-  def doubleInputField(state: GlobalState, element: Double, editMode: Var[Boolean], renderFn: Double => VNode, toGraphChanges: Double => GraphChanges)(implicit ctx: Ctx.Owner): VNode =
-    customInputField[Double](state, element, editMode, renderFn, StringOps.safeToDouble(_), toGraphChanges, VDomModifier(Elements.integerInputMod.toString, value := element.toString))
-  def epochInputField(state: GlobalState, element: EpochMilli, editMode: Var[Boolean], renderFn: EpochMilli => VNode, toGraphChanges: EpochMilli => GraphChanges)(implicit ctx: Ctx.Owner): VNode =
-    customInputField[EpochMilli](state, element, editMode, renderFn, wust.webUtil.StringOps.safeToEpoch(_), toGraphChanges, VDomModifier(Elements.dateInputMod, value := epochMilliToInputValue(element)))
-  def customInputField[T](state: GlobalState, element: T, editMode: Var[Boolean], renderFn: T => VNode, stringToElement: String => Option[T], toGraphChanges: T => GraphChanges, inputMod: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
-    val initialRender: Var[VNode] = Var(renderFn(element))
+  private def zoomOutToEditInteraction[T](current: Var[Option[T]])(implicit ctx: Ctx.Owner): Var[EditInteraction[T]] = {
+    current.zoom[EditInteraction[T]]((value: Option[T]) => EditInteraction.fromOption(value)) {
+      case (_, EditInteraction.Input(value)) => Some(value)
+      case (_, EditInteraction.Error(_, _)) => None
+      case (value, _) => value
+    }
+  }
 
-    val editRender = editTextInputField[T](state, editMode, initialRender, renderFn, stringToElement, toGraphChanges).apply(inputMod)
-    editOrRender(editMode, initialRender, editRender)
+  private def distinctParser[T: EditParser](current: => EditInteraction[T]): EditParser[T] = {
+    EditParser[T].flatMap { t =>
+      val isDistinct = current.fold(true)(_ != t)
+      EditInteraction.fromOption(if (isDistinct) Some(t) else None)
+    }
+  }
+
+  private def foldUserValue[T: ValueStringifier](prev: String, current: EditInteraction[T]): String = current match {
+    case EditInteraction.Input(value) => ValueStringifier[T].stringify(value)
+    case EditInteraction.Error(origin, _) => origin
+    case _ => prev
   }
 }

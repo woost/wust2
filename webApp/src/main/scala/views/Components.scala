@@ -66,10 +66,13 @@ object Components {
     case d                           => d.str
   }
 
+  def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color.gray, "X + "), span(StringJsOps.durationToString(data.content)))
+p
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
+    case data: NodeData.RelativeDate => div(displayRelativeDate(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -78,6 +81,7 @@ object Components {
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
+    case data: NodeData.RelativeDate => div(displayRelativeDate(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -315,7 +319,9 @@ object Components {
       b(
         color.gray,
         Styles.flex,
-        EditableContent.textModifier(state, key, editKey, key => span(key), key => GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = key)))(breakOut))),
+        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key)).editValue.map { key =>
+          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = key)))(breakOut)),
+        } --> state.eventProcessor.changes,
         ":",
         cursor.pointer,
         onClick.stopPropagation(true) --> editKey,
@@ -331,7 +337,7 @@ object Components {
             Styles.flex,
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
             div(
-              editableNodeOnClick(state, property.node, maxLength = Some(100)),
+              editableNodeOnClick(state, property.node, maxLength = Some(100), config = EditableContent.Config.default),
               Components.removableTagMod(() =>
                 state.eventProcessor.changes.onNext(GraphChanges(delEdges = Set(property.edge)))
               )
@@ -657,21 +663,24 @@ object Components {
       )
     }
 
-    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false))(
+    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editableNode(state, node, editMode, maxLength)(ctx)(
+      editableNode(state, node, editMode, maxLength, config)(ctx)(
         onClick.stopPropagation.stopImmediatePropagation foreach {
           if(!editMode.now) {
             editMode() = true
           }
         },
-        minWidth := "20px", minHeight := "20px", // minimal clicking area for empty content
+
+        minWidth := "20px", minHeight := "20px", // minimal clicking area
       )
     }
 
-    def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
-      EditableContent.ofNode(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength))
+    def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+      div(
+        EditableContent.ofNodeOrRender(node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+      )
     }
 
     def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {

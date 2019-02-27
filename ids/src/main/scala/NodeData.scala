@@ -56,6 +56,11 @@ object NodeData {
     def update(value: EpochMilli) = if(content != value) Some(copy(content = value)) else None
   }
   object Date extends Named
+  case class RelativeDate(content: DurationMilli) extends Named with Content {
+    def str = content.toString
+    def update(value: DurationMilli) = if(content != value) Some(copy(content = value)) else None
+  }
+  object RelativeDate extends Named
 
   case object Empty extends Named
 

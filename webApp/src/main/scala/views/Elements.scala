@@ -281,9 +281,14 @@ object Elements {
   )
 
   val textInputMod = VDomModifier(
-      tpe := "text",
-      placeholder := "Text",
-    )
+    tpe := "text",
+    placeholder := "Text",
+  )
+
+  val durationInputMod = VDomModifier(
+    tpe := "text",
+    placeholder := "1y 2h 3m 4s, ...",
+  )
 
   def dateString(epochMilli: EpochMilli): String = {
     val createdDate = new js.Date(epochMilli)

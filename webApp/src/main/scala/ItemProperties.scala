@@ -1,6 +1,6 @@
 package wust.webApp
 
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom
 import outwatch.dom._
@@ -14,8 +14,8 @@ import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, Elements, UI}
-import wust.webUtil.StringOps._
+import wust.webApp.views.{Components, Elements, UI, EditableContent, EditParser, EditInteraction}
+import wust.webApp.StringJsOps._
 
 import scala.scalajs.js
 import scala.collection.breakOut
@@ -32,89 +32,101 @@ object ItemProperties {
   val defaultType = NodeData.PlainText.tpe
 
   def iconByNodeData(data: NodeData): VDomModifier = data match {
-    //    case _: NodeData.Integer => Icons.propertyInt
-    //    case _: NodeData.Float => Icons.propertyDec
-    case _: NodeData.Integer | _: NodeData.Decimal => Icons.propertyNumber
-    case _: NodeData.Date                          => Icons.propertyDate
-    case _: NodeData.File                          => Icons.files
-    case _                                         => Icons.propertyText
+    case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
+    case _: NodeData.Date | _: NodeData.RelativeDate => Icons.propertyDate
+    case _: NodeData.File                            => Icons.files
+    case _                                           => Icons.propertyText
   }
 
   def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = BehaviorSubject[NodeData.Type](prefilledType getOrElse NodeData.Empty.tpe).transformObservable(o => Observable(o, clear.map(_ => NodeData.Empty.tpe)).merge)
-    val propertyKeyInputProcess = BehaviorSubject[String](prefilledKey).transformObservable(o => Observable(o, clear.map(_ => "")).merge)
-    val propertyValueInputProcess = BehaviorSubject[String]("").transformObservable(o => Observable(o, clear.map(_ => "")).merge)
+    val propertyTypeSelection = Var[Option[NodeData.Type]](prefilledType)
+    val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(prefilledKey))
+    val propertyValueInput = Var[Option[NodeData]](None)
+
+    val editableConfig = EditableContent.Config(
+      submitMode = EditableContent.SubmitMode.OnInput,
+      selectTextOnFocus = false
+    )
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
-      val inputSizeMods = VDomModifier(width := "200px", marginTop := "4px")
 
-      val inputFieldMod: NodeData.Type => VDomModifier = {
-        case NodeData.Integer.tpe   => Elements.integerInputMod
-        case NodeData.Decimal.tpe   => Elements.decimalInputMod
-        case NodeData.Date.tpe      => Elements.dateInputMod
-        case NodeData.PlainText.tpe => Elements.textInputMod
-        case _                      =>  VDomModifier(disabled, placeholder := "Select a field type")
+      def createProperty() = {
+        if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+          handleAddProperty(propertyKeyInput.now, propertyValueInput.now)
+        }
       }
 
       VDomModifier(
         form(
+          width := "200px",
           onDomMount.asHtml.foreach { element = _ },
           Styles.flex,
           flexDirection.column,
           alignItems.center,
-          input(
-            cls := "ui fluid action input",
-            inputSizeMods,
-            tpe := "text",
-            placeholder := "Field Name",
-            cls <-- propertyTypeSelection.map(t => if(t == NodeData.Empty.tpe) "disabled" else ""),
-            onInput.value --> propertyKeyInputProcess,
-            value <-- propertyKeyInputProcess
-          ),
-          input(
-            cls := "ui fluid action input",
-            inputSizeMods,
-            value <-- clear,
-            onInput.value --> propertyValueInputProcess,
-            cls <-- propertyKeyInputProcess.map(k => if(k.isEmpty) "disabled" else ""),
-            propertyTypeSelection.map(inputFieldMod),
-            Elements.valueWithEnter(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
-              if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
-              }
-            },
-          ),
-          select(
-            inputSizeMods,
-            option(
-              value := "none", "Select a field type",
-              selected <-- propertyTypeSelection.map(_ == NodeData.Empty.tpe),
-              disabled,
+          EditableContent.inputFieldRx[NonEmptyString](propertyKeyInput, editableConfig.copy(
+            inputModifier = VDomModifier(
+              cls := "ui fluid action input",
+              Elements.onEnter.stopPropagation foreach(createProperty()),
+              placeholder := "Field Name"
             ),
-            option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ == NodeData.Integer.tpe)),
-            option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ == NodeData.Decimal.tpe)),
-            option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ == NodeData.Date.tpe)),
-            option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ == NodeData.PlainText.tpe)),
-            onInput.value.map(_.asInstanceOf[NodeData.Type]) --> propertyTypeSelection,
-          ),
+          )),
           div(
+            marginTop := "4px",
+            width := "100%",
+            Styles.flex,
+            alignItems.center,
+            justifyContent.spaceBetween,
+            b("Field Type:", color.gray, margin := "0px 5px 0px 5px"),
+            select(
+              tabIndex := -1,
+              option(
+                value := "none", "Select a field type",
+                selected <-- propertyTypeSelection.map(_.isEmpty),
+                disabled,
+              ),
+              option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ contains NodeData.PlainText.tpe)),
+              option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ contains NodeData.Integer.tpe)),
+              option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ contains NodeData.Decimal.tpe)),
+              option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ contains NodeData.Date.tpe)),
+              Rx {
+                val graph = state.graph()
+                VDomModifier.ifTrue(graph.automatedNodes(graph.idToIdxOrThrow(nodeId)).nonEmpty)(
+                  option( value := NodeData.RelativeDate.tpe, "Relative Date", selected <-- propertyTypeSelection.map(_ contains NodeData.RelativeDate.tpe)),
+                ),
+              },
+              onInput.value.map(s => Some(s.asInstanceOf[NodeData.Type])) --> propertyTypeSelection,
+            )
+          ),
+          propertyTypeSelection.map(_.flatMap { propertyType =>
+            EditParser.forNodeDataType(propertyType) map { implicit parser =>
+              propertyValueInput() = None// clear value on each type change...
+              EditableContent.inputFieldRx[NodeData](propertyValueInput, editableConfig.copy(
+                submitMode = EditableContent.SubmitMode.OnChange,
+                inputModifier = VDomModifier(
+                  marginTop := "4px",
+                  cls := "ui fluid action input",
+                  Elements.onEnter.stopPropagation foreach(createProperty())
+                ),
+              )),
+            }
+          }),
+          div(
+            marginTop := "5px",
             cls := "ui primary button approve",
-            cls <-- propertyValueInputProcess.map(v => if(v.isEmpty) "disabled" else ""),
-            inputSizeMods,
-            "Add Custom Field",
-            onClick(propertyValueInputProcess.withLatestFrom2(propertyKeyInputProcess, propertyTypeSelection)((pValue, pKey, pType) => (pKey, pValue, pType))) foreach { propertyData =>
-              if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                handleAddProperty(propertyData._1, propertyData._2, propertyData._3)
-              }
+            Rx {
+              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty)(cls := "disabled")
             },
+            "Add Custom Field",
+            onClick.stopPropagation foreach(createProperty())
           ),
           targetNodeIds.map { targetNodeIds =>
             VDomModifier.ifTrue(targetNodeIds.size > 1)(i(
               padding := "4px",
+              whiteSpace.normal,
               s"* The properties you set here will be applied to ${targetNodeIds.size} nodes."
             ))
           }
@@ -122,20 +134,19 @@ object ItemProperties {
       )
     }
 
-    def handleAddProperty(propertyKey: String, propertyValue: String, propertyType: String)(implicit ctx: Ctx.Owner): Unit = {
+    def handleAddProperty(propertyKey: Option[NonEmptyString], propertyValue: Option[NodeData])(implicit ctx: Ctx.Owner): Unit = for {
+      propertyKey <- propertyKey
+      propertyValue <- propertyValue
+    } {
 
-      // TODO: Users and reuse
-      val propertyNodeOpt: Option[Node.Content] = propertyType match {
-        case NodeData.Integer.tpe   => safeToInt(propertyValue).map(number => Node.Content(NodeData.Integer(number), NodeRole.Neutral))
-        case NodeData.Decimal.tpe   => safeToDouble(propertyValue).map(number => Node.Content(NodeData.Decimal(number), NodeRole.Neutral))
-        case NodeData.Date.tpe      => safeToEpoch(propertyValue).map(datum => Node.Content(NodeData.Date(datum), NodeRole.Neutral))
-        case NodeData.PlainText.tpe => Some(Node.Content(NodeData.PlainText(propertyValue), NodeRole.Neutral))
-        case _                      => None
+      val propertyNodeOpt: Option[Node.Content] = propertyValue match {
+        case data: NodeData.Content     => Some(Node.Content(data, NodeRole.Neutral))
+        case _                          => None
       }
 
       propertyNodeOpt.foreach { propertyNode =>
 
-        val propertyEdgeData = EdgeData.LabeledProperty(propertyKey)
+        val propertyEdgeData = EdgeData.LabeledProperty(propertyKey.string)
         def addProperty(targetNodeId: NodeId): GraphChanges = {
           val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
           val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
@@ -147,7 +158,7 @@ object ItemProperties {
             val graph = state.graph.now
             val changes = targetNodeIds.map { targetNodeId =>
               val alreadyExists = state.graph.now.propertiesEdgeIdx.exists(graph.idToIdxOrThrow(targetNodeId)) { edgeIdx =>
-                graph.edges(edgeIdx).asInstanceOf[Edge.LabeledProperty].data.key == propertyKey
+                graph.edges(edgeIdx).asInstanceOf[Edge.LabeledProperty].data.key == propertyKey.string
               }
 
               if (alreadyExists) GraphChanges.empty else addProperty(targetNodeId)
@@ -162,10 +173,10 @@ object ItemProperties {
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
-        Styles.flex,
-        alignItems.center,
+      Styles.flex,
+      alignItems.center,
       Components.removablePropertyTag(state, propertyKey, propertyValue),
-        )
+    )
 
     description
   }

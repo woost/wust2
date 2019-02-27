@@ -45,7 +45,7 @@ object TableView {
       value = VDomModifier(
         nodes.map {
           case tag: Node.Content if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
-          case node: Node.Content                            => Components.editableNodeOnClick(state, node, maxLength = Some(50))
+          case node: Node.Content                            => Components.editableNodeOnClick(state, node, maxLength = Some(50), config = EditableContent.Config.default)
           case user: Node.User                               => Components.removableAssignedUser(state, user, row)
         },
         cellModifier
@@ -116,7 +116,7 @@ object TableView {
                 alignItems.center,
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
-                ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key),
+              ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key),
             )
           )
         }(breakOut)

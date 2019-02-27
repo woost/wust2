@@ -454,6 +454,7 @@ lazy val webApp = project
       Deps.npm.jsSha256 ::
       Deps.npm.clipboardjs ::
       Deps.npm.jqueryTablesort ::
+      Deps.npm.juration ::
       Nil
   )
 

@@ -40,6 +40,8 @@ package object ids {
   }
   type TemplateId = TemplateId.Type
 
+  object DurationMilli extends TaggedType[Long]
+  type DurationMilli = DurationMilli.Type
 
   object EpochMilli extends TaggedType[Long] {
     var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
@@ -55,6 +57,8 @@ package object ids {
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli): Boolean = t < that
       @inline def >(that: EpochMilli): Boolean = t > that
+      @inline def plus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) + (duration:Long))
+      @inline def minus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) - (duration:Long))
       @inline def isBefore(that: EpochMilli): Boolean = t < that
       @inline def isAfter(that: EpochMilli): Boolean = t > that
       @inline def newest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) max (that:Long))
@@ -89,7 +93,7 @@ package object ids {
     @inline def min = EpochMilli(0L)
     // use 4000-01-01 00:00:00 as maximum time instead of year 294276 (postgres maximum) for the same reason.
     @inline def max = EpochMilli(64060588800000L)
+
   }
   type EpochMilli = EpochMilli.Type
-  @inline implicit def ord:Ordering[EpochMilli] = Ordering.by(epochMilli => epochMilli:Long): @inline
 }
