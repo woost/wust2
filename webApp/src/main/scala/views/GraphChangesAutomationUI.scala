@@ -41,7 +41,7 @@ object GraphChangesAutomationUI {
     val description: VDomModifier = div(
 
       Rx {
-        val graph = state.graph()
+        val graph = state.rawGraph()
         val templates = graph.templateNodes(graph.idToIdx(focusedId))
         if(templates.isEmpty) {
           VDomModifier(
