@@ -50,6 +50,10 @@ object ValueStringifier {
     def stringify(current: Option[T]): String = current.fold("")(ValueStringifier[T].stringify)
   }
 
+  implicit object ValueFile extends ValueStringifier[dom.File] {
+    def stringify(current: dom.File): String = current.name
+  }
+
   implicit val ValueNodeData: ValueStringifier[NodeData] = new ValueStringifier[NodeData] {
     override def stringify(current: NodeData): String = current match {
       case data: NodeData.Integer      => ValueInteger.stringify(data.content)
@@ -64,45 +68,61 @@ object ValueStringifier {
 }
 
 trait EditParser[+T] { self =>
-  def parse(str: String): EditInteraction[T]
+  def parse(elem: dom.Element): EditInteraction[T]
   def inputModifier: VDomModifier
 
   final def map[R](f: T => R): EditParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))
   final def flatMap[R](f: T => EditInteraction[R]): EditParser[R] = new EditParser[R] {
-    def parse(str: String): EditInteraction[R] = self.parse(str).flatMap(f)
+    def parse(elem: dom.Element): EditInteraction[R] = self.parse(elem).flatMap(f)
     def inputModifier: VDomModifier = self.inputModifier
   }
 }
 object EditParser {
   @inline def apply[T](implicit parser: EditParser[T]): EditParser[T] = parser
 
-  object Disabled extends EditParser[Nothing] {
-    def parse(str: String) = EditInteraction.Cancel
-    def inputModifier = VDomModifier(
-      disabled := true
-    )
+  trait StringBased[+T] extends EditParser[T] {
+    final def parse(elem: dom.Element) = {
+      val str = elem.asInstanceOf[js.Dynamic].value.asInstanceOf[js.UndefOr[String]].getOrElse(elem.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]) // innerText because textContent would remove line-breaks in firefox
+      parse(str)
+    }
+    def parse(str: String): EditInteraction[T]
   }
 
-  implicit object EditString extends EditParser[String] {
+  object Disabled extends EditParser[Nothing] {
+    def parse(elem: dom.Element) = EditInteraction.Cancel
+    def inputModifier = VDomModifier(disabled := true)
+  }
+
+  implicit object EditString extends StringBased[String] {
     def parse(str: String) = EditInteraction.Input(str)
     def inputModifier = Elements.textInputMod
   }
   implicit val EditNonEmptyString: EditParser[NonEmptyString] = EditString.flatMap(str => EditInteraction.fromEither(str, NonEmptyString(str).toRight("Cannot be empty")))
-  implicit object EditInteger extends EditParser[Int] {
+  implicit object EditInteger extends StringBased[Int] {
     def parse(str: String) = EditInteraction.fromEither(str, StringOps.safeToInt(str).toRight("Not an Integer Number"))
     def inputModifier = Elements.integerInputMod
   }
-  implicit object EditDouble extends EditParser[Double] {
+  implicit object EditDouble extends StringBased[Double] {
     def parse(str: String) = EditInteraction.fromEither(str, StringOps.safeToDouble(str).toRight("Not a Double Number"))
     def inputModifier = Elements.decimalInputMod
   }
-  implicit object EditEpochMilli extends EditParser[EpochMilli] {
+  implicit object EditEpochMilli extends StringBased[EpochMilli] {
     def parse(str: String) = EditInteraction.fromEither(str, StringJsOps.safeToEpoch(str).toRight("Not a Date"))
     def inputModifier = Elements.dateInputMod
   }
-  implicit object EditDurationMilli extends EditParser[DurationMilli] {
+  implicit object EditDurationMilli extends StringBased[DurationMilli] {
     def parse(str: String) = EditInteraction.fromEither(str, StringJsOps.safeToDuration(str))
     def inputModifier = Elements.durationInputMod
+  }
+
+  implicit def EditOption[T: EditParser]: EditParser[Option[T]] = EditParser[T].map(Some(_))
+
+  implicit object EditParserFile extends EditParser[dom.File] {
+    def parse(elem: dom.Element) = {
+      val file = elem.asInstanceOf[js.Dynamic].files.asInstanceOf[js.UndefOr[dom.FileList]].collect { case list if list.length > 0 => list(0) }
+      EditInteraction.fromEither(file.fold("")(_.name), file.toRight("Cannot find file"))
+    }
+    def inputModifier = Elements.fileInputMod
   }
 
   implicit val EditNodeDataInteger: EditParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)
@@ -111,8 +131,6 @@ object EditParser {
   implicit val EditNodeDataRelativeDate: EditParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)
   implicit val EditNodeDataPlainText: EditParser[NodeData.PlainText] = EditString.map[NodeData.PlainText](NodeData.PlainText.apply)
   implicit val EditNodeDataMarkdown: EditParser[NodeData.Markdown] = EditString.map[NodeData.Markdown](NodeData.Markdown.apply)
-
-  implicit def EditOption[T: EditParser]: EditParser[Option[T]] = EditParser[T].map(Some(_))
 
   val forNodeDataType: NodeData.Type => Option[EditParser[NodeData]] = {
     case NodeData.Integer.tpe => Some(EditNodeDataInteger)

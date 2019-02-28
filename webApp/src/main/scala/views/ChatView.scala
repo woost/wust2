@@ -126,7 +126,7 @@ object ChatView {
             case None =>
               state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), replyNodes))
             case Some(uploadFile) =>
-              uploadFileAndCreateNode(state, str, replyNodes, uploadFile)
+              AWS.uploadFileAndCreateNode(state, str, uploadFile, GraphChanges.addToParents(_, parentIds = replyNodes))
           }
 
           if(!pinReply.now) currentReply() = Set.empty[NodeId]

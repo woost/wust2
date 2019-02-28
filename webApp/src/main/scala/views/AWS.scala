@@ -4,18 +4,20 @@ import java.util.concurrent.TimeUnit
 
 import cats.effect.IO
 import monix.eval.Task
+import monix.execution.Ack
 import monix.reactive.Observable
+import monix.reactive.subjects.ReplaySubject
 import org.scalajs.dom
 import org.scalajs.dom.FormData
 import org.scalajs.dom.raw.XMLHttpRequest
 import outwatch.dom.VNode
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, UploadingFile}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import sha256.Sha256
 import sun.swing.FilePane.FileChooserUIAccessor
-import wust.api.{AuthUser, FileUploadConfiguration}
+import wust.api.{AuthUser, FileUploadConfiguration, ApiEvent}
 import wust.graph._
 import wust.ids._
 import wust.webApp.Client
@@ -106,5 +108,47 @@ object AWS {
 
     val url = dom.URL.createObjectURL(file)
     Some(UploadableFile(file = file, dataUrl = url, uploadKey = uploadedKey))
+  }
+
+  def uploadFileAndCreateNode(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Ack] = {
+
+    val (initialChanges, observableChanges) = uploadFileAndCreateNodeChanges(state, str, uploadFile, extraChanges)
+
+    // propagate locally with loading icon
+    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, initialChanges.withAuthor(state.user.now.id)))
+
+    observableChanges.subscribe(state.eventProcessor.changes)
+
+    ack
+  }
+
+  def uploadFileAndCreateNodeChanges(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): (GraphChanges, Observable[GraphChanges]) = {
+    def toGraphChanges(node: Node) = GraphChanges.addNode(node).merge(extraChanges(node.id))
+
+    val fileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
+    val fileNode = Node.Content(fileNodeData, NodeRole.Message)
+
+    val initialChanges = toGraphChanges(fileNode)
+
+    //TODO: there is probably a better way to implement this...
+    val observableChanges = ReplaySubject.createLimited[GraphChanges](1)
+    var uploadTask: Task[Unit] = null
+    uploadTask = Task.defer{
+      state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Waiting(uploadFile.dataUrl)))
+
+      uploadFile.uploadKey.map {
+        case Some(key) =>
+          state.uploadingFiles.update(_ - fileNode.id)
+          observableChanges.onNext(toGraphChanges(fileNode.copy(data = fileNodeData.copy(key = key))))
+          ()
+        case None      =>
+          state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Error(uploadFile.dataUrl, uploadTask)))
+          ()
+      }
+    }
+
+    uploadTask.runAsyncAndForget
+
+    initialChanges -> observableChanges
   }
 }

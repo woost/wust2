@@ -73,7 +73,7 @@ object EditableContent {
         emitter(subject) --> action,
         Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsInside(_)) },
 
-        commonEditMods(config, subject, extractString = _.asInstanceOf[dom.html.Input].value),
+        commonEditMods(config, subject),
       ),
 
       Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsOutside(_)) },
@@ -122,7 +122,7 @@ object EditableContent {
       emitter(subject) --> action,
       Some(config.errorMode).collect { case ErrorMode.Show => subject.map(showErrorsInside(_)) },
 
-      commonEditMods(config, subject, extractString = _.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]), // innerText because textContent would remove line-breaks in firefox
+      commonEditMods(config, subject), // innerText because textContent would remove line-breaks in firefox
     )
   }
 
@@ -188,7 +188,7 @@ object EditableContent {
     }
   }
 
-  private def commonEditMods[T: EditParser](config: Config, rawAction: Observer[EditInteraction[T]], extractString: dom.EventTarget => String) = {
+  private def commonEditMods[T: EditParser](config: Config, rawAction: Observer[EditInteraction[T]]) = {
     var lastValue: EditInteraction[T] = null
     val action = rawAction.redirectCollect[EditInteraction[T]] { case e if lastValue != e =>
       lastValue = e
@@ -209,16 +209,16 @@ object EditableContent {
       config.submitMode match {
         case SubmitMode.Explicit => VDomModifier(
           onBlur.transform(_.delayOnNext(200 millis)).map { e => // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-            EditParser[T].parse(extractString(e.target))
+            EditParser[T].parse(e.target.asInstanceOf[dom.Element])
           } --> action,
           BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-            onEnter.map(e => EditParser[T].parse(extractString(e.target))) --> action,
+            onEnter.map(e => EditParser[T].parse(e.target.asInstanceOf[dom.Element])) --> action,
             onEscape(EditInteraction.Cancel) --> action
             //TODO how to revert back if you wrongly edited something on mobile?
           )),
         )
         case SubmitMode.Emitter(builders) => VDomModifier(
-          builders.map(_.map(e => EditParser[T].parse(extractString(e.target))) --> action)
+          builders.map(_.map(e => EditParser[T].parse(e.target.asInstanceOf[dom.Element])) --> action)
         )
 
       },

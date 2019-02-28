@@ -290,6 +290,10 @@ object Elements {
     placeholder := "1y 2h 3m 4s, ...",
   )
 
+  val fileInputMod = VDomModifier(
+    tpe := "file"
+  )
+
   def dateString(epochMilli: EpochMilli): String = {
     val createdDate = new js.Date(epochMilli)
     if(DateFns.differenceInCalendarDays(new js.Date, createdDate) > 0)

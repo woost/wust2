@@ -752,22 +752,20 @@ object Components {
       )
     })
 
-    def uploadFileInput(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
+    def uploadFileInput(state: GlobalState, selected: Var[Option[AWS.UploadableFile]], inputModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-      input(display.none, tpe := "file",
-        onChange.foreach { e =>
-          val inputElement = e.currentTarget.asInstanceOf[dom.html.Input]
-          if (inputElement.files.length > 0) selected() = AWS.upload(state, inputElement.files(0))
-          else selected() = None
-        }
-      )
+      EditableContent.inputField[dom.File](EditableContent.Config(
+        inputModifier = VDomModifier(inputModifier, display.none),
+        errorMode = EditableContent.ErrorMode.Cancel,
+        submitMode = EditableContent.SubmitMode.OnChange,
+      )).editValue.map(AWS.upload(state, _)) --> selected
     }
 
     def defaultFileUploadHandler(state: GlobalState)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
       val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
       fileUploadHandler.foreach(_.foreach { uploadFile =>
-        SharedViewElements.uploadFileAndCreateNode(state, "", state.page.now.parentId, uploadFile)
+        AWS.uploadFileAndCreateNode(state, "", uploadFile, GraphChanges.addToParents(_, parentIds = state.page.now.parentId))
         fileUploadHandler() = None
       })
 
@@ -803,7 +801,7 @@ object Components {
       val fileInputId = "upload-file-field"
       div(
         padding := "3px",
-        uploadFileInput(state, selected).apply(id := fileInputId),
+        uploadFileInput(state, selected, inputModifier = id := fileInputId),
         label(
           forId := fileInputId, // label for input will trigger input element on click.
 

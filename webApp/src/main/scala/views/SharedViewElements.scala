@@ -7,7 +7,7 @@ import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.execution.Ack
 import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.{PublishSubject, ReplaySubject}
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
@@ -47,32 +47,6 @@ object SharedViewElements {
       if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
       else result
     }
-  }
-
-  def uploadFileAndCreateNode(state: GlobalState, str: String, replyNodes: Iterable[NodeId], uploadFile: AWS.UploadableFile): Future[Ack] = {
-    val fileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
-    val fileNode = Node.Content(fileNodeData, NodeRole.Message)
-
-    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, GraphChanges.addNodeWithParent(fileNode, replyNodes).withAuthor(state.user.now.id)))
-
-    var uploadTask: Task[Unit] = null
-    uploadTask = Task.defer{
-      state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Waiting(uploadFile.dataUrl)))
-
-      uploadFile.uploadKey.map {
-        case Some(key) =>
-          state.uploadingFiles.update(_ - fileNode.id)
-          state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(fileNode.copy(data = fileNodeData.copy(key = key)), replyNodes))
-          ()
-        case None      =>
-          state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Error(uploadFile.dataUrl, uploadTask)))
-          ()
-      }
-    }
-
-    uploadTask.runAsyncAndForget
-
-    ack
   }
 
   def inputRow(
