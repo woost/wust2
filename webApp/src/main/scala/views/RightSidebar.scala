@@ -67,7 +67,7 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
         div(
-          width := "20px",
+          fontSize.xLarge,
           cls := "fa-fw", freeSolid.faAngleDoubleRight,
           cursor.pointer,
           onClick(None).foreach(parentIdAction),
