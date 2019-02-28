@@ -66,8 +66,8 @@ object Components {
     case d                           => d.str
   }
 
-  def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color.gray, "X + "), span(StringJsOps.durationToString(data.content)))
-p
+  def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
+
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
@@ -359,8 +359,11 @@ p
 
     val icon = ItemProperties.iconByNodeData(property.data)
     val contentString = VDomModifier(
-      Elements.icon(icon)(marginRight := "5px"),
-      s"${key.data.key}: ${property.data.str}"
+      Styles.flex,
+      alignItems.center,
+      icon,
+      i(s"${key.data.key}:", margin := "0 4px"),
+      renderNodeData(property.data, maxLength = Some(50))
     )
 
     span(
