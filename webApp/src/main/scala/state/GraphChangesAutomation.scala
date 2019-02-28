@@ -7,7 +7,7 @@ import flatland.{ArraySet, ArrayStackInt}
 import monix.reactive.Observable
 import rx.Var
 import wust.graph._
-import wust.ids.{EdgeData, EpochMilli, NodeId, TemplateId}
+import wust.ids.{EdgeData, EpochMilli, NodeId, TemplateId, NodeData}
 import wust.util.macros.InlineList
 import wust.util.{StringOps, algorithm}
 import wust.webApp.views.UI
@@ -38,6 +38,15 @@ object GraphChangesAutomation {
 
     replacedNodes += templateNode.id -> newNode
 
+    def copyAndTransformNode(node: Node.Content): Node.Content = {
+      // transform certain node data in automation
+      val newData = node.data match {
+        case NodeData.RelativeDate(duration) => NodeData.Date(copyTime plus duration)
+        case data => data
+      }
+      node.copy(id = NodeId.fresh, data = newData)
+    }
+
     // If the newNode is already in the graph, then get all descendants. For
     // each descendant check whether it is derived from template node - i.e. the
     // newNode was already automated with this template before. If it was, we
@@ -64,13 +73,31 @@ object GraphChangesAutomation {
             case Some(implementationNode) =>
               replacedNodes += node.id -> implementationNode
             case None =>
-              val copyNode = node.copy(id = NodeId.fresh)
+              val copyNode = copyAndTransformNode(node)
               addNodes += copyNode
               addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id))
               replacedNodes += node.id -> copyNode
           }
         case _ => ()
       }
+    }
+
+    // Copy and replace properties pointing to replace nodes
+    graph.edges.foreach {
+      case edge: Edge.LabeledProperty =>
+        (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
+          case (Some(newSource), None) => // a copied node points to an existing property, we want to copy the property.
+            val targetNode = graph.nodesById(edge.propertyId)
+            targetNode match {
+              case node: Node.Content =>
+                val copyNode = copyAndTransformNode(node)
+                addNodes += copyNode
+                replacedNodes += node.id -> copyNode
+              case _ => ()
+            }
+          case _ => ()
+        }
+      case _ => ()
     }
 
     // Go through all edges and create new edges pointing to the replacedNodes, so
@@ -80,6 +107,7 @@ object GraphChangesAutomation {
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case edge: Edge.Automated if edge.templateNodeId == templateNode.id => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge                                                           =>
+        // replace node ids to point to our copied nodes
         (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
           case (Some(newSource), Some(newTarget)) =>addEdges += edge.copyId(sourceId = newSource.id, targetId = newTarget.id)
           case (None, Some(newTarget)) => addEdges += edge.copyId(sourceId = edge.sourceId, targetId = newTarget.id)
