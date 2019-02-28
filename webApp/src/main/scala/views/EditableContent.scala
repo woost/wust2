@@ -190,9 +190,10 @@ object EditableContent {
 
   private def commonEditMods[T: EditParser](config: Config, rawAction: Observer[EditInteraction[T]]) = {
     var lastValue: EditInteraction[T] = null
-    val action = rawAction.redirectCollect[EditInteraction[T]] { case e if lastValue != e =>
+    val action = rawAction.redirectMap[EditInteraction[T]] { e =>
+      val next = if (lastValue == e) EditInteraction.Cancel else e
       lastValue = e
-      handleEditInteraction[T](config)(e)
+      handleEditInteraction[T](config)(next)
     }
     VDomModifier(
       cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
