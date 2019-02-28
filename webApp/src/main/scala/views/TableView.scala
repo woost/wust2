@@ -138,6 +138,7 @@ object TableView {
             freeSolid.faPlus
           ),
           ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
+            dropdownModifier = cls := "top right",
             descriptionModifier = div(
               padding := "10px",
               div(
