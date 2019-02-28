@@ -257,15 +257,15 @@ class ForceSimulation(
       simData.x(dragging) = x
       simData.y(dragging) = y
 
+      ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
+      ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
+      ForceSimulationForces.calculateEulerSetConnectedComponentsPolygons(simData, staticData)
+      ForceSimulationForces.eulerSetCenter(simData, staticData)
+      ForceSimulationForces.eulerZoneCenter(simData, staticData)
+      drawCanvas(simData, staticData, canvasContext, planeDimension)
+
       val dragTarget = roleToDragItemPayload.lift((d.id, d.role))
       if (dragTarget.isDefined) {
-        ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
-        ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
-        ForceSimulationForces.calculateEulerSetConnectedComponentsPolygons(simData, staticData)
-        ForceSimulationForces.eulerSetCenter(simData, staticData)
-        ForceSimulationForces.eulerZoneCenter(simData, staticData)
-        drawCanvas(simData, staticData, canvasContext, planeDimension)
-
         hit(dragging, minimumDragHighlightRadius).foreach { target =>
           canvasContext.lineWidth = 1
 
@@ -284,21 +284,21 @@ class ForceSimulation(
           canvasContext.fill()
           canvasContext.closePath()
         }
-
-        ForceSimulationForces.clearVelocities(simData)
-        simData.alpha = 1.0
-        if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
       }
+
+      ForceSimulationForces.clearVelocities(simData)
+      simData.alpha = 1.0
+      if (debugDrawEnabled) calculateAndDrawCurrentVelocities()
     }
 
     def dropped(n: html.Element, d: Node, dragging: Int): Unit = {
       hit(dragging, minimumDragHighlightRadius).foreach { target =>
         val successful = onDrop(staticData.posts(dragging).id, staticData.posts(target).id, isCtrlPressed)
-        // if(!successful) {
-          // simData.x(dragging) = dragStartPos.x
-          // simData.y(dragging) = dragStartPos.y
-          // draw()
-        // }
+        if(!successful) {
+          simData.x(dragging) = dragStartPos.x
+          simData.y(dragging) = dragStartPos.y
+          draw()
+        }
       }
     }
 
