@@ -31,11 +31,10 @@ object ItemProperties {
   val naming = "Custom fields"
   val defaultType = NodeData.PlainText.tpe
 
-  def iconByNodeData(data: NodeData): VDomModifier = data match {
+  def iconByNodeData(data: NodeData): Option[VNode] = Some(data) collect {
     case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
     case _: NodeData.Date | _: NodeData.RelativeDate => Icons.propertyDate
     case _: NodeData.File                            => Icons.files
-    case _                                           => Icons.propertyText
   }
 
   def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {

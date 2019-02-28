@@ -361,8 +361,8 @@ object Components {
     val contentString = VDomModifier(
       Styles.flex,
       alignItems.center,
-      icon,
-      i(s"${key.data.key}:", margin := "0 4px"),
+      icon.map(_(marginRight := "4px")),
+      i(s"${key.data.key}:", marginRight := "4px"),
       renderNodeData(property.data, maxLength = Some(50))
     )
 
