@@ -328,12 +328,6 @@ object KanbanView {
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
-    val assignment = Rx {
-      val graph = state.graph()
-      val nodeUsers = graph.assignedUsersIdx(graph.idToIdx(node.id))
-      nodeUsers.map(userIdx => graph.nodes(userIdx).asInstanceOf[Node.User])
-    }
-
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
@@ -441,23 +435,39 @@ object KanbanView {
       )
     }
 
+    val propertySingle = Rx {
+      val graph = state.graph()
+      PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
+    }
+
     val cardDescription = VDomModifier(
       Styles.flex,
       flexWrap.wrap,
 
       Components.automatedNodesOfNode(state, node),
-      cardTags(state, node.id),
-      cardProperties(state, node.id),
+      propertySingle.map { propertySingle =>
+        VDomModifier(
+          propertySingle.info.tags.map { tag =>
+            Components.removableNodeTag(state, tag, taggedNodeId = node.id)
+          },
 
-      div(
-        marginLeft.auto,
-        Styles.flex,
-        justifyContent.flexEnd,
-        flexWrap.wrap,
-        assignment.map(_.map(userNode =>
-          Components.removableUserAvatar(state, userNode, targetNodeId = node.id)
-        )),
-      ),
+          propertySingle.properties.map { property =>
+            property.values.map { value =>
+              Components.removablePropertyTag(state, value.edge, value.node)
+            }
+          },
+
+          div(
+            marginLeft.auto,
+            Styles.flex,
+            justifyContent.flexEnd,
+            flexWrap.wrap,
+            propertySingle.info.assignedUsers.map(userNode =>
+              Components.removableUserAvatar(state, userNode, targetNodeId = node.id)
+            ),
+          ),
+        )
+      }
     )
 
     val cardFooter = div(
@@ -531,26 +541,6 @@ object KanbanView {
       buttonBar(position.absolute, top := "0", right := "0"),
 //      onDblClick.stopPropagation(state.urlConfig.now.copy(page = Page(node.id))) --> state.urlConfig,
     )
-  }
-
-  private def cardTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
-    Rx {
-      val graph = state.rawGraph()
-      val nodeIdx = graph.idToIdx(nodeId)
-      val tags = graph.tagParentsIdx(nodeIdx).map(graph.nodes)
-      tags.map(tag => removableNodeTag(state, tag, taggedNodeId = nodeId))
-    }
-  }
-
-  private def cardProperties(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner) = {
-    Rx {
-      val graph = state.rawGraph()
-      val nodeIdx = graph.idToIdx(nodeId)
-      val properties = graph.propertyPairIdx(nodeIdx)
-      properties.map { case (propertyKey: Edge.LabeledProperty, propertyValue: Node) =>
-        Components.removablePropertyTag(state, propertyKey, propertyValue)
-      }
-    }
   }
 
   private def addCardField(
