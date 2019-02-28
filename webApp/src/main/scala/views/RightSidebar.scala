@@ -276,6 +276,7 @@ object RightSidebar {
       ).apply(marginTop := "10px"),
 
       div(
+        marginTop := "10px",
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
             commonPropMod
