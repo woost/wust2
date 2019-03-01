@@ -141,7 +141,7 @@ object WoostNotification {
         span("send notifications.", textDecoration.underline),
       )
       def desktopText = div(
-        s"${projectName.fold("Woost")(name => s"$name (Woost)")} needs your permission to ",
+        s"${projectName.fold("Woost")(name => s"${StringOps.trimToMaxLength(name, 20)} (Woost)")} needs your permission to ",
         span("enable notifications.", textDecoration.underline),
       )
 
