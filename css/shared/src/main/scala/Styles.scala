@@ -21,6 +21,7 @@ object ZIndex {
   val uiModal = 15000
   val uiSidebar = 16000
   val dragging = 20000
+  val toast = 25000
 }
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
@@ -138,6 +139,10 @@ object Styles extends StyleSheet.Inline {
 //TODO: port over to Style as inline and reference class via Styles
 object CommonStyles extends StyleSheet.Standalone {
   import dsl._
+
+  ".toast-container" - (
+    zIndex(ZIndex.toast).important // explicitly overwrite z-index of fomantic-ui toasts
+  )
 
   "*, *:before, *:after" - (
     boxSizing.borderBox
