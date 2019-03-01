@@ -407,6 +407,17 @@ object CommonStyles extends StyleSheet.Standalone {
     flex := "0 1 auto"
   )
 
+  ".pageheader .newTabDropdown .possibleTabsSelection" - (
+    flexDirection.column,
+    )
+  // the following ensures that the menu does not reach past the upper screen edge by
+  // aligning possible views (i.e. ones which are not yet created) horizontally instead of vertically
+  ".expanded-right-sidebar .newTabDropdown .possibleTabsSelection" - (
+    display.flex,
+    flexDirection.row,
+    flexWrap.wrap,
+    maxWidth(200 px),
+  )
 
   ".overlay-sidebar" - (
     zIndex(ZIndex.overlay),

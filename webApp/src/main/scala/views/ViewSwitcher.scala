@@ -133,6 +133,7 @@ object ViewSwitcher {
     def addNewTabDropdown = div(
       div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
       UI.dropdownMenu(VDomModifier(
+                        cls := "newTabDropdown",
         padding := "5px",
         div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
@@ -145,8 +146,9 @@ object ViewSwitcher {
 
           VDomModifier(
             div(
+              cls := "possibleTabsSelection",
               Styles.flex,
-              flexDirection.column,
+              // FIXME: move into styles.scala so we can have different values for sidebar and pageheader
               alignItems.flexEnd,
               possibleViews.map { view =>
                 val info = viewToTabInfo(view, 0, 0, 0)
