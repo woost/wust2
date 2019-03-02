@@ -102,7 +102,7 @@ object TableView {
       Nil
 
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
-      val predictedType = property.groups.headOption.flatMap(g => g.values.headOption.map(_.node).map(_.data.tpe))
+      val predictedType = property.groups.find(_.values.nonEmpty).map(_.values.head.node.data.tpe)
       UI.Column(
         property.key,
         property.groups.map { group =>
