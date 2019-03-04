@@ -802,7 +802,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".tag" - (
     fontWeight.bold,
     fontSize.small,
-    color(c"#FEFEFE"),
     borderRadius(tagBorderRadius),
     padding(0 px, 3 px),
     marginRight(2 px),
@@ -813,7 +812,11 @@ object CommonStyles extends StyleSheet.Standalone {
     overflow.hidden, // required for textOverflow
     maxWidth(100 %%), // required for textOverflow
   )
-  
+
+  ".tag.colorful" - (
+    color(c"#FEFEFE"),
+  )
+
   ".tag .markdown *" - (
     /* BOTH of the following are required for text-overflow */
     whiteSpace.nowrap,
@@ -821,7 +824,7 @@ object CommonStyles extends StyleSheet.Standalone {
     textOverflow := "ellipsis",
   )
 
-  ".tag a" - (
+  ".tag.colorful a" - (
     color(c"#FEFEFE"),
     textDecoration := "underline"
   )

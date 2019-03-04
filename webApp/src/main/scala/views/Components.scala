@@ -265,7 +265,7 @@ object Components {
 
   private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier, pageOnClick: Boolean): VNode = {
     span(
-      cls := "node tag",
+      cls := "node colorful tag",
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
