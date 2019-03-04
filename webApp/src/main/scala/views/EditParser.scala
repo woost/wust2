@@ -179,7 +179,7 @@ object EditInputParser {
       var fileElem: dom.html.Input = null
       val getFileValue = VDomModifier(
         onDomMount.foreach { e => fileElem = e.asInstanceOf[dom.html.Input] },
-        // onChange.transform(_.mapEval(_ => parse(fileElem))).editValueOption --> fileValue
+        onChange.transform(_.mapEval(_ => parse(fileElem))).editValueOption --> fileValue
       )
 
       val randomId = scala.util.Random.nextInt.toString
