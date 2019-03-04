@@ -186,8 +186,9 @@ object PageSettingsMenu {
         } else {
            UI.toast(title = shareDesc, msg = "Link copied to clipboard")
         }
+
+        Analytics.sendEvent("pageheader", "share")
       },
-      onClick.stopPropagation foreach { Analytics.sendEvent("pageheader", "share") }
     )
   }
 
