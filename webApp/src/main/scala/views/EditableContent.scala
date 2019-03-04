@@ -213,7 +213,9 @@ object EditableContent {
       }
     }
 
-    def shouldFocus = dom.document.activeElement.tagName == "BODY"
+    def shouldFocus = {
+      dom.document.activeElement.tagName.toLowerCase != "input"
+    }
     VDomModifier(
       onDomMount.asHtml.foreach { elem = _ },
       keyed, // when updates come in, don't disturb current editing session
