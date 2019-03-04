@@ -23,8 +23,8 @@ import scala.collection.breakOut
 
 object RightSidebar {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, state.rightSidebarNode() = _)
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, nodeId => state.rightSidebarNode() = nodeId.map(FocusPreference(_)))
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = Var(focusedNodeId.now.isDefined)
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
     toggleVar.triggerLater(show => if (!show) parentIdAction(None))
@@ -38,8 +38,8 @@ object RightSidebar {
   }
 
   // TODO rewrite to rely on static focusid
-  def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
-    val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
+  def content(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    val nodeStyle = focusedNodeId.map(n => PageStyle.ofNode(n.map(_.nodeId)))
 
     def accordionEntry(name: String, body: VDomModifier): (VDomModifier, VDomModifier) = {
       VDomModifier(
@@ -106,34 +106,34 @@ object RightSidebar {
       )
     )
   }
-  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Styles.flex,
       flexDirection.column,
-      focusedNodeId.map(_.map { nodeId =>
+      focusedNodeId.map(_.map { focusPref =>
         val graph = state.rawGraph.now
-        val initialView = graph.nodesByIdGet(nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
+        val initialView = graph.nodesByIdGet(focusPref.nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
         val viewVar = Var[View.Visible](initialView)
-        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, nodeId, view)
+        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view)
 
         VDomModifier(
           div(
             Styles.flexStatic,
             Styles.flex,
             alignItems.center,
-            ViewSwitcher(state, nodeId, viewVar, viewAction),
+            ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.map(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
             borderBottom := "2px solid black",
             button(
               cls := "ui mini button compact",
               marginLeft := "10px",
               Icons.zoom,
               cursor.pointer,
-              onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
+              onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
             ),
           ),
           Rx {
             val view = viewVar()
-              ViewRender(state, FocusState(view, nodeId, nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+              ViewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
                 Styles.growFull,
                 flexGrow := 1,
               ).prepend(
@@ -145,14 +145,14 @@ object RightSidebar {
     )
   }
 
-  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
-        focusedNodeId().flatMap { nodeId =>
-          state.rawGraph().nodesByIdGet(nodeId).map { node =>
+        focusedNodeId().flatMap { focusPref =>
+          state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
             // val hasParents = state.rawGraph().notDeletedParents(nodeId).nonEmpty
             // VDomModifier.ifTrue(hasParents)(
-              BreadCrumbs(state, state.page().parentId, focusedNodeId, nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")
+              BreadCrumbs(state, state.page().parentId, focusedNodeId.map(_.map(_.nodeId)), nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")
             // )
           }
         }
@@ -160,13 +160,13 @@ object RightSidebar {
     )
   }
 
-  private def nodeContent(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeContent(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
     VDomModifier(
       Rx {
-        focusedNodeId().flatMap { nodeId =>
-          state.rawGraph().nodesByIdGet(nodeId).map { node =>
+        focusedNodeId().flatMap { focusPref =>
+          state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
             div(
               Styles.flex,
               alignItems.flexStart,
@@ -187,11 +187,11 @@ object RightSidebar {
     )
   }
 
-  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
-        focusedNodeId().flatMap { nodeId =>
-          state.rawGraph().nodesByIdGet(nodeId).map { node =>
+        focusedNodeId().flatMap { focusPref =>
+          state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
             nodeProperties(state, state.rawGraph(), node)
           }
         }

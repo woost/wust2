@@ -3,6 +3,11 @@ package wust.webApp.state
 import wust.graph.Page
 import wust.ids.{NodeId, View}
 
+case class FocusPreference(
+  nodeId: NodeId,
+  view: Option[View] = None
+)
+
 case class FocusState(
   view: View.Visible,
   parentId: NodeId,

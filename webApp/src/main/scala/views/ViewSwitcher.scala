@@ -34,7 +34,7 @@ object ViewSwitcher {
   def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     apply(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
   }
-  def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
 
     def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
       case View.Dashboard => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
@@ -76,11 +76,11 @@ object ViewSwitcher {
             case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
           }
 
-          if (viewRx.now != newView) {
-            viewAction(newView)
-          }
-
           state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+        }
+
+        if (viewRx.now != newView) {
+          viewAction(newView)
         }
       }
     }
@@ -208,6 +208,7 @@ object ViewSwitcher {
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 
     viewRx.triggerLater { view => addNewView(view) }
+    initialView.foreach(addNewView(_))
 
     div(
       marginLeft := "5px",

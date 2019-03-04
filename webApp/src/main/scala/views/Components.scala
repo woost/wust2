@@ -26,7 +26,7 @@ import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, UploadingFile}
+import wust.webApp.state.{GlobalState, PageChange, UploadingFile, FocusPreference}
 import wust.webApp.views.Elements._
 import wust.webApp.views.UI.ModalConfig
 
@@ -945,26 +945,26 @@ object Components {
     )
   }
 
-  def sidebarNodeFocusMod(sidebarNode: Var[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+  def sidebarNodeFocusMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNodeFocusClickMod(sidebarNode, nodeId),
     sidebarNodeFocusVisualizeMod(sidebarNode, nodeId)
   )
 
-  def sidebarNodeFocusClickMod(sidebarNode: Var[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+  def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     cursor.pointer,
     onClick.stopPropagation.foreach {
-      val nextNode = if (sidebarNode.now.contains(nodeId)) None else Some(nodeId)
+      val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
       sidebarNode() = nextNode
     },
   )
 
-  def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-    sidebarNode.map(_ contains nodeId).map { isFocused =>
+  def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
       VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 2px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
-  def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[NodeId]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
-    sidebarNode.map(_ contains nodeId).map { isFocused =>
+  def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
       VDomModifier.ifTrue(isFocused)(boxShadow := s"4px 0px 2px -2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )

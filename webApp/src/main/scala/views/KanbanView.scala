@@ -17,7 +17,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, NodePermission}
+import wust.webApp.state.{FocusState, FocusPreference, GlobalState, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -493,7 +493,7 @@ object KanbanView {
             renderMessageCount(
               taskStats().messageChildrenCount,
               UI.popup := "Zoom to show comments",
-              onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(node.id), View.Conversation)) --> state.urlConfig,
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
           ),

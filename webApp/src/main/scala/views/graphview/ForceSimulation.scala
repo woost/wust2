@@ -19,7 +19,7 @@ import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, FocusState}
+import wust.webApp.state.{GlobalState, FocusState, FocusPreference}
 import wust.webApp.views.Components._
 import flatland._
 
@@ -307,7 +307,7 @@ class ForceSimulation(
       scribe.info(s"clicked node[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
-      val nextNode = if (state.rightSidebarNode.now == Some(node.id)) None else Some(node.id)
+      val nextNode = if (state.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))
       state.rightSidebarNode() = nextNode
     }
 

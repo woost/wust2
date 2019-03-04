@@ -10,7 +10,7 @@ import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids.{ChildId, NodeId, ParentId, TemplateId}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.{Icons, Ownable}
-import wust.webApp.state.{GlobalState}
+import wust.webApp.state.{GlobalState, FocusPreference}
 
 import scala.collection.breakOut
 
@@ -26,7 +26,7 @@ object GraphChangesAutomationUI {
       }
     }
 
-    val selectedTemplate = Var[Option[NodeId]](None)
+    val selectedTemplate = Var[Option[FocusPreference]](None)
 
     val newTemplateButton = button(
       cls := "ui button",
