@@ -288,6 +288,12 @@ object SharedViewElements {
       graph.nodesByIdGet(nodeId) //TODO: why option? shouldn't the node always exist?
     }
 
+    val propertyData = Rx {
+      val graph = state.graph()
+      PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
+    }
+
+
     val isSynced: Rx[Boolean] = {
       // when a node is not in transit, avoid rx subscription
       val nodeInTransit = state.addNodesInTransit.now contains nodeId
@@ -313,7 +319,19 @@ object SharedViewElements {
               renderedMessageModifier,
             )
           case _ =>
-            nodeCardWithFile(state, node).apply(
+            nodeCardWithFile(state, node,
+              contentInject = div(
+                Styles.flex,
+                flexDirection.column,
+                propertyData.map { propertySingle =>
+                  propertySingle.properties.map { property =>
+                    property.values.map { value =>
+                      Components.propertyTag(state, value.edge, value.node)
+                    }
+                  },
+                }
+              )
+            ).apply(
               Styles.flex,
               alignItems.flexEnd, // keeps syncIcon at bottom
 
