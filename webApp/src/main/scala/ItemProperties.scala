@@ -67,9 +67,7 @@ object ItemProperties {
       }
 
       def createProperty() = {
-        if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-          handleAddProperty(propertyKeyInput.now, propertyValueInput.now)
-        }
+        handleAddProperty(propertyKeyInput.now, propertyValueInput.now)
       }
 
       VDomModifier(
