@@ -39,6 +39,7 @@ object DashboardView {
       flexDirection.column,
       justifyContent.flexStart,
       padding := "20px",
+      overflow.auto,
 
       //TODO: renderSubprojects mit summary
       renderSubprojects(state, focusState),
