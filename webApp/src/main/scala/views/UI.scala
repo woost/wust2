@@ -187,10 +187,10 @@ object UI {
     popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
   def popup(tooltipZIndex: Int): AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; }, tooltipZIndex)
-  def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
+  def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true })
   def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
     val _position = position
-    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; hoverable = true; inline = true })
+    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; inline = true })
   }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)
