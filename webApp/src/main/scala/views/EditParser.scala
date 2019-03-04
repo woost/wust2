@@ -149,11 +149,11 @@ object EditInputParser {
   }
 
   implicit object EditInteger extends EditInputParser[Int] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringOps.safeToInt(elem.value).toRight("Not an Integer Number")))
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(scala.util.Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
     def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.integerInputMod)
   }
   implicit object EditDouble extends EditInputParser[Double] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringOps.safeToDouble(elem.value).toRight("Not a Double Number")))
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(scala.util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
     def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.decimalInputMod)
   }
   implicit object EditEpochMilli extends EditInputParser[EpochMilli] {
