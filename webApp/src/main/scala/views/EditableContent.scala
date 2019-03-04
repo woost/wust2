@@ -127,6 +127,7 @@ object EditableContent {
         backgroundColor := "#FFF",
         color := "#000",
         cursor.auto,
+        minWidth := "20px", minHeight := "20px", // minimal edit area
 
         commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], _.fold[String](identity, identity))
       )
