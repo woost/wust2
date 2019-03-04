@@ -58,7 +58,6 @@ object PageHeader {
 
     val channelTitle = Components.roleSpecificRenderAsOneLineText(pageNode).apply(commonMods)
 
-
     val channelMembersList = Rx {
       val hasBigScreen = state.screenSize() != ScreenSize.Small
       hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment
@@ -66,7 +65,7 @@ object PageHeader {
 
     val permissionIndicator = Rx {
       val level = Permission.resolveInherited(state.graph(), pageNode.id)
-      div(level.icon, UI.popup("bottom center") := level.description, zIndex := ZIndex.tooltip - 15, marginRight := "5px")
+      div(level.icon, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
 
     div(
