@@ -138,7 +138,7 @@ object GraphChangesAutomationUI {
       padding := "0px 10px 10px 10px",
       Styles.flex,
       alignItems.center,
-      justifyContent.spaceBetween,
+      justifyContent.flexStart,
 
       newTemplateButton.apply(
         "+ Add Template",
@@ -146,12 +146,12 @@ object GraphChangesAutomationUI {
         margin := "0px" // fixes center alignment issue in chrome
       ),
 
-      Components.searchInGraph(state.graph, placeholder = "Add existing template", inputModifiers = VDomModifier(height := "26px"), filter = {
-        case content: Node.Content => true
-        case _ => false
-      }).foreach { selectedTemplateNodeId =>
-        state.eventProcessor.changes onNext GraphChanges(addEdges = Set(Edge.Automated(focusedId, TemplateId(selectedTemplateNodeId))))
-      },
+      // Components.searchInGraph(state.graph, placeholder = "Add existing template", inputModifiers = VDomModifier(height := "26px"), filter = {
+      //   case content: Node.Content => true
+      //   case _ => false
+      // }).foreach { selectedTemplateNodeId =>
+      //   state.eventProcessor.changes onNext GraphChanges(addEdges = Set(Edge.Automated(focusedId, TemplateId(selectedTemplateNodeId))))
+      // },
     )
 
     UI.ModalConfig(header = header, description = description, actions = Some(actions), contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
