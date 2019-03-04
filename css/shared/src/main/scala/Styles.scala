@@ -400,19 +400,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".expanded-right-sidebar > .sidebar-close" - (
   )
 
-  ".expanded-right-sidebar .accordion" - (
-    //overflowY.scroll,
-    display.flex,
-    flexDirection.column,
-    height(100 %%)
-  )
-
-  ".expanded-right-sidebar .accordion .content" - (
-    //overflowY.hidden, // removed to fix upwards „...“ popup Menu of „Views“ accordion
-    flex := "0 1 auto"
-  )
-
-
   ".overlay-sidebar" - (
     zIndex(ZIndex.overlay),
     position.absolute,
