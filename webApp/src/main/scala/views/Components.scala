@@ -764,11 +764,11 @@ object Components {
       )
     })
 
-    def defaultFileUploadHandler(state: GlobalState)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
+    def defaultFileUploadHandler(state: GlobalState, toGraphChanges: NodeId => GraphChanges)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
       val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
       fileUploadHandler.foreach(_.foreach { uploadFile =>
-        AWS.uploadFileAndCreateNode(state, "", uploadFile, GraphChanges.addToParents(_, parentIds = state.page.now.parentId))
+        AWS.uploadFileAndCreateNode(state, "", uploadFile, toGraphChanges)
         fileUploadHandler() = None
       })
 

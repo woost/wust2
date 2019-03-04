@@ -5,6 +5,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.{Styles, ZIndex}
 import wust.ids._
+import wust.graph.GraphChanges
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 
@@ -22,7 +23,7 @@ object FilesView {
     div(
       padding := "20px",
       overflow.auto,
-      Components.uploadField(state, Components.defaultFileUploadHandler(state), tooltipDirection = "bottom left"),
+      Components.uploadField(state, Components.defaultFileUploadHandler(state, GraphChanges.addToParent(_, focusState.focusedId))),
       UI.horizontalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
