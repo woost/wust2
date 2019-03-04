@@ -20,7 +20,9 @@ case class SmtpConfig(endpoint: String, username: String, password: String) {
 }
 case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-case class AwsConfig(uploadBucketName: String, region: String, accessKey: String, secretKey: String)
+case class AwsConfig(uploadBucketName: String, region: String, accessKey: String, secretKey: String) {
+  override def toString: String = s"AwsConfig($uploadBucketName, $region, $accessKey, ***)"
+}
 
 case class ServerConfig(host: String, port: Int, clientBufferSize: Int, allowedOrigins: List[String])
 
@@ -35,7 +37,7 @@ case class Config(
 ) {
   override def toString: String = {
     val cleanDb = db.withoutPath("password")
-    s"Config($server, $pushNotification, $auth, $email, $logstash, $cleanDb)"
+    s"Config($server, $aws, $pushNotification, $auth, $email, $logstash, $cleanDb)"
   }
 }
 
