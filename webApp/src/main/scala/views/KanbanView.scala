@@ -448,12 +448,12 @@ object KanbanView {
       propertySingle.map { propertySingle =>
         VDomModifier(
           propertySingle.info.tags.map { tag =>
-            Components.nodeTag(state, tag)
+            Components.removableNodeTag(state, tag, taggedNodeId = node.id)
           },
 
           propertySingle.properties.map { property =>
             property.values.map { value =>
-              Components.propertyTag(state, value.edge, value.node)
+              Components.removablePropertyTag(state, value.edge, value.node)
             }
           },
 
