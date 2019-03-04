@@ -932,6 +932,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard .buttonbar" - (
     padding(2 px, 4 px),
+    backgroundColor(nodeCardBackgroundColor),
     visibility.hidden
   )
 
