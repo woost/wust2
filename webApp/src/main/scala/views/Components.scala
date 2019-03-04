@@ -178,7 +178,7 @@ object Components {
           case t if t.startsWith("image/") =>
             val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              state.uiModalConfig.onNext(Ownable(_ => ModalConfig(description, image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
+              state.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
             //TODO pdf preview does not work with "content-disposition: attachment"-header
@@ -764,12 +764,13 @@ object Components {
       )
     })
 
-    def defaultFileUploadHandler(state: GlobalState, toGraphChanges: NodeId => GraphChanges)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
+    def defaultFileUploadHandler(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
       val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
       fileUploadHandler.foreach(_.foreach { uploadFile =>
-        AWS.uploadFileAndCreateNode(state, "", uploadFile, toGraphChanges)
-        fileUploadHandler() = None
+        AWS.uploadFileAndCreateNode(state, uploadFile, nodeId => GraphChanges.addToParent(nodeId, focusedId) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
+          fileUploadHandler() = None
+        }
       })
 
       fileUploadHandler

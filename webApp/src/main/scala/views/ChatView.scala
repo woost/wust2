@@ -122,11 +122,12 @@ object ChatView {
             else Set(focusState.focusedId)
           }
 
+          //TODO: share code with threadview
+          val basicNode = Node.MarkdownMessage(str)
+          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, replyNodes)
           fileUploadHandler.now match {
-            case None =>
-              state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), replyNodes))
-            case Some(uploadFile) =>
-              AWS.uploadFileAndCreateNode(state, str, uploadFile, GraphChanges.addToParents(_, parentIds = replyNodes))
+            case None => state.eventProcessor.changes.onNext(basicGraphChanges)
+            case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
           }
 
           if(!pinReply.now) currentReply() = Set.empty[NodeId]

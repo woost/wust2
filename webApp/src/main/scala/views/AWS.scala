@@ -30,9 +30,7 @@ import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object AWS {
-  case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]]) {
-    def toNodeData(key: String, description: String): NodeData.File = NodeData.File(key = key, fileName = file.name, contentType = file.`type`, description = description)
-  }
+  case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]])
 
   def upload(state: GlobalState, file: dom.File): Either[String, UploadableFile] = { // TODO: return either and propagate error message to form error instead of toast
     state.user.now match {
@@ -110,11 +108,11 @@ object AWS {
     Right(UploadableFile(file = file, dataUrl = url, uploadKey = uploadedKey))
   }
 
-  def uploadFileAndCreateNode(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Unit = {
+  def uploadFileAndCreateNode(state: GlobalState, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Unit] = {
 
     val nodeId = NodeId.fresh
-    val (initialNodeData, observableNodeData) = uploadFileAndCreateNodeDataFull(state, str, uploadFile, Some(nodeId))
-    val initialNode = Node.Content(nodeId, initialNodeData, NodeRole.Message)
+    val (initialNodeData, observableNodeData) = uploadFileAndCreateNodeDataFull(state, uploadFile, Some(nodeId))
+    val initialNode = Node.Content(nodeId, initialNodeData, NodeRole.Neutral)
 
     def toGraphChanges(node: Node) = GraphChanges.addNode(node).merge(extraChanges(node.id))
 
@@ -122,16 +120,16 @@ object AWS {
     val observableChanges = observableNodeData.map(data => toGraphChanges(initialNode.copy(data = data)))
 
     state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, initialChanges.withAuthor(state.user.now.id)))
-    observableChanges.runToFuture.foreach(state.eventProcessor.changes.onNext(_))
+    observableChanges.runToFuture.flatMap { e => state.eventProcessor.changes.onNext(e).map(_ => ()) }
   }
 
-  def uploadFileAndCreateNodeData(state: GlobalState, str: String, uploadFile: AWS.UploadableFile): Task[NodeData.File] = {
-    uploadFileAndCreateNodeDataFull(state, str, uploadFile, None)._2
+  def uploadFileAndCreateNodeData(state: GlobalState, uploadFile: AWS.UploadableFile): Task[NodeData.File] = {
+    uploadFileAndCreateNodeDataFull(state, uploadFile, None)._2
   }
 
-  def uploadFileAndCreateNodeDataFull(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, nodeId: Option[NodeId] = None): (NodeData.File, Task[NodeData.File]) = {
+  def uploadFileAndCreateNodeDataFull(state: GlobalState, uploadFile: AWS.UploadableFile, nodeId: Option[NodeId] = None): (NodeData.File, Task[NodeData.File]) = {
 
-    val rawFileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
+    val rawFileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`) // TODO: empty string for signaling pending fileupload
 
     rawFileNodeData -> Task.deferFuture {
       //TODO: there is probably a better way to implement this...

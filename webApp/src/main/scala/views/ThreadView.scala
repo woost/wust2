@@ -75,10 +75,14 @@ object ThreadView {
       {
         def submitAction(str:String) = {
           scrollHandler.scrollToBottomInAnimationFrame()
+          val basicNode = Node.MarkdownMessage(str)
+          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, focusState.focusedId)
           fileUploadHandler.now match {
-            case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), focusState.focusedId))
-            case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, str, uploadFile, GraphChanges.addToParent(_, parentId = focusState.focusedId))
+            case None => state.eventProcessor.changes.onNext(basicGraphChanges)
+            case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
           }
+
+          fileUploadHandler() = None
         }
 
         val inputFieldFocusTrigger = PublishSubject[Unit]

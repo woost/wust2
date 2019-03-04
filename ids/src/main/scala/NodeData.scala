@@ -20,9 +20,8 @@ object NodeData {
 
   sealed trait Content extends NodeData
 
-  case class File(key: String, fileName: String, contentType: String, description: String) extends Named with EditableText {
-    def str = if (description.isEmpty) "[File]" else description
-    override def updateStr(str: String) = if (description != str) Some(copy(description = str)) else None
+  case class File(key: String, fileName: String, contentType: String) extends Named with Content {
+    def str = fileName
   }
   object File extends Named
 

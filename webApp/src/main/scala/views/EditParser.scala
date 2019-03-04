@@ -135,7 +135,7 @@ object EditInputParser {
     mod: VDomModifier,
     outerMod: VDomModifier = VDomModifier.empty,
     fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None,
-    valueSetter: AttributeBuilder[String, VDomModifier] = value
+    valueSetter: AttributeBuilder[Either[String, String], VDomModifier] = either => either.fold(value := _, value := _)
   )
 
   object Disabled extends EditInputParser[Nothing] {
@@ -176,8 +176,10 @@ object EditInputParser {
       // TODO: we do not have the current state of the file input field, so we just get it again on change
       // This belongs into a more sophisticated ValueStringifier for not only writing strings...
       val fileValue = Handler.unsafe[Option[dom.File]](None)
+      var fileElem: dom.html.Input = null
       val getFileValue = VDomModifier(
-        onChange.transform(_.mapEval(e => parse(e.target.asInstanceOf[dom.html.Input]))).editValueOption --> fileValue
+        onDomMount.foreach { e => fileElem = e.asInstanceOf[dom.html.Input] },
+        // onChange.transform(_.mapEval(_ => parse(fileElem))).editValueOption --> fileValue
       )
 
       val randomId = scala.util.Random.nextInt.toString
@@ -186,7 +188,14 @@ object EditInputParser {
         VDomModifier(display.none, id := randomId, Elements.fileInputMod, getFileValue),
         outerMod = fileLabel,
         fixedSubmitEvent = Some(onChange),
-        valueSetter = str => if (str.isEmpty) { fileValue.onNext(None); value := str } else VDomModifier.empty
+        valueSetter = {
+          case Right(value) =>
+           parse(fileElem).runToFuture.map(e => fileValue.onNext(e.toOption))
+           VDomModifier.empty
+          case Left(resetValue) =>
+            fileValue.onNext(None)
+            value := ""
+        }
       )
     }
   }
@@ -197,7 +206,7 @@ object EditInputParser {
   implicit val EditNodeDataRelativeDate: EditInputParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)
 
   implicit def EditUploadableFile(implicit context: EditContext): EditInputParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(context.state, file)))
-  implicit def EditNodeDataFile(implicit context: EditContext): EditInputParser[NodeData.File] = EditUploadableFile.mapEval(AWS.uploadFileAndCreateNodeData(context.state, "", _))
+  implicit def EditNodeDataFile(implicit context: EditContext): EditInputParser[NodeData.File] = EditUploadableFile.mapEval(AWS.uploadFileAndCreateNodeData(context.state, _))
 
   def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditInputParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_)).orElse(tpe match {
     case NodeData.Integer.tpe => Some(EditNodeDataInteger)

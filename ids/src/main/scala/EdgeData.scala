@@ -44,7 +44,9 @@ object EdgeData {
   case object Assigned extends Named with EdgeData with PropertyKey
 
   case class LabeledProperty(key: String) extends Named with EdgeData with PropertyKey
-  object LabeledProperty extends Named
+  object LabeledProperty extends Named {
+    def attachment = LabeledProperty("Attachment")
+  }
 
   case object Notify extends Named with EdgeData
   case object Pinned extends Named with EdgeData

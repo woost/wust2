@@ -23,7 +23,7 @@ object FilesView {
     div(
       padding := "20px",
       overflow.auto,
-      Components.uploadField(state, Components.defaultFileUploadHandler(state, GraphChanges.addToParent(_, focusState.focusedId))),
+      Components.uploadField(state, Components.defaultFileUploadHandler(state, focusState.focusedId)),
       UI.horizontalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")

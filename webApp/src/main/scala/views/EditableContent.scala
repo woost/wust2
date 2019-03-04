@@ -128,7 +128,7 @@ object EditableContent {
         color := "#000",
         cursor.auto,
 
-        commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], str => str),
+        commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], _.fold[String](identity, identity))
       )
     )
   }
@@ -196,7 +196,7 @@ object EditableContent {
     )
   }
 
-  private def commonEditMods[T: ValueStringifier, Elem <: dom.html.Element](current: Handler[EditInteraction[T]], config: Config, rawParse: Elem => Task[EditInteraction[T]], valueSetter: AttributeBuilder[String, VDomModifier], fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None) = {
+  private def commonEditMods[T: ValueStringifier, Elem <: dom.html.Element](current: Handler[EditInteraction[T]], config: Config, rawParse: Elem => Task[EditInteraction[T]], valueSetter: AttributeBuilder[Either[String, String], VDomModifier], fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None) = {
     var elem: dom.html.Element = null
     var lastValue: Option[T] = None
     val parse: Elem => Task[EditInteraction[T]] = { elem =>
@@ -220,9 +220,9 @@ object EditableContent {
       current.map {
         case EditInteraction.Input(value) =>
           lastValue = Some(value)
-          valueSetter := ValueStringifier[T].stringify(value)
+          valueSetter := Right(ValueStringifier[T].stringify(value))
         case EditInteraction.Cancel =>
-          valueSetter := lastValue.fold("")(ValueStringifier[T].stringify)
+          valueSetter := Left(lastValue.fold("")(ValueStringifier[T].stringify))
         case EditInteraction.Error(_) =>
           VDomModifier.empty
       },

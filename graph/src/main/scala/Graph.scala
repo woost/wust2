@@ -849,11 +849,13 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
   lazy val incidentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
 
+  //TODO: make faster
   val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>
-    graph.descendantsIdx(graph.idToIdx(pageParentId)).flatMap { nodeIdx =>
-      graph.nodes(nodeIdx) match {
-        case Node.Content(id, file: NodeData.File, _, _, _) => Some(id -> file)
-        case _ => None
+    val pageIdx = graph.idToIdx(pageParentId)
+    (pageIdx +: graph.descendantsIdx(pageIdx)).flatMap { nodeIdx =>
+      graph.propertyPairIdx(nodeIdx).flatMap {
+        case (_, Node.Content(id, file: NodeData.File, _, _, _)) => Some(id -> file)
+        case (_, _) => None
       }
     }
   }
