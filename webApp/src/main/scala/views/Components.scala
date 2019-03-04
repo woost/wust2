@@ -313,7 +313,7 @@ object Components {
 
     div(
       width := "100%",
-      styles.extra.wordBreak.breakWord,
+      styles.extra.wordBreak.breakAll,
       Styles.flex,
       flexWrap.wrap,
       alignItems.flexStart,

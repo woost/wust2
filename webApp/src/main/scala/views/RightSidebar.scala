@@ -174,7 +174,7 @@ object RightSidebar {
               Components.roleSpecificRender[VNode](node,
                 nodeCard = Components.nodeCardEditable(state, node, editMode),
                 nodePlain = Components.editableNode(state, node, editMode),
-              ).apply(styles.extra.wordBreak.breakWord, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
+              ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
               div(
                 Icons.edit,
                 padding := "4px",
