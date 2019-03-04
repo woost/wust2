@@ -367,7 +367,7 @@ object Components {
     property: Node,
     pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
-  ): VNode = {
+  )(implicit ctx: Ctx.Owner): VNode = {
 
     val icon = ItemProperties.iconByNodeData(property.data)
     val contentString = VDomModifier(
@@ -375,7 +375,7 @@ object Components {
       alignItems.center,
       icon.map(_(marginRight := "4px")),
       i(s"${key.data.key}:", marginRight := "4px"),
-      renderNodeData(property.data, maxLength = Some(50))
+      renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
     )
 
     span(
@@ -402,11 +402,11 @@ object Components {
     )
   }
 
-  def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false): VNode = {
-    propertyTag(state, key, propertyNode, pageOnClick)(removableTagMod(action))
+  def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+    propertyTag(state, key, propertyNode, pageOnClick).apply(removableTagMod(action))
   }
 
-  def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false): VNode = {
+  def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     removablePropertyTagCustom(state, key, propertyNode, () => {
       state.eventProcessor.changes.onNext(
         GraphChanges(delEdges = Set(key))
