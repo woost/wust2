@@ -353,6 +353,22 @@ object CommonStyles extends StyleSheet.Standalone {
 //    height(100 %%),
   )
 
+
+  // fix accordion styles breaking search result template
+  ".ui.accordion .ui.search .results .content" - (
+    padding(0.px),
+  )
+  ".ui.accordion .ui.search .results .content .title" - (
+    padding(0.px),
+    borderTop.none,
+  )
+
+  // break word in search results
+  ".ui.search .results" - (
+    wordBreak := "break-word"
+  )
+
+
   ".sidebar" - (
     color.white,
     backgroundColor(sidebarBgColorCSS),
@@ -366,10 +382,10 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".left-sidebar" - (
-    borderRight(2 px, solid, sidebarBgColorCSS),
+    // borderRight(2 px, solid, sidebarBgColorCSS),
   )
   ".right-sidebar" - (
-    borderLeft(2 px, solid, sidebarBgColorCSS),
+    // borderLeft(2 px, solid, sidebarBgColorCSS),
   )
 
   ".overlay-right-sidebar" - (
