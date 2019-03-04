@@ -47,7 +47,8 @@ object RightSidebar {
         b(name),
         Styles.flexStatic,
       ) -> VDomModifier(
-        padding := "4px",
+        margin := "4px",
+        padding := "2px",
         body
       )
     }
@@ -208,13 +209,11 @@ object RightSidebar {
       Styles.flex,
       justifyContent.spaceBetween,
       div(
-        width := "100%",
         left
       ),
       div(
         Styles.flex,
         justifyContent.flexEnd,
-        flexShrink := 0,
         right
       )
     )
@@ -241,6 +240,11 @@ object RightSidebar {
       ),
       renderSplit(
         left = VDomModifier(
+          searchInput("Add Tag", filter = _.role == NodeRole.Tag).foreach { tagId =>
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
+          }
+        ),
+        right = VDomModifier(
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
@@ -248,30 +252,25 @@ object RightSidebar {
             Components.removableNodeTag(state, tag, taggedNodeId = node.id)
           },
         ),
-        right = VDomModifier(
-          searchInput("Add Tag", filter = _.role == NodeRole.Tag).foreach { tagId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
-          }
-        ),
-      ).apply(marginTop := "15px"),
+      ).apply(marginTop := "10px"),
       renderSplit(
         left = VDomModifier(
+          searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(node.id, UserId(userId)))
+          }
+        ),
+        right = VDomModifier(
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
           propertySingle.info.assignedUsers.map { user =>
             Components.removableAssignedUser(state, user, node.id)
           },
-        ),
-        right = VDomModifier(
-          searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(node.id, UserId(userId)))
-          }
         )
-      ).apply(marginTop := "15px"),
+      ).apply(marginTop := "10px"),
 
       div(
-        marginTop := "15px",
+        marginTop := "10px",
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
             marginBottom := "15px",
