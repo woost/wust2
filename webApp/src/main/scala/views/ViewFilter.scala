@@ -44,6 +44,7 @@ object ViewFilter {
     UI.accordion(
       title = VDomModifier(
         filterColor,
+        borderTop := "0px", // unset semantic ui's border top for accordion title
         span("Filter"),
       ),
       content = div(
