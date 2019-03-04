@@ -113,26 +113,28 @@ object GlobalStateFactory {
       val user = state.user.now
 
       page.parentId.fold(graph) { parentId =>
-        val userIdx = graph.idToIdx(user.id)
+        val userIdx = graph.idToIdxGet(user.id)
         val pageIdx = graph.idToIdx(parentId)
-        if (userIdx >= 0 && pageIdx >= 0) {
+        if (pageIdx >= 0) {
           def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
-          def pageIsInvited = graph.inviteNodeIdx.contains(userIdx)(pageIdx)
-          def pageIsUnderUser: Boolean = algorithm.depthFirstSearchExists(start = pageIdx, graph.notDeletedParentsIdx, userIdx)
-          def userIsMemberOfPage: Boolean = graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx)
+          def pageIsInvited = userIdx.fold(false)(userIdx => graph.inviteNodeIdx.contains(userIdx)(pageIdx))
+          def pageIsUnderUser: Boolean = userIdx.fold(false)(userIdx => algorithm.depthFirstSearchExists(start = pageIdx, graph.notDeletedParentsIdx, userIdx))
+          def userIsMemberOfPage: Boolean = userIdx.fold(false)(userIdx => graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx))
 
-          if(!userIsMemberOfPage) {
-            Client.api.addMember(parentId, user.id, AccessLevel.ReadWrite)
-          }
+          val memberChanges = if(!userIsMemberOfPage) {
+            GraphChanges.connect(Edge.Member)(parentId, EdgeData.Member(AccessLevel.ReadWrite), user.id)
+          } else GraphChanges.empty
 
-          if(!anyPageParentIsPinned && !pageIsUnderUser && !pageIsInvited) {
-            val changes = GraphChanges.connect(Edge.Notify)(parentId, user.id)
+          val edgeChanges = if(!anyPageParentIsPinned && !pageIsUnderUser && !pageIsInvited) {
+            GraphChanges.connect(Edge.Notify)(parentId, user.id)
              .merge(GraphChanges.connect(Edge.Pinned)(parentId, user.id))
              .merge(GraphChanges.disconnect(Edge.Invite)(parentId, user.id))
+          } else GraphChanges.empty
 
-            eventProcessor.changes.onNext(changes)
-
-            graph.applyChanges(changes)
+          val allChanges = memberChanges merge edgeChanges
+          if (allChanges.nonEmpty) {
+            eventProcessor.changes.onNext(allChanges)
+            graph.applyChanges(allChanges)
           } else graph
         } else graph
       }
