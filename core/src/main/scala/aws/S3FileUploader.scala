@@ -49,9 +49,9 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     // SANITIZE user input, we use these strings in the json policy document for the signed post request to aws.
     // !!!!!really NEVER ever allow quotes or any possible encoding of breaking out of quotes in json!!!!!
     requireSaneKey(fileKey)
-    require(fileContentType.matches("^[\\w\\.+\\-]+/[\\w\\.+\\-]+$"), "invalid file content type") // allow only potential content types: "<word>/<word>"
-    require(fileSize >= 0, "File size must be greater than or equal to zero")
-    require(fileSize <= maxUploadBytesPerFile, "File size must be less than or equal to max upload bytes per file")
+    require(fileContentType.isEmpty || fileContentType.matches("^[\\w\\.+\\-]+/[\\w\\.+\\-]+$"), s"invalid file content type: $fileContentType") // allow only potential content types: "<word>/<word>"
+    require(fileSize >= 0, s"File size must be greater than or equal to zero: $fileSize")
+    require(fileSize <= maxUploadBytesPerFile, s"File size must be less than or equal to max upload bytes per file: $fileSize")
 
     // filenames do not have any restriction, we allow the most common ones. this is just about the name of the file when clicking download.
     // the url contains a hash, so browsers cannot infer a nice filename themselves. but we can help with a content-disposition header.
