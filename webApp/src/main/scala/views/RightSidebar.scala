@@ -41,16 +41,14 @@ object RightSidebar {
   def content(state: GlobalState, focusedNodeId: Rx[Option[NodeId]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val nodeStyle = focusedNodeId.map(PageStyle.ofNode)
 
-    def accordionEntry(name: String, body: VDomModifier, flexValue: String = "1"): (VDomModifier, VDomModifier) = {
+    def accordionEntry(name: String, body: VDomModifier): (VDomModifier, VDomModifier) = {
       VDomModifier(
         marginTop := "5px",
         b(name),
         Styles.flexStatic,
       ) -> VDomModifier(
-        body,
-        margin := "5px",
-        flex := flexValue,
-        height := "100%",
+        padding := "4px",
+        body
       )
     }
 
@@ -82,14 +80,17 @@ object RightSidebar {
           accordionEntry("Content", VDomModifier(
             nodeContent(state, focusedNodeId, parentIdAction),
             overflowY.auto,
-          ), flexValue = "1 1 0%"),
+            maxHeight := "40%"
+          )),
           accordionEntry("Properties", VDomModifier(
             nodeDetailsMenu(state, focusedNodeId, parentIdAction),
             overflowY.auto,
-          ), flexValue = "1 1 0%"),
+            flex := "1 1 20%"
+          )),
           accordionEntry("Views", VDomModifier(
             viewContent(state, focusedNodeId, parentIdAction),
-          ), flexValue = "1 1 30%"),
+            flex := "1 1 40%"
+          )),
         ),
         styles = "styled fluid",
         exclusive = false, //BrowserDetect.isMobile,
@@ -122,9 +123,9 @@ object RightSidebar {
             alignItems.center,
             ViewSwitcher(state, nodeId, viewVar, viewAction),
             borderBottom := "2px solid black",
-            div(
+            button(
+              cls := "ui mini button compact",
               marginLeft := "10px",
-              padding := "3px",
               Icons.zoom,
               cursor.pointer,
               onClick.foreach { state.urlConfig.update(_.focus(Page(nodeId), viewVar.now)) }
@@ -172,12 +173,12 @@ object RightSidebar {
               Components.roleSpecificRender[VNode](node,
                 nodeCard = Components.nodeCardEditable(state, node, editMode),
                 nodePlain = Components.editableNode(state, node, editMode),
-              ).apply(width := "100%", marginLeft := "3px", cls := "enable-text-selection"),
+              ).apply(styles.extra.wordBreak.breakWord, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
               div(
                 Icons.edit,
                 padding := "4px",
                 cursor.pointer,
-                onClick.stopPropagation(true) --> editMode,
+                onClick.stopPropagation(true) --> editMode
               )
             )
           }
@@ -202,12 +203,6 @@ object RightSidebar {
     val nodeIdx = graph.idToIdxOrThrow(node.id)
 
     val propertySingle = PropertyData.Single(graph, nodeIdx)
-
-    val commonPropMod = VDomModifier(
-      width := "100%",
-      marginBottom := "10px",
-      paddingLeft := "3px",
-    )
 
     def renderSplit(left: VDomModifier, right: VDomModifier) = div(
       Styles.flex,
@@ -258,7 +253,7 @@ object RightSidebar {
             state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
           }
         ),
-      ).apply(marginTop := "10px"),
+      ).apply(marginTop := "15px"),
       renderSplit(
         left = VDomModifier(
           Styles.flex,
@@ -273,13 +268,13 @@ object RightSidebar {
             state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(node.id, UserId(userId)))
           }
         )
-      ).apply(marginTop := "10px"),
+      ).apply(marginTop := "15px"),
 
       div(
-        marginTop := "10px",
+        marginTop := "15px",
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
-            commonPropMod
+            marginBottom := "15px",
           )
         },
       ),
