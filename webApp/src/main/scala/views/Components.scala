@@ -731,7 +731,7 @@ object Components {
                   }
 
                   new SearchSourceEntry {
-                    title = str
+                    title = trimToMaxLength(str, 36)
                     category = cat
                     data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
                   }
