@@ -183,7 +183,7 @@ object EditableContent {
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      div.static("editable")(Ownable { implicit ctx => VDomModifier(
+      div.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
         width := "100%",
         Styles.flex,
         modifiers,
