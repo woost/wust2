@@ -706,6 +706,7 @@ object Components {
         div(
           cls := "ui icon input",
           input(
+            borderRadius := "4px",
             inputModifiers,
             cls := "prompt",
             tpe := "text",
