@@ -44,6 +44,12 @@ object ItemProperties {
     val propertyTypeSelection = Var[Option[NodeData.Type]](prefilledType)
     val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(prefilledKey))
     val propertyValueInput = Var[Option[NodeData]](None)
+    propertyTypeSelection.foreach { selection =>
+      if (propertyKeyInput.now.isEmpty) selection.foreach {
+        case NodeData.File.tpe => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
+        case _ => ()
+      }
+    }
 
     val editableConfig = EditableContent.Config(
       outerModifier = VDomModifier(width := "100%"),
