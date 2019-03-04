@@ -148,33 +148,39 @@ object PageSettingsMenu {
   }
 
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+    import scala.concurrent.duration._
 
     val shareTitle = channel.data.str
     val shareUrl = dom.window.location.href
     val shareDesc = s"Share: $shareTitle"
 
+    def assurePublic(): Unit = {
+      // make channel public if it is not. we are sharing the link, so we want it to be public.
+      channel match {
+        case channel: Node.Content =>
+          if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
+            val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
+            state.eventProcessor.changes.onNext(changes)
+            UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
+          }
+        case _ => ()
+      }
+    }
+
     div(
-      Elements.copiableToClipboard,
       cursor.pointer,
       cls := "item",
       Elements.icon(Icons.share),
-      span("Share Link"),
-      dataAttr("clipboard-text") := shareUrl,
-      onClick.stopPropagation foreach {
-        scribe.info(s"sharing node: $channel")
+      dsl.span("Share Link"),
+      onClick.transform(_.delayOnNext(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
+        assurePublic()
+        Analytics.sendEvent("pageheader", "share")
+      },
 
-        // make channel public if it is not. we are sharing the link, so we want it to be public.
-        channel match {
-          case channel: Node.Content =>
-            if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
-              val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
-              state.eventProcessor.changes.onNext(changes)
-              UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
-            }
-          case _ => ()
-        }
+      if (Navigator.share.isDefined) VDomModifier(
+        onClick.stopPropagation foreach {
+          scribe.info(s"Sharing '$channel'")
 
-        if(Navigator.share.isDefined) {
           Navigator.share(new ShareData {
             title = shareTitle
             text = shareDesc
@@ -183,12 +189,16 @@ object PageSettingsMenu {
             case Success(()) => ()
             case Failure(t)  => scribe.warn("Cannot share url via share-api", t)
           }
-        } else {
-           UI.toast(title = shareDesc, msg = "Link copied to clipboard")
-        }
+        },
+      ) else VDomModifier(
+        Elements.copiableToClipboard,
+        dataAttr("clipboard-text") := shareUrl,
+        onClick.stopPropagation foreach {
+          scribe.info(s"Copying share-link for '$channel'")
 
-        Analytics.sendEvent("pageheader", "share")
-      },
+          UI.toast(title = shareDesc, msg = "Link copied to clipboard")
+        },
+      ),
     )
   }
 
