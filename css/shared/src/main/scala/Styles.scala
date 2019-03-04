@@ -13,13 +13,13 @@ object ZIndex {
   val overlaySwitch = 300
   val selected = 400
   val overlayLow = 1000
-  val tooltip = 1500
   val overlayMiddle = 1600
   val loading = 1750
   val overlay = 12000
   val formOverlay = 13000
   val uiModal = 15000
   val uiSidebar = 16000
+  val tooltip = 18000
   val dragging = 20000
   val toast = 25000
 }
