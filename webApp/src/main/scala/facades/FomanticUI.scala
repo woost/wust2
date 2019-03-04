@@ -16,7 +16,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def modal(options: ModalOptions): Unit = js.native
 
   def search(arg: SearchOptions): Unit = js.native
-  def search(arg: String, arg1: Any = ???, arg2: Any = ???): String = js.native
+  def search(arg: String, arg1: Any = ???, arg2: Any = ???): js.Any = js.native
 
   def toast(options: ToastOptions): Unit = js.native
 

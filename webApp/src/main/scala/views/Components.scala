@@ -697,8 +697,64 @@ object Components {
       )
     }
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+      var inputElem: dom.html.Element = null
       var elem: JQuerySelection = null
+
+      def initSearch(): Unit = {
+        elem.search(arg = new SearchOptions {
+          `type` = if (showParents) "category" else js.undefined
+
+          cache = false
+          searchOnFocus = true
+          minCharacters = 0
+
+          source = graph.now.nodes.collect { case node: Node if filter(node) =>
+            val cat: js.UndefOr[String] = if (showParents) {
+              val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
+              if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
+            } else js.undefined
+
+            val str = node match {
+              case user: Node.User => Components.displayUserName(user.data)
+              case _ => node.str
+            }
+
+            new SearchSourceEntry {
+              title = trimToMaxLength(str, 36)
+              category = cat
+              data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
+            }
+          }(breakOut): js.Array[SearchSourceEntry]
+
+          searchFields = js.Array("title")
+
+          onSelect = { (selected, results) =>
+            submitResult(selected)
+            true
+          }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
+        })
+      }
+
+      def resetSearch(): Unit = {
+        //TODO only reliable way to make search work again after manual submission with enter
+        inputElem.blur()
+        dom.window.setTimeout(() => inputElem.focus, timeout = 20)
+      }
+
+      def submitResult(value: js.Any, forceClose: Boolean = false): Unit = {
+        val id = value.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
+        sink.onNext(id)
+        elem.search("set value", "")
+        if (forceClose) resetSearch()
+      }
+      def submitNew(value: String, forceClose: Boolean = false): Unit = {
+        if (createNew(value)) {
+          elem.search("set value", "")
+          if (forceClose) resetSearch()
+        }
+      }
+
       div(
         keyed,
         elementModifier,
@@ -712,43 +768,21 @@ object Components {
             tpe := "text",
             dsl.placeholder := placeholder,
 
+            onDomMount.asHtml.foreach { e => inputElem = e },
+
+            onEnter.foreach { e =>
+              val inputElem = e.target.asInstanceOf[dom.html.Input]
+              val searchString = inputElem.value
+              if (searchString.trim.nonEmpty) {
+                elem.search("get result", searchString) match {
+                  case v if v == false || v == js.undefined || v == null => submitNew(searchString, forceClose = true)
+                  case obj => submitResult(obj, forceClose = true)
+                }
+              }
+            },
+
             onFocus.foreach { _ =>
-              elem.search(arg = new SearchOptions {
-                `type` = if (showParents) "category" else js.undefined
-
-                cache = false
-                searchOnFocus = true
-                minCharacters = 0
-
-                source = graph.now.nodes.collect { case node: Node if filter(node) =>
-                  val cat: js.UndefOr[String] = if (showParents) {
-                    val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
-                    if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
-                  } else js.undefined
-
-                  val str = node match {
-                    case user: Node.User => Components.displayUserName(user.data)
-                    case _ => node.str
-                  }
-
-                  new SearchSourceEntry {
-                    title = trimToMaxLength(str, 36)
-                    category = cat
-                    data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
-                  }
-                }(breakOut): js.Array[SearchSourceEntry]
-
-                searchFields = js.Array("title")
-
-                onSelect = { (selected, results) =>
-                  val id = selected.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
-                  sink.onNext(id)
-                  elem.search("set value", "")
-                  true
-                }: js.Function2[SearchSourceEntry, js.Array[SearchSourceEntry], Boolean]
-              })
-
-
+              initSearch()
               if (completeOnInit) elem.search("search local", "")
             },
 
@@ -758,8 +792,9 @@ object Components {
         ),
         div(cls := "results", resultsModifier),
 
-        onDomMount.asJquery.foreach { e =>
+        managedElement.asJquery { e =>
           elem = e
+          Cancelable(() => e.search("destroy"))
         }
       )
     })

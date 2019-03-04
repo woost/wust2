@@ -218,8 +218,16 @@ object RightSidebar {
       )
     )
 
-    def searchInput(placeholder: String, filter: Node => Boolean) =
-      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, inputModifiers = VDomModifier(
+    def createNewTag(str: String): Boolean = {
+      val createdNode = Node.MarkdownTag(str)
+      val change = GraphChanges.addNodeWithParent(createdNode, state.page.now.parentId) merge
+        GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(node.id))
+      state.eventProcessor.changes.onNext(change)
+      true
+    }
+
+    def searchInput(placeholder: String, filter: Node => Boolean, createNew: String => Boolean = _ => false) =
+      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, createNew = createNew, inputModifiers = VDomModifier(
         width := "120px",
         padding := "2px 10px 2px 10px",
       ), elementModifier = VDomModifier(
@@ -240,7 +248,7 @@ object RightSidebar {
       ),
       renderSplit(
         left = VDomModifier(
-          searchInput("Add Tag", filter = _.role == NodeRole.Tag).foreach { tagId =>
+          searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_)).foreach { tagId =>
             state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
           }
         ),
