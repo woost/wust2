@@ -49,23 +49,20 @@ object PageHeader {
   private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(60)
 
-    val commonMods = VDomModifier(
-      width := "100%",
+    val channelTitle = Components.roleSpecificRenderAsOneLineText(pageNode).apply(
       cls := "pageheader-channeltitle",
       borderRadius := "3px",
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id)
     )
 
-    val channelTitle = Components.roleSpecificRenderAsOneLineText(pageNode).apply(commonMods)
-
     val channelMembersList = Rx {
       val hasBigScreen = state.screenSize() != ScreenSize.Small
-      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment
+      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
     }
 
     val permissionIndicator = Rx {
       val level = Permission.resolveInherited(state.graph(), pageNode.id)
-      div(level.icon, UI.popup("bottom center") := level.description, marginRight := "5px")
+      div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
 
     div(
@@ -81,16 +78,24 @@ object PageHeader {
       ViewSwitcher(state, pageNode.id).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
       div(
         Styles.flex,
-        alignItems.center,
-        justifyContent.flexStart,
+        justifyContent.spaceBetween,
         flexGrow := 1,
         flexShrink := 2,
-        nodeAvatar(pageNode, size = 30)(marginRight := "5px", flexShrink := 0),
-        channelTitle(marginRight := "5px"),
-        div(Styles.flex, Components.automatedNodesOfNode(state, pageNode)),
-        channelMembersList,
-        permissionIndicator,
-        menuItems(state, pageNode)
+        div(
+          Styles.flex,
+          alignItems.center,
+          nodeAvatar(pageNode, size = 30)(marginRight := "5px"),
+          channelTitle,
+          flexShrink := 3,
+        ),
+        div(
+          Styles.flex,
+          alignItems.center,
+          Components.automatedNodesOfNode(state, pageNode),
+          channelMembersList,
+          permissionIndicator,
+          menuItems(state, pageNode)
+        )
       ),
     )
   }
@@ -127,7 +132,7 @@ object PageHeader {
     VDomModifier(
       pinButton,
       filterStatus,
-      PageSettingsMenu(state, channel.id).apply(buttonStyle, fontSize := "20px", marginLeft := "5px"),
+      PageSettingsMenu(state, channel.id).apply(buttonStyle, fontSize := "20px"),
     )
   }
 
