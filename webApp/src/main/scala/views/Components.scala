@@ -372,7 +372,7 @@ object Components {
     val icon = ItemProperties.iconByNodeData(property.data)
     val contentString = VDomModifier(
       Styles.flex,
-      alignItems.center,
+      alignItems.flexStart,
       icon.map(_(marginRight := "4px")),
       i(s"${key.data.key}:", marginRight := "4px"),
       renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
@@ -380,6 +380,7 @@ object Components {
 
     span(
       cls := "node tag",
+      padding := "2px",
       contentString,
       border := "1px solid gray",
       color.gray
