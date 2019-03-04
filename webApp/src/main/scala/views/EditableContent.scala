@@ -319,16 +319,16 @@ object EditableContent {
       val newValue =  EditInteraction.fromOption(v)
       if (newValue != lastValue) {
         lastValue = newValue
-        handler.onNext(_)
-      }
-    }
-    val sub = handler.drop(1).foreach { v =>
-      if (v != lastValue) {
-        lastValue = v
-        current() = v.toOption
+        handler.onNext(lastValue)
       }
     }
 
-    handler
+    handler.mapObserver { e =>
+      if (e != lastValue) {
+        lastValue = e
+        current() = lastValue.toOption
+      }
+      e
+    }
   }
 }
