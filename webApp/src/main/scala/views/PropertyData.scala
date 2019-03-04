@@ -23,7 +23,7 @@ object PropertyData {
       val properties: Map[String, Array[PropertyValue]] = graph.propertiesEdgeIdx.map(nodeIdx) { idx =>
         val edge = graph.edges(idx).asInstanceOf[Edge.LabeledProperty]
         PropertyValue(edge, graph.nodesById(edge.propertyId).asInstanceOf[Node.Content])
-      }.groupBy(_.edge.data.key.toLowerCase)
+      }.groupBy(_.edge.data.key)
 
       new BasicInfo(node, tags, assignedUsers, properties)
     }
