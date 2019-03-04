@@ -14,7 +14,7 @@ import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, Elements, UI, EditableContent, EditParser, EditInteraction}
+import wust.webApp.views.{Components, Elements, UI, EditableContent, EditInputParser, EditInteraction, EditContext}
 import wust.webApp.StringJsOps._
 
 import scala.scalajs.js
@@ -46,12 +46,19 @@ object ItemProperties {
     val propertyValueInput = Var[Option[NodeData]](None)
 
     val editableConfig = EditableContent.Config(
+      outerModifier = VDomModifier(width := "100%"),
       submitMode = EditableContent.SubmitMode.OnInput,
       selectTextOnFocus = false
     )
+    implicit val context = EditContext(state)
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
+
+      val isAutomationTemplate = Rx {
+        val graph = state.graph()
+        graph.automatedNodes(graph.idToIdxOrThrow(nodeId)).nonEmpty
+      }
 
       def createProperty() = {
         if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
@@ -66,13 +73,15 @@ object ItemProperties {
           Styles.flex,
           flexDirection.column,
           alignItems.center,
-          EditableContent.inputFieldRx[NonEmptyString](propertyKeyInput, editableConfig.copy(
-            inputModifier = VDomModifier(
-              cls := "ui fluid action input",
-              Elements.onEnter.stopPropagation foreach(createProperty()),
-              placeholder := "Field Name"
-            ),
-          )),
+          VDomModifier.ifTrue(propertyKeyInput.now.isEmpty)( //do not select key if already specifided
+            EditableContent.inputFieldRx[NonEmptyString](propertyKeyInput, editableConfig.copy(
+              innerModifier = VDomModifier(
+                width := "100%",
+                Elements.onEnter.stopPropagation foreach(createProperty()),
+                placeholder := "Field Name"
+              ),
+            ))
+          ),
           div(
             marginTop := "4px",
             width := "100%",
@@ -80,54 +89,46 @@ object ItemProperties {
             alignItems.center,
             justifyContent.spaceBetween,
             b("Field Type:", color.gray, margin := "0px 5px 0px 5px"),
-            select(
-              tabIndex := -1,
-              option(
-                value := "none", "Select a field type",
-                selected <-- propertyTypeSelection.map(_.isEmpty),
-                disabled,
-              ),
-              option( value := NodeData.PlainText.tpe, "Text", selected <-- propertyTypeSelection.map(_ contains NodeData.PlainText.tpe)),
-              option( value := NodeData.Integer.tpe, "Integer Number", selected <-- propertyTypeSelection.map(_ contains NodeData.Integer.tpe)),
-              option( value := NodeData.Decimal.tpe, "Decimal Number", selected <-- propertyTypeSelection.map(_ contains NodeData.Decimal.tpe)),
-              option( value := NodeData.Date.tpe, "Date", selected <-- propertyTypeSelection.map(_ contains NodeData.Date.tpe)),
-              Rx {
-                val graph = state.graph()
-                VDomModifier.ifTrue(graph.automatedNodes(graph.idToIdxOrThrow(nodeId)).nonEmpty)(
-                  option( value := NodeData.RelativeDate.tpe, "Relative Date", selected <-- propertyTypeSelection.map(_ contains NodeData.RelativeDate.tpe)),
-                ),
-              },
-              onInput.value.map(s => Some(s.asInstanceOf[NodeData.Type])) --> propertyTypeSelection,
-            )
+            isAutomationTemplate.map { isTemplate =>
+              EditableContent.select[NodeData.Type](
+                "Select a field type",
+                propertyTypeSelection,
+                ("Text", NodeData.PlainText.tpe) ::
+                ("Integer Number", NodeData.Integer.tpe) ::
+                ("Decimal Number", NodeData.Decimal.tpe) ::
+                ("File", NodeData.File.tpe) ::
+                ("Date", NodeData.Date.tpe) ::
+                (if (isTemplate) ("Relative Date", NodeData.RelativeDate.tpe) :: Nil else Nil)
+              ).apply(tabIndex := -1)
+            }
           ),
           propertyTypeSelection.map(_.flatMap { propertyType =>
-            EditParser.forNodeDataType(propertyType) map { implicit parser =>
+            EditInputParser.forNodeDataType(propertyType) map { implicit parser =>
               propertyValueInput() = None// clear value on each type change...
               EditableContent.inputFieldRx[NodeData](propertyValueInput, editableConfig.copy(
-                submitMode = EditableContent.SubmitMode.OnChange,
-                inputModifier = VDomModifier(
+                innerModifier = VDomModifier(
+                  width := "100%",
                   marginTop := "4px",
-                  cls := "ui fluid action input",
                   Elements.onEnter.stopPropagation foreach(createProperty())
-                ),
-              )),
+                )
+              ))
             }
           }),
           div(
             marginTop := "5px",
             cls := "ui primary button approve",
             Rx {
-              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty)(cls := "disabled")
+              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty || targetNodeIds.exists(_.isEmpty))(cls := "disabled")
             },
             "Add Custom Field",
             onClick.stopPropagation foreach(createProperty())
           ),
           targetNodeIds.map { targetNodeIds =>
-            VDomModifier.ifTrue(targetNodeIds.size > 1)(i(
+            i(
               padding := "4px",
               whiteSpace.normal,
               s"* The properties you set here will be applied to ${targetNodeIds.size} nodes."
-            ))
+            )
           }
         ),
       )
@@ -139,7 +140,7 @@ object ItemProperties {
     } {
 
       val propertyNodeOpt: Option[Node.Content] = propertyValue match {
-        case data: NodeData.Content     => Some(Node.Content(data, NodeRole.Neutral))
+        case data: NodeData.Content     => Some(Node.Content(nodeId, data, NodeRole.Neutral))
         case _                          => None
       }
 

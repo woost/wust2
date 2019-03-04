@@ -115,14 +115,14 @@ object ChatView {
         val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
         val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
-        def submitAction(str:String) = {
+        def submitAction(str:String): Unit = {
 
           val replyNodes: Set[NodeId] = {
             if(currentReply.now.nonEmpty) currentReply.now
             else Set(focusState.focusedId)
           }
 
-          val ack = fileUploadHandler.now match {
+          fileUploadHandler.now match {
             case None =>
               state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), replyNodes))
             case Some(uploadFile) =>
@@ -132,8 +132,6 @@ object ChatView {
           if(!pinReply.now) currentReply() = Set.empty[NodeId]
           fileUploadHandler() = None
           scrollHandler.scrollToBottomInAnimationFrame()
-
-          ack
         }
 
         inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger)(ctx)(

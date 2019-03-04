@@ -144,7 +144,7 @@ object Components {
       Styles.growFull
     )
 
-    def downloadLink = a(downloadUrl(href), s"Download ${StringOps.trimToMaxLength(file.fileName, 20)}")
+    def downloadLink = a(downloadUrl(href), s"Download ${StringOps.trimToMaxLength(file.fileName, 20)}", onClick.stopPropagation --> Observer.empty)
 
     div(
       file.str,
@@ -312,35 +312,47 @@ object Components {
     val editKey = Var(false)
 
     div(
+      width := "100%",
+      styles.extra.wordBreak.breakWord,
       Styles.flex,
-      justifyContent.spaceBetween,
       flexWrap.wrap,
       alignItems.flexStart,
       b(
         color.gray,
         Styles.flex,
-        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key)).editValue.map { key =>
+        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.map { key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = key)))(breakOut)),
         } --> state.eventProcessor.changes,
-        ":",
         cursor.pointer,
         onClick.stopPropagation(true) --> editKey,
       ),
       div(
         Styles.flex,
+        marginLeft := "auto",
         flexDirection.column,
         alignItems.flexEnd,
         padding := "0px 10px",
 
         properties.map { property =>
+          val editValue = Var(false)
           div(
             Styles.flex,
+            justifyContent.flexEnd,
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
+            editableNode(state, property.node, editMode = editValue, maxLength = Some(100), config = EditableContent.Config.default),
             div(
-              editableNodeOnClick(state, property.node, maxLength = Some(100), config = EditableContent.Config.default),
-              Components.removableTagMod(() =>
-                state.eventProcessor.changes.onNext(GraphChanges(delEdges = Set(property.edge)))
-              )
+              marginLeft := "5px",
+              cursor.pointer,
+              editValue.map {
+                case true => VDomModifier(
+                  Icons.delete,
+                  onClick(GraphChanges(delEdges = Set(property.edge))) --> state.eventProcessor.changes
+                )
+                case false => VDomModifier(
+                  Icons.edit,
+                  onClick.stopPropagation(true) --> editValue
+                )
+              },
             )
           )
         }
@@ -670,7 +682,7 @@ object Components {
       implicit ctx: Ctx.Owner
     ): VNode = {
       editableNode(state, node, editMode, maxLength, config)(ctx)(
-        onClick.stopPropagation.stopImmediatePropagation foreach {
+        onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
           }
@@ -682,7 +694,7 @@ object Components {
 
     def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender(node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+        EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
       )
     }
 
@@ -752,15 +764,6 @@ object Components {
       )
     })
 
-    def uploadFileInput(state: GlobalState, selected: Var[Option[AWS.UploadableFile]], inputModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
-
-      EditableContent.inputField[dom.File](EditableContent.Config(
-        inputModifier = VDomModifier(inputModifier, display.none),
-        errorMode = EditableContent.ErrorMode.Cancel,
-        submitMode = EditableContent.SubmitMode.OnChange,
-      )).editValue.map(AWS.upload(state, _)) --> selected
-    }
-
     def defaultFileUploadHandler(state: GlobalState)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
       val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
@@ -772,15 +775,17 @@ object Components {
       fileUploadHandler
     }
 
-    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]], tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+    def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
       val iconAndPopup = selected.map {
         case None =>
-          (fontawesome.icon(Icons.fileUpload), div("Upload your own file!"))
-        case Some(selected) =>
-          val popupNode = selected.file.`type` match {
-            case t if t.startsWith("image/") => img(src := selected.dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
-            case _ => div(selected.file.name)
+          (fontawesome.icon(Icons.fileUpload), None)
+        case Some(file) =>
+          val popupNode = file.`type` match {
+            case t if t.startsWith("image/") =>
+              val dataUrl = dom.URL.createObjectURL(file)
+              img(src := dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
+            case _ => div(file.name)
           }
           val icon = fontawesome.layered(
             fontawesome.icon(Icons.fileUpload),
@@ -793,21 +798,18 @@ object Components {
             )
           )
 
-          (icon, popupNode)
+          (icon, Some(popupNode))
       }
 
       val onDragOverModifier = Handler.unsafe[VDomModifier]
 
-      val fileInputId = "upload-file-field"
-      div(
-        padding := "3px",
-        uploadFileInput(state, selected, inputModifier = id := fileInputId),
+      VDomModifier(
         label(
           forId := fileInputId, // label for input will trigger input element on click.
 
           iconAndPopup.map { case (icon, popup) =>
             VDomModifier(
-              UI.popupHtml(tooltipDirection) := popup,
+              popup.map(UI.popupHtml(tooltipDirection) := _),
               icon
             )
           },
@@ -829,6 +831,15 @@ object Components {
           elem.files = ev.dataTransfer.files
         },
       )
+    }
+
+    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
+      implicit val context = EditContext(state)
+
+      EditableContent.inputFieldRx[AWS.UploadableFile](selected, config = EditableContent.Config(
+        errorMode = EditableContent.ErrorMode.ShowToast,
+        submitMode = EditableContent.SubmitMode.Off
+      ))
     }
 
   def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {

@@ -30,19 +30,19 @@ import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object AWS {
-  case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]])
+  case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]]) {
+    def toNodeData(key: String, description: String): NodeData.File = NodeData.File(key = key, fileName = file.name, contentType = file.`type`, description = description)
+  }
 
-  def upload(state: GlobalState, file: dom.File): Option[UploadableFile] = {
+  def upload(state: GlobalState, file: dom.File): Either[String, UploadableFile] = { // TODO: return either and propagate error message to form error instead of toast
     state.user.now match {
       case _: AuthUser.Real => ()
       case _ =>
-        UI.toast(s"You need to register an account before you can upload anything.", level = UI.ToastLevel.Info)
-        return None
+        return Left(s"You need to register an account before you can upload anything.")
     }
 
     if(file.size > FileUploadConfiguration.maxUploadBytesPerFile) {
-      UI.toast(s"The file '${file.name}' is bigger than the allowed limit of ${FileUploadConfiguration.maxUploadBytesPerFile / 1024 / 1024} MB.", level = UI.ToastLevel.Warning)
-      return None
+      return Left(s"The file '${file.name}' is bigger than the allowed limit of ${FileUploadConfiguration.maxUploadBytesPerFile / 1024 / 1024} MB.")
     }
 
     val uploadedKey = Task.deferFuture {
@@ -107,48 +107,53 @@ object AWS {
     }
 
     val url = dom.URL.createObjectURL(file)
-    Some(UploadableFile(file = file, dataUrl = url, uploadKey = uploadedKey))
+    Right(UploadableFile(file = file, dataUrl = url, uploadKey = uploadedKey))
   }
 
-  def uploadFileAndCreateNode(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Ack] = {
+  def uploadFileAndCreateNode(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Unit = {
 
-    val (initialChanges, observableChanges) = uploadFileAndCreateNodeChanges(state, str, uploadFile, extraChanges)
+    val nodeId = NodeId.fresh
+    val (initialNodeData, observableNodeData) = uploadFileAndCreateNodeDataFull(state, str, uploadFile, Some(nodeId))
+    val initialNode = Node.Content(nodeId, initialNodeData, NodeRole.Message)
 
-    // propagate locally with loading icon
-    val ack = state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, initialChanges.withAuthor(state.user.now.id)))
-
-    observableChanges.subscribe(state.eventProcessor.changes)
-
-    ack
-  }
-
-  def uploadFileAndCreateNodeChanges(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): (GraphChanges, Observable[GraphChanges]) = {
     def toGraphChanges(node: Node) = GraphChanges.addNode(node).merge(extraChanges(node.id))
 
-    val fileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
-    val fileNode = Node.Content(fileNodeData, NodeRole.Message)
+    val initialChanges = toGraphChanges(initialNode)
+    val observableChanges = observableNodeData.map(data => toGraphChanges(initialNode.copy(data = data)))
 
-    val initialChanges = toGraphChanges(fileNode)
+    state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, initialChanges.withAuthor(state.user.now.id)))
+    observableChanges.runToFuture.foreach(state.eventProcessor.changes.onNext(_))
+  }
 
-    //TODO: there is probably a better way to implement this...
-    val observableChanges = ReplaySubject.createLimited[GraphChanges](1)
-    var uploadTask: Task[Unit] = null
-    uploadTask = Task.defer{
-      state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Waiting(uploadFile.dataUrl)))
+  def uploadFileAndCreateNodeData(state: GlobalState, str: String, uploadFile: AWS.UploadableFile): Task[NodeData.File] = {
+    uploadFileAndCreateNodeDataFull(state, str, uploadFile, None)._2
+  }
 
-      uploadFile.uploadKey.map {
-        case Some(key) =>
-          state.uploadingFiles.update(_ - fileNode.id)
-          observableChanges.onNext(toGraphChanges(fileNode.copy(data = fileNodeData.copy(key = key))))
-          ()
-        case None      =>
-          state.uploadingFiles.update(_ ++ Map(fileNode.id -> UploadingFile.Error(uploadFile.dataUrl, uploadTask)))
-          ()
+  def uploadFileAndCreateNodeDataFull(state: GlobalState, str: String, uploadFile: AWS.UploadableFile, nodeId: Option[NodeId] = None): (NodeData.File, Task[NodeData.File]) = {
+
+    val rawFileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`, description = str) // TODO: empty string for signaling pending fileupload
+
+    rawFileNodeData -> Task.deferFuture {
+      //TODO: there is probably a better way to implement this...
+      val observableChanges = Promise[NodeData.File]
+      var uploadTask: Task[Unit] = null
+      uploadTask = Task.defer{
+        nodeId.foreach(nodeId => state.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Waiting(uploadFile.dataUrl))))
+
+        uploadFile.uploadKey.map {
+          case Some(key) =>
+            nodeId.foreach(nodeId => state.uploadingFiles.update(_ - nodeId))
+            observableChanges.trySuccess(rawFileNodeData.copy(key = key))
+            ()
+          case None      =>
+            nodeId.foreach(nodeId => state.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Error(uploadFile.dataUrl, uploadTask))))
+            ()
+        }
       }
+
+      uploadTask.runAsyncAndForget
+
+      observableChanges.future
     }
-
-    uploadTask.runAsyncAndForget
-
-    initialChanges -> observableChanges
   }
 }

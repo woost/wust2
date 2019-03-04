@@ -51,7 +51,7 @@ object SharedViewElements {
 
   def inputRow(
     state: GlobalState,
-    submitAction: String => Future[Ack],
+    submitAction: String => Unit,
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
     blurAction: Option[String => Unit] = None,
     scrollHandler:Option[ScrollBottomHandler] = None,
@@ -82,13 +82,9 @@ object SharedViewElements {
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
-      val submitted = submitAction(str)
+      submitAction(str)
       if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
-
-      // trigger autoResize
-      submitted.foreach { _ =>
-        autoResizer.trigger()
-      }
+      autoResizer.trigger()
     }
 
     val initialValueAndSubmitOptions = {

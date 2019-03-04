@@ -75,12 +75,10 @@ object ThreadView {
       {
         def submitAction(str:String) = {
           scrollHandler.scrollToBottomInAnimationFrame()
-          val ack = fileUploadHandler.now match {
+          fileUploadHandler.now match {
             case None => state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), focusState.focusedId))
             case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, str, uploadFile, GraphChanges.addToParent(_, parentId = focusState.focusedId))
           }
-
-          ack
         }
 
         val inputFieldFocusTrigger = PublishSubject[Unit]

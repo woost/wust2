@@ -341,7 +341,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
     def editValueOption: EmitterBuilder[Option[T], R] = builder.collect {
       case EditInteraction.Input(value) => Some(value)
-      case EditInteraction.Error(_, _) => None
+      case EditInteraction.Error(_) => None
     }
   }
 }

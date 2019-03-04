@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import monix.eval.Task
 import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
@@ -11,6 +12,7 @@ import rx._
 import wust.graph._
 import wust.ids._
 import wust.util._
+import wust.api.ApiEvent
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -29,6 +31,10 @@ trait ValueStringifier[-T] { self =>
 object ValueStringifier {
   @inline def apply[T](implicit stringifier: ValueStringifier[T]): ValueStringifier[T] = stringifier
 
+  object ValueNull extends ValueStringifier[Any] {
+    def stringify(value: Any) = null
+  }
+
   implicit object ValueString extends ValueStringifier[String] {
     def stringify(value: String) = value
   }
@@ -45,13 +51,11 @@ object ValueStringifier {
   implicit object ValueDurationMilli extends ValueStringifier[DurationMilli] {
     def stringify(value: DurationMilli) = StringJsOps.durationToString(value)
   }
+  implicit val ValueFile: ValueStringifier[dom.File] = ValueString.map[dom.File](_.name)
+  implicit val ValueUploadableFile: ValueStringifier[AWS.UploadableFile] = ValueFile.map[AWS.UploadableFile](_.file)
 
   implicit def ValueOption[T: ValueStringifier]: ValueStringifier[Option[T]] = new ValueStringifier[Option[T]] {
     def stringify(current: Option[T]): String = current.fold("")(ValueStringifier[T].stringify)
-  }
-
-  implicit object ValueFile extends ValueStringifier[dom.File] {
-    def stringify(current: dom.File): String = current.name
   }
 
   implicit val ValueNodeData: ValueStringifier[NodeData] = new ValueStringifier[NodeData] {
@@ -60,6 +64,7 @@ object ValueStringifier {
       case data: NodeData.Decimal      => ValueDouble.stringify(data.content)
       case data: NodeData.Date         => ValueEpochMilli.stringify(data.content)
       case data: NodeData.RelativeDate => ValueDurationMilli.stringify(data.content)
+      case data: NodeData.File         => data.fileName
       case data                        => ValueString.stringify(data.str)
     }
   }
@@ -67,117 +72,170 @@ object ValueStringifier {
   implicit val ValueNode: ValueStringifier[Node] = ValueNodeData.map(_.data)
 }
 
-trait EditParser[+T] { self =>
-  def parse(elem: dom.Element): EditInteraction[T]
-  def inputModifier: VDomModifier
+case class EditContext(state: GlobalState) extends AnyVal
 
-  final def map[R](f: T => R): EditParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))
-  final def flatMap[R](f: T => EditInteraction[R]): EditParser[R] = new EditParser[R] {
-    def parse(elem: dom.Element): EditInteraction[R] = self.parse(elem).flatMap(f)
-    def inputModifier: VDomModifier = self.inputModifier
+trait EditStringParser[+T] { self =>
+  def parse(elem: String): Task[EditInteraction[T]]
+
+  @inline final def map[R](f: T => R): EditStringParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))
+  @inline final def mapEval[R](f: T => Task[R]): EditStringParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))
+  @inline final def flatMap[R](f: T => EditInteraction[R]): EditStringParser[R] = flatMapEval(t => Task.pure(f(t)))
+  final def flatMapEval[R](f: T => Task[EditInteraction[R]]): EditStringParser[R] = new EditStringParser[R] {
+    def parse(elem: String) = self.parse(elem).flatMap(_.toEither.fold(Task.pure, f))
   }
 }
-object EditParser {
-  @inline def apply[T](implicit parser: EditParser[T]): EditParser[T] = parser
+trait EditStringParserInstances0 {
+  implicit object EditString extends EditStringParser[String] {
+    def parse(str: String) = Task.pure(EditInteraction.Input(str))
+  }
+  implicit val EditNonEmptyString: EditStringParser[NonEmptyString] = EditString.flatMap(str => EditInteraction.fromEither(NonEmptyString(str).toRight("Cannot be empty")))
+}
+object EditStringParser extends EditStringParserInstances0 {
+  @inline def apply[T](implicit parser: EditStringParser[T]): EditStringParser[T] = parser
 
-  trait StringBased[+T] extends EditParser[T] {
-    final def parse(elem: dom.Element) = {
-      val str = elem.asInstanceOf[js.Dynamic].value.asInstanceOf[js.UndefOr[String]].getOrElse(elem.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]) // innerText because textContent would remove line-breaks in firefox
-      parse(str)
-    }
-    def parse(str: String): EditInteraction[T]
-  }
+  //TODO only allow valid node data type strings
+  implicit val EditNodeDataType: EditStringParser[NodeData.Type] = EditString.map(NodeData.Type(_))
+  implicit val EditNodeDataPlainText: EditStringParser[NodeData.PlainText] = EditString.map[NodeData.PlainText](NodeData.PlainText.apply)
+  implicit val EditNodeDataMarkdown: EditStringParser[NodeData.Markdown] = EditString.map[NodeData.Markdown](NodeData.Markdown.apply)
+  def EditNodeDataUser(user: NodeData.User): EditStringParser[NodeData.User] = EditNonEmptyString.flatMap[NodeData.User](s => EditInteraction.fromOption(user.updateName(s.string)))
 
-  object Disabled extends EditParser[Nothing] {
-    def parse(elem: dom.Element) = EditInteraction.Cancel
-    def inputModifier = VDomModifier(disabled := true)
-  }
+  implicit def EditOption[T: EditStringParser]: EditStringParser[Option[T]] = EditStringParser[T].map(Some(_))
 
-  implicit object EditString extends StringBased[String] {
-    def parse(str: String) = EditInteraction.Input(str)
-    def inputModifier = Elements.textInputMod
-  }
-  implicit val EditNonEmptyString: EditParser[NonEmptyString] = EditString.flatMap(str => EditInteraction.fromEither(str, NonEmptyString(str).toRight("Cannot be empty")))
-  implicit object EditInteger extends StringBased[Int] {
-    def parse(str: String) = EditInteraction.fromEither(str, StringOps.safeToInt(str).toRight("Not an Integer Number"))
-    def inputModifier = Elements.integerInputMod
-  }
-  implicit object EditDouble extends StringBased[Double] {
-    def parse(str: String) = EditInteraction.fromEither(str, StringOps.safeToDouble(str).toRight("Not a Double Number"))
-    def inputModifier = Elements.decimalInputMod
-  }
-  implicit object EditEpochMilli extends StringBased[EpochMilli] {
-    def parse(str: String) = EditInteraction.fromEither(str, StringJsOps.safeToEpoch(str).toRight("Not a Date"))
-    def inputModifier = Elements.dateInputMod
-  }
-  implicit object EditDurationMilli extends StringBased[DurationMilli] {
-    def parse(str: String) = EditInteraction.fromEither(str, StringJsOps.safeToDuration(str))
-    def inputModifier = Elements.durationInputMod
-  }
-
-  implicit def EditOption[T: EditParser]: EditParser[Option[T]] = EditParser[T].map(Some(_))
-
-  implicit object EditParserFile extends EditParser[dom.File] {
-    def parse(elem: dom.Element) = {
-      val file = elem.asInstanceOf[js.Dynamic].files.asInstanceOf[js.UndefOr[dom.FileList]].collect { case list if list.length > 0 => list(0) }
-      EditInteraction.fromEither(file.fold("")(_.name), file.toRight("Cannot find file"))
-    }
-    def inputModifier = Elements.fileInputMod
-  }
-
-  implicit val EditNodeDataInteger: EditParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)
-  implicit val EditNodeDataDecimal: EditParser[NodeData.Decimal] = EditDouble.map[NodeData.Decimal](NodeData.Decimal.apply)
-  implicit val EditNodeDataDate: EditParser[NodeData.Date] = EditEpochMilli.map[NodeData.Date](NodeData.Date.apply)
-  implicit val EditNodeDataRelativeDate: EditParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)
-  implicit val EditNodeDataPlainText: EditParser[NodeData.PlainText] = EditString.map[NodeData.PlainText](NodeData.PlainText.apply)
-  implicit val EditNodeDataMarkdown: EditParser[NodeData.Markdown] = EditString.map[NodeData.Markdown](NodeData.Markdown.apply)
-
-  val forNodeDataType: NodeData.Type => Option[EditParser[NodeData]] = {
-    case NodeData.Integer.tpe => Some(EditNodeDataInteger)
-    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal)
-    case NodeData.Date.tpe => Some(EditNodeDataDate)
-    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate)
+  def forNodeDataType(tpe: NodeData.Type): Option[EditStringParser[NodeData.Content]] = tpe match {
     case NodeData.PlainText.tpe => Some(EditNodeDataPlainText)
     case NodeData.Markdown.tpe => Some(EditNodeDataMarkdown)
     case _ => None
   }
-  val forNode: Node => Option[EditParser[Node]] = {
-    case node: Node.Content =>
-      val parser = node.data match {
-        case _: NodeData.Integer => Some(EditNodeDataInteger)
-        case _: NodeData.Decimal => Some(EditNodeDataDecimal)
-        case _: NodeData.Date => Some(EditNodeDataDate)
-        case _: NodeData.RelativeDate => Some(EditNodeDataRelativeDate)
-        case _: NodeData.PlainText => Some(EditNodeDataPlainText)
-        case _: NodeData.Markdown => Some(EditNodeDataMarkdown)
-        case _ => None
-      }
-      parser.map(_.map(data => node.copy(data = data)))
-    case user: Node.User =>
-      Some(EditNonEmptyString.flatMap[Node](str => EditInteraction.fromOption(user.data.updateName(str.string).map(data => user.copy(data = data)))))
+  def forNode(node: Node): Option[EditStringParser[Node]] = node match {
+    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
+    case user: Node.User => Some(EditNodeDataUser(user.data).map[Node](data => user.copy(data = data)))
   }
+
+  def parseElement[T: EditStringParser](element: dom.Element): Task[EditInteraction[T]] = EditStringParser[T].parse(element.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]) // innerText because textContent would remove line-breaks in firefox
+  def parseTextArea[T: EditStringParser](element: dom.html.TextArea): Task[EditInteraction[T]] = EditStringParser[T].parse(element.value)
+  def parseSelect[T: EditStringParser](element: dom.html.Select): Task[EditInteraction[T]] = EditStringParser[T].parse(element.value)
+}
+
+trait EditInputParser[+T] { self =>
+  def parse(elem: dom.html.Input): Task[EditInteraction[T]]
+  def modifier(implicit ctx: Ctx.Owner): EditInputParser.Modifier
+
+  @inline final def map[R](f: T => R): EditInputParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))
+  @inline final def mapEval[R](f: T => Task[R]): EditInputParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))
+  @inline final def flatMap[R](f: T => EditInteraction[R]): EditInputParser[R] = flatMapEval(t => Task.pure(f(t)))
+  final def flatMapEval[R](f: T => Task[EditInteraction[R]]): EditInputParser[R] = new EditInputParser[R] {
+    def parse(elem: dom.html.Input) = self.parse(elem).flatMap(_.toEither.fold(Task.pure, f))
+    def modifier(implicit ctx: Ctx.Owner) = self.modifier
+  }
+}
+object EditInputParser {
+  @inline def apply[T](implicit parser: EditInputParser[T]): EditInputParser[T] = parser
+
+  case class Modifier(
+    mod: VDomModifier,
+    outerMod: VDomModifier = VDomModifier.empty,
+    fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None,
+    valueSetter: AttributeBuilder[String, VDomModifier] = value
+  )
+
+  object Disabled extends EditInputParser[Nothing] {
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.Cancel)
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(disabled := true)
+  }
+
+  implicit def EditStringParsing[T: EditStringParser] = new EditInputParser[T] {
+    def parse(elem: dom.html.Input) = EditStringParser[T].parse(elem.value)
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.textInputMod)
+  }
+
+  implicit object EditInteger extends EditInputParser[Int] {
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringOps.safeToInt(elem.value).toRight("Not an Integer Number")))
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.integerInputMod)
+  }
+  implicit object EditDouble extends EditInputParser[Double] {
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringOps.safeToDouble(elem.value).toRight("Not a Double Number")))
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.decimalInputMod)
+  }
+  implicit object EditEpochMilli extends EditInputParser[EpochMilli] {
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringJsOps.safeToEpoch(elem.value).toRight("Not a Date")))
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.dateInputMod)
+  }
+  implicit object EditDurationMilli extends EditInputParser[DurationMilli] {
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringJsOps.safeToDuration(elem.value)))
+    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.durationInputMod)
+  }
+
+  implicit def EditOption[T: EditInputParser]: EditInputParser[Option[T]] = EditInputParser[T].map(Some(_))
+
+  implicit object EditFile extends EditInputParser[dom.File] {
+    def parse(elem: dom.html.Input) = Task {
+      val file = elem.asInstanceOf[js.Dynamic].files.asInstanceOf[js.UndefOr[dom.FileList]].collect { case list if list.length > 0 => list(0) }
+      EditInteraction.fromOption(file.toOption)
+    }
+    def modifier(implicit ctx: Ctx.Owner) = {
+      // TODO: we do not have the current state of the file input field, so we just get it again on change
+      // This belongs into a more sophisticated ValueStringifier for not only writing strings...
+      val fileValue = Handler.unsafe[Option[dom.File]](None)
+      val getFileValue = VDomModifier(
+        onChange.transform(_.mapEval(e => parse(e.target.asInstanceOf[dom.html.Input]))).editValueOption --> fileValue
+      )
+
+      val randomId = scala.util.Random.nextInt.toString
+      val fileLabel = Components.uploadFieldModifier(fileValue, randomId)
+      Modifier(
+        VDomModifier(display.none, id := randomId, Elements.fileInputMod, getFileValue),
+        outerMod = fileLabel,
+        fixedSubmitEvent = Some(onChange),
+        valueSetter = str => if (str.isEmpty) { fileValue.onNext(None); value := str } else VDomModifier.empty
+      )
+    }
+  }
+
+  implicit val EditNodeDataInteger: EditInputParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)
+  implicit val EditNodeDataDecimal: EditInputParser[NodeData.Decimal] = EditDouble.map[NodeData.Decimal](NodeData.Decimal.apply)
+  implicit val EditNodeDataDate: EditInputParser[NodeData.Date] = EditEpochMilli.map[NodeData.Date](NodeData.Date.apply)
+  implicit val EditNodeDataRelativeDate: EditInputParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)
+
+  implicit def EditUploadableFile(implicit context: EditContext): EditInputParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(context.state, file)))
+  implicit def EditNodeDataFile(implicit context: EditContext): EditInputParser[NodeData.File] = EditUploadableFile.mapEval(AWS.uploadFileAndCreateNodeData(context.state, "", _))
+
+  def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditInputParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_)).orElse(tpe match {
+    case NodeData.Integer.tpe => Some(EditNodeDataInteger)
+    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal)
+    case NodeData.Date.tpe => Some(EditNodeDataDate)
+    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate)
+    case NodeData.File.tpe => Some(EditNodeDataFile)
+    case _ => None
+  })
+  def forNode(node: Node)(implicit context: EditContext): Option[EditInputParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_)).orElse(node match {
+    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
+    case _ => None
+  })
 }
 
 sealed trait EditInteraction[+T] {
-  def map[R](f: T => R): EditInteraction[R] = flatMap[R](t => EditInteraction.Input(f(t)))
-  def flatMap[R](f: T => EditInteraction[R]): EditInteraction[R]
-  def fold[R](default: => R)(f: T => R): R
+  @inline def map[R](f: T => R): EditInteraction[R] = flatMap[R](t => EditInteraction.Input(f(t)))
+  @inline def flatMap[R](f: T => EditInteraction[R]): EditInteraction[R]
+  @inline def toEither: Either[EditInteraction.WithoutValue, T]
+  @inline def toOption: Option[T]
 }
 object EditInteraction {
-  sealed trait EditInteractionDefault extends EditInteraction[Nothing] {
-    def flatMap[R](f: Nothing => EditInteraction[R]) = this
-    def fold[R](default: => R)(f: Nothing => R) = default
+  sealed trait WithoutValue extends EditInteraction[Nothing] {
+    @inline def flatMap[R](f: Nothing => EditInteraction[R]) = this
+    @inline def toEither = Left(this)
+    @inline def toOption = None
   }
-  case object Cancel extends EditInteractionDefault
-  case class Error(failingValue: String, msg: String) extends EditInteractionDefault
+  case object Cancel extends WithoutValue
+  case class Error(msg: String) extends WithoutValue
   case class Input[T](value: T) extends EditInteraction[T] {
-    def flatMap[R](f: T => EditInteraction[R]) = f(value)
-    def fold[R](default: => R)(f: T => R) = f(value)
+    @inline def flatMap[R](f: T => EditInteraction[R]) = f(value)
+    @inline def toEither = Right(value)
+    @inline def toOption = Some(value)
   }
 
-  def fromEither[T](origin: String, either: Either[String, T]): EditInteraction[T] = either match {
+  def fromEither[T](either: Either[String, T]): EditInteraction[T] = either match {
     case Right(value) => EditInteraction.Input(value)
-    case Left(error) => EditInteraction.Error(origin, error)
+    case Left(error) => EditInteraction.Error(error)
   }
   def fromOption[T](option: Option[T]): EditInteraction[T] = option match {
     case Some(value) => EditInteraction.Input(value)
