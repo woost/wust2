@@ -341,6 +341,9 @@ object CommonStyles extends StyleSheet.Standalone {
   ".ui.modal" - (
     zIndex(ZIndex.uiModal + 1),
   )
+  ".ui.popup" - (
+    zIndex(ZIndex.tooltip),
+  )
 
 //  ".modal-header" - ( )
 //  ".modal-content" - ( )

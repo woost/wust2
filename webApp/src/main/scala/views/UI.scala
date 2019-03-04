@@ -174,8 +174,7 @@ object UI {
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(tooltip := str, data.position := position))
 
   // javascript version of tooltip
-  def popup(options: PopupOptions, tooltipZIndex: Int = ZIndex.tooltip): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
-    zIndex := tooltipZIndex,
+  def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     managedElement.asJquery { elem =>
       elem.popup(options)
       Cancelable(() => elem.popup("destroy"))
@@ -186,7 +185,6 @@ object UI {
     val _position = position
     popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
-  def popup(tooltipZIndex: Int): AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; }, tooltipZIndex)
   def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true })
   def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
     val _position = position
