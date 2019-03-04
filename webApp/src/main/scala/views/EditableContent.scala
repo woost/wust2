@@ -183,14 +183,14 @@ object EditableContent {
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      div(
+      div.static("editable")(Ownable { implicit ctx => VDomModifier(
         width := "100%",
         Styles.flex,
         modifiers,
         Some(config.submitMode).collect {
           case SubmitMode.Explicit => closeButton(current)
         }
-      ),
+      )}),
 
       config.outerModifier,
       showErrorsOutside(current, config.errorMode)
