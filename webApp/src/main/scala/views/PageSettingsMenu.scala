@@ -150,7 +150,7 @@ object PageSettingsMenu {
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     import scala.concurrent.duration._
 
-    val shareTitle = channel.data.str
+    val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
     val shareUrl = dom.window.location.href
     val shareDesc = s"Share: $shareTitle"
 
