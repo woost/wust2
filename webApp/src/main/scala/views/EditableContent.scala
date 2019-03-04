@@ -202,10 +202,13 @@ object EditableContent {
     var lastValue: Option[T] = None
     val parse: Elem => Task[EditInteraction[T]] = { elem =>
       rawParse(elem).map {
-        case e@EditInteraction.Input(v) => config.submitMode match {
-          case SubmitMode.Explicit => if (lastValue contains v) EditInteraction.Cancel else e
-          case _ => e
-        }
+        case e@EditInteraction.Input(v) =>
+          val newe = config.submitMode match {
+            case SubmitMode.Explicit => if (lastValue contains v) EditInteraction.Cancel else e
+            case _ => e
+          }
+          lastValue = Some(v)
+          newe
         case e@EditInteraction.Error(error) => config.errorMode match {
           case ErrorMode.Cancel => EditInteraction.Cancel
           case _ => e
@@ -221,12 +224,12 @@ object EditableContent {
       onDomMount.asHtml.foreach { elem = _ },
       keyed, // when updates come in, don't disturb current editing session
       current.map {
-        case EditInteraction.Input(value) =>
+        case EditInteraction.Input(value) if !lastValue.contains(value) =>
           lastValue = Some(value)
           valueSetter := Right(ValueStringifier[T].stringify(value))
         case EditInteraction.Cancel =>
           valueSetter := Left(lastValue.fold("")(ValueStringifier[T].stringify))
-        case EditInteraction.Error(_) =>
+        case _ =>
           VDomModifier.empty
       },
 
