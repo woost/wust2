@@ -111,7 +111,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           insert into edge(sourceid, data, targetid) values
           (${nodeId}, jsonb_build_object('type', 'Member', 'level', ${lift(accessLevel)}::accesslevel), ${lift(userId)})
-          ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
+          ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' DO UPDATE set data = EXCLUDED.data
         """.as[Insert[Edge]].returning(_.sourceId)
       }
       ctx.run(liftQuery(nodeIds).foreach(insertMembership(_))).map { x =>
@@ -197,7 +197,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val upsert = quote { e: Edge =>
       val q = query[Edge].insert(e)
       // if there is unique conflict, we update the data which might contain new values
-      infix"$q ON CONFLICT(sourceid,(data->>'type'),targetid) WHERE (data->>'type')::text <> 'Author'::text DO UPDATE SET data = EXCLUDED.data"
+      infix"$q ON CONFLICT(sourceid,(data->>'type'),coalesce(data->>'key', ''),targetid) WHERE data->>'type' <> 'Author' DO UPDATE SET data = EXCLUDED.data"
         .as[Insert[Edge]]
     }
 
@@ -221,13 +221,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def delete(edges: Seq[Edge])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       if (edges.isEmpty) return Future.successful(SuccessResult)
 
-      val dbEdges = edges.map(e => (e.sourceId, e.data.tpe, e.targetId))
+      val dbEdges: Seq[(NodeId, EdgeData.Type, String, NodeId)] = edges.map {
+        case Data.Edge(sourceId, data: EdgeData.LabeledProperty, targetId) => (sourceId, data.tpe, data.key, targetId)
+        case Data.Edge(sourceId, data, targetId) => (sourceId, data.tpe, null, targetId)
+      }
 
       for {
         touched <- if(dbEdges.nonEmpty) {
           ctx.run {
-            liftQuery(dbEdges.toList).foreach { case (sourceId, tpe, targetId) =>
-              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe).delete
+            liftQuery(dbEdges.toList).foreach { case (sourceId, tpe, key, targetId) =>
+              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && e.data->>"key" == key).delete
             }
           }
         } else Future.successful(Nil)
