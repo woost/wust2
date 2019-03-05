@@ -18,34 +18,57 @@ object MoveableElement {
   case class LeftPosition(left: Double, top: Double) extends Position
   case class RightPosition(right: Double, bottom: Double) extends Position
 
-  def withToggleSwitch(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
+  case class Window(title: String, toggle: Var[Boolean], initialPosition: Position, bodyModifier: Ownable[VDomModifier])
+
+  def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val activeWindow = Var(windows.headOption.fold("")(_.title))
     div(
       enabled.map {
         case true =>
           div(
-            title,
+            zIndex := ZIndex.overlayMiddle,
             styles.extra.transform := "rotate(90deg)",
             styles.extra.transformOrigin := "top right",
-            onClick.stopPropagation.foreach { toggle.update(!_) },
-            cursor.pointer,
-
             position.absolute,
             bottom := "100px",
             right := "0",
-            backgroundColor := CommonStyles.sidebarBgColor,
             color.white,
-            borderBottomRightRadius := "5px",
-            borderBottomLeftRadius := "5px",
-            padding := "5px",
-            zIndex := ZIndex.overlayMiddle
+            Styles.flex,
+
+            windows.map { window =>
+              div(
+                window.title,
+                onClick.stopPropagation.foreach {
+                  if (window.toggle.now) Var.set(
+                    activeWindow -> window.title,
+                    window.toggle -> !window.toggle.now
+                  ) else window.toggle() = !window.toggle.now
+                },
+                onClick(window.title) --> activeWindow,
+                cursor.pointer,
+                padding := "5px",
+                border := "0px 1px 1px 1px white solid",
+                backgroundColor := CommonStyles.sidebarBgColor,
+                borderBottomRightRadius := "5px",
+                borderBottomLeftRadius := "5px",
+              )
+            }
           )
         case false =>
           VDomModifier.empty
       },
-      apply(title, toggle, enabled, resizeEvent, initialPosition, bodyModifier)
+      windows.map { window =>
+        apply(window, enabled, resizeEvent, activeWindow)
+      }
     )
   }
-  def apply(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier = {
+
+  def withToggleSwitch(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier =
+    withToggleSwitch(Seq(Window(title, toggle, initialPosition, bodyModifier)), enabled, resizeEvent)
+
+  def apply(window: Window, enabled: Rx[Boolean], resizeEvent: Observable[Unit], activeWindow: Var[String] = Var(""))(implicit ctx: Ctx.Owner): VDomModifier = {
+    import window._
+
     var mouseDownOffset: Option[LeftPosition] = None
     var currentWidth: Option[Double] = None
     var currentHeight: Option[Double] = None
@@ -66,6 +89,12 @@ object MoveableElement {
       case true =>
         div.static(toggle.hashCode)(VDomModifier(
           cls := "moveable-window",
+
+          zIndex <-- activeWindow.map { activeWindowTitle =>
+            if (activeWindowTitle == title) ZIndex.overlayLow + 1 else ZIndex.overlayLow
+          },
+
+          onMouseDown(title) --> activeWindow,
 
           div(
             Styles.flex,
