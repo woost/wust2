@@ -174,8 +174,9 @@ object EditableContent {
 
   private def closeButton(current: Observer[EditInteraction[Nothing]]) = div(
     cls := "ui button compact mini",
-    marginLeft := "4px",
     padding := "3px",
+    margin := "0 0 0 2px",
+    flexShrink := 0,
     "Cancel",
     fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
