@@ -5,6 +5,7 @@ import wust.util._
 import wust.util.algorithm._
 import wust.util.collection._
 import wust.util.time.time
+import wust.util.macros.InlineList
 
 import scala.collection.{ breakOut, mutable }
 import scala.collection.immutable
@@ -747,16 +748,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
   def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.forall(parentId => isDeletedNow(nodeId, parentId))
 
-  def directNodeTags(nodeIdx: Int, parentIndices: collection.Set[Int]): Array[Node] = {
+  def directNodeTags(nodeIdx: Int): Array[Node] = {
     //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
 
     val tagSet = new mutable.ArrayBuilder.ofRef[Node]
 
     parentsIdx.foreachElement(nodeIdx) { nodeParentIdx =>
+      val node = nodes(nodeParentIdx)
       if (!isInDeletedGracePeriodIdx(nodeIdx, nodeParentIdx)
-        && (!parentIndices.contains(nodeParentIdx) || nodeParentIdx == nodeIdx)
-        && !isDoneStage(nodes(nodeParentIdx)))
-        tagSet += nodes(nodeParentIdx)
+        && InlineList.contains(NodeRole.Tag, NodeRole.Stage)(node.role))
+        tagSet += node
     }
 
     tagSet.result()

@@ -453,10 +453,10 @@ object SharedViewElements {
     }
   }
 
-  def messageTags(state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId])(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
+  def messageTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       val graph = state.graph()
-      val directNodeTags = graph.directNodeTags(graph.idToIdx(nodeId), graph.createImmutableBitSet(directParentIds))
+      val directNodeTags = graph.directNodeTags(graph.idToIdx(nodeId))
       VDomModifier.ifTrue(directNodeTags.nonEmpty)(
         state.screenSize.now match {
           case ScreenSize.Small =>

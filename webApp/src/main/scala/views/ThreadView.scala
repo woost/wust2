@@ -312,7 +312,7 @@ object ThreadView {
       checkbox,
 
       renderedMessage,
-      messageTags(state, nodeId, directParentIds),
+      messageTags(state, nodeId),
       controls,
     )
   }
