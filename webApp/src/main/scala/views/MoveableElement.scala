@@ -51,6 +51,7 @@ object MoveableElement {
     var currentHeight: Option[Double] = None
     var currentPosition: LeftPosition = null
     var domElem: dom.html.Element = null
+    var domElemBody: dom.html.Element = null
 
     val show = Rx { toggle() && enabled() }
 
@@ -93,6 +94,7 @@ object MoveableElement {
 
           div(
             bodyModifier,
+            onDomMount.asHtml.foreach(domElemBody = _),
             currentWidth.map(currentWidth => width := s"${currentWidth}px"),
             currentHeight.map(currentHeight => height := s"${currentHeight}px"),
           ),
@@ -114,9 +116,9 @@ object MoveableElement {
           },
         ))
       case false =>
-        if (domElem != null) {
-          currentHeight = Some(domElem.offsetHeight)
-          currentWidth = Some(domElem.offsetWidth)
+        if (domElemBody != null) {
+          currentHeight = Some(domElemBody.offsetHeight)
+          currentWidth = Some(domElemBody.offsetWidth)
         }
         VDomModifier.empty
     }
