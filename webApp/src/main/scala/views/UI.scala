@@ -301,7 +301,7 @@ object UI {
   object ColumnEntry {
     def apply(value: String): ColumnEntry = ColumnEntry(value, value)
   }
-  case class Column(name: String, entries: List[ColumnEntry], sortable: Boolean = true)
+  case class Column(name: VDomModifier, entries: List[ColumnEntry], sortable: Boolean = true)
   case class ColumnSort(index: Int, direction: String)
   def sortableTable(columns: List[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
     val rows = columns.map(_.entries).transpose

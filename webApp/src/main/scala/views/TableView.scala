@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import org.scalajs.dom
 import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -7,7 +8,7 @@ import rx._
 import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
-import wust.webApp.ItemProperties
+import wust.webApp.{ItemProperties, Icons}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
@@ -52,6 +53,27 @@ object TableView {
       )
     )
 
+    def columnHeader(name: String) = VDomModifier(
+      name,
+    )
+
+    def columnHeaderWithDelete(name: String, deleteEdges: Set[Edge]) = VDomModifier(
+      columnHeader(name),
+      span(
+        float.right,
+        marginLeft := "8px",
+        fontSize.xSmall,
+        Icons.delete,
+        cursor.pointer,
+        onClick.stopPropagation.foreach {
+          if(dom.window.confirm("Do you really want to remove the column 'name' in all children?")) {
+            state.eventProcessor.changes.onNext(GraphChanges(delEdges = deleteEdges))
+          }
+          ()
+        }
+      )
+    )
+
     val childrenIdxs: Array[Int] = {
       val arr = graph.notDeletedChildrenIdx(focusedIdx).toArray
       if (roles.isEmpty) arr else arr.filter { childrenIdx =>
@@ -64,7 +86,7 @@ object TableView {
 
     val nodeColumns: List[UI.Column] =
       UI.Column(
-        "",
+        columnHeader(""),
         propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
           UI.ColumnEntry("",
             VDomModifier(
@@ -82,19 +104,19 @@ object TableView {
         sortable = false
       ) ::
       UI.Column(
-        "Node",
+        columnHeader("Node"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, Array(property.node))
         }(breakOut)
       ) ::
       UI.Column(
-        "Tags",
+        columnHeader("Tags"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, property.tags)
         }(breakOut)
       ) ::
       UI.Column(
-        "Assigned",
+        columnHeader("Assigned"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, property.assignedUsers)
         }(breakOut)
@@ -104,7 +126,7 @@ object TableView {
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
       val predictedType = property.groups.find(_.values.nonEmpty).map(_.values.head.node.data.tpe)
       UI.Column(
-        property.key,
+        columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))(breakOut)),
         property.groups.map { group =>
           columnEntryOfNodes(group.nodeId, group.values.map(_.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
