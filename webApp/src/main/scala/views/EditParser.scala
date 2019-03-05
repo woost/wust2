@@ -20,6 +20,22 @@ import wust.webApp.views.Elements._
 
 import scala.concurrent.duration._
 import scala.scalajs.js
+import scala.util.Try
+
+object EditImplicits {
+  import io.circe._
+  import io.circe.parser._
+  import io.circe.syntax._
+
+  object circe {
+    implicit def StringParser[T : Decoder]: EditStringParser[T] = new EditStringParser[T] {
+      def parse(str: String) = Task.pure(EditInteraction.fromEither(decode[T](str).toOption.toRight("Cannot parse")))
+    }
+    implicit def Stringifier[T : Encoder]: ValueStringifier[T] = new ValueStringifier[T] {
+      def stringify(current: T) = current.asJson.noSpaces
+    }
+  }
+}
 
 trait ValueStringifier[-T] { self =>
   def stringify(current: T): String
@@ -31,8 +47,11 @@ trait ValueStringifier[-T] { self =>
 object ValueStringifier {
   @inline def apply[T](implicit stringifier: ValueStringifier[T]): ValueStringifier[T] = stringifier
 
-  object ValueNull extends ValueStringifier[Any] {
-    def stringify(value: Any) = null
+  def combine[A: ValueStringifier, B: ValueStringifier, T](f: T => Either[A, B]): ValueStringifier[T] = new ValueStringifier[T] {
+    def stringify(current: T) = f(current) match {
+      case Left(a) => ValueStringifier[A].stringify(a)
+      case Right(b) => ValueStringifier[B].stringify(b)
+    }
   }
 
   implicit object ValueString extends ValueStringifier[String] {
@@ -58,7 +77,9 @@ object ValueStringifier {
     def stringify(current: Option[T]): String = current.fold("")(ValueStringifier[T].stringify)
   }
 
-  implicit val ValueNodeData: ValueStringifier[NodeData] = new ValueStringifier[NodeData] {
+  implicit val ValueNodeId: ValueStringifier[NodeId] = ValueString.map[NodeId](_.toCuidString)
+
+  implicit object ValueNodeData extends ValueStringifier[NodeData] {
     override def stringify(current: NodeData): String = current match {
       case data: NodeData.Integer      => ValueInteger.stringify(data.content)
       case data: NodeData.Decimal      => ValueDouble.stringify(data.content)
@@ -93,6 +114,19 @@ trait EditStringParserInstances0 {
 object EditStringParser extends EditStringParserInstances0 {
   @inline def apply[T](implicit parser: EditStringParser[T]): EditStringParser[T] = parser
 
+  def combine[A: EditStringParser, B: EditStringParser, T](fa: A => T, fb: B => T): EditStringParser[T] = combineParsers(EditStringParser[A].map(fa), EditStringParser[B].map(fb))
+
+  def combineParsers[T](parserA: EditStringParser[T], parserB: EditStringParser[T]): EditStringParser[T] = new EditStringParser[T] {
+    def parse(str: String) = parserA.parse(str).flatMap {
+      case errA: EditInteraction.Error => parserB.parse(str).map {
+        case errB: EditInteraction.Error => EditInteraction.Error(s"$errA and $errB")
+        case e => e
+      }
+      case e => Task.pure(e)
+    }
+  }
+
+
   //TODO only allow valid node data type strings
   implicit val EditNodeDataType: EditStringParser[NodeData.Type] = EditString.map(NodeData.Type(_))
   implicit val EditNodeDataPlainText: EditStringParser[NodeData.PlainText] = EditString.map[NodeData.PlainText](NodeData.PlainText.apply)
@@ -100,6 +134,10 @@ object EditStringParser extends EditStringParserInstances0 {
   def EditNodeDataUser(user: NodeData.User): EditStringParser[NodeData.User] = EditNonEmptyString.flatMap[NodeData.User](s => EditInteraction.fromOption(user.updateName(s.string)))
 
   implicit def EditOption[T: EditStringParser]: EditStringParser[Option[T]] = EditStringParser[T].map(Some(_))
+
+  implicit def EditNodeId: EditStringParser[NodeId] = EditString.flatMap[NodeId] { cuid =>
+    EditInteraction.fromEither(Try(Cuid.fromCuidString(cuid)).toEither.fold(e => Left(e.getMessage), id => Right(NodeId(id))))
+  }
 
   def forNodeDataType(tpe: NodeData.Type): Option[EditStringParser[NodeData.Content]] = tpe match {
     case NodeData.PlainText.tpe => Some(EditNodeDataPlainText)
@@ -149,11 +187,11 @@ object EditInputParser {
   }
 
   implicit object EditInteger extends EditInputParser[Int] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(scala.util.Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
     def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.integerInputMod)
   }
   implicit object EditDouble extends EditInputParser[Double] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(scala.util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
+    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
     def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.decimalInputMod)
   }
   implicit object EditEpochMilli extends EditInputParser[EpochMilli] {

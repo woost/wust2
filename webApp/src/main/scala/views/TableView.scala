@@ -186,14 +186,20 @@ object TableView {
                 )
               )
             ),
-            extendNewProperty = { (edgeData, propertyNode) =>
+            extendNewProperty = { (edgeData, propertyNodeIdOrNode) =>
               if (keepPropertyAsDefault.now) {
-                val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+                val (propertyId, newPropertyNode) = propertyNodeIdOrNode match {
+                  case Left(nodeId) => (nodeId, None)
+                  case Right(node) =>
+                    val copiedNode = node.copy(id = NodeId.fresh)
+                    (copiedNode.id, Some(copiedNode))
+                }
+
                 val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
                 GraphChanges(
-                  addNodes = Set(templateNode, newPropertyNode),
+                  addNodes = Set(templateNode) ++ newPropertyNode,
                   addEdges = Set(
-                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(newPropertyNode.id)),
+                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(propertyId)),
                     Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id)),
                     Edge.Child(childId = ChildId(templateNode.id), parentId = ParentId(focusedId))
                   )

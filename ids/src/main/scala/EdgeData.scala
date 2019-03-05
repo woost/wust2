@@ -46,6 +46,7 @@ object EdgeData {
   case class LabeledProperty(key: String) extends Named with EdgeData with PropertyKey
   object LabeledProperty extends Named {
     def attachment = LabeledProperty("Attachment")
+    def link = LabeledProperty("Link")
   }
 
   case object Notify extends Named with EdgeData

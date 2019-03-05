@@ -119,6 +119,13 @@ object Components {
     )
   }
 
+  def roleSpecificRender(state: GlobalState, node: Node, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    roleSpecificRender[VNode](node,
+      nodeCard = nodeCard(node, maxLength = maxLength),
+      nodePlain = renderNodeDataWithFile(state, node.id, node.data, maxLength = maxLength)
+    )
+  }
+
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
     import file._
 
@@ -708,7 +715,7 @@ object Components {
       )
     }
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
       var inputElem: dom.html.Element = null
       var elem: JQuerySelection = null
 
@@ -773,6 +780,7 @@ object Components {
         cls := "ui category search",
         div(
           cls := "ui icon input",
+          innerElementModifier,
           input(
             borderRadius := "4px",
             inputModifiers,

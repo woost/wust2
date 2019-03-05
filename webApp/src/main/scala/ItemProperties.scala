@@ -1,5 +1,6 @@
 package wust.webApp
 
+import monix.eval.Task
 import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom
@@ -12,13 +13,15 @@ import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
+import wust.util.macros.InlineList
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, Elements, UI, EditableContent, EditInputParser, EditInteraction, EditContext}
+import wust.webApp.views.{Components, Elements, UI, EditableContent, EditInputParser, EditStringParser, ValueStringifier, EditInteraction, EditContext, EditImplicits}
 import wust.webApp.StringJsOps._
 
 import scala.scalajs.js
 import scala.collection.breakOut
+import scala.util.Try
 
 /*
  * Here, the managing of node properties is done.
@@ -27,6 +30,18 @@ import scala.collection.breakOut
  * Or get a dropdown of this content: managePropertiesDropdown
  */
 object ItemProperties {
+
+  sealed trait TypeSelection
+  object TypeSelection {
+    case class Data(data: NodeData.Type) extends TypeSelection
+    case object Ref extends TypeSelection
+
+    import wust.ids.serialize.Circe._
+    import io.circe._, io.circe.generic.auto._
+
+    implicit val parser: EditStringParser[TypeSelection] = EditImplicits.circe.StringParser[TypeSelection]
+    implicit val stringifier: ValueStringifier[TypeSelection] = EditImplicits.circe.Stringifier[TypeSelection]
+  }
 
   val naming = "Custom fields"
   val defaultType = NodeData.PlainText.tpe
@@ -37,16 +52,18 @@ object ItemProperties {
     case _: NodeData.File                            => Icons.files
   }
 
-  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Either[NodeId, Node.Content]) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = Var[Option[NodeData.Type]](prefilledType)
+    val propertyTypeSelection = Var[Option[TypeSelection]](prefilledType.map(TypeSelection.Data(_)))
     val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(prefilledKey))
-    val propertyValueInput = Var[Option[NodeData]](None)
+    val propertyValueInput = Var[Option[Either[NodeId, NodeData]]](None)
     propertyTypeSelection.foreach { selection =>
+      propertyValueInput() = None// clear value on each type change...
       if (propertyKeyInput.now.isEmpty) selection.foreach {
-        case NodeData.File.tpe => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
+        case TypeSelection.Data(NodeData.File.tpe) => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
+        case TypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.link.key)
         case _ => ()
       }
     }
@@ -95,28 +112,57 @@ object ItemProperties {
             justifyContent.spaceBetween,
             b("Field Type:", color.gray, margin := "0px 5px 0px 5px"),
             isChildOfAutomationTemplate.map { isTemplate =>
-              EditableContent.select[NodeData.Type](
+              EditableContent.select[TypeSelection](
                 "Select a field type",
                 propertyTypeSelection,
-                ("Text", NodeData.PlainText.tpe) ::
-                ("Number", NodeData.Decimal.tpe) ::
-                ("File", NodeData.File.tpe) ::
-                ("Date", NodeData.Date.tpe) ::
-                (if (isTemplate) ("Relative Date", NodeData.RelativeDate.tpe) :: Nil else Nil)
+                ("Text", TypeSelection.Data(NodeData.PlainText.tpe)) ::
+                ("Number", TypeSelection.Data(NodeData.Decimal.tpe)) ::
+                ("File", TypeSelection.Data(NodeData.File.tpe)) ::
+                ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
+                (if (isTemplate) ("Relative Date", TypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
+                ("Link", TypeSelection.Ref) ::
+                Nil
               ).apply(tabIndex := -1)
             }
           ),
-          propertyTypeSelection.map(_.flatMap { propertyType =>
-            EditInputParser.forNodeDataType(propertyType) map { implicit parser =>
-              propertyValueInput() = None// clear value on each type change...
-              EditableContent.inputFieldRx[NodeData](propertyValueInput, editableConfig.copy(
-                innerModifier = VDomModifier(
-                  width := "100%",
-                  marginTop := "4px",
-                  Elements.onEnter.stopPropagation foreach(createProperty())
-                )
-              ))
-            }
+          propertyTypeSelection.map(_.flatMap {
+            case TypeSelection.Data(propertyType) =>
+              EditInputParser.forNodeDataType(propertyType) map { implicit parser =>
+                EditableContent.inputFieldRx[NodeData](propertyValueInput.imap[Option[NodeData]](_.collect { case Right(data) => data })(_.map(Right(_))), editableConfig.copy(
+                  innerModifier = VDomModifier(
+                    width := "100%",
+                    marginTop := "4px",
+                    Elements.onEnter.stopPropagation foreach(createProperty())
+                  )
+                ))
+              }
+            case TypeSelection.Ref => Some(
+              div(
+                width := "100%",
+                marginTop := "4px",
+                Components.searchInGraph(state.graph, "Search", filter = {
+                  case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(n.role)
+                  case _ => false
+                }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(nodeId => Some(Left(nodeId))) --> propertyValueInput,
+                propertyValueInput.map[VDomModifier] {
+                  case Some(Left(nodeId)) => div(
+                    marginTop := "4px",
+                    Styles.flex,
+                    alignItems.flexStart,
+                    justifyContent.spaceBetween,
+                    span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
+                    state.graph.map { g =>
+                      val node = g.nodesById(nodeId)
+                      Components.roleSpecificRender(state, node, maxLength = Some(100)).apply(
+                        Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                        styles.extra.wordBreak.breakAll, whiteSpace.preWrap
+                      )
+                    }
+                  )
+                  case _ => VDomModifier.empty
+                }
+              )
+            )
           }),
           div(
             marginTop := "5px",
@@ -138,25 +184,14 @@ object ItemProperties {
       )
     }
 
-    def handleAddProperty(propertyKey: Option[NonEmptyString], propertyValue: Option[NodeData])(implicit ctx: Ctx.Owner): Unit = for {
+    def handleAddProperty(propertyKey: Option[NonEmptyString], propertyValue: Option[Either[NodeId, NodeData]])(implicit ctx: Ctx.Owner): Unit = for {
       propertyKey <- propertyKey
       propertyValue <- propertyValue
     } {
 
-      val propertyNodeOpt: Option[Node.Content] = propertyValue match {
-        case data: NodeData.Content     => Some(Node.Content(nodeId, data, NodeRole.Neutral))
-        case _                          => None
-      }
+      val propertyEdgeData = EdgeData.LabeledProperty(propertyKey.string)
 
-      propertyNodeOpt.foreach { propertyNode =>
-
-        val propertyEdgeData = EdgeData.LabeledProperty(propertyKey.string)
-        def addProperty(targetNodeId: NodeId): GraphChanges = {
-          val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-          val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
-          GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
-        }
-
+      def sendChanges(addProperty: NodeId => GraphChanges, extendable: Either[NodeId, Node.Content]) = {
         val changes = targetNodeIds match {
           case Some(targetNodeIds) =>
             val graph = state.graph.now
@@ -168,11 +203,34 @@ object ItemProperties {
               if (alreadyExists) GraphChanges.empty else addProperty(targetNodeId)
             }
 
-            changes.fold(GraphChanges.empty)(_ merge _) merge extendNewProperty(propertyEdgeData, propertyNode)
-          case None => addProperty(nodeId) merge extendNewProperty(propertyEdgeData, propertyNode)
+            changes.fold(GraphChanges.empty)(_ merge _) merge extendNewProperty(propertyEdgeData, extendable)
+          case None => addProperty(nodeId) merge extendNewProperty(propertyEdgeData, extendable)
         }
 
         state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
+      }
+
+      propertyValue match {
+
+        case Right(data: NodeData.Content) =>
+          val propertyNode = Node.Content(nodeId, data, NodeRole.Neutral)
+          def addProperty(targetNodeId: NodeId): GraphChanges = {
+            val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+            val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
+            GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
+          }
+
+          sendChanges(addProperty, Right(propertyNode))
+
+        case Left(nodeId)                  =>
+          def addProperty(targetNodeId: NodeId): GraphChanges = {
+            val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(nodeId))
+            GraphChanges(addEdges = Set(propertyEdge))
+          }
+
+          sendChanges(addProperty, Left(nodeId))
+
+        case _                             => ()
       }
     }
 
@@ -185,7 +243,7 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Node.Content) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Either[NodeId, Node.Content]) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
