@@ -48,7 +48,7 @@ object RightSidebar {
         Styles.flexStatic,
       ) -> VDomModifier(
         margin := "4px",
-        padding := "2px",
+        padding := "4px",
         body
       )
     }
@@ -169,22 +169,58 @@ object RightSidebar {
         focusedNodeId().flatMap { focusPref =>
           state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
             div(
-              Styles.flex,
-              alignItems.flexStart,
-              Components.roleSpecificRender[VNode](node,
-                nodeCard = Components.nodeCardEditable(state, node, editMode),
-                nodePlain = Components.editableNode(state, node, editMode),
-              ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
               div(
-                Icons.edit,
-                padding := "4px",
-                cursor.pointer,
-                onClick.stopPropagation(true) --> editMode
-              )
+                nodeAuthor(state.rawGraph(), focusPref.nodeId)
+              ),
+
+              div(
+                Styles.flex,
+                alignItems.flexStart,
+                Components.roleSpecificRender[VNode](node,
+                  nodeCard = Components.nodeCardEditable(state, node, editMode),
+                  nodePlain = Components.editableNode(state, node, editMode),
+                ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
+                div(
+                  Icons.edit,
+                  padding := "4px",
+                  cursor.pointer,
+                  onClick.stopPropagation(true) --> editMode
+                )
+              ),
             )
           }
         }
       }
+    )
+  }
+
+  private def nodeAuthor(graph: Graph, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val idx = graph.idToIdxOrThrow(nodeId)
+    val authors = graph.authorsIdx(idx)
+    val creationEpochMillis = if(idx == -1) None else Some(graph.nodeCreated(idx))
+
+    VDomModifier(
+      Styles.flex,
+      alignItems.center,
+      authors.headOption.map { author =>
+        val userNode = graph.nodes(author).asInstanceOf[Node.User]
+        VDomModifier(
+          Avatar.user(userNode.id)(
+            marginRight := "2px",
+            width := "22px",
+            height := "22px",
+            cls := "avatar",
+          ),
+          Components.displayUserName(userNode.data),
+          div(
+            Styles.flex,
+            alignItems.center,
+            marginLeft := "auto",
+            SharedViewElements.modifications(userNode, graph.nodeModifier(idx)),
+            creationEpochMillis.map { Elements.creationDate(_) },
+          )
+        )
+      },
     )
   }
 
