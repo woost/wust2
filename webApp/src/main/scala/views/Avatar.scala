@@ -79,7 +79,7 @@ object Avatar {
 //    assert((hue1 - (hue3 - PI2)).abs >= padding)
 //    assert((hue2 - (hue3 - PI2)).abs >= padding)
 
-    @inline def c = 55
+    @inline def c = 60
     @inline def l = 70
     val col1 = HCL(hue1, c, l).toHex
     val col2 = HCL(hue2, c, l).toHex
@@ -94,12 +94,15 @@ object Avatar {
   private val svgHeightOne = dsl.svg.height := "1"
   private def addPixel(pixels: js.Array[VNode], x: Int, y: Int, color: String): Unit = {
     import outwatch.dom.dsl.svg
-    pixels push svg.rect(
-      dsl.svg.x := x.toString,
-      dsl.svg.y := y.toString,
-      svgWidthOne,
-      svgHeightOne,
+    pixels push svg.circle(
+      dsl.svg.cx := (x+0.5).toString,
+      dsl.svg.cy := (y+0.5).toString,
+      dsl.svg.r := "0.5",
+      // svgWidthOne,
+      // svgHeightOne,
       svg.fill := color
+      // svg.stroke := color,
+      // svg.strokeWidth := "2"
     )
   }
 
@@ -107,7 +110,7 @@ object Avatar {
     import outwatch.dom.dsl.svg.viewBox
     VDomModifier(
       viewBox := s"0 0 $n $n",
-      dsl.style("shape-rendering") := "optimizeSpeed",
+      // dsl.style("shape-rendering") := "optimizeSpeed",
       pixels
     )
   }
