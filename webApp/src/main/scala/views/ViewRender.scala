@@ -17,6 +17,7 @@ object ViewRender {
       case View.Signup           => AuthView.signup(state)
       case View.UserSettings     => UserSettingsView(state)
       case View.Welcome          => WelcomeView(state)
+      case View.Avatar           => AvatarView(state)
       case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(state, focusState, _)), state)
       case View.Empty            => emptyView
     }

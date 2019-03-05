@@ -48,6 +48,10 @@ object View {
     def viewKey = "welcome"
     override def isContent = false
   }
+  case object Avatar extends Visible {
+    def viewKey = "avatar"
+    override def isContent = false
+  }
   case object UserSettings extends Visible {
     def viewKey = "usersettings"
     override def isContent = false

@@ -1,5 +1,9 @@
 package wust.webApp.views
 
+import wust.sdk.{BaseColors, NodeColor}
+import wust.css.{Styles, ZIndex}
+import wust.webApp.outwatchHelpers._
+import wust.ids.{Cuid, NodeId}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
@@ -12,6 +16,8 @@ object AvatarView {
     div(
       width := "100%",
       overflow.auto,
+
+      backgroundColor := "#a8a8a8",
       div(
         padding := "10px",
         // display := "grid",
@@ -19,32 +25,41 @@ object AvatarView {
         // style("grid-template-columns") := s"repeat(auto-fill, minmax(${size}px, 1fr))",
         (5 to 5).map { res =>
           div(
-            width := s"${n * (size + 10)}px",
-            marginBottom := "10px",
+            Styles.flex,
+            flexWrap.wrap,
+            // width := s"${n * (size + 10)}px",
             List.tabulate(n)(
               i =>
                 Avatar.verticalMirror(i, res)(
                   width := s"${size}px",
                   height := s"${size}px",
-                  display.inlineBlock,
-                  marginRight := "10px"
+                  padding := "4px",
+                  borderRadius := "2px",
+                  marginBottom := "10px",
+                  marginRight := "10px",
+                  backgroundColor := "rgb(255,255,255,0.9)",
                 )
             )
           ),
         },
         (8 to 10).map { res =>
           div(
-            width := s"${n * (size + 10)}px",
-            marginBottom := "10px",
-            List.tabulate(n)(
+            Styles.flex,
+            flexWrap.wrap,
+            List.tabulate(n){
               i =>
-                Avatar.twoMirror(i, res)(
+                val nodeId = NodeId(Cuid(0,i))
+                div(
                   width := s"${size}px",
                   height := s"${size}px",
-                  display.inlineBlock,
-                  marginRight := "10px"
+                  padding := "4px",
+                  borderRadius := "2px",
+                  marginBottom := "10px",
+                  marginRight := "10px",
+                  backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
+                  Avatar.twoMirror(i, res)
                 )
-            )
+            }
           ),
         },
         // List.tabulate(n)(i => Avatar(i, 10, false)(width := s"${size}px", height := s"${size}px")  ),
