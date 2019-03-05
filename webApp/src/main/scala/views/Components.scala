@@ -380,8 +380,12 @@ object Components {
     val contentString = VDomModifier(
       Styles.flex,
       alignItems.flexStart,
-      icon.map(_(marginRight := "4px")),
-      u(s"${key.data.key}:", marginRight := "4px", fontSize.xSmall),
+      div(
+        Styles.flex,
+        alignItems.center,
+        icon.map(_(marginRight := "4px")),
+        u(s"${key.data.key}:", marginRight := "4px", fontSize.xSmall),
+      ),
       renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
     )
 
