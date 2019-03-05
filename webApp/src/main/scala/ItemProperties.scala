@@ -61,9 +61,10 @@ object ItemProperties {
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
 
-      val isAutomationTemplate = Rx {
+      val isChildOfAutomationTemplate = Rx {
         val graph = state.graph()
-        graph.automatedNodes(graph.idToIdxOrThrow(nodeId)).nonEmpty
+        val nodeIdx = graph.idToIdxOrThrow(nodeId)
+        graph.automatedNodes(nodeIdx).nonEmpty || graph.ancestorsIdx(nodeIdx).exists(parentIdx => graph.automatedNodes(parentIdx).nonEmpty)
       }
 
       def createProperty() = {
@@ -93,7 +94,7 @@ object ItemProperties {
             alignItems.center,
             justifyContent.spaceBetween,
             b("Field Type:", color.gray, margin := "0px 5px 0px 5px"),
-            isAutomationTemplate.map { isTemplate =>
+            isChildOfAutomationTemplate.map { isTemplate =>
               EditableContent.select[NodeData.Type](
                 "Select a field type",
                 propertyTypeSelection,
