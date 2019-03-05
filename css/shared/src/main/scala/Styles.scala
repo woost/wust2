@@ -232,7 +232,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumbs .divider" - (
     marginLeft(3 px),
     marginRight(3 px),
-    color(c"#666"),
+    color.gray,
     fontSize(16 px),
     fontWeight.bold
   )
