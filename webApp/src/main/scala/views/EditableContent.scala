@@ -172,8 +172,12 @@ object EditableContent {
     )
   }
 
-  private def closeButton(current: Observer[EditInteraction[Nothing]]) = i(
-    cls := "close icon link",
+  private def closeButton(current: Observer[EditInteraction[Nothing]]) = div(
+    cls := "ui button compact mini",
+    marginLeft := "4px",
+    padding := "3px",
+    "Cancel",
+    fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(EditInteraction.Cancel) --> current
   )
@@ -186,6 +190,7 @@ object EditableContent {
       div.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
         width := "100%",
         Styles.flex,
+        alignItems.flexStart,
         modifiers,
         Some(config.submitMode).collect {
           case SubmitMode.Explicit => closeButton(current)
