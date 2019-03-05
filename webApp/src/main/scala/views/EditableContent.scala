@@ -121,7 +121,7 @@ object EditableContent {
   @inline def inputInlineRx[T: EditStringParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = inputInlineRxInteraction[T](zoomOutToEditInteraction(current), config)
   def inputInlineRxInteraction[T: EditStringParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
     commonEditStructure(current, config)(
-      div(
+      dsl.span(
         outline := "none", // hides contenteditable outline
         contentEditable := true,
         backgroundColor := "#FFF",
@@ -172,7 +172,7 @@ object EditableContent {
     )
   }
 
-  private def closeButton(current: Observer[EditInteraction[Nothing]]) = div(
+  private def closeButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
     cls := "ui button compact mini",
     padding := "3px",
     margin := "0 0 0 2px",
@@ -184,14 +184,14 @@ object EditableContent {
   )
 
   private def commonEditStructure[T](current: Handler[EditInteraction[T]], config: Config)(modifiers: VDomModifier*) = {
-    div(
-      Styles.flex,
+    dsl.span(
+      display.inlineFlex,
       flexDirection.column,
       alignItems.center,
-      div.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
-        width := "100%",
-        Styles.flex,
+      dsl.span.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
+        display.inlineFlex,
         alignItems.flexStart,
+        width := "100%",
         modifiers,
         Some(config.submitMode).collect {
           case SubmitMode.Explicit => closeButton(current)
@@ -278,12 +278,10 @@ object EditableContent {
     VDomModifier(
       emitter(currentVar.drop(1)).map(handleEditInteractionInOrRender(editMode)) --> action,
 
-      p( // has different line-height than div and is used for text by markdown
-        Rx {
-          if(editMode()) VDomModifier(editRender, keyed)
-          else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)), keyed)
-        },
-      )
+      Rx {
+        if(editMode()) VDomModifier(editRender, keyed)
+        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)), keyed)
+      },
     )
   }
 
