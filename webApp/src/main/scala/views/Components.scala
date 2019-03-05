@@ -144,34 +144,37 @@ object Components {
       Styles.growFull
     )
 
-    def downloadLink = a(downloadUrl(href), s"Download ${StringOps.trimToMaxLength(file.fileName, 20)}", onClick.stopPropagation --> Observer.empty)
+    val trimmedFileName = StringOps.trimToMaxLength(file.fileName, 20)
+    def downloadLink = a(downloadUrl(href), s"Download ${trimmedFileName}", onClick.stopPropagation --> Observer.empty)
 
     div(
-      file.str,
       if (file.key.isEmpty) { // this only happens for currently-uploading files
-        VDomModifier(Rx {
-          val uploadingFiles = state.uploadingFiles()
-          uploadingFiles.get(nodeId) match {
-            case Some(UploadingFile.Error(dataUrl, retry)) => div(
-              preview(dataUrl),
-              position.relative,
-              centerStyle,
-              div(
-                overlay,
+        VDomModifier(
+          trimmedFileName,
+          Rx {
+            val uploadingFiles = state.uploadingFiles()
+            uploadingFiles.get(nodeId) match {
+              case Some(UploadingFile.Error(dataUrl, retry)) => div(
+                preview(dataUrl),
+                position.relative,
                 centerStyle,
-                div(freeSolid.faExclamationTriangle, " Error Uploading File"),
-                button(cls := "ui button", "Retry upload", onClick.stopPropagation.foreach { retry.runAsyncAndForget }, cursor.pointer)
+                div(
+                  overlay,
+                  centerStyle,
+                  div(freeSolid.faExclamationTriangle, " Error Uploading File"),
+                  button(cls := "ui button", "Retry upload", onClick.stopPropagation.foreach { retry.runAsyncAndForget }, cursor.pointer)
+                )
               )
-            )
-            case Some(UploadingFile.Waiting(dataUrl)) => div(
-              preview(dataUrl),
-              position.relative,
-              centerStyle,
-              woostLoadingAnimation.apply(overlay, centerStyle)
-            )
-            case None => VDomModifier.empty
+              case Some(UploadingFile.Waiting(dataUrl)) => div(
+                preview(dataUrl),
+                position.relative,
+                centerStyle,
+                woostLoadingAnimation.apply(overlay, centerStyle)
+              )
+              case None => VDomModifier.empty
+            }
           }
-        })
+        )
       } else VDomModifier(
         p(downloadLink),
         contentType match {
@@ -318,6 +321,10 @@ object Components {
       flexWrap.wrap,
       alignItems.flexStart,
       b(
+        editKey.map {
+          case true => VDomModifier.empty
+          case false => textDecoration.underline
+        },
         color.gray,
         Styles.flex,
         EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.map { key =>
@@ -374,7 +381,7 @@ object Components {
       Styles.flex,
       alignItems.flexStart,
       icon.map(_(marginRight := "4px")),
-      i(s"${key.data.key}:", marginRight := "4px"),
+      u(s"${key.data.key}:", marginRight := "4px", fontSize.xSmall),
       renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
     )
 
@@ -382,7 +389,7 @@ object Components {
       cls := "node tag",
       padding := "2px",
       contentString,
-      border := "1px solid gray",
+      border := "1px solid lightgray",
       color.gray
     )
   }
