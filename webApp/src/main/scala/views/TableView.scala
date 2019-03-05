@@ -59,7 +59,6 @@ object TableView {
 
     def columnHeaderWithDelete(name: String, edges: Set[Edge.LabeledProperty]) = {
       val editMode = Var(false)
-      editMode.foreach(e => println("EDIT MODE " + name + "  " + e))
       def miniButton = span(
         marginLeft := "8px",
         fontSize.xSmall,
