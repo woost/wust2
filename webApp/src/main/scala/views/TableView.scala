@@ -57,22 +57,40 @@ object TableView {
       name,
     )
 
-    def columnHeaderWithDelete(name: String, deleteEdges: Set[Edge]) = VDomModifier(
-      columnHeader(name),
-      span(
-        float.right,
+    def columnHeaderWithDelete(name: String, edges: Set[Edge.LabeledProperty]) = {
+      val editMode = Var(false)
+      editMode.foreach(e => println("EDIT MODE " + name + "  " + e))
+      def miniButton = span(
         marginLeft := "8px",
         fontSize.xSmall,
-        Icons.delete,
         cursor.pointer,
-        onClick.stopPropagation.foreach {
-          if(dom.window.confirm("Do you really want to remove the column 'name' in all children?")) {
-            state.eventProcessor.changes.onNext(GraphChanges(delEdges = deleteEdges))
+        float.right
+      )
+
+      span(
+        EditableContent.inputInlineOrRender[String](name, editMode, columnHeader(_)).editValue.foreach { newName =>
+          if (newName.nonEmpty) {
+            state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
           }
-          ()
+        },
+        editMode.map[VDomModifier] {
+          case true => miniButton(
+            keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
+            Icons.delete,
+            onClick.stopPropagation.foreach {
+              if(dom.window.confirm("Do you really want to remove the column 'name' in all children?")) {
+                state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
+              }
+              ()
+            },
+          )
+          case false => miniButton(
+            Icons.edit,
+            onClick.stopPropagation(true) --> editMode
+          )
         }
       )
-    )
+    }
 
     val childrenIdxs: Array[Int] = {
       val arr = graph.notDeletedChildrenIdx(focusedIdx).toArray
@@ -88,7 +106,7 @@ object TableView {
       UI.Column(
         columnHeader(""),
         propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
-          UI.ColumnEntry("",
+          UI.ColumnEntry(idx,
             VDomModifier(
              backgroundColor := "#f9fafb", // same color as header of table
              Components.sidebarNodeFocusVisualizeRightMod(state.rightSidebarNode, property.node.id),
@@ -100,8 +118,7 @@ object TableView {
             ),
             rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id)
           )
-        }(breakOut),
-        sortable = false
+        }(breakOut)
       ) ::
       UI.Column(
         columnHeader("Node"),

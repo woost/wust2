@@ -297,7 +297,7 @@ object UI {
     )
   }
 
-  case class ColumnEntry(sortValue: String, value: VDomModifier, rowModifier: VDomModifier = VDomModifier.empty)
+  case class ColumnEntry(sortValue: Any, value: VDomModifier, rowModifier: VDomModifier = VDomModifier.empty)
   object ColumnEntry {
     def apply(value: String): ColumnEntry = ColumnEntry(value, value)
   }
