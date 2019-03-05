@@ -47,12 +47,12 @@ object GraphChangesAutomation {
       node.copy(id = NodeId.fresh, data = newData)
     }
 
-    // If the newNode is already in the graph, then get all descendants. For
-    // each descendant check whether it is derived from template node - i.e. the
+    // If the newNode is already in the graph, then get all contentedge-descendants.
+    // For each descendant check whether it is derived from template node - i.e. the
     // newNode was already automated with this template before. If it was, we
     // do not want to copy again in the automation but reuse the node that was
     // copied in the previous automation run.
-    newNodeIdx.foreach(newNodeIdx => graph.descendantsIdx(newNodeIdx).foreach { descendantIdx =>
+    newNodeIdx.foreach(newNodeIdx => algorithm.depthFirstSearchAfterStart(newNodeIdx, graph.contentsIdx).foreach { descendantIdx =>
       val descendant = graph.nodes(descendantIdx)
       graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
         val interfaceIdx = graph.edgesIdx.b(edgeIdx)
@@ -66,7 +66,7 @@ object GraphChangesAutomation {
     // descendant. If we do, we just keep this node, else we will create a copy
     // of the descendant node. We want to have a copy of each descendant of the
     // template.
-    graph.notDeletedDescendantsIdx(templateNodeIdx).foreach { descendantIdx =>
+    algorithm.depthFirstSearchAfterStart(templateNodeIdx, graph.contentsIdx).foreach { descendantIdx =>
       graph.nodes(descendantIdx) match {
         case node: Node.Content =>
           alreadyExistingNodes.get(node.id) match {
@@ -82,30 +82,13 @@ object GraphChangesAutomation {
       }
     }
 
-    // Copy and replace properties pointing to replace nodes
-    graph.edges.foreach {
-      case edge: Edge.LabeledProperty =>
-        (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
-          case (Some(newSource), None) => // a copied node points to an existing property, we want to copy the property.
-            val targetNode = graph.nodesById(edge.propertyId)
-            targetNode match {
-              case node: Node.Content =>
-                val copyNode = copyAndTransformNode(node)
-                addNodes += copyNode
-                replacedNodes += node.id -> copyNode
-              case _ => ()
-            }
-          case _ => ()
-        }
-      case _ => ()
-    }
-
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
       case _: Edge.Author                                                 => () // do not copy authors, we want the new authors of the one who triggered this change.
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case edge: Edge.Automated if edge.templateNodeId == templateNode.id => () // do not copy automation edges of template, otherwise the newNode would become a template.
+      case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) => () // do not copy deleted parent edges
       case edge                                                           =>
         // replace node ids to point to our copied nodes
         (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
@@ -130,6 +113,8 @@ object GraphChangesAutomation {
     val addEdges = mutable.HashSet.newBuilder[Edge]
     val delEdges = mutable.HashSet.newBuilder[Edge]
 
+    val automatedNodes = mutable.HashSet.newBuilder[Node]
+
     changes.addEdges.foreach {
 
       case parent: Edge.Child if parent.data.deletedAt.isEmpty && !graph.parents(parent.childId).contains(parent.parentId) => // a new, undeleted parent edge
@@ -146,23 +131,29 @@ object GraphChangesAutomation {
           if (childIsTemplate) addEdges += parent // do not automate template nodes
           else {
             val automatedEdges = graph.automatedEdgeIdx(parentIdx)
-            var doneSomething = false
+            var doneSomethingLocally = false
             //TODO should we do the copy for all templateNodes of this node in one go? because then we do not duplicate shared nodes of templates
             automatedEdges.foreach { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
               val templateNode = graph.nodes(templateNodeIdx)
               if (templateNode.role == childNode.role) {
-                doneSomething = true
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
                 val changes = copySubGraphOfNode(graph, newNode = childNode, templateNode = templateNode)
+                // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
+                // so an automated node can be drag/dropped to the correct position.
+                addEdges ++= changes.addEdges.map {
+                  case addParent: Edge.Child if addParent.childId == parent.childId && addParent.parentId == parent.parentId =>
+                    addParent.copy(data = addParent.data.copy(ordering = parent.data.ordering))
+                  case e => e
+                }
                 addNodes ++= changes.addNodes
-                addEdges ++= changes.addEdges
                 delEdges ++= changes.delEdges
+                doneSomethingLocally = true
               }
             }
 
-            if (doneSomething) {
-              UI.toast(StringOps.trimToMaxLength(childNode.str, 100), title = s"New ${ childNode.role } is automated", click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id)))))
+            if (doneSomethingLocally) {
+              automatedNodes += childNode
             } else {
               addEdges += parent
             }
@@ -175,6 +166,14 @@ object GraphChangesAutomation {
 
     addNodes ++= changes.addNodes
     delEdges ++= changes.delEdges
+
+    automatedNodes.result.foreach { childNode =>
+      UI.toast(
+        StringOps.trimToMaxLength(childNode.str, 50),
+        title = s"New ${ childNode.role } is automated",
+        click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id))))
+      )
+    }
 
     GraphChanges(
       addNodes = addNodes.result(),
