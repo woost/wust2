@@ -218,7 +218,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
     Styles.flex,
     alignItems.flexStart,
-    // flexWrap.wrap,
+    flexWrap.wrap,
     overflowX.auto,
     Styles.flexStatic,
 
