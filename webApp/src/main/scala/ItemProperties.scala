@@ -44,7 +44,7 @@ object ItemProperties {
   }
 
   val naming = "Custom fields"
-  val defaultType = NodeData.PlainText.tpe
+  val defaultType = NodeData.Markdown.tpe
 
   def iconByNodeData(data: NodeData): Option[VNode] = Some(data) collect {
     case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
@@ -115,7 +115,7 @@ object ItemProperties {
               EditableContent.select[TypeSelection](
                 "Select a field type",
                 propertyTypeSelection,
-                ("Text", TypeSelection.Data(NodeData.PlainText.tpe)) ::
+                ("Text", TypeSelection.Data(NodeData.Markdown.tpe)) ::
                 ("Number", TypeSelection.Data(NodeData.Decimal.tpe)) ::
                 ("File", TypeSelection.Data(NodeData.File.tpe)) ::
                 ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
