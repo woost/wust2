@@ -226,8 +226,8 @@ object RightSidebar {
       true
     }
 
-    def searchInput(placeholder: String, filter: Node => Boolean, createNew: String => Boolean = _ => false) =
-      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, createNew = createNew, inputModifiers = VDomModifier(
+    def searchInput(placeholder: String, filter: Node => Boolean, createNew: String => Boolean = _ => false, showNotFound: Boolean = true) =
+      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, showNotFound = showNotFound, createNew = createNew, inputModifiers = VDomModifier(
         width := "120px",
         padding := "2px 10px 2px 10px",
       ), elementModifier = VDomModifier(
@@ -248,7 +248,7 @@ object RightSidebar {
       ),
       renderSplit(
         left = VDomModifier(
-          searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_)).foreach { tagId =>
+          searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
             state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
           }
         ),

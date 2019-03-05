@@ -139,6 +139,8 @@ trait SearchOptions extends js.Object {
   var source: js.UndefOr[js.Array[SearchSourceEntry]] = js.undefined
   var cache: js.UndefOr[Boolean] = js.undefined
   var searchOnFocus: js.UndefOr[Boolean] = js.undefined
+  var showNoResults: js.UndefOr[Boolean] = js.undefined
+  var selectFirstResult: js.UndefOr[Boolean] = js.undefined
   var minCharacters: js.UndefOr[Int] = js.undefined
   var searchFields: js.UndefOr[js.Array[String]] = js.undefined
   var fullTextSearch: js.UndefOr[Boolean] = js.undefined
