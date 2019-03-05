@@ -257,6 +257,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   // than using one loop with arraybuilders. (A lot less allocations)
   private val outDegree = new Array[Int](n)
   private val parentsDegree = new Array[Int](n)
+  private val contentsDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
   private val messageChildrenDegree = new Array[Int](n)
   private val taskChildrenDegree = new Array[Int](n)
@@ -294,6 +295,21 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         edgesIdx.updateb(edgeIdx, targetIdx)
         outDegree(sourceIdx) += 1
         edge match {
+          case e: Edge.Content => e match {
+            case e: Edge.Child => e.data.deletedAt match {
+              case Some(deletedAt) =>
+                if(deletedAt isAfter now) { // in the future
+                  contentsDegree(sourceIdx) += 1
+                }
+              case _ =>
+            }
+            case _ => contentsDegree(sourceIdx) += 1
+          }
+
+          case _ =>
+        }
+
+        edge match {
           case _: Edge.Author =>
             authorshipDegree(sourceIdx) += 1
           case _: Edge.Member =>
@@ -301,7 +317,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case e: Edge.Child  =>
             val childIsMessage = nodes(targetIdx).role == NodeRole.Message
             val childIsTask = nodes(targetIdx).role == NodeRole.Task
-			val childIsProject = nodes(targetIdx).role == NodeRole.Project
+            val childIsProject = nodes(targetIdx).role == NodeRole.Project
             val childIsTag = nodes(targetIdx).role == NodeRole.Tag
             val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
             parentsDegree(targetIdx) += 1
@@ -310,7 +326,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               case None            =>
                 if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
                 if(childIsTask) taskChildrenDegree(sourceIdx) += 1
-				if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+                if (childIsProject) projectChildrenDegree(sourceIdx) += 1
                 if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                 if(parentIsTag) tagParentsDegree(targetIdx) += 1
                 notDeletedParentsDegree(targetIdx) += 1
@@ -319,7 +335,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
                 if(deletedAt isAfter now) { // in the future
                   if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
                   if(childIsTask) taskChildrenDegree(sourceIdx) += 1
-				  if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+                  if (childIsProject) projectChildrenDegree(sourceIdx) += 1
                   if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                   if(parentIsTag) tagParentsDegree(targetIdx) += 1
                   notDeletedParentsDegree(targetIdx) += 1
@@ -359,6 +375,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val outgoingEdgeIdxBuilder = NestedArrayInt.builder(outDegree)
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
+  private val contentsIdxBuilder = NestedArrayInt.builder(contentsDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
   private val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
@@ -389,6 +406,22 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val targetIdx = edgesIdx.b(edgeIdx)
     val edge = edges(edgeIdx)
     outgoingEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+
+    edge match {
+      case e: Edge.Content => e match {
+        case e: Edge.Child => e.data.deletedAt match {
+          case Some(deletedAt) =>
+            if(deletedAt isAfter now) { // in the future
+              contentsIdxBuilder.add(sourceIdx, targetIdx)
+            }
+          case _ =>
+        }
+        case _ => contentsIdxBuilder.add(sourceIdx, targetIdx)
+      }
+
+      case _ =>
+    }
+
     edge match {
       case _: Edge.Author =>
         authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
@@ -399,7 +432,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         val childIsMessage = nodes(targetIdx).role == NodeRole.Message
         val childIsTask = nodes(targetIdx).role == NodeRole.Task
         val childIsTag = nodes(targetIdx).role == NodeRole.Tag
-		val childIsProject = nodes(targetIdx).role == NodeRole.Project
+        val childIsProject = nodes(targetIdx).role == NodeRole.Project
         val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
         parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
@@ -457,6 +490,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
+  val contentsIdx: NestedArrayInt = contentsIdxBuilder.result()
   val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
   val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
   val tagChildrenIdx: NestedArrayInt = tagChildrenIdxBuilder.result()
