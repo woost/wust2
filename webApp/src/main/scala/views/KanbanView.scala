@@ -538,7 +538,7 @@ object KanbanView {
       },
 
       position.relative, // for buttonbar
-      buttonBar(position.absolute, top := "0", right := "0"),
+      buttonBar(position.absolute, top := "3px", right := "3px"), // 3px to not interefere with sidebar-focus box-shadow around node
 //      onDblClick.stopPropagation(state.urlConfig.now.copy(page = Page(node.id))) --> state.urlConfig,
     )
   }
