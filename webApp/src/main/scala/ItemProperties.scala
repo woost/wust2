@@ -99,8 +99,7 @@ object ItemProperties {
                 "Select a field type",
                 propertyTypeSelection,
                 ("Text", NodeData.PlainText.tpe) ::
-                ("Integer Number", NodeData.Integer.tpe) ::
-                ("Decimal Number", NodeData.Decimal.tpe) ::
+                ("Number", NodeData.Decimal.tpe) ::
                 ("File", NodeData.File.tpe) ::
                 ("Date", NodeData.Date.tpe) ::
                 (if (isTemplate) ("Relative Date", NodeData.RelativeDate.tpe) :: Nil else Nil)
