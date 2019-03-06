@@ -48,7 +48,7 @@ object RightSidebar {
         Styles.flexStatic,
       ) -> VDomModifier(
         margin := "4px",
-        padding := "4px",
+        padding := "0px 4px",
         body
       )
     }
@@ -273,7 +273,7 @@ object RightSidebar {
     VDomModifier(
       div(
         Styles.flex,
-        justifyContent.flexEnd,
+        justifyContent.center,
         div(
           button(
             cls := "ui compact button mini",
@@ -317,7 +317,7 @@ object RightSidebar {
         marginTop := "10px",
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
-            marginBottom := "15px",
+            marginBottom := "10px",
           )
         },
       ),
