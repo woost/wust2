@@ -63,7 +63,6 @@ object TableView {
         marginLeft := "8px",
         fontSize.xSmall,
         cursor.pointer,
-        float.right
       )
 
       span(
