@@ -62,7 +62,8 @@ object SharedViewElements {
     submitIcon:VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers:VDomModifier = VDomModifier.empty,
-    allowEmptyString: Boolean = false
+    allowEmptyString: Boolean = false,
+    enforceUserName: Boolean = true
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
       state.urlConfig().shareOptions.map { share =>
@@ -82,9 +83,25 @@ object SharedViewElements {
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
-      submitAction(str)
-      if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
-      autoResizer.trigger()
+      def handle() = {
+        submitAction(str)
+        if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
+        autoResizer.trigger()
+      }
+      if (enforceUserName) {
+        state.user.now match {
+          case user: AuthUser.Implicit if user.name.isEmpty =>
+            val sink = state.eventProcessor.changes.redirectMapMaybe[String] { str =>
+              val userNode = user.toNode
+              handle() // not so great to do this sync here when we are anyhow working on sending out changes in the submitaction
+              userNode.data.updateName(str).map(data => GraphChanges.addNode(userNode.copy(data = data)))
+            }
+            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholderMessage = Some(Components.implicitUserName))))
+          case _ => handle()
+        }
+      } else {
+        handle()
+      }
     }
 
     val initialValueAndSubmitOptions = {
@@ -648,7 +665,7 @@ object SharedViewElements {
     }
   }
 
-  def newNamePropmptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None)(implicit ctx: Ctx.Owner) = {
     UI.ModalConfig(
       header = header,
       description = VDomModifier(
@@ -667,7 +684,8 @@ object SharedViewElements {
             color.white,
             backgroundColor := "rgba(0, 0, 0, 0.6)"
 
-          )
+          ),
+          enforceUserName = false
         ),
       ),
       modalModifier = VDomModifier(
@@ -679,7 +697,7 @@ object SharedViewElements {
 
   def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => newNamePropmptModalConfig(state, sink, header, placeholderMessage) }) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, placeholderMessage) }) --> state.uiModalConfig,
       cursor.pointer
     )
   }

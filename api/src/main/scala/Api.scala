@@ -88,14 +88,18 @@ sealed trait AuthUser {
   def toNode: Node.User
 }
 object AuthUser {
-  sealed trait Persisted extends AuthUser
+  sealed trait Persisted extends AuthUser {
+    def updateName(name: String): AuthUser.Persisted
+  }
   case class Real(id: UserId, name: String, revision: Int) extends Persisted {
     def toNode = Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
     override def toString = s"Real(${id.toBase58} ${id.toUuid}, $name, $revision)"
+    def updateName(name: String) = copy(name = name)
   }
   case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
     override def toString = s"Implicit(${id.toBase58} ${id.toUuid}, $name, $revision)"
+    def updateName(name: String) = copy(name = name)
   }
   case class Assumed(id: UserId) extends AuthUser {
     def name = ""

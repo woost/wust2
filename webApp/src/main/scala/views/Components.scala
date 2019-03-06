@@ -41,7 +41,7 @@ object Placeholders {
 }
 
 object Components {
-  private val implicitUserName = "Unregistered User"
+  val implicitUserName = "Unregistered User"
 
   val woostTeamEmailLink = 
     VDomModifier(
