@@ -7,9 +7,9 @@ import wust.webApp.outwatchHelpers._
 import rx.{Ctx, Rx, Var}
 import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, GraphChanges, Node, Page}
-import wust.ids.{ChildId, NodeId, ParentId, TemplateId}
+import wust.ids._
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.{Icons, Ownable}
+import wust.webApp.{Icons, Ownable, BrowserDetect}
 import wust.webApp.state.{GlobalState, FocusPreference}
 
 import scala.collection.breakOut
@@ -58,14 +58,15 @@ object GraphChangesAutomationUI {
           )
         } else {
           VDomModifier(
-            height := "600px",
-            overflowY.auto,
-            overflowX.hidden, // hides overflown width with expanded sidebar
             Styles.flex,
             justifyContent.spaceBetween,
+            height := "600px",
 
             div(
               padding := "10px",
+              Styles.growFull,
+              overflowY.auto,
+
               div(
                 b("Active automation templates:"),
                 div(fontSize.xSmall, "Each will be applied to every child of this node."),
@@ -82,79 +83,86 @@ object GraphChangesAutomationUI {
 
               Components.registerDragContainer(state),
 
-              Components.removeableList[Node](
-                templates,
-                state.eventProcessor.changes.redirectMap(templateNode => GraphChanges(delEdges = Set(Edge.Automated(focusedId, TemplateId(templateNode.id))))),
-              )({ templateNode =>
-                  val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
+              div(
+                Styles.flex,
+                flexDirection.column,
+                alignItems.center,
+                padding := "0 0 10px 10px",
 
-                  Components.nodeCard(templateNode, maxLength = Some(100)).apply(
-                    padding := "3px",
-                    width := "200px",
-                    div(
-                      Styles.flex,
-                      flexWrap.wrap,
+                Components.removeableList[Node](
+                  templates,
+                  state.eventProcessor.changes.redirectMap { templateNode =>
+                    val g = state.rawGraph.now
+                    val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
+                      val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+                      edge.parentId == focusedId
+                    }
 
-                      propertySingle.info.tags.map { tag =>
-                        Components.removableNodeTag(state, tag, taggedNodeId = templateNode.id)
-                      },
+                    GraphChanges(
+                      addEdges = existingParent.map { edgeIdx =>
+                        val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+                        edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
+                      }.toSet,
+                      delEdges = Set(Edge.Automated(focusedId, TemplateId(templateNode.id)))
+                    )
+                  },
+                )({ templateNode =>
+                    val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
-                      propertySingle.properties.map { property =>
-                        property.values.map { value =>
-                          Components.removablePropertyTag(state, value.edge, value.node)
-                        }
-                      },
+                    Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                      padding := "3px",
+                      width := "200px",
+                      div(
+                        Styles.flex,
+                        flexWrap.wrap,
 
-                      {
-                        val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
-                          Components.removableUserAvatar(state, user, templateNode.id)
-                        }(breakOut)
+                        propertySingle.info.tags.map { tag =>
+                          Components.removableNodeTag(state, tag, taggedNodeId = templateNode.id)
+                        },
 
-                        users match {
-                          case head :: tail => head.apply(marginLeft := "auto") :: tail
-                          case Nil => Nil
-                        }
-                      },
+                        propertySingle.properties.map { property =>
+                          property.values.map { value =>
+                            Components.removablePropertyTag(state, value.edge, value.node)
+                          }
+                        },
 
-                      state.rawGraph.map(g => VDomModifier.ifNot(g.parents(templateNode.id).contains(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
-                    ),
+                        {
+                          val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
+                            Components.removableUserAvatar(state, user, templateNode.id)
+                          }(breakOut)
 
-                    DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => Components.drag(target = dragItem)),
-                    Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
-                  ).prepend(
-                    b(color.gray, templateNode.role.toString)
-                  )
-              }).apply(paddingLeft := "10px"),
+                          users match {
+                            case head :: tail => head.apply(marginLeft := "auto") :: tail
+                            case Nil => Nil
+                          }
+                        },
+
+                        state.rawGraph.map(g => VDomModifier.ifNot(g.parents(templateNode.id).contains(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
+                      ),
+
+                      DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => Components.drag(target = dragItem)),
+                      Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
+                    ).prepend(
+                      b(color.gray, templateNode.role.toString)
+                    )
+                }),
+
+                newTemplateButton.apply(
+                  "+ Add Template",
+                  cls := "compact mini",
+                  margin := "10px 0 0 0"
+                ),
+              ),
             ),
 
             position.relative, // needed for right sidebar
-            RightSidebar(state, selectedTemplate, nodeId => if (nodeId.isEmpty) selectedTemplate() = None, openModifier = VDomModifier(overflow.auto, marginLeft := "20px")) // overwrite sidebar's marginLeft to smaller value
+            RightSidebar(state, selectedTemplate, nodeId => if (nodeId.isEmpty) selectedTemplate() = None, openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))) // overwrite left-margin of overlay sidebar in mobile
           )
         }
       },
     )
 
-    val actions: VDomModifier = VDomModifier(
-      padding := "0px 10px 10px 10px",
-      Styles.flex,
-      alignItems.center,
-      justifyContent.flexStart,
-
-      newTemplateButton.apply(
-        "+ Add Template",
-        cls := "compact mini",
-        margin := "0px" // fixes center alignment issue in chrome
-      ),
-
-      // Components.searchInGraph(state.graph, placeholder = "Add existing template", inputModifiers = VDomModifier(height := "26px"), filter = {
-      //   case content: Node.Content => true
-      //   case _ => false
-      // }).foreach { selectedTemplateNodeId =>
-      //   state.eventProcessor.changes onNext GraphChanges(addEdges = Set(Edge.Automated(focusedId, TemplateId(selectedTemplateNodeId))))
-      // },
-    )
-
-    UI.ModalConfig(header = header, description = description, actions = Some(actions), contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
+    UI.ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
   }
 
   // a settings button for automation that opens the modal on click.
