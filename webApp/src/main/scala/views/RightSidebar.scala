@@ -273,7 +273,7 @@ object RightSidebar {
     VDomModifier(
       div(
         Styles.flex,
-        justifyContent.center,
+        justifyContent.flexEnd,
         div(
           button(
             cls := "ui compact button mini",
