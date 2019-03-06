@@ -345,7 +345,6 @@ object Components {
         marginLeft := "auto",
         flexDirection.column,
         alignItems.flexEnd,
-        padding := "0px 10px",
 
         properties.map { property =>
           val editValue = Var(false)

@@ -48,13 +48,13 @@ object RightSidebar {
         Styles.flexStatic,
       ) -> VDomModifier(
         margin := "4px",
-        padding := "0px 4px",
+        padding := "0px",
         body
       )
     }
 
     div(
-      Styles.growFull,
+      height := "100%",
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
       borderRadius := "3px",
@@ -181,11 +181,11 @@ object RightSidebar {
                   nodePlain = Components.editableNode(state, node, editMode),
                 ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
                 div(
-                Icons.edit,
-                padding := "4px",
-                cursor.pointer,
+                  Icons.edit,
+                  marginLeft := "5px",
+                  cursor.pointer,
                   onClick.stopPropagation(true) --> editMode
-              )
+                )
               ),
             )
           }
