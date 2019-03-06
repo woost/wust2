@@ -79,7 +79,6 @@ object UI {
                 cls := "description modal-description",
                 config.description
               ),
-              marginBottom := "20px"
             ),
             config.actions.map { actions =>
               div(
