@@ -188,7 +188,7 @@ object algorithm {
 
   def depthFirstSearchAfterStart(start: Int, successors: NestedArrayInt, search: Int): Option[Int] = {
 
-    val stack = ArrayStackInt.create(capacity = 2 * successors.size)
+    val stack = ArrayStackInt.create(capacity =  successors.size)
     val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
     @inline def stackPush(elem:Int):Unit = {
       stack.push(elem)
