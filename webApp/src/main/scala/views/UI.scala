@@ -53,6 +53,7 @@ object UI {
     config.map[VDomModifier] { configRx =>
       configRx.flatMap(config => Ownable { implicit ctx =>
         VDomModifier(
+          key := scala.util.Random.nextInt, // force new elem on every render. fixes slowly rendering modal in firefox
           config.modalModifier,
 
           emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
