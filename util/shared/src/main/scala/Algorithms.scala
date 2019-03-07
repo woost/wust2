@@ -103,27 +103,24 @@ object algorithm {
 
   // @inline avoids the function call of append
   // stops only traversing local branch
-  @inline def depthFirstSearchWithConvert(start: Int, successors: NestedArrayInt, convert: Int => Option[Int]): Unit = {
-    val stack = ArrayStackInt.create(capacity = successors.size)
-    val visited = ArraySet.create(successors.size) // JS: Array[Int] faster than Array[Boolean] and BitSet
-    @inline def stackPush(elem:Int, converted: Int):Unit = {
+  @inline def depthFirstSearchWithManualSuccessors(start: Int, size: Int, successors: Int => (Int => Unit) => Unit, f: Int => Unit): Unit = {
+    val stack = ArrayStackInt.create(capacity = size)
+    val visited = ArraySet.create(size) // JS: Array[Int] faster than Array[Boolean] and BitSet
+    @inline def stackPush(elem:Int):Unit = {
       stack.push(elem)
-      visited += converted
+      visited += elem
     }
 
-    successors.foreachElement(start) { next =>
-      convert(next).foreach { converted =>
-        stackPush(next, converted)
-      }
+    successors(start){ next =>
+      stackPush(next)
     }
 
     while (!stack.isEmpty) {
       val current = stack.pop()
-      successors.foreachElement(current) { next =>
-        convert(next).foreach { converted =>
-          if (visited.containsNot(converted)) {
-            stackPush(next, converted)
-          }
+      f(current)
+      successors(current) { next =>
+        if (visited.containsNot(next)) {
+          stackPush(next)
         }
       }
     }

@@ -271,7 +271,9 @@ object EditableContent {
     )
   }
 
-  private def editOrRender[T: EditInputParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+  def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, handler => commonEditStructure(handler, config)(inputFn(handler)))
+
+  private def editOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
     val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
 
     val editRender = inputFn(currentVar)

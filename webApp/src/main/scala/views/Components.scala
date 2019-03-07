@@ -20,6 +20,7 @@ import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
+import wust.util.macros.InlineList
 import wust.util.StringOps._
 import wust.util._
 import wust.webApp._
@@ -349,7 +350,7 @@ object Components {
             Styles.flex,
             justifyContent.flexEnd,
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
-            editableNode(state, property.node, editMode = editValue, maxLength = Some(100), config = EditableContent.Config.default),
+            editableNodeWithNonNeutralSearch(state, property.node, editMode = editValue, maxLength = Some(100), config = EditableContent.Config.default),
             div(
               marginLeft := "5px",
               cursor.pointer,
@@ -705,9 +706,59 @@ object Components {
       )
     }
 
+    def editableNodeWithNonNeutralSearchOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+      implicit ctx: Ctx.Owner
+    ): VNode = {
+      editableNodeWithNonNeutralSearch(state, node, editMode, maxLength, config)(ctx)(
+        onClick.stopPropagation foreach {
+          if(!editMode.now) {
+            editMode() = true
+          }
+        },
+      )
+    }
+
     def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
         EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes,
+      )
+    }
+
+    def editableNodeWithNonNeutralSearch(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+      val emitter = node.role match {
+        case NodeRole.Neutral => EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config)
+        case _ => EditableContent.customOrRender[Node](node, editMode, node => roleSpecificRender(state, node, maxLength).apply(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id), styles.extra.wordBreak.breakAll, whiteSpace.preWrap), handler => searchAndSelectNode(state, handler.mapHandler[Option[NodeId]](id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))))(_.toOption.map(_.id))), config)
+      }
+
+      div(
+        emitter.editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+      )
+    }
+
+    def searchAndSelectNode(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+      div(
+        Components.searchInGraph(state.graph, "Search", filter = {
+          case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(n.role)
+          case _ => false
+        }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(Some(_)) --> current,
+
+        current.map[VDomModifier] {
+          case Some(nodeId) => div(
+            marginTop := "4px",
+            Styles.flex,
+            alignItems.flexStart,
+            justifyContent.spaceBetween,
+            span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
+            state.graph.map { g =>
+              val node = g.nodesById(nodeId)
+              Components.roleSpecificRender(state, node, maxLength = Some(100)).apply(
+                Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                styles.extra.wordBreak.breakAll, whiteSpace.preWrap
+              )
+            }
+          )
+          case None => VDomModifier.empty
+        }
       )
     }
 

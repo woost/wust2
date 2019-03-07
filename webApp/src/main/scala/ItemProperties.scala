@@ -63,7 +63,7 @@ object ItemProperties {
       propertyValueInput() = None// clear value on each type change...
       if (propertyKeyInput.now.isEmpty) selection.foreach {
         case TypeSelection.Data(NodeData.File.tpe) => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
-        case TypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.link.key)
+        case TypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.reference.key)
         case _ => ()
       }
     }
@@ -120,7 +120,7 @@ object ItemProperties {
                 ("File", TypeSelection.Data(NodeData.File.tpe)) ::
                 ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
                 (if (isTemplate) ("Relative Date", TypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
-                ("Link", TypeSelection.Ref) ::
+                ("Refer to...", TypeSelection.Ref) ::
                 Nil
               ).apply(tabIndex := -1)
             }
