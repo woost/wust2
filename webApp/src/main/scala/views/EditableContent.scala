@@ -87,8 +87,8 @@ object EditableContent {
     )
   }
 
-  @inline def inputFieldRx[T: EditInputParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = inputFieldRxInteraction[T](zoomOutToEditInteraction(current), config)
-  def inputFieldRxInteraction[T: EditInputParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
+  @inline def inputFieldRx[T: EditInputParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = inputFieldRxInteraction[T](zoomOutToEditInteraction(current), config)
+  def inputFieldRxInteraction[T: EditInputParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
     val modifier = EditInputParser[T].modifier
     commonEditStructure(current, config)(
       input(
@@ -118,8 +118,8 @@ object EditableContent {
     )
   }
 
-  @inline def inputInlineRx[T: EditStringParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = inputInlineRxInteraction[T](zoomOutToEditInteraction(current), config)
-  def inputInlineRxInteraction[T: EditStringParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
+  @inline def inputInlineRx[T: EditStringParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = inputInlineRxInteraction[T](zoomOutToEditInteraction(current), config)
+  def inputInlineRxInteraction[T: EditStringParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
     commonEditStructure(current, config)(
       dsl.span(
         outline := "none", // hides contenteditable outline

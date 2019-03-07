@@ -891,7 +891,7 @@ object Components {
       EditableContent.inputFieldRx[AWS.UploadableFile](selected, config = EditableContent.Config(
         errorMode = EditableContent.ErrorMode.ShowToast,
         submitMode = EditableContent.SubmitMode.Off
-      ))
+      )).apply(marginLeft := "3px")
     }
 
   def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {

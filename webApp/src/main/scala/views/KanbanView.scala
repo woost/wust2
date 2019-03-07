@@ -583,6 +583,7 @@ object KanbanView {
             blurAction = Some(blurAction),
             placeHolderMessage = Some(placeHolder),
             submitIcon = freeSolid.faPlus,
+            showMarkdownHelp = false
           )
         else
           div(
@@ -631,10 +632,12 @@ object KanbanView {
             placeHolderMessage = Some(placeHolder),
             submitIcon = freeSolid.faPlus,
             textAreaModifiers = VDomModifier(
-            fontSize.larger,
-            fontWeight.bold,
-            minHeight := "50px",
-          )).apply(
+              fontSize.larger,
+              fontWeight.bold,
+              minHeight := "50px",
+            ),
+            showMarkdownHelp = true
+          ).apply(
             cls := "kanbannewcolumnareaform",
           )
         }

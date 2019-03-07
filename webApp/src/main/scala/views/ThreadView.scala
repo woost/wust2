@@ -87,7 +87,7 @@ object ThreadView {
 
         val inputFieldFocusTrigger = PublishSubject[Unit]
 
-        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger)(ctx)(Styles.flexStatic)
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true)(ctx)(Styles.flexStatic)
       }
     )
   }
@@ -260,7 +260,7 @@ object ThreadView {
     }
 
 
-    inputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true).apply(
+    inputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true, showMarkdownHelp = true, enforceUserName = true).apply(
       closeButton(
         padding := "15px",
         onClick.stopPropagation foreach { showReplyField() = false },

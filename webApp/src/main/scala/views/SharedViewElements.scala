@@ -63,7 +63,8 @@ object SharedViewElements {
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers:VDomModifier = VDomModifier.empty,
     allowEmptyString: Boolean = false,
-    enforceUserName: Boolean = true
+    enforceUserName: Boolean = false,
+    showMarkdownHelp: Boolean = false
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
       state.urlConfig().shareOptions.map { share =>
@@ -182,6 +183,9 @@ object SharedViewElements {
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
 
+      // show textarea above of tags-button on right hand side
+      zIndex := ZIndex.overlayMiddle + 1,
+
       alignItems.center,
       fileUploadHandler.map(uploadField(state, _)),
       div(
@@ -190,16 +194,19 @@ object SharedViewElements {
         width := "100%",
         cls := "ui form",
 
-        position.relative,
-        a(
-          position.absolute,
-          right := "3px",
-          top := "0px",
-          float.right,
-          freeBrands.faMarkdown,
-          Elements.safeTargetBlank,
-          UI.tooltip("left center") := "Use Markdown to format your text. Click for more details.",
-          href := "https://www.markdownguide.org/basic-syntax/"
+        VDomModifier.ifTrue(showMarkdownHelp)(
+          position.relative,
+          a(
+            fontSize.xLarge,
+            position.absolute,
+            right := "4px",
+            top := "4px",
+            float.right,
+            freeSolid.faQuestion,
+            Elements.safeTargetBlank,
+            UI.tooltip("left center") := "Use Markdown to format your text. Click for more details.",
+            href := "https://www.markdownguide.org/basic-syntax/"
+          ),
         ),
 
         textArea(
@@ -684,8 +691,7 @@ object SharedViewElements {
             color.white,
             backgroundColor := "rgba(0, 0, 0, 0.6)"
 
-          ),
-          enforceUserName = false
+          )
         ),
       ),
       modalModifier = VDomModifier(
