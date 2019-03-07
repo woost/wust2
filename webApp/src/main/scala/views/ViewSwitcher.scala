@@ -57,7 +57,6 @@ object ViewSwitcher {
       View.Kanban ::
       View.Files ::
       View.Graph ::
-      View.Table(NodeRole.Message :: Nil) ::
       View.Table(NodeRole.Task :: Nil) ::
       View.Content ::
       Nil

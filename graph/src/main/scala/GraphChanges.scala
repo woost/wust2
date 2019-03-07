@@ -222,8 +222,7 @@ object GraphChanges {
         // moving nodes should keep its tags. Except for tags itself.
         if subjectRole == NodeRole.Tag || (subjectRole != NodeRole.Tag && parentRole != NodeRole.Tag)
       } yield Edge.Child(ParentId(parent), ChildId(subject))
-      ) (breakOut): collection.Set[Edge]
-      ) -- newParentships
+    )(breakOut): collection.Set[Edge]) -- newParentships
 
     GraphChanges(addEdges = newParentships, delEdges = removeParentships)
   }

@@ -7,7 +7,7 @@ import flatland.{ArraySet, ArrayStackInt}
 import monix.reactive.Observable
 import rx.Var
 import wust.graph._
-import wust.ids.{EdgeData, EpochMilli, NodeId, TemplateId, NodeData}
+import wust.ids._
 import wust.util.macros.InlineList
 import wust.util.{StringOps, algorithm}
 import wust.webApp.views.UI
@@ -47,41 +47,71 @@ object GraphChangesAutomation {
       node.copy(id = NodeId.fresh, data = newData)
     }
 
+    def shouldFollowEdge(edge: Edge, descendant: Node.Content): Boolean = edge match {
+      case e: Edge.LabeledProperty => descendant.role == NodeRole.Neutral // only follow neutral nodes, i.e. properties. Links are normal nodes with a proper node role.
+      case e: Edge.Child => e.data.deletedAt.forall(_ isAfter copyTime) // only follow not-deleted children
+      case e => true
+    }
+
+    println("BEFORE FIRST")
+
     // If the newNode is already in the graph, then get all contentedge-descendants.
     // For each descendant check whether it is derived from template node - i.e. the
     // newNode was already automated with this template before. If it was, we
     // do not want to copy again in the automation but reuse the node that was
     // copied in the previous automation run.
-    newNodeIdx.foreach(newNodeIdx => algorithm.depthFirstSearchAfterStart(newNodeIdx, graph.contentsIdx).foreach { descendantIdx =>
-      val descendant = graph.nodes(descendantIdx)
-      graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
-        val interfaceIdx = graph.edgesIdx.b(edgeIdx)
-        val interfaceId = graph.nodeIds(interfaceIdx)
-        alreadyExistingNodes.update(interfaceId, descendant)
+    newNodeIdx.foreach(newNodeIdx => algorithm.depthFirstSearchWithConvert(newNodeIdx, graph.contentsEdgeIdx, { edgeIdx =>
+      val descendantIdx = graph.edgesIdx.b(edgeIdx)
+      graph.nodes(descendantIdx) match {
+        case descendant: Node.Content =>
+          val continue = shouldFollowEdge(graph.edges(edgeIdx), descendant)
+          if (continue) {
+            graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
+              val interfaceIdx = graph.edgesIdx.b(edgeIdx)
+              val interfaceId = graph.nodeIds(interfaceIdx)
+              alreadyExistingNodes.update(interfaceId, descendant)
+            }
+
+            Some(descendantIdx)
+          } else None
+        case _ => None
       }
-    })
+    }))
+
+    println("BEFORE SECOND")
 
     // Get all descendants of the templateNode. For each descendant, we check
     // whether we already have an existing node implementing this template
     // descendant. If we do, we just keep this node, else we will create a copy
     // of the descendant node. We want to have a copy of each descendant of the
     // template.
-    algorithm.depthFirstSearchAfterStart(templateNodeIdx, graph.contentsIdx).foreach { descendantIdx =>
+    algorithm.depthFirstSearchWithConvert(templateNodeIdx, graph.contentsEdgeIdx, { edgeIdx =>
+      println("LOOK EDGE IDX " + edgeIdx)
+      val descendantIdx = graph.edgesIdx.b(edgeIdx)
+      println("LOOK DESC IDX " + descendantIdx)
       graph.nodes(descendantIdx) match {
-        case node: Node.Content =>
-          alreadyExistingNodes.get(node.id) match {
-            case Some(implementationNode) =>
-              replacedNodes += node.id -> implementationNode
-            case None =>
-              val copyNode = copyAndTransformNode(node)
-              addNodes += copyNode
-              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id))
-              replacedNodes += node.id -> copyNode
-          }
-        case _ => ()
-      }
-    }
+        case descendant: Node.Content =>
+          println("LOOK DESC " + descendant)
+          val continue = shouldFollowEdge(graph.edges(edgeIdx), descendant)
+          println("LOOK CONT " + continue)
+          if (continue) {
+            alreadyExistingNodes.get(descendant.id) match {
+              case Some(implementationNode) =>
+                replacedNodes += descendant.id -> implementationNode
+              case None =>
+                val copyNode = copyAndTransformNode(descendant)
+                addNodes += copyNode
+                addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                replacedNodes += descendant.id -> copyNode
+            }
 
+            Some(descendantIdx)
+          } else None
+        case _ => None
+      }
+    })
+
+    println("BEFORE THIRD")
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
@@ -98,6 +128,7 @@ object GraphChangesAutomation {
           case (None, None) => ()
         }
     }
+    println("BEFORE DONE")
 
     GraphChanges(addNodes = addNodes.result(), addEdges = addEdges.result())
   }
