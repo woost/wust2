@@ -119,7 +119,7 @@ object DevView {
           def addRandomPost(count: Int): Unit = {
             val newPosts =
               List.fill(count)(Node.MarkdownMessage(rSentence))
-            val changes = GraphChanges.addNodesWithParents(newPosts, state.page.now.parentId)
+            val changes = GraphChanges.addNodesWithParents(newPosts, state.page.now.parentId.map(ParentId(_)))
             state.eventProcessor.changes.onNext(changes)
           }
 
@@ -136,7 +136,7 @@ object DevView {
           def deletePost(ids: Seq[NodeId]): Unit = {
             ids.foreach { nodeId =>
               state.eventProcessor.changes
-                .onNext(GraphChanges.delete(nodeId, state.page.now.parentId))
+                .onNext(GraphChanges.delete(ChildId(nodeId), state.page.now.parentId.map(ParentId(_))))
             }
           }
 

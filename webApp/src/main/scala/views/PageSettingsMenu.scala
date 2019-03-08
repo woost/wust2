@@ -62,7 +62,7 @@ object PageSettingsMenu {
           cls := "item",
           Elements.icon(Icons.mentionIn),
           searchInGraph(state.graph, placeholder = "Link into...", showParents = false, filter = _.isInstanceOf[Node.Content], resultsModifier = width := "100%").foreach { nodeId =>
-            state.eventProcessor.changes.onNext(GraphChanges.addToParent(channelId, nodeId))
+            state.eventProcessor.changes.onNext(GraphChanges.addToParent(ChildId(channelId), ParentId(nodeId)))
           }
         )
       }
@@ -92,7 +92,7 @@ object PageSettingsMenu {
             span("Archive at all places"),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
-                GraphChanges.delete(channelId, state.graph.now.parents(channelId).toSet)
+                GraphChanges.delete(ChildId(channelId), state.graph.now.parents(channelId).map(ParentId(_)).toSet)
                   .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
               )
               UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) } at all places'", level = UI.ToastLevel.Success)

@@ -115,27 +115,27 @@ object DragActions {
     import DragItem._
     import wust.graph.GraphChanges.{ linkOrMoveInto, linkInto, movePinnedChannel, assign }
     {
-      case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeIds, graph, ctrl)
-      case (payload: ContentNode, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: ContentNode, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
+      case (payload: ContentNode, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: ContentNode, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
-      case (payload: ContentNode, target: Tag, false, false) => (graph, userId) => linkInto(payload.nodeId, target.nodeId, graph)
-      case (payload: ContentNode, target: BreadCrumb, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: ContentNode, target: Tag, false, false) => (graph, userId) => linkInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph)
+      case (payload: ContentNode, target: BreadCrumb, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
-      case (payload: SelectedNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
-      case (payload: SelectedNodes, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds, target.nodeId, graph, ctrl)
+      case (payload: SelectedNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: SelectedNodes, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds.map(ChildId(_)), ParentId(target.nodeId), graph, ctrl)
+      case (payload: SelectedNodes, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds.map(ChildId(_)), ParentId(target.nodeId), graph, ctrl)
+      case (payload: SelectedNodes, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds.map(ChildId(_)), ParentId(target.nodeId), graph, ctrl)
 
-      case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
-      case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(payload.nodeId, None, graph, userId)
-      case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(payload.nodeId, Some(target.nodeId), graph, userId)
+      case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
+      case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), None, graph, userId)
+      case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
 
-      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => linkInto(target.nodeId, payload.nodeId, graph)
-      case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
-      case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeId, target.nodeId, graph, ctrl)
+      case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => linkInto(ChildId(target.nodeId), ParentId(payload.nodeId), graph)
+      case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+      case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
       case (payload: User, target: Task, false, false) => (graph, userId) => assign(target.nodeId, payload.userId)
     }

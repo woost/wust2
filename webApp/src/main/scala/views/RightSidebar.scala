@@ -181,11 +181,11 @@ object RightSidebar {
                   nodePlain = Components.editableNode(state, node, editMode),
                 ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
                 div(
-                  Icons.edit,
-                  padding := "4px",
-                  cursor.pointer,
+                Icons.edit,
+                padding := "4px",
+                cursor.pointer,
                   onClick.stopPropagation(true) --> editMode
-                )
+              )
               ),
             )
           }
@@ -256,7 +256,7 @@ object RightSidebar {
 
     def createNewTag(str: String): Boolean = {
       val createdNode = Node.MarkdownTag(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, state.page.now.parentId) merge
+      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(state.page.now.parentId)) merge
         GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(node.id))
       state.eventProcessor.changes.onNext(change)
       true

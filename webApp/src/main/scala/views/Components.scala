@@ -592,7 +592,7 @@ object Components {
                   case None                   =>
                     val freshDoneNode = Node.MarkdownStage(Graph.doneText)
                     val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
-                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, graph.nodeIds(workspaceIdx)) merge expand)
+                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, ParentId(graph.nodeIds(workspaceIdx))) merge expand)
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
                 val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
@@ -815,7 +815,7 @@ object Components {
       val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
       fileUploadHandler.foreach(_.foreach { uploadFile =>
-        AWS.uploadFileAndCreateNode(state, uploadFile, nodeId => GraphChanges.addToParent(nodeId, focusedId) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
+        AWS.uploadFileAndCreateNode(state, uploadFile, nodeId => GraphChanges.addToParent(ChildId(nodeId), ParentId(focusedId)) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
           fileUploadHandler() = None
         }
       })

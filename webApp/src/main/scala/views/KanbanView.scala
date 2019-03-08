@@ -220,7 +220,7 @@ object KanbanView {
           ifCanWrite(div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit")),
           ifCanWrite(div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
-              state.eventProcessor.changes.onNext(GraphChanges.delete(node.id, parentId))
+              state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(node.id), ParentId(parentId)))
               selectedNodeIds.update(_ - node.id)
             },
             cursor.pointer, UI.popup := "Archive"
@@ -378,9 +378,9 @@ object KanbanView {
             val nodeIdx = graph.idToIdx(node.id)
             val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
             val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
-            val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else GraphChanges.delete(node.id, focusState.focusedId)
+            val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else GraphChanges.delete(ChildId(node.id), ParentId(focusState.focusedId))
 
-            val changes = removeFromWorkspaces merge GraphChanges.delete(node.id, parentId)
+            val changes = removeFromWorkspaces merge GraphChanges.delete(ChildId(node.id), ParentId(parentId))
             state.eventProcessor.changes.onNext(changes)
             selectedNodeIds.update(_ - node.id)
           }
@@ -560,8 +560,8 @@ object KanbanView {
     def submitAction(userId: UserId)(str:String) = {
       val createdNode = Node.MarkdownTask(str)
       val graph = state.graph.now
-      val workspaces:Set[NodeId] = graph.workspacesForParent(graph.idToIdx(parentId)).map(graph.nodeIds)(breakOut)
-      val change = GraphChanges.addNodeWithParent(createdNode, workspaces + parentId)
+      val workspaces:Set[ParentId] = graph.workspacesForParent(graph.idToIdx(parentId)).map(idx => ParentId(graph.nodeIds(idx)))(breakOut)
+      val change = GraphChanges.addNodeWithParent(createdNode, workspaces + ParentId(parentId))
 
       state.eventProcessor.changes.onNext(change)
     }
@@ -599,7 +599,7 @@ object KanbanView {
     def submitAction(str:String) = {
       val change = {
         val newStageNode = Node.MarkdownStage(str)
-        val add = GraphChanges.addNodeWithParent(newStageNode, focusedId)
+        val add = GraphChanges.addNodeWithParent(newStageNode, ParentId(focusedId))
         val expand = GraphChanges.connect(Edge.Expanded)(newStageNode.id, state.user.now.id)
         add merge expand
       }

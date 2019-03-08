@@ -421,7 +421,7 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[NodeId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[ParentId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val canWrite = NodePermission.canWrite(state, nodeId)
 
@@ -434,7 +434,7 @@ object SharedViewElements {
           cls := "chatmsg-controls",
           if(isDeletedNow()) {
             ifCanWrite(undeleteButton(
-              onClick(GraphChanges.undelete(nodeId, directParentIds)) --> state.eventProcessor.changes,
+              onClick(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> state.eventProcessor.changes,
             ))
           }
           else VDomModifier(
@@ -443,7 +443,7 @@ object SharedViewElements {
             ),
             ifCanWrite(deleteButton(
               onClick foreach {
-                state.eventProcessor.changes.onNext(GraphChanges.delete(nodeId, directParentIds))
+                state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), directParentIds))
                 selectedNodes.update(_.filterNot(_.nodeId == nodeId))
               },
             )),

@@ -7,7 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids.{NodeData, NodeId, NodeRole, UserId}
+import wust.ids._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.sdk.NodeColor._
 import wust.util._
@@ -153,7 +153,7 @@ object ListView {
   private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, focusedNodeId)
+      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(focusedNodeId))
       state.eventProcessor.changes.onNext(change)
     }
 

@@ -116,7 +116,7 @@ object DashboardView {
         VDomModifier(
           backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
           borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(project.id)).toHex,
-          Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
+          Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
         )
       },
 
@@ -129,7 +129,7 @@ object DashboardView {
     def submitAction(str:String) = {
       val change = {
         val newProjectNode = Node.MarkdownProject(str)
-        GraphChanges.addNodeWithParent(newProjectNode, focusedId)
+        GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusedId))
       }
       state.eventProcessor.changes.onNext(change)
     }

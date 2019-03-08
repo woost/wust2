@@ -26,19 +26,19 @@ import scala.concurrent.Future
 object CreateNewPrompt {
 
   def apply(state: GlobalState, show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
-    val parentNodes = Var[List[NodeId]](Nil)
-    val childNodes = Var[List[NodeId]](Nil)
+    val parentNodes = Var[List[ParentId]](Nil)
+    val childNodes = Var[List[ChildId]](Nil)
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
 
     def newMessage(msg: String): Future[Ack] = {
-      val parents: List[NodeId] = if (parentNodes.now.isEmpty) List(state.user.now.id) else parentNodes.now
+      val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(state.user.now.id: NodeId)) else parentNodes.now
 
       val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
-        GraphChanges.addToParent(childNodes.now, newNode.id)
+        GraphChanges.addToParent(childNodes.now, ParentId(newNode.id))
 
       val ack = if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, state.user.now.id)
@@ -120,7 +120,7 @@ object CreateNewPrompt {
                   case n: Node.User => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
                 }
               ).foreach { nodeId =>
-                parentNodes() = (parentNodes.now :+ nodeId).distinct
+                parentNodes() = (parentNodes.now :+ ParentId(nodeId)).distinct
               },
             )
           )
@@ -180,8 +180,8 @@ object CreateNewPrompt {
       emitter(show).foreach { show =>
         if (show) {
           Var.set(
-            parentNodes -> List(state.page.now.parentId.getOrElse(state.user.now.id)),
-            childNodes -> state.selectedNodes.now
+            parentNodes -> List(ParentId(state.page.now.parentId.getOrElse(state.user.now.id))),
+            childNodes -> ChildId(state.selectedNodes.now)
           )
 
           state.uiModalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier = VDomModifier(

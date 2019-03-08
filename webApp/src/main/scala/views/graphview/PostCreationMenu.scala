@@ -38,7 +38,7 @@ object PostCreationMenu {
       emitter(inputHandler).foreach { content =>
         if(content.nonEmpty) {
           val author = state.user.now
-          val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), focusState.focusedId)
+          val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), ParentId(focusState.focusedId))
           state.eventProcessor.changes.onNext(changes)
         }
 

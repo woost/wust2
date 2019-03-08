@@ -124,7 +124,7 @@ object ChatView {
 
           //TODO: share code with threadview
           val basicNode = Node.MarkdownMessage(str)
-          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, replyNodes)
+          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes))
           fileUploadHandler.now match {
             case None => state.eventProcessor.changes.onNext(basicGraphChanges)
             case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
@@ -295,7 +295,7 @@ object ChatView {
     } else VDomModifier.empty
 
     val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes))
-    val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
+    val controls = msgControls(state, nodeId, directParentIds.map(ParentId(_)), selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>

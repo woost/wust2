@@ -37,7 +37,7 @@ object ThreadView {
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
-  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[NodeId])(val showReplyField:Var[Boolean]) extends SelectedNodeBase
+  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[ParentId])(val showReplyField:Var[Boolean]) extends SelectedNodeBase
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
@@ -76,7 +76,7 @@ object ThreadView {
         def submitAction(str:String) = {
           scrollHandler.scrollToBottomInAnimationFrame()
           val basicNode = Node.MarkdownMessage(str)
-          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, focusState.focusedId)
+          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId))
           fileUploadHandler.now match {
             case None => state.eventProcessor.changes.onNext(basicGraphChanges)
             case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
@@ -117,14 +117,14 @@ object ThreadView {
         state.screenSize() // on screensize change, rerender whole chat history
         val pageCount = pageCounter()
 
-        renderThreadGroups(state, messages().takeRight(pageCount), Set(focusState.focusedId), Set(focusState.focusedId), selectedNodes, true)
+        renderThreadGroups(state, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), selectedNodes, true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
     )
   }
 
-  private def renderThreadGroups(state: GlobalState, messages: js.Array[Int], directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
+  private def renderThreadGroups(state: GlobalState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = state.graph()
     val groups = calculateThreadMessageGrouping(messages, graph)
 
@@ -137,7 +137,7 @@ object ThreadView {
     )
   }
 
-  private def thunkRxFun(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
+  private def thunkRxFun(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.map(groupGraph.nodeIds)
     val key = nodeIds.head.toString
@@ -147,7 +147,7 @@ object ThreadView {
     })
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[NodeId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = state.graph()
@@ -168,7 +168,7 @@ object ThreadView {
 
         author.map(author => chatMessageHeader(state, author, creationEpochMillis, groupHeadId, topLevelAndLargeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))),
         group.map { nodeIdx =>
-          val nodeId = groupGraph.nodeIds(nodeIdx)
+          val nodeId = ParentId(groupGraph.nodeIds(nodeIdx))
 
           div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
             val nodeIdList = nodeId :: Nil
@@ -208,7 +208,7 @@ object ThreadView {
     )
   }
 
-  private def renderExpandedThread(state: GlobalState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[NodeId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def renderExpandedThread(state: GlobalState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
     VDomModifier(
       cls := "chat-expanded-thread",
@@ -249,7 +249,7 @@ object ThreadView {
     def handleInput(str: String): Future[Ack] = if (str.nonEmpty) {
       val graph = state.graph.now
       val user = state.user.now
-      val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), nodeId :: Nil)
+      val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), ParentId(nodeId) :: Nil)
       val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(nodeId, user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
@@ -268,7 +268,7 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[ParentId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)

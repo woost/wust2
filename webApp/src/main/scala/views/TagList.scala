@@ -118,7 +118,7 @@ object TagList {
   )(implicit ctx: Ctx.Owner): VNode = {
     def submitAction(str:String) = {
       val createdNode = Node.MarkdownTag(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, parentId :: Nil)
+      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(parentId) :: Nil)
 
       state.eventProcessor.changes.onNext(change)
     }
