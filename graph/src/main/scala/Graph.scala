@@ -147,13 +147,22 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     // edgesBuilder.sizeHint(edges.length + addEdges.size)
 
     val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
-    val addEdgeIds: Set[(NodeId, String, NodeId)] = addEdges.collect {
+    val addEdgeIds: Set[(NodeId, String, String, NodeId)] = addEdges.collect {
       // we filter out edges without a unique constraint.
       // this needs to correspond how it is defined in the database.
-      case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, e.targetId)
+      //TODO we should check for uniqueness of edge.labeledproperty.key here
+      case e: Edge.LabeledProperty => (e.sourceId, e.data.tpe, e.data.key, e.targetId)
+      case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, null, e.targetId)
     }(breakOut)
-    val deleteEdgeIds: Set[(NodeId, String, NodeId)] = deleteEdges.map { e => (e.sourceId, e.data.tpe, e.targetId) }(breakOut)
+    val deleteEdgeIds: Set[(NodeId, String, String, NodeId)] = deleteEdges.collect {
+      case e: Edge.LabeledProperty => (e.sourceId, e.data.tpe, e.data.key, e.targetId)
+      case e if !e.isInstanceOf[Edge.Author] => (e.sourceId, e.data.tpe, null, e.targetId)
+    }(breakOut)
     val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
+    def alreadyUpdated(edge: Edge) = edge match {
+      case e: Edge.LabeledProperty => updatedEdgeIds((e.sourceId, e.data.tpe, e.data.key, e.targetId))
+      case e => updatedEdgeIds((e.sourceId, e.data.tpe, null, e.targetId))
+    }
 
     nodes.foreach { node =>
       if (!addNodeIds(node.id)) nodesBuilder += node
@@ -162,7 +171,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
       nodesBuilder += node
     }
     edges.foreach { edge =>
-      if (!updatedEdgeIds((edge.sourceId, edge.data.tpe, edge.targetId))) edgesBuilder += edge
+      if (!alreadyUpdated(edge)) edgesBuilder += edge
     }
     addEdges.foreach { edge =>
       edgesBuilder += edge

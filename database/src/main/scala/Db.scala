@@ -230,7 +230,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         touched <- if(dbEdges.nonEmpty) {
           ctx.run {
             liftQuery(dbEdges.toList).foreach { case (sourceId, tpe, key, targetId) =>
-              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && e.data->>"key" == key).delete
+              query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && infix"coalesce(${e.data}->>'key' = $key, true)".as[Boolean]).delete
             }
           }
         } else Future.successful(Nil)
