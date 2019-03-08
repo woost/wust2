@@ -52,12 +52,23 @@ object ItemProperties {
     case _: NodeData.File                            => Icons.files
   }
 
-  def managePropertiesContent(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, extendNewProperty: (EdgeData.LabeledProperty, Either[NodeId, Node.Content]) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  case class Config(prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "")
+  object Config {
+    def default = Config()
+  }
+
+  sealed trait Target
+  object Target {
+    case class Node(id: NodeId) extends Target
+    case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
+  }
+
+  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = Var[Option[TypeSelection]](prefilledType.map(TypeSelection.Data(_)))
-    val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(prefilledKey))
+    val propertyTypeSelection = Var[Option[TypeSelection]](config.prefilledType.map(TypeSelection.Data(_)))
+    val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(config.prefilledKey))
     val propertyValueInput = Var[Option[Either[NodeId, NodeData]]](None)
     propertyTypeSelection.foreach { selection =>
       propertyValueInput() = None// clear value on each type change...
@@ -78,10 +89,13 @@ object ItemProperties {
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
 
-      val isChildOfAutomationTemplate = Rx {
-        val graph = state.graph()
-        val nodeIdx = graph.idToIdxOrThrow(nodeId)
-        graph.automatedNodes(nodeIdx).nonEmpty || graph.ancestorsIdx(nodeIdx).exists(parentIdx => graph.automatedNodes(parentIdx).nonEmpty)
+      val isChildOfAutomationTemplate = target match {
+        case Target.Node(nodeId) => Rx {
+          val graph = state.graph()
+          val nodeIdx = graph.idToIdxOrThrow(nodeId)
+          graph.automatedNodes(nodeIdx).nonEmpty || graph.ancestorsIdx(nodeIdx).exists(parentIdx => graph.automatedNodes(parentIdx).nonEmpty)
+        }
+        case Target.Custom(_, isAutomation) => isAutomation
       }
 
       def createProperty() = {
@@ -147,18 +161,11 @@ object ItemProperties {
             marginTop := "5px",
             cls := "ui primary button approve",
             Rx {
-              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty || targetNodeIds.exists(_.isEmpty))(cls := "disabled")
+              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty)(cls := "disabled")
             },
             "Add Custom Field",
             onClick.stopPropagation foreach(createProperty())
           ),
-          targetNodeIds.map { targetNodeIds =>
-            i(
-              padding := "4px",
-              whiteSpace.normal,
-              s"* The properties you set here will be applied to ${targetNodeIds.size} nodes."
-            )
-          }
         ),
       )
     }
@@ -171,19 +178,9 @@ object ItemProperties {
       val propertyEdgeData = EdgeData.LabeledProperty(propertyKey.string)
 
       def sendChanges(addProperty: NodeId => GraphChanges, extendable: Either[NodeId, Node.Content]) = {
-        val changes = targetNodeIds match {
-          case Some(targetNodeIds) =>
-            val graph = state.graph.now
-            val changes = targetNodeIds.map { targetNodeId =>
-              val alreadyExists = state.graph.now.propertiesEdgeIdx.exists(graph.idToIdxOrThrow(targetNodeId)) { edgeIdx =>
-                graph.edges(edgeIdx).asInstanceOf[Edge.LabeledProperty].data.key == propertyKey.string
-              }
-
-              if (alreadyExists) GraphChanges.empty else addProperty(targetNodeId)
-            }
-
-            changes.fold(GraphChanges.empty)(_ merge _) merge extendNewProperty(propertyEdgeData, extendable)
-          case None => addProperty(nodeId) merge extendNewProperty(propertyEdgeData, extendable)
+        val changes = target match {
+          case Target.Custom(submitAction, _) => submitAction(propertyEdgeData, addProperty)
+          case Target.Node(nodeId) => addProperty(nodeId)
         }
 
         state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
@@ -192,7 +189,7 @@ object ItemProperties {
       propertyValue match {
 
         case Right(data: NodeData.Content) =>
-          val propertyNode = Node.Content(nodeId, data, NodeRole.Neutral)
+          val propertyNode = Node.Content(NodeId.fresh, data, NodeRole.Neutral)
           def addProperty(targetNodeId: NodeId): GraphChanges = {
             val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
             val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
@@ -222,13 +219,13 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, nodeId: NodeId, prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "", targetNodeIds: Option[Array[NodeId]] = None, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left", extendNewProperty: (EdgeData.LabeledProperty, Either[NodeId, Node.Content]) => GraphChanges = (_, _) => GraphChanges.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesDropdown(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
         cls := "ui mini form",
-        managePropertiesContent(state, nodeId, prefilledType, prefilledKey, targetNodeIds, extendNewProperty),
+        managePropertiesContent(state, target, config),
         descriptionModifier
       )
     ), dropdownModifier = dropdownModifier)

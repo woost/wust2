@@ -10,7 +10,7 @@ import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
 import wust.webApp.{ItemProperties, Icons}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 
 import scala.collection.breakOut
@@ -153,7 +153,7 @@ object TableView {
                 alignItems.center,
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
-              ItemProperties.managePropertiesDropdown(state, nodeId = group.nodeId, prefilledType = predictedType, prefilledKey = property.key),
+              ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(group.nodeId), ItemProperties.Config(prefilledType = predictedType, prefilledKey = property.key)),
             )
           )
         }(breakOut)
@@ -169,43 +169,46 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ::: propertyColumns, sort),
 
-        div(
-          button(
-            cls := "ui mini compact button",
-            freeSolid.faPlus
-          ),
-          ItemProperties.managePropertiesDropdown(state, nodeId = focusedId, targetNodeIds = Some(propertyGroup.infos.map(_.node.id)),
-            dropdownModifier = cls := "top right",
-            descriptionModifier = div(
-              padding := "10px",
-              div(
-                UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                GraphChangesAutomationUI.settingsButton(state, focusedId, activeColor = CommonStyles.selectedNodesBgColorCSS).prepend(
-                  span("Manage automations", textDecoration.underline, marginRight := "5px")
-                )
-              )
+        VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(
+          div(
+            button(
+              cls := "ui mini compact button",
+              freeSolid.faPlus
             ),
-            extendNewProperty = { (edgeData, propertyNodeIdOrNode) =>
-              if (keepPropertyAsDefault.now) {
-                val (propertyId, newPropertyNode) = propertyNodeIdOrNode match {
-                  case Left(nodeId) => (nodeId, None)
-                  case Right(node) =>
-                    val copiedNode = node.copy(id = NodeId.fresh)
-                    (copiedNode.id, Some(copiedNode))
-                }
-
-                val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
-                GraphChanges(
-                  addNodes = Set(templateNode) ++ newPropertyNode,
-                  addEdges = Set(
-                    Edge.LabeledProperty(templateNode.id, edgeData, propertyId = PropertyId(propertyId)),
-                    Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id)),
-                    Edge.Child(childId = ChildId(templateNode.id), parentId = ParentId(focusedId))
+            ItemProperties.managePropertiesDropdown(state,
+              target = ItemProperties.Target.Custom({ (edgeData, changesf) =>
+                if (keepPropertyAsDefault.now) {
+                  val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+                  val changes = changesf(templateNode.id) merge GraphChanges(
+                    addNodes = Set(templateNode),
+                    addEdges = Set(
+                      Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
+                      Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id))
+                    )
+                  )
+                  // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
+                  val tmpGraph = state.rawGraph.now applyChanges changes
+                  // run automation of this template for each row
+                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(tmpGraph, info.node, templateNode = templateNode))
+                } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
+              }, keepPropertyAsDefault),
+              dropdownModifier = cls := "top right",
+              descriptionModifier = div(
+                padding := "10px",
+                div(
+                  UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
+                  GraphChangesAutomationUI.settingsButton(state, focusedId, activeColor = CommonStyles.selectedNodesBgColorCSS).prepend(
+                    span("Manage automations", textDecoration.underline, marginRight := "5px")
+                  ),
+                  i(
+                    padding := "4px",
+                    whiteSpace.normal,
+                    s"* The properties you set here will be applied to ${propertyGroup.infos.size} nodes."
                   )
                 )
-              } else GraphChanges.empty
-            }
-          ),
+              ),
+            ),
+          )
         )
       ),
 
