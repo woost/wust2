@@ -19,7 +19,7 @@ package object ids {
   type UserId = UserId.Type
 
 
-  object ChildId extends OverTagged(NodeId) { // ChildId clashes with outwatch's ChildId
+  object ChildId extends OverTagged(NodeId) {
     @inline def fresh: ChildId = apply(NodeId.fresh)
     @inline def fromBase58String(str: String): ChildId = apply(NodeId.fromBase58String(str))
   }
