@@ -87,7 +87,6 @@ object SharedViewElements {
       def handle() = {
         submitAction(str)
         if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
-        autoResizer.trigger()
       }
       if (enforceUserName) {
         state.user.now match {
@@ -210,6 +209,7 @@ object SharedViewElements {
         ),
 
         textArea(
+          onDomUpdate.foreach(autoResizer.trigger()),
           cls := "field",
           initialValueAndSubmitOptions,
           heightOptions,
