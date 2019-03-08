@@ -53,7 +53,7 @@ object PageSettingsMenu {
       }
       val nodeRoleItem:VDomModifier = Rx {
         channelAsContent().collect {
-          case channel if canWrite() && channel.role != NodeRole.Stage => ConvertSelection.menuItem(state, channel)
+          case channel if canWrite() => ConvertSelection.menuItem(state, channel)
         }
       }
 
