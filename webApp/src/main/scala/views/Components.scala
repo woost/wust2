@@ -735,14 +735,15 @@ object Components {
       )
     }
 
-    def searchAndSelectNode(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = {
+    def searchAndSelectNode(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current, current.onNext(_))
+    def searchAndSelectNode(state: GlobalState, observable: Observable[Option[NodeId]], observer: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        Components.searchInGraph(state.graph, "Search", filter = {
-          case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(n.role)
+        Components.searchInGraph(state.rawGraph, "Search", filter = {
+          case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role)
           case _ => false
-        }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(Some(_)) --> current,
+        }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(Some(_)).foreach(observer),
 
-        current.map[VDomModifier] {
+        observable.map[VDomModifier] {
           case Some(nodeId) => div(
             marginTop := "4px",
             Styles.flex,

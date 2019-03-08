@@ -137,30 +137,9 @@ object ItemProperties {
                 ))
               }
             case TypeSelection.Ref => Some(
-              div(
+              Components.searchAndSelectNode(state, propertyValueInput.toObservable.map(_.flatMap(_.left.toOption)), opt => propertyValueInput() = opt.map(Left(_))).apply(
                 width := "100%",
                 marginTop := "4px",
-                Components.searchInGraph(state.graph, "Search", filter = {
-                  case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(n.role)
-                  case _ => false
-                }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(nodeId => Some(Left(nodeId))) --> propertyValueInput,
-                propertyValueInput.map[VDomModifier] {
-                  case Some(Left(nodeId)) => div(
-                    marginTop := "4px",
-                    Styles.flex,
-                    alignItems.flexStart,
-                    justifyContent.spaceBetween,
-                    span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
-                    state.graph.map { g =>
-                      val node = g.nodesById(nodeId)
-                      Components.roleSpecificRender(state, node, maxLength = Some(100)).apply(
-                        Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-                        styles.extra.wordBreak.breakAll, whiteSpace.preWrap
-                      )
-                    }
-                  )
-                  case _ => VDomModifier.empty
-                }
               )
             )
           }),

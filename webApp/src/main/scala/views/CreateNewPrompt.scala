@@ -111,7 +111,7 @@ object CreateNewPrompt {
             div(
               paddingLeft := "5px",
               searchInGraph(
-                state.graph,
+                state.rawGraph,
                 placeholder = "Add an existing tag",
                 valid = parentNodes.map(_.nonEmpty),
                 {
