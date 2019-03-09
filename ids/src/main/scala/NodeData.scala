@@ -39,29 +39,24 @@ object NodeData {
 
   case class Integer(content: Int) extends Named with Content {
     def str = content.toString
-    def update(value: Int)= if(content != value) Some(copy(content = value)) else None
   }
   object Integer extends Named
 
   case class Decimal(content: Double) extends Named with Content {
     def str = content.toString
-    def update(value: Double) = if(content != value) Some(copy(content = value)) else None
   }
   object Decimal extends Named
 
   case class Date(content: EpochMilli) extends Named with Content {
     def plainStr = content.toString
     def str = content.isoDate
-    def update(value: EpochMilli) = if(content != value) Some(copy(content = value)) else None
   }
   object Date extends Named
   case class RelativeDate(content: DurationMilli) extends Named with Content {
     def str = content.toString
-    def update(value: DurationMilli) = if(content != value) Some(copy(content = value)) else None
   }
   object RelativeDate extends Named
 
-  case object Empty extends Named
 
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
