@@ -41,7 +41,7 @@ object RightSidebar {
   def content(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val nodeStyle = focusedNodeId.map(n => PageStyle.ofNode(n.map(_.nodeId)))
 
-    def accordionEntry(name: String, body: VDomModifier): (VDomModifier, VDomModifier) = {
+    def accordionEntry(name: VDomModifier, body: VDomModifier): (VDomModifier, VDomModifier) = {
       VDomModifier(
         marginTop := "5px",
         b(name),
@@ -78,7 +78,13 @@ object RightSidebar {
       ),
       UI.accordion(
         Seq(
-          accordionEntry("Content", VDomModifier(
+          accordionEntry(VDomModifier(Rx {
+            focusedNodeId().map { focusPreference =>
+              val graph = state.rawGraph()
+              val node = graph.nodesById(focusPreference.nodeId)
+              node.role.toString
+            }
+          }), VDomModifier(
             nodeContent(state, focusedNodeId, parentIdAction),
             overflowY.auto,
             maxHeight := "40%"
@@ -176,10 +182,9 @@ object RightSidebar {
               div(
                 Styles.flex,
                 alignItems.flexStart,
-                Components.roleSpecificRender[VNode](node,
-                  nodeCard = Components.nodeCardEditable(state, node, editMode),
-                  nodePlain = Components.editableNode(state, node, editMode),
-                ).apply(styles.extra.wordBreak.breakAll, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"),
+                Components.nodeCardEditable(state, node, editMode).apply(
+                  Styles.wordWrap, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"
+                ),
                 div(
                   Icons.edit,
                   marginLeft := "5px",

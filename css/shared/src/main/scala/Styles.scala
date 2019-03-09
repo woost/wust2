@@ -306,7 +306,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".pageheader-channeltitle .nodecard-content" - (
     minHeight(0 em),
-    paddingBottom(3 px),
   )
 
   ".pageheader-channeltitle.nodecard > .checkbox" - (
@@ -744,10 +743,17 @@ object CommonStyles extends StyleSheet.Standalone {
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
     borderRadius(3 px),
-    backgroundColor(nodeCardBackgroundColor),
-    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
     fontWeight.normal,
     overflowX.auto,
+  )
+
+  ".nodecard.project" - (
+    border(1 px, solid, c"#212121"), // when dragging this will be replaced with a color
+  )
+
+  ".nodecard.node" - (
+    backgroundColor(nodeCardBackgroundColor),
+    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
 
     border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
@@ -763,14 +769,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer
   )
 
-  ".nodecard-content > *" - (
-    padding(2 px, 4 px), // when editing, clicking on the padding does not unfocus
-  )
-
   ".nodecard-content" - (
     Styles.wordWrap,
     padding(1 px),
-    minHeight(2 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
+    minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 
   ".nodecard-content pre" - (

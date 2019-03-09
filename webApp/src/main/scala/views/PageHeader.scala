@@ -49,7 +49,7 @@ object PageHeader {
   private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
     val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(60)
 
-    val channelTitle = Components.roleSpecificRenderAsOneLineText(pageNode).apply(
+    val channelTitle = Components.nodeCardAsOneLineText(pageNode).apply(
       cls := "pageheader-channeltitle",
       borderRadius := "3px",
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id)
