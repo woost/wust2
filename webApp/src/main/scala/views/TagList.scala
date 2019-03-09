@@ -42,6 +42,10 @@ object TagList {
       VDomModifier(
         Icons.tags,
         span(marginLeft := "5px", "Tags"),
+        state.graphTransformations.map {
+          case list if list.exists(_.isInstanceOf[GraphOperation.OnlyTaggedWith]) => backgroundColor := "green"
+          case _ => VDomModifier.empty
+        }
       ),
       toggle = state.showTagsList,
       initialPosition = position,
