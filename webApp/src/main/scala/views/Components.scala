@@ -350,7 +350,7 @@ object Components {
             Styles.flex,
             justifyContent.flexEnd,
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
-            editableNodeWithNonNeutralSearch(state, property.node, editMode = editValue, maxLength = Some(100), config = EditableContent.Config.default),
+            editablePropertyNode(state, property.node, property.edge, editMode = editValue, maxLength = Some(100), config = EditableContent.Config.default),
             div(
               marginLeft := "5px",
               cursor.pointer,
@@ -706,10 +706,10 @@ object Components {
       )
     }
 
-    def editableNodeWithNonNeutralSearchOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+    def editablePropertyNodeOnClick(state: GlobalState, node: Node, edge: Edge.LabeledProperty, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editableNodeWithNonNeutralSearch(state, node, editMode, maxLength, config)(ctx)(
+      editablePropertyNode(state, node, edge, editMode, maxLength, config)(ctx)(
         onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
@@ -724,14 +724,17 @@ object Components {
       )
     }
 
-    def editableNodeWithNonNeutralSearch(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editablePropertyNode(state: GlobalState, node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       val emitter = node.role match {
-        case NodeRole.Neutral => EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config)
-        case _ => EditableContent.customOrRender[Node](node, editMode, node => roleSpecificRender(state, node, maxLength).apply(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id), styles.extra.wordBreak.breakAll, whiteSpace.preWrap), handler => searchAndSelectNode(state, handler.mapHandler[Option[NodeId]](id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))))(_.toOption.map(_.id))), config)
+        case NodeRole.Neutral => EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode)
+        case _ => EditableContent.customOrRender[Node](node, editMode, node => roleSpecificRender(state, node, maxLength).apply(styles.extra.wordBreak.breakAll, whiteSpace.normal), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.map { newNode =>
+
+          GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
+        }
       }
 
       div(
-        emitter.editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+        emitter --> state.eventProcessor.changes
       )
     }
 
@@ -754,7 +757,7 @@ object Components {
               val node = g.nodesById(nodeId)
               Components.roleSpecificRender(state, node, maxLength = Some(100)).apply(
                 Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-                styles.extra.wordBreak.breakAll, whiteSpace.preWrap
+                styles.extra.wordBreak.breakAll, whiteSpace.normal
               )
             }
           )

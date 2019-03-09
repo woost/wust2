@@ -198,6 +198,13 @@ object EditableContent {
         }
       )}),
 
+      config.submitMode match {
+        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(
+          onGlobalEscape(EditInteraction.Cancel) --> current
+        )
+        case _ => VDomModifier.empty
+      },
+
       config.outerModifier,
       showErrorsOutside(current, config.errorMode)
     )
@@ -257,7 +264,6 @@ object EditableContent {
           }) --> current,
           BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
             VDomModifier.ifTrue(fixedSubmitEvent.isEmpty)(onEnter.transform(_.mapEval(e => parse(e.target.asInstanceOf[Elem]))) --> current),
-            onGlobalEscape(EditInteraction.Cancel) --> current
           )),
         )
         case SubmitMode.Emitter(builders) => VDomModifier(
