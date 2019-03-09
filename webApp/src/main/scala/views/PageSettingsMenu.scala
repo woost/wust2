@@ -325,21 +325,12 @@ object PageSettingsMenu {
     val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
 
     def addUserMember(userId: UserId): Unit = {
-      val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(node.id, userId)))
+      val change:GraphChanges = GraphChanges.from(addEdges = Set(
+        Edge.Invite(node.id, userId),
+        Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
+      ))
       state.eventProcessor.changes.onNext(change)
-      Client.api.addMember(node.id, userId, AccessLevel.ReadWrite).onComplete {
-        case Success(b) =>
-          if(!b) {
-            statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Member does not exist")))
-            scribe.info("Could not add member: Member does not exist")
-          } else {
-            statusMessageHandler.onNext(None)
-            clear.onNext(())
-          }
-        case Failure(ex) =>
-          statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
-          scribe.warn("Could not add member to channel", ex)
-      }
+      clear.onNext(())
     }
     def handleAddMember(email: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserByEMail(email)
@@ -382,7 +373,8 @@ object PageSettingsMenu {
         } else return
       }
 
-      Client.api.removeMember(membership.nodeId,membership.userId,membership.level) //TODO: handle error...
+      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
+      state.eventProcessor.changes.onNext(change)
     }
 
     def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {

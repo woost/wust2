@@ -75,64 +75,6 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     }
   }
 
-  override def addMember(
-      nodeId: NodeId,
-      subjectUserId: UserId,
-      accessLevel: AccessLevel
-  ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      canAccessNode(user.id, nodeId) {
-        for {
-          Some(subjectUser) <- db.user.get(subjectUserId) // check that user exists
-          added <- db.node.addMember(nodeId, subjectUserId, accessLevel)
-          List(node) <- db.node.get(Set(nodeId))
-        } yield
-          Returns(
-            added, // return value of api call
-            if (added)
-              Seq(
-                NewGraphChanges.forAll(
-                  user.toNode,
-                  GraphChanges(
-                    addNodes = Set(forClient(node), subjectUser), // subjectUser is for other users, the node is for the subjectuser
-                    addEdges = Set(Edge.Member(nodeId = nodeId, EdgeData.Member(accessLevel), userId = subjectUserId)), // member edge is for subjectUser and other users
-                  )
-                )
-              )
-            else Nil
-          )
-      }
-    }
-  }
-
-  override def removeMember(
-      nodeId: NodeId,
-      subjectUserId: UserId,
-      accessLevel:AccessLevel, // TODO: this should not be necessary. We only pass accesslevel to emit the GraphChanges event
-  ): ApiFunction[Boolean] = Effect.assureDbUser { (_, user) =>
-    db.ctx.transaction { implicit ec =>
-      canAccessNode(user.id, nodeId) {
-        for {
-          Some(_) <- db.user.get(subjectUserId) // check that user exists
-          removed <- db.node.removeMember(nodeId, subjectUserId)
-        } yield
-          Returns(
-            removed,
-            if (removed)
-              Seq(
-                NewGraphChanges.forAll(
-                  user.toNode,
-                  GraphChanges(
-                    delEdges = Set(Edge.Member(nodeId = nodeId, EdgeData.Member(accessLevel), userId = subjectUserId)),
-                  )
-                )
-              )
-            else Nil
-          )
-      }
-    }
-  }
-
   override def getNode(
                             nodeId: NodeId,
                             onBehalf: Authentication.Token

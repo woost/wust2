@@ -22,8 +22,6 @@ trait Api[Result[_]] {
   def getUploadedFiles: Result[Seq[UploadedFile]]
 
   def getGraph(selection: Page): Result[Graph]
-  def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
-  def removeMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel): Result[Boolean]
 
   def getNode(nodeId: NodeId): Result[Option[Node]]
   @PathName("getNodeOnBehalf")

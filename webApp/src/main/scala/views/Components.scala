@@ -231,14 +231,16 @@ object Components {
               state.urlConfig.update(_.focus(Page(dmNode.id), View.Conversation, needsGet = false))
             case _ => // create a new channel, add user as member
               val nodeId = NodeId.fresh
-              state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, userId, title = dmName) merge GraphChanges.notify(nodeId, userId)) // TODO: noderole message
+              val change:GraphChanges =
+                GraphChanges.newProject(nodeId, userId, title = dmName) merge
+                GraphChanges.from(addEdges = Set(
+                  Edge.Invite(nodeId = nodeId, userId = dmUserId),
+                  Edge.Notify(nodeId = nodeId, userId = dmUserId),
+                  Edge.Member(nodeId = nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId = dmUserId)
+                ))
+
+              state.eventProcessor.changes.onNext(change)
               state.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
-              //TODO: this is a hack. Actually we need to wait until the new channel was added successfully
-              dom.window.setTimeout({() =>
-                Client.api.addMember(nodeId, dmUserId, AccessLevel.ReadWrite)
-                val change:GraphChanges = GraphChanges.from(addEdges = Set(Edge.Invite(nodeId = nodeId, userId = dmUserId)))
-                state.eventProcessor.changes.onNext(change)
-              }, 3000)
               ()
           }
         },
