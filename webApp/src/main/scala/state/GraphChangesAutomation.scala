@@ -90,7 +90,6 @@ object GraphChangesAutomation {
         case Some(implementationNode) =>
           replacedNodes += descendant.id -> implementationNode
         case None =>
-          println("DESCENDANT " + descendant)
           val copyNode = copyAndTransformNode(descendant)
           addNodes += copyNode
           addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
