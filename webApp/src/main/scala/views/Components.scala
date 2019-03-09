@@ -363,7 +363,6 @@ object Components {
     key: Edge.LabeledProperty,
     property: Node,
     pageOnClick: Boolean = false,
-    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val icon = ItemProperties.iconByNodeData(property.data)
@@ -384,7 +383,8 @@ object Components {
       padding := "2px",
       contentString,
       border := "1px solid lightgray",
-      color.gray
+      color.gray,
+      drag(DragItem.Property(key), target = DragItem.DisableDrag),
     )
   }
 

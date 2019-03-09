@@ -1,6 +1,7 @@
 package wust.webApp.dragdrop
 
 import wust.ids.{ NodeRole, NodeId, UserId }
+import wust.graph.Edge
 
 sealed trait DragPayload extends Product with Serializable
 sealed trait DragTarget extends Product with Serializable
@@ -14,6 +15,7 @@ object DragItem {
   case class Project(nodeId: NodeId) extends ContentNode { override def toString = s"Project(${nodeId.shortHumanReadable})" }
 
   case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Tag(${nodeId.shortHumanReadable})" }
+  case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { override def toString = s"Property($edge)" }
 
   case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
   case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Column(${nodeId.shortHumanReadable})" }

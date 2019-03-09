@@ -113,7 +113,7 @@ object DragActions {
 
   val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (Graph, UserId) => GraphChanges] = {
     import DragItem._
-    import wust.graph.GraphChanges.{ linkOrMoveInto, linkInto, movePinnedChannel, assign }
+    import wust.graph.GraphChanges.{ linkOrCopyInto, linkOrMoveInto, linkInto, movePinnedChannel, assign }
     {
       case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
@@ -131,6 +131,8 @@ object DragActions {
       case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
       case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), None, graph, userId)
       case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
+
+      case (payload: Property, target: ContentNode, false, false) => (graph, userId) => linkOrCopyInto(payload.edge, target.nodeId, graph)
 
       case (payload: Tag, target: ContentNode, false, false) => (graph, userId) => linkInto(ChildId(target.nodeId), ParentId(payload.nodeId), graph)
       case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
