@@ -205,8 +205,8 @@ object KanbanView {
 
     val buttonBar = div(
       cls := "buttonbar",
-      drag(DragItem.DisableDrag),
       Styles.flex,
+      drag(DragItem.DisableDrag),
       Rx {
         def ifCanWrite(mod: => VDomModifier): VDomModifier = VDomModifier.ifTrue(canWrite())(mod)
 
@@ -508,6 +508,7 @@ object KanbanView {
         VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
         VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px") // marginRight to not interfere with button bar...
       ),
+      nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
     ).prepend(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
       VDomModifier.ifTrue(showCheckbox)(
@@ -519,7 +520,7 @@ object KanbanView {
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
 
-      VDomModifier.ifNot(inOneLine)(div(margin := "0 3px 0 3px", alignItems.center, cardDescription)),
+      VDomModifier.ifNot(inOneLine)(div(margin := "0 3px", alignItems.center, cardDescription)),
       cardFooter,
 
       Rx {
@@ -538,8 +539,7 @@ object KanbanView {
       },
 
       position.relative, // for buttonbar
-      buttonBar(position.absolute, top := "3px", right := "3px"), // 3px to not interefere with sidebar-focus box-shadow around node
-//      onDblClick.stopPropagation(state.urlConfig.now.copy(page = Page(node.id))) --> state.urlConfig,
+      buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node
     )
   }
 

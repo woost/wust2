@@ -771,7 +771,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content" - (
     Styles.wordWrap,
-    padding(1 px),
+    padding(2 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 
@@ -948,14 +948,13 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".nodecard .buttonbar" - (
-    padding(2 px, 4 px),
     backgroundColor(nodeCardBackgroundColor),
     visibility.hidden
   )
 
   ".nodecard .buttonbar > div" - (
     color(c"rgb(157, 157, 157)"),
-    padding(2 px)
+    padding(0 px, 2 px)
   )
 
   ".nodecard .buttonbar > div:hover" - (

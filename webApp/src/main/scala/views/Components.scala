@@ -380,9 +380,8 @@ object Components {
 
     span(
       cls := "node tag",
-      padding := "2px",
       contentString,
-      border := "1px solid lightgray",
+      boxShadow := "inset 0 0 1px 1px lightgray",
       color.gray,
       drag(DragItem.Property(key), target = DragItem.DisableDrag),
     )
@@ -513,30 +512,30 @@ object Components {
         ),
       )
     }
-    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeData(node.data, maxLength), contentInject)
+        contentInject = VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
-    def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength), contentInject)
+        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
-    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength)), contentInject)
+        contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
       )
     }
-    def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
         contentInject = VDomModifier(
           prependInject,
-          editableNode(state, node, editMode, maxLength),
+          editableNode(state, node, editMode, maxLength).apply(nodeInject),
           contentInject
         ),
       ).apply(
@@ -544,13 +543,13 @@ object Components {
       )
     }
 
-  def nodeCardEditableOnClick(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditableOnClick(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val editMode = Var(false)
     renderNodeCard(
       node,
       contentInject = VDomModifier(
         prependInject,
-        editableNodeOnClick(state, node, maxLength),
+        editableNodeOnClick(state, node, maxLength).apply(nodeInject),
         contentInject
       ),
     ).apply(
