@@ -10,7 +10,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph.Page
 import wust.sdk.NodeColor
 import wust.util._
-import wust.webApp.{Client, DevOnly, Ownable, WoostNotification}
+import wust.webApp.{Client, DevOnly, Ownable, WoostNotification, BrowserDetect}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, PageStyle, ScreenSize}
 import wust.webApp.views.Components._
@@ -118,8 +118,16 @@ object MainView {
                 },
               ),
 
-              position.relative, // needed for taglist window
-              TagList.moveableWindow(state)
+              VDomModifier.ifNot(BrowserDetect.isMobile)(
+                position.relative, // needed for taglist window
+                MoveableElement.withToggleSwitch(
+                  ViewFilter.moveableWindow(state, MoveableElement.RightPosition(100, 500)) ::
+                  TagList.moveableWindow(state, MoveableElement.RightPosition(100, 400)) ::
+                  Nil,
+                  enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
+                  resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
+                )
+              )
             ),
           ),
         ),

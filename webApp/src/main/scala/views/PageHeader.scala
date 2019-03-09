@@ -109,17 +109,6 @@ object PageHeader {
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
-    val filterStatus = state.isFilterActive.map(_.ifTrue[VDomModifier] {
-      div(
-        Elements.icon(Icons.filter),
-        color := "green",
-        onClick.stopPropagation(state.defaultTransformations) --> state.graphTransformations,
-        cursor.pointer,
-        UI.popup("bottom right") := "A filter is active. Click to reset to default.",
-        marginRight := "5px"
-      )
-    })
-
     val pinButton = Rx {
       val hideBookmarkButton = isSpecialNode() || isBookmarked()
       hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channel).apply(
@@ -131,7 +120,6 @@ object PageHeader {
 
     VDomModifier(
       pinButton,
-      filterStatus,
       PageSettingsMenu(state, channel.id).apply(buttonStyle, fontSize := "20px"),
     )
   }

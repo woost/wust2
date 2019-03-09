@@ -115,9 +115,8 @@ object PageSettingsMenu {
       val notificationItem = Rx {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
-      val filterItem = ViewFilter.renderMenu(state).apply(cls := "item")
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, mentionInItem, filterItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, mentionInItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
     def header: VDomModifier = div(

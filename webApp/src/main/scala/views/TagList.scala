@@ -35,20 +35,21 @@ import scala.scalajs.js
 object TagList {
   import SharedViewElements._
 
-  def moveableWindow(state: GlobalState)(implicit ctx: Ctx.Owner) = VDomModifier.ifNot(BrowserDetect.isMobile) {
+  def moveableWindow(state: GlobalState, position: MoveableElement.Position)(implicit ctx: Ctx.Owner): MoveableElement.Window = {
     val newTagFieldActive: Var[Boolean] = Var(false)
 
-    MoveableElement.withToggleSwitch(
-      "Tags",
+    MoveableElement.Window(
+      VDomModifier(
+        Icons.tags,
+        span(marginLeft := "5px", "Tags"),
+      ),
       toggle = state.showTagsList,
-      enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
-      resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
-      initialPosition = MoveableElement.RightPosition(100, 400),
+      initialPosition = position,
+      initialWidth = 200,
+      initialHeight = 300,
+      resizable = true,
       bodyModifier = Ownable(implicit ctx => VDomModifier(
-        width := "180px",
-        height := "300px",
         overflowY.auto,
-        resize := "both",
         Rx {
           val page = state.page()
           val graph = state.graph()
@@ -65,7 +66,6 @@ object TagList {
                 ),
                 drag(target = DragItem.TagBar(firstWorkspaceId)),
                 registerDragContainer(state),
-                cls := "PENOS"
               )
             }
           )

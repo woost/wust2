@@ -59,8 +59,9 @@ object GlobalStateFactory {
       .unsafeToRx(ScreenSize.calculate())
 
     val showTagsList = Client.storage.taglistOpen.imap(_ getOrElse false)(Some(_))
+    val showFilterList = Client.storage.filterlistOpen.imap(_ getOrElse false)(Some(_))
 
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
+    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, showFilterList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
     import state._
 
     // on mobile left and right sidebars overlay the screen.

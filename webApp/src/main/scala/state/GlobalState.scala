@@ -34,6 +34,7 @@ class GlobalState(
   val eventProcessor: EventProcessor,
   val leftSidebarOpen: Var[Boolean], //TODO: replace with ADT Open/Closed
   val showTagsList: Var[Boolean], //TODO: replace with ADT Open/Closed
+  val showFilterList: Var[Boolean], //TODO: replace with ADT Open/Closed
   val urlConfig: Var[UrlConfig],
   val isOnline: Rx[Boolean],
   val isLoading: Rx[Boolean],
@@ -183,7 +184,7 @@ class GlobalState(
     userId <- user.map(_.id)
     pageId <- urlConfig.map(_.pageChange.page.parentId)
   } yield {
-    if(currentGraph.nonEmpty && pageId.map(pid => currentGraph.contains(pid)).getOrElse(false)) {
+    if(currentGraph.nonEmpty && pageId.exists(pid => currentGraph.contains(pid)) && graphTrans.nonEmpty) {
       val filterSeq: Seq[GraphFilter] = graphTrans.map(_.filterWithViewData(pageId, userId))
       val filter = filterSeq.reduce(GraphOperation.stackFilter(_, _))
       val transformation = GraphOperation.filterToTransformation(filter)

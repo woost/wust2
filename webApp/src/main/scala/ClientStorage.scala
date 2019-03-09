@@ -22,6 +22,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
     val auth = "wust.auth"
     val sidebarOpen = "wust.sidebar.open"
     val taglistOpen = "wust.taglist.open"
+    val filterlistOpen = "wust.filterlist.open"
     val graphChanges = "wust.graph.changes"
     val backendTimeDelta = "wust.backendtimedelta"
   }
@@ -81,6 +82,16 @@ class ClientStorage(implicit owner: Ctx.Owner) {
         .unsafeRunSync()
         .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
         .unsafeToVar(internal(keys.taglistOpen).flatMap(fromJson[Boolean]))
+    } else Var(None)
+  }
+
+  val filterlistOpen: Var[Option[Boolean]] = {
+    if(canAccessLs) {
+      LocalStorage
+        .handlerWithoutEvents(keys.filterlistOpen)
+        .unsafeRunSync()
+        .mapHandler[Option[Boolean]](open => Option(toJson(open)))(_.flatMap(fromJson[Boolean]))
+        .unsafeToVar(internal(keys.filterlistOpen).flatMap(fromJson[Boolean]))
     } else Var(None)
   }
 

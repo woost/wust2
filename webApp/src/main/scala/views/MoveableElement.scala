@@ -18,10 +18,10 @@ object MoveableElement {
   case class LeftPosition(left: Double, top: Double) extends Position
   case class RightPosition(right: Double, bottom: Double) extends Position
 
-  case class Window(title: String, toggle: Var[Boolean], initialPosition: Position, bodyModifier: Ownable[VDomModifier])
+  case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, bodyModifier: Ownable[VDomModifier])
 
   def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val activeWindow = Var(windows.headOption.fold("")(_.title))
+    val activeWindow = Var(0)
     div(
       enabled.map {
         case true =>
@@ -35,38 +35,35 @@ object MoveableElement {
             color.white,
             Styles.flex,
 
-            windows.map { window =>
+            windows.zipWithIndex.map { case (window, index) =>
               div(
-                window.title,
                 onClick.stopPropagation.foreach {
                   if (window.toggle.now) Var.set(
-                    activeWindow -> window.title,
+                    activeWindow -> index,
                     window.toggle -> !window.toggle.now
                   ) else window.toggle() = !window.toggle.now
                 },
-                onClick(window.title) --> activeWindow,
+                onClick(index) --> activeWindow,
                 cursor.pointer,
                 padding := "5px",
                 border := "0px 1px 1px 1px white solid",
                 backgroundColor := CommonStyles.sidebarBgColor,
                 borderBottomRightRadius := "5px",
                 borderBottomLeftRadius := "5px",
+                window.title,
               )
             }
           )
         case false =>
           VDomModifier.empty
       },
-      windows.map { window =>
-        apply(window, enabled, resizeEvent, activeWindow)
+      windows.zipWithIndex.map { case (window, index) =>
+        apply(window, enabled, resizeEvent, index, activeWindow)
       }
     )
   }
 
-  def withToggleSwitch(title: String, toggle: Var[Boolean], enabled: Rx[Boolean], resizeEvent: Observable[Unit], initialPosition: Position, bodyModifier: Ownable[VDomModifier])(implicit ctx: Ctx.Owner): VDomModifier =
-    withToggleSwitch(Seq(Window(title, toggle, initialPosition, bodyModifier)), enabled, resizeEvent)
-
-  def apply(window: Window, enabled: Rx[Boolean], resizeEvent: Observable[Unit], activeWindow: Var[String] = Var(""))(implicit ctx: Ctx.Owner): VDomModifier = {
+  def apply(window: Window, enabled: Rx[Boolean], resizeEvent: Observable[Unit], index: Int, activeWindow: Var[Int])(implicit ctx: Ctx.Owner): VDomModifier = {
     import window._
 
     var mouseDownOffset: Option[LeftPosition] = None
@@ -90,20 +87,27 @@ object MoveableElement {
         div.static(toggle.hashCode)(VDomModifier(
           cls := "moveable-window",
 
-          zIndex <-- activeWindow.map { activeWindowTitle =>
-            if (activeWindowTitle == title) ZIndex.overlayLow + 1 else ZIndex.overlayLow
+          Styles.flex,
+          flexDirection.column,
+          width := s"${initialWidth}px",
+          height := s"${initialHeight}px",
+          VDomModifier.ifTrue(resizable)(resize := "both"),
+
+          zIndex <-- activeWindow.map { activeWindow =>
+            if (activeWindow == index) ZIndex.overlayLow + 1 else ZIndex.overlayLow
           },
 
-          onMouseDown(title) --> activeWindow,
+          onMouseDown(index) --> activeWindow,
 
           div(
             Styles.flex,
             justifyContent.spaceBetween,
+            alignItems.center,
             backgroundColor := CommonStyles.sidebarBgColor,
             color := "white",
             padding := "2px",
 
-            b(title, paddingLeft := "5px"),
+            title,
             div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> toggle),
 
             onMouseDown.foreach { ev =>
@@ -122,6 +126,7 @@ object MoveableElement {
           ),
 
           div(
+            Styles.growFull,
             bodyModifier,
             onDomMount.asHtml.foreach(domElemBody = _),
             currentWidth.map(currentWidth => width := s"${currentWidth}px"),

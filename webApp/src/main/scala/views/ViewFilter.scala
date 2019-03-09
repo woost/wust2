@@ -16,6 +16,7 @@ import wust.graph.{Edge, Graph, Node}
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm
 import wust.util.macros.{InlineList, SubObjects}
+import wust.webApp.Ownable
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
@@ -36,44 +37,56 @@ object ViewFilter {
     //    Identity(state),
   )
 
-  def renderMenu(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def moveableWindow(state: GlobalState, position: MoveableElement.Position)(implicit ctx: Ctx.Owner): MoveableElement.Window = {
 
     val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
-    val filterColor = state.isFilterActive.map(active => if(active) VDomModifier( color := "green" ) else VDomModifier.empty)
 
-    UI.accordion(
-      title = VDomModifier(
-        filterColor,
-        borderTop := "0px", // unset semantic ui's border top for accordion title
-        span("Filter"),
+    MoveableElement.Window(
+      VDomModifier(
+        Icons.filter,
+        span(marginLeft := "5px", "Filter"),
+        state.isFilterActive.map {
+          case true => backgroundColor := "green"
+          case false => VDomModifier.empty
+        }
       ),
-      content = div(
-        Components.verticalMenu(
-          filterTransformations.map { transformation =>
-            Components.MenuItem(
-              title = transformation.icon,
-              description = transformation.description,
-              active = state.graphTransformations.map(_.contains(transformation.transform)),
-              clickAction = { () =>
-                state.graphTransformations.update { transformations =>
-                  if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
-                  else transformations :+ transformation.transform
+      toggle = state.showFilterList,
+      initialPosition = position,
+      initialWidth = 260,
+      initialHeight = 250,
+      resizable = false,
+      bodyModifier = Ownable { implicit ctx =>
+        VDomModifier(
+          padding := "5px",
+          Rx {
+            backgroundColor := state.pageStyle().bgLightColor,
+          },
+
+          Components.verticalMenu(
+            filterTransformations.map { transformation =>
+              Components.MenuItem(
+                title = transformation.icon,
+                description = transformation.description,
+                active = state.graphTransformations.map(_.contains(transformation.transform)),
+                clickAction = { () =>
+                  state.graphTransformations.update { transformations =>
+                    if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
+                    else transformations :+ transformation.transform
+                  }
+                  Analytics.sendEvent("filter", transformation.toString)
                 }
-                Analytics.sendEvent("filter", transformation.toString)
-              }
-            )
-          }
-        ),
-        div(
-          cursor.pointer,
-          Elements.icon(Icons.noFilter),
-          span("Reset ALL filters"),
-          onClick(Seq.empty[UserViewGraphTransformation]) --> state.graphTransformations,
-          onClick foreach { Analytics.sendEvent("filter", "reset") },
+              )
+            }
+          ),
+          div(
+            cursor.pointer,
+            Elements.icon(Icons.noFilter),
+            span("Reset ALL filters"),
+            onClick(state.defaultTransformations) --> state.graphTransformations,
+            onClick foreach { Analytics.sendEvent("filter", "reset") },
+          )
         )
-      ),
-    ).prepend(
-      Elements.icon(Icons.filter),
+      }
     )
   }
 
