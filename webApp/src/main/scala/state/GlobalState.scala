@@ -42,6 +42,8 @@ class GlobalState(
   val screenSize: Rx[ScreenSize],
 )(implicit ctx: Ctx.Owner) {
 
+  val askedForUnregisteredUserName: Var[Boolean] = Var(false)
+
   val rightSidebarNode: Var[Option[FocusPreference]] = Var(None)
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)

@@ -13,7 +13,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def dropdown(options: DropdownOptions): Unit = js.native
 
   def modal(behavior: String): Unit = js.native
-  def modal(options: ModalOptions): Unit = js.native
+  def modal(options: ModalOptions): JQuerySelectionWithFomanticUI = js.native
 
   def search(arg: SearchOptions): Unit = js.native
   def search(arg: String, arg1: Any = ???, arg2: Any = ???): js.Any = js.native
@@ -132,6 +132,9 @@ trait ModalOptions extends js.Object {
   var detachable: js.UndefOr[Boolean] = js.undefined
   var blurring: js.UndefOr[Boolean] = js.undefined
   var dimmerSettings: js.UndefOr[DimmerOptions] = js.undefined
+  var onHide: js.UndefOr[js.Function0[Boolean]] = js.undefined
+  var onDeny: js.UndefOr[js.Function0[Boolean]] = js.undefined
+  var onApprove: js.UndefOr[js.Function0[Boolean]] = js.undefined
 }
 
 trait SearchOptions extends js.Object {

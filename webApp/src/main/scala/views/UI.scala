@@ -47,7 +47,7 @@ object UI {
       label(labelText)
     )
 
-  case class ModalConfig(header: VDomModifier, description: VDomModifier, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
+  case class ModalConfig(header: VDomModifier, description: VDomModifier, onClose: () => Boolean = () => true, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
   def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit]): VNode = div(
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
@@ -62,7 +62,11 @@ object UI {
             ctx.contextualRx.kill()
           },
           managedElement.asJquery { e =>
-            e.modal("show")
+            e
+              .modal(new ModalOptions {
+                onHide = config.onClose: js.Function0[Boolean]
+              })
+              .modal("show")
             Cancelable(() => e.modal("destroy"))
           },
 

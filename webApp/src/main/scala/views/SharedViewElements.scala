@@ -88,15 +88,15 @@ object SharedViewElements {
         submitAction(str)
         if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
       }
-      if (enforceUserName) {
+      if (enforceUserName && !state.askedForUnregisteredUserName.now) {
+        state.askedForUnregisteredUserName() = true
         state.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
             val sink = state.eventProcessor.changes.redirectMapMaybe[String] { str =>
               val userNode = user.toNode
-              handle() // not so great to do this sync here when we are anyhow working on sending out changes in the submitaction
               userNode.data.updateName(str).map(data => GraphChanges.addNode(userNode.copy(data = data)))
             }
-            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholderMessage = Some(Components.implicitUserName))))
+            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholderMessage = Some(Components.implicitUserName), onClose = () => { handle(); true })))
           case _ => handle()
         }
       } else {
@@ -672,7 +672,7 @@ object SharedViewElements {
     }
   }
 
-  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
     UI.ModalConfig(
       header = header,
       description = VDomModifier(
@@ -697,7 +697,8 @@ object SharedViewElements {
       modalModifier = VDomModifier(
         cls := "basic",
         width := "400px"
-      )
+      ),
+      onClose = onClose
     )
   }
 
