@@ -974,11 +974,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
 
-  ".kanbancolumnheader .buttonbar" - (
-    padding(kanbanColumnPadding),
-    visibility.hidden,
-    fontSize.medium // same as in kanban card
-  )
+  ".kanbancolumnheader .buttonbar," +
   ".kanban-uncategorized-title .buttonbar" - (
     padding(kanbanColumnPadding),
     visibility.hidden,
@@ -995,21 +991,24 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".kanban-uncategorized-title:hover .buttonbar" - (
     visibility.visible
-    )
+  )
 
   ".kanbancolumnheader .buttonbar > div," +
+  ".kanban-uncategorized-title .buttonbar > div," +
   ".nodecard .buttonbar > div" - (
     borderRadius(3 px),
     marginLeft(2 px)
   )
 
-  ".kanbancolumnheader .buttonbar > div" - (
+  ".kanbancolumnheader .buttonbar > div," +
+  ".kanban-uncategorized-title .buttonbar > div" - (
     padding(2 px),
     backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
-  ".kanbancolumnheader .buttonbar > div:hover" - (
+  ".kanbancolumnheader .buttonbar > div:hover," +
+  ".kanban-uncategorized-title .buttonbar > div:hover" - (
     backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
     color(white)
   )

@@ -166,19 +166,21 @@ object GraphChangesAutomationUI {
   }
 
   // a settings button for automation that opens the modal on click.
-  def settingsButton(state: GlobalState, focusedId: NodeId, activeColor: String = "white", inactiveColor: String = "grey")(implicit ctx: Ctx.Owner): VNode = {
-    settingsButtonCustom(state, focusedId, activeMod =  VDomModifier(color := activeColor, UI.popup := "Automation: active"), inactiveMod = VDomModifier(color := inactiveColor, UI.popup := "Automation: inactive"))
-  }
-
-  // a settings button for automation that opens the modal on click.
-  def settingsButtonCustom(state: GlobalState, focusedId: NodeId, activeMod: VDomModifier, inactiveMod: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsButton(state: GlobalState, focusedId: NodeId, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      Elements.icon(Icons.automate)(marginRight := "5px"),
+      i(cls := "fa-fw", Icons.automate),
 
       Rx {
         val graph = state.rawGraph()
         val templates = graph.templateNodes(graph.idToIdx(focusedId))
-        if (templates.isEmpty) inactiveMod else activeMod
+        if (templates.isEmpty) VDomModifier(
+          UI.popup := "Automation: inactive",
+          inactiveMod
+        ) else VDomModifier(
+          UI.popup := "Automation: active",
+          color := CommonStyles.selectedNodesBgColorCSS,
+          activeMod
+        )
       },
       cursor.pointer,
       onClick(Ownable(implicit ctx => modalConfig(state, focusedId))) --> state.uiModalConfig

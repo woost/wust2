@@ -198,7 +198,7 @@ object TableView {
                 padding := "10px",
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                  GraphChangesAutomationUI.settingsButton(state, focusedId, activeColor = CommonStyles.selectedNodesBgColorCSS).prepend(
+                  GraphChangesAutomationUI.settingsButton(state, focusedId).prepend(
                     span("Manage automations", textDecoration.underline, marginRight := "5px")
                   ),
                   i(
