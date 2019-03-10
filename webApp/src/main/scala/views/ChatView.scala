@@ -367,24 +367,21 @@ object ChatView {
               opacity := 0.7,
               Styles.flex,
               paddingLeft := "0.5em",
-              node.role match {
-                case NodeRole.Task =>
-                  div(
-                    Styles.flex,
-                    cls := "nodecard-content",
-                    cls := "enable-text-selection",
-                    fontSize.smaller,
-                    "Task: ",
-                    renderNodeData(node.data, maxLength = Some(100))
-                  )
-                case _ =>
-                  div(
-                    cls := "nodecard-content",
-                    cls := "enable-text-selection",
-                    fontSize.smaller,
-                    renderNodeData(node.data, maxLength = Some(100))
-                  )
-              },
+              div(
+                cls := "nodecard-content",
+                Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                fontSize.smaller,
+                node.role match {
+                  case NodeRole.Task => VDomModifier(
+                      Styles.flex,
+                      "Task: ",
+                      renderNodeData(node.data, maxLength = Some(100))
+                    )
+                  case _ => VDomModifier(
+                      renderNodeData(node.data, maxLength = Some(100))
+                    )
+                }
+              ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick foreach {
                   state.urlConfig.update(_.focus(Page(node.id)))
