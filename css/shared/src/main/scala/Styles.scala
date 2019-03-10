@@ -355,7 +355,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // break word in search results
   ".ui.search .results" - (
-    wordBreak := "break-word"
+    Styles.wordWrap
   )
 
 
