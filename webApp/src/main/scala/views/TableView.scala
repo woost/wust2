@@ -217,7 +217,7 @@ object TableView {
         cls := "ui mini compact button",
         freeSolid.faPlus,
         cursor.pointer,
-        UI.popup("center right") := "Add a new Row",
+        UI.popup("right center") := "Add a new Row",
         onClickNewNamePrompt(state, header = "Add a new Row", placeholderMessage = Some(s"A new ${targetRole}")).foreach { str =>
           val newNode = Node.Content(NodeData.Markdown(str), targetRole)
 
