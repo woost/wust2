@@ -337,7 +337,7 @@ object Components {
             justifyContent.flexEnd,
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
-              nonPropertyModifier = VDomModifier(cursor.pointer, onClick.stopPropagation.foreach(state.urlConfig.update(_.focus(Page(property.node.id))))),
+              nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
               maxLength = Some(100), config = EditableContent.Config.default,
             ),
             div(
@@ -387,6 +387,10 @@ object Components {
       boxShadow := "inset 0 0 1px 1px lightgray",
       color.gray,
       drag(DragItem.Property(key), target = DragItem.DisableDrag),
+      property.role match {
+        case NodeRole.Neutral => VDomModifier.empty
+        case _ => writeHoveredNode(state, property.id)
+      }
     )
   }
 
@@ -729,11 +733,10 @@ object Components {
             EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.map { newNode =>
+            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.map { newNode =>
 
               GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
-            nonPropertyModifier
           )
         }
       )
@@ -1072,6 +1075,17 @@ object Components {
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
       VDomModifier.ifTrue(isFocused)(boxShadow := s"4px 0px 2px -2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
+  )
+
+  def showHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    state.hoverNodeId.map {
+      case Some(`nodeId`) => boxShadow := s"inset 0 0 2px 2px gray"
+      case _ => VDomModifier.empty
+    }
+  )
+  def writeHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+    onMouseOver(Some(nodeId)) --> state.hoverNodeId,
+    onMouseOut(None) --> state.hoverNodeId,
   )
 }
 

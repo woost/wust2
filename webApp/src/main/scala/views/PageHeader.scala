@@ -16,7 +16,7 @@ import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.DragItem
+import wust.webApp.dragdrop.{DragItem, DragContainer}
 import wust.webApp.jsdom.{Navigator, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
@@ -55,6 +55,7 @@ object PageHeader {
       registerDragContainer(state, DragContainer.Chat),
       DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
+      Components.showHoveredNode(state, pageNode.id),
     )
 
     val channelMembersList = Rx {

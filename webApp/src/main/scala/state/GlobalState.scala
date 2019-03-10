@@ -43,6 +43,8 @@ class GlobalState(
   val screenSize: Rx[ScreenSize],
 )(implicit ctx: Ctx.Owner) {
 
+  val hoverNodeId: Var[Option[NodeId]] = Var(None)
+
   val askedForUnregisteredUserName: Var[Boolean] = Var(false)
 
   val rightSidebarNode: Var[Option[FocusPreference]] = Var(None)

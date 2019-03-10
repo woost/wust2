@@ -383,7 +383,13 @@ object SharedViewElements {
     }
 
     Rx {
-      node().map(node => render(node, isDeletedNow()).apply(cursor.pointer, Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)))
+      node().map { node =>
+        render(node, isDeletedNow()).apply(
+          cursor.pointer,
+          Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+          Components.showHoveredNode(state, node.id),
+        )
+      }
     }
   }
 

@@ -511,6 +511,7 @@ object KanbanView {
       nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
     ).prepend(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+      Components.showHoveredNode(state, node.id),
       VDomModifier.ifTrue(showCheckbox)(
         taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )
