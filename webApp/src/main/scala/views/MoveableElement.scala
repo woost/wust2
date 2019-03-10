@@ -48,6 +48,10 @@ object MoveableElement {
                 padding := "5px",
                 border := "0px 1px 1px 1px white solid",
                 backgroundColor := CommonStyles.sidebarBgColor,
+                window.toggle.map {
+                  case true => VDomModifier.empty
+                  case false => opacity := 0.6
+                },
                 borderBottomRightRadius := "5px",
                 borderBottomLeftRadius := "5px",
                 window.title,
