@@ -938,7 +938,7 @@ object Components {
       )
     }
 
-    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
       implicit val context = EditContext(state)
 
       EditableContent.inputFieldRx[AWS.UploadableFile](selected, config = EditableContent.Config(

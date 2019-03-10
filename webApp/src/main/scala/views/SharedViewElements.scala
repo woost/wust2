@@ -186,7 +186,7 @@ object SharedViewElements {
       zIndex := ZIndex.overlayMiddle + 1,
 
       alignItems.center,
-      fileUploadHandler.map(uploadField(state, _)),
+      fileUploadHandler.map(uploadField(state, _).apply(flex := "1")),
       div(
         margin := "3px",
         BrowserDetect.isMobile.ifTrue[VDomModifier](marginRight := "0"),
