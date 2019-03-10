@@ -103,7 +103,8 @@ object GraphChangesAutomation {
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case edge: Edge.Automated if edge.templateNodeId == templateNode.id => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) => () // do not copy deleted parent edges
-      case edge: Edge.Author                                                 => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
+      case edge: Edge.Author if edge.nodeId == templateNode.id            => () // do not copy author of template itself
+      case edge: Edge.Author                                              => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
         // replace node ids to point to our copied nodes
         replacedNodes.get(edge.nodeId) match {
           case Some(newSource) => addEdges += edge.copy(nodeId = newSource.id, userId = userId)
