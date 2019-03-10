@@ -250,9 +250,10 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.normal,
   )
 
-  ".breadcrumb .nodecard," +
+  ".breadcrumb.nodecard," +
   ".breadcrumb .nodecard-content" - (
-    padding := "0 3px",
+    padding(0.px, 3.px),
+    border.none
   )
 
   ".breadcrumb .markdown" - (
