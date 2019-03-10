@@ -5,7 +5,7 @@ import monix.reactive.{Observable, OverflowStrategy}
 import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
-import wust.ids.NodeId
+import wust.ids.{NodeId, UserId}
 import wust.graph._
 
 import scala.concurrent.Future
@@ -36,7 +36,7 @@ object EventProcessor {
   //TODO factory and constructor shared responsibility
   def apply(
       eventStream: Observable[Seq[ApiEvent]],
-      enrichChanges: (GraphChanges, Graph) => GraphChanges,
+      enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
       sendChange: List[GraphChanges] => Future[Boolean],
       initialAuth: Authentication
   )(implicit scheduler: Scheduler): EventProcessor = {
@@ -62,7 +62,7 @@ object EventProcessor {
 class EventProcessor private (
     eventStream: Observable[Seq[ApiEvent.GraphContent]],
     authEventStream: Observable[Seq[ApiEvent.AuthContent]],
-    enrichChanges: (GraphChanges, Graph) => GraphChanges,
+    enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
     sendChange: List[GraphChanges] => Future[Boolean],
     val initialAuth: Authentication
 )(implicit scheduler: Scheduler) {
@@ -92,8 +92,8 @@ class EventProcessor private (
     val sharedRawGraph = rawGraph.share
     val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = changes.withLatestFrom(rawGraphWithInit) { (changes, graph) =>
-      val newChanges = enrichChanges(changes, graph)
+    val enrichedChanges = changes.withLatestFrom2(currentUser, rawGraphWithInit) { (changes, user, graph) =>
+      val newChanges = enrichChanges(changes, user.id, graph)
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
       newChanges
     }

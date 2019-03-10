@@ -11,11 +11,14 @@ case class GraphChanges(
   // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
   delEdges: collection.Set[Edge] = Set.empty
 ) {
-  def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges =
+  def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges = {
+    val existingAuthors: Set[NodeId] = addEdges.collect { case edge: Edge.Author => edge.nodeId }(breakOut)
     copy(
-      addEdges = addEdges ++
-        addNodes.map(node => Edge.Author(node.id, EdgeData.Author(timestamp), userId))
+      addEdges = addEdges ++ addNodes.flatMap { node =>
+        (if (existingAuthors(node.id)) Set.empty[Edge] else Set[Edge](Edge.Author(node.id, EdgeData.Author(timestamp), userId)))
+      }
     )
+  }
 
   def merge(other: GraphChanges): GraphChanges = {
     GraphChanges.from(

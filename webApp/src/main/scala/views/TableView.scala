@@ -190,7 +190,7 @@ object TableView {
                   // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
                   val tmpGraph = state.rawGraph.now applyChanges changes
                   // run automation of this template for each row
-                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(tmpGraph, info.node, templateNode = templateNode))
+                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(state.user.now.id, tmpGraph, info.node, templateNode = templateNode))
                 } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
               }, keepPropertyAsDefault),
               dropdownModifier = cls := "top right",

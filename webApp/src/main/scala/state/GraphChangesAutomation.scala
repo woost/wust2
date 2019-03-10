@@ -23,7 +23,7 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(graph: Graph, newNode: Node, templateNode: Node, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNode: Node, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
     scribe.info(s"Copying sub graph of node $newNode with template $templateNode")
 
     val templateNodeIdx = graph.idToIdxOrThrow(templateNode.id)
@@ -100,10 +100,15 @@ object GraphChangesAutomation {
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
-      case _: Edge.Author                                                 => () // do not copy authors, we want the new authors of the one who triggered this change.
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case edge: Edge.Automated if edge.templateNodeId == templateNode.id => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) => () // do not copy deleted parent edges
+      case edge: Edge.Author                                                 => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
+        // replace node ids to point to our copied nodes
+        replacedNodes.get(edge.nodeId) match {
+          case Some(newSource) => addEdges += edge.copy(nodeId = newSource.id, userId = userId)
+          case None => ()
+        }
       case edge                                                           =>
         // replace node ids to point to our copied nodes
         (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
@@ -121,7 +126,7 @@ object GraphChangesAutomation {
   // We get the current graph + the new graph change. For each new parent edge in the graph change,
   // we check if the parent has a template node. If the parent has a template node, we want to
   // append the subgraph (which is spanned from the template node) to the newly inserted child of the parent.
-  def enrich(graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
+  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
     val addNodes = mutable.HashSet.newBuilder[Node]
@@ -153,7 +158,7 @@ object GraphChangesAutomation {
               val templateNode = graph.nodes(templateNodeIdx)
               if (templateNode.role == childNode.role) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
-                val changes = copySubGraphOfNode(graph, newNode = childNode, templateNode = templateNode)
+                val changes = copySubGraphOfNode(userId, graph, newNode = childNode, templateNode = templateNode)
                 // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
                 // so an automated node can be drag/dropped to the correct position.
                 addEdges ++= changes.addEdges.map {

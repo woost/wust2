@@ -37,7 +37,7 @@ object GlobalStateFactory {
 
     val eventProcessor = EventProcessor(
       Client.observable.event,
-      (changes, graph) => GraphChangesAutomation.enrich(graph, urlConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
+      (changes, userId, graph) => GraphChangesAutomation.enrich(userId, graph, urlConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
       Client.api.changeGraph,
       Client.currentAuth
     )
