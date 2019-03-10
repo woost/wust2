@@ -144,7 +144,7 @@ object UI {
     div(
       cls := "ui sidebar right icon labeled vertical menu mini",
 //      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
-      width := "200px",
+      width := "160px",
       zIndex := ZIndex.uiSidebar,
 
       config.map[VDomModifier] { config =>

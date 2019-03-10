@@ -57,16 +57,6 @@ object PageSettingsMenu {
         }
       }
 
-      val mentionInItem:VDomModifier = {
-        div(
-          cls := "item",
-          Elements.icon(Icons.mentionIn),
-          searchInGraph(state.rawGraph, placeholder = "Link into...", showParents = false, filter = _.isInstanceOf[Node.Content], resultsModifier = width := "100%").foreach { nodeId =>
-            state.eventProcessor.changes.onNext(GraphChanges.addToParent(ChildId(channelId), ParentId(nodeId)))
-          }
-        )
-      }
-
       val leaveItem:VDomModifier = Rx {
         (channelIsContent()).ifTrue[VDomModifier](div(
           cls := "item",
@@ -116,7 +106,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, mentionInItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
     def header: VDomModifier = div(

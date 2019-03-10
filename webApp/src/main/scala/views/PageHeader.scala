@@ -52,7 +52,9 @@ object PageHeader {
     val channelTitle = Components.nodeCardAsOneLineText(pageNode).apply(
       cls := "pageheader-channeltitle",
       borderRadius := "3px",
-      Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id)
+      registerDragContainer(state, DragContainer.Chat),
+      DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
+      Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
     )
 
     val channelMembersList = Rx {
