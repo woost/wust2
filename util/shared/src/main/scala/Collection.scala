@@ -72,8 +72,15 @@ package object collection {
     }
   }
 
-  def eitherSeq[A, B](list: List[Either[A, B]]): Either[List[A], List[B]] = list.partition(_.isLeft) match {
-    case (Nil, rights) => Right(for (Right(i) <- rights) yield i)
-    case (lefts, _)    => Left(for (Left(s) <- lefts) yield s)
+  def eitherSeq[A, B](list: List[Either[A, B]]): Either[List[A], List[B]] = {
+    val lefts = new mutable.ListBuffer[A]
+    val rights = new mutable.ListBuffer[B]
+
+    list.foreach {
+      case Right(r) => rights += r
+      case Left(l) => lefts += l
+    }
+
+    if (lefts.isEmpty) Right(rights.result) else Left(lefts.result)
   }
 }
