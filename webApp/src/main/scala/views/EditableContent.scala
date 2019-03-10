@@ -188,13 +188,19 @@ object EditableContent {
       display.inlineFlex,
       flexDirection.column,
       alignItems.center,
+      width := "100%",
       dsl.span.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
         display.inlineFlex,
         alignItems.flexStart,
         width := "100%",
         modifiers,
         Some(config.submitMode).collect {
-          case SubmitMode.Explicit => closeButton(current)
+          case SubmitMode.Explicit => dsl.span(
+            display.inlineFlex,
+            alignItems.flexStart,
+            marginLeft := "auto",
+            closeButton(current)
+          )
         }
       )}),
 
