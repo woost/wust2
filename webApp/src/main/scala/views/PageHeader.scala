@@ -69,7 +69,6 @@ object PageHeader {
       paddingTop := "5px",
       paddingLeft := "5px",
       paddingRight := "10px",
-      backgroundColor := BaseColors.pageBg.copy(h = hue(pageNode.id)).toHex,
 
       Styles.flex,
       alignItems.flexEnd,

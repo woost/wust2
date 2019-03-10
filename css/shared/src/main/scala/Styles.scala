@@ -250,10 +250,8 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.normal,
   )
 
-  ".breadcrumb.nodecard," +
   ".breadcrumb .nodecard-content" - (
-    minHeight(0 em),
-    border.none,
+    padding := "0 3px",
   )
 
   ".breadcrumb .markdown" - (
@@ -302,14 +300,6 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
     cursor.text,
-  )
-
-  ".pageheader-channeltitle .nodecard-content" - (
-    minHeight(0 em),
-  )
-
-  ".pageheader-channeltitle.nodecard > .checkbox" - (
-    marginTop(9 px),
   )
 
   ".avatar" - (
@@ -748,7 +738,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard.project" - (
-    border(1 px, solid, c"#212121"), // when dragging this will be replaced with a color
+    border(1 px, solid), // when dragging this will be replaced with a color
   )
 
   ".nodecard.node" - (
@@ -771,7 +761,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content" - (
     Styles.wordWrap,
-    padding(2 px),
+    padding(3 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 

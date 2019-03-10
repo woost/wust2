@@ -74,7 +74,7 @@ object MainView {
 
             Rx {
               VDomModifier.ifTrue(viewIsContent())(div(
-                backgroundColor <-- state.pageStyle.map(_.bgColor),
+                backgroundColor <-- state.pageStyle.map(_.bgLightColor),
                 VDomModifier.ifTrue(state.pageHasParents())(BreadCrumbs(state)(Styles.flexStatic)),
                 PageHeader(state).apply(Styles.flexStatic)
               ))

@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.{BaseColors, NodeColor}
 import cats.effect.IO
 import emojijs.EmojiConvertor
 import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
@@ -505,8 +506,14 @@ object Components {
         keyed(node.id),
         cls := "nodecard",
         node.role match {
-          case NodeRole.Project => cls := "project"
-          case _ => cls := "node"
+          case NodeRole.Project => VDomModifier(
+            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
+            borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
+            cls := "project"
+          )
+          case _ => VDomModifier(
+            cls := "node"
+          )
         },
         div(
           cls := "nodecard-content",
