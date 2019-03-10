@@ -143,10 +143,10 @@ class EventProcessor private (
   private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)
 
   private val sendingChanges: Observable[Long] = {
-    val localChangesIndexedBusy = new BusyBufferObservable(localChangesIndexed, maxCount = 10)
+    val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)
       .map(list => (list.map(_._1), list.last._2))
 
-    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(200 millis)) { changes =>
+    Observable.tailRecM(localChangesIndexedBusy.delayOnNext(500 millis)) { changes =>
       changes.flatMap {
         case (c, idx) =>
           Observable.fromFuture(sendChanges(c)).map {
