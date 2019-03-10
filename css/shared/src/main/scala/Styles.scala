@@ -250,6 +250,7 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.normal,
   )
 
+  ".breadcrumb .nodecard," +
   ".breadcrumb .nodecard-content" - (
     padding := "0 3px",
   )
@@ -733,6 +734,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
     borderRadius(3 px),
+    padding(2 px),
     fontWeight.normal,
     overflowX.auto,
   )
@@ -761,7 +763,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content" - (
     Styles.wordWrap,
-    padding(3 px),
+    padding(2 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 
