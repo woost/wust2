@@ -454,7 +454,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".channels" - (
-    paddingLeft(3 px),
+    padding(0 px, 3 px),
     minWidth(200 px),
     overflowY.auto,
     color(c"#C4C4CA"),
