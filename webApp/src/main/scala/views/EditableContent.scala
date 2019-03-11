@@ -92,6 +92,7 @@ object EditableContent {
     val modifier = EditInputParser[T].modifier
     commonEditStructure(current, config)(
       input(
+        width := "100%",
         modifier.mod,
         commonEditMods[T, dom.html.Input](current, config, EditInputParser[T].parse(_), modifier.valueSetter, modifier.fixedSubmitEvent),
       ),
@@ -128,6 +129,7 @@ object EditableContent {
         color := "#000",
         cursor.auto,
         minWidth := "20px", minHeight := "20px", // minimal edit area
+        width := "100%",
 
         commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], _.fold[String](identity, identity))
       )
