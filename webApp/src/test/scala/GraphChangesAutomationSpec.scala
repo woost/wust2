@@ -22,7 +22,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
   val copyTime = EpochMilli.now
 
   def copySubGraphOfNode(graph: Graph, newNode: Node, templateNode: Node) = GraphChangesAutomation.copySubGraphOfNode(
-    freshNodeId(), graph, newNode, templateNode, copyNodeId(_), copyTime
+    UserId(freshNodeId()), graph, newNode, templateNode, copyNodeId(_), copyTime
   )
 
   "empty template node" in {
