@@ -23,6 +23,7 @@ import wust.ids._
 import wust.webApp.Client
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.outwatchHelpers._
+import googleAnalytics.Analytics
 
 import scala.concurrent.{Future, Promise}
 import scala.concurrent.duration.FiniteDuration
@@ -40,6 +41,7 @@ object AWS {
     }
 
     if(file.size > FileUploadConfiguration.maxUploadBytesPerFile) {
+      Analytics.sendEvent("AWS-upload", "file-size-limit", label = "MB", value = (file.size / 1024 / 1024).toInt)
       return Left(s"The file '${file.name}' is bigger than the allowed limit of ${FileUploadConfiguration.maxUploadBytesPerFile / 1024 / 1024} MB.")
     }
 
@@ -89,16 +91,20 @@ object AWS {
         case Success(FileUploadConfiguration.KeyExists(key)) =>
           UI.toast("File was Successfully uploaded", level = UI.ToastLevel.Success)
           promise success Some(key)
+          Analytics.sendEvent("AWS-upload", "success", label = "MB", value = (file.size / 1024 / 1024).toInt)
         case Success(FileUploadConfiguration.QuotaExceeded) =>
           promise success None
           UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => state.urlConfig.update(_.focus(View.UserSettings)))
+          Analytics.sendEvent("AWS-upload", "total-size-limit")
         case Success(FileUploadConfiguration.ServiceUnavailable) =>
           promise success None
           UI.toast("Sorry, the file-upload service is currently unavailable. Please try again later!")
+          Analytics.sendEvent("AWS-upload", "aws-unavailable")
         case Failure(t)                       =>
           promise success None
           scribe.warn("Cannot get file upload configuration", t)
           UI.toast("Sorry, the file-upload service is currently unreachable. Please try again later!")
+          Analytics.sendEvent("AWS-upload", "backend-unavailable")
       }
 
       promise.future
