@@ -210,8 +210,8 @@ object FileUploadConfiguration {
   case object QuotaExceeded extends FileUploadConfiguration
   case object ServiceUnavailable extends FileUploadConfiguration
 
-  val maxUploadBytesPerFile = 5 * 1024 * 1024 // 5 mb
-  val maxUploadBytesPerUser = 100 * 1024 * 1024 // 100 mb
+  val maxUploadBytesPerFile = 50 * 1024 * 1024 // 50 mb
+  val maxUploadBytesPerUser = 1000 * 1024 * 1024 // 1000 mb
   val cacheMaxAgeSeconds = 365 * 24 * 60 * 60 // 1 year
 }
 case class StaticFileUrl(url: String)
