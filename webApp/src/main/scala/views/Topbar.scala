@@ -106,12 +106,9 @@ object Topbar {
   }
 
   def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    val successColor = "#4EBA4C"
-    val failureColor = "tomato"
-
     val syncingIcon = fontawesome.layered(
       fontawesome.icon(freeSolid.faCircle, new Params {
-        styles = scalajs.js.Dictionary[String]("color" -> successColor)
+        styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
       }),
       fontawesome.icon(
         freeSolid.faSync,
@@ -124,7 +121,7 @@ object Topbar {
 
     val syncedIcon = fontawesome.layered(
       fontawesome.icon(freeSolid.faCircle, new Params {
-        styles = scalajs.js.Dictionary[String]("color" -> successColor)
+        styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
       }),
       fontawesome.icon(freeSolid.faCheck, new Params {
         transform = new Transform {size = 10.0 }
@@ -133,31 +130,19 @@ object Topbar {
 
     val offlineIcon = fontawesome.layered(
       fontawesome.icon(freeSolid.faCircle, new Params {
-        styles = scalajs.js.Dictionary[String]("color" -> failureColor)
+        styles = scalajs.js.Dictionary[String]("color" -> "tomato")
       }),
       fontawesome.icon(freeSolid.faBolt, new Params {
         transform = new Transform {size = 10.0 }
         styles = scalajs.js.Dictionary[String]("color" -> "white")
       }))
 
-    val pauseIcon = fontawesome.layered(
-      fontawesome.icon(freeSolid.faCircle, new Params {
-        styles = scalajs.js.Dictionary[String]("color" -> successColor)
-      }),
-      fontawesome.icon(freeSolid.faPause, new Params {
-        transform = new Transform {size = 10.0 }
-        styles = scalajs.js.Dictionary[String]("color" -> "white")
-      }))
-
-    val syncStatusIcon = state.eventProcessor.stopEventProcessing.prepend(false).map[VDomModifier] {
-      case false => Rx {
-        (state.isOnline(), state.isSynced() && !state.isLoading()) match {
-          case (true, true)  => span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
-          case (true, false) => span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
-          case (false, _)    => span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
-        }
+    val syncStatusIcon = Rx {
+      (state.isOnline(), state.isSynced() && !state.isLoading()) match {
+        case (true, true)  => span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
+        case (true, false) => span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
+        case (false, _)    => span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
       }
-      case true => pauseIcon
     }
 
     div(syncStatusIcon)
