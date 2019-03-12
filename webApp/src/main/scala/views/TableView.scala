@@ -61,12 +61,14 @@ object TableView {
     def columnHeaderWithDelete(name: String, edges: Set[Edge.LabeledProperty]) = {
       val editMode = Var(false)
       def miniButton = span(
-        marginLeft := "8px",
+        paddingLeft := "5px",
         fontSize.xSmall,
         cursor.pointer,
       )
 
       span(
+        Styles.inlineFlex,
+        justifyContent.spaceBetween,
         EditableContent.inputInlineOrRender[String](name, editMode, columnHeader(_)).editValue.foreach { newName =>
           if (newName.nonEmpty) {
             state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
