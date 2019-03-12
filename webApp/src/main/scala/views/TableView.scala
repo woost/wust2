@@ -77,7 +77,7 @@ object TableView {
             keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
             Icons.delete,
             onClick.stopPropagation.foreach {
-              if(dom.window.confirm("Do you really want to remove the column 'name' in all children?")) {
+              if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
                 state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
               }
               ()
