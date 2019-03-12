@@ -194,14 +194,13 @@ object RightSidebar {
 
   private def nodeAuthor(graph: Graph, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val idx = graph.idToIdxOrThrow(nodeId)
-    val authors = graph.authorsIdx(idx)
-    val creationEpochMillis = if(idx == -1) None else Some(graph.nodeCreated(idx))
+    val author = graph.nodeCreator(idx)
+    val creationEpochMillis = graph.nodeCreated(idx)
 
     VDomModifier(
       Styles.flex,
       alignItems.center,
-      authors.headOption.map { author =>
-        val userNode = graph.nodes(author).asInstanceOf[Node.User]
+      author.map { userNode =>
         VDomModifier(
           Avatar.user(userNode.id)(
             marginRight := "2px",
@@ -215,7 +214,7 @@ object RightSidebar {
             alignItems.center,
             marginLeft := "auto",
             SharedViewElements.modifications(userNode, graph.nodeModifier(idx)),
-            creationEpochMillis.map { Elements.creationDate(_) },
+            Elements.creationDate(creationEpochMillis),
           )
         )
       },
