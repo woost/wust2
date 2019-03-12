@@ -174,9 +174,10 @@ object TableView {
 
         VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(
           div(
+            margin := "10px",
             button(
               cls := "ui mini compact button",
-              freeSolid.faPlus
+              "+ New Column"
             ),
             ItemProperties.managePropertiesDropdown(state,
               target = ItemProperties.Target.Custom({ (edgeData, changesf) =>
@@ -216,10 +217,10 @@ object TableView {
       ),
 
       button(
+        margin := "10px",
         cls := "ui mini compact button",
-        freeSolid.faPlus,
+        "+ New Row",
         cursor.pointer,
-        UI.popup("right center") := "Add a new Row",
         onClickNewNamePrompt(state, header = "Add a new Row", placeholderMessage = Some(s"A new ${targetRole}")).foreach { str =>
           val newNode = Node.Content(NodeData.Markdown(str), targetRole)
 
