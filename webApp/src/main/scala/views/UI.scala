@@ -21,6 +21,9 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 object UI {
+  private val currentlyEditingSubject = PublishSubject[Boolean]
+  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
+
   def message(msgType:String = "", header:Option[VDomModifier] = None, content:Option[VDomModifier] = None):VNode = {
     div(
       cls := "ui message", cls := msgType,
@@ -242,12 +245,23 @@ object UI {
   val horizontalDivider = div(cls := "ui divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
 
-  def dropdownMenu(items: VDomModifier, dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
+  def dropdownMenu(items: VDomModifier, close: Observable[Unit], dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",
     dropdownModifier,
     Elements.withoutDefaultPassiveEvents, // revert default passive events, else dropdown is not working
+    emitter(close).useLatest(onDomMount.asJquery).foreach(_.dropdown("hide")),
     managedElement.asJquery { elem =>
-      elem.dropdown("hide")
+      elem
+        .dropdown(new DropdownOptions {
+          onHide = { () =>
+            currentlyEditingSubject.onNext(false)
+            true
+          }: js.Function0[Boolean]
+          onShow = { () =>
+            currentlyEditingSubject.onNext(true)
+            true
+          }: js.Function0[Boolean]
+        })
       Cancelable(() => elem.dropdown("destroy"))
     },
     cursor.pointer,

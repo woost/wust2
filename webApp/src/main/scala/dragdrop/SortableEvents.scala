@@ -32,8 +32,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
   //  }
 
+  def onStartDrag() {
+    state.eventProcessor.stopEventProcessing.onNext(true)
+  }
+  def onStopDrag() {
+    state.eventProcessor.stopEventProcessing.onNext(false)
+  }
 
   draggable.on[DragStartEvent]("drag:start", (e: DragStartEvent) => {
+    onStartDrag()
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     //    dragStartEvent.onNext(e)
     DevOnly {
@@ -64,6 +71,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent:SortableStartEvent) =>
+    onStartDrag()
     snabbdom.VNodeProxy.setDirty(sortableStartEvent.startContainer)
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
     val payload: js.UndefOr[DragPayload] = readDragPayload(sortableStartEvent.dragEvent.originalSource)
@@ -113,6 +121,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
+    onStopDrag()
     snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
     scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
     (sortableStopEvent, currentOverContainerEvent, currentOverEvent) match {

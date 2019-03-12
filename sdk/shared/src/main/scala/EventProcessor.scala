@@ -69,6 +69,8 @@ class EventProcessor private (
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
 
+  val stopEventProcessing = PublishSubject[Boolean]
+
   private val currentAuthUpdate = PublishSubject[Authentication]
   val currentAuth: Observable[Authentication] = Observable(currentAuthUpdate, authEventStream.collect {
     case events if events.nonEmpty => EventUpdate.createAuthFromEvent(events.last)
@@ -90,20 +92,19 @@ class EventProcessor private (
 
     val rawGraph = PublishToOneSubject[Graph]()
     val sharedRawGraph = rawGraph.share
-    val rawGraphWithInit = sharedRawGraph.startWith(Seq(Graph.empty))
 
-    val enrichedChanges = changes.withLatestFrom2(currentUser, rawGraphWithInit) { (changes, user, graph) =>
+    val enrichedChanges = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), sharedRawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
       val newChanges = enrichChanges(changes, user.id, graph)
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
       newChanges
     }
 
-    val localChanges = enrichedChanges.withLatestFrom(currentUser.startWith(Seq(initialAuth.user)))((g, u) => (g, u)).collect {
+    val localChanges = enrichedChanges.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
 
-    val localChangesAsEvents = localChanges.withLatestFrom(currentUser)((g, u) => (g, u)).map(gc => Seq(NewGraphChanges.forPrivate(gc._2.toNode, gc._1)))
-    val graphEvents = Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge
+    val localChangesAsEvents = localChanges.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).map(gc => Seq(NewGraphChanges.forPrivate(gc._2.toNode, gc._1)))
+    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing).map(_.flatten)
 
     val graphWithChanges: Observable[Graph] = {
       var lastGraph = Graph.empty

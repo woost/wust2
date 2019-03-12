@@ -61,7 +61,10 @@ object ViewSwitcher {
       View.Content ::
       Nil
 
+    val closeDropdown = PublishSubject[Unit]
+
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
+      closeDropdown.onNext(())
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         val currentViews = node.views match {
@@ -85,6 +88,7 @@ object ViewSwitcher {
     }
 
     def resetViews() = {
+      closeDropdown.onNext(())
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         if (node.views.isDefined) {
@@ -104,6 +108,7 @@ object ViewSwitcher {
     }
 
     def removeView(view: View.Visible) = {
+      closeDropdown.onNext(())
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         val existingViews = node.views.getOrElse(Nil)
@@ -201,7 +206,7 @@ object ViewSwitcher {
             )
           )
         }
-      ), dropdownModifier = cls := "top left")
+      ), close = closeDropdown, dropdownModifier = cls := "top left")
     )
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")

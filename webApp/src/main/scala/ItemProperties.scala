@@ -5,6 +5,7 @@ import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom
 import outwatch.dom._
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom.dsl._
 import rx._
 import wust.css.Styles
@@ -63,7 +64,7 @@ object ItemProperties {
     case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
   }
 
-  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofModifier[Unit] { sink =>
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
@@ -208,6 +209,8 @@ object ItemProperties {
 
         case _                             => ()
       }
+
+      sink.onNext(())
     }
 
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
@@ -220,15 +223,16 @@ object ItemProperties {
   }
 
   def managePropertiesDropdown(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+    val closeDropdown = PublishSubject[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
         cls := "ui mini form",
-        managePropertiesContent(state, target, config),
+        managePropertiesContent(state, target, config) --> closeDropdown,
         descriptionModifier
       )
-    ), dropdownModifier = dropdownModifier)
+    ), closeDropdown, dropdownModifier = dropdownModifier)
   }
 }
 

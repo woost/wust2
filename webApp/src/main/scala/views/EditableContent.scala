@@ -3,6 +3,7 @@ package wust.webApp.views
 import fontAwesome.freeSolid
 import monix.eval.Task
 import monix.reactive.{Observable, Observer}
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.Sink
 import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
@@ -22,6 +23,8 @@ import scala.concurrent.duration._
 import scala.scalajs.js
 
 object EditableContent {
+  private val currentlyEditingSubject = PublishSubject[Boolean]
+  def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
 
   sealed trait ErrorMode
   object ErrorMode {
@@ -289,6 +292,8 @@ object EditableContent {
 
   private def editOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
     val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
+
+    editMode.foreach { currentlyEditingSubject.onNext(_) }
 
     val editRender = inputFn(currentVar)
     VDomModifier(

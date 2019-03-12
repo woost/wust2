@@ -10,7 +10,7 @@ import scala.scalajs.js.|
 // fomantic ui is imported globally
 trait JQuerySelectionWithFomanticUI extends js.Object {
   def dropdown(arg: String = ???): Unit = js.native
-  def dropdown(options: DropdownOptions): Unit = js.native
+  def dropdown(options: DropdownOptions): JQuerySelectionWithFomanticUI = js.native
 
   def modal(behavior: String): Unit = js.native
   def modal(options: ModalOptions): JQuerySelectionWithFomanticUI = js.native
@@ -20,13 +20,13 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def toast(options: ToastOptions): Unit = js.native
 
-  def popup(options: PopupOptions): Unit = js.native
+  def popup(options: PopupOptions): JQuerySelectionWithFomanticUI = js.native
   def popup(args: String*): Unit = js.native
 
   def accordion(args: String*): Unit = js.native
-  def accordion(args: AccordeonOptions): Unit = js.native
+  def accordion(args: AccordeonOptions): JQuerySelectionWithFomanticUI = js.native
 
-  def sidebar(args: String*): JQuerySelectionWithFomanticUI = js.native
+  def sidebar(args: String*): Unit = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
 
   def tablesort(): Unit= js.native
@@ -67,6 +67,9 @@ object AccordeonOptions {
 }
 
 trait DropdownOptions extends js.Object {
+  var onShow: js.UndefOr[js.Function0[Boolean]] = js.undefined
+  var onHide: js.UndefOr[js.Function0[Boolean]] = js.undefined
+
   var onChange: js.UndefOr[js.Function3[js.UndefOr[String], js.UndefOr[String], jquery.JQuerySelection, Unit]] = js.undefined
   var action: js.UndefOr[String] = js.undefined
   var values: js.UndefOr[js.Array[DropdownEntry]] = js.undefined

@@ -23,7 +23,7 @@ import outwatch.dom.helpers.OutwatchTracing
 import wust.ids.NodeData.EditableText
 import wust.util.StringOps
 import wust.util.algorithm
-import wust.webApp.views.UI
+import wust.webApp.views.{UI, EditableContent}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
@@ -41,6 +41,8 @@ object GlobalStateFactory {
       Client.api.changeGraph,
       Client.currentAuth
     )
+
+    Observable(EditableContent.currentlyEditing, UI.currentlyEditing).merge.subscribe(eventProcessor.stopEventProcessing)
 
     val isOnline = Observable(
       Client.observable.connected.map(_ => true),
