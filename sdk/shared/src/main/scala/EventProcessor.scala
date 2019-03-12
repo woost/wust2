@@ -133,6 +133,9 @@ class EventProcessor private (
     (localChanges, sharedRawGraph)
   }
 
+  // whenever the user changes something himself, we want to open up event processing again
+  localChanges.map(_ => false).subscribe(stopEventProcessing)
+
   def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
     //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
     //TODO should by sync
