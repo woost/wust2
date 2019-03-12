@@ -758,7 +758,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
     @inline def hasNoParents = parentsIdx.sliceIsEmpty(nodeIdx)
 
-    if (nodeIsDeletedInAtLeastOneParent) {
+    if (nodeIdx < 0 || parentIdx < 0) false
+    else if (nodeIsDeletedInAtLeastOneParent) {
       if (deletedInAllSpecifiedParentIndices) true
       else hasNoParents
     } else false // node is nowhere deleted
@@ -767,7 +768,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
     //      !inDeletedGracePeriodParentIdx.contains(nodeIdx)(parentIdx) && !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
     //    !notDeletedParentsIdx.contains(nodeIdx)(parentIdx)
-    !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
+    if (nodeIdx < 0 || parentIdx < 0) false
+    else !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   }
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
