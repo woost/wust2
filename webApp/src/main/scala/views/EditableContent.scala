@@ -246,7 +246,6 @@ object EditableContent {
     }
     VDomModifier(
       onDomMount.asHtml.foreach { elem = _ },
-      keyed, // when updates come in, don't disturb current editing session
       current.map {
         case EditInteraction.Input(value) if !lastValue.contains(value) =>
           lastValue = Some(value)
@@ -300,8 +299,8 @@ object EditableContent {
       emitter(currentVar.drop(1)).map(handleEditInteractionInOrRender(editMode)) --> action,
 
       Rx {
-        if(editMode()) VDomModifier(editRender, keyed)
-        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)), keyed)
+        if(editMode()) VDomModifier(editRender)
+        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)))
       },
     )
   }
