@@ -705,6 +705,7 @@ object Components {
             editMode() = true
           }
         },
+        minWidth := "20px", minHeight := "20px", // minimal clicking area
       )
     }
 
@@ -717,6 +718,7 @@ object Components {
             editMode() = true
           }
         },
+        minWidth := "20px", minHeight := "20px", // minimal clicking area
       )
     }
 
