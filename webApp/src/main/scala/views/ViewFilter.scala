@@ -212,19 +212,21 @@ object GraphOperation {
   case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
-        val tagIdx = graph.idToIdx(tagId)
-        val newEdges = graph.edges.filter {
-          case e: Edge.Child if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.childId).role) =>
-            val childIdx = graph.idToIdx(e.childId)
-            if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
-            else {
-              val tagDescendants = graph.descendantsIdx(tagIdx)
-              if(tagDescendants.contains(childIdx)) true
-              else false
-            }
-          case _                                                                                                                   => true
+        graph.idToIdxGet(tagId).fold((graph, graph.edges)) { tagIdx =>
+          val newEdges = graph.edges.filter {
+            case e: Edge.Child if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.childId).role) =>
+              graph.idToIdxGet(e.childId).fold(false) { childIdx =>
+                if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
+                else {
+                  val tagDescendants = graph.descendantsIdx(tagIdx)
+                  if(tagDescendants.contains(childIdx)) true
+                  else false
+                }
+              }
+            case _                                                                                                                   => true
+          }
+          (graph, newEdges)
         }
-        (graph, newEdges)
       }
     }
   }
