@@ -9,8 +9,9 @@ import monix.reactive.Observable
 import org.scalajs.dom.document
 import outwatch.dom._
 import rx._
+import wust.ids._
 import wust.api.ApiEvent
-import wust.graph.GraphChanges
+import wust.graph.{Node, GraphChanges}
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
@@ -32,6 +33,8 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
+    setupFomanticUISearch(state)
+
     DevOnly { enableEventLogging(state) }
 
     // render main content
@@ -40,6 +43,34 @@ object Main {
     OutWatch.renderReplace("#modal-placeholder", UI.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
     // render single sidebar instance for the whole page that can be configured via state.uiSidebarConfig
     OutWatch.renderReplace("#sidebar-placeholder", UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
+  }
+
+  private def setupFomanticUISearch(state: GlobalState): Unit = {
+    import dsl._, wust.css.Styles
+
+    jquery.JQuery.asInstanceOf[js.Dynamic].`$`.fn.search.settings.templates.node = { results =>
+      div(
+        results.results.map { result =>
+          val node = result.data.asInstanceOf[Node]
+          div(
+            cls := "result", //we need this class for semantic ui to work,
+            div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
+            padding := "4px",
+            views.Components.nodeCardAsOneLineText(node).prepend(
+              cursor.pointer,
+              Styles.flex,
+              alignItems.center,
+              VDomModifier.ifTrue(node.role == NodeRole.Project || node.isInstanceOf[Node.User])(
+                views.Components.nodeAvatar(node, size = 12).apply(
+                  Styles.flexStatic,
+                  marginRight := "4px",
+                )
+              )
+            )
+          )
+        }
+      ).render.outerHTML
+    }: js.Function1[fomanticui.SearchResults, String]
   }
 
   private def setupDom(): Unit = {

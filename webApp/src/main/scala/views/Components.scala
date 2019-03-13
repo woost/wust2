@@ -335,6 +335,8 @@ object Components {
           div(
             Styles.flex,
             justifyContent.flexEnd,
+            margin := "3px 0px",
+
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
               nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
@@ -514,6 +516,10 @@ object Components {
             backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
             borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
             cls := "project"
+          )
+          case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
+            cls := "tag colorful",
+            backgroundColor := tagColor(node.id).toHex,
           )
           case _ => VDomModifier(
             cls := "node"
@@ -769,13 +775,14 @@ object Components {
       )
     }
 
-    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, showParents: Boolean = true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
+    def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
       var inputElem: dom.html.Element = null
+      var resultsElem: dom.html.Element = null
       var elem: JQuerySelection = null
 
       def initSearch(): Unit = {
         elem.search(arg = new SearchOptions {
-          `type` = if (showParents) "category" else js.undefined
+          `type` = "node"
 
           cache = false
           searchOnFocus = true
@@ -783,24 +790,19 @@ object Components {
           showNoResults = showNotFound
 
           source = graph.now.nodes.collect { case node: Node if filter(node) =>
-            val cat: js.UndefOr[String] = if (showParents) {
-              val parents = graph.now.parentsIdx(graph.now.idToIdx(node.id))
-              if(parents.isEmpty) "-" else trimToMaxLength(parents.map(i => graph.now.nodes(i).str).mkString(","), 18)
-            } else js.undefined
-
             val str = node match {
               case user: Node.User => Components.displayUserName(user.data)
               case _ => node.str
             }
 
             new SearchSourceEntry {
-              title = trimToMaxLength(str, 36)
-              category = cat
-              data = js.Dynamic.literal(id = node.id.asInstanceOf[js.Any])
+              title = node.id.toCuidString
+              description = trimToMaxLength(str, 36)
+              data = node.asInstanceOf[js.Any]
             }
           }(breakOut): js.Array[SearchSourceEntry]
 
-          searchFields = js.Array("title")
+          searchFields = js.Array("description")
 
           onSelect = { (selected, results) =>
             submitResult(selected)
@@ -809,29 +811,29 @@ object Components {
         })
       }
 
-      def resetSearch(): Unit = {
-        //TODO only reliable way to make search work again after manual submission with enter
-        inputElem.blur()
-        dom.window.setTimeout(() => inputElem.focus, timeout = 20)
+      def resetSearch(forceClose: Boolean): Unit = {
+        elem.search("set value", "")
+
+        if (forceClose) {
+          //TODO only reliable way to make search work again after manual submission with enter
+          inputElem.blur()
+          dom.window.setTimeout(() => inputElem.focus, timeout = 20)
+        }
       }
 
-      def submitResult(value: js.Any, forceClose: Boolean = false): Unit = {
-        val id = value.asInstanceOf[js.Dynamic].data.id.asInstanceOf[NodeId]
+      def submitResult(value: SearchSourceEntry, forceClose: Boolean = false): Unit = {
+        val id = value.data.asInstanceOf[Node].id
         sink.onNext(id)
-        elem.search("set value", "")
-        if (forceClose) resetSearch()
+        resetSearch(forceClose)
       }
       def submitNew(value: String, forceClose: Boolean = false): Unit = {
-        if (createNew(value)) {
-          elem.search("set value", "")
-          if (forceClose) resetSearch()
-        }
+        if (createNew(value)) resetSearch(forceClose)
       }
 
       div(
         keyed,
         elementModifier,
-        cls := "ui category search",
+        cls := "ui search",
         div(
           cls := "ui icon input",
           innerElementModifier,
@@ -847,10 +849,14 @@ object Components {
             onEnter.foreach { e =>
               val inputElem = e.target.asInstanceOf[dom.html.Input]
               val searchString = inputElem.value
-              if (searchString.trim.nonEmpty) {
-                elem.search("get result", searchString) match {
-                  case v if v == false || v == js.undefined || v == null => submitNew(searchString, forceClose = true)
-                  case obj => submitResult(obj, forceClose = true)
+              if (searchString.trim.nonEmpty && resultsElem != null) {
+                // search for first title element in results element, then we have the cuid of the first displayed result
+                resultsElem.querySelector(".result > .title") match {
+                  case null => submitNew(searchString, forceClose = true)
+                  case titleElem => elem.search("get result", titleElem.textContent) match {
+                    case v if v == false || v == js.undefined || v == null => submitNew(searchString, forceClose = true)
+                    case obj => submitResult(obj.asInstanceOf[SearchSourceEntry], forceClose = true)
+                  }
                 }
               }
             },
@@ -864,7 +870,12 @@ object Components {
           ),
           i(cls := "search icon"),
         ),
-        div(cls := "results", resultsModifier),
+        div(
+          cls := "results",
+          width := "100%", // overwrite hardcoded width of result from fomantic ui
+          resultsModifier,
+          onDomMount.asHtml.foreach(resultsElem = _)
+        ),
 
         managedElement.asJquery { e =>
           elem = e

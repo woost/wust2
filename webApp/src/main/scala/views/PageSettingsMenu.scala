@@ -425,7 +425,7 @@ object PageSettingsMenu {
               a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(false) --> showEmailInvite, "Invite user by username")
             )
             case false => VDomModifier(
-              searchInGraph(state.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), showParents = false, inputModifiers = inputSizeMods).foreach { userId =>
+              searchInGraph(state.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), inputModifiers = inputSizeMods).foreach { userId =>
                 addUserMember(UserId(userId))
               },
               a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(true) --> showEmailInvite, "Invite user by email address")

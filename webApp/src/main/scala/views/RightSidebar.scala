@@ -260,8 +260,8 @@ object RightSidebar {
     }
 
     def searchInput(placeholder: String, filter: Node => Boolean, createNew: String => Boolean = _ => false, showNotFound: Boolean = true) =
-      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showParents = false, completeOnInit = false, showNotFound = showNotFound, createNew = createNew, inputModifiers = VDomModifier(
-        width := "120px",
+      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, completeOnInit = false, showNotFound = showNotFound, createNew = createNew, inputModifiers = VDomModifier(
+        width := "140px",
         padding := "2px 10px 2px 10px",
       ), elementModifier = VDomModifier(
         padding := "3px 0px 3px 0px",

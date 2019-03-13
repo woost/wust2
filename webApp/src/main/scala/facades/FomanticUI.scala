@@ -16,7 +16,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def modal(options: ModalOptions): JQuerySelectionWithFomanticUI = js.native
 
   def search(arg: SearchOptions): Unit = js.native
-  def search(arg: String, arg1: Any = ???, arg2: Any = ???): js.Any = js.native
+  def search(arg: String, args: Any*): js.Any = js.native
 
   def toast(options: ToastOptions): Unit = js.native
 
@@ -53,9 +53,9 @@ trait DropdownEntry extends js.Object {
 }
 
 trait AccordeonOptions extends js.Object {
-  val collapsible: js.UndefOr[Boolean] = js.undefined
-  val exclusive: js.UndefOr[Boolean] = js.undefined
-  val duration: js.UndefOr[Int] = js.undefined
+  var collapsible: js.UndefOr[Boolean] = js.undefined
+  var exclusive: js.UndefOr[Boolean] = js.undefined
+  var duration: js.UndefOr[Int] = js.undefined
 }
 
 object AccordeonOptions {
@@ -159,6 +159,10 @@ trait SearchSourceEntry extends js.Object {
   var category: js.UndefOr[String] = js.undefined
 
   var data: js.UndefOr[js.Any] = js.undefined
+}
+
+trait SearchResults extends js.Object {
+  def results: js.Array[SearchSourceEntry]
 }
 
 trait SidebarOptions extends js.Object {
