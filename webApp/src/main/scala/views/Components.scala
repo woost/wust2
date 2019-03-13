@@ -318,8 +318,8 @@ object Components {
         },
         color.gray,
         Styles.flex,
-        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.map { key =>
-          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = key)))(breakOut)),
+        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
+          GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> state.eventProcessor.changes,
         cursor.pointer,
         onClick.stopPropagation(true) --> editKey,
