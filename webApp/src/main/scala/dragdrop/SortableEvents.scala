@@ -121,20 +121,23 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
-    onStopDrag()
-    snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
-    scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
-    (sortableStopEvent, currentOverContainerEvent, currentOverEvent) match {
-      case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent)) =>
-        val overSortcontainer = currentOverContainerEvent.overContainer.exists(overContainer => readDragContainer(overContainer).exists(_.isInstanceOf[SortableContainer]))
+    try {
+      snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
+      scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
+      (sortableStopEvent, currentOverContainerEvent, currentOverEvent) match {
+        case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent)) =>
+          val overSortcontainer = currentOverContainerEvent.overContainer.exists(overContainer => readDragContainer(overContainer).exists(_.isInstanceOf[SortableContainer]))
 
-        if (overSortcontainer) {
-          performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
-        } else {
-          performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
-        }
-      case _ =>
-        scribe.info("dropped outside container or target")
+          if (overSortcontainer) {
+            performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
+          } else {
+            performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
+          }
+        case _ =>
+          scribe.info("dropped outside container or target")
+      }
+    } finally {
+      onStopDrag()
     }
   })
 }
