@@ -10,6 +10,7 @@ import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.webApp.Ownable
 import wust.webApp.outwatchHelpers._
+import scala.concurrent.duration._
 
 import scala.scalajs.js
 
@@ -137,7 +138,7 @@ object MoveableElement {
             currentHeight.map(currentHeight => height := s"${currentHeight}px"),
           ),
 
-          emitter(resizeEvent).async.foreach { setPosition() },
+          emitter(resizeEvent.delayOnNext(200 millis)).foreach { setPosition() }, // delay a bit, so that any rendering from the resize event as actually done.
           emitter(events.window.onResize).foreach { setPosition() },
           onDomMount.foreach { elem =>
             domElem = elem.asInstanceOf[dom.html.Element]
