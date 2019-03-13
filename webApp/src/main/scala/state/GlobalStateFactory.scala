@@ -85,6 +85,7 @@ object GlobalStateFactory {
 
     page.triggerLater {
       closeAllOverlays()
+      state.graphTransformations() = state.defaultTransformations
     }
     view.map(_.isContent).triggerLater { isContent =>
       if (!isContent) {
