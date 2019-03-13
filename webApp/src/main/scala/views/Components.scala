@@ -741,7 +741,7 @@ object Components {
             EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.map { newNode =>
+            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
               GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
