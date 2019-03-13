@@ -44,16 +44,13 @@ object ItemProperties {
     implicit val stringifier: ValueStringifier[TypeSelection] = EditImplicits.circe.Stringifier[TypeSelection]
   }
 
-  val naming = "Custom fields"
-  val defaultType = NodeData.Markdown.tpe
-
   def iconByNodeData(data: NodeData): Option[VNode] = Some(data) collect {
     case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
     case _: NodeData.Date | _: NodeData.RelativeDate => Icons.propertyDate
     case _: NodeData.File                            => Icons.files
   }
 
-  case class Config(prefilledType: Option[NodeData.Type] = Some(defaultType), prefilledKey: String = "")
+  case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), prefilledKey: String = "")
   object Config {
     def default = Config()
   }
@@ -68,7 +65,7 @@ object ItemProperties {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
-    val propertyTypeSelection = Var[Option[TypeSelection]](config.prefilledType.map(TypeSelection.Data(_)))
+    val propertyTypeSelection = Var[Option[TypeSelection]](config.prefilledType)
     val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(config.prefilledKey))
     val propertyValueInput = Var[Option[Either[NodeId, NodeData]]](None)
     propertyTypeSelection.foreach { selection =>

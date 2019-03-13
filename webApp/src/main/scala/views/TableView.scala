@@ -142,7 +142,13 @@ object TableView {
       Nil
 
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
-      val predictedType = property.groups.find(_.values.nonEmpty).map(_.values.head.node.data.tpe)
+      val predictedType = property.groups.find(_.values.nonEmpty).map { group =>
+        val node = group.values.head.node
+        node.role match {
+          case NodeRole.Neutral => ItemProperties.TypeSelection.Data(node.data.tpe)
+          case _ => ItemProperties.TypeSelection.Ref
+        }
+      }
       UI.Column(
         columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))(breakOut)),
         property.groups.map { group =>
