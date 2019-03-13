@@ -56,6 +56,7 @@ object TableView {
 
     def columnHeader(name: String) = VDomModifier(
       name,
+      minWidth := "100px"
     )
 
     def columnHeaderWithDelete(name: String, edges: Set[Edge.LabeledProperty]) = {
@@ -105,7 +106,7 @@ object TableView {
 
     val nodeColumns: List[UI.Column] =
       UI.Column(
-        columnHeader(""),
+        VDomModifier.empty,
         propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
           UI.ColumnEntry(idx,
             VDomModifier(
