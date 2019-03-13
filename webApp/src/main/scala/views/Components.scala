@@ -849,8 +849,8 @@ object Components {
             onEnter.foreach { e =>
               val inputElem = e.target.asInstanceOf[dom.html.Input]
               val searchString = inputElem.value
-              if (searchString.trim.nonEmpty && resultsElem != null) {
-                // search for first title element in results element, then we have the cuid of the first displayed result
+              if (searchString.trim.nonEmpty && resultsElem != null) defer {  // we defer so the new results of the search are visible
+                // really ugly: search for first title element in results element, then we have the cuid of the first displayed result
                 resultsElem.querySelector(".result > .title") match {
                   case null => submitNew(searchString, forceClose = true)
                   case titleElem => elem.search("get result", titleElem.textContent) match {
