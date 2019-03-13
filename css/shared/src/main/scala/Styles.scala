@@ -742,6 +742,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard.project" - (
     border(1 px, solid), // when dragging this will be replaced with a color
+    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
   )
 
   ".nodecard.node" - (

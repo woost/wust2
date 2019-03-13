@@ -371,27 +371,33 @@ object Components {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val icon = ItemProperties.iconByNodeData(property.data)
-    val contentString = VDomModifier(
+
+    span(
+      cls := "node tag",
       Styles.flex,
       alignItems.flexStart,
+
+      boxShadow := "inset 0 0 1px 1px lightgray",
+      color.gray,
+      drag(DragItem.Property(key), target = DragItem.DisableDrag),
+
       div(
         Styles.flex,
         alignItems.center,
         icon.map(_(marginRight := "4px")),
         u(s"${key.data.key}:", marginRight := "4px", fontSize.xSmall),
       ),
-      renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
-    )
 
-    span(
-      cls := "node tag",
-      contentString,
-      boxShadow := "inset 0 0 1px 1px lightgray",
-      color.gray,
-      drag(DragItem.Property(key), target = DragItem.DisableDrag),
       property.role match {
-        case NodeRole.Neutral => VDomModifier.empty
-        case _ => writeHoveredNode(state, property.id)
+        case NodeRole.Neutral => renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
+        case _ => VDomModifier(
+          writeHoveredNode(state, property.id),
+          nodeCardWithFile(state, property, maxLength = Some(50)).apply(
+            margin := "3px 0",
+            sidebarNodeFocusMod(state.rightSidebarNode, property.id),
+            cursor.pointer
+          ),
+        )
       }
     )
   }
