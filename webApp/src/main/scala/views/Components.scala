@@ -815,6 +815,7 @@ object Components {
         elem.search("set value", "")
 
         if (forceClose) {
+          elem.search("destroy")
           //TODO only reliable way to make search work again after manual submission with enter
           inputElem.blur()
           dom.window.setTimeout(() => inputElem.focus, timeout = 20)
