@@ -299,8 +299,9 @@ object EditableContent {
       emitter(currentVar.drop(1)).map(handleEditInteractionInOrRender(editMode)) --> action,
 
       Rx {
-        if(editMode()) VDomModifier(editRender)
-        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)))
+        //components are keyed, becasue otherwise setting editMode to false does not reliably cancel editRender (happens in table with search-and-select of reference node)
+        if(editMode()) VDomModifier(editRender, keyed)
+        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(current) }.prepend(renderFn(current)), keyed)
       },
     )
   }
