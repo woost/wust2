@@ -162,7 +162,7 @@ object StaticData {
           staticData.bgColor(i) = tagColor(node.id).toCSS
           staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
-          staticData.nodeCssClass(i) = "nodecard"
+          staticData.nodeCssClass(i) = "nodecard node"
         }
 
         // we set the style here, because the border can affect the size of the element
