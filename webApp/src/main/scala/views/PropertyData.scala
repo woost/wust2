@@ -12,7 +12,7 @@ object PropertyData {
   case class SingleProperty(key: String, values: Array[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]]) {
+  case class BasicInfo(node: Node, tags: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]], reverseProperties: Array[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
@@ -24,8 +24,12 @@ object PropertyData {
         val edge = graph.edges(idx).asInstanceOf[Edge.LabeledProperty]
         PropertyValue(edge, graph.nodesById(edge.propertyId).asInstanceOf[Node.Content])
       }.groupBy(_.edge.data.key)
+      val reverseProperties: Array[Node] = graph.propertiesEdgeReverseIdx.map(nodeIdx) { idx =>
+        val nodeIdx = graph.edgesIdx.a(idx)
+        graph.nodes(nodeIdx)
+      }
 
-      new BasicInfo(node, tags, assignedUsers, properties)
+      new BasicInfo(node, tags, assignedUsers, properties, reverseProperties)
     }
   }
 

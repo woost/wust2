@@ -317,6 +317,19 @@ object RightSidebar {
             marginBottom := "10px",
           )
         },
+
+        VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
+          Styles.flex,
+          flexWrap.wrap,
+          fontSize.small,
+          span("Backlinks: ", color.gray),
+          propertySingle.info.reverseProperties.map { node =>
+            Components.nodeCard(node, maxLength = Some(50)).apply(
+              margin := "3px",
+              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
+            )
+          }
+        )),
       ),
     )
   }

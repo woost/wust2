@@ -286,6 +286,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val assignedNodesDegree = new Array[Int](n)
   private val assignedUsersDegree = new Array[Int](n)
   private val propertiesDegree = new Array[Int](n)
+  private val propertiesReverseDegree = new Array[Int](n)
   private val automatedDegree = new Array[Int](n)
   private val automatedReverseDegree = new Array[Int](n)
   private val derivedFromTemplateDegree = new Array[Int](n)
@@ -360,6 +361,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             inviteNodeDegree(targetIdx) += 1
           case _: Edge.LabeledProperty   =>
             propertiesDegree(sourceIdx) += 1
+            propertiesReverseDegree(targetIdx) += 1
           case _: Edge.Automated           =>
             automatedDegree(sourceIdx) += 1
             automatedReverseDegree(targetIdx) += 1
@@ -396,6 +398,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
   private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
   private val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
+  private val propertiesEdgeReverseIdxBuilder = NestedArrayInt.builder(propertiesReverseDegree)
   private val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
   private val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
   private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
@@ -467,6 +470,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         inviteNodeIdxBuilder.add(targetIdx, sourceIdx)
       case _: Edge.LabeledProperty   =>
         propertiesEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        propertiesEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.Automated           =>
         automatedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
         automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
@@ -501,6 +505,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
   val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
+  val propertiesEdgeReverseIdx: NestedArrayInt = propertiesEdgeReverseIdxBuilder.result() // node -> property edge
   val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
   val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
