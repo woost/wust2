@@ -1100,13 +1100,13 @@ object Components {
     }
   )
 
-  def showHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+  def showHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     state.hoverNodeId.map {
       case Some(`nodeId`) => boxShadow := s"inset 0 0 2px 2px gray"
       case _ => VDomModifier.empty
     }
   )
-  def writeHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+  def writeHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     onMouseOver(Some(nodeId)) --> state.hoverNodeId,
     onMouseOut(None) --> state.hoverNodeId,
   )
