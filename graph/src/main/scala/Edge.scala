@@ -40,8 +40,7 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Expanded(nodeId: NodeId, userId: UserId) extends Edge.User {
-    def data = EdgeData.Expanded
+  case class Expanded(nodeId: NodeId, data: EdgeData.Expanded, userId: UserId) extends Edge.User {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
@@ -96,10 +95,10 @@ object Edge {
 
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId): Edge = data match {
     case EdgeData.Assigned                  => new Edge.Assigned(sourceId, UserId(targetId))
-    case EdgeData.Expanded                  => new Edge.Expanded(sourceId, UserId(targetId))
     case EdgeData.Invite                    => new Edge.Invite(sourceId, UserId(targetId))
     case EdgeData.Notify                    => new Edge.Notify(sourceId, UserId(targetId))
     case EdgeData.Pinned                    => new Edge.Pinned(sourceId, UserId(targetId))
+    case data: EdgeData.Expanded            => new Edge.Expanded(sourceId, data, UserId(targetId))
     case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
     case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
 

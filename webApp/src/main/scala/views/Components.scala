@@ -609,8 +609,7 @@ object Components {
                 val (doneNodeId, doneNodeAddChange) = doneIdx match {
                   case None                   =>
                     val freshDoneNode = Node.MarkdownStage(Graph.doneText)
-                    val expand = GraphChanges.connect(Edge.Expanded)(freshDoneNode.id, state.user.now.id)
-                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, ParentId(graph.nodeIds(workspaceIdx))) merge expand)
+                    (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, ParentId(graph.nodeIds(workspaceIdx))))
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
                 val stageParents = graph.notDeletedParentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}

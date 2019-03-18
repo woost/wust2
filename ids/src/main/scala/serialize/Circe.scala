@@ -57,6 +57,8 @@ trait Circe {
   implicit val connectionContentEncoder5: Encoder[EdgeData.LabeledProperty] = deriveEncoder[EdgeData.LabeledProperty]
   implicit val connectionContentDecoder6: Decoder[EdgeData.DerivedFromTemplate] = deriveDecoder[EdgeData.DerivedFromTemplate]
   implicit val connectionContentEncoder6: Encoder[EdgeData.DerivedFromTemplate] = deriveEncoder[EdgeData.DerivedFromTemplate]
+  implicit val connectionContentDecoder8: Decoder[EdgeData.Expanded] = deriveDecoder[EdgeData.Expanded]
+  implicit val connectionContentEncoder8: Encoder[EdgeData.Expanded] = deriveEncoder[EdgeData.Expanded]
   implicit val connectionContentDecoder: Decoder[EdgeData] = deriveDecoder[EdgeData]
   implicit val connectionContentEncoder: Encoder[EdgeData] = deriveEncoder[EdgeData]
 

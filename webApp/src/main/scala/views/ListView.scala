@@ -121,7 +121,7 @@ object ListView {
     val isExpanded = Rx {
       val graph = state.graph()
       val user = state.user()
-      graph.isExpanded(user.id, stage.id)
+      graph.isExpanded(user.id, stage.id).getOrElse(true)
     }
     div(
       paddingTop := "5px",

@@ -9,7 +9,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.graph._
-import wust.ids.{ChildId, NodeId, NodeRole, ParentId, UserId, View}
+import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.util._
@@ -122,13 +122,12 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     tree match {
       case Tree.Parent(node, stageChildren) if node.role == NodeRole.Stage =>
-        if(graph.isExpanded(state.user.now.id, node.id)) {
+        if(graph.isExpanded(state.user.now.id, node.id).getOrElse(true)) {
           val cardChildren = graph.taskChildrenIdx(graph.idToIdx(node.id)).map(idx => Tree.Leaf(graph.nodes(idx)))
           val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, stageChildren ++ cardChildren, (t: Tree) => t.node.id)
           renderColumn(state, graph, node, sortedChildren, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
         }
-        else
-          renderColumn(state, graph, node, Nil, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
+        else renderColumn(state, graph, node, Nil, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel, isCollapsed = true)
       case Tree.Leaf(node) if node.role == NodeRole.Stage =>
           renderColumn(state, graph, node, Nil, parentId, focusState, path, activeAddCardFields, selectedNodeIds, isTopLevel = isTopLevel)
       case Tree.Leaf(node) if node.role == NodeRole.Task =>
@@ -214,9 +213,9 @@ object KanbanView {
           VDomModifier.empty
         } else VDomModifier(
           if(isCollapsed)
-            div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand")
+            div(div(cls := "fa-fw", Icons.expand), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Expand")
           else
-            div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse"),
+            div(div(cls := "fa-fw", Icons.collapse), onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes, cursor.pointer, UI.popup := "Collapse"),
           ifCanWrite(div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit")),
           ifCanWrite(div(div(cls := "fa-fw", Icons.delete),
             onClick.stopPropagation foreach {
@@ -269,7 +268,7 @@ object KanbanView {
             Styles.flex,
             justifyContent.center,
             div(cls := "fa-fw", Icons.expand, UI.popup := "Expand"),
-            onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes,
+            onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes,
             cursor.pointer,
             paddingBottom := "7px",
           ),
@@ -387,12 +386,12 @@ object KanbanView {
         })
       val expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes)
       val collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
       def toggle(compress : Boolean) = Rx {
-        if(state.graph().isExpanded(state.user.now.id, node.id))
+        if(state.graph().isExpanded(state.user.now.id, node.id).getOrElse(false))
           collapse(compress)
         else
           expand(compress)
@@ -481,8 +480,9 @@ object KanbanView {
               s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
               UI.popup := "Subtasks",
               onClick.stopPropagation.mapTo {
-                val edge = Edge.Expanded(node.id, state.user.now.id)
-                if (state.graph.now.isExpanded(state.user.now.id, node.id)) GraphChanges(delEdges = Set(edge)) else GraphChanges(addEdges = Set(edge))
+                val isExpanded = state.graph.now.isExpanded(state.user.now.id, node.id).getOrElse(false)
+                val edge = Edge.Expanded(node.id, EdgeData.Expanded(!isExpanded), state.user.now.id)
+                GraphChanges(addEdges = Set(edge))
               } --> state.eventProcessor.changes,
               cursor.pointer,
             ),
@@ -527,7 +527,7 @@ object KanbanView {
       Rx {
         val graph = state.graph()
         val userId = state.user().id
-        VDomModifier.ifTrue(graph.isExpanded(userId, node.id))(
+        VDomModifier.ifTrue(graph.isExpanded(userId, node.id).getOrElse(false))(
           ListView(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
             onClick.stopPropagation --> Observer.empty,
             drag(DragItem.DisableDrag),
@@ -601,9 +601,7 @@ object KanbanView {
     def submitAction(str:String) = {
       val change = {
         val newStageNode = Node.MarkdownStage(str)
-        val add = GraphChanges.addNodeWithParent(newStageNode, ParentId(focusedId))
-        val expand = GraphChanges.connect(Edge.Expanded)(newStageNode.id, state.user.now.id)
-        add merge expand
+        GraphChanges.addNodeWithParent(newStageNode, ParentId(focusedId))
       }
       state.eventProcessor.changes.onNext(change)
       //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again

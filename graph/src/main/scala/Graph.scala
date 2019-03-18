@@ -282,7 +282,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val notifyByUserDegree = new Array[Int](n)
   private val pinnedNodeDegree = new Array[Int](n)
   private val inviteNodeDegree = new Array[Int](n)
-  private val expandedNodesDegree = new Array[Int](n)
+  private val expandedEdgesDegree = new Array[Int](n)
   private val assignedNodesDegree = new Array[Int](n)
   private val assignedUsersDegree = new Array[Int](n)
   private val propertiesDegree = new Array[Int](n)
@@ -352,7 +352,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             assignedNodesDegree(targetIdx) += 1
             assignedUsersDegree(sourceIdx) += 1
           case _: Edge.Expanded =>
-            expandedNodesDegree(targetIdx) += 1
+            expandedEdgesDegree(sourceIdx) += 1
           case _: Edge.Notify   =>
             notifyByUserDegree(targetIdx) += 1
           case _: Edge.Pinned   =>
@@ -394,7 +394,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
   private val inviteNodeIdxBuilder = NestedArrayInt.builder(inviteNodeDegree)
-  private val expandedNodesIdxBuilder = NestedArrayInt.builder(expandedNodesDegree)
+  private val expandedEdgeIdxBuilder = NestedArrayInt.builder(expandedEdgesDegree)
   private val assignedNodesIdxBuilder = NestedArrayInt.builder(assignedNodesDegree)
   private val assignedUsersIdxBuilder = NestedArrayInt.builder(assignedUsersDegree)
   private val propertiesEdgeIdxBuilder = NestedArrayInt.builder(propertiesDegree)
@@ -458,7 +458,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           // BUT received on request
         }
       case _: Edge.Expanded =>
-        expandedNodesIdxBuilder.add(targetIdx, sourceIdx)
+        expandedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _: Edge.Assigned =>
         assignedNodesIdxBuilder.add(targetIdx, sourceIdx)
         assignedUsersIdxBuilder.add(sourceIdx, targetIdx)
@@ -501,7 +501,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
   val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
-  val expandedNodesIdx: NestedArrayInt = expandedNodesIdxBuilder.result()
+  val expandedEdgeIdx: NestedArrayInt = expandedEdgeIdxBuilder.result()
   val assignedNodesIdx: NestedArrayInt = assignedNodesIdxBuilder.result() // user -> node
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
   val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
@@ -512,17 +512,17 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val derivedFromTemplateReverseEdgeIdx: NestedArrayInt = derivedFromTemplateRerverseEdgeIdxBuilder.result()
 
   def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).map(e => (e, graph.nodesById(e.targetId)))
-  val expandedNodesByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
-    if (idx != -1) expandedNodesIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
-  }
-  @inline def expandedNodes(userId: UserId): collection.Set[NodeId] = expandedNodesByIndex(idToIdx(userId))
+
   val parentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if (idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
   val notDeletedParentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
     if (idx != -1) notDeletedParentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
   }
-  @inline def isExpanded(userId: UserId, nodeId: NodeId): Boolean = expandedNodes(userId).contains(nodeId)
+  @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdxGet(nodeId).flatMap(isExpanded(userId, _))
+  @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {
+    case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).asInstanceOf[Edge.Expanded].data.isExpanded
+  }
   @inline def parents(nodeId: NodeId): collection.Set[NodeId] = parentsByIndex(idToIdx(nodeId))
   @inline def notDeletedParents(nodeId: NodeId): collection.Set[NodeId] = notDeletedParentsByIndex(idToIdx(nodeId))
   val childrenByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>

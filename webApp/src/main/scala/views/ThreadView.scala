@@ -191,7 +191,7 @@ object ThreadView {
                 // we need to get the newest node content from the graph
                 val graph = state.graph()
                 val user = state.user()
-                graph.expandedNodes(user.id).contains(nodeId)
+                graph.isExpanded(user.id, nodeId).getOrElse(false)
               }
 
               val showExpandedThread = Rx {
@@ -255,7 +255,7 @@ object ThreadView {
       val graph = state.graph.now
       val user = state.user.now
       val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), ParentId(nodeId) :: Nil)
-      val expandChange = if(!graph.isExpanded(user.id, nodeId)) GraphChanges.connect(Edge.Expanded)(nodeId, user.id) else GraphChanges.empty
+      val expandChange = if(!graph.isExpanded(user.id, nodeId).getOrElse(false)) GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
     } else Future.successful(Continue)

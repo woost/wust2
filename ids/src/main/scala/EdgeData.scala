@@ -52,6 +52,6 @@ object EdgeData {
   case object Notify extends Named with EdgeData
   case object Pinned extends Named with EdgeData
   case object Invite extends Named with EdgeData
-  case object Expanded extends Named with EdgeData
 
+  case class Expanded(isExpanded: Boolean) extends Named with EdgeData
 }
