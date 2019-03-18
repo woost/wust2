@@ -39,6 +39,8 @@ object GraphChangesAutomationUI {
     )
 
     val description: VDomModifier = div(
+      Styles.flex,
+      justifyContent.spaceBetween,
 
       Rx {
         val graph = state.rawGraph()
@@ -58,8 +60,6 @@ object GraphChangesAutomationUI {
           )
         } else {
           VDomModifier(
-            Styles.flex,
-            justifyContent.spaceBetween,
             height := "600px",
 
             div(
@@ -154,12 +154,12 @@ object GraphChangesAutomationUI {
                 ),
               ),
             ),
-
-            position.relative, // needed for right sidebar
-            RightSidebar(state, selectedTemplate, nodeId => if (nodeId.isEmpty) selectedTemplate() = None, openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))) // overwrite left-margin of overlay sidebar in mobile
           )
         }
       },
+
+      position.relative, // needed for right sidebar
+      RightSidebar(state, selectedTemplate, nodeId => if (nodeId.isEmpty) selectedTemplate() = None, openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))) // overwrite left-margin of overlay sidebar in mobile
     )
 
     UI.ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
