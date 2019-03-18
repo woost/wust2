@@ -61,7 +61,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
   }
 
-  private def feedbackMailMessage(userId: UserId, userName: String, clientInfo: ClientInfo, msg: String): MailMessage = {
+  private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String): MailMessage = {
     //TODO: show name and email in message
     // pass User and Option[UserDetail] to this function
     val recipient = MailRecipient(to = "team@woost.space" :: Nil)
@@ -71,6 +71,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |Feedback:
         |  UserId: ${userId.toCuidString}
         |  UserName: ${userName}
+        |  Email: ${userEmail.getOrElse("-")}
         |  UserAgent: ${clientInfo.userAgent}
         |  Instance: ${serverConfig.host}
         |
@@ -108,8 +109,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     emailSubject.onNext(message)
   }
 
-  def sendEmailFeedback(userId: UserId, userName: String, clientInfo: ClientInfo, msg: String)(implicit ec: ExecutionContext): Unit = {
-    val message = feedbackMailMessage(userId, userName = userName, clientInfo, msg = msg)
+  def sendEmailFeedback(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String)(implicit ec: ExecutionContext): Unit = {
+    val message = feedbackMailMessage(userId, userName = userName, userEmail = userEmail, clientInfo, msg = msg)
     emailSubject.onNext(message)
   }
 

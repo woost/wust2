@@ -179,7 +179,10 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   }
 
   override def feedback(clientInfo: ClientInfo, message: String): ApiFunction[Unit] = Action.requireUser { (_, user) =>
-    Future.successful(emailFlow.sendEmailFeedback(user.id, user.name, clientInfo, msg = message))
+    db.user.getUserDetail(user.id).map { userDetail =>
+      val userEmail = userDetail.flatMap(_.email)
+      emailFlow.sendEmailFeedback(user.id, userName = user.name, userEmail = userEmail, clientInfo = clientInfo, msg = message)
+    }
   }
 
   // def getComponent(id: Id): Graph = {
