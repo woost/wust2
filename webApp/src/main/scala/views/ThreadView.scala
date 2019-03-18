@@ -58,7 +58,12 @@ object ThreadView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+      SelectedNodes[SelectedNode](
+        state,
+        selectedNodes,
+        selectedNodeActions(state, selectedNodes),
+        (_, _) => Nil
+      ).apply(
         position.absolute,
         width := "100%"
       ),
@@ -359,21 +364,4 @@ object ThreadView {
     groupsBuilder += currentGroupBuilder.result()
     groupsBuilder.result()
   }
-
-
-  //TODO share code with chatview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): (SelectedNode, Boolean) => List[VNode] = (selectedNode, canWriteAll) => if(state.graph.now.contains(selectedNode.nodeId)) {
-    List(
-      Some(zoomButton(onClick foreach {
-        state.urlConfig.update(_.focus(Page(selectedNode.nodeId)))
-        selectedNodes() = Set.empty[SelectedNode]
-      })),
-      Some(replyButton(
-        onClick foreach {
-          Var.set(selectedNodes.now.map(s => Var.Assignment(s.showReplyField, true))(breakOut) : _*)
-          selectedNodes() = Set.empty[SelectedNode]
-        }
-      )).filter(_ => canWriteAll)
-    )
-  }.flatten else Nil
 }

@@ -70,7 +70,12 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
       position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](state, selectedNodeActions(state, selectedNodes, prependActions = additionalNodeActions(selectedNodes,currentReply,inputFieldFocusTrigger)), selectedSingleNodeActions(state, selectedNodes), selectedNodes).apply(
+      SelectedNodes[SelectedNode](
+        state,
+        selectedNodes,
+        selectedNodeActions[SelectedNode](state, selectedNodes, prependActions = additionalNodeActions(selectedNodes,currentReply,inputFieldFocusTrigger)),
+        (_, _) => Nil
+      ).apply(
         position.absolute,
         width := "100%"
       ),
@@ -467,19 +472,4 @@ object ChatView {
       }
     )
   )
-
-  //TODO share code with threadview?
-  private def selectedSingleNodeActions(state: GlobalState, selectedNodes: Var[Set[SelectedNode]]): (SelectedNode, Boolean) => List[VNode] = (selectedNode, canWriteAll) => if(state.graph.now.contains(selectedNode.nodeId)) {
-    List(
-      Some(editButton(
-        onClick foreach {
-          selectedNodes() = Set.empty[SelectedNode]
-        }
-      )).filter(_ => canWriteAll),
-      Some(zoomButton(onClick foreach {
-        state.urlConfig.update(_.focus(Page(selectedNode.nodeId)))
-        selectedNodes() = Set.empty[SelectedNode]
-      })),
-    ).flatten
-  } else Nil
 }

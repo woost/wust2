@@ -20,7 +20,7 @@ import scala.collection.breakOut
 object SelectedNodes {
   import SharedViewElements.SelectedNodeBase
 
-  def apply[T <: SelectedNodeBase](state: GlobalState, nodeActions:(List[T], Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, singleNodeActions:(T, Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, selected:Var[Set[T]])(implicit ctx: Ctx.Owner): VNode = {
+  def apply[T <: SelectedNodeBase](state: GlobalState, selected:Var[Set[T]], nodeActions:(List[T], Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, singleNodeActions:(T, Boolean) => List[VNode] = (_: T, _: Boolean) => Nil)(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodes: Var[Set[T]] = selected.mapRead { selectedNodes =>
       selectedNodes().filter(data => state.graph().lookup.contains(data.nodeId))
