@@ -64,7 +64,8 @@ lazy val commonSettings = Seq(
     // https://www.threatstack.com/blog/useful-scalac-options-for-better-scala-development-part-1/
     // https://tpolecat.github.io/2017/04/25/scalac-flags.html
     "-encoding" :: "UTF-8" ::
-      "-unchecked" :: // Enable additional warnings where generated code depends on assumptions
+    // "-Ymacro-debug-lite" :: "-Yshow-trees-compact" :: "-Yshow-trees-stringified" :: // to debug macros, use: sbt compile > macros-expanded
+    "-unchecked" :: // Enable additional warnings where generated code depends on assumptions
       "-deprecation" ::
       "-explaintypes" :: // Explain type errors in more detail
       "-feature" ::
