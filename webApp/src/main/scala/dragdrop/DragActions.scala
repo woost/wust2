@@ -63,6 +63,7 @@ object DragActions {
             addTargetColumn merge addTargetWorkspace merge disconnectColumn merge disconnectWorkspace
 
       // e.g. Subtask into Column
+      //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
       case (payload: DragItem.Task, from: Kanban.Inbox, intoColumn: Kanban.Column, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), stageParents, Some(intoColumn.parentId))
@@ -77,6 +78,7 @@ object DragActions {
             addTargetColumn merge addTargetWorkspace merge disconnect
 
       // e.g. Card from Column into other Card/Inbox
+      //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
       case (payload: DragItem.Task, fromColumn: Kanban.Column, into: Kanban.Workspace, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
           // disconnect fromColumn all stage parents
