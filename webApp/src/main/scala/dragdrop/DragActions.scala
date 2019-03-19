@@ -39,13 +39,13 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget[NodeId, NodeId, Edge.Parent](Edge.Parent)(Some(dragging.nodeId), Some(from.parentId), Some(into.parentId))
           def addColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          def disconnetColumn: GraphChanges = if (from.parentId != into.parentId)
+          def disconnectColumn: GraphChanges = if (from.parentId != into.parentId)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
             else GraphChanges.empty
           if(ctrl)
             addColumn
           else
-            addColumn merge disconnetColumn
+            addColumn merge disconnectColumn
 
       // Task between Columns
       case (payload: DragItem.Task, from: Kanban.Column, into: Kanban.Column, ctrl, false) =>
