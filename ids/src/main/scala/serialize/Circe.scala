@@ -10,13 +10,13 @@ trait Circe {
   // makes circe decode sealed hierarchies with { "_tpe": typename, ..props }
   implicit val genericConfiguration: Configuration = Configuration.default.withDiscriminator("type")
 
-  //TODO: we actually want different encoders for api and db json. in the db we
+  //TODO: IMPORTANT we actually want different encoders for api and db json. in the db we
   //cuid as uuid strings but in the json api, we want to have a more
   //space-efficent base than 16 (as of uuid) or encode as two numbers.
   implicit val CuidDecoder: Decoder[Cuid] = Decoder.decodeString.emap(
     s => Try(Cuid.fromUuid(UUID.fromString(s))).toEither.left.map(_.getMessage)
-  )
-  implicit val CuidEncoder: Encoder[Cuid] = cuid => Json.fromString(cuid.toUuid.toString)
+  ) // don't change!
+  implicit val CuidEncoder: Encoder[Cuid] = cuid => Json.fromString(cuid.toUuid.toString) // don't change!
 
   implicit def liftEncoderTagged[T, U](implicit f: Encoder[T]): Encoder[T @@ U] =
     f.asInstanceOf[Encoder[T @@ U]]

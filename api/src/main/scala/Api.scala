@@ -23,6 +23,9 @@ trait Api[Result[_]] {
 
   def getGraph(selection: Page): Result[Graph]
 
+  // simple api
+  def getTasks(parentId: NodeId): Result[List[Task]]
+
   def getNode(nodeId: NodeId): Result[Option[Node]]
   @PathName("getNodeOnBehalf")
   def getNode(nodeId: NodeId, onBehalf: Authentication.Token): Result[Option[Node]]
@@ -51,7 +54,8 @@ trait AuthApi[Result[_]] {
   def changePassword(password: String): Result[Boolean]
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
   def register(name: String, email: String, password: String): Result[AuthResult]
-  def login(name: String, password: String): Result[AuthResult]
+  def login(email: String, password: String): Result[AuthResult]
+  def loginReturnToken(email: String, password: String): Result[Option[Authentication.Token]] //TODO: provide separate public api (json) instead
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
@@ -226,3 +230,7 @@ object Heuristic {
   type Result = PostResult
   type ApiResult = IdResult
 }
+
+
+// Simple Api
+case class Task(id:NodeId, content:String)

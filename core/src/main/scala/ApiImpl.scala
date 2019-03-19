@@ -12,6 +12,7 @@ import wust.core.aws.S3FileUploader
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
+import wust.api
 
 import scala.collection.mutable
 import scala.collection.breakOut
@@ -97,6 +98,21 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
     getPage(user.id, page)
   }
+
+
+  // Simple Api
+  override def getTasks(parentId: NodeId): ApiFunction[List[api.Task]] = Action.requireUser { (state, user) =>
+    getPage(user.id, wust.graph.Page(parentId = Some(parentId))).map { graph =>
+      graph.idToIdxGet(parentId).fold(List.empty[api.Task]){ parentIdx =>
+        (graph.notDeletedChildrenIdx(parentIdx) collect {
+          case childIdx if graph.nodes(childIdx).role == NodeRole.Task =>
+          val node = graph.nodes(childIdx)
+          api.Task(node.id, node.str)
+        })(breakOut)
+      }
+    }
+  }
+
 
   override def fileDownloadBaseUrl: ApiFunction[Option[StaticFileUrl]] = Action {
     fileUploader.fold(Task.pure(Option.empty[StaticFileUrl]))(_.getFileDownloadBaseUrl.map(Some(_))).runToFuture

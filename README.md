@@ -181,3 +181,16 @@ This will build all docker images and push them to `:latest`.
 * https://realfavicongenerator.net
 * in `webApp/assets`: `optipng -o7 strip all *.png`
 * [`svgomg`](https://jakearchibald.github.io/svgomg)
+
+# Example Usage of json Api
+
+## login
+```bash
+$ curl localhost:8901/api/Auth/loginReturnToken -d '{"email":"a@a", "password": "hans"}'
+"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ3dXN0Iiwic3ViIjoiNVVEdVFjcERRQmk2YUVnOVFxdUxLTiIsImF1ZCI6WyJ3dXN0Il0sImV4cCI6MTU4NDU2NDU4MywibmJmIjoxNTUzMDI4NTgzLCJpYXQiOjE1NTMwMjg1ODMsInVzZXIiOnsiaWQiOiIyNDMxOTZhYS03ZDdlLTc2MDAtMmMyNi1lYzBmNjdjODQwZDUiLCJuYW1lIjoiaGFucyIsInJldmlzaW9uIjoxLCJ0eXBlIjoiUmVhbCJ9LCJ0eXBlIjoiVXNlckF1dGgifQ.M8I7LsfIITm-P4S3zhrdDe8qEzkKoCJzpmfhPMl9hho"
+```bash
+
+## getTasks
+``` bash
+$ curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ3dXN0Iiwic3ViIjoiNVVEdVFjcERRQmk2YUVnOVFxdUxLTiIsImF1ZCI6WyJ3dXN0Il0sImV4cCI6MTU4NDU2NDU4MywibmJmIjoxNTUzMDI4NTgzLCJpYXQiOjE1NTMwMjg1ODMsInVzZXIiOnsiaWQiOiIyNDMxOTZhYS03ZDdlLTc2MDAtMmMyNi1lYzBmNjdjODQwZDUiLCJuYW1lIjoiaGFucyIsInJldmlzaW9uIjoxLCJ0eXBlIjoiUmVhbCJ9LCJ0eXBlIjoiVXNlckF1dGgifQ.M8I7LsfIITm-P4S3zhrdDe8qEzkKoCJzpmfhPMl9hho" localhost:8901/api/Api/getTasks -d '{"parentId":"243196b9-f7dc-f101-40c6-8a827f5e7a7d"}'
+```

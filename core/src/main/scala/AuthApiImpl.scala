@@ -1,16 +1,18 @@
 package wust.backend
 
 import com.roundeights.hasher.Hasher
-import wust.api.ApiEvent.{NewGraphChanges, ReplaceNode}
+import wust.api.ApiEvent.{ NewGraphChanges, ReplaceNode }
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
 import wust.backend.auth._
-import wust.db.{Data, Db, SuccessResult}
-import wust.graph.{Edge, GraphChanges, Node}
+import wust.db.{ Data, Db, SuccessResult }
+import wust.graph.{ Edge, GraphChanges, Node }
 import wust.ids._
 
-import scala.concurrent.{ExecutionContext, Future}
+import cats.syntax.functor._
+
+import scala.concurrent.{ ExecutionContext, Future }
 import scala.util.control.NonFatal
 
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
@@ -51,17 +53,44 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
             db.ctx.transaction { implicit ec =>
               db.user.mergeImplicitUser(prevUserId, user.id).map {
                 case true =>
-                  resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId))
+                  resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { _ =>
+                    AuthResult.Success
+                  }
                 case false =>
                   scribe.warn("Failed to merge implicit user for login: " + user)
                   Returns.error(ApiError.InternalServerError)
               }
             }
-          case _ => Future.successful(resultOnVerifiedAuthAfterLogin(user))
+          case _ => Future.successful(resultOnVerifiedAuthAfterLogin(user).map { _ =>
+            AuthResult.Success
+          })
         }
 
       case Some(_) => Future.successful(Returns(AuthResult.BadPassword))
       case None    => Future.successful(Returns(AuthResult.BadEmail))
+    }
+  }
+
+  def loginReturnToken(email: String, password: String): ApiFunction[Option[Authentication.Token]] = Effect { state =>
+    val digest = passwordDigest(password)
+    db.user.getUserAndDigestByEmail(email).flatMap {
+      case Some((user, userDigest)) if (digest.hash = userDigest) =>
+        state.auth.flatMap(_.dbUserOpt) match {
+          case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+            db.ctx.transaction { implicit ec =>
+              db.user.mergeImplicitUser(prevUserId, user.id).map {
+                case true =>
+                  resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { auth => Some(auth.token) }
+                case false =>
+                  scribe.warn("Failed to merge implicit user for login: " + user)
+                  Returns.error(ApiError.InternalServerError)
+              }
+            }
+          case _ => Future.successful(resultOnVerifiedAuthAfterLogin(user).map { auth => Some(auth.token) })
+        }
+
+      case Some(_) => Future.successful(Returns(None))
+      case None    => Future.successful(Returns(None))
     }
   }
 
@@ -121,17 +150,17 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     if (userId == user.id) { // currently only allow to change own user details
       db.user.getUserDetail(user.id).map {
         case Some(userDetail) => sendEmailVerification(userDetail)
-        case None => ()
+        case None             => ()
       }
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 
   // TODO: we just assume, this inviteTargetMail user does not exist. Actually we should check, whether we have a user with this email already in our db. We don't want to send invite mail to existing user. We should add them as member and set invite edge. Currently the frontend does this distinction and we just trust it.
-  override def invitePerMail(inviteTargetMail: String, nodeId: NodeId): ApiFunction[Unit] = Effect.requireRealUser { (state,dbUser) =>
+  override def invitePerMail(inviteTargetMail: String, nodeId: NodeId): ApiFunction[Unit] = Effect.requireRealUser { (state, dbUser) =>
     db.user.getUserDetail(dbUser.id).flatMap{
       case Some(Data.UserDetail(userId, Some(inviterEmail), true)) => // only allow verified user with an email to send out invitations
         db.node.get(dbUser.id, nodeId).flatMap{
-          case Some(node:Data.Node) => forClient(node) match { // this node exists and the inviter dbUser has access to it
+          case Some(node: Data.Node) => forClient(node) match { // this node exists and the inviter dbUser has access to it
             case node: Node.Content => // make sure we only allow this for content nodes and not for users
               // create an implicit user for the invite target
               // make him a member of this node and create an invite edge
@@ -200,7 +229,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
 
   private def resultOnVerifiedAuth(auth: Future[Option[Authentication.Verified]]): Future[ApiData.Effect[Boolean]] = auth.map {
     case Some(auth) => Returns(true, authChangeEvents(auth))
-    case None   => Returns(false)
+    case None       => Returns(false)
   }
 
   private def resultOnVerifiedAuthAfterRegister(res: Future[Option[Data.User]], email: String, replaces: Option[UserId] = None): Future[ApiData.Effect[AuthResult]] = res.map {
@@ -212,8 +241,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     case None => Returns(AuthResult.BadEmail)
   }
 
-  private def resultOnVerifiedAuthAfterLogin(user: Data.User, replaces: Option[UserId] = None): ApiData.Effect[AuthResult] = {
+  private def resultOnVerifiedAuthAfterLogin(user: Data.User, replaces: Option[UserId] = None): ApiData.Effect[Authentication.Verified] = {
     val replacements = replaces.map(id => ReplaceNode(id, user.toNode))
-    Returns(AuthResult.Success, authChangeEvents(jwt.generateAuthentication(forClientAuth(user))) ++ replacements)
+    val auth: Authentication.Verified = jwt.generateAuthentication(forClientAuth(user))
+
+    Returns(auth, authChangeEvents(auth) ++ replacements)
   }
 }

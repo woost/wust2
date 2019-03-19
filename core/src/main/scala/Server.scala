@@ -83,6 +83,7 @@ object Server {
 
     val jsonRouter = Router[String, ApiFunction]
       .route[Api[ApiFunction]](apiImpl)
+      .route[AuthApi[ApiFunction]](authImpl)
       .route[PushApi[ApiFunction]](pushImpl)
     val binaryRouter = Router[ByteBuffer, ApiFunction]
       .route[Api[ApiFunction]](apiImpl)
