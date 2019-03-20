@@ -731,7 +731,8 @@ object CommonStyles extends StyleSheet.Standalone {
     opacity(1),
   )
 
-  val nodeCardShadow = boxShadow := "0px 1px 0px 1px rgba(158,158,158,0.45)"
+  val nodeCardShadowOffset = "0px 0.7px 0px 1px"
+  val nodeCardShadow = boxShadow := s"$nodeCardShadowOffset rgba(158,158,158,0.35)"
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
     borderRadius(3 px),
@@ -1215,7 +1216,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard.draggable--over," +
   ".chat-row.draggable--over .nodecard" - (
     borderTop(1 px, solid, transparent).important,
-    (boxShadow := "0px 1px 0px 1px rgba(93, 120, 158,0.45)").important
+    (boxShadow := s"$nodeCardShadowOffset rgba(93, 120, 158,0.45)").important
   )
 
   ".chat-row .nodecard.draggable-mirror" - (
