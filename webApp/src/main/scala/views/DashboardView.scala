@@ -52,11 +52,13 @@ object DashboardView {
 
       //TODO: renderSubprojects mit summary
       renderSubprojects(state, focusState),
-      div(
-        Styles.growFull,
-        Styles.flex,
-        ListView(state, focusState).apply(widgetStyle),
-        ChatView(state, focusState).apply(widgetStyle),
+      VDomModifier.ifTrue(!state.smallScreen)(
+        div(
+          Styles.growFull,
+          Styles.flex,
+          ListView(state, focusState).apply(widgetStyle),
+          ChatView(state, focusState).apply(widgetStyle)
+        )
       )
     )
   }
