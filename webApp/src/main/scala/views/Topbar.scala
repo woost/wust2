@@ -32,15 +32,28 @@ object Topbar {
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
 
+        Rx {
+          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
+            voteForFeatures
+          )
+        },
         FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
         Rx {
-          (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](
+          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
             SharedViewElements.authStatus(state)
           )
         }
       )
     })
   }
+
+  def voteForFeatures = a(
+    "Vote on upcoming features",
+    cls := "ui violet tiny compact button",
+    href := "https://woost.nolt.io",
+    Elements.safeTargetBlank,
+    marginLeft.auto,
+  )
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "5px 5px",
