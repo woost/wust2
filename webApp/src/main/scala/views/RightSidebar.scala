@@ -179,14 +179,18 @@ object RightSidebar {
                 Styles.flex,
                 alignItems.flexStart,
                 Components.nodeCardEditable(state, node, editMode).apply(
-                  Styles.wordWrap, width := "100%", margin := "3px 0px 3px 3px", cls := "enable-text-selection"
-                ),
-                div(
-                  Icons.edit,
-                  marginLeft := "5px",
-                  cursor.pointer,
+                  Styles.wordWrap,
+                  width := "100%",
+                  margin := "3px 3px 3px 3px",
+                  cls := "enable-text-selection",
                   onClick.stopPropagation(true) --> editMode
-                )
+                ),
+                // TOOD: Delete button
+                // div(
+                //   Icons.delete,
+                //   marginLeft := "5px",
+                //   cursor.pointer,
+                // )
               ),
             )
           }

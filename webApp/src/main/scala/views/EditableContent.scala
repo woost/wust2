@@ -177,12 +177,12 @@ object EditableContent {
     )
   }
 
-  private def closeButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
+  private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
+    "Cancel",
     cls := "ui button compact mini",
     padding := "3px",
-    margin := "0 0 0 2px",
+    margin := "2px 0 0 2px",
     flexShrink := 0,
-    "Cancel",
     fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(EditInteraction.Cancel) --> current
@@ -204,7 +204,7 @@ object EditableContent {
             display.inlineFlex,
             alignItems.flexStart,
             marginLeft := "auto",
-            closeButton(current)
+            cancelButton(current)
           )
         }
       )}),
