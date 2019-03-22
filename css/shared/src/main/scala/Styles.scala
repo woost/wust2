@@ -298,10 +298,14 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".pageheader-channeltitle" - (
     fontSize(20 px),
-    marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
-    cursor.text,
+    marginBottom(2 px), // remove margin when title is in <p> (rendered my markdown)
+  )
+
+  ".pageheader-channeltitle.nodecard" - (
+    paddingTop(0 px),
+    paddingBottom(0 px),
   )
 
   ".avatar" - (

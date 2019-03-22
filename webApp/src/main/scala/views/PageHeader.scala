@@ -51,7 +51,6 @@ object PageHeader {
 
     val channelTitle = Components.nodeCardAsOneLineText(pageNode).apply(
       cls := "pageheader-channeltitle",
-      borderRadius := "3px",
       registerDragContainer(state, DragContainer.Chat),
       DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
@@ -86,8 +85,15 @@ object PageHeader {
         div(
           Styles.flex,
           alignItems.center,
-          nodeAvatar(pageNode, size = 30)(marginRight := "5px"),
-          channelTitle,
+          pageNode.role match {
+            case NodeRole.Project => 
+              channelTitle.prepend(
+                Styles.flex,
+                nodeAvatar(pageNode, size = 25)(marginRight := "5px", alignSelf.center)
+              )
+            case _ =>
+              channelTitle
+          },
           flexShrink := 3,
         ),
         div(
