@@ -411,25 +411,23 @@ object KanbanView {
       )
     }
 
-    def renderTaskProgress(taskstats: TaskStats) = Rx {
-      val progress = taskstats.progress
-      VDomModifier(
+    def renderTaskProgress(taskStats: TaskStats) = {
+      val progress = taskStats.progress
+      div(
+        cls := "childstat",
+        Styles.flex,
+        flexGrow := 1,
+        alignItems.flexEnd,
+        minWidth := "40px",
+        backgroundColor := "#eee",
+        borderRadius := "2px",
+        margin := "3px 10px",
         div(
-          cls := "childstat",
-          Styles.flex,
-          flexGrow := 1,
-          alignItems.flexEnd,
-          minWidth := "40px",
-          backgroundColor := "#eee",
-          borderRadius := "2px",
-          margin := "3px 10px",
-          div(
-            height := "3px",
-            padding := "0",
-            width := s"${math.max(progress, 0)}%",
-            backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
-            UI.popup := s"$progress% Progress. ${taskStats().taskDoneCount} / ${taskStats().taskChildrenCount} done."
-          ),
+          height := "3px",
+          padding := "0",
+          width := s"${math.max(progress, 0)}%",
+          backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
+          UI.popup := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
         ),
       )
     }
@@ -476,8 +474,15 @@ object KanbanView {
       Rx{
         VDomModifier(
           VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
-            renderTaskCount(
-              s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+            div(
+              flexGrow := 1,
+
+              Styles.flex,
+              renderTaskCount(
+                s"${taskStats().taskDoneCount}/${taskStats().taskChildrenCount}",
+                ),
+              renderTaskProgress(taskStats()).apply(alignSelf.center),
+
               UI.popup := "Subtasks",
               onClick.stopPropagation.mapTo {
                 val isExpanded = state.graph.now.isExpanded(state.user.now.id, node.id).getOrElse(false)
@@ -485,8 +490,7 @@ object KanbanView {
                 GraphChanges(addEdges = Set(edge))
               } --> state.eventProcessor.changes,
               cursor.pointer,
-            ),
-            renderTaskProgress(taskStats()),
+            )
           ),
 
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
