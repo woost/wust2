@@ -15,6 +15,7 @@ import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
+import wust.webApp.views.Elements._
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.BrowserDetect
 import wust.webApp.{Icons, ItemProperties, Ownable}
@@ -61,6 +62,7 @@ object RightSidebar {
       margin := "5px",
       color.black,
       backgroundColor <-- nodeStyle.map(_.bgLightColor),
+      onClick.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       div(
         Styles.flex,
@@ -70,6 +72,7 @@ object RightSidebar {
           cls := "fa-fw", freeSolid.faAngleDoubleRight,
           cursor.pointer,
           onClick(None).foreach(parentIdAction),
+          onGlobalClick(None).foreach(parentIdAction),
         ),
         div(
           marginLeft := "5px",
