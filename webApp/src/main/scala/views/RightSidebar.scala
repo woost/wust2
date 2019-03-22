@@ -104,7 +104,7 @@ object RightSidebar {
         ),
         styles = "styled fluid",
         exclusive = false, //BrowserDetect.isMobile,
-        initialActive = Seq(0, 1, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
+        initialActive = Seq(0, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
       ).apply(
         height := "100%",
         marginBottom := "5px",
