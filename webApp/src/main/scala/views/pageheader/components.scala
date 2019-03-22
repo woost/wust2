@@ -95,7 +95,7 @@ object components {
   def singleTab(parms : TabContextParms, tabInfo : TabInfo) = {
     tabSkeleton(parms, tabInfo)(
       cls := "single",
-      VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
+      // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
     )
   }
 
