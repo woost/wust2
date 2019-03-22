@@ -34,6 +34,15 @@ object DashboardView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+
+    val widgetStyle = VDomModifier(
+      Styles.growFull,
+      backgroundColor := "rgba(255,255,255,0.6)",
+      borderRadius := "10px",
+      margin := "10px",
+      padding := "5px",
+    )
+
     div(
       Styles.flex,
       flexDirection.column,
@@ -43,7 +52,12 @@ object DashboardView {
 
       //TODO: renderSubprojects mit summary
       renderSubprojects(state, focusState),
-      renderProjectStats(state, focusState)
+      div(
+        Styles.growFull,
+        Styles.flex,
+        ListView(state, focusState).apply(widgetStyle),
+        ChatView(state, focusState).apply(widgetStyle),
+      )
     )
   }
 
@@ -179,55 +193,6 @@ object DashboardView {
             height := "30px"
           )
       },
-    )
-  }
-
-  private def renderProjectStats(state: GlobalState, focusState: FocusState)(implicit ctx:Ctx.Owner):VNode = {
-    //TODO: move styling into css classes
-    val commonStyles = VDomModifier(
-      fontSize := "2em",
-      alignItems.center,
-      margin := "10px 10px 10px 0px",
-      padding := "10px",
-      borderRadius := "3px",
-    )
-
-    div(
-      Styles.flex,
-      flexDirection.row,
-      justifyContent.flexStart,
-      alignItems.flexStart,
-
-      marginTop := "30px",
-
-      Rx {
-        val graph = state.graph()
-        val stats = graph.topLevelRoleStats(focusState.focusedId :: Nil)
-        stats.roleCounts.collect{
-          case (NodeRole.Message, count) => 
-            div(
-              Styles.flex,
-              commonStyles,
-              div(cls := "fa-fw", Icons.conversation),
-              div(count, marginLeft := "0.5em"),
-              onClick foreach {
-                focusState.viewAction(View.Conversation)
-              },
-              cursor.pointer,
-            )
-          case (NodeRole.Task, count) =>
-            div(
-              Styles.flex,
-              commonStyles,
-              div(cls := "fa-fw", Icons.tasks),
-              div(count, marginLeft := "0.5em"),
-              onClick foreach {
-                focusState.viewAction(View.Tasks)
-              },
-              cursor.pointer,
-            )
-        }
-      }
     )
   }
 }

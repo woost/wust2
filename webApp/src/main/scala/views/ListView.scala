@@ -157,7 +157,7 @@ object ListView {
       state.eventProcessor.changes.onNext(change)
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
+    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add a task."
 
     div(
       Rx {
