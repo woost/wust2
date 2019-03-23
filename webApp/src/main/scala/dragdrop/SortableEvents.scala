@@ -45,7 +45,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     //    dragStartEvent.onNext(e)
     DevOnly {
       val payload = readDragPayload(e.originalSource)
-      scribe.info(s"\ndrag start: $payload")
+      println(s"\ndrag start: $payload")
     }
   })
 
@@ -60,7 +60,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       for {
         overContainer <- e.overContainer
         container <- readDragContainer(overContainer)
-      } { scribe.info(s"Dragging over container: $container") }
+      } { println(s"Dragging over container: $container") }
     }
     currentOverContainerEvent = js.defined(e)
   })
@@ -77,7 +77,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val payload: js.UndefOr[DragPayload] = readDragPayload(sortableStartEvent.dragEvent.originalSource)
     payload.foreach(writeDragPayload(sortableStartEvent.dragEvent.source, _))
 
-    if (payload == js.defined(DragItem.DisableDrag)) { scribe.info("Drag is disabled on this element."); sortableStartEvent.cancel() }
+    if (payload == js.defined(DragItem.DisableDrag)) { println("Drag is disabled on this element."); sortableStartEvent.cancel() }
   })
 
 
@@ -90,7 +90,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
         if(overSortcontainer) {
-          scribe.info("over sortcontainer, validating sort information...")
+          println("over sortcontainer, validating sort information...")
           validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrlDown, shiftDown)
         } else {
           // drag action is handled by dragOverEvent instead
@@ -103,14 +103,14 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   draggable.on[DragOverEvent]("drag:over", (dragOverEvent: DragOverEvent) => {
     snabbdom.VNodeProxy.setDirty(dragOverEvent.overContainer)
     DevOnly {
-      readDragTarget(dragOverEvent.over).foreach { target => scribe.info(s"Dragging over: $target") }
+      readDragTarget(dragOverEvent.over).foreach { target => println(s"Dragging over: $target") }
     }
     currentOverEvent = js.defined(dragOverEvent)
 
     val notOverSortContainer = !readDragContainer(dragOverEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
     if (notOverSortContainer) {
-      scribe.info("not over sort container, validating drag information...")
+      println("not over sort container, validating drag information...")
       validateDragInformation(dragOverEvent, ctrlDown, shiftDown)
     } else {
       // drag action is handled by sortableSortEvent instead
@@ -134,7 +134,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
             performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
           }
         case _ =>
-          scribe.info("dropped outside container or target")
+          println("dropped outside container or target")
       }
     } finally {
       onStopDrag()
