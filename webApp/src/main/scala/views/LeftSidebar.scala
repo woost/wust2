@@ -71,46 +71,70 @@ object LeftSidebar {
 
   val buttonStyles = "tiny compact inverted grey"
 
+
+  def expandToggleButton(state: GlobalState, node:Node, expanded: Boolean) = {
+    div(
+      padding := "3px",
+      cursor.pointer,
+      if(expanded)
+        VDomModifier(
+          Icons.collapse,
+          onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes
+        )
+      else
+        VDomModifier(
+          Icons.expand,
+          onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes
+        )
+    )
+  }
+
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    def channelLine(node: Node, pageParentId: Option[NodeId], pageStyle: PageStyle): VNode = {
+    def channelLine(state: GlobalState, node: Node, pageParentId: Option[NodeId], pageStyle: PageStyle, expanded: Boolean, hasChildren: Boolean): VNode = {
       val selected = pageParentId contains node.id
       div(
-        cls := "channel-line",
-        selected.ifTrueSeq(
-          Seq(
-            color := CommonStyles.sidebarBgColor,
-            backgroundColor := pageStyle.sidebarBgHighlightColor
-          )
-        ),
+        Styles.flex,
+        expandToggleButton(state, node, expanded).apply(VDomModifier.ifNot(hasChildren)(visibility.hidden)),
+        div(
+          flexGrow := 1,
+          cls := "channel-line",
+          selected.ifTrueSeq(
+            Seq(
+              color := CommonStyles.sidebarBgColor,
+              backgroundColor := pageStyle.sidebarBgHighlightColor
+            )
+          ),
 
-        channelIcon(state, node, selected, 30),
+          channelIcon(state, node, selected, 30),
 
-        {
-          val rendered = renderAsOneLineText(node)(cls := "channel-name")
-          if (state.user.now.id == node.id) b(rendered) else rendered
-        },
+          {
+            val rendered = renderAsOneLineText(node)(cls := "channel-name")
+            if (state.user.now.id == node.id) b(rendered) else rendered
+          },
 
-        onChannelClick(ChannelAction.Node(node.id))(state),
-        onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
-        cls := "node",
-        node match {
-          case _:Node.Content => drag(DragItem.Channel(node.id))
-          case _:Node.User => drag(target = DragItem.Channel(node.id))
-        },
+          onChannelClick(ChannelAction.Node(node.id))(state),
+          onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
+          cls := "node",
+          node match {
+            case _:Node.Content => drag(DragItem.Channel(node.id))
+            case _:Node.User => drag(target = DragItem.Channel(node.id))
+          },
+        )
       )
     }
 
-    def channelList(channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
+    def channelList(state: GlobalState, graph: Graph, channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
+      val expanded:Boolean = graph.isExpanded(state.user.now.id, channels.node.id).getOrElse(true)
       div(
-        channelLine(channels.node, pageParentId, pageStyle),
+        channelLine(state, channels.node, pageParentId, pageStyle, expanded = expanded, hasChildren = channels.hasChildren),
         channels match {
-          case Tree.Parent(_, children) => div(
+          case Tree.Parent(_, children) if expanded => div(
             paddingLeft := "10px",
             fontSize := s"${ math.max(8, 14 - depth) }px",
-            children.map { child => channelList(child, pageParentId, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+            children.map { child => channelList(state, graph, child, pageParentId, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
-          case Tree.Leaf(_)             => VDomModifier.empty
+          case _             => VDomModifier.empty
         }
       )
     }
@@ -130,6 +154,7 @@ object LeftSidebar {
       cls := "channels",
       Rx {
         val channelForest = state.channelForest()
+        val graph = state.graph()
         val page = state.page()
         val pageStyle = state.pageStyle()
         val user = state.user()
@@ -138,16 +163,17 @@ object LeftSidebar {
           // channelLine(user.toNode, page.parentId, pageStyle),
           // channelForest.nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("workspaces")(cls := "inverted")),
           channelForest.map { channelTree =>
-            channelList(channelTree, page.parentId, pageStyle)
+            channelList(state, graph, channelTree, page.parentId, pageStyle)
           },
         )
       },
       Rx{
         val page = state.page()
         val pageStyle = state.pageStyle()
+        val graph = state.graph()
         VDomModifier(
           invites().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
-          invites().map(node => channelLine(node, page.parentId, pageStyle).apply(
+          invites().map(node => channelLine(state, node, page.parentId, pageStyle, expanded = graph.isExpanded(state.user.now.id, node.id).getOrElse(true), hasChildren = false).apply(
             div(
               cls := "ui icon buttons",
               height := "22px",

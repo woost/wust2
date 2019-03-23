@@ -1241,15 +1241,18 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
 sealed trait Tree {
   def node: Node
+  def hasChildren: Boolean
   def flatten: List[Node]
   def flattenWithDepth(depth: Int = 0): List[(Node, Int)]
 }
 object Tree {
   case class Parent(node: Node, children: List[Tree]) extends Tree {
+    override def hasChildren = children.nonEmpty
     override def flatten: List[Node] = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
     override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: (children.flatMap(_.flattenWithDepth(depth + 1))(breakOut): List[(Node, Int)])
   }
   case class Leaf(node: Node) extends Tree {
+    override def hasChildren = false
     override def flatten: List[Node] = node :: Nil
     override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: Nil
   }

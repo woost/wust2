@@ -389,7 +389,7 @@ object KanbanView {
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes)
       val collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.disconnect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
       def toggle(compress : Boolean) = Rx {
         if(state.graph().isExpanded(state.user.now.id, node.id).getOrElse(false))
           collapse(compress)
