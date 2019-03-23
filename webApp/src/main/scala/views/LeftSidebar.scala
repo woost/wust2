@@ -91,7 +91,7 @@ object LeftSidebar {
 
   def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
 
-    def channelLine(state: GlobalState, node: Node, pageParentId: Option[NodeId], pageStyle: PageStyle, expanded: Boolean, hasChildren: Boolean): VNode = {
+    def channelLine(node: Node, pageParentId: Option[NodeId], pageStyle: PageStyle, expanded: Boolean, hasChildren: Boolean): VNode = {
       val selected = pageParentId contains node.id
       div(
         Styles.flex,
@@ -124,15 +124,15 @@ object LeftSidebar {
       )
     }
 
-    def channelList(state: GlobalState, graph: Graph, channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
+    def channelList(graph: Graph, channels: Tree, pageParentId: Option[NodeId], pageStyle: PageStyle, depth: Int = 0): VNode = {
       val expanded:Boolean = graph.isExpanded(state.user.now.id, channels.node.id).getOrElse(true)
       div(
-        channelLine(state, channels.node, pageParentId, pageStyle, expanded = expanded, hasChildren = channels.hasChildren),
+        channelLine(channels.node, pageParentId, pageStyle, expanded = expanded, hasChildren = channels.hasChildren),
         channels match {
           case Tree.Parent(_, children) if expanded => div(
             paddingLeft := "10px",
             fontSize := s"${ math.max(8, 14 - depth) }px",
-            children.map { child => channelList(state, graph, child, pageParentId, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+            children.map { child => channelList(graph, child, pageParentId, pageStyle, depth = depth + 1) }(breakOut): Seq[VDomModifier]
           )
           case _             => VDomModifier.empty
         }
@@ -157,13 +157,10 @@ object LeftSidebar {
         val graph = state.graph()
         val page = state.page()
         val pageStyle = state.pageStyle()
-        val user = state.user()
 
         VDomModifier(
-          // channelLine(user.toNode, page.parentId, pageStyle),
-          // channelForest.nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("workspaces")(cls := "inverted")),
           channelForest.map { channelTree =>
-            channelList(state, graph, channelTree, page.parentId, pageStyle)
+            channelList(graph, channelTree, page.parentId, pageStyle)
           },
         )
       },
@@ -173,7 +170,7 @@ object LeftSidebar {
         val graph = state.graph()
         VDomModifier(
           invites().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
-          invites().map(node => channelLine(state, node, page.parentId, pageStyle, expanded = graph.isExpanded(state.user.now.id, node.id).getOrElse(true), hasChildren = false).apply(
+          invites().map(node => channelLine(node, page.parentId, pageStyle, expanded = graph.isExpanded(state.user.now.id, node.id).getOrElse(true), hasChildren = false).apply(
             div(
               cls := "ui icon buttons",
               height := "22px",
@@ -205,39 +202,58 @@ object LeftSidebar {
     val focusBorderWidth = 2
     val defaultPadding = CommonStyles.channelIconDefaultPadding
     val maxVisualizedDepth = 2
+
+
+    def channelIconList(graph: Graph, channels: Tree, pageParentId: Option[NodeId], depth: Int = 0): VDomModifier = {
+      val expanded:Boolean = graph.isExpanded(state.user.now.id, channels.node.id).getOrElse(true)
+      VDomModifier(
+        channelIconLine(channels.node, pageParentId, depth, expanded = expanded, hasChildren = channels.hasChildren),
+        channels match {
+          case Tree.Parent(_, children) if expanded => 
+            children.map { child => channelIconList(graph, child, pageParentId, depth = depth + 1) }(breakOut): Seq[VDomModifier]
+          case _             => VDomModifier.empty
+        }
+      )
+    }
+
+    def channelIconLine(node: Node, pageParentId: Option[NodeId], depth: Int, expanded: Boolean, hasChildren: Boolean): VNode = {
+      val isSelected = pageParentId.contains(node.id)
+      channelIcon(state, node, isSelected, size)(ctx)(
+        UI.popup("right center") := node.str,
+
+        onChannelClick(ChannelAction.Node(node.id))(state),
+        onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
+        drag(target = DragItem.Channel(node.id)),
+        cls := "node",
+        // for each indent, steal padding on left and right
+        // and reduce the width, so that the icon keeps its size
+        width := s"${ size-(depth*indentFactor) }px",
+        marginLeft := s"${depth*indentFactor}px",
+        if(isSelected) VDomModifier(
+          height := s"${ size-(2*focusBorderWidth) }px",
+          marginTop := "2px",
+          marginBottom := "2px",
+          padding := s"${defaultPadding - focusBorderWidth}px ${defaultPadding - (depth*indentFactor/2.0)}px",
+        ) else VDomModifier(
+          padding := s"${defaultPadding}px ${defaultPadding - (depth*indentFactor/2.0)}px",
+        ),
+      )
+    }
+
     div(
       cls := "channelIcons",
       Rx {
-        val allChannels = state.channels()
-        val user = state.user()
+        val channelForest = state.channelForest()
+        val graph = state.graph()
         val page = state.page()
-        VDomModifier(
-          (allChannels).map { case (node,rawDepth) =>
-            val depth = rawDepth min maxVisualizedDepth
-            val isSelected = page.parentId.contains(node.id)
-            channelIcon(state, node, isSelected, size)(ctx)(
-              UI.popup("right center") := node.str,
+        val pageStyle = state.pageStyle()
 
-              onChannelClick(ChannelAction.Node(node.id))(state),
-              onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-              drag(target = DragItem.Channel(node.id)),
-              cls := "node",
-              // for each indent, steal padding on left and right
-              // and reduce the width, so that the icon keeps its size
-              width := s"${ size-(depth*indentFactor) }px",
-              marginLeft := s"${depth*indentFactor}px",
-              if(isSelected) VDomModifier(
-                height := s"${ size-(2*focusBorderWidth) }px",
-                marginTop := "2px",
-                marginBottom := "2px",
-                padding := s"${defaultPadding - focusBorderWidth}px ${defaultPadding - (depth*indentFactor/2.0)}px",
-              ) else VDomModifier(
-                padding := s"${defaultPadding}px ${defaultPadding - (depth*indentFactor/2.0)}px",
-              ),
-            )
+        VDomModifier(
+          channelForest.map { channelTree =>
+            channelIconList(graph, channelTree, page.parentId)
           },
         )
-      }
+      },
     )
   }
 
