@@ -299,7 +299,7 @@ object KanbanView {
       Styles.flex,
       Styles.flexStatic,
       margin := "5px 5px 5px auto",
-      div(Icons.conversation, marginRight := "5px"),
+      div(Icons.conversation, marginLeft := "5px", marginRight := "5px"),
     )
   }
 
@@ -421,7 +421,7 @@ object KanbanView {
         minWidth := "40px",
         backgroundColor := "#eee",
         borderRadius := "2px",
-        margin := "3px 10px",
+        margin := "3px 5px",
         div(
           height := "3px",
           padding := "0",
@@ -496,7 +496,7 @@ object KanbanView {
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
             renderMessageCount(
               taskStats().messageChildrenCount,
-              UI.popup := "Zoom to show comments",
+              UI.popup := "Show comments",
               onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
