@@ -532,7 +532,8 @@ object KanbanView {
         val graph = state.graph()
         val userId = state.user().id
         VDomModifier.ifTrue(graph.isExpanded(userId, node.id).getOrElse(false))(
-          ListView(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
+          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
+            paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             drag(DragItem.DisableDrag),
           )

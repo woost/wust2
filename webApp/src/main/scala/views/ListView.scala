@@ -24,32 +24,31 @@ object ListView {
   import SharedViewElements._
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      Styles.flex,
-      justifyContent.spaceBetween,
-
-      div(
+      fieldAndList(state, focusState).apply(
         overflow.auto,
         padding := "5px",
         flexGrow := 2,
-
-        addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
-
-        Rx {
-          val graph = state.graph()
-
-          val kanbanData = KanbanView.KanbanData.calculate(graph, focusState.focusedId)
-          // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
-
-          VDomModifier(
-            registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, kanbanData.columnTree.map(_.node.id))),
-
-            renderInboxColumn(state, focusState, kanbanData.inboxNodes),
-
-            renderColumns(state, graph, focusState, parentId = focusState.focusedId, children = kanbanData.columnTree),
-          )
-        }
       )
+  }
+
+  def fieldAndList(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner) = {
+    div(
+      addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
+
+      Rx {
+        val graph = state.graph()
+
+        val kanbanData = KanbanView.KanbanData.calculate(graph, focusState.focusedId)
+        // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
+
+        VDomModifier(
+          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, kanbanData.columnTree.map(_.node.id))),
+
+          renderInboxColumn(state, focusState, kanbanData.inboxNodes),
+
+          renderColumns(state, graph, focusState, parentId = focusState.focusedId, children = kanbanData.columnTree),
+        )
+      }
     )
   }
 
