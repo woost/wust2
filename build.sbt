@@ -21,6 +21,7 @@ lazy val commonSettings = Seq(
     ("Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots") ::
       Resolver.jcenterRepo ::
       ("jitpack" at "https://jitpack.io") ::
+      Resolver.sonatypeRepo("releases") ::
       Nil,
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8"),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.2.4"),
@@ -386,6 +387,25 @@ lazy val dbUtil = project
           Deps.circe.parser.value ::
           Deps.circe.genericExtras.value ::
           Nil
+  )
+
+lazy val cli = project
+  .enablePlugins(GraalVMNativeImagePlugin)
+  .dependsOn(apiJVM)
+  .settings(
+    // taken from: https://github.com/vmencik/akka-graal-native
+    graalVMNativeImageOptions ++=
+      "-H:ReflectionConfigurationFiles=" + baseDirectory.value / "reflectconf-akka.json" ::
+      "-H:IncludeResources=.*conf" ::
+      "--enable-url-protocols=https,http" ::
+      "--rerun-class-initialization-at-runtime=com.typesafe.config.impl.ConfigImpl$EnvVariablesHolder,com.typesafe.config.impl.ConfigImpl$SystemPropertiesHolder" ::
+      Nil,
+    libraryDependencies ++=
+      // required for substitutions: AkkaSubstitutions
+      Deps.substrateVM.value ::
+      Deps.akka.httpCirce.value ::
+      Deps.caseApp.value ::
+      Nil
   )
 
 lazy val core = project

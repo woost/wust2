@@ -101,14 +101,16 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
 
   // Simple Api
-  override def getTasks(parentId: NodeId): ApiFunction[List[api.Task]] = Action.requireUser { (state, user) =>
-    getPage(user.id, wust.graph.Page(parentId = Some(parentId))).map { graph =>
-      graph.idToIdxGet(parentId).fold(List.empty[api.Task]){ parentIdx =>
-        (graph.notDeletedChildrenIdx(parentIdx) collect {
-          case childIdx if graph.nodes(childIdx).role == NodeRole.Task =>
-          val node = graph.nodes(childIdx)
-          api.Task(node.id, node.str)
-        })(breakOut)
+  // TODO: more efficient
+  override def getNodeList(parentId: Option[NodeId], nodeRole: Option[NodeRole] = None): ApiFunction[List[api.SimpleNode]] = Action.requireUser { (state, user) =>
+    getPage(user.id, wust.graph.Page(parentId = parentId)).map { graph =>
+      def toSimpleNode(node: Node): Option[SimpleNode] = node match {
+        case node: Node.Content if nodeRole.forall(node.role == _) => Some(api.SimpleNode(node.id, node.str, node.role))
+        case _ => None
+      }
+
+      parentId.flatMap(graph.idToIdxGet).fold[List[api.SimpleNode]](graph.nodes.flatMap(toSimpleNode)(breakOut)) { parentIdx =>
+        graph.notDeletedChildrenIdx(parentIdx).flatMap(idx => toSimpleNode(graph.nodes(idx)))(breakOut)
       }
     }
   }

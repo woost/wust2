@@ -1,4 +1,4 @@
-enablePlugins(DockerPlugin)
+enablePlugins(sbtdocker.DockerPlugin)
 
 dockerfile in docker := {
   val webpackFolder = {
