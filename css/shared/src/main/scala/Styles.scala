@@ -759,8 +759,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard > .checkbox" - (
-    marginTop(5 px),
-    marginLeft(5 px),
+    marginTop(3 px),
+    marginLeft(3 px),
     marginRight(3 px),
   )
 
