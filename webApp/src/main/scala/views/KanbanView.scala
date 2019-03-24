@@ -510,7 +510,10 @@ object KanbanView {
       maxLength = Some(maxLength),
       contentInject = VDomModifier(
         VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-        VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px") // marginRight to not interfere with button bar...
+        VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px"), // marginRight to not interfere with button bar...
+        VDomModifier.ifNot(showCheckbox)(
+          marginLeft := "2px"
+        )
       ),
       nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
     ).prepend(
