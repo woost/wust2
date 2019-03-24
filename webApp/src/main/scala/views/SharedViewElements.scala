@@ -174,6 +174,7 @@ object SharedViewElements {
           val str = currentTextArea.value
           handleInput(str)
           currentTextArea.value = ""
+          autoResizer.trigger()
         },
       )
     )
