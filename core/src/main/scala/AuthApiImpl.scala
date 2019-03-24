@@ -71,7 +71,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     }
   }
 
-  def loginReturnToken(email: String, password: String): ApiFunction[Option[Authentication.Token]] = Effect { state =>
+  def loginReturnToken(email: String, password: String): ApiFunction[Option[Authentication.Verified]] = Effect { state =>
     val digest = passwordDigest(password)
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -80,13 +80,13 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
             db.ctx.transaction { implicit ec =>
               db.user.mergeImplicitUser(prevUserId, user.id).map {
                 case true =>
-                  resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { auth => Some(auth.token) }
+                  resultOnVerifiedAuthAfterLogin(user, replaces = Some(prevUserId)).map { auth => Some(auth) }
                 case false =>
                   scribe.warn("Failed to merge implicit user for login: " + user)
                   Returns.error(ApiError.InternalServerError)
               }
             }
-          case _ => Future.successful(resultOnVerifiedAuthAfterLogin(user).map { auth => Some(auth.token) })
+          case _ => Future.successful(resultOnVerifiedAuthAfterLogin(user).map { auth => Some(auth) })
         }
 
       case Some(_) => Future.successful(Returns(None))

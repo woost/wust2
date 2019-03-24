@@ -1,0 +1,4 @@
+#/bin/sh
+
+[[ -n "$GRAAL_HOME" ]] && export args="-Djava.library.path=${GRAAL_HOME}/jre/lib/amd64" || args=""
+cli/target/graalvm-native-image/cli $args $@

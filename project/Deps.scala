@@ -77,10 +77,14 @@ object Deps {
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
   val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "52e497d")
+  val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
+
+  // graalvm
+  val substrateVM = dep("com.oracle.substratevm" % "svm" % "1.0.0-rc14" % Provided) // make sure the version matches GraalVM version used to run native-image
 
   // rpc
   val covenant = new {
-    private val version = "49566c6"
+    private val version = "39b34ac"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)

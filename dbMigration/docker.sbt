@@ -32,9 +32,9 @@ lazy val dbMigration = project
   .aggregate(dbMigrationCore, dbMigrationCoreTests)
 lazy val dbMigrationCore = project
   .in(file("core"))
-  .enablePlugins(DockerPlugin)
+  .enablePlugins(sbtdocker.DockerPlugin)
   .settings(dockerDbMigration("core"))
 lazy val dbMigrationCoreTests = project
   .in(file("core/tests"))
-  .enablePlugins(DockerPlugin)
+  .enablePlugins(sbtdocker.DockerPlugin)
   .settings(dockerPostgresTests("core"))
