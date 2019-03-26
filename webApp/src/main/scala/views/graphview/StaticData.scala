@@ -65,7 +65,7 @@ class StaticData(
     var eulerZones:Array[Set[Int]],
     var eulerZoneNodes: NestedArrayInt,
     var eulerZoneArea: Array[Double],
-    var eulerZoneNeighbourhoods:InterleavedArray[Int],
+    var eulerZoneNeighbourhoods:InterleavedArrayInt,
 
     var eulerSetConnectedComponentCount:Int,
     var eulerSetConnectedComponentNodes: NestedArrayInt,

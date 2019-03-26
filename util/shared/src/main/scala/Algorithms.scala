@@ -630,7 +630,7 @@ object algorithm {
     sorted
   }
 
-  def eulerDiagramDualGraph(parents:NestedArrayInt, children:NestedArrayInt, isEulerSet: Int => Boolean): (Array[Set[Int]], NestedArrayInt, InterleavedArray[Int]) = {
+  def eulerDiagramDualGraph(parents:NestedArrayInt, children:NestedArrayInt, isEulerSet: Int => Boolean): (Array[Set[Int]], NestedArrayInt, InterleavedArrayInt) = {
 
     // for each node, the set of parent nodes identifies its zone
     val zoneGrouping:Seq[(Set[Int],Seq[Int])] = parents.indices
@@ -664,7 +664,7 @@ object algorithm {
     }
 
     val neighbourhoods = neighbourhoodBuilder.result()
-    val edges = InterleavedArray.create[Int](neighbourhoods.length)
+    val edges = InterleavedArrayInt.create(neighbourhoods.length)
     neighbourhoods.foreachIndexAndElement{ (i, ab) =>
       edges.updatea(i, ab._1)
       edges.updateb(i, ab._2)
