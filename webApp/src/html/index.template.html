@@ -57,5 +57,10 @@
     <div id="modal-placeholder"></div>
     <div id="sidebar-placeholder"></div>
     <div id="container"></div>
+
+    <% if (htmlWebpackPlugin.options.minify) { %>
+    <script async src="https://cdn.nolt.io/widgets.js"></script>
+    <script>window.noltQueue=window.noltQueue||[];function nolt(){noltQueue.push(arguments)}</script>
+    <% } %>
   </body>
 </html>

@@ -44,7 +44,15 @@ const staticCopyAssets = [
     { from: 'node_modules/fomantic-ui-css/semantic.min.js', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' }
 ];
-const staticIncludeAssets = [ 'jquery.min.js', 'jquery.tablesort.min.js', 'clipboard.min.js', 'emoji.min.js', 'semantic/semantic.min.js', 'semantic/semantic.min.css', 'highlight/atom-one-light.css' ];
+const staticIncludeAssets = [
+    'jquery.min.js',
+    'jquery.tablesort.min.js',
+    'clipboard.min.js',
+    'emoji.min.js',
+    'semantic/semantic.min.js' ,
+    'semantic/semantic.min.css' ,
+    'highlight/atom-one-light.css',
+];
 
 const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
 

@@ -47,12 +47,18 @@ object Topbar {
     })
   }
 
-  def voteForFeatures = a(
+  def voteForFeatures = button(
     "Vote on upcoming features",
     cls := "ui violet tiny compact button",
-    href := "https://woost.nolt.io",
-    Elements.safeTargetBlank,
     marginLeft.auto,
+    cls := "vote-button",
+    snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
+    onDomMount.foreach { _ =>
+      nolt.nolt("init", new nolt.NoltData { 
+        var url = "https://woost.nolt.io"
+        var selector = ".vote-button"
+      });
+    }
   )
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
