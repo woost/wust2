@@ -15,7 +15,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids.View
 import wust.util.RichBoolean
-import wust.webApp.{Client, Ownable}
+import wust.webApp.{Client, Ownable, DevOnly}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 
@@ -53,12 +53,14 @@ object Topbar {
     marginLeft.auto,
     cls := "vote-button",
     snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
-    onDomMount.foreach { _ =>
-      nolt.nolt("init", new nolt.NoltData { 
-        var url = "https://woost.nolt.io"
-        var selector = ".vote-button"
-      });
-    }
+    VDomModifier.ifNot(DevOnly.isTrue)(
+      onDomMount.foreach { _ =>
+        nolt.nolt("init", new nolt.NoltData { 
+          var url = "https://woost.nolt.io"
+          var selector = ".vote-button"
+        });
+      }
+    )
   )
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
