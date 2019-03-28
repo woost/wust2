@@ -257,6 +257,11 @@ lazy val utilJVM = util.jvm
 lazy val bench = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
   .dependsOn(graph)
+  .settings(
+    libraryDependencies ++=
+      Deps.bench.value ::
+      Nil,
+  )
   .jsSettings(
     useYarn := true, // makes scalajs-bundler use yarn instead of npm
     scalaJSStage in Global := FullOptStage,

@@ -1,9 +1,10 @@
-package bench
+package wust.bench
 
 import scala.concurrent.duration._
-import Util._
+import bench._
+import bench.util._
 import wust.util.algorithm
-import flatland._
+import flatland.NestedArrayInt
 
 object GraphBenchmarks {
   val algorithms = Comparison("Algorithms", {
@@ -69,7 +70,7 @@ object GraphBenchmarks {
       Benchmark[Graph]("parents path",
       { size =>
         val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-        val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id))
+        val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id))}
         Graph(nodes, edges)
       },
       (graph, _) =>
