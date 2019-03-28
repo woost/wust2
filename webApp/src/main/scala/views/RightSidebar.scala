@@ -185,12 +185,21 @@ object RightSidebar {
                   cls := "enable-text-selection",
                   onClick.stopPropagation(true) --> editMode
                 ),
-                // TOOD: Delete button
-                // div(
-                //   Icons.delete,
-                //   marginLeft := "5px",
-                //   cursor.pointer,
-                // )
+                Rx{
+                  val graph = state.graph()
+                  VDomModifier.ifTrue(graph.hasParents(node.id))(
+                    div(
+                      Icons.delete,
+                      padding := "8px 5px",
+                      cursor.pointer,
+                      onClick.stopPropagation.foreach { _ =>
+                        state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(node.id), graph))
+                        parentIdAction(None)
+                      },
+                      cursor.pointer, UI.popup := "Archive"
+                    )
+                  )
+                }
               ),
             )
           }
