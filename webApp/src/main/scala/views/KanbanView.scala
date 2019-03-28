@@ -523,7 +523,7 @@ object KanbanView {
         taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )
     ).apply(
-      VDomModifier.ifNot(isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
+      VDomModifier.ifNot(isDone)(drag(dragPayload(node.id))),
       keyed(node.id, parentId),
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,

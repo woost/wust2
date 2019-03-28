@@ -5,6 +5,7 @@ import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
@@ -12,6 +13,7 @@ import wust.webApp.{ItemProperties, Icons}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
+import Components._
 
 import scala.collection.breakOut
 
@@ -51,7 +53,8 @@ object TableView {
           case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row)
         },
         cellModifier
-      )
+      ),
+      rowModifier = VDomModifier(drag(target = DragItem.Task(row)))
     )
 
     def columnHeader(name: String) = VDomModifier(
@@ -236,7 +239,8 @@ object TableView {
 
           ()
         }
-      )
+      ),
+      registerDragContainer(state, DragContainer.Default)
     )
   }
 
