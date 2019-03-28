@@ -123,7 +123,7 @@ object TableView {
         }(breakOut)
       ) ::
       UI.Column(
-        columnHeader("Node"),
+        columnHeader("Name"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, Array(None -> property.node))
         }(breakOut)
