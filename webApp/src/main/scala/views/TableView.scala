@@ -54,7 +54,7 @@ object TableView {
         },
         cellModifier
       ),
-      rowModifier = VDomModifier(drag(target = DragItem.Task(row)))
+      rowModifier = DragItem.fromNodeRole(row.id, row.role).map(item => drag(target = item))
     )
 
     def columnHeader(name: String) = VDomModifier(
