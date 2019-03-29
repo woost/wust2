@@ -8,7 +8,7 @@ import scala.collection.breakOut
 object PropertyData {
 
   case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
-  case class PropertyGroupValue(nodeId: NodeId, values: Array[PropertyValue])
+  case class PropertyGroupValue(node: Node, values: Array[PropertyValue])
   case class SingleProperty(key: String, values: Array[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
@@ -50,7 +50,7 @@ object PropertyData {
       val allProperties: Array[String] = infos.flatMap(_.propertyMap.keys).distinct.sorted
       val groupProperties: Array[GroupProperty] = allProperties.map { propertyKey =>
         GroupProperty(propertyKey, infos.map { info =>
-          PropertyGroupValue(info.node.id, info.propertyMap.getOrElse(propertyKey, Array()))
+          PropertyGroupValue(info.node, info.propertyMap.getOrElse(propertyKey, Array()))
         })
       }
 
