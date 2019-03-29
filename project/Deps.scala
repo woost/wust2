@@ -80,7 +80,7 @@ object Deps {
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 
   // graalvm
-  val substrateVM = dep("com.oracle.substratevm" % "svm" % "1.0.0-rc14" % Provided) // make sure the version matches GraalVM version used to run native-image
+  val substrateVM = dep("com.oracle.substratevm" % "svm" % "1.0.0-rc8" % Provided) // make sure the version matches GraalVM version used to run native-image
 
   // rpc
   val covenant = new {

@@ -7,7 +7,7 @@
   {
     "name": "akka.actor.ActorCell",
     "fields" : [
-      { "name" : "props", "allowWrite" : true }
+      { "name" : "props" }
     ]
   },
   {
@@ -270,8 +270,8 @@
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "fields" : [
-      { "name" : "context", "allowWrite" : true },
-      { "name" : "self", "allowWrite" : true }
+      { "name" : "context" },
+      { "name" : "self" }
     ]
   },
   {
@@ -279,8 +279,8 @@
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "fields" : [
-      { "name" : "context", "allowWrite" : true },
-      { "name" : "self", "allowWrite" : true }
+      { "name" : "context" },
+      { "name" : "self" }
     ]
   }
 ]
