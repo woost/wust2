@@ -11,6 +11,7 @@ in
       scala sbt
       docker
       docker_compose
+      graalvm8
       # python36Packages.docker_compose
       # python27Packages.docker_compose
       # python27Packages.backports_ssl_match_hostname
@@ -70,5 +71,14 @@ in
     # mkdir -p ~/.android/sbt/sdk/{platform-tools,build-tools/27.0.3}/
     # cp -a $\{pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/platform-tools/
     # cp -a $\{pkgs.androidsdk}/bin/* ~/.android/sbt/sdk/build-tools/27.0.3/
+
+    cat <<EOF
+    Cli:
+    You can build the cli with ./build-woost-cli.sh. Then run it with ./woost-cli
+    Requirement for running ./woost-cli:
+    # wget https://github.com/oracle/graal/releases/download/vm-1.0.0-rc14/graalvm-ce-1.0.0-rc14-linux-amd64.tar.gz
+    # tar -xvf graalvm-ce-1.0.0-rc14-linux-amd64.tar.gz
+    # export GRAAL_HOME=/path/to/graalvm-ce-1.0.0-rc14-linux-amd64
+    EOF
     '';
   }
