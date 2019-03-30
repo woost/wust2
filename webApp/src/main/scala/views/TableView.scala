@@ -98,7 +98,7 @@ object TableView {
     }
 
     val childrenIdxs: Array[Int] = {
-      val arr = graph.notDeletedChildrenIdx(focusedIdx).toArray
+      val arr = graph.childrenIdx(focusedIdx).toArray
       if (roles.isEmpty) arr else arr.filter { childrenIdx =>
         val node = graph.nodes(childrenIdx)
         roles.contains(node.role)

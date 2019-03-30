@@ -244,7 +244,7 @@ object GraphChanges {
   }
   def movePinnedChannel(channelId: ChildId, targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = {
     val channelIdx = graph.idToIdx(channelId)
-    val directParentsInChannelTree = graph.notDeletedParentsIdx(channelIdx).collect {
+    val directParentsInChannelTree = graph.parentsIdx(channelIdx).collect {
       case parentIdx if graph.anyAncestorIsPinned(graph.nodeIds(parentIdx) :: Nil, userId) => ParentId(graph.nodeIds(parentIdx))
     }
 

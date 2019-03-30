@@ -18,7 +18,7 @@ object ViewHeuristic {
     case view: View.Visible => view
     case View.Tasks =>
       graph.idToIdxGet(parentId).fold[View.Visible](View.Empty){ parentIdx =>
-        val stageCount = graph.notDeletedChildrenIdx(parentIdx).count { childIdx =>
+        val stageCount = graph.childrenIdx(parentIdx).count { childIdx =>
           val node = graph.nodes(childIdx)
           node.role == NodeRole.Stage && !graph.isDoneStage(node)
         }

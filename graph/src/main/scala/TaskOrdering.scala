@@ -17,7 +17,7 @@ object TaskOrdering {
   }
   // (Re)construct ordering of a parent container.
   def constructOrdering(graph: Graph, parentId: NodeId, customSortWith: Option[(BigDecimal, BigDecimal) => Boolean] = None): Seq[NodeId] = {
-    computeOrder(graph, parentId, graph.notDeletedChildrenIdx(graph.idToIdx(parentId)).map(graph.nodeIds), customSortWith)
+    computeOrder(graph, parentId, graph.childrenIdx(graph.idToIdx(parentId)).map(graph.nodeIds), customSortWith)
   }
 
   // TODO: Make fast

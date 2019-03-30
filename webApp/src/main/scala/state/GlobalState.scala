@@ -121,12 +121,12 @@ class GlobalState(
   val pageWithoutReload: Rx[Page] = viewConfig.map(_.page)
   val pageNotFound:Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
-  val pageHasParents = Rx {
+  val pageHasNotDeletedParents = Rx {
     page().parentId.exists(rawGraph().hasNotDeletedParents)
   }
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
-  val channelForest: Rx[Seq[Tree]] = Rx { rawGraph().channelTree(user().id) }
+  val channelForest: Rx[Seq[Tree]] = Rx { rawGraph().notDeletedChannelTree(user().id) }
 
   val addNodesInTransit: Rx[Set[NodeId]] = {
     val changesAddNodes = eventProcessor.changesInTransit

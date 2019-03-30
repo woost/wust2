@@ -64,7 +64,7 @@ object BreadCrumbs {
         val user = state.user()
         val graph = state.rawGraph()
         parentId.map { (parentId: NodeId) =>
-          val parentDepths: Map[Int, Map[Int, Seq[NodeId]]] = graph.parentDepths(parentId)
+          val parentDepths: Map[Int, Map[Int, Seq[NodeId]]] = graph.notDeletedParentDepths(parentId)
           val distanceToNodes: Seq[(Int, Map[Int, Seq[NodeId]])] = parentDepths.toList.sortBy { case (depth, _) => -depth }
           def elementNodes = distanceToNodes.flatMap { case (distance, gIdToNodeIds) =>
             // when distance is 0, we are either showing ourselves (i.e. id) or

@@ -88,7 +88,7 @@ object GraphBenchmarks {
         randomChannelGraph(size, 0.05)
       },
       { case ((graph, userNode: Node.User), _) =>
-        graph.channelTree(userNode.id)
+        graph.notDeletedChannelTree(userNode.id)
       }
       ),
     )

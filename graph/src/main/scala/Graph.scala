@@ -324,20 +324,18 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             childrenDegree(sourceIdx) += 1
 
             if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+            if(childIsTask) taskChildrenDegree(sourceIdx) += 1
+            if(childIsTag) tagChildrenDegree(sourceIdx) += 1
 
             e.data.deletedAt match {
               case None            =>
                 if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
-                if(childIsTask) taskChildrenDegree(sourceIdx) += 1
-                if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                 if(parentIsTag) tagParentsDegree(targetIdx) += 1
                 notDeletedParentsDegree(targetIdx) += 1
                 notDeletedChildrenDegree(sourceIdx) += 1
               case Some(deletedAt) =>
                 if(deletedAt isAfter now) { // in the future
                   if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
-                  if(childIsTask) taskChildrenDegree(sourceIdx) += 1
-                  if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                   if(parentIsTag) tagParentsDegree(targetIdx) += 1
                   notDeletedParentsDegree(targetIdx) += 1
                   notDeletedChildrenDegree(sourceIdx) += 1
@@ -433,19 +431,17 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         childrenIdxBuilder.add(sourceIdx, targetIdx)
 
         if(childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
+        if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
 
         e.data.deletedAt match {
           case None            =>
-            if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-            if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
           case Some(deletedAt) =>
             if(deletedAt isAfter now) { // in the future
-              if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
-              if(childIsTask) taskChildrenIdxBuilder.add(sourceIdx, targetIdx)
               if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
               if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
               notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
@@ -594,7 +590,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentIds.foreach { nodeId =>
       val nodeIdx = idToIdx(nodeId)
       if (nodeIdx != -1) {
-        notDeletedChildrenIdx.foreachElement(nodeIdx) { childIdx =>
+        childrenIdx.foreachElement(nodeIdx) { childIdx =>
           nodes(childIdx).role match {
             case NodeRole.Message => messageCount += 1
             case NodeRole.Task    => taskCount += 1
@@ -674,10 +670,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def getRoleParents(nodeId: NodeId, nodeRole: NodeRole): IndexedSeq[NodeId] =
-    notDeletedParentsIdx(idToIdx(nodeId)).collect{ case idx if nodes(idx).role == nodeRole => nodeIds(idx) }
+    parentsIdx(idToIdx(nodeId)).collect{ case idx if nodes(idx).role == nodeRole => nodeIds(idx) }
 
   def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
-    notDeletedParentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => idx }
+    parentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => idx }
 
   def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Child] = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).flatMap { e =>
     val parentEdge = e.asInstanceOf[Edge.Child]
@@ -951,7 +947,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       set
     }
 
-    depthFirstSearchExists(starts.result(), notDeletedParentsIdx, isPinnedSet)
+    depthFirstSearchExists(starts.result(), parentsIdx, isPinnedSet)
   }
 
   // IMPORTANT:
@@ -1019,7 +1015,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     inner(nodeIdx, immutable.BitSet.empty)
   }
 
-  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.notDeletedChildrenIdx(workspaceIdx).find { nodeIdx =>
+  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.childrenIdx(workspaceIdx).find { nodeIdx =>
     val node = nodes(nodeIdx)
     isDoneStage(node)
   }
@@ -1028,7 +1024,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
 
   def workspacesForNode(nodeIdx: Int): Array[Int] = {
-    (notDeletedParentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut): Array[Int]).distinct
+    (parentsIdx(nodeIdx).flatMap(workspacesForParent)(breakOut): Array[Int]).distinct
   }
 
   def workspacesForParent(parentIdx: Int): Array[Int] = {
@@ -1037,7 +1033,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case NodeRole.Stage =>
         val workspacesBuilder = new mutable.ArrayBuilder.ofInt
         // search for first transitive parents which are not stages
-        depthFirstSearchAfterStartsWithContinue(Array(parentIdx), notDeletedParentsIdx, { idx =>
+        depthFirstSearchAfterStartsWithContinue(Array(parentIdx), parentsIdx, { idx =>
           nodes(idx).role match {
             case NodeRole.Stage => true
             case _ =>
@@ -1053,7 +1049,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   def isDoneInAllWorkspaces(nodeIdx: Int, workspaces: Array[Int]): Boolean = {
-    @inline def isDoneIn(doneIdx: Int, nodeIdx: Int) = notDeletedChildrenIdx.contains(doneIdx)(nodeIdx)
+    @inline def isDoneIn(doneIdx: Int, nodeIdx: Int) = childrenIdx.contains(doneIdx)(nodeIdx)
     workspaces.forall{ workspaceIdx =>
       doneNodeForWorkspace(workspaceIdx).exists(doneIdx => isDoneIn(doneIdx, nodeIdx))
     }
@@ -1100,8 +1096,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)
     val coveredChildren = ArraySet.create(n)
     nodes.foreachIndex { i =>
-      if (!hasNotDeletedParentsIdx(i)) {
-        coveredChildren ++= notDeletedDescendantsIdx(i)
+      if (!hasParentsIdx(i)) {
+        coveredChildren ++= descendantsIdx(i)
       }
     }
 
@@ -1110,23 +1106,23 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     rootNodesIdx.sizeHint(n)
     nodes.foreachIndex { i =>
       //assert(coveredChildren(i) == coveredChildren(idToIdx(nodes(i).id)))
-      if (coveredChildren.containsNot(i) && (!hasNotDeletedParentsIdx(i) || involvedInNotDeletedContainmentCycleIdx(i)))
+      if (coveredChildren.containsNot(i) && (!hasParentsIdx(i) || involvedInContainmentCycleIdx(i)))
         rootNodesIdx += i
     }
     rootNodesIdx.result()
   }
 
   def redundantTree(root: Int, excludeCycleLeafs: Boolean, visited: ArraySet = ArraySet.create(n)): Tree = {
-    if (visited.containsNot(root) && hasNotDeletedChildrenIdx(root)) {
+    if (visited.containsNot(root) && hasChildrenIdx(root)) {
       visited.add(root)
       if (excludeCycleLeafs) {
-        val nonCycleChildren = notDeletedChildrenIdx(root).filterNot(visited.contains)
+        val nonCycleChildren = childrenIdx(root).filterNot(visited.contains)
         if (nonCycleChildren.nonEmpty) {
           Tree.Parent(nodes(root), (nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
         } else
           Tree.Leaf(nodes(root))
       } else {
-        Tree.Parent(nodes(root), (notDeletedChildrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
+        Tree.Parent(nodes(root), (childrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
       }
     } else
       Tree.Leaf(nodes(root))
@@ -1136,23 +1132,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     if (visited.containsNot(root) && nodes(root).role == role) {
       visited.add(root)
       Tree.Parent(nodes(root), (
-        notDeletedChildrenIdx(root)
+        childrenIdx(root)
           .collect{
             case idx if nodes(idx).role == role => roleTree(idx, role, visited)
-          }(breakOut): List[Tree]
-      ).sortBy(_.node.id))
-    } else
-      Tree.Leaf(nodes(root))
-  }
-
-  def roleTreeWithUserFilter(userNodeIdx: ArraySliceInt, root: Int, role: NodeRole, pageParentIdx: Int, visited: ArraySet = ArraySet.create(n)): Tree = {
-    if (visited.containsNot(root) && nodes(root).role == role) {
-      visited.add(root)
-      Tree.Parent(nodes(root), (
-        notDeletedChildrenIdx(root)
-          .collect{
-            case idx if nodes(idx).role == role => roleTreeWithUserFilter(userNodeIdx, idx, role, pageParentIdx, visited)
-            case idx if notDeletedParentsIdx.contains(idx)(pageParentIdx) && userNodeIdx.contains(idx) => roleTreeWithUserFilter(userNodeIdx, idx, role, pageParentIdx, visited)
           }(breakOut): List[Tree]
       ).sortBy(_.node.id))
     } else
@@ -1166,7 +1148,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree]).sortBy(_.node.id)
   }
 
-  def channelTree(user: UserId): Seq[Tree] = {
+  def notDeletedChannelTree(user: UserId): Seq[Tree] = {
     val userIdx = idToIdx(user)
     val channelIndices = pinnedNodeIdx(userIdx)
     val isChannel = ArraySet.create(n)
@@ -1197,7 +1179,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalMinor.lookup.redundantForestExcludingCycleLeafs
   }
 
-  def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
+  def notDeletedParentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
     import wust.util.algorithm.dijkstra
     type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
 

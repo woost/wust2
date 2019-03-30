@@ -597,7 +597,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node](user("User")),
           edges = Set[Edge]()
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == Nil)
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == Nil)
       }
 
       "single channel" in {
@@ -605,7 +605,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("B", user("User")),
           edges = Set(pinned("User", "B"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == Leaf("B") :: Nil)
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == Leaf("B") :: Nil)
       }
 
       "two children" in {
@@ -613,7 +613,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("B", "C", user("User")),
           edges = Set(pinned("User", "B"), pinned("User", "C"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Leaf("B"), Leaf("C")))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Leaf("B"), Leaf("C")))
       }
 
       "one transitive child" in {
@@ -623,7 +623,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             parent("C", "B"),
             pinned("User", "B"), pinned("User", "C"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C")))))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C")))))
       }
 
       "diamond" in {
@@ -634,7 +634,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             pinned("User", "B"), pinned("User", "C"), pinned("User", "D")
           )
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D"))), Leaf("D")))))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D"))), Leaf("D")))))
       }
 
       "cycle" in {
@@ -642,7 +642,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("B", "C", user("User")),
           edges = Set(parent("C", "B"), parent("B", "C"), pinned("User", "B"), pinned("User", "C"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C"))), Parent("C", List(Leaf("B")))))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("C"))), Parent("C", List(Leaf("B")))))
       }
 
       "topological Minor" in {
@@ -650,7 +650,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("B", "C", "D", user("User")),
           edges = Set(parent("C","B"), parent("D", "C"), pinned("User", "B"), pinned("User", "D"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("D")))))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Leaf("D")))))
       }
 
       "topological Minor -- only channels" in {
@@ -658,7 +658,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
           nodes = Set[Node]("B", "C", "D", user("User")),
           edges = Set(parent("C","B"), parent("D", "C"), pinned("User", "B"), pinned("User", "C"), pinned("User", "D"))
         )
-        assert(g.channelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D")))))))
+        assert(g.notDeletedChannelTree(UserId(NodeId("User": Cuid))) == List(Parent("B", List(Parent("C", List(Leaf("D")))))))
       }
     }
 
