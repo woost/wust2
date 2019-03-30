@@ -30,7 +30,7 @@ object ViewFilter {
 //    ViewGraphTransformation.Deleted.inGracePeriod(state),
     ViewGraphTransformation.Deleted.onlyDeleted(state),
     ViewGraphTransformation.Deleted.noDeleted(state),
-    ViewGraphTransformation.Deleted.noDeletedButGraced(state),
+//    ViewGraphTransformation.Deleted.noDeletedButGraced(state),
     ViewGraphTransformation.Assignments.onlyAssignedTo(state),
     ViewGraphTransformation.Assignments.onlyNotAssigned(state),
     ViewGraphTransformation.Automated.hideTemplates(state),
