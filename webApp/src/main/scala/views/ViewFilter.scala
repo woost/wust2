@@ -67,7 +67,7 @@ object ViewFilter {
               Components.MenuItem(
                 title = transformation.icon,
                 description = transformation.description,
-                active = state.graphTransformations.map(_.contains(transformation.transform)),
+                active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.isHide),
                 clickAction = { () =>
                   state.graphTransformations.update { transformations =>
                     if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
@@ -125,6 +125,7 @@ case class ViewGraphTransformation(
   transform: UserViewGraphTransformation,
   icon: VDomModifier,
   description: String,
+  isHide: Boolean = false
 )
 
 object ViewGraphTransformation {
@@ -151,14 +152,16 @@ object ViewGraphTransformation {
     def noDeleted(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
-      description = "Hide deleted items",
+      description = "Show deleted items",
       transform = GraphOperation.NoDeletedParents,
+      isHide = true
     )
     def noDeletedButGraced(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
-      description = "Hide older deleted items",
+      description = "Show older deleted items",
       transform = GraphOperation.NoDeletedButGracedParents,
+      isHide = true
     )
   }
 
@@ -166,8 +169,9 @@ object ViewGraphTransformation {
     def hideTemplates(state: GlobalState) = ViewGraphTransformation(
       state = state,
       icon = Icons.automate,
-      description = s"Hide automation templates",
+      description = s"Show automation templates",
       transform = GraphOperation.AutomatedHideTemplates,
+      isHide = true
     )
   }
 
