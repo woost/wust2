@@ -3,4 +3,4 @@
 script_dir="$(dirname "$(readlink -f "$0")")"
 
 [[ -n "$GRAAL_HOME" ]] && export args="-Djava.library.path=${GRAAL_HOME}/jre/lib/amd64" || args=""
-$script_dir/cli/target/graalvm-native-image/cli $args $@
+$script_dir/cli/target/graalvm-native-image/cli $args "$@"
