@@ -604,7 +604,6 @@ object CommonStyles extends StyleSheet.Standalone {
     fontWeight.bold,
     color(c"#FEFEFE"),
     borderRadius(3 px),
-    border(1 px, solid, transparent), // to have the same size as nodecard
   )
 
   // FIXME: also generate -moz-selection?
@@ -754,7 +753,6 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
 
-    border(1 px, solid, transparent), // when dragging this will be replaced with a color
     nodeCardShadow,
   )
 
@@ -856,7 +854,6 @@ object CommonStyles extends StyleSheet.Standalone {
     width(1 em),
     height(1 em),
     borderRadius(50%%),
-    border(1 px, solid, transparent), // when dragging this will be replaced with a color
     padding(0 px, 3 px),
     marginRight(2 px),
     marginTop(1 px),
@@ -1119,7 +1116,6 @@ object CommonStyles extends StyleSheet.Standalone {
     flexGrow(1),
 
     borderRadius(5 px),
-    border(3 px, solid, transparent) // will be replaced when dragging
   )
 
   ".selectednodes .nodecard" - (
