@@ -40,7 +40,7 @@ object TableView {
       case Nil       => NodeRole.default
     }
 
-    def columnEntryOfNodes(row: Node, edges: Array[(Option[Edge.LabeledProperty], Node)], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    def columnEntryOfNodes(row: NodeId, edges: Array[(Option[Edge.LabeledProperty], Node)], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = edges.map {
         case (_, node: Node.Content) => node.str
         case (_, user: Node.User) => Components.displayUserName(user.data) // sort users by display name
@@ -48,13 +48,12 @@ object TableView {
       value = VDomModifier(
         edges.map {
           case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row.id)
+          case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
           case (_, node: Node.Content) => Components.editableNodeOnClick(state, node, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row.id)
+          case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row)
         },
         cellModifier
-      ),
-      rowModifier = DragItem.fromNodeRole(row.id, row.role).map(item => drag(target = item))
+      )
     )
 
     def columnHeader(name: String) = VDomModifier(
@@ -128,19 +127,19 @@ object TableView {
       UI.Column(
         columnHeader("Name"),
         propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node, Array(None -> property.node))
+          columnEntryOfNodes(property.node.id, Array(None -> property.node))
         }(breakOut)
       ) ::
       UI.Column(
         columnHeader("Tags"),
         propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node, property.tags.map(None -> _))
+          columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
         }(breakOut)
       ) ::
       UI.Column(
         columnHeader("Assigned"),
         propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node, property.assignedUsers.map(None -> _))
+          columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
         }(breakOut)
       ) ::
       Nil
@@ -156,7 +155,7 @@ object TableView {
       UI.Column(
         columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))(breakOut)),
         property.groups.map { group =>
-          columnEntryOfNodes(group.node, group.values.map(v => Some(v.edge) -> v.node),
+          columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
               cls := "orange",
               display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
