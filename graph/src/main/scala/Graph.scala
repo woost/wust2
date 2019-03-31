@@ -324,18 +324,18 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             childrenDegree(sourceIdx) += 1
 
             if (childIsProject) projectChildrenDegree(sourceIdx) += 1
+            if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
             if(childIsTask) taskChildrenDegree(sourceIdx) += 1
-            if(childIsTag) tagChildrenDegree(sourceIdx) += 1
 
             e.data.deletedAt match {
               case None            =>
-                if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
+                if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                 if(parentIsTag) tagParentsDegree(targetIdx) += 1
                 notDeletedParentsDegree(targetIdx) += 1
                 notDeletedChildrenDegree(sourceIdx) += 1
               case Some(deletedAt) =>
                 if(deletedAt isAfter now) { // in the future
-                  if(childIsMessage) messageChildrenDegree(sourceIdx) += 1
+                  if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                   if(parentIsTag) tagParentsDegree(targetIdx) += 1
                   notDeletedParentsDegree(targetIdx) += 1
                   notDeletedChildrenDegree(sourceIdx) += 1
