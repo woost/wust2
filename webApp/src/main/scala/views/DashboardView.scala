@@ -16,7 +16,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.{FocusState, GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.util._
 
@@ -52,14 +52,16 @@ object DashboardView {
 
       //TODO: renderSubprojects mit summary
       renderSubprojects(state, focusState),
-      VDomModifier.ifTrue(!state.smallScreen)(
-        div(
-          Styles.growFull,
-          Styles.flex,
-          ListView(state, focusState).apply(widgetStyle),
-          ChatView(state, focusState).apply(widgetStyle)
+      Rx {
+        VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
+          div(
+            Styles.growFull,
+            Styles.flex,
+            ListView(state, focusState).apply(widgetStyle),
+            ChatView(state, focusState).apply(widgetStyle)
+          )
         )
-      )
+      }
     )
   }
 
