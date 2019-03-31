@@ -330,6 +330,8 @@ object KanbanView {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
 
+    val isDeletedNow = state.graph.map(_.isDeletedNow(node.id, parentId :: Nil))
+
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
       @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 //&& propertiesCount == 0
@@ -358,7 +360,7 @@ object KanbanView {
       /// @return a Builder for a menu item which takes a boolean specifying whether it should be compressed or not
       def menuItem(shortName : String,
                    longDesc : String,
-                   icon : fontAwesome.IconDefinition,
+                   icon : VDomModifier,
                    action : VDomModifier) = {
         def builder(compressed : Boolean = false) = div(
           cls := "item",
@@ -370,22 +372,30 @@ object KanbanView {
         )
         builder _
       }
-      val archive = menuItem(
-        "Archive", "Archive", Icons.delete,
-        Rx {
-          onClick.stopPropagation foreach {
-            val graph = state.graph()
-            val focusedIdx = graph.idToIdx(focusState.focusedId)
-            val nodeIdx = graph.idToIdx(node.id)
-            val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
-            val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
-            val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else GraphChanges.delete(ChildId(node.id), ParentId(focusState.focusedId))
 
-            val changes = removeFromWorkspaces merge GraphChanges.delete(ChildId(node.id), ParentId(parentId))
-            state.eventProcessor.changes.onNext(changes)
-            selectedNodeIds.update(_ - node.id)
-          }
-        })
+      def deleteOrUndelete(childId: ChildId, parentId: ParentId) = {
+        if (isDeletedNow.now) GraphChanges.undelete(childId, parentId) else GraphChanges.delete(childId, parentId)
+      }
+      val toggleDeleteClickAction = onClick.stopPropagation foreach {
+        val graph = state.graph.now
+        val focusedIdx = graph.idToIdx(focusState.focusedId)
+        val nodeIdx = graph.idToIdx(node.id)
+        val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+        val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
+        val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))
+
+        val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(node.id), ParentId(parentId))
+        state.eventProcessor.changes.onNext(changes)
+        selectedNodeIds.update(_ - node.id)
+      }
+      def toggleDelete(compress: Boolean) = {
+        Rx {
+          menuItem(
+            if (isDeletedNow()) "Recover" else "Archive", if (isDeletedNow()) "Recover" else "Archive", if (isDeletedNow()) Icons.undelete else Icons.delete,
+            toggleDeleteClickAction
+          )(compress)
+        }
+      }
       val expand = menuItem(
         "Expand", "Expand", Icons.expand,
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes)
@@ -402,7 +412,7 @@ object KanbanView {
       /// these are always visible on hover
       val immediateMenuItems = Seq[(Boolean) => VDomModifier](
         toggle _,
-        archive
+        toggleDelete _
       )
 
       div(
@@ -525,6 +535,9 @@ object KanbanView {
         taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )
     ).apply(
+      Rx {
+        VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
+      },
       VDomModifier.ifNot(isDone)(drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
       keyed(node.id, parentId),
       // fixes unecessary scrollbar, when card has assignment

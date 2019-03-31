@@ -802,7 +802,7 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.smaller,
     opacity(0.5),
   )
-  ".nodecard.node-deleted .nodecard-content" - (
+  ".nodecard.node-deleted > .nodecard-content" - (
     textDecoration := "line-through",
   )
 
