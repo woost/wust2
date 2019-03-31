@@ -99,7 +99,7 @@ object PageHeader {
         div(
           Styles.flex,
           alignItems.center,
-          Components.automatedNodesOfNode(state, pageNode),
+          Components.automatedNodesOfNode(state, pageNode.id),
           channelMembersList,
           permissionIndicator,
           menuItems(state, pageNode)

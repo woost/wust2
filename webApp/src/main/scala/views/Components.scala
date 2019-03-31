@@ -996,10 +996,10 @@ object Components {
     )
   }
 
-  def automatedNodesOfNode(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def automatedNodesOfNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val automatedNodes: Rx[Seq[Node]] = Rx {
       val graph = state.rawGraph()
-      graph.automatedNodes(graph.idToIdx(node.id))
+      graph.automatedNodes(graph.idToIdx(nodeId))
     }
 
     Rx {

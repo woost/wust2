@@ -41,10 +41,11 @@ object ListView {
         val kanbanData = KanbanView.KanbanData.calculate(graph, focusState.focusedId)
         // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
 
+        val inboxNodes = kanbanData.inboxNodes.reverse
+        val inboxIds = inboxNodes.map(_.id)
         VDomModifier(
-          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, kanbanData.columnTree.map(_.node.id))),
-
-          renderInboxColumn(state, focusState, kanbanData.inboxNodes),
+          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
+          renderInboxColumn(state, focusState, inboxNodes, inboxIds),
 
           renderColumns(state, graph, focusState, parentId = focusState.focusedId, children = kanbanData.columnTree),
         )
@@ -69,16 +70,15 @@ object ListView {
     )
   }
 
-  private def renderInboxColumn(state: GlobalState, focusState: FocusState, children: Seq[Node])(implicit ctx: Ctx.Owner): VNode = {
-    val taskChildren = children.collect { case node if node.role == NodeRole.Task => node }
+  private def renderInboxColumn(state: GlobalState, focusState: FocusState, children: Seq[Node], childrenIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children.map(_.id))),
-      minHeight := "10px",
+      registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, childrenIds)),
+      minHeight := KanbanView.sortableAreaMinHeight,
 
       Styles.flex,
-      flexDirection.columnReverse,
+      flexDirection.column,
 
-      taskChildren.map { node =>
+      children.map { node =>
         renderKanbanLikeCard(state, focusState = focusState, parentId = focusState.focusedId, node = node, isDone = false)
       }
     )
@@ -105,7 +105,7 @@ object ListView {
                 renderColumns(state, graph, focusState, parentId = node.id, children = sortedChildren, isDone = nodeIsDone).apply(
                   Styles.flex,
                   flexDirection.columnReverse,
-                  minHeight := "10px",
+                  minHeight := KanbanView.sortableAreaMinHeight,
                   registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), focusState.focusedId)),
                 )
               ))

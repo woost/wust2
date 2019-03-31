@@ -24,6 +24,8 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
+  val sortableAreaMinHeight = "50px"
+
   case class KanbanData(workspaceId: NodeId, inboxNodes: Seq[Node], columnTree: Seq[Tree])
   object KanbanData {
     def calculate(graph: Graph, focusedId: NodeId): KanbanData = {
@@ -441,7 +443,7 @@ object KanbanView {
       Styles.flex,
       flexWrap.wrap,
 
-      Components.automatedNodesOfNode(state, node),
+      Components.automatedNodesOfNode(state, node.id),
       propertySingle.map { propertySingle =>
         VDomModifier(
           propertySingle.info.tags.map { tag =>
@@ -539,9 +541,13 @@ object KanbanView {
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             drag(DragItem.DisableDrag),
-          )
+          ),
+          paddingBottom := "0px",
         )
       },
+
+      // TODO: registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, kanbanData.inboxNodes.map(_.id))),
+      // then remove paddingBottom := 0px
 
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node
@@ -637,7 +643,7 @@ object KanbanView {
             textAreaModifiers = VDomModifier(
               fontSize.larger,
               fontWeight.bold,
-              minHeight := "50px",
+              minHeight := sortableAreaMinHeight,
             ),
             showMarkdownHelp = true
           ).apply(
