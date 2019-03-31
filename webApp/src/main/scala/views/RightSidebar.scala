@@ -187,7 +187,7 @@ object RightSidebar {
                 ),
                 Rx{
                   val graph = state.graph()
-                  VDomModifier.ifTrue(graph.hasParents(node.id))(
+                  VDomModifier.ifTrue(graph.hasNotDeletedParents(node.id))(
                     div(
                       Icons.delete,
                       padding := "8px 5px",

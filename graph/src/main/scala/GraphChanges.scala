@@ -153,9 +153,13 @@ object GraphChanges {
     addEdges = Set(Edge.Child.delete(parentId, childId))
   )
 
-  def deleteFromGraph(childId: ChildId, graph:Graph) = {
+  def deleteFromGraph(childId: ChildId, graph:Graph, timestamp: EpochMilli = EpochMilli.now) = {
     GraphChanges(
-      delEdges = graph.parentEdgeIdx(graph.idToIdx(childId)).map(graph.edges)(breakOut)
+      addEdges = graph.parentEdgeIdx(graph.idToIdx(childId)).flatMap { edgeIdx =>
+        val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+        if (edge.data.deletedAt.isDefined) None
+        else Some(edge.copy(data = edge.data.copy(deletedAt = Some(timestamp))))
+      }(breakOut)
     )
   }
 
