@@ -235,7 +235,9 @@ object TableView {
           val newNode = Node.Content(NodeData.Markdown(str), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
-          state.eventProcessor.changes.onNext(GraphChanges.addNodeWithParent(newNode, ParentId(focusedId)))
+          val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
+          val addTags = ViewFilter.addCurrentlyFilteredTags(state, newNode.id)
+          state.eventProcessor.changes.onNext(addNode merge addTags)
 
           ()
         }

@@ -582,9 +582,10 @@ object KanbanView {
       val createdNode = Node.MarkdownTask(str)
       val graph = state.graph.now
       val workspaces:Set[ParentId] = graph.workspacesForParent(graph.idToIdx(parentId)).map(idx => ParentId(graph.nodeIds(idx)))(breakOut)
-      val change = GraphChanges.addNodeWithParent(createdNode, workspaces + ParentId(parentId))
+      val addNode = GraphChanges.addNodeWithParent(createdNode, workspaces + ParentId(parentId))
+      val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
 
-      state.eventProcessor.changes.onNext(change)
+      state.eventProcessor.changes.onNext(addNode merge addTags)
     }
 
     def blurAction(v:String) = {

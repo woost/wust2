@@ -152,8 +152,9 @@ object ListView {
   private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
       val createdNode = Node.MarkdownTask(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(focusedNodeId))
-      state.eventProcessor.changes.onNext(change)
+      val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusedNodeId))
+      val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
+      state.eventProcessor.changes.onNext(addNode merge addTags)
     }
 
     val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add a task."

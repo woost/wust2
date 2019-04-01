@@ -13,7 +13,8 @@ import rx.{Ctx, Rx, Var}
 import supertagged.TaggedType
 import wust.css.ZIndex
 import wust.graph.{Edge, Graph, Node}
-import wust.ids.{NodeId, NodeRole, UserId}
+import wust.ids._
+import wust.graph.GraphChanges
 import wust.util.algorithm
 import wust.util.macros.{InlineList, SubObjects}
 import wust.webApp.Ownable
@@ -116,6 +117,15 @@ object ViewFilter {
       onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", s"$filterName") },
       checked <-- state.graphTransformations.map(_.contains(transform)),
     )
+  }
+
+  def addCurrentlyFilteredTags(state: GlobalState, nodeId: NodeId) = {
+    val currentTagFilters:Seq[ParentId] = {
+      state.graphTransformations.now.collect {
+        case GraphOperation.OnlyTaggedWith(tagId) => ParentId(tagId)
+      }
+    }
+    GraphChanges.addToParents(ChildId(nodeId), currentTagFilters)
   }
 }
 
