@@ -32,10 +32,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
   //  }
 
-  def onStartDrag() {
+  def onStartDrag():Unit = {
     state.eventProcessor.stopEventProcessing.onNext(true)
   }
-  def onStopDrag() {
+  def onStopDrag():Unit = {
     state.eventProcessor.stopEventProcessing.onNext(false)
   }
 
