@@ -586,24 +586,21 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden
   )
 
-  ".graphnode" - (
+  ".graphnode," +
+  ".graphnode.nodecard" - (
     Styles.wordWrap,
-    textRendering := "optimizeLegibility",
+    // textRendering := "optimizeLegibility",
     position.absolute,
     padding(3 px, 5 px),
     cursor.default,
     minHeight(2 em),
-    minWidth(1.5 em),
-  )
-
-  ".graphnode.nodecard" - (
-    borderRadius(6 px),
+    // minWidth(1.5 em),
+    borderRadius(3 px),
   )
 
   ".graphnode-tag" - (
     fontWeight.bold,
     color(c"#FEFEFE"),
-    borderRadius(3 px),
   )
 
   // FIXME: also generate -moz-selection?
