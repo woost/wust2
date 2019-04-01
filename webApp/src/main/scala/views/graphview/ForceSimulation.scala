@@ -264,27 +264,27 @@ class ForceSimulation(
       ForceSimulationForces.eulerZoneCenter(simData, staticData)
       drawCanvas(simData, staticData, canvasContext, planeDimension)
 
-      val dragTarget = roleToDragItemPayload.lift((d.id, d.role))
-      if (dragTarget.isDefined) {
-        hit(dragging, minimumDragHighlightRadius).foreach { target =>
-          canvasContext.lineWidth = 1
+      // val dragTarget = roleToDragItemPayload.lift((d.id, d.role))
+      // if (dragTarget.isDefined) {
+      //   hit(dragging, minimumDragHighlightRadius).foreach { target =>
+      //     canvasContext.lineWidth = 1
 
-          val bgColor = d3.lab(eulerBgColor(staticData.posts(target).id).toHex) //TODO: use d3.rgb or make colorado handle opacity
-          val radius = (staticData.radius(target) + eulerSetPadding) max minimumDragHighlightRadius
-          bgColor.opacity = 0.8
-          canvasContext.fillStyle = bgColor
-          canvasContext.beginPath()
-          canvasContext.arc(
-            simData.x(target),
-            simData.y(target),
-            radius,
-            startAngle = 0,
-            endAngle = 2 * Math.PI
-          )
-          canvasContext.fill()
-          canvasContext.closePath()
-        }
-      }
+      //     val bgColor = d3.lab(eulerBgColor(staticData.posts(target).id).toHex) //TODO: use d3.rgb or make colorado handle opacity
+      //     val radius = (staticData.radius(target) + eulerSetPadding) max minimumDragHighlightRadius
+      //     bgColor.opacity = 0.8
+      //     canvasContext.fillStyle = bgColor
+      //     canvasContext.beginPath()
+      //     canvasContext.arc(
+      //       simData.x(target),
+      //       simData.y(target),
+      //       radius,
+      //       startAngle = 0,
+      //       endAngle = 2 * Math.PI
+      //     )
+      //     canvasContext.fill()
+      //     canvasContext.closePath()
+      //   }
+      // }
 
       ForceSimulationForces.clearVelocities(simData)
       simData.alpha = 1.0
