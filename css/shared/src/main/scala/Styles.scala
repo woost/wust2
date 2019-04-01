@@ -1164,20 +1164,21 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  ".node.draggable--over," +
+  val dragHighlightColor = c"rgba(55, 66, 74, 1)"
+  ".draggable-container .node.draggable--over," +
   ".graphnode.draggable--over," +
   ".chat-expanded-thread.draggable--over," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
   ".chat-row.draggable--over .nodecard" - (
-    backgroundColor(c"rgba(55, 66, 74, 1)").important,
+    backgroundColor(dragHighlightColor).important,
     color.white.important,
     opacity(1).important,
     cursor.move.important
   )
 
-  ".sidebar .draggable--over" - (
-    color(c"rgba(55, 66, 74, 1)").important,
+  ".sidebar .node.draggable--over" - (
+    color(dragHighlightColor).important,
     backgroundColor.white.important,
   )
 
@@ -1211,13 +1212,6 @@ object CommonStyles extends StyleSheet.Standalone {
     zIndex(ZIndex.dragging).important, // needs to overlap everything else
   )
 
-
-  // -- draggable nodecard
-  ".nodecard.draggable--over," +
-  ".chat-row.draggable--over .nodecard" - (
-    borderTop(1 px, solid, transparent).important,
-    (boxShadow := s"$nodeCardShadowOffset rgba(93, 120, 158,0.45)").important
-  )
 
   ".chat-row .nodecard.draggable-mirror" - (
     backgroundColor(nodeCardBackgroundColor).important,

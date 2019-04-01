@@ -559,9 +559,6 @@ object KanbanView {
         )
       },
 
-      // TODO: registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, kanbanData.inboxNodes.map(_.id))),
-      // then remove paddingBottom := 0px
-
       position.relative, // for buttonbar
       buttonBar(position.absolute, top := "3px", right := "3px"), // distance to not interefere with sidebar-focus box-shadow around node
     )
