@@ -44,10 +44,10 @@ object VisualizationType {
 }
 
 object ForceSimulationConstants {
-  val nodePadding = 10
+  val nodePadding = 3
   val eulerSetPadding = nodePadding
   val minimumDragHighlightRadius = 50
-  val nodeSpacing = 20
+  val nodeSpacing = 10
 }
 
 class ForceSimulation(
