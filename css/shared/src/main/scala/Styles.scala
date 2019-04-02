@@ -1173,7 +1173,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".sidebar .node.draggable--over" - (
     color(dragHighlightColor).important,
-    backgroundColor.green.important,
+    backgroundColor.white.important,
   )
 
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
@@ -1222,7 +1222,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".sortable-container .draggable-source--is-dragging," +
   ".sortable-container .draggable-source--is-dragging.draggable--over" - (
     backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
-    color(green).important,
+    color(transparent).important,
     borderColor(transparent).important,
   )
 
