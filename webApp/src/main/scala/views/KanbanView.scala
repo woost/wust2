@@ -495,7 +495,6 @@ object KanbanView {
                 ),
               renderTaskProgress(taskStats()).apply(alignSelf.center),
 
-              UI.popup := "Subtasks",
               onClick.stopPropagation.mapTo {
                 val isExpanded = state.graph.now.isExpanded(state.user.now.id, node.id).getOrElse(false)
                 val edge = Edge.Expanded(node.id, EdgeData.Expanded(!isExpanded), state.user.now.id)
