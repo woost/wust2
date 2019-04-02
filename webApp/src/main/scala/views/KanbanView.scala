@@ -24,7 +24,7 @@ import wust.webApp.views.Elements._
 object KanbanView {
   import SharedViewElements._
 
-  val sortableAreaMinHeight = "50px"
+  val sortableAreaMinHeight = "10px"
 
   case class KanbanData(workspaceId: NodeId, inboxNodes: Seq[Node], columnTree: Seq[Tree])
   object KanbanData {
