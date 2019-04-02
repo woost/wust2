@@ -968,9 +968,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard .childstat:hover" - (
     color(c"rgb(71, 71, 71)")
   )
-  ".kanbancolumnfooter .childstats:hover" - (
-    color.white
-  )
 
 
 
@@ -1176,7 +1173,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".sidebar .node.draggable--over" - (
     color(dragHighlightColor).important,
-    backgroundColor.white.important,
+    backgroundColor.green.important,
   )
 
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
@@ -1196,7 +1193,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // when dragging over, hide stuff that would normally appear on hover
   ".nodecard.draggable--over .buttonbar," +
-  ".nodecard.draggable--over .childstats *," +
+  ".draggable-container .nodecard.draggable--over .childstats *," +
   ".chat-expanded-thread.draggable--over .chatmsg-controls," +
   ".chat-expanded-thread.draggable--over .nodeselection-checkbox.checkbox," +
   ".chat-history.draggable--over .chatmsg-controls," +
@@ -1225,7 +1222,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".sortable-container .draggable-source--is-dragging," +
   ".sortable-container .draggable-source--is-dragging.draggable--over" - (
     backgroundColor(c"rgba(102, 102, 102, 0.71)").important,
-    color(transparent).important,
+    color(green).important,
     borderColor(transparent).important,
   )
 
