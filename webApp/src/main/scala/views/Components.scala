@@ -435,7 +435,7 @@ object Components {
       span(
         cls := "node tagdot",
         backgroundColor := tagColor(tag.id).toHex,
-        UI.tooltip := tag.data.str,
+        UI.popup := tag.data.str,
         if(pageOnClick) onClick foreach { e =>
           state.urlConfig.update(_.focus(Page(tag.id)))
           e.stopPropagation()
@@ -988,7 +988,7 @@ object Components {
           renderElement(element),
 
           button(
-            tooltip.map(UI.tooltip := _),
+            tooltip.map(UI.popup := _),
             cls := "ui mini compact negative basic button",
             marginLeft := "10px",
             "Remove",

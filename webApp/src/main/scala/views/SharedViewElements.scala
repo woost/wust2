@@ -204,7 +204,7 @@ object SharedViewElements {
             float.right,
             freeSolid.faQuestion,
             Elements.safeTargetBlank,
-            UI.tooltip("left center") := "Use Markdown to format your text. Click for more details.",
+            UI.popup("left center") := "Use Markdown to format your text. Click for more details.",
             href := "https://www.markdownguide.org/basic-syntax/"
           ),
         ),

@@ -176,10 +176,6 @@ object UI {
     )
   }
 
-  // tooltip is CSS only. It does not work when the tooltip itself is not in the rendering area of the element. If tooltip does not work, try popup instead
-  def tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(data.tooltip := str, zIndex := ZIndex.tooltip))
-  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(VDomModifier(tooltip := str, data.position := position))
-
   // javascript version of tooltip
   def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     managedElement.asJquery { elem =>
@@ -187,12 +183,12 @@ object UI {
       Cancelable(() => elem.popup("destroy"))
     }
   )
-  def popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
+  val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
     popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
   }
-  def popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true })
+  val popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true })
   def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
     val _position = position
     popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; inline = true })
