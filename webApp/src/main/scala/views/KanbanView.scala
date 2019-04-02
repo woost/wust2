@@ -653,7 +653,6 @@ object KanbanView {
             textAreaModifiers = VDomModifier(
               fontSize.larger,
               fontWeight.bold,
-              minHeight := sortableAreaMinHeight,
             ),
             showMarkdownHelp = true
           ).apply(
