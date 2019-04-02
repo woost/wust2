@@ -35,6 +35,12 @@ object GraphChangesAutomation {
     val addNodes = mutable.HashSet.newBuilder[Node]
     val addEdges = mutable.HashSet.newBuilder[Edge]
 
+    newNode match {
+      // add views of template to new node
+      case newNode: Node.Content => addNodes += newNode.copy(views = templateNode.views)
+      case _ => ()
+    }
+
     replacedNodes += templateNode.id -> newNode
     alreadyExistingNodes += newNode.id -> newNode
     alreadyExistingNodes += templateNode.id -> newNode
@@ -130,7 +136,7 @@ object GraphChangesAutomation {
   def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
-    val addNodes = mutable.HashSet.newBuilder[Node]
+    val addNodes = mutable.HashSet.empty[Node]
     val addEdges = mutable.HashSet.newBuilder[Edge]
     val delEdges = mutable.HashSet.newBuilder[Edge]
 
@@ -167,7 +173,7 @@ object GraphChangesAutomation {
                     addParent.copy(data = addParent.data.copy(ordering = parent.data.ordering))
                   case e => e
                 }
-                addNodes ++= changes.addNodes
+                addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
                 delEdges ++= changes.delEdges
                 doneSomethingLocally = true
               }
@@ -185,7 +191,7 @@ object GraphChangesAutomation {
 
     }
 
-    addNodes ++= changes.addNodes
+    addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
     delEdges ++= changes.delEdges
 
     automatedNodes.result.foreach { childNode =>
@@ -197,7 +203,7 @@ object GraphChangesAutomation {
     }
 
     GraphChanges(
-      addNodes = addNodes.result(),
+      addNodes = addNodes,
       addEdges = addEdges.result(),
       delEdges = delEdges.result()
     )
