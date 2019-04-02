@@ -137,7 +137,7 @@ object ApiError {
   case object Forbidden extends ApiError
 }
 
-sealed trait ApiEvent extends Any {
+sealed trait ApiEvent {
   def scope: ApiEvent.Scope
 }
 object ApiEvent {
@@ -148,8 +148,8 @@ object ApiEvent {
     case object All extends Scope
   }
 
-  sealed trait GraphContent extends Any with ApiEvent
-  sealed trait AuthContent extends Any with ApiEvent {
+  sealed trait GraphContent extends ApiEvent
+  sealed trait AuthContent extends ApiEvent {
     def scope = Scope.Private
   }
 
@@ -165,7 +165,7 @@ object ApiEvent {
     def forAll(user: User, changes: GraphChanges) = new NewGraphChanges(user, changes, Scope.All)
   }
 
-  case class ReplaceGraph(graph: Graph) extends AnyVal with GraphContent {
+  case class ReplaceGraph(graph: Graph) extends GraphContent {
     def scope = Scope.Private
     override def toString = s"ReplaceGraph(#nodes: ${graph.nodes.size})"
   }
@@ -174,8 +174,8 @@ object ApiEvent {
     def scope = Scope.Public
   }
 
-  case class LoggedIn(auth: Authentication.Verified) extends AnyVal with AuthContent
-  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AnyVal with AuthContent
+  case class LoggedIn(auth: Authentication.Verified) extends AuthContent
+  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent
 
   def separateToPrivateAndPublicEvents(events: Seq[ApiEvent]): (List[ApiEvent], List[ApiEvent]) = {
     val privs = List.newBuilder[ApiEvent]
