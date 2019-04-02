@@ -122,16 +122,16 @@ object RightSidebar {
       flexDirection.column,
       focusedNodeId.map(_.map { focusPref =>
         val graph = state.rawGraph.now
-        val initialView = graph.nodesByIdGet(focusPref.nodeId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
+        val initialView = graph.nodesByIdGet(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
         val viewVar = Var[View.Visible](initialView)
-        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view)
+        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
 
         VDomModifier(
           div(
             Styles.flexStatic,
             Styles.flex,
             alignItems.center,
-            ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.map(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+            ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
             borderBottom := "2px solid black",
             button(
               cls := "ui mini button compact",

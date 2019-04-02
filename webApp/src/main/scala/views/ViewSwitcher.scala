@@ -68,7 +68,7 @@ object ViewSwitcher {
       val node = state.graph.now.nodesByIdGet(channelId)
       node.foreach { node =>
         val currentViews = node.views match {
-          case None        => ViewHeuristic.bestView(state.graph.now, node) :: Nil // no definitions yet, take the current view and additionally a new one
+          case None        => ViewHeuristic.bestView(state.graph.now, node).toList // no definitions yet, take the current view and additionally a new one
           case Some(views) => views // just add a new view
         }
 
@@ -97,7 +97,7 @@ object ViewSwitcher {
             case n: Node.User => n.copy(views = None)
           }
 
-          val newView = ViewHeuristic.bestView(state.graph.now, node)
+          val newView = ViewHeuristic.bestView(state.graph.now, node).getOrElse(View.Empty)
           if (viewRx.now != newView) {
             viewAction(newView)
           }
@@ -142,7 +142,7 @@ object ViewSwitcher {
 
         Rx {
           val existingViews = node().views match {
-            case None        => List(ViewHeuristic.bestView(state.graph(), node()))
+            case None        => ViewHeuristic.bestView(state.graph(), node()).toList
             case Some(views) => views
           }
           val possibleViews = viewDefs.filterNot(existingViews.contains)
@@ -227,7 +227,7 @@ object ViewSwitcher {
         val graph = state.graph()
         val channelNode = graph.nodesByIdGet(channelId)
 
-        def bestView = graph.nodesByIdGet(channelId).fold[View.Visible](View.Empty)(ViewHeuristic.bestView(graph, _))
+        def bestView = graph.nodesByIdGet(channelId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
 
         val (numMsg, numTasks, numFiles) = if(!BrowserDetect.isPhone) {
           val nodeIdx = graph.idToIdx(channelId)

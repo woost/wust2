@@ -101,7 +101,7 @@ class GlobalState(
             case _ => View.Welcome
           }
           case Some(parentId) =>
-            val bestView = ViewHeuristic(rawGraph.now, parentId, rawView) // use rawGraph.now to not trigger on every graph change
+            val bestView = ViewHeuristic(rawGraph.now, parentId, rawView).getOrElse(View.Empty) // use rawGraph.now to not trigger on every graph change
             scribe.debug(s"View heuristic chose new view (was $rawView): $bestView")
             bestView
         }
