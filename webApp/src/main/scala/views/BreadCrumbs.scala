@@ -98,7 +98,7 @@ object BreadCrumbs {
               case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
                 (node.role match {
                   case NodeRole.Message | NodeRole.Task =>
-                    nodeCard(node)(onClickFocus)
+                    nodeCardAsOneLineText(node)(onClickFocus)
                   case _                                => // usually NodeRole.Project
                     nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(
                       onClickFocus,
