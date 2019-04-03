@@ -45,6 +45,7 @@ object Icons {
   )
   val dashboard: IconDefinition = freeSolid.faChartLine
   val project: IconDefinition = freeSolid.faProjectDiagram
+  val note: IconDefinition = freeSolid.faStickyNote
 
   val conversation: IconDefinition = freeRegular.faComments
   val chat: IconDefinition = freeRegular.faComments
@@ -58,7 +59,7 @@ object Icons {
   val tags: IconDefinition = freeSolid.faTags
   val tag: IconDefinition = freeSolid.faTag
   val graph: IconDefinition = freeBrands.faCloudsmith
-  val content: IconDefinition = freeSolid.faFile
+  val notes: IconDefinition = freeRegular.faStickyNote
 
   val task: IconDefinition = freeRegular.faCheckSquare
 

@@ -60,8 +60,10 @@ object View {
     def viewKey = "usersettings"
     override def isContent = false
   }
+  //TODO: rename to Notes
   case object Content extends Visible {
-    def viewKey = "content"
+    override def toString = "Notes"
+    def viewKey = "notes"
     override def isContent = true
   }
   case object Empty extends Visible {

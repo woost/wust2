@@ -538,6 +538,11 @@ object PageSettingsMenu {
           icon = Icons.project,
           description = "A Project. It can contain conversations and tasks.",
         ) ::
+        ConvertSelection(
+          role = NodeRole.Note,
+          icon = Icons.note,
+          description = "A Project. It can contain conversations and tasks.",
+        ) ::
         // ConvertSelection(
         //   role = NodeRole.Stage,
         //   icon = Icons.stage,

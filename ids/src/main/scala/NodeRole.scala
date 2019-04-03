@@ -7,6 +7,7 @@ object NodeRole {
   sealed trait ContentRole extends NodeRole
   case object Message extends ContentRole
   case object Task extends ContentRole
+  case object Note extends ContentRole
 
   case object Neutral extends NodeRole
   case object Stage extends NodeRole { override def toString: String = "Stage (Column)" }
