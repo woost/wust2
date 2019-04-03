@@ -10,6 +10,7 @@ import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
 import wust.webApp.{ItemProperties, Icons}
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
@@ -120,7 +121,10 @@ object TableView {
                idx + 1,
              )
             ),
-            rowModifier = Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id)
+            rowModifier = VDomModifier(
+              Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id),
+              DragItem.fromNodeRole(property.node.id, property.node.role).map(item => Components.drag(target = item))
+            )
           )
         }(breakOut)
       ) ::
