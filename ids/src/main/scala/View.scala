@@ -5,6 +5,9 @@ import wust.util.macros.SubObjects
 
 import scala.collection.breakOut
 
+// BE AWARE: Whenever you rename/change/delete a View.Visible from here, you have to write a DB MIGRATION
+// to update the json views in the node table.
+
 sealed trait View {
   def viewKey: String
   def isContent: Boolean = true
