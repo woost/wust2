@@ -36,8 +36,11 @@ object NotesView {
         val graph = state.graph()
         val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
-        graph.childrenIdx.map(nodeIdx) { childIdx =>
-          val node = graph.nodes(childIdx)
+        val childNodes = graph.childrenIdx.map(nodeIdx) { childIdx =>
+          graph.nodes(childIdx)
+        }.sortBy(_.id)
+
+        childNodes.map { node =>
           VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(state, node, parentId = focusState.focusedId))
         }
       },
