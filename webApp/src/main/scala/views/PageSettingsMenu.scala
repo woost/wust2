@@ -132,7 +132,7 @@ object PageSettingsMenu {
     div(
       Icons.menu,
       cursor.pointer,
-      onClick.foreach { toggleSidebar(state, channelId) }
+      onClick.stopPropagation.foreach { toggleSidebar(state, channelId) }
     )
   }
 
