@@ -197,7 +197,6 @@ object SharedViewElements {
         VDomModifier.ifTrue(showMarkdownHelp)(
           position.relative,
           a(
-            fontSize.xLarge,
             position.absolute,
             right := "4px",
             top := "4px",
