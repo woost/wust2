@@ -5,6 +5,7 @@ import draggable._
 import googleAnalytics.Analytics
 import monix.eval.Task
 import monix.reactive.Observable
+import monix.reactive.subjects.ConcurrentSubject
 import monix.reactive.subjects.PublishSubject
 import monocle.macros.GenLens
 import org.scalajs.dom.experimental.permissions.PermissionState
@@ -44,6 +45,8 @@ class GlobalState(
 )(implicit ctx: Ctx.Owner) {
 
   val hoverNodeId: Var[Option[NodeId]] = Var(None)
+
+  val contextualChanges = ConcurrentSubject.publish[GraphChanges]
 
   val askedForUnregisteredUserName: Var[Boolean] = Var(false)
 

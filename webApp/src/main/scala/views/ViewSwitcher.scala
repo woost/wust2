@@ -48,6 +48,7 @@ object ViewSwitcher {
       case View.Content => TabInfo(View.Content, Icons.notes, "notes", 0)
       case View.Gantt => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
       case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
+      case View.Unread => TabInfo(View.Unread, Icons.unread, "unread items", 0)
       case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
     }
 
@@ -63,6 +64,7 @@ object ViewSwitcher {
       View.Content ::
       // View.Gantt ::
       View.Topological ::
+      View.Unread ::
       Nil
 
     val closeDropdown = PublishSubject[Unit]

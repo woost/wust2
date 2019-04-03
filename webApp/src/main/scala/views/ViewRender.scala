@@ -33,6 +33,7 @@ object ViewRender {
       case View.Content          => NotesView(state, focusState)
       case View.Gantt            => GanttView(state, focusState)
       case View.Topological      => TopologicalView(state, focusState)
+      case View.Unread           => UnreadView(state, focusState)
     }
 
     val renderView: PartialFunction[View.Visible, VNode] = focusState.fold(withoutFocusState)(withFocusState)

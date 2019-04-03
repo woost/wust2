@@ -62,6 +62,7 @@ object Icons {
   val notes: IconDefinition = freeRegular.faStickyNote
   val gantt: IconDefinition = freeSolid.faStream
   val topological: IconDefinition = freeSolid.faSortNumericDown
+  val unread: IconDefinition = freeRegular.faBell
 
   val task: IconDefinition = freeRegular.faCheckSquare
 
@@ -77,6 +78,7 @@ object Icons {
   val mentionIn: IconDefinition = freeSolid.faCopy
   val pin: IconDefinition = freeSolid.faThumbtack
   val signOut: IconDefinition =  freeSolid.faSignOutAlt
+  val markUnread: IconDefinition =  freeSolid.faBookReader
   val menu: IconDefinition = freeSolid.faCog
 
   val share: IconDefinition = freeSolid.faShareAlt

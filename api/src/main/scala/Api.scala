@@ -23,6 +23,8 @@ trait Api[Result[_]] {
 
   def getGraph(selection: Page): Result[Graph]
 
+  def getUnreadChannels(): Result[List[NodeId]]
+
   // simple api
   def getNodeList(parentId: Option[NodeId], nodeRole: Option[NodeRole] = None): Result[List[SimpleNode]]
 

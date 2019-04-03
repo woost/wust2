@@ -533,6 +533,7 @@ object KanbanView {
     ).prepend(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
       Components.showHoveredNode(state, node.id),
+      Components.readObserver(state, node.id),
       VDomModifier.ifTrue(showCheckbox)(
         taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )

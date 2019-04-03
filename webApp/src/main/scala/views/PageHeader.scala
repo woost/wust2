@@ -55,6 +55,7 @@ object PageHeader {
       DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
       Components.showHoveredNode(state, pageNode.id),
+      Components.readObserver(state, pageNode.id)
     )
 
     val channelMembersList = Rx {

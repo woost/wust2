@@ -99,6 +99,20 @@ object PageSettingsMenu {
         })
       }
 
+//      val markUnreadItem:VDomModifier = Rx {
+//        VDomModifier.ifTrue(channelIsContent())(div(
+//          cls := "item",
+//          cursor.pointer,
+//
+//          Elements.icon(Icons.markUnread),
+//          span("Mark as unread"),
+//          onClick.stopPropagation.mapTo(GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(channelId)) { idx =>
+//            val edge = state.graph.now.edges(idx).asInstanceOf[Edge.Read]
+//            if (edge.userId == state.user.now.id) Array(edge) else Array.empty
+//          })) --> state.eventProcessor.changes
+//        ))
+//      }
+
       val addMemberItem: VDomModifier = Rx {
         channelAsContent() collect {
           case channel if canWrite() => manageMembers(state, channel)
@@ -114,7 +128,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, /*markUnreadItem,*/ leaveItem, deleteItem)
     }
 
     def header: VDomModifier = div(

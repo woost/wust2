@@ -62,7 +62,7 @@ object DetailView {
           @inline def numParents = parents.length
 
           @inline def numChildren = graph.childrenIdx.sliceLength(subjectIdx)
-          val roleChildrenCounts = graph.topLevelRoleStats(subjectId :: Nil)
+          val roleChildrenCounts = graph.topLevelRoleStats(state.user().id, subjectId :: Nil)
 
           list(
             item(
@@ -109,8 +109,8 @@ object DetailView {
               content(
                 header(s"Children ($numChildren)"),
                 description(
-                  roleChildrenCounts.roleCounts.collect{
-                    case (NodeRole.Message, count) =>
+                  roleChildrenCounts.roles.collect{
+                    case RoleStat(NodeRole.Message, count, _) =>
                       div(
                         Styles.flex,
                         div(cls := "fa-fw", Icons.conversation),
@@ -120,7 +120,7 @@ object DetailView {
                         },
                         cursor.pointer,
                       )
-                    case (NodeRole.Task, count) =>
+                    case RoleStat(NodeRole.Task, count, _) =>
                       div(
                         Styles.flex,
                         div(cls := "fa-fw", Icons.tasks),
