@@ -8,7 +8,8 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
-import wust.graph.{Node, Page}
+import wust.api.AuthUser
+import wust.graph.{Node, Page, Graph}
 import wust.ids._
 import wust.util._
 import wust.webApp.Ownable
@@ -50,77 +51,88 @@ object BreadCrumbs {
       modifier(state, None, state.page.map(_.parentId), nid => state.urlConfig.update(_.focus(Page(nid))))
     })
   }
-  def apply(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit): VNode = {
-    div.static(keyValue)(Ownable { implicit ctx =>
+  def apply(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
+   div.static(keyValue)(Ownable { implicit ctx =>
       modifier(state, filterUpTo, parentIdRx, parentIdAction)
-    })
+   })
   }
 
-  private def modifier(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner) = {
+  def apply(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
+    )
+  }
+
+  private def modifier(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       cls := "breadcrumbs",
-      Rx {
-        val parentId = parentIdRx()
-        val user = state.user()
-        val graph = state.rawGraph()
-        parentId.map { (parentId: NodeId) =>
-          val parentDepths: Map[Int, Map[Int, Seq[NodeId]]] = graph.notDeletedParentDepths(parentId)
-          val distanceToNodes: Seq[(Int, Map[Int, Seq[NodeId]])] = parentDepths.toList.sortBy { case (depth, _) => -depth }
-          def elementNodes = distanceToNodes.flatMap { case (distance, gIdToNodeIds) =>
-            // when distance is 0, we are either showing ourselves (i.e. id) or
-            // a cycle that contains ourselves. The latter case we want to draw, the prior not.
-            if(!showOwn && distance == 0 && gIdToNodeIds.size == 1 && gIdToNodeIds.head._2.size == 1)
-              None
-            else {
-              val sortedByGroupId = gIdToNodeIds.toList.sortBy(_._1)
-              Some(
-                // "D:" + distance + " ",
-                sortedByGroupId.flatMap { case (gId, nodes) =>
-                  // sort nodes within a group by their length towards the root node
-                  // this ensures that e.g. „Channels“ comes first
-                  nodes.sortBy(n => graph.parentDepth(graph.idToIdxOrThrow(n)))
-                }
-              )
-            }
-          }.flatten
-
-          val elements: List[VDomModifier] = filterUpTo.fold(elementNodes)(id => elementNodes.dropWhile(_ != id)).map { nid =>
-            val onClickFocus = VDomModifier(
-              cursor.pointer,
-              onClick foreach { e =>
-                parentIdAction(nid)
-                e.stopPropagation()
+      parentId.map { (parentId: NodeId) =>
+        val parentDepths: Map[Int, Map[Int, Seq[NodeId]]] = graph.parentDepths(parentId)
+        val distanceToNodes: Seq[(Int, Map[Int, Seq[NodeId]])] = parentDepths.toList.sortBy { case (depth, _) => -depth }
+        def elementNodes = distanceToNodes.flatMap { case (distance, gIdToNodeIds) =>
+          // when distance is 0, we are either showing ourselves (i.e. id) or
+          // a cycle that contains ourselves. The latter case we want to draw, the prior not.
+          if(!showOwn && distance == 0 && gIdToNodeIds.size == 1 && gIdToNodeIds.head._2.size == 1)
+            None
+          else {
+            val sortedByGroupId = gIdToNodeIds.toList.sortBy(_._1)
+            Some(
+              // "D:" + distance + " ",
+              sortedByGroupId.flatMap { case (gId, nodes) =>
+                // sort nodes within a group by their length towards the root node
+                // this ensures that e.g. „Channels“ comes first
+                nodes.sortBy(n => graph.parentDepth(graph.idToIdxOrThrow(n)))
               }
             )
-            graph.nodesByIdGet(nid) match {
-              // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
-              // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
-              case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-                (node.role match {
-                  case NodeRole.Message | NodeRole.Task | NodeRole.Note =>
-                    nodeCardAsOneLineText(node)(onClickFocus)
-                  case _                                => // usually NodeRole.Project
-                    nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(
-                      onClickFocus,
-                      backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-                      border := "1px solid",
-                      borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
-                      color.black,
-                    ).prepend(
-                      Styles.flex,
-                      nodeAvatar(node, size = 13)(marginRight := "5px", marginTop := "2px", flexShrink := 0),
-                    )
-                }).apply(cls := "breadcrumb")
+          }
+        }.flatten
 
-              case _                                                  => VDomModifier.empty
+        val elements: List[VDomModifier] = filterUpTo.fold(elementNodes)(id => elementNodes.dropWhile(_ != id)).map { nid =>
+          val onClickFocus = VDomModifier(
+            cursor.pointer,
+            onClick foreach { e =>
+              parentIdAction(nid)
+              e.stopPropagation()
             }
-          }(breakOut)
+          )
+          graph.nodesByIdGet(nid) match {
+            // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
+            // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
+            case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
+              (node.role match {
+                case NodeRole.Message | NodeRole.Task | NodeRole.Note =>
+                  nodeCardAsOneLineText(node)(onClickFocus)
+                case _                                => // usually NodeRole.Project
+                  nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(
+                    onClickFocus,
+                    backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
+                    border := "1px solid",
+                    borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
+                    color.black,
+                  ).prepend(
+                    Styles.flex,
+                    nodeAvatar(node, size = 13)(marginRight := "5px", marginTop := "2px", flexShrink := 0),
+                  )
+              }).apply(cls := "breadcrumb", VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"))
 
-          intersperseWhile(elements, span("/", cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
-        }
+            case _                                                  => VDomModifier.empty
+          }
+        }(breakOut)
+
+        intersperseWhile(elements, span("/", cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
       },
       registerDragContainer(state),
       onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
     )
+  }
+
+  private def modifier(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+    Rx {
+      val parentId = parentIdRx()
+      val user = state.user()
+      val graph = state.graph()
+
+      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
+    }
   }
 }

@@ -79,10 +79,11 @@ class EventProcessor private (
 
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
+  val changesRemoteOnly = PublishSubject[GraphChanges]
   val localEvents = PublishSubject[ApiEvent.GraphContent]
 
   // public reader
-  val (localChanges, graph): (Observable[GraphChanges], Observable[Graph]) = {
+  val (localChanges, localChangesRemoteOnly, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[Graph]) = {
     // events  withLatestFrom
     // --------O----------------> localchanges
     //         ^          |
@@ -93,15 +94,21 @@ class EventProcessor private (
     val rawGraph = PublishToOneSubject[Graph]()
     val sharedRawGraph = rawGraph.share
 
-    val enrichedChanges = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), sharedRawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
+    def enrichedChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), sharedRawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
       val newChanges = enrichChanges(changes, user.id, graph)
       scribe.info(s"Local Graphchanges: ${newChanges.toPrettyString(graph)}")
       newChanges
     }
 
-    val localChanges = enrichedChanges.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
+    val enrichedChanges = enrichedChangesf(changes)
+    val enrichedChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
+
+    def localChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
       case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
     }.share
+
+    val localChanges = localChangesf(enrichedChanges)
+    val localChangesRemoteOnly = localChangesf(enrichedChangesRemoteOnly)
 
     val localChangesAsEvents = localChanges.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).map(gc => Seq(NewGraphChanges.forPrivate(gc._2.toNode, gc._1)))
     val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing).map(_.flatten)
@@ -130,7 +137,7 @@ class EventProcessor private (
 
     graphWithChanges subscribe rawGraph
 
-    (localChanges, sharedRawGraph)
+    (localChanges, localChangesRemoteOnly, sharedRawGraph)
   }
 
   // whenever the user changes something himself, we want to open up event processing again
@@ -144,7 +151,7 @@ class EventProcessor private (
     obs.runToFuture
   }
 
-  private val localChangesIndexed: Observable[(GraphChanges, Long)] = localChanges.zipWithIndex.asyncBoundary(Unbounded)
+  private val localChangesIndexed: Observable[(GraphChanges, Long)] = Observable(localChanges, localChangesRemoteOnly).merge.zipWithIndex.asyncBoundary(Unbounded)
 
   private val sendingChanges: Observable[Long] = {
     val localChangesIndexedBusy = localChangesIndexed.bufferIntrospective(maxSize = 10)

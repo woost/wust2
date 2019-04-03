@@ -1175,5 +1175,97 @@ object Components {
       emitter(changed).map(_ => checkedState.zipWithIndex.flatMap { case (checked, idx) => if (checked) Some(checkboxes(idx)) else None }) --> sink
     )
   }
-}
 
+  def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+    def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
+      val lastModification = graph.nodeModified(nodeIdx)
+      val isRead = graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
+        val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+        edge.targetId == userId && edge.data.timestamp >= lastModification
+      }
+
+      if (isRead) false
+      else {
+        val node = graph.nodes(nodeIdx)
+        InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)
+      }
+    }
+
+    val isUnread = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      val nodeIdx = graph.idToIdxOrThrow(nodeId)
+
+      nodeIsUnread(graph, user.id, nodeIdx)
+    }
+
+    val unreadChildren = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      val nodeIdx = graph.idToIdxOrThrow(nodeId)
+
+      graph.descendantsIdx(nodeIdx).count(nodeIsUnread(graph, user.id, _))
+    }
+
+    val unreadLabel = div(
+      alignSelf.center,
+      float.right,
+      cls := "ui label",
+      color := "white",
+      backgroundColor := Styles.unreadColor.value,
+      fontSize.xxSmall,
+      marginLeft := "5px",
+      marginRight := "5px",
+      padding := "4px",
+      labelModifier,
+    )
+
+    Rx {
+      isUnread() match {
+        case true => VDomModifier(
+          unreadChildren() match {
+            case 0 => unreadLabel
+            case count => unreadLabel(count)
+          },
+
+          managedElement.asHtml { elem =>
+            var observer: IntersectionObserver = null
+            observer = new IntersectionObserver(
+              { (entry, obs) =>
+                val isIntersecting = entry.head.isIntersecting
+                if (isIntersecting && isUnread.now) {
+                  val changes = GraphChanges(
+                    addEdges = Set(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                  )
+
+                  // stop observing once read
+                  observer.unobserve(elem)
+                  observer.disconnect()
+
+                  state.eventProcessor.changesRemoteOnly.onNext(changes)
+                }
+              },
+              new IntersectionObserverOptions {
+                root = null //TODO need actual scroll-parent?
+                // TODO: rootMargin = "100px 0px 0px 0px"
+                threshold = 0
+              }
+            )
+
+            observer.observe(elem)
+
+            Cancelable { () =>
+              observer.unobserve(elem)
+              observer.disconnect()
+            }
+          }
+        )
+        case false =>
+          unreadChildren() match {
+            case 0 => VDomModifier.empty
+            case count => unreadLabel(count)
+          }
+      },
+    }
+  }
+}

@@ -381,6 +381,7 @@ object SharedViewElements {
           cursor.pointer,
           Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
           Components.showHoveredNode(state, node.id),
+          Components.readObserver(state, node.id)
         )
       }
     }

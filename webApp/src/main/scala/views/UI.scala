@@ -384,4 +384,17 @@ object UI {
 //      )
     )
   }
+
+
+  def segment(header: VDomModifier, description: VDomModifier) = div(
+    cls := "ui segments",
+    div(
+      cls :="ui secondary segment",
+      header
+    ),
+    div(
+      cls := "ui segment",
+      description
+    )
+  )
 }

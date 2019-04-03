@@ -45,7 +45,14 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
     val groupedEvents = events.collect { case a: ApiEvent.NewGraphChanges => a }.groupBy(_.user)
     val replacements = events.collect { case a: ApiEvent.ReplaceNode => a }
     groupedEvents.foreach { case (user, changes) =>
-      publishPerAuthor(user, changes.foldLeft(GraphChanges.empty)(_ merge _.changes), origin)
+      val mergedChanges = changes.foldLeft(GraphChanges.empty)(_ merge _.changes)
+      // filter out read edges - we do not want to notify clients about read edges because there would be too many updates in these clients, which makes the ui too slow.
+      // TODO: removing read-edges is a workaround
+      val filteredChanges = mergedChanges.copy(
+        addEdges = mergedChanges.addEdges.filterNot(_.isInstanceOf[Edge.Read]),
+        delEdges = mergedChanges.delEdges.filterNot(_.isInstanceOf[Edge.Read])
+      )
+      publishPerAuthor(user, filteredChanges, origin)
     }
 
     publishReplacements(replacements, origin)

@@ -134,6 +134,7 @@ object Styles extends StyleSheet.Inline {
     val color = c"#6636b7"
   }
 
+  val unreadColor = c"#1F81F3"
 }
 
 //TODO: port over to Style as inline and reference class via Styles

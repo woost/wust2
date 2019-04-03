@@ -76,6 +76,10 @@ object View {
     def viewKey = "topological"
     override def isContent = true
   }
+  case object Notifications extends Visible {
+    def viewKey = "notifications"
+    override def isContent = true
+  }
   case object Empty extends Visible {
     def viewKey = "empty"
     override def isContent = true

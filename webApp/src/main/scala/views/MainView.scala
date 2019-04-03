@@ -14,6 +14,7 @@ import wust.webApp.{Client, DevOnly, Ownable, WoostNotification, BrowserDetect}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, PageStyle, ScreenSize}
 import wust.webApp.views.Components._
+import scala.concurrent.duration._
 
 import scala.concurrent.Future
 import scala.util.Success
@@ -80,7 +81,7 @@ object MainView {
 
             Rx {
               VDomModifier.ifTrue(viewIsContent())(div(
-                VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(Styles.flexStatic)),
+                BreadCrumbs(state)(Styles.flexStatic),
                 PageHeader(state).apply(Styles.flexStatic, viewWidthMod)
               ))
             },
@@ -110,10 +111,10 @@ object MainView {
                 Rx {
                   val viewConfig = state.viewConfig()
 
-                    ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
-                      Styles.growFull,
-                      flexGrow := 1
-                    ).prepend(
+                  ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
+                    Styles.growFull,
+                    flexGrow := 1
+                  ).prepend(
                     overflow.visible, // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
                   )
                   // we can now assume, that every page parentId is contained in the graph

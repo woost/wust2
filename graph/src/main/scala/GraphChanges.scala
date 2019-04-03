@@ -15,7 +15,8 @@ case class GraphChanges(
     val existingAuthors: Set[NodeId] = addEdges.collect { case edge: Edge.Author => edge.nodeId }(breakOut)
     copy(
       addEdges = addEdges ++ addNodes.flatMap { node =>
-        (if (existingAuthors(node.id)) Set.empty[Edge] else Set[Edge](Edge.Author(node.id, EdgeData.Author(timestamp), userId)))
+        Set(Edge.Read(node.id, EdgeData.Read(timestamp), userId)) ++
+          (if (existingAuthors(node.id)) Set.empty else Set(Edge.Author(node.id, EdgeData.Author(timestamp), userId)))
       }
     )
   }

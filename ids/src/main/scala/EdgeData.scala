@@ -51,6 +51,8 @@ object EdgeData {
     def dueDate = LabeledProperty("Due Date")
   }
 
+  case class Read(timestamp: EpochMilli) extends Named with EdgeData
+
   case object Notify extends Named with EdgeData
   case object Pinned extends Named with EdgeData
   case object Invite extends Named with EdgeData

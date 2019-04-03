@@ -196,10 +196,11 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   def addEdges(newEdges: Iterable[Edge]): Graph = new Graph(nodes = nodes, edges = edges ++ newEdges)
 }
 
-final case class RoleStats(roleCounts: List[(NodeRole, Int)]) {
-  lazy val mostCommonRole: NodeRole = roleCounts.maxBy(_._2)._1
-  lazy val active: List[(NodeRole, Int)] = roleCounts.filter(_._2 > 0)
-  def contains(role: NodeRole): Boolean = active.exists(_._1 == role)
+final case class RoleStat(role: NodeRole, count: Int, unreadCount: Int)
+final case class RoleStats(roles: List[RoleStat]) {
+  lazy val mostCommonRole: NodeRole = roles.maxBy(_.count).role
+  lazy val active: List[RoleStat] = roles.filter(_.count > 0)
+  def contains(role: NodeRole): Boolean = active.exists(_.role == role)
 }
 
 final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
@@ -267,6 +268,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val outDegree = new Array[Int](n)
   private val parentsDegree = new Array[Int](n)
   private val contentsDegree = new Array[Int](n)
+  private val readDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
   private val messageChildrenDegree = new Array[Int](n)
   private val taskChildrenDegree = new Array[Int](n)
@@ -373,6 +375,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case _: Edge.DerivedFromTemplate =>
             derivedFromTemplateDegree(sourceIdx) += 1
             derivedFromTemplateReverseDegree(targetIdx) += 1
+          case _: Edge.Read     =>
+            readDegree(sourceIdx) += 1
           case _                =>
         }
       }
@@ -383,6 +387,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
+  private val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
@@ -489,6 +494,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       case _: Edge.DerivedFromTemplate =>
         derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
         derivedFromTemplateRerverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
+      case _: Edge.Read =>
+        readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _                =>
     }
   }
@@ -496,6 +503,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val outgoingEdgeIdx: NestedArrayInt = outgoingEdgeIdxBuilder.result()
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
+  val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
   val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
   val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
@@ -626,22 +634,31 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else IndexedSeq.empty[(Node.User, EpochMilli)]
   }
 
-  def topLevelRoleStats(parentIds: Iterable[NodeId]): RoleStats = {
+  def topLevelRoleStats(userId: UserId, parentIds: Iterable[NodeId]): RoleStats = {
     var messageCount = 0
     var taskCount = 0
+    var messageUnreadCount = 0
+    var taskUnreadCount = 0
+
+    def isRead(childIdx: Int): Boolean = readEdgeIdx.exists(childIdx)(edgeIdx => graph.edges(edgeIdx).targetId == userId)
+
     parentIds.foreach { nodeId =>
       val nodeIdx = idToIdx(nodeId)
       if (nodeIdx != -1) {
         childrenIdx.foreachElement(nodeIdx) { childIdx =>
           nodes(childIdx).role match {
-            case NodeRole.Message => messageCount += 1
-            case NodeRole.Task    => taskCount += 1
+            case NodeRole.Message =>
+              messageCount += 1
+              if (!isRead(childIdx)) messageUnreadCount += 1
+            case NodeRole.Task    =>
+              taskCount += 1
+              if (!isRead(childIdx)) taskUnreadCount += 1
             case _                =>
           }
         }
       }
     }
-    RoleStats(List(NodeRole.Message -> messageCount, NodeRole.Task -> taskCount))
+    RoleStats(List(RoleStat(NodeRole.Message, messageCount, messageUnreadCount), RoleStat(NodeRole.Task, taskCount, taskUnreadCount)))
   }
 
   def filterIdx(p: Int => Boolean): Graph = {
@@ -814,9 +831,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     if (nodeIdx < 0 || parentIdx < 0) false
     else !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   }
-  def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
+  def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
-  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.forall(parentId => isDeletedNow(nodeId, parentId))
+  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && isDeletedNowIdx(idToIdx(nodeId), parentIds.map(idToIdx))
+  def isDeletedNowInAllParents(nodeId: NodeId): Boolean = {
+    val nodeIdx = idToIdxOrThrow(nodeId)
+    val parentIndices = parentsIdx(nodeIdx)
+    isDeletedNowIdx(nodeIdx, parentIndices)
+  }
 
   def directNodeTags(nodeIdx: Int): Array[Node] = {
     //      (parents(nodeId).toSet -- (parentIds - nodeId)).map(nodesById) // "- nodeId" reveals self-loops with page-parent
@@ -1199,16 +1221,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalMinor.lookup.redundantForestExcludingCycleLeafs
   }
 
-  def notDeletedParentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
+  def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
     import wust.util.algorithm.dijkstra
     type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
 
     def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
 
     // NodeId -> distance
-    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](notDeletedParents, node)
+    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
-    val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, notDeletedParents).toSet }
+    val groupedByCycle = nodesInCycles.groupBy { node => depthFirstSearchWithStartInCycleDetection[NodeId](node, parents).toSet }
     type GroupIdx = Int
     type Distance = Int
     val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =

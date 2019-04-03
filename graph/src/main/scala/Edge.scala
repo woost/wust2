@@ -63,6 +63,10 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
+  case class Read(nodeId: NodeId, data: EdgeData.Read, userId: UserId) extends Edge.User {
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
+  }
+
   // Content-Edges
   case class Automated(nodeId: NodeId, templateNodeId: TemplateId) extends Edge.Content {
     def sourceId = nodeId
@@ -101,6 +105,7 @@ object Edge {
     case data: EdgeData.Expanded            => new Edge.Expanded(sourceId, data, UserId(targetId))
     case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
     case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
+    case data: EdgeData.Read                => new Edge.Read(sourceId, data, UserId(targetId))
 
     case EdgeData.Automated                 => new Edge.Automated(sourceId, TemplateId(targetId))
     case data: EdgeData.Child               => new Edge.Child(ParentId(sourceId), data, ChildId(targetId))

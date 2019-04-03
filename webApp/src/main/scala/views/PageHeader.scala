@@ -9,25 +9,24 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.{Node, Edge, GraphChanges}
+import wust.css.{ CommonStyles, Styles, ZIndex }
+import wust.graph.{ Node, Edge, GraphChanges }
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.{DragItem, DragContainer}
-import wust.webApp.jsdom.{Navigator, ShareData}
+import wust.webApp.dragdrop.{ DragItem, DragContainer }
+import wust.webApp.jsdom.{ Navigator, ShareData }
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components.{renderNodeData, _}
+import wust.webApp.views.Components.{ renderNodeData, _ }
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import scala.util.{Failure, Success}
-import pageheader.components.{TabContextParms, TabInfo, customTab, doubleTab, singleTab}
-
+import scala.util.{ Failure, Success }
+import pageheader.components.{ TabContextParms, TabInfo, customTab, doubleTab, singleTab }
 
 object PageHeader {
 
@@ -47,7 +46,7 @@ object PageHeader {
   }
 
   private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val maxLength = if(BrowserDetect.isPhone) Some(30) else Some(60)
+    val maxLength = if (BrowserDetect.isPhone) Some(30) else Some(60)
 
     val channelTitle = Components.nodeCardAsOneLineText(pageNode).apply(
       cls := "pageheader-channeltitle",
@@ -55,6 +54,7 @@ object PageHeader {
       DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
       Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
       Components.showHoveredNode(state, pageNode.id),
+      Components.readObserver(state, pageNode.id)
     )
 
     val channelMembersList = Rx {
@@ -86,7 +86,7 @@ object PageHeader {
           Styles.flex,
           alignItems.center,
           pageNode.role match {
-            case NodeRole.Project => 
+            case NodeRole.Project =>
               channelTitle.prepend(
                 Styles.flex,
                 nodeAvatar(pageNode, size = 25)(marginRight := "5px", alignSelf.center)
@@ -95,6 +95,24 @@ object PageHeader {
               channelTitle
           },
           flexShrink := 3,
+          Rx{
+            val graph = state.graph()
+            val user = state.user()
+            val haveUnread = NotificationView.existingNewNodes(graph, user)
+            VDomModifier.ifTrue(haveUnread)(
+              button(
+                marginLeft := "5px",
+                marginBottom := "2px",
+                cls := "ui compact button",
+                backgroundColor := Styles.unreadColor.value,
+                color := "white",
+                Icons.notifications,
+                onClick.stopPropagation.foreach {
+                  state.urlConfig.update(_.focus(View.Notifications))
+                }
+              )
+            )
+          }
         ),
         div(
           Styles.flex,
@@ -156,8 +174,8 @@ object PageHeader {
           cursor.grab,
           UI.popup("bottom center") := Components.displayUserName(user.data)
         )(
-          drag(payload = DragItem.User(user.id)),
-        ))(breakOut): js.Array[VNode]
+            drag(payload = DragItem.User(user.id)),
+          ))(breakOut): js.Array[VNode]
       }
     )
   }

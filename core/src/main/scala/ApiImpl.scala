@@ -99,6 +99,10 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     getPage(user.id, page)
   }
 
+  override def getUnreadChannels(): ApiFunction[List[NodeId]] = Action.requireUser { (state, user) =>
+    ???
+  }
+
 
   // Simple Api
   // TODO: more efficient

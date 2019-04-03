@@ -62,6 +62,7 @@ object Icons {
   val notes: IconDefinition = freeRegular.faStickyNote
   val gantt: IconDefinition = freeSolid.faStream
   val topological: IconDefinition = freeSolid.faSortNumericDown
+  val notifications: IconDefinition = freeRegular.faBell
 
   val task: IconDefinition = freeRegular.faCheckSquare
 

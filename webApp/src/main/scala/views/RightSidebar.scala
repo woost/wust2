@@ -178,7 +178,8 @@ object RightSidebar {
                   width := "100%",
                   margin := "3px 3px 3px 3px",
                   cls := "enable-text-selection",
-                  onClick.stopPropagation(true) --> editMode
+                  onClick.stopPropagation(true) --> editMode,
+                  Components.readObserver(state, node.id)
                 ),
                 Rx{
                   val graph = state.graph()
