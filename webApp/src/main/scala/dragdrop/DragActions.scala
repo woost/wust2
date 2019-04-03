@@ -141,7 +141,7 @@ object DragActions {
       case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
-      case (payload: User, target: Task, false, false) => (graph, userId) => assign(target.nodeId, payload.userId)
+      case (payload: User, target: ContentNode, false, false) => (graph, userId) => assign(target.nodeId, payload.userId)
     }
   }
 
