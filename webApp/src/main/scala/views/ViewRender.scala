@@ -31,6 +31,7 @@ object ViewRender {
       case View.Dashboard        => DashboardView(state, focusState)
       case View.Files            => FilesView(state, focusState)
       case View.Content          => NotesView(state, focusState)
+      case View.Gantt            => GanttView(state, focusState)
     }
 
     val renderView: PartialFunction[View.Visible, VNode] = focusState.fold(withoutFocusState)(withFocusState)

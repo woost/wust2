@@ -66,6 +66,11 @@ object View {
     def viewKey = "notes"
     override def isContent = true
   }
+  case object Gantt extends Visible {
+    override def toString = "Gantt-Chart"
+    def viewKey = "gantt"
+    override def isContent = true
+  }
   case object Empty extends Visible {
     def viewKey = "empty"
     override def isContent = true
