@@ -75,15 +75,7 @@ object NotesView {
         Styles.flex,
         alignItems.center,
 
-        div(
-          padding := "2px",
-          Icons.zoom,
-          cursor.pointer,
-          onClick.stopPropagation.foreach {
-            state.urlConfig.update(_.focus(Page(node.id)))
-            ()
-          }
-        ),
+        zoomButton(state, node.id)( padding := "2px"),
 
         div(
           padding := "2px",

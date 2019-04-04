@@ -247,12 +247,6 @@ object SharedViewElements {
     )
   }
 
-  val editButton: VNode =
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Edit message", Icons.edit),
-      cursor.pointer,
-    )
-
   val deleteButton: VNode =
     div(
       div(cls := "fa-fw", UI.popup("bottom right") := "Archive message", Icons.delete),
@@ -265,11 +259,6 @@ object SharedViewElements {
       cursor.pointer,
     )
 
-  val zoomButton: VNode =
-    div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Zoom into message and focus", Icons.zoom),
-      cursor.pointer
-    )
 
   def authorAvatar(author: Node.User, avatarSize: Int, avatarPadding: Int): VNode = {
     div(Avatar(author)(cls := "avatar",width := s"${avatarSize}px", padding := s"${avatarPadding}px"), marginRight := "5px")
