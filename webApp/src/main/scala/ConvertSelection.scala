@@ -27,7 +27,10 @@ object ConvertSelection {
         ConvertSelection.all.map { convert =>
           Components.MenuItem(
             title = Elements.icon(convert.icon),
-            description = convert.role.toString,
+            description = VDomModifier(
+              fontSize.xSmall,
+              convert.role.toString,
+            ),
             active = node.role == convert.role,
             clickAction = { () =>
               state.eventProcessor.changes.onNext(GraphChanges.addNode(node.copy(role = convert.role)))
