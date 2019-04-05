@@ -228,14 +228,17 @@ object GraphOperation {
       pageId.fold((graph, graph.edges)) { _ =>
         graph.idToIdxGet(tagId).fold((graph, graph.edges)) { tagIdx =>
           val newEdges = graph.edges.filter {
-            case e: Edge.Child if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(graph.nodesById(e.childId).role) =>
+            case e: Edge.Child =>
               graph.idToIdxGet(e.childId).fold(false) { childIdx =>
-                if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
-                else {
-                  val tagDescendants = graph.descendantsIdx(tagIdx)
-                  if(tagDescendants.contains(childIdx)) true
-                  else false
-                }
+                val node = graph.nodes(childIdx)
+                if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
+                  if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
+                  else {
+                    val tagDescendants = graph.descendantsIdx(tagIdx)
+                    if(tagDescendants.contains(childIdx)) true
+                    else false
+                  }
+                } else true
               }
             case _                                                                                                                   => true
           }
