@@ -1,5 +1,7 @@
 package wust.webApp.views
 
+import scala.scalajs.js
+import monix.execution.Cancelable
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import fontAwesome.freeSolid
 import SharedViewElements._
@@ -20,6 +22,8 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.util._
+import d3v4._
+import org.scalajs.dom.console
 
 // Timeline which uses properties for start and enddate
 object GanttView {
@@ -57,13 +61,16 @@ object GanttView {
     val unit:Long = EpochMilli.day
     val unitWidth:Double = 20
     val now = EpochMilli.now
-    val shift:Long = unit * 2
+    var currentTransform: Var[Transform] = Var(d3.zoomIdentity)
 
     div(
       keyed,
       Styles.growFull,
       overflow.auto,
       padding := "20px",
+
+      Styles.flex,
+      flexDirection.column,
 
       SharedViewElements.inputRow(
         state,
@@ -75,44 +82,72 @@ object GanttView {
         placeHolderMessage = Some("Add a task"),
         showMarkdownHelp = true
       ),
+    div(
+      backgroundColor := "rgba(255,255,255,0.5)",
+      height := "100%",
+      overflow.hidden,
+      onD3Zoom(currentTransform() = _),
+      position.relative,
       div(
-        backgroundColor := "rgba(255,255,255,0.5)",
-        height := "500px",
-        position.relative,
-        transformOrigin := "0 0 0",
-        overflow.hidden,
+        position.absolute,
+        transformOrigin := "0 0",
+        transform <-- currentTransform.map(tr => s"translate(${tr.x}px,${tr.y}px) scale(${tr.k})"),
+        height := "100%",
 
 
+      ),
+      div(
+        position.absolute,
+        transform <-- currentTransform.map(tr => s"translate(${tr.x}px,${tr.y}px) scale(${tr.k})"),
         for( i <- 0 to 30) yield {
-          val offset = (-(now % unit) / unit + i) * unitWidth
-          verticalLine(shift+offset)(backgroundColor := "rgba(0,0,0,0.10)")
+          val xpos = (-(now % unit).toDouble / unit + i) * unitWidth
+          verticalLine(xpos)(backgroundColor := "rgba(0,0,0,0.10)")
         },
-        verticalLine(shift+0)(backgroundColor := "steelblue", width := "2px"),
+        verticalLine(0)(backgroundColor := "steelblue", width := "2px"),
 
         Rx {
-          bars().map { bar => renderTask(state, bar, unit, unitWidth, now, shift, parentId = focusState.focusedId) }
+          bars().map { bar => 
+            if(bar.startDate.isDefined && bar.endDate.isDefined)
+              renderTask(state, bar, unit, unitWidth, now, parentId = focusState.focusedId) 
+            else
+              VDomModifier.empty
+          }
         },
-      ),
+      )
+    )
 
     )
   }
 
-  def verticalLine(offset:Double) = {
+  def onD3Zoom(handle: Transform => Unit):VDomModifier = {
+      managedElement.asHtml { elem =>
+        val selection = d3.select(elem)
+        val zoom = d3.zoom()
+        zoom.on("zoom", {() =>
+          handle(d3.event.transform)
+        })
+
+        selection.call(zoom)
+        Cancelable(() => selection.on("zoom", null:ListenerFunction0))
+      }
+  }
+
+  def verticalLine(xpos:Double) = {
     div(
       position.absolute,
-      transform := s"translate(${offset}px, 0px)",
+      transform := s"translate(${xpos}px, 0px)",
       height := "500px",
       width := "1px",
     )
   }
 
-  private def renderTask(state: GlobalState, bar: Bar, unit:Double, unitWidth:Double, now:EpochMilli, shift:Long, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderTask(state: GlobalState, bar: Bar, unit:Double, unitWidth:Double, now:EpochMilli, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
 
     val xPosWidth:Option[(Long, Long)] = for {
       startDate <- bar.startDate
       endDate <- bar.endDate
       if startDate < endDate
-    } yield (startDate - now + shift, endDate - startDate)
+    } yield (startDate - now, endDate - startDate)
 
     val barHeight = 32
 
