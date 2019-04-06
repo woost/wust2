@@ -4,6 +4,8 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import org.scalajs.dom
 import monix.execution.Cancelable
+import monix.reactive.subjects.PublishSubject
+import monix.reactive.Observable
 import wust.webApp.dragdrop.{ DragContainer, DragItem }
 import fontAwesome.freeSolid
 import SharedViewElements._
@@ -76,16 +78,23 @@ object GanttView {
       }
     }
 
-    var zoomTransform: Var[d3.Transform] = Var(d3.zoomIdentity)
-    val x = d3.scaleTime()
-    x.range(js.Array(0, dom.window.innerWidth)) // will be corrected later
+    val zoomTransform = PublishSubject[d3.Transform]()
+    val domain = PublishSubject[js.Array[js.Date]]()
+    val range = PublishSubject[js.Array[Double]]()
+
+    val scaleX:Observable[d3.TimeScale] = Observable.combineLatestMap3(zoomTransform, domain, range){ (zoomTransform, domain, range) =>
+      console.log("scaleX")
+      val x = d3.scaleTime()
+        .domain(domain)
+        .range(range)
+      zoomTransform.rescaleX(x)
+    }
+
     barsRx.foreach { bars =>
-      x.domain(extents(bars).map(new js.Date(_)).toJSArray)
+      domain.onNext(extents(bars).map(new js.Date(_)).toJSArray)
     }
-    val scaledX = Rx {
-      zoomTransform().rescaleX(x)
-    }
-    val xAxis = d3.axisBottom(x)
+
+    val xAxis = scaleX.map{x => println("xAxis"); d3.axisBottom(x)}
 
     div(
       keyed,
@@ -109,30 +118,30 @@ object GanttView {
       div(
         onDomMount.foreach { elem =>
           val width = elem.getBoundingClientRect().width
-          x.range(js.Array(0, width))
+          range.onNext(js.Array(0, width))
         },
         backgroundColor := "rgba(255,255,255,0.5)",
         height := "100%",
         overflow.hidden,
-        onD3Zoom(zoomTransform() = _),
+        onD3Zoom(zoomTransform.onNext),
         position.relative,
 
         svg.svg(
           width := "100%",
           height := "30px",
-          Rx {
+          xAxis.map { xAxis =>
             svg.g(
               onDomMount.foreach { elem: dom.Element =>
-                xAxis.scale(scaledX())(d3.select(elem))
+                xAxis(d3.select(elem))
               }
             )
           }
         ),
         div(
-          Rx {
-            barsRx().map { bar =>
+          Observable.combineLatestMap2(barsRx.toObservable, scaleX){ (bars, scaleX) =>
+            bars.map { bar =>
               if (bar.startDate.isDefined && bar.endDate.isDefined) {
-                renderTask(state, bar, scaledX(), parentId = focusState.focusedId)
+                renderTask(state, bar, scaleX, parentId = focusState.focusedId)
               } else
                 VDomModifier.empty
             }
