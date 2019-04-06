@@ -68,12 +68,12 @@ class ForceSimulation(
     case EdgeData.Child.tpe         => Containment
     case _:EdgeData.LabeledProperty => Edge
   }
-  private var postSelection: Selection[Node] = _
+  private var postSelection: d3.Selection[Node] = _
   var simData: SimulationData = _
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
   private var canvasContext: CanvasRenderingContext2D = _
-  var transform: Var[Transform] = Var(d3.zoomIdentity)
+  var transform: Var[d3.Transform] = Var(d3.zoomIdentity)
   var running = false
   var dragStartPos:Vec2 = Vec2.zero
 
@@ -515,7 +515,7 @@ object ForceSimulation {
 
   def updateDomNodes(
       posts: js.Array[Node],
-      postSelection: Selection[Node],
+      postSelection: d3.Selection[Node],
       nodeOnClick: (Node, Int) => Unit
   ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
@@ -553,7 +553,7 @@ object ForceSimulation {
   }
 
   def registerDragHandlers(
-      postSelection: Selection[Node],
+      postSelection: d3.Selection[Node],
       dragSubject: (Node, Index) => Coordinates,
       dragStart: (html.Element, Node, Index) => Unit,
       dragged: (html.Element, Node, Index) => Unit,
@@ -569,7 +569,7 @@ object ForceSimulation {
     )
   }
 
-  def backupSimDataToDom(simData: SimulationData, postSelection: Selection[Node]): Unit = {
+  def backupSimDataToDom(simData: SimulationData, postSelection: d3.Selection[Node]): Unit = {
     time(log(s">> backupData[${if (simData != null) simData.n.toString else "None"}]")) {
       postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         val coordinates = new Coordinates
@@ -582,7 +582,7 @@ object ForceSimulation {
     }
   }
 
-  def createSimDataFromDomBackup(postSelection: Selection[Node]): SimulationData = {
+  def createSimDataFromDomBackup(postSelection: d3.Selection[Node]): SimulationData = {
     time(log(s"<< createSimDataFromBackup[${postSelection.size()}]")) {
       val n = postSelection.size()
       val simData = new SimulationData(n)
@@ -672,7 +672,7 @@ object ForceSimulation {
   def applyNodePositions(
       simData: SimulationData,
       staticData: StaticData,
-      postSelection: Selection[Node]
+      postSelection: d3.Selection[Node]
   ): Unit = {
     postSelection
       .style("transform", { (_: Node, i: Int) =>

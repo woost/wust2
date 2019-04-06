@@ -4,6 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
+import d3v4.d3
 import vectory._
 import wust.graph._
 import wust.ids._
@@ -13,7 +14,7 @@ import wust.webApp.views.Elements._
 import wust.webApp.views.Placeholders
 
 object PostCreationMenu {
-  def apply(state: GlobalState, focusState: FocusState, pos: Vec2, transformRx: Rx[d3v4.Transform])(
+  def apply(state: GlobalState, focusState: FocusState, pos: Vec2, transformRx: Rx[d3.Transform])(
       implicit owner: Ctx.Owner
   ) = {
 //    import graphState.rxNodeIdToSimPost

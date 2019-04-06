@@ -46,7 +46,8 @@ object Deps {
 
   // webApp
   val scalaJsDom = dep("org.scala-js" %%% "scalajs-dom" % "0.9.6")
-  val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "08fc8de")
+  val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
+  // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
   val vectory = dep("com.github.fdietze" % "vectory" % "b7e8d44")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")

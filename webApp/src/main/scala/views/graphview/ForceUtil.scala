@@ -18,10 +18,10 @@ import scala.scalajs.js
 // }
 
 object ForceUtil {
-  @inline private def forAllNodes[T](n: QuadtreeNode[T])(code: T => Unit): Unit = {
+  @inline private def forAllNodes[T](n: d3.QuadtreeNode[T])(code: T => Unit): Unit = {
     def isLeaf = !n.length.isDefined
     if (isLeaf) {
-      var maybeNode: js.UndefOr[QuadtreeNode[T]] = n
+      var maybeNode: js.UndefOr[d3.QuadtreeNode[T]] = n
       while (maybeNode.isDefined) {
         val node = maybeNode.get
         code(node.data)
@@ -30,10 +30,10 @@ object ForceUtil {
     }
   }
 
-  @inline def forAllPointsInCircle(quadtree: Quadtree[Int], x: Double, y: Double, r: Double)(
+  @inline def forAllPointsInCircle(quadtree: d3.Quadtree[Int], x: Double, y: Double, r: Double)(
       code: Int => Unit
   ): Unit = {
-    quadtree.visit { (n: QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
+    quadtree.visit { (n: d3.QuadtreeNode[Int], x0: Double, y0: Double, x1: Double, y1: Double) =>
       forAllNodes(n)(code)
 
       val rw = x1 - x0
@@ -46,16 +46,16 @@ object ForceUtil {
     }
   }
 
-  @inline def forAllPointsInRect(quadtree: Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(
+  @inline def forAllPointsInRect(quadtree: d3.Quadtree[Int], x0: Double, y0: Double, x3: Double, y3: Double)(
       code: Int => Unit
   ): Unit = {
-    quadtree.visit { (n: QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
+    quadtree.visit { (n: d3.QuadtreeNode[Int], x1: Double, y1: Double, x2: Double, y2: Double) =>
       forAllNodes(n)(code)
 
       x1 >= x3 || y1 >= y3 || x2 < x0 || y2 < y0
     }
   }
-  @inline def forAllPointsInRect(quadtree: Quadtree[Int], rect:AARect)(code: Int => Unit): Unit = {
+  @inline def forAllPointsInRect(quadtree: d3.Quadtree[Int], rect:AARect)(code: Int => Unit): Unit = {
     forAllPointsInRect(
       quadtree,
       rect.minCorner.x,

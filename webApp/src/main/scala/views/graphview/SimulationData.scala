@@ -1,6 +1,6 @@
 package views.graphview
 
-import d3v4.{ Quadtree, d3 }
+import d3v4._
 import vectory._
 
 import scala.scalajs.js
@@ -17,7 +17,7 @@ class SimulationData(
   val y: Array[Double],
   val vx: Array[Double],
   val vy: Array[Double],
-  var quadtree: Quadtree[Int],
+  var quadtree: d3.Quadtree[Int],
 
   var eulerSetConvexHull: Array[Array[Circle]],
   var eulerSetConvexHullTangents: Array[Vec2Array],

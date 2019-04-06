@@ -131,8 +131,8 @@ object StaticData {
 
   def apply(
       graph: Graph,
-      selection: Selection[Node],
-      transform: Transform,
+      selection: d3.Selection[Node],
+      transform: d3.Transform,
       labelVisualization: PartialFunction[EdgeData.Type, VisualizationType]
   ): StaticData = {
     time(log(s"calculateStaticData[${selection.size()}]")) {
