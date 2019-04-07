@@ -71,6 +71,11 @@ object View {
     def viewKey = "gantt"
     override def isContent = true
   }
+  case object Topological extends Visible {
+    override def toString = "Topological Sort"
+    def viewKey = "topological"
+    override def isContent = true
+  }
   case object Empty extends Visible {
     def viewKey = "empty"
     override def isContent = true

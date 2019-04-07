@@ -237,7 +237,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     nodeIds(i) = nodeId
   }
 
-  def idToIdxOrThrow(id: NodeId): Int = _idToIdx.getOrElse(id, throw new Exception(s"Id '${id.toBase58}' not found in graph"))
+  def idToIdxOrThrow(id: NodeId): Int = _idToIdx.getOrElse(id, throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph"))
   val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
   @inline def idToIdxGet(nodeId: NodeId): Option[Int] = {
     val idx = idToIdx(nodeId)
@@ -527,6 +527,29 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
+
+  def propertyLookup(name: String): NestedArrayInt = {
+    val targetDegree = new Array[Int](n)
+    val relevantEdges = ArraySet.create(edges.length)
+
+    consistentEdges.foreach { edgeIdx =>
+      edges(edgeIdx).data match {
+        case EdgeData.LabeledProperty(`name`) =>
+          val sourceIdx = edgesIdx.a(edgeIdx)
+          targetDegree(sourceIdx) += 1
+          relevantEdges.add(edgeIdx)
+        case _ =>
+      }
+    }
+
+    val targetIdxBuilder = NestedArrayInt.builder(targetDegree)
+    relevantEdges.foreach { edgeIdx =>
+      val sourceIdx = edgesIdx.a(edgeIdx)
+      val targetIdx = edgesIdx.b(edgeIdx)
+      targetIdxBuilder.add(sourceIdx, targetIdx)
+    }
+    targetIdxBuilder.result()
+  }
 
   def templateNodes(idx: Int): Seq[Node] = {
     val automatedIdxs = graph.automatedEdgeIdx(idx)
