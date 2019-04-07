@@ -375,6 +375,112 @@ class AlgorithmsSpec extends FreeSpec with MustMatchers {
     }
   }
 
+  "longest path for every node" - {
+    "empty" in {
+      val edges = NestedArrayInt(Array[Array[Int]]())
+      val lengths = longestPathsIdx(edges)
+      assert(lengths.length == 0)
+    }
+    "no edges" in {
+      val edges = NestedArrayInt(Array(Array[Int](), Array[Int](), Array[Int]()))
+      val lengths = longestPathsIdx(edges)
+      assert(lengths.toList == List(0,0,0))
+    }
+    "simple case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1),
+        /* 1 */ Array[Int](2),
+        /* 2 */ Array[Int]())
+      )
+      val lengths = longestPathsIdx(edges)
+      assert(lengths.toList == List(2,1,0))
+    }
+    "diamond case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1,2),
+        /* 1 */ Array[Int](2),
+        /* 2 */ Array[Int]())
+      )
+      val lengths = longestPathsIdx(edges)
+      assert(lengths.toList == List(2,1,0))
+    }
+    "simple cycle case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1),
+        /* 1 */ Array[Int](0,3),
+        /* 2 */ Array[Int](0),
+        /* 3 */ Array[Int]())
+      )
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(2,1,3,0))
+    }
+    "complex cycle case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1,2,5),
+        /* 1 */ Array[Int](3),
+        /* 2 */ Array[Int](1),
+        /* 3 */ Array[Int](0,2),
+        /* 4 */ Array[Int](1), // before cycle
+        /* 5 */ Array[Int]()) // after cycle
+      )
+      val lengths = longestPathsIdx(edges)
+      assert(lengths.toList == List(4,3,1,2,4,0)) // mostly undefined, but does not crash
+    }
+  }
+
+  "shortest path for every node" - {
+    "empty" in {
+      val edges = NestedArrayInt(Array[Array[Int]]())
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.length == 0)
+    }
+    "no edges" in {
+      val edges = NestedArrayInt(Array(Array[Int](), Array[Int](), Array[Int]()))
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(0,0,0))
+    }
+    "simple case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1),
+        /* 1 */ Array[Int](2),
+        /* 2 */ Array[Int]())
+      )
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(2,1,0))
+    }
+    "diamond case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1,2),
+        /* 1 */ Array[Int](2),
+        /* 2 */ Array[Int]())
+      )
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(1,1,0))
+    }
+    "simple cycle case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1),
+        /* 1 */ Array[Int](0,3),
+        /* 2 */ Array[Int](0),
+        /* 3 */ Array[Int]())
+      )
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(2,1,3,0))
+    }
+    "complex cycle case" in {
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1,2,5),
+        /* 1 */ Array[Int](3),
+        /* 2 */ Array[Int](1),
+        /* 3 */ Array[Int](0,2),
+        /* 4 */ Array[Int](1), // before cycle
+        /* 5 */ Array[Int]()) // after cycle
+      )
+      val lengths = shortestPathsIdx(edges)
+      assert(lengths.toList == List(1,2,1,1,3,0)) // mostly undefined, but does not crash
+    }
+  }
+
   "dijkstra" - {
     "for simple case" in {
       val (depths, predecessors) = dijkstra(Map(0 -> Seq(1),

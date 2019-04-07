@@ -6,8 +6,8 @@ import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))
-  implicit def idToPost(id: Int): Node = Node.Content(id = id, data = NodeData.PlainText("content"), role = NodeRole.default, meta = NodeMeta(NodeAccess.ReadWrite))
-  implicit def postListToMap(posts: List[Int]): List[Node] = posts.map(idToPost)
+  implicit def idToNode(id: Int): Node = Node.Content(id = id, data = NodeData.PlainText("content"), role = NodeRole.default, meta = NodeMeta(NodeAccess.ReadWrite))
+  implicit def nodeListToMap(nodes: List[Int]): List[Node] = nodes.map(idToNode)
   implicit def tupleIsConnection(t: (Int, Int)): Edge = Connection(t._1, t._2)
   implicit def connectionListIsMap(connections: List[(Int, Int)]): List[Edge] = connections.map(tupleIsConnection)
 
@@ -77,7 +77,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       filteredGraph2.edges.toSet mustEqual comparisonGraph2.edges.toSet
     }
 
-    "successors of post" in {
+    "successors of node" in {
       pending
       val graph = Graph(
         nodes = List(1, 11, 12, 13, 14),
@@ -90,7 +90,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.successorsWithoutParent(13) mustEqual Set.empty
     }
 
-    "children of post" in {
+    "children of node" in {
       val graph = Graph(
         nodes = List(1, 11, 12, 13, 14),
         edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
@@ -100,7 +100,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.children(12:NodeId) mustEqual Set.empty
     }
 
-    "parents of post" in {
+    "parents of node" in {
       val graph = Graph(
         nodes = List(1, 11, 12, 13, 14),
         edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))

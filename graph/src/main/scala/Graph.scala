@@ -1067,30 +1067,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   //    connectedComponents(nodeIds, containmentNeighbours)
   //  }
 
-  lazy val childDepth: collection.Map[NodeId, Int] = depth(children)
-  lazy val parentDepth: collection.Map[NodeId, Int] = depth(parents)
-
-  def depth(next: NodeId => Iterable[NodeId]): collection.Map[NodeId, Int] = {
-    val tmpDepths = mutable.HashMap[NodeId, Int]()
-    val visited = mutable.HashSet[NodeId]() // to handle cycles
-    def getDepth(id: NodeId): Int = {
-      tmpDepths.getOrElse(id, {
-        if (!visited(id)) {
-          visited += id
-
-          val c = next(id)
-          val d = if (c.isEmpty) 0 else c.map(getDepth).max + 1
-          tmpDepths(id) = d
-          d
-        } else 0 // cycle
-      })
-    }
-
-    for (id <- nodeIds if !tmpDepths.isDefinedAt(id)) {
-      getDepth(id)
-    }
-    tmpDepths
-  }
+  lazy val childDepth: Array[Int] = longestPathsIdx(childrenIdx)
+  lazy val parentDepth: Array[Int] = longestPathsIdx(parentsIdx)
 
   lazy val rootNodes: Array[Int] = {
     // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)

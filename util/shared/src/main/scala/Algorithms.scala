@@ -488,6 +488,58 @@ object algorithm {
     iterator.size // consume iterator
   }
 
+  def shortestPathsIdx(next: NestedArrayInt) = {
+    val n = next.length
+    val memoizedLengths = Array.fill[Int](n)(-1)
+    val visited = ArraySet.create(n) // to handle cycles
+
+    def searchShortestPath(idx: Int): Int = {
+      val shortestPath = memoizedLengths(idx)
+      if(shortestPath == -1) {
+        if (!visited(idx)) {
+          visited += idx
+
+          val d = if(next.sliceIsEmpty(idx)) 0
+          else (next.minByInt(idx)(initMin = n)(searchShortestPath) + 1)
+
+          memoizedLengths(idx) = d
+          d
+        } else 0 // cycle
+      } else shortestPath
+    }
+
+    memoizedLengths.foreachIndexAndElement { (idx, depth) =>
+      if(depth == -1) searchShortestPath(idx)
+    }
+    memoizedLengths
+  }
+
+  def longestPathsIdx(next: NestedArrayInt):Array[Int] = {
+    val memoizedLengths = Array.fill[Int](next.length)(-1)
+    val visited = ArraySet.create(next.length) // to handle cycles
+
+    def searchLongestPath(idx: Int): Int = {
+      val longestPath = memoizedLengths(idx)
+      if(longestPath == -1) {
+        if (!visited(idx)) {
+          visited += idx
+
+          val d = if(next.sliceIsEmpty(idx)) 0
+          else (next.maxByInt(idx)(initMax = 0)(searchLongestPath) + 1)
+
+          memoizedLengths(idx) = d
+          d
+        } else 0 // cycle
+      } else longestPath
+    }
+
+    memoizedLengths.foreachIndexAndElement { (idx, depth) =>
+      if(depth == -1) searchLongestPath(idx)
+    }
+    memoizedLengths
+  }
+
+
   def dijkstra[V](edges: V => Iterable[V], source: V): (Map[V, Int], Map[V, V]) = {
     def run(active: Set[V], res: Map[V, Int], pred: Map[V, V]): (Map[V, Int], Map[V, V]) =
       if (active.isEmpty) (res, pred)

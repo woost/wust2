@@ -216,7 +216,7 @@ object StaticData {
 
       val eulerSets: Array[EulerSet] = {
         graph.allParentIdsTopologicallySortedByChildren.map { nodeIdx =>
-          val depth = graph.childDepth(graph.nodeIds(nodeIdx))
+          val depth = graph.childDepth(nodeIdx)
           new EulerSet(
             parent = nodeIdx,
             children = graph.descendantsIdx(nodeIdx),

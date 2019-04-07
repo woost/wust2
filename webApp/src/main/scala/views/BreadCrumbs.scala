@@ -78,7 +78,7 @@ object BreadCrumbs {
                 sortedByGroupId.flatMap { case (gId, nodes) =>
                   // sort nodes within a group by their length towards the root node
                   // this ensures that e.g. „Channels“ comes first
-                  nodes.sortBy(graph.parentDepth(_))
+                  nodes.sortBy(n => graph.parentDepth(graph.idToIdxOrThrow(n)))
                 }
               )
             }
