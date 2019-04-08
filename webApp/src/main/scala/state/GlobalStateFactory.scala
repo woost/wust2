@@ -33,7 +33,7 @@ import scala.util.{Failure, Success}
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val sidebarOpen = Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
-    val urlConfig = UrlRouter.variable.imap(_.fold(UrlConfig.default)(UrlConfig.fromUrlHash))(x => Option(UrlConfig.toUrlHash(x)))
+    val urlConfig = UrlRouter.variable.imap(UrlConfig.fromUrlRoute)(UrlConfig.toUrlRoute)
 
     val eventProcessor = EventProcessor(
       Client.observable.event,

@@ -35,14 +35,14 @@ private object UrlOption {
     private def decodeVisibleView(s: String): DecodeResult[View.Visible] =
       decodeView(s).flatMap {
         case view: View.Visible => Right(view)
-        case view => Left(DecodeError.TypeError(s"Expected View.Visible, but got: '$view'"))
+        case view               => Left(DecodeError.TypeError(s"Expected View.Visible, but got: '$view'"))
       }
 
     private def decodeView(s: String): DecodeResult[View] = {
       val split = s.split(":")
       val viewName = split(0)
       val parameters = split.drop(1).toList
-      val result = View.map.get(viewName).flatMap(_(parameters))
+      val result = View.map.get(viewName).flatMap(_ (parameters))
       result.fold[DecodeResult[View]](Left(DecodeError.TypeError(s"Unknown view '$s")))(Right(_))
     }
 
@@ -51,7 +51,7 @@ private object UrlOption {
         val views = viewStr.split("\\||,|\\?|/").filter(_.nonEmpty)
         val view = views.head
         val opsViews = views.drop(1)
-        if (opsViews.isEmpty) decodeView(view)
+        if(opsViews.isEmpty) decodeView(view)
         else {
           val opString = viewStr.substring(view.length, view.length + 1) // TODO only support one operator. nested tiling?
           ViewOperator.fromString.lift(opString) match {
@@ -61,7 +61,7 @@ private object UrlOption {
                   View.Tiled(op, NonEmptyList(view, views.toList))
                 }
               }
-            case None => Left(DecodeError.TypeError(s"Unknown operator '$opString'"))
+            case None     => Left(DecodeError.TypeError(s"Unknown operator '$opString'"))
           }
         }
       })
@@ -75,9 +75,9 @@ private object UrlOption {
   object page extends UrlOption {
     val key = "page"
 
-      val regex = Regex[String](rx"^(\w+)$$")
+    val regex = Regex[String](rx"^(\w+)$$")
       .map(_.map { case parentId =>
-          Page(NodeId(Cuid.fromBase58(parentId)))
+        Page(NodeId(Cuid.fromBase58(parentId)))
       })
 
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
@@ -92,17 +92,6 @@ private object UrlOption {
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(view.regex, text).map { view =>
         config.copy(redirectTo = Some(view))
-      }
-  }
-
-  object share extends UrlOption {
-    val key = "share"
-
-    val regex = Regex[ShareOptions](rx"^title:([^,]*),text:([^:]*),url:(.*)$$")
-
-    def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
-      parseSingle(regex, text).map { shareOptions =>
-        config.copy(shareOptions = Some(shareOptions))
       }
   }
 
@@ -125,28 +114,37 @@ object UrlConfigParser {
     UrlOption.view.key -> UrlOption.view,
     UrlOption.page.key -> UrlOption.page,
     UrlOption.redirectTo.key -> UrlOption.redirectTo,
-    UrlOption.share.key -> UrlOption.share,
     UrlOption.invitation.key -> UrlOption.invitation,
   )
 
-  def parse(text: String): UrlConfig = {
-    val matched = decodeSeq(allOptionsRegex.eval(text).toList)
-    val result = matched.map(_.foldLeft[UrlConfig](UrlConfig.default) { case (cfg, (key, value)) =>
-      allOptionsMap.get(key) match {
-        case Some(option) => option.update(cfg, value) match {
-          case Right(cfg) => cfg
-          case Left(err)  =>
-            scribe.warn(s"Cannot parse option '$key' in url, will be ignored: ${ err.getMessage }")
+  def parse(route: UrlRoute): UrlConfig = {
+    val searchOptions = route.search.fold[Option[Map[String, String]]](None)(search => decodeSeq(allOptionsRegex.eval(search).toList).toOption.map(_.toMap))
+
+    val result = route.hash.fold[DecodeResult[UrlConfig]](Right(UrlConfig.default)) { hash =>
+      val matched = decodeSeq(allOptionsRegex.eval(hash).toList)
+      matched.map(_.foldLeft[UrlConfig](UrlConfig.default) { case (cfg, (key, value)) =>
+        allOptionsMap.get(key) match {
+          case Some(option) => option.update(cfg, value) match {
+            case Right(cfg) => cfg
+            case Left(err)  =>
+              scribe.warn(s"Cannot parse option '$key' in url, will be ignored: ${ err.getMessage }")
+              cfg
+          }
+          case None         =>
+            scribe.warn(s"Unknown key '$key' in url, will be ignored.")
             cfg
         }
-        case None         =>
-          scribe.warn(s"Unknown key '$key' in url, will be ignored.")
-          cfg
-      }
-    })
+      })
+    }
 
     result match {
-      case Right(cfg) => cfg
+      case Right(cfg) => searchOptions.fold(cfg) { searchOptions =>
+        //Keep in sync with site.webmanifest where mapping of share url is defined
+        (searchOptions.get("share-title"), searchOptions.get("share-text"), searchOptions.get("share-url")) match {
+          case (Some(title), text, urlOption) => cfg.copy(shareOptions = Some(ShareOptions(title = title, text = text.getOrElse(""), url = urlOption.getOrElse(""))))
+          case _ => cfg
+        }
+      }
       case Left(err)  =>
         scribe.warn(s"Cannot parse url, falling back to default view config: ${ err.getMessage }")
         UrlConfig.default
@@ -155,13 +153,14 @@ object UrlConfigParser {
 }
 
 object UrlConfigWriter {
-  def write(cfg: UrlConfig): String = {
+  def write(cfg: UrlConfig): UrlRoute = {
     val viewString = cfg.view.map(view => UrlOption.view.key + "=" + view.viewKey)
     val pageString = cfg.pageChange.page.parentId map { parentId =>
         UrlOption.page.key + "=" + s"${parentId.toBase58}"
     }
     val redirectToString =
       cfg.redirectTo.map(view => UrlOption.redirectTo.key + "=" + view.viewKey)
-    List(viewString, pageString, redirectToString).flatten.mkString("&")
+    val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
+    UrlRoute(search = None, hash = Some(hash))
   }
 }

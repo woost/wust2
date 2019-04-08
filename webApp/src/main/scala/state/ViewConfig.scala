@@ -37,9 +37,9 @@ case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Opt
 object UrlConfig {
   val default = UrlConfig(view = None, PageChange(Page.empty), None, None, None)
 
-  def fromUrlHash(hash: String): UrlConfig = UrlConfigParser.parse(hash)
+  def fromUrlRoute(route: UrlRoute): UrlConfig = UrlConfigParser.parse(route)
 
-  def toUrlHash(config: UrlConfig): String = UrlConfigWriter.write(config)
+  def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
 }
 
 case class ViewConfig(view: View.Visible, page: Page)

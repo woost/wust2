@@ -67,11 +67,11 @@ object SharedViewElements {
     showMarkdownHelp: Boolean = false
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
-      state.urlConfig().shareOptions.map { share =>
+      state.urlConfig().shareOptions.fold("") { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
-    }.toObservable.collect { case Some(s) => s } else Observable.empty
+    }.toObservable.dropWhile(_.isEmpty) else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
 
     val autoResizer = new TextAreaAutoResizer
 
@@ -86,6 +86,9 @@ object SharedViewElements {
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       def handle() = {
         submitAction(str)
+        if (preFillByShareApi && state.urlConfig.now.shareOptions.isDefined) {
+          state.urlConfig.update(_.copy(shareOptions = None))
+        }
         if(BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
       }
       if (enforceUserName && !state.askedForUnregisteredUserName.now) {
