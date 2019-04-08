@@ -112,7 +112,7 @@ object GraphChangesAutomation {
       case edge: Edge.Author if edge.nodeId == templateNode.id            => () // do not copy author of template itself
       case edge: Edge.Author                                              => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
         // replace node ids to point to our copied nodes
-        replacedNodes.get(edge.nodeId) match {
+        if (!alreadyExistingNodes.isDefinedAt(edge.nodeId)) replacedNodes.get(edge.nodeId) match { // already existing nodes are not newly added, therefore do not add a
           case Some(newSource) => addEdges += edge.copy(nodeId = newSource.id, userId = userId)
           case None => ()
         }
