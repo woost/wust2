@@ -3,7 +3,7 @@ package wust.webApp.state
 import java.util
 
 import akka.stream.scaladsl.Source
-import flatland.{ArraySet, ArrayStackInt}
+import flatland.{ArraySet, ArrayStackInt, InterleavedArrayInt}
 import monix.reactive.Observable
 import rx.Var
 import wust.graph._
@@ -23,7 +23,7 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNode: Node, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNode: Node, ignoreParents: Set[NodeId] = Set.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
     scribe.info(s"Copying sub graph of node $newNode with template $templateNode")
 
     val templateNodeIdx = graph.idToIdxOrThrow(templateNode.id)
@@ -110,6 +110,7 @@ object GraphChangesAutomation {
       case edge: Edge.Automated if edge.templateNodeId == templateNode.id => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) => () // do not copy deleted parent edges
       case edge: Edge.Author if edge.nodeId == templateNode.id            => () // do not copy author of template itself
+      case edge: Edge.Child if edge.childId == templateNode.id && ignoreParents(edge.parentId) => () // do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
       case edge: Edge.Author                                              => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
         // replace node ids to point to our copied nodes
         if (!alreadyExistingNodes.isDefinedAt(edge.nodeId)) replacedNodes.get(edge.nodeId) match { // already existing nodes are not newly added, therefore do not add a
@@ -157,15 +158,32 @@ object GraphChangesAutomation {
 
           if (childIsTemplate) addEdges += parent // do not automate template nodes
           else {
-            val automatedEdges = graph.automatedEdgeIdx(parentIdx)
             var doneSomethingLocally = false
+            var doneAutomatedParent = false
+
+            // if this is a stage, we want to apply automation to nested stages as well:
+            // 1. search for all s
+            val parentNode = graph.nodes(parentIdx)
+            val targetIdxs: Array[(Int, Set[NodeId])] = if (parentNode.role == NodeRole.Stage) {
+              val targetIdxs = Array.newBuilder[(Int, Set[NodeId])]
+              targetIdxs += parentIdx -> Set.empty
+              algorithm.depthFirstSearchAfterStartWithContinue(parentIdx, graph.parentsIdx, { idx =>
+                val node = graph.nodes(idx)
+                if (node.role == NodeRole.Stage) {
+                  targetIdxs += idx -> Set(node.id)
+                  true
+                } else false
+              })
+              targetIdxs.result.reverse
+            } else Array(parentIdx -> Set.empty)
+
             //TODO should we do the copy for all templateNodes of this node in one go? because then we do not duplicate shared nodes of templates
-            automatedEdges.foreach { automatedEdgeIdx =>
+            targetIdxs.foreach { case (targetIdx, ignoreParents) => graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
               val templateNode = graph.nodes(templateNodeIdx)
               if (templateNode.role == childNode.role) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
-                val changes = copySubGraphOfNode(userId, graph, newNode = childNode, templateNode = templateNode)
+                val changes = copySubGraphOfNode(userId, graph, newNode = childNode, templateNode = templateNode, ignoreParents = ignoreParents)
                 // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
                 // so an automated node can be drag/dropped to the correct position.
                 addEdges ++= changes.addEdges.map {
@@ -175,12 +193,17 @@ object GraphChangesAutomation {
                 }
                 addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
                 delEdges ++= changes.delEdges
+
                 doneSomethingLocally = true
+                if (targetIdx == parentIdx) doneAutomatedParent = true
               }
-            }
+            }}
 
             if (doneSomethingLocally) {
               automatedNodes += childNode
+              if (!doneAutomatedParent) {
+                addEdges += parent
+              }
             } else {
               addEdges += parent
             }
