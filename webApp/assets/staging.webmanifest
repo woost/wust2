@@ -20,11 +20,11 @@
   ],
   "related_applications": [],
   "share_target": {
-    "action": "/#",
+    "action": "/",
     "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
+      "title": "share-title",
+      "text": "share-text",
+      "url": "share-url"
     }
   }
 }
