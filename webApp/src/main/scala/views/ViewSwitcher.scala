@@ -60,7 +60,7 @@ object ViewSwitcher {
       View.Graph ::
       View.Table(NodeRole.Task :: Nil) ::
       View.Content ::
-      View.Gantt ::
+      // View.Gantt ::
       Nil
 
     val closeDropdown = PublishSubject[Unit]
