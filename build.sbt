@@ -259,6 +259,7 @@ lazy val bench = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
   .dependsOn(graph)
   .settings(
+    // cancelable in Global := true, // ctrl+c does not quit sbt
     libraryDependencies ++=
       Deps.bench.value ::
       Nil,

@@ -7,51 +7,43 @@ import wust.util.algorithm
 import flatland.NestedArrayInt
 
 object GraphBenchmarks {
-  val algorithms = Comparison("Algorithms", {
+
+  val topologicalSort = Comparison("Topological Sort", {
     import wust.graph._
     import wust.ids._
-    def grid(size: Int):NestedArrayInt = {
+    def grid(size: Int): NestedArrayInt = {
       val n = Math.sqrt(size).floor.toInt
-      NestedArrayInt(Array.tabulate(size){i =>
-        Array(i-1).filter(x => x >= (i/n)*n) ++
-          Array(i+1).filter(x => x <= ((i/n)*n+n-1) && x < size) ++
-          Array(i-n).filter(x => x >= 0) ++
-          Array(i+n).filter(x => x < size)
+      NestedArrayInt(Array.tabulate(size){ i =>
+        Array(i - 1).filter(x => x >= (i / n) * n) ++
+          Array(i + 1).filter(x => x <= ((i / n) * n + n - 1) && x < size) ++
+          Array(i - n).filter(x => x >= 0) ++
+          Array(i + n).filter(x => x < size)
       })
     }
 
     Seq(
-      Benchmark[NestedArrayInt]("dfs grid",
+      Benchmark[(Array[Int], NestedArrayInt)](
+        "toposort grid",
         { size =>
-          grid(size)
-        },
-        (successors, iterations) =>
-          loop(iterations) {
-            algorithm.depthFirstSearch(0, successors)
-          }
-      ),
-      Benchmark[(Array[Int],NestedArrayInt)]("toposort grid",
-        { size =>
-          ((0 until size).toArray,grid(size))
+          ((0 until size).toArray, grid(size))
         }, {
-        case ((vertices,successors), iterations) =>
-          loop(iterations) {
+          case ((vertices, successors)) =>
             algorithm.topologicalSortForward(vertices, successors)
-          }
         }
       ),
     )
   })
+
   val graphAlgorithms = Comparison("Graph Algorithms", {
     import wust.graph._
     import wust.ids._
-    def randomGraph(size:Int, d:Double) = {
+    def randomGraph(size: Int, d: Double) = {
       val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-      val edges = for( a <- nodes; b <- nodes if rDouble <= d ) yield Edge.Child(ParentId(b.id), ChildId(a.id))
+      val edges = for (a <- nodes; b <- nodes if rDouble <= d) yield Edge.Child(ParentId(b.id), ChildId(a.id))
       Graph(nodes, edges)
     }
 
-    def randomChannelGraph(size:Int, d:Double):(Graph, Node.User) = {
+    def randomChannelGraph(size: Int, d: Double): (Graph, Node.User) = {
       val graph = randomGraph(size, d)
       val userNode = Node.User(UserId.fresh, NodeData.User("harals", true, 1), NodeMeta.User)
       val edges = graph.nodes.map(n => Edge.Pinned(n.id, userNode.id))
@@ -59,37 +51,42 @@ object GraphBenchmarks {
     }
 
     Seq(
-      Benchmark[Graph]("parents w/o edges",
-      { size =>
-        val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-        Graph(nodes)
-      },
-      (graph, _) =>
-        graph.parents(graph.nodes.head.id)
+      Benchmark[Graph](
+        "parents w/o edges",
+        { size =>
+          val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
+          Graph(nodes)
+        },
+        (graph) =>
+          graph.parents(graph.nodes.head.id)
       ),
-      Benchmark[Graph]("parents path",
-      { size =>
-        val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-        val edges = nodes.zip(nodes.tail).map {case (a,b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id))}
-        Graph(nodes, edges)
-      },
-      (graph, _) =>
-        graph.parents(graph.nodes.head.id)
+      Benchmark[Graph](
+        "parents path",
+        { size =>
+          val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
+          val edges = nodes.zip(nodes.tail).map { case (a, b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id)) }
+          Graph(nodes, edges)
+        },
+        (graph) =>
+          graph.parents(graph.nodes.head.id)
       ),
-      Benchmark[Graph]("parents rand(0.05)",
-      { size =>
-        randomGraph(size, 0.05)
-      },
-      (graph, _) =>
-        graph.parents(graph.nodes.head.id)
+      Benchmark[Graph](
+        "parents rand(0.05)",
+        { size =>
+          randomGraph(size, 0.05)
+        },
+        (graph) =>
+          graph.parents(graph.nodes.head.id)
       ),
-      Benchmark[(Graph,Node)]("channelTree rand(0.05)",
-      { size =>
-        randomChannelGraph(size, 0.05)
-      },
-      { case ((graph, userNode: Node.User), _) =>
-        graph.notDeletedChannelTree(userNode.id)
-      }
+      Benchmark[(Graph, Node)](
+        "channelTree rand(0.05)",
+        { size =>
+          randomChannelGraph(size, 0.05)
+        },
+        {
+          case ((graph, userNode: Node.User)) =>
+            graph.notDeletedChannelTree(userNode.id)
+        }
       ),
     )
   })

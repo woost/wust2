@@ -49,13 +49,13 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
-  val vectory = dep("com.github.fdietze" % "vectory" % "c87ddfa")
+  val vectory = dep("com.github.fdietze" % "vectory" % "cf38068")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "a15d3ae")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
   val outwatch = dep("com.github.outwatch" % "outwatch" % "a36c938")
   // val outwatch = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
-  val bench = dep("com.github.fdietze.bench" %%% "bench" % "e01dad0")
+  val bench = dep("com.github.fdietze.bench" %%% "bench" % "268449f")
 
   // utility
   val scribe = new {
@@ -77,7 +77,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "e271646")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "7929c94")
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 
   // graalvm

@@ -13,7 +13,7 @@ object CuidBenchmarks {
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
         },
-        { (cuids, _) =>
+        { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
             s = cuid.toCuidString
@@ -25,7 +25,7 @@ object CuidBenchmarks {
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
         },
-        { (cuids, _) =>
+        { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
             s = cuid.toUuid.toString
@@ -37,7 +37,7 @@ object CuidBenchmarks {
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
         },
-        { (cuids, _) =>
+        { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
             s = cuid.toBase58
@@ -49,7 +49,7 @@ object CuidBenchmarks {
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
         },
-        { (cuids, _) =>
+        { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
             s = cuid.toHex
@@ -61,7 +61,7 @@ object CuidBenchmarks {
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
         },
-        { (cuids, _) =>
+        { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
             s = cuid.toStringFast
