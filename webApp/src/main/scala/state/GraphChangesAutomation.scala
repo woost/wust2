@@ -162,7 +162,6 @@ object GraphChangesAutomation {
             var doneAutomatedParent = false
 
             // if this is a stage, we want to apply automation to nested stages as well:
-            // 1. search for all s
             val parentNode = graph.nodes(parentIdx)
             val targetIdxs: Array[(Int, Set[NodeId])] = if (parentNode.role == NodeRole.Stage) {
               val targetIdxs = Array.newBuilder[(Int, Set[NodeId])]
