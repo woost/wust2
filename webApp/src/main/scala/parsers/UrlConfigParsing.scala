@@ -8,6 +8,8 @@ import kantan.regex._
 import kantan.regex.implicits._
 import kantan.regex.generic._
 
+import scala.scalajs.js
+
 private object ParsingHelpers {
   def decodeSeq[A](list: Seq[DecodeResult[A]]): DecodeResult[Seq[A]] =
     list.forall(_.isRight) match {
@@ -118,7 +120,7 @@ object UrlConfigParser {
   )
 
   def parse(route: UrlRoute): UrlConfig = {
-    val searchOptions = route.search.fold[Option[Map[String, String]]](None)(search => decodeSeq(allOptionsRegex.eval(search).toList).toOption.map(_.toMap))
+    val searchOptions = route.search.fold[Option[Map[String, String]]](None)(search => decodeSeq(allOptionsRegex.eval(search).toList).toOption.map(_.toMap.mapValues(js.URIUtils.decodeURIComponent)))
 
     val result = route.hash.fold[DecodeResult[UrlConfig]](Right(UrlConfig.default)) { hash =>
       val matched = decodeSeq(allOptionsRegex.eval(hash).toList)
