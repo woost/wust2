@@ -83,12 +83,19 @@ object TopologicalView {
         nodeInfos().map { nodeInfo =>
           val isNewGroup = lastLevel != nodeInfo.depth
           lastLevel = nodeInfo.depth
-          nodeCard(nodeInfo.node).apply(
-            Styles.flex,
-            marginBottom := "2px",
-            VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
-            drag(DragItem.TaskConnect(nodeInfo.node.id, propertyName()))
-          )
+          KanbanView.renderCard(
+            state,
+            nodeInfo.node,
+            parentId = focusState.focusedId,
+            focusState = focusState,
+            inOneLine = true,
+            dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
+            dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
+          ).apply(
+              Styles.flex,
+              marginBottom := "2px",
+              VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
+            )
         }
       },
       registerDragContainer(state),

@@ -59,9 +59,6 @@ object ListView {
       node = node,
       parentId = parentId,
       focusState = focusState,
-      path = Nil,
-      selectedNodeIds = Var(Set.empty),
-      activeAddCardFields = Var(Set.empty),
       showCheckbox = true,
       isDone = isDone,
       inOneLine = true

@@ -320,9 +320,9 @@ object KanbanView {
     node: Node,
     parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to focusState.focusedId
     focusState: FocusState,
-    path: List[NodeId],
-    selectedNodeIds:Var[Set[NodeId]],
-    activeAddCardFields: Var[Set[List[NodeId]]],
+    path: List[NodeId] = Nil,
+    selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty),
+    activeAddCardFields: Var[Set[List[NodeId]]] = Var(Set.empty),
     showCheckbox:Boolean = false,
     isDone:Boolean = false,
     inOneLine: Boolean = false,
