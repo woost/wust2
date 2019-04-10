@@ -49,7 +49,7 @@ object NotesView {
         state,
         submitAction = { str =>
           val newNode = Node.MarkdownNote(str)
-          val changes = GraphChanges.addNodesWithParents(newNode :: Nil, state.page.now.parentId.map(ParentId(_)))
+          val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId))
           state.eventProcessor.changes.onNext(changes)
         },
         placeHolderMessage = Some("Add a note"),
