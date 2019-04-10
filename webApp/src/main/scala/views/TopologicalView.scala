@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import concurrent.duration._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import org.scalajs.dom
@@ -31,13 +32,13 @@ import org.scalajs.dom.console
 object TopologicalView {
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
-    case class NodeInfo(node:Node, depth:Int)
+    case class NodeInfo(node: Node, depth: Int)
 
     val propertyName = Var("depends on")
-    val nodeDepth:Rx[Array[Int]] = Rx {
+    val nodeDepth: Rx[Array[Int]] = Rx {
       val graph = state.graph()
       val lookup = graph.propertyLookup(propertyName())
-      algorithm.shortestPathsIdx(lookup)
+      algorithm.longestPathsIdx(lookup)
     }
 
     val nodeInfos: Rx[Array[NodeInfo]] = Rx {
@@ -59,15 +60,38 @@ object TopologicalView {
       overflow.auto,
       padding := "20px",
 
+      div(
+        Styles.flex,
+        justifyContent.flexEnd,
+        alignItems.center,
+        marginBottom := "10px",
+
+        div("Drag items onto each other to connect.", opacity := 0.5, marginRight.auto),
+        div("Field:", marginRight := "10px"),
+        div(
+          cls := "ui input",
+          input(
+            tpe := "text",
+            value <-- propertyName,
+            onInput.value.debounce(300 milliseconds) --> propertyName,
+            marginLeft.auto,
+          )
+        )
+      ),
       Rx {
+        var lastLevel = 0
         nodeInfos().map { nodeInfo =>
+          val isNewGroup = lastLevel != nodeInfo.depth
+          lastLevel = nodeInfo.depth
           nodeCard(nodeInfo.node).apply(
             Styles.flex,
             marginBottom := "2px",
-            div(nodeInfo.depth, marginLeft.auto, opacity := 0.5)
+            VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
+            drag(DragItem.TaskConnect(nodeInfo.node.id, propertyName()))
           )
         }
-      }
+      },
+      registerDragContainer(state),
     )
   }
 }

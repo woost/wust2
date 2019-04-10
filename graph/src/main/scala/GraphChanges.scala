@@ -299,4 +299,8 @@ object GraphChanges {
   @inline def assign(nodeId: NodeId, userId: UserId): GraphChanges = {
     GraphChanges.connect(Edge.Assigned)(nodeId, userId)
   }
+
+  def connectWithProperty(sourceId:NodeId, propertyName:String, targetId:NodeId) = {
+    connect(Edge.LabeledProperty)(sourceId, EdgeData.LabeledProperty(propertyName), PropertyId(targetId))
+  }
 }

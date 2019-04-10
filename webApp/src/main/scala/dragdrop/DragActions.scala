@@ -41,8 +41,8 @@ object DragActions {
           def addColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           def disconnectColumn: GraphChanges = if (from.parentId != into.parentId)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
-            else GraphChanges.empty
-          if(ctrl)
+          else GraphChanges.empty
+          if (ctrl)
             addColumn
           else
             addColumn merge disconnectColumn
@@ -54,10 +54,10 @@ object DragActions {
           def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId))
           def disconnectColumn = GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
           def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
-              GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
-            else GraphChanges.empty
+            GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
+          else GraphChanges.empty
 
-          if(ctrl)
+          if (ctrl)
             addTargetColumn merge addTargetWorkspace
           else
             addTargetColumn merge addTargetWorkspace merge disconnectColumn merge disconnectWorkspace
@@ -70,9 +70,9 @@ object DragActions {
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, intoColumn)
           def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(intoColumn.workspace), ChildId(payload.nodeId))
           def disconnect: GraphChanges = if (from.parentId != intoColumn.workspace)
-              GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
-            else GraphChanges.empty
-          if(ctrl)
+            GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
+          else GraphChanges.empty
+          if (ctrl)
             addTargetColumn merge addTargetWorkspace
           else
             addTargetColumn merge addTargetWorkspace merge disconnect
@@ -84,10 +84,10 @@ object DragActions {
           // disconnect fromColumn all stage parents
           val addTargetWorkspace = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, fromColumn, into)
           def disconnectFromWorkspace: GraphChanges = if (fromColumn.workspace != into.parentId)
-              GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.workspace), ChildId(payload.nodeId))
-            else GraphChanges.empty
+            GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.workspace), ChildId(payload.nodeId))
+          else GraphChanges.empty
           def disconnectFromColumn = GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.nodeId), ChildId(payload.nodeId))
-          if(ctrl)
+          if (ctrl)
             addTargetWorkspace
           else
             addTargetWorkspace merge disconnectFromColumn merge disconnectFromWorkspace
@@ -98,9 +98,9 @@ object DragActions {
           // disconnect from all stage parents
           val addTargetWorkspace = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           def disconnectFromWorkspace: GraphChanges = if (from.parentId != into.parentId)
-              GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
-            else GraphChanges.empty
-          if(ctrl)
+            GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
+          else GraphChanges.empty
+          if (ctrl)
             addTargetWorkspace
           else
             addTargetWorkspace merge disconnectFromWorkspace
@@ -115,8 +115,10 @@ object DragActions {
 
   val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (Graph, UserId) => GraphChanges] = {
     import DragItem._
-    import wust.graph.GraphChanges.{ linkOrCopyInto, linkOrMoveInto, linkInto, movePinnedChannel, assign }
+    import wust.graph.GraphChanges.{ linkOrCopyInto, linkOrMoveInto, linkInto, movePinnedChannel, assign, connectWithProperty }
     {
+      case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => connectWithProperty(sourceId = payload.nodeId, payload.propertyName, targetId = target.nodeId)
+
       case (payload: ContentNode, target: ContentNode, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: ContentNode, target: Thread, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), target.nodeIds.map(ParentId(_)), graph, ctrl)
       case (payload: ContentNode, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)

@@ -61,6 +61,7 @@ object Icons {
   val graph: IconDefinition = freeBrands.faCloudsmith
   val notes: IconDefinition = freeRegular.faStickyNote
   val gantt: IconDefinition = freeSolid.faStream
+  val topological: IconDefinition = freeSolid.faSortNumericDown
 
   val task: IconDefinition = freeRegular.faCheckSquare
 

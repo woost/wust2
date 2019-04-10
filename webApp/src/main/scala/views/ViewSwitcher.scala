@@ -47,6 +47,7 @@ object ViewSwitcher {
       case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
       case View.Content => TabInfo(View.Content, Icons.notes, "notes", 0)
       case View.Gantt => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
+      case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
       case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
     }
 
@@ -61,6 +62,7 @@ object ViewSwitcher {
       View.Table(NodeRole.Task :: Nil) ::
       View.Content ::
       // View.Gantt ::
+      View.Topological ::
       Nil
 
     val closeDropdown = PublishSubject[Unit]
