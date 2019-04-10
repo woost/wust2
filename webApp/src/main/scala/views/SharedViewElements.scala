@@ -67,10 +67,7 @@ object SharedViewElements {
     showMarkdownHelp: Boolean = false
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if(preFillByShareApi) Rx {
-      state.urlConfig().shareOptions.fold("") { share =>
-        val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
-        elements.mkString(" - ")
-      }
+      state.urlConfig().shareOptions.fold("")(_.content)
     }.toObservable.dropWhile(_.isEmpty) else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
 
     val autoResizer = new TextAreaAutoResizer
