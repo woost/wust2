@@ -456,9 +456,16 @@ lazy val webUtil = project
         Nil
   )
 
+lazy val external = crossProject(JSPlatform, JVMPlatform)
+  .crossType(CrossType.Pure)
+  .dependsOn(graph)
+
+val externalJS = external.js
+val externalJVM = external.jvm
+
 lazy val webApp = project
   .enablePlugins(ScalaJSPlugin, ScalaJSBundlerPlugin)
-  .dependsOn(sdkJS, cssJS, webUtil)
+  .dependsOn(sdkJS, cssJS, webUtil, externalJS)
   .settings(commonSettings, commonWebSettings, webSettings)
   .settings(
 //    scalacOptions += "-P:acyclic:force", // enforce acyclicity across all files

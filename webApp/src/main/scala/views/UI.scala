@@ -108,7 +108,7 @@ object UI {
     import wust.webApp.state.GlobalState
     import wust.webApp.views.Components.renderNodeData
 
-    def defaultHeader(state: GlobalState, node: Node, modalHeaderText: String, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
+    def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
         backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
         div(
@@ -126,7 +126,7 @@ object UI {
               renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             ),
-            div(modalHeaderText),
+            div(modalHeader),
           ),
           div(
             Styles.flex,
@@ -238,8 +238,10 @@ object UI {
     })
   }
 
-  val horizontalDivider = div(cls := "ui divider")
+  val horizontalDivider = div(cls := "ui horizontal divider")
   def horizontalDivider(text:String) = div(cls := "ui horizontal divider", text)
+  val verticalDivider = div(cls := "ui vertical divider")
+  def verticalDivider(text:String) = div(cls := "ui vertical divider", text)
 
   def dropdownMenu(items: VDomModifier, close: Observable[Unit], dropdownModifier: VDomModifier = VDomModifier.empty): VDomModifier = VDomModifier(
     cls := "ui pointing link inline dropdown",

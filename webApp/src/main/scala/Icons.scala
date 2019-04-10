@@ -72,6 +72,7 @@ object Icons {
   val permissionPublic: IconDefinition = freeSolid.faGlobeAmericas
 
   val automate: IconDefinition =  freeSolid.faRobot
+  val `import`: IconDefinition =  freeSolid.faFileImport
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
   val mentionIn: IconDefinition = freeSolid.faCopy
   val pin: IconDefinition = freeSolid.faThumbtack

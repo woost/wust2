@@ -5,6 +5,7 @@ import googleAnalytics.Analytics
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
+import org.scalajs.dom.FileReader
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -22,6 +23,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
+import wust.external.trello
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -91,6 +93,12 @@ object PageSettingsMenu {
         })
       }
 
+      val importItem = Rx {
+        VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
+          Importing.settingsItem(state, channel.id)
+        })
+      }
+
       val addMemberItem: VDomModifier = Rx {
         channelAsContent() collect {
           case channel if canWrite() => manageMembers(state, channel)
@@ -106,7 +114,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
     def header: VDomModifier = div(
