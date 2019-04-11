@@ -269,6 +269,27 @@ object RightSidebar {
 
     VDomModifier(
       div(
+        marginTop := "10px",
+        propertySingle.properties.map { property =>
+          Components.removablePropertySection(state, property.key, property.values).apply(
+            marginBottom := "10px",
+          )
+        },
+
+        VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
+          Styles.flex,
+          flexWrap.wrap,
+          fontSize.small,
+          span("Backlinks: ", color.gray),
+          propertySingle.info.reverseProperties.map { node =>
+            Components.nodeCard(node, maxLength = Some(50)).apply(
+              margin := "3px",
+              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
+            )
+          }
+        )),
+      ),
+      div(
         Styles.flex,
         justifyContent.flexEnd,
         div(
@@ -310,27 +331,6 @@ object RightSidebar {
         )
       ).apply(marginTop := "10px"),
 
-      div(
-        marginTop := "10px",
-        propertySingle.properties.map { property =>
-          Components.removablePropertySection(state, property.key, property.values).apply(
-            marginBottom := "10px",
-          )
-        },
-
-        VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
-          Styles.flex,
-          flexWrap.wrap,
-          fontSize.small,
-          span("Backlinks: ", color.gray),
-          propertySingle.info.reverseProperties.map { node =>
-            Components.nodeCard(node, maxLength = Some(50)).apply(
-              margin := "3px",
-              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
-            )
-          }
-        )),
-      ),
     )
   }
 }
