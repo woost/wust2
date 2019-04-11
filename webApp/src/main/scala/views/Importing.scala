@@ -34,7 +34,11 @@ object Importing {
   object Parser {
     type Result = IO[Either[String, NodeId => GraphChanges]]
 
-    case class FromString(parse: String => Result) extends Parser
+    case class FromString(acceptType: Option[String], parse: String => Result) extends Parser
+    object FromString {
+      def apply(parse: String => Result): FromString = FromString(None, parse)
+      def apply(acceptType: String)(parse: String => Result): FromString = FromString(Some(acceptType), parse)
+    }
   }
 
   sealed trait Source {
@@ -46,7 +50,7 @@ object Importing {
     case object TrelloFile extends Source {
       def icon = freeBrands.faTrello
       def description = "Trello Board (JSON)"
-      def parser = Parser.FromString { str => IO {
+      def parser = Parser.FromString("application/json") { str => IO {
         decode[trello.Board](str) match {
           case Right(board) => Right(trello.Trello.translate(board, _))
           case Left(err) => Left(s"Trello JSON is invalid: $err")
@@ -64,10 +68,11 @@ object Importing {
 
     def fromSource(source: Source)(implicit ctx: Ctx.Owner): Seq[Importer] = {
       source.parser match {
-        case Parser.FromString(parse) =>
+        case Parser.FromString(acceptType, parse) =>
           val config = EditableContent.Config(
             submitMode = EditableContent.SubmitMode.OnChange,
-            errorMode = EditableContent.ErrorMode.ShowToast
+            errorMode = EditableContent.ErrorMode.ShowToast,
+            innerModifier = acceptType.map(accept := _)
           )
 
           val currentFile = PublishSubject[Parser.Result]
