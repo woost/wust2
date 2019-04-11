@@ -77,6 +77,11 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
+  val kantanCSV = new {
+    private val version = "0.4.0"
+    val core = dep("com.nrinaudo" %%% "kantan.csv" % version)
+    val generic = dep("com.nrinaudo" %%% "kantan.csv-generic" % version)
+  }
   val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "7929c94")
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 

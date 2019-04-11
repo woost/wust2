@@ -1,5 +1,8 @@
 package wust.util
 
+import java.text.DateFormat
+import java.util.Date
+
 import scala.util.control.NonFatal
 
 object StringOps {
@@ -18,5 +21,9 @@ object StringOps {
   }
   @inline def safeToDouble(doubleStr: String): Option[Double] = {
     try { Some(doubleStr.toDouble) } catch { case NonFatal(_) => None }
+  }
+  @inline def safeToDate(epochString: String): Option[Date] = {
+    // alternative DateFormat#parse is not available in js
+    try { Some(new Date(epochString)) } catch { case NonFatal(_) => None }
   }
 }

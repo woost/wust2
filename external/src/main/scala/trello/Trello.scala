@@ -1,5 +1,6 @@
 package wust.external.trello
 
+import cats.Eval
 import cats.kernel.instances.StringMonoid
 import wust.ids._
 import wust.graph._
@@ -86,7 +87,7 @@ case class Board(
 )
 
 object Trello {
-  def translate(board: Board, nodeId: NodeId, currentTime: EpochMilli = EpochMilli.now): GraphChanges = {
+  def translate(board: Board, currentTime: EpochMilli = EpochMilli.now)(nodeId: NodeId): GraphChanges = {
     val addNodes = mutable.Set.newBuilder[Node]
     val addEdges = mutable.Set.newBuilder[Edge]
 
@@ -111,9 +112,13 @@ object Trello {
       checklistsById += checklist.id -> checklistNode.id
 
       // create done column in this checklist
-      val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
-      addNodes += doneNode
-      addEdges += Edge.Child(ParentId(checklistNode.id), ChildId(doneNode.id))
+      val doneNode = Eval.later {
+        val doneNode = Node.Content(NodeId.fresh, NodeData.Markdown(Graph.doneText), NodeRole.Stage, NodeMeta.default, None)
+        addNodes += doneNode
+        addEdges += Edge.Child(ParentId(checklistNode.id), ChildId(doneNode.id))
+        doneNode
+      }
+
 
       // collect all items in this checklist
       checklist.checkItems.foreach { checkItem =>
@@ -122,9 +127,7 @@ object Trello {
 
         // add item to checklist and potentially its done stage
         addEdges += Edge.Child(ParentId(checklistNode.id), EdgeData.Child(ordering = BigDecimal(checkItem.pos)), ChildId(checkitemNode.id))
-        if (checkItem.state == "complete") {
-          addEdges += Edge.Child(ParentId(doneNode.id), EdgeData.Child(ordering = BigDecimal(checkItem.pos)), ChildId(checkitemNode.id))
-        }
+        if (checkItem.state == "complete") addEdges += Edge.Child(ParentId(doneNode.value.id), EdgeData.Child(ordering = BigDecimal(checkItem.pos)), ChildId(checkitemNode.id))
       }
     }
 
@@ -198,5 +201,16 @@ object Trello {
       addNodes = addNodes.result,
       addEdges = addEdges.result
     )
+  }
+
+  def decodeJson(json: String): Either[String, Board] = {
+    import io.circe._
+    import io.circe.generic.auto._
+    import io.circe.parser._
+
+    decode[Board](json) match {
+      case Right(board) => Right(board)
+      case Left(err)    => Left(s"Trello JSON is invalid: $err")
+    }
   }
 }

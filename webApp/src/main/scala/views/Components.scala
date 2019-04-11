@@ -1125,5 +1125,31 @@ object Components {
     onMouseOver(Some(nodeId)) --> state.hoverNodeId,
     onMouseOut(None) --> state.hoverNodeId,
   )
+
+  val betaSign = div(
+    "beta",
+    backgroundColor := "#F2711C",
+    color := "white",
+    borderRadius := "3px",
+    padding := "0px 5px",
+    fontWeight.bold,
+    styles.extra.transform := "rotate(-7deg)",
+
+    marginRight := "5px",
+    Elements.onClickN(desiredClicks = 8).foreach {
+      dom.window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
+    }
+
+  )
+
+  val experimentalSign = div(
+    "experimental",
+    backgroundColor := "#F2711C",
+    color := "white",
+    borderRadius := "3px",
+    padding := "0px 5px",
+    fontWeight.bold,
+    styles.extra.transform := "rotate(-7deg)",
+  )
 }
 

@@ -48,6 +48,7 @@ object EdgeData {
     def attachment = LabeledProperty("Attachment")
     def reference = LabeledProperty("Reference")
     def description = LabeledProperty("Description")
+    def dueDate = LabeledProperty("Due Date")
   }
 
   case object Notify extends Named with EdgeData

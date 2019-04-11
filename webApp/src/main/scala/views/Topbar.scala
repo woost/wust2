@@ -77,22 +77,6 @@ object Topbar {
     cursor.pointer
   )
 
-  val betaSign = div(
-    "beta",
-    backgroundColor := "#F2711C",
-    color := "white",
-    borderRadius := "3px",
-    padding := "0px 5px",
-    fontWeight.bold,
-    transform := "rotate(-7deg)",
-
-    marginRight := "5px",
-    Elements.onClickN(desiredClicks = 8).foreach {
-      window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
-    }
-
-  )
-
   def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
@@ -102,7 +86,7 @@ object Topbar {
       Rx {
         (state.screenSize() != ScreenSize.Small).ifTrueSeq[VDomModifier](Seq(
           banner(state),
-          betaSign,
+          Components.betaSign,
         ))
       },
       syncStatus(state)(ctx)(fontSize := "20px"),

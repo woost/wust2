@@ -459,6 +459,17 @@ lazy val webUtil = project
 lazy val external = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
   .dependsOn(graph)
+  .settings(
+    libraryDependencies ++=
+      Deps.circe.core.value ::
+      Deps.circe.parser.value ::
+      Deps.circe.generic.value ::
+      Deps.kantanCSV.core.value ::
+      Deps.kantanCSV.generic.value ::
+      Deps.kantanRegex.core.value ::
+      Deps.kantanRegex.generic.value ::
+      Nil
+  )
 
 val externalJS = external.js
 val externalJVM = external.jvm
