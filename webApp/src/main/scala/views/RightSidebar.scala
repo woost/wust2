@@ -90,7 +90,7 @@ object RightSidebar {
             overflowY.auto,
             maxHeight := "40%"
           )),
-          accordionEntry("Properties", VDomModifier(
+          accordionEntry("Custom Fields", VDomModifier(
             nodeDetailsMenu(state, focusedNodeId, parentIdAction),
             overflowY.auto,
             flex := "1 1 20%"
