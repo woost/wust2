@@ -66,6 +66,7 @@ object GenericSidebar {
     def sidebarWithExpand(config: Config)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
       cls := "expanded-sidebar",
       directionExpandedModifier,
+      closeSwipe,
       div(
         Rx {
           sidebarOpen() match {
