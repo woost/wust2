@@ -13,7 +13,6 @@ import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
 import vectory._
-import views.graphview.VisualizationType.{Containment, Edge}
 import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
@@ -65,10 +64,10 @@ class ForceSimulation(
 
   //TODO why partial?
   private var labelVisualization: PartialFunction[EdgeData.Type, VisualizationType] = {
-    case EdgeData.Child.tpe         => Containment
-    case _:EdgeData.LabeledProperty => Edge
+    case EdgeData.Child.tpe         => VisualizationType.Containment
+    case _:EdgeData.LabeledProperty => VisualizationType.Edge
   }
-  private var postSelection: d3.Selection[Node] = _
+  private var nodeSelection: d3.Selection[Node] = _
   var simData: SimulationData = _
   private var staticData: StaticData = _
   private var planeDimension = PlaneDimension()
@@ -324,7 +323,7 @@ class ForceSimulation(
           "transform",
           s"translate(${tr.x}px,${tr.y}px) scale(${tr.k})"
         )
-        staticData = StaticData(graphRx.now, postSelection, tr, labelVisualization)
+        staticData = StaticData(graphRx.now, nodeSelection, tr, labelVisualization)
         transform() = tr
       }
 
@@ -372,17 +371,17 @@ class ForceSimulation(
       stop()
 
       // We want to let d3 do the re-ordering while keeping the old coordinates
-      postSelection = nodeContainer.selectAll[Node]("div.graphnode")
+      nodeSelection = nodeContainer.selectAll[Node]("div.graphnode")
       // First, we write x,y,vx,vy into the dom
-      backupSimDataToDom(simData, postSelection)
+      backupSimDataToDom(simData, nodeSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomNodes(graph.nodes.toJSArray, postSelection, nodeOnClick) // d3 data join
-      postSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated postSelection
-      registerDragHandlers(postSelection, dragSubject, dragStart, dragging, dropped)
+      updateDomNodes(graph.nodes.toJSArray, nodeSelection, nodeOnClick) // d3 data join
+      nodeSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated nodeSelection
+      registerDragHandlers(nodeSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
-      simData = createSimDataFromDomBackup(postSelection)
+      simData = createSimDataFromDomBackup(nodeSelection)
       // For each node, we calculate its rendered size, radius etc.
-      staticData = StaticData(graph, postSelection, transform.now, labelVisualization)
+      staticData = StaticData(graph, nodeSelection, transform.now, labelVisualization)
       initNodePositions()
       dom.window.setTimeout(() => resized(), 0) // defer size detection until rendering is finished. Else initial size can be wrong.
 
@@ -492,7 +491,7 @@ class ForceSimulation(
     ForceSimulationForces.calculateEulerSetPolygons(simData, staticData)
     ForceSimulationForces.calculateEulerZonePolygons(simData, staticData)
       ForceSimulationForces.calculateEulerSetConnectedComponentsPolygons(simData, staticData)
-    applyNodePositions(simData, staticData, postSelection)
+    applyNodePositions(simData, staticData, nodeSelection)
     drawCanvas(simData, staticData, canvasContext, planeDimension)
   }
 }
@@ -515,11 +514,11 @@ object ForceSimulation {
 
   def updateDomNodes(
       posts: js.Array[Node],
-      postSelection: d3.Selection[Node],
+      nodeSelection: d3.Selection[Node],
       nodeOnClick: (Node, Int) => Unit
   ): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
-    val node = postSelection.data(posts, (p: Node) => p.id.toString)
+    val node = nodeSelection.data(posts, (p: Node) => p.id.toString)
     time(log(s"removing old posts from dom[${node.exit().size()}]")) {
       node
         .exit()
@@ -553,13 +552,13 @@ object ForceSimulation {
   }
 
   def registerDragHandlers(
-      postSelection: d3.Selection[Node],
+      nodeSelection: d3.Selection[Node],
       dragSubject: (Node, Index) => Coordinates,
       dragStart: (html.Element, Node, Index) => Unit,
       dragged: (html.Element, Node, Index) => Unit,
       dropped: (html.Element, Node, Index) => Unit
   ): Unit = {
-    postSelection.call(
+    nodeSelection.call(
       d3.drag[Node]()
         .clickDistance(10) // interpret short drags as clicks
         .subject(dragSubject) // important for drag offset
@@ -569,9 +568,9 @@ object ForceSimulation {
     )
   }
 
-  def backupSimDataToDom(simData: SimulationData, postSelection: d3.Selection[Node]): Unit = {
+  def backupSimDataToDom(simData: SimulationData, nodeSelection: d3.Selection[Node]): Unit = {
     time(log(s">> backupData[${if (simData != null) simData.n.toString else "None"}]")) {
-      postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
+      nodeSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         val coordinates = new Coordinates
         node.asInstanceOf[js.Dynamic].__databackup__ = coordinates // yay javascript!
         coordinates.x = simData.x(i)
@@ -582,11 +581,11 @@ object ForceSimulation {
     }
   }
 
-  def createSimDataFromDomBackup(postSelection: d3.Selection[Node]): SimulationData = {
-    time(log(s"<< createSimDataFromBackup[${postSelection.size()}]")) {
-      val n = postSelection.size()
+  def createSimDataFromDomBackup(nodeSelection: d3.Selection[Node]): SimulationData = {
+    time(log(s"<< createSimDataFromBackup[${nodeSelection.size()}]")) {
+      val n = nodeSelection.size()
       val simData = new SimulationData(n)
-      postSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
+      nodeSelection.each[html.Element] { (node: html.Element, _: Node, i: Int) =>
         if (node
               .asInstanceOf[js.Dynamic]
               .__databackup__
@@ -672,9 +671,9 @@ object ForceSimulation {
   def applyNodePositions(
       simData: SimulationData,
       staticData: StaticData,
-      postSelection: d3.Selection[Node]
+      nodeSelection: d3.Selection[Node]
   ): Unit = {
-    postSelection
+    nodeSelection
       .style("transform", { (_: Node, i: Int) =>
         val x = simData.x(i) + staticData.centerOffsetX(i)
         val y = simData.y(i) + staticData.centerOffsetY(i)
