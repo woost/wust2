@@ -58,8 +58,6 @@ object RightSidebar {
       height := "100%",
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
-      borderRadius := "3px",
-      margin := "5px",
       color.black,
       backgroundColor <-- nodeStyle.map(_.bgLightColor),
       onClick.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
