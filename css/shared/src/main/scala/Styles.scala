@@ -940,14 +940,19 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  ".nodecard .buttonbar" - (
+  ".nodecard .buttonbar.autohide" - (
     backgroundColor(nodeCardBackgroundColor),
     visibility.hidden
   )
 
-  ".nodecard .buttonbar > div" - (
+  ".nodecard .buttonbar.autohide > div" - (
     color(c"rgb(157, 157, 157)"),
-    padding(0 px, 2 px)
+    padding(0 px, 4 px)
+  )
+
+  ".nodecard .buttonbar > div" - ( // touch
+    color(c"rgb(157, 157, 157)"),
+    padding(0 px, 5 px) // more spacing for big fingers
   )
 
   ".nodecard .buttonbar > div:hover" - (
@@ -970,11 +975,14 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
+  ".kanbancolumnheader .buttonbar.autohide," +
+  ".kanban-uncategorized-title .buttonbar.autohide" - (
+    visibility.hidden,
+  )
 
   ".kanbancolumnheader .buttonbar," +
   ".kanban-uncategorized-title .buttonbar" - (
     padding(kanbanColumnPadding),
-    visibility.hidden,
     fontSize.medium // same as in kanban card
   )
 
@@ -986,7 +994,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumnheader:hover .buttonbar" - (
     visibility.visible
   )
-  ".kanban-uncategorized-title:hover .buttonbar" - (
+  ".kanban-uncategorized-title:hover .buttonbar.autohide" - (
     visibility.visible
   )
 
@@ -997,9 +1005,16 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(2 px)
   )
 
+  ".kanbancolumnheader .buttonbar.autohide > div," +
+  ".kanban-uncategorized-title .buttonbar.autohide > div" - (
+    padding(2 px),
+    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    color(c"rgba(255, 255, 255, 0.83)")
+  )
+
   ".kanbancolumnheader .buttonbar > div," +
   ".kanban-uncategorized-title .buttonbar > div" - (
-    padding(2 px),
+    padding(5 px),
     backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
     color(c"rgba(255, 255, 255, 0.83)")
   )

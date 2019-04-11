@@ -165,6 +165,7 @@ object KanbanView {
         "Inbox / Todo",
         div(
           cls := "buttonbar",
+          VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
           drag(DragItem.DisableDrag),
           Styles.flex,
           GraphChangesAutomationUI.settingsButton(state, workspaceId, activeMod = visibility.visible),
@@ -206,6 +207,7 @@ object KanbanView {
 
     val buttonBar = div(
       cls := "buttonbar",
+      VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
       Styles.flex,
       drag(DragItem.DisableDrag),
       Rx {
@@ -417,6 +419,7 @@ object KanbanView {
 
       div(
         cls := "buttonbar",
+        VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
         drag(DragItem.DisableDrag),
         Styles.flex,
         immediateMenuItems.map(_(true))
