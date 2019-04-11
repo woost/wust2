@@ -170,10 +170,6 @@ object RightSidebar {
           state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
             div(
               div(
-                nodeAuthor(state.rawGraph(), focusPref.nodeId)
-              ),
-
-              div(
                 Styles.flex,
                 alignItems.flexStart,
                 Components.nodeCardEditable(state, node, editMode).apply(
@@ -199,6 +195,9 @@ object RightSidebar {
                   )
                 }
               ),
+              div(
+                nodeAuthor(state, state.rawGraph(), focusPref.nodeId)
+              ),
             )
           }
         }
@@ -206,7 +205,7 @@ object RightSidebar {
     )
   }
 
-  private def nodeAuthor(graph: Graph, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def nodeAuthor(state: GlobalState, graph: Graph, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val idx = graph.idToIdxOrThrow(nodeId)
     val author = graph.nodeCreator(idx)
     val creationEpochMillis = graph.nodeCreated(idx)
@@ -214,23 +213,9 @@ object RightSidebar {
     VDomModifier(
       Styles.flex,
       alignItems.center,
+      justifyContent.flexEnd,
       author.map { userNode =>
-        VDomModifier(
-          Avatar.user(userNode.id)(
-            marginRight := "2px",
-            width := "22px",
-            height := "22px",
-            cls := "avatar",
-          ),
-          Components.displayUserName(userNode.data),
-          div(
-            Styles.flex,
-            alignItems.center,
-            marginLeft := "auto",
-            SharedViewElements.modifications(userNode, graph.nodeModifier(idx)),
-            Elements.creationDate(creationEpochMillis),
-          )
-        )
+        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)),
       },
     )
   }
