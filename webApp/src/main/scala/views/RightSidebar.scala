@@ -132,7 +132,8 @@ object RightSidebar {
             ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
             borderBottom := "2px solid black",
             button(
-              cls := "ui mini button compact",
+              cls := "ui compact button",
+              backgroundColor := "transparent",
               marginLeft := "10px",
               Icons.zoom,
               cursor.pointer,
