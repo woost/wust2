@@ -151,7 +151,7 @@ object Trello {
 
       // attach description as property
       if (card.desc.nonEmpty) {
-        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Task, NodeMeta.default, None)
+        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Neutral, NodeMeta.default, None)
         addNodes += descNode
         addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.description, PropertyId(descNode.id))
       }
