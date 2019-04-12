@@ -72,7 +72,7 @@ package object collection {
     }
   }
 
-  def eitherSeq[A, B](list: List[Either[A, B]]): Either[List[A], List[B]] = {
+  def eitherSeq[A, B](list: Seq[Either[A, B]]): Either[List[A], List[B]] = {
     val lefts = new mutable.ListBuffer[A]
     val rights = new mutable.ListBuffer[B]
 
