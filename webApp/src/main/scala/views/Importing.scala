@@ -255,7 +255,7 @@ object Importing {
       div(
         Styles.growFull,
         Styles.flex,
-        paddingTop := "5px",
+        padding := "5px 0",
         height := "400px",
         overflow.auto,
 
