@@ -31,7 +31,7 @@ object IndexedDbOps {
   def storeAuth(auth: Authentication)(implicit ec: ExecutionContext): Future[Boolean] = auth match {
     case Authentication.Verified(_, _, token) =>
       onStore(stores.auth) { store =>
-        store.put(token, 0)
+        store.put(token.string, 0)
       }
     case _ =>
       onStore(stores.auth) { store =>

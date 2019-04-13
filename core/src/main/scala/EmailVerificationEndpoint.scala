@@ -2,6 +2,7 @@ package wust.core
 
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.Route
+import wust.api.Authentication
 import wust.backend.auth.JWT
 import wust.backend.config.ServerConfig
 import wust.db.Db
@@ -12,7 +13,7 @@ import scala.util.{Failure, Success}
 class EmailVerificationEndpoint(db: Db, jwt: JWT, config: ServerConfig) {
   import akka.http.scaladsl.server.Directives._
 
-  def verify(token: String)(implicit ec: ExecutionContext): Route = {
+  def verify(token: Authentication.Token)(implicit ec: ExecutionContext): Route = {
     def link =  s"""<a href="https://${config.host}">Go back to app</a>"""
     def successMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Your email address has been verified. Thank you! $link"))
     def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot verify email address. This email verification token was already used or is invalid or expired. $link"))

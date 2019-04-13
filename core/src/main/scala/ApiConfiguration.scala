@@ -52,7 +52,7 @@ class ApiConfiguration(
   override def requestToState(request: HttpRequest): Future[State] = {
     request.headers.find(_.is("authorization")) match {
       case Some(authHeader) =>
-        guardDsl.validAuthFromToken(authHeader.value).flatMap {
+        guardDsl.validAuthFromToken(Authentication.Token(authHeader.value)).flatMap {
           case auth @ Some(_) => Future.successful(State(auth))
           case None           => Future.failed(new Exception("Invalid Authorization Header"))
         }

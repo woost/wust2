@@ -227,7 +227,7 @@ object UserSettingsView {
     val errorHandler = Handler.unsafe[Option[String]]
     val clearHandler = errorHandler.collect { case None => "" }
     val actionSink = { password: String =>
-      if (password.nonEmpty) Client.auth.changePassword(password).onComplete {
+      if (password.nonEmpty) Client.auth.changePassword(Password(password)).onComplete {
         case Success(success) =>
           if (success) {
             UI.toast("Successfully changed password", level = UI.ToastLevel.Success)

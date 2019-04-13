@@ -47,11 +47,11 @@ class JWT(secret: String, tokenLifetime: Duration) {
     val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
     val claim = generateClaim(CustomClaim.EmailVerify(userId, email), userId, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
-    token
+    Authentication.Token(token)
   }
 
   def emailActivationFromToken(token: Authentication.Token): Option[VerifiedEmailActivationToken] = {
-    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
+    JwtCirce.decode(token.string, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) =>
         for {
           expires <- claim.expiration
@@ -73,11 +73,11 @@ class JWT(secret: String, tokenLifetime: Duration) {
     val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
     val claim = generateClaim(CustomClaim.UserAuth(user), user.id, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
-    Authentication.Verified(user, expires, token)
+    Authentication.Verified(user, expires, Authentication.Token(token))
   }
 
   def authenticationFromToken(token: Authentication.Token): Option[Authentication.Verified] = {
-    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
+    JwtCirce.decode(token.string, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) =>
         for {
           expires <- claim.expiration
@@ -98,11 +98,11 @@ class JWT(secret: String, tokenLifetime: Duration) {
     val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
     val claim = generateClaim(CustomClaim.Invitation(user), user.id, expires)
     val token = JwtCirce.encode(claim, secret, algorithm)
-    token
+    Authentication.Token(token)
   }
 
   def invitationUserFromToken(token: Authentication.Token): Option[AuthUser.Implicit] = {
-    JwtCirce.decode(token, secret, Seq(algorithm)).toOption.flatMap {
+    JwtCirce.decode(token.string, secret, Seq(algorithm)).toOption.flatMap {
       case claim if claim.isValid(issuer, audience) =>
         for {
           user <- parser.decode[CustomClaim](claim.content)

@@ -51,11 +51,11 @@ trait PushApi[Result[_]] {
 
 @PathName("Auth")
 trait AuthApi[Result[_]] {
-  def changePassword(password: String): Result[Boolean]
+  def changePassword(password: Password): Result[Boolean]
   def assumeLogin(user: AuthUser.Assumed): Result[Boolean]
-  def register(name: String, email: String, password: String): Result[AuthResult]
-  def login(email: String, password: String): Result[AuthResult]
-  def loginReturnToken(email: String, password: String): Result[Option[Authentication.Verified]] //TODO: provide separate public api (json) instead
+  def register(name: String, email: String, password: Password): Result[AuthResult]
+  def login(email: String, password: Password): Result[AuthResult]
+  def loginReturnToken(email: String, password: Password): Result[Option[Authentication.Verified]] //TODO: provide separate public api (json) instead
   def loginToken(token: Authentication.Token): Result[Boolean]
   def logout(): Result[Boolean]
   def verifyToken(token: Authentication.Token): Result[Option[Authentication.Verified]]
@@ -67,6 +67,10 @@ trait AuthApi[Result[_]] {
   def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
   def resendEmailVerification(id: UserId): Result[Unit]
   def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
+}
+
+case class Password(string: String) extends AnyVal {
+  override def toString = "Password(***)"
 }
 
 case class ClientInfo(userAgent: String)
@@ -118,15 +122,15 @@ sealed trait Authentication {
   def dbUserOpt: Option[AuthUser.Persisted] = Some(user) collect { case u: AuthUser.Persisted => u }
 }
 object Authentication {
-  type Token = String
+  case class Token(string: String) extends AnyVal {
+    override def toString = "Token(***)"
+  }
 
   case class Assumed(user: AuthUser.Assumed) extends Authentication
   object Assumed {
     def fresh = Assumed(AuthUser.Assumed(UserId.fresh))
   }
-  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication {
-    override def toString = s"Authentication.Verified($user)"
-  }
+  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication
 }
 
 sealed trait ApiError

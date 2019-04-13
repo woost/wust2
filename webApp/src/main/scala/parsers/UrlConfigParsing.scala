@@ -7,6 +7,7 @@ import wust.webApp.state._
 import kantan.regex._
 import kantan.regex.implicits._
 import kantan.regex.generic._
+import wust.api.Authentication
 
 import scala.scalajs.js
 
@@ -104,7 +105,7 @@ private object UrlOption {
 
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =
       parseSingle(regex, text).map { invitation =>
-        config.copy(invitation = Some(invitation))
+        config.copy(invitation = Some(Authentication.Token(invitation)))
       }
   }
 }

@@ -119,7 +119,7 @@ object Server {
     } ~ (path(paths.emailVerify) & get) { // needs
       cors(corsSettings) {
         parameters('token.as[String]) { token =>
-          emailVerificationEndpoint.verify(token)
+          emailVerificationEndpoint.verify(Authentication.Token(token))
         }
       }
     }

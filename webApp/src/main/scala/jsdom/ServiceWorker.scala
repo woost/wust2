@@ -58,16 +58,15 @@ object ServiceWorker {
   }
 
 
-  sealed trait WorkerMessage { def message: String }
-  case class AuthMessage(token: String) extends WorkerMessage {
-    override def message: String = token
+  sealed trait WorkerMessage
+  case class AuthMessage(token: Authentication.Token) extends WorkerMessage {
   }
   case class Message(message: String) extends WorkerMessage
 
   def sendAuth(auth: Authentication): Unit = {
     import io.circe.syntax._
     import io.circe.generic.extras.semiauto._ // nicht circe ohne generic
-    import wust.ids.serialize.Circe._ // das gibt die die config mit `{"type": "SubClassName", .... }`
+    import wust.api.serialize.Circe._ // das gibt die die config mit `{"type": "SubClassName", .... }`
 
     implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
     implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]

@@ -18,14 +18,14 @@ import scala.util.control.NonFatal
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 
-  def changePassword(password: String): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
+  def changePassword(password: Password): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
     val digest = passwordDigest(password)
     db.user.changePassword(user.id, digest)
       .map(_ => Returns(true))
   }
 
   //TODO: some email or name or password checks?
-  def register(name: String, email: String, password: String): ApiFunction[AuthResult] = Effect { state =>
+  def register(name: String, email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     state.auth.map(_.user) match {
       case Some(AuthUser.Implicit(prevUserId, _, _)) =>
@@ -44,7 +44,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     }
   }
 
-  def login(email: String, password: String): ApiFunction[AuthResult] = Effect { state =>
+  def login(email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
     val digest = passwordDigest(password)
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -71,7 +71,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     }
   }
 
-  def loginReturnToken(email: String, password: String): ApiFunction[Option[Authentication.Verified]] = Effect { state =>
+  def loginReturnToken(email: String, password: Password): ApiFunction[Option[Authentication.Verified]] = Effect { state =>
     val digest = passwordDigest(password)
     db.user.getUserAndDigestByEmail(email).flatMap {
       case Some((user, userDigest)) if (digest.hash = userDigest) =>
@@ -212,7 +212,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
     emailFlow.sendEmailVerification(userDetail.userId, email)
   }
 
-  private def passwordDigest(password: String) = Hasher(password).bcrypt
+  private def passwordDigest(password: Password) = Hasher(password.string).bcrypt
 
   private def authChangeEvents(auth: Authentication): Seq[ApiEvent] = {
     val authEvent = auth match {

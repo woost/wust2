@@ -6,6 +6,9 @@ import boopickle.Default._
 
 object Boopickle extends wust.ids.serialize.Boopickle {
 
+  implicit val PasswordPickler: Pickler[Password] = stringPickler.xmap(Password)(_.string)
+  implicit val AuthTokenPickler: Pickler[Authentication.Token] = stringPickler.xmap(Authentication.Token)(_.string)
+
   implicit val postMetaPickler: Pickler[NodeMeta] = generatePickler[NodeMeta]
   implicit val connectionPickler: Pickler[Edge] = generatePickler[Edge]
   implicit val postPickler: Pickler[Node] = generatePickler[Node]

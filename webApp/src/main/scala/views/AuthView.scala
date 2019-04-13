@@ -5,7 +5,7 @@ import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.api.{AuthResult, AuthUser}
+import wust.api.{AuthResult, AuthUser, Password}
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, PageChange}
@@ -181,7 +181,7 @@ object AuthView {
       needUserName = false,
       submitAction = {userValue =>
         hotjar.pageView("/login/submit")
-        Client.auth.login(userValue.email, userValue.password).map {
+        Client.auth.login(userValue.email, Password(userValue.password)).map {
           case AuthResult.BadPassword => Some("Wrong Password")
           case AuthResult.BadEmail    => Some("Email address does not exist")
           case AuthResult.Success     =>
@@ -204,7 +204,7 @@ object AuthView {
       needUserName = true,
       submitAction = {userValue =>
         hotjar.pageView("/signup/submit")
-        Client.auth.register(name = userValue.username, email = userValue.email, password = userValue.password).map {
+        Client.auth.register(name = userValue.username, email = userValue.email, password = Password(userValue.password)).map {
           case AuthResult.BadPassword => Some("Insufficient password")
           case AuthResult.BadEmail    => Some("Email address already taken")
           case AuthResult.Success     => 

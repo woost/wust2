@@ -7,6 +7,11 @@ import io.circe._, io.circe.generic.extras.semiauto._
 
 object Circe extends wust.ids.serialize.Circe {
 
+  implicit val PasswordDecoder: Decoder[Password] = Decoder[String].map(Password)
+  implicit val PasswordEncoder: Encoder[Password] = Encoder[String].contramap(_.string)
+  implicit val AuthTokenDecoder: Decoder[Authentication.Token] = Decoder[String].map(Authentication.Token)
+  implicit val AuthTokenEncoder: Encoder[Authentication.Token] = Encoder[String].contramap(_.string)
+
   //TODO anyval with circe?
   implicit val nodeMetaDecoder: Decoder[NodeMeta] = deriveDecoder[NodeMeta]
   implicit val nodeMetaEncoder: Encoder[NodeMeta] = deriveEncoder[NodeMeta]
