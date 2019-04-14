@@ -47,8 +47,9 @@ object TopologicalView {
       val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
       graph.childrenIdx.flatMap(nodeIdx) { nodeIdx =>
+        //TODO: TaskOrdering.constructOrderingOf[Node](graph, firstWorkspaceId, inboxTasks.map(graph.nodes), _.id)
         val node = graph.nodes(nodeIdx)
-        if (node.role == NodeRole.Task) {
+        if (node.role == NodeRole.Task && !graph.isDone(nodeIdx)) { //TODO: only done in this workspace
           Array(NodeInfo(node, depth(nodeIdx)))
         } else Array.empty[NodeInfo]
       }.sortBy(_.depth)
@@ -92,7 +93,6 @@ object TopologicalView {
             dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
             dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
           ).apply(
-              Styles.flex,
               marginBottom := "2px",
               VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
             )
