@@ -9,6 +9,7 @@ if [[ "$git_branch" != "production" ]]; then
     exit 0
 fi
 
+sbt clean
 OVERRIDE_BRANCH=production ci/build-docker
 
 [[ -n "$DOCKER_USERNAME" ]] || exit 0
