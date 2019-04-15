@@ -1,6 +1,3 @@
-workbox.skipWaiting();
-workbox.clientsClaim();
-
 // https://developers.google.com/web/tools/workbox/guides/precache-files/webpack
 workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 
