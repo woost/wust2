@@ -5,7 +5,7 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
 import wust.backend.config.{EmailConfig, ServerConfig}
 import wust.backend.mail.{MailMessage, MailRecipient, MailService}
-import wust.api.{AuthUser, Authentication, UserDetail, ClientInfo}
+import wust.api.{AuthUser, Authentication, ClientInfo, UserDetail}
 import wust.backend.auth.JWT
 import wust.graph.Node
 import wust.ids.{NodeId, UserId}
@@ -41,15 +41,15 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     """.stripMargin
 
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
-    val secretLink = generateRandomVerificationLink(userId, email)
     val recipient = MailRecipient(to = email :: Nil)
     val subject = "Woost - Please verify your email address"
-    val body =
+
+    def body(verificationLink: String) =
       s"""
         |Hi there,
         |
         |please verify your email address by clicking this link:
-        |${secretLink}
+        |${verificationLink}
         |
         |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail via ${userSettingsLink}.
         |
@@ -58,12 +58,13 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |$signature
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
+    val secretLink = generateRandomVerificationLink(userId, email)
+    val secretLinkHtml = s"<a href='$secretLink'>Verify your email address</a>"
+
+    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body(secretLink), bodyHtml = Some(body(secretLinkHtml)))
   }
 
   private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String): MailMessage = {
-    //TODO: show name and email in message
-    // pass User and Option[UserDetail] to this function
     val recipient = MailRecipient(to = "team@woost.space" :: Nil)
     val subject = s"Feedback on ${serverConfig.host}"
     val body =
@@ -78,30 +79,27 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |$msg
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, body = body, fromPersonal = "Woost")
+    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body)
   }
 
   private def inviteMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
-    //TODO: email from field with username
-    // we assume that the node we share is already public and just send a link
-    // in reality we want something smarter, bind email adress to permission
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
     val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
     val body =
       s"""
-        | $inviterEmail has invited you to collaborate on a workspace in Woost.
+        |$inviterEmail has invited you to collaborate on a workspace in Woost.
         |
-        | Click the following link to accept the invitation:
+        |Click the following link to accept the invitation:
         |
-        | ${workspaceLink(node.id, invitedJwt)}
+        |${workspaceLink(node.id, invitedJwt)}
         |
-        | "${StringOps.trimToMaxLength(node.str, 200)}"
+        |"${StringOps.trimToMaxLength(node.str, 200)}"
         |
-        | $signature
+        |$signature
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, body = body, fromPersonal = s"$inviterName via Woost")
+    MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body)
   }
 
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
