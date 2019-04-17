@@ -6,9 +6,9 @@ import bench.util._
 
 object Main {
   def main(args: Array[String]): Unit = {
-    runComparison(DepthFirstSearch.comparison, expRange(1000), iterations = 1000, 60 minutes)
-    // runComparison(GraphBenchmarks.graphAlgorithms, expRange(1000, 4), iterations = 1000, 2 minutes)
-    // runComparison(GraphBenchmarks.topologicalSort, expRange(1000, 4), iterations = 1000, 2 minutes)
-    // runComparison(CuidBenchmarks.serialization, List(10000), iterations = 1000, 3 minutes)
+    runComparison(DepthFirstSearch.comparison, expRange(4000, 4), 5 hours)
+    // runComparison(GraphBenchmarks.graphAlgorithms, expRange(1000, 4), 2 minutes)
+    // runComparison(GraphBenchmarks.topologicalSort, expRange(1000, 4), 2 minutes)
+    // runComparison(CuidBenchmarks.serialization, List(10000), 3 minutes)
   }
 }
