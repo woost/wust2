@@ -48,19 +48,19 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
     message.setRecipients(Message.RecipientType.BCC, bcc)
 
     message.setSentDate(new Date())
-    message.setSubject(subject)
+    message.setSubject(subject, "UTF-8")
 
     mail.bodyHtml match {
       case Some(bodyHtml) =>
         val textPart = new MimeBodyPart()
-        textPart.setContent(mail.body, "text/plain")
+        textPart.setContent(mail.body, "text/plain; charset=UTF-8")
         val htmlPart = new MimeBodyPart()
-        htmlPart.setContent(bodyHtml, "text/html")
+        htmlPart.setContent(bodyHtml, "text/html; charset=UTF-8")
         val multipart = new MimeMultipart("alternative")
         multipart.addBodyPart(textPart)
         multipart.addBodyPart(htmlPart)
         message.setContent(multipart)
-      case None => message.setText(mail.body)
+      case None => message.setText(mail.body, "UTF-8")
     }
 
     message
