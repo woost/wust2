@@ -43,13 +43,14 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
     val recipient = MailRecipient(to = email :: Nil)
     val subject = "Woost - Please verify your email address"
+    val secretLink = generateRandomVerificationLink(userId, email)
 
-    def body(verificationLink: String) =
+    val body =
       s"""
         |Hi there,
         |
         |please verify your email address by clicking this link:
-        |${verificationLink}
+        |${secretLink}
         |
         |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail via ${userSettingsLink}.
         |
@@ -58,10 +59,24 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |$signature
       """.stripMargin
 
-    val secretLink = generateRandomVerificationLink(userId, email)
-    val secretLinkHtml = s"<a href='$secretLink'>Verify your email address</a>"
+    val bodyHtml =
+      s"""
+        |<p>Hi there,</p>
+        |
+        |<p>
+        |please verify your email address by clicking this link: <a href='$secretLink'>Verify your email address</a>
+        |</p>
+        |
+        |<p>
+        |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail in your <a href='$userSettingsLink'>user settings</a>.
+        |</p>
+        |
+        |<p>Thank you!</p>
+        |
+        |<p>$signature</p>
+      """.stripMargin
 
-    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body(secretLink), bodyHtml = Some(body(secretLinkHtml)))
+    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
   private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String): MailMessage = {
