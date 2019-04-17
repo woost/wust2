@@ -1,5 +1,6 @@
 package wust.backend.mail
 
+import java.io.OutputStream
 import java.util.{Date, Properties}
 
 import javax.mail._
@@ -48,7 +49,20 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
 
     message.setSentDate(new Date())
     message.setSubject(subject)
-    message.setText(body)
+
+    mail.bodyHtml match {
+      case Some(bodyHtml) =>
+        val textPart = new MimeBodyPart()
+        textPart.setContent(mail.body, "text/plain")
+        val htmlPart = new MimeBodyPart()
+        htmlPart.setContent(bodyHtml, "text/html")
+        val multipart = new MimeMultipart("alternative")
+        multipart.addBodyPart(textPart)
+        multipart.addBodyPart(htmlPart)
+        message.setContent(multipart)
+      case None => message.setText(mail.body)
+    }
+
     message
   }
 
