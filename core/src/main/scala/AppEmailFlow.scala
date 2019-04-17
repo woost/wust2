@@ -22,7 +22,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   private def generateRandomVerificationLink(userId: UserId, email: String): String = {
     val token = jwt.generateEmailActivationToken(userId, email)
-    s"https://core.${serverConfig.host}/${Server.paths.emailVerify}?token=$token"
+    s"https://core.${serverConfig.host}/${Server.paths.emailVerify}?token=${token.string}"
   }
 
   private def workspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
