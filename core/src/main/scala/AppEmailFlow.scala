@@ -35,6 +35,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   private val farewell = "Your Woost Team"
 
+  //TODO config
   private val signature = "Woost - c/o DigitalHUB Aachen e.V. - Jülicher Straße 72a - 52070 Aachen"
 
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
@@ -55,7 +56,6 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |$farewell
         |
-        |--
         |$signature
       """.stripMargin
 
@@ -75,7 +75,6 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>$farewell</p>
         |
-        |--
         |<p>$signature</p>
       """.stripMargin
 
@@ -116,7 +115,6 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |$farewell
         |
-        |--
         |$signature
       """.stripMargin
 
