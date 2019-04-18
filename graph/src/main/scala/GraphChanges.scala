@@ -87,6 +87,8 @@ case class GraphChanges(
 }
 object GraphChanges {
 
+  case class Import(changes: GraphChanges, topLevelNodeIds: Seq[NodeId], focusNodeId: Option[NodeId])
+
   val empty = new GraphChanges()
 
   def from(

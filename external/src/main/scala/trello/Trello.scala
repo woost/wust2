@@ -1,7 +1,6 @@
 package wust.external.trello
 
 import cats.Eval
-import cats.kernel.instances.StringMonoid
 import wust.ids._
 import wust.graph._
 
@@ -87,11 +86,11 @@ case class Board(
 )
 
 object Trello {
-  def translate(board: Board, currentTime: EpochMilli = EpochMilli.now)(nodeId: NodeId): GraphChanges = {
+  def translate(board: Board, currentTime: EpochMilli = EpochMilli.now): GraphChanges.Import = {
     val addNodes = mutable.Set.newBuilder[Node]
     val addEdges = mutable.Set.newBuilder[Edge]
 
-    val boardNode = Node.Content(nodeId, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
+    val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
     addNodes += boardNode
 
     // collect all labels in board
@@ -197,9 +196,13 @@ object Trello {
       }
     }
 
-    GraphChanges(
-      addNodes = addNodes.result,
-      addEdges = addEdges.result
+    GraphChanges.Import(
+      GraphChanges(
+        addNodes = addNodes.result,
+        addEdges = addEdges.result
+      ),
+      topLevelNodeIds = List(boardNode.id),
+      focusNodeId = Some(boardNode.id)
     )
   }
 

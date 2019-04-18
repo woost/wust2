@@ -72,9 +72,9 @@ package object collection {
     }
   }
 
-  def eitherSeq[A, B](list: Seq[Either[A, B]]): Either[List[A], List[B]] = {
-    val lefts = new mutable.ListBuffer[A]
-    val rights = new mutable.ListBuffer[B]
+  def eitherSeq[A, B](list: Seq[Either[A, B]]): Either[Seq[A], Seq[B]] = {
+    val lefts = new mutable.ArrayBuffer[A]
+    val rights = new mutable.ArrayBuffer[B]
 
     list.foreach {
       case Right(r) => rights += r

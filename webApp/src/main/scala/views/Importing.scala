@@ -3,6 +3,7 @@ package wust.webApp.views
 import cats.effect.IO
 import fontAwesome.freeSolid
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
@@ -11,7 +12,7 @@ import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
 import wust.external.trello
-import wust.graph.{GraphChanges, Page}
+import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids._
 import wust.util.StringOps
 import wust.webApp.jsdom.FileReaderOps
@@ -19,6 +20,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.{Icons, Ownable}
 
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js.JSON
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -36,16 +38,16 @@ object Importing {
   }
 
   object Parser {
-    type Result = IO[Either[String, NodeId => GraphChanges]]
+    type Result = IO[Either[String, GraphChanges.Import]]
     type Function = String => Parser.Result
     type Provider = Rx[Option[Function]]
   }
 
-  case class Source(icon: String, title: String, description: String, inputs: List[Input], parser: Parser.Provider, form: VDomModifier)
+  case class Source(icon: VNode, title: String, description: String, inputs: List[Input], parser: Parser.Provider, form: VDomModifier)
   object Source {
-    def apply(icon: String, title: String, description: String, inputs: List[Input], parser: Parser.Function): Source = Source(icon, title, description, inputs, Var(Some(parser)), VDomModifier.empty)
+    def apply(icon: VNode, title: String, description: String, inputs: List[Input], parser: Parser.Function): Source = Source(icon, title, description, inputs, Var(Some(parser)), VDomModifier.empty)
 
-    def withForm[T](icon: String, title: String, description: String, inputs: List[Input], parser: Rx[Option[T]] => Parser.Provider, form: Var[Option[T]] => VDomModifier): Source = {
+    def withForm[T](icon: VNode, title: String, description: String, inputs: List[Input], parser: Rx[Option[T]] => Parser.Provider, form: Var[Option[T]] => VDomModifier): Source = {
       val formVar = Var[Option[T]](None)
       Source(icon, title, description, inputs, parser(formVar), form(formVar))
     }
@@ -53,7 +55,7 @@ object Importing {
     def all(implicit ctx: Ctx.Owner): List[Source] = List(
 
       Source(
-        icon = "/trello.svg",
+        icon = img(src := "/trello.svg"),
         title = "Trello",
         description = "Trello Board (JSON)",
         inputs = List(
@@ -71,7 +73,7 @@ object Importing {
       ),
 
       Source.withForm[String](
-        icon = "/meistertask.svg",
+        icon = img(src := "/meistertask.svg"),
         title = "MeisterTask",
         description = "MeisterTask Project (CSV)",
         inputs = List(
@@ -95,8 +97,26 @@ object Importing {
             )).editValueOption.map(_.map(_.string)) --> formVar
           )
         }
-      )
+      ),
 
+      Source(
+        icon = Icons.tasks,
+        title = "Tasklist",
+        description = "Multiline Tasklist",
+        inputs = List(
+          Input.FromText("Enter a multiline tasklist, where each tasks is separated with a newline."),
+          Input.FromFile("Upload text file with a multiline tasklist, where each task is separated with a newline.", Some("application/text")),
+        ),
+        parser = str => IO {
+          val nodes = str.lines.map[Node] { line => Node.MarkdownTask(line.trim) }.toIterable
+
+          Right(GraphChanges.Import(
+            GraphChanges(addNodes = nodes.to[Set]),
+            topLevelNodeIds = nodes.to[List].reverseMap(_.id),
+            focusNodeId = None
+          ))
+        },
+      )
     )
   }
 
@@ -231,7 +251,7 @@ object Importing {
             Styles.flex,
             flexDirection.column,
             alignItems.center,
-            img(src := source.icon, alt := source.title, height := "2em"),
+            source.icon(height := "2em"),
             div(source.description, paddingTop := "3px"),
             cursor.pointer,
             onClick.stopPropagation(Some(source)) --> sink
@@ -262,11 +282,33 @@ object Importing {
         importers.foldLeft(Seq.empty[VDomModifier]) { (prev, importer) =>
           val field = importerForm(importer).transform(_.flatMap { result =>
             Observable.fromIO(result).flatMap {
-              case Right(changesf) =>
-                val nodeId = NodeId.fresh
-                val changes = changesf(nodeId) merge GraphChanges.addToParent(ChildId(nodeId), ParentId(focusedId))
+              case Right(importChanges) =>
+                val addToParentChanges =
+                  if (importChanges.topLevelNodeIds.isEmpty) GraphChanges.empty
+                  else if (importChanges.topLevelNodeIds.size == 1) GraphChanges.addToParent(importChanges.topLevelNodeIds.map(ChildId(_)), ParentId(focusedId))
+                  else {
+                    //TODO: fix ordering...
+                    val g = state.graph.now
+                    val focusedIdx = g.idToIdxOrThrow(focusedId)
+                    val children = state.graph.now.childEdgeIdx(focusedIdx)
+                    val minOrderingNum: BigDecimal = if (children.isEmpty) BigDecimal(0) else children.minBy[BigDecimal](edgeIdx => g.edges(edgeIdx).asInstanceOf[Edge.Child].data.ordering.getOrElse(BigDecimal(0))) - 1
+                    GraphChanges(
+                      addEdges = importChanges.topLevelNodeIds.zipWithIndex.map { case (nodeId, idx) =>
+                        Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
+                      }(breakOut)
+                    )
+                  }
+
+                val changes = importChanges.changes merge addToParentChanges
+                println("WTF " + changes + importChanges.topLevelNodeIds)
                 UI.toast("Successfully imported Project")
-                state.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+
+                //TODO: do not sideeffect with state changes here...
+                importChanges.focusNodeId.foreach { focusNodeId =>
+                  state.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
+                }
+                state.uiModalClose.onNext(())
+
                 Observable(changes)
               case Left(error)     =>
                 UI.toast(s"${StringOps.trimToMaxLength(error, 200)}", title = "Failed to import Project", level = UI.ToastLevel.Error)
@@ -288,7 +330,7 @@ object Importing {
     val header: VDomModifier = Rx {
       state.rawGraph().nodesByIdGet(focusedId).map { node =>
         val header = selectedSource() match {
-          case Some(source) => VDomModifier(img(src := source.icon, alt := source.title, height := "1em").apply(marginRight := "10px"), span(s"Import from ${source.description}"))
+          case Some(source) => VDomModifier(source.icon(height := "1em", marginRight := "10px"), span(s"Import from ${source.description}"))
           case None => span("Import your data")
         }
 

@@ -23,10 +23,10 @@ case class Task(
   statusUpdatedAt: EpochMilli,
   assignee: Option[String],
   section: String,
-  tags: List[String],
+  tags: Seq[String],
   customFields: Option[String],
-  checklists: List[CheckItem],
-  comments: List[Comment]
+  checklists: Seq[CheckItem],
+  comments: Seq[Comment]
 )
 
 case class CheckItem(
@@ -42,15 +42,15 @@ case class Comment(
 
 case class Project(
   name: String,
-  tasks: List[Task]
+  tasks: Seq[Task]
 )
 
 object MeisterTask {
-  def translate(project: Project, currentTime: EpochMilli = EpochMilli.now)(nodeId: NodeId): GraphChanges = {
+  def translate(project: Project, currentTime: EpochMilli = EpochMilli.now): GraphChanges.Import = {
     val addNodes = mutable.Set.newBuilder[Node]
     val addEdges = mutable.Set.newBuilder[Edge]
 
-    val projectNode = Node.Content(nodeId, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
+    val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
     addNodes += projectNode
 
     val tagsByName = new mutable.HashMap[String, NodeId]
@@ -151,9 +151,13 @@ object MeisterTask {
 
     }
 
-    GraphChanges(
-      addNodes = addNodes.result,
-      addEdges = addEdges.result
+    GraphChanges.Import(
+      GraphChanges(
+        addNodes = addNodes.result,
+        addEdges = addEdges.result
+      ),
+      topLevelNodeIds = List(projectNode.id),
+      focusNodeId = Some(projectNode.id)
     )
   }
 
@@ -192,14 +196,14 @@ object MeisterTask {
         case Left(err) => Left(DecodeError.TypeError(err.getMessage))
       }
     }
-    implicit val checklistCodec: CellDecoder[List[meistertask.CheckItem]] = CellDecoder.from { str =>
+    implicit val checklistCodec: CellDecoder[Seq[meistertask.CheckItem]] = CellDecoder.from { str =>
       eitherSeq(checkItemRegex.eval(str).toList.map {
         case Right(value) => Right(value)
         case Left(err) => Left(DecodeError.TypeError(err.getMessage))
       }).left.map(_.head)
     }
     implicit val dateCodec: CellDecoder[EpochMilli] = CellDecoder.from(convertToEpochMilli(_).left.map(DecodeError.TypeError(_)))
-    implicit def listCodec[T: CellDecoder]: CellDecoder[List[T]] = CellDecoder.from { str =>
+    implicit def listCodec[T: CellDecoder]: CellDecoder[Seq[T]] = CellDecoder.from { str =>
       if (str.isEmpty) Right(Nil) else eitherSeq(str.split(";").map(CellDecoder[T].decode)(breakOut)).left.map(_.head)
     }
     implicit val taskDecoder: HeaderDecoder[Task] = HeaderDecoder.decoder("id","token","name","notes","created_at","updated_at","status","due_date","status_updated_at","assignee","section","tags","custom_fields","checklists","comments")(Task.apply)

@@ -377,6 +377,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
+  private val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
   private val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
   private val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
@@ -429,6 +430,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
         childrenIdxBuilder.add(sourceIdx, targetIdx)
+        childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
         if(childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
         if(childIsMessage) messageChildrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -481,6 +483,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
+  val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
   val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
   val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
   val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
