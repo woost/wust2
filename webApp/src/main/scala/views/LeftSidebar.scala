@@ -23,9 +23,9 @@ import wust.webApp.views.SharedViewElements._
 import scala.collection.breakOut
 
 object LeftSidebar {
+  val minWidthSidebar = 40
 
   def apply(state: GlobalState): VNode = {
-    val smallIconSize = 40
 
     def authStatus(implicit ctx: Ctx.Owner) = SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
 
@@ -56,9 +56,9 @@ object LeftSidebar {
           },
         ),
         closedModifier = Some(VDomModifier(
-          minWidth := s"${ smallIconSize }px",
+          minWidth := s"${ minWidthSidebar }px",
           Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
-          channelIcons(state, smallIconSize),
+          channelIcons(state, minWidthSidebar),
           newProjectButton(state, "+").apply(
             cls := "newChannelButton-small " + buttonStyles,
             UI.popup("right center") := "New Project",

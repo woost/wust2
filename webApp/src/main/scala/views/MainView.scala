@@ -32,6 +32,9 @@ object MainView {
 
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
 
+    // a view should never be shrinked to less than 500px
+    val viewWidthMod = minWidth := "500px"
+
     val projectName = Rx {
       state.page().parentId.map(pid => state.graph().nodesById(pid).str)
     }
@@ -68,13 +71,16 @@ object MainView {
           div(
             Styles.flex,
             Styles.growFull,
+
             flexDirection.column,
             overflow.auto,
             position.relative, // important for position absolute of loading animation to have the correct width of its parent element
 
+            backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+
             Rx {
               VDomModifier.ifTrue(viewIsContent())(div(
-                backgroundColor <-- state.pageStyle.map(_.bgLightColor),
+                viewWidthMod,
                 VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(Styles.flexStatic)),
                 PageHeader(state).apply(Styles.flexStatic)
               ))
@@ -93,6 +99,7 @@ object MainView {
             // This avoids rerendering the whole view when only the screen-size changed
             div(
               cls := "main-viewrender",
+              viewWidthMod,
 
               Styles.flex,
               Styles.growFull,
@@ -103,16 +110,12 @@ object MainView {
                 cls := "pusher",
                 Rx {
                   val viewConfig = state.viewConfig()
-                  val pageStyle = PageStyle(viewConfig.view, viewConfig.page)
-                  VDomModifier(
-                    backgroundColor := pageStyle.bgLightColor,
 
                     ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
                       Styles.growFull,
                       flexGrow := 1
                     ).prepend(
-                      overflow.visible // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
-                    )
+                    overflow.visible, // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
                   )
                   // we can now assume, that every page parentId is contained in the graph
                 },
