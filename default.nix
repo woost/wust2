@@ -10,9 +10,9 @@ in
       git zsh
       scala sbt
       docker
-      docker_compose
       graalvm8
-      # python36Packages.docker_compose
+      docker-compose
+      # python37Packages.docker_compose
       # python27Packages.docker_compose
       # python27Packages.backports_ssl_match_hostname
       # ngrok # github app -> webhooks to localhost
