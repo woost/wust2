@@ -33,7 +33,7 @@ object MainView {
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     // a view should never be shrinked to less than 500px
-    val viewWidthMod = minWidth := "500px"
+    val viewWidthMod = minWidth := (600 - LeftSidebar.minWidthSidebar) + "px"
 
     val projectName = Rx {
       state.page().parentId.map(pid => state.graph().nodesById(pid).str)
@@ -80,9 +80,8 @@ object MainView {
 
             Rx {
               VDomModifier.ifTrue(viewIsContent())(div(
-                viewWidthMod,
                 VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(Styles.flexStatic)),
-                PageHeader(state).apply(Styles.flexStatic)
+                PageHeader(state).apply(Styles.flexStatic, viewWidthMod)
               ))
             },
 

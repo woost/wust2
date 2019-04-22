@@ -56,7 +56,7 @@ object LeftSidebar {
           },
         ),
         closedModifier = Some(VDomModifier(
-          minWidth := s"${ minWidthSidebar }px",
+          minWidth := s"${ minWidthSidebar }px", // this is needed when the hamburger is not rendered inside the sidebar
           Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
           channelIcons(state, minWidthSidebar),
           newProjectButton(state, "+").apply(
