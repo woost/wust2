@@ -140,6 +140,8 @@ object GraphChanges {
     GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId), Edge.Member(nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId)))
   }
 
+  def pin(nodeId:NodeId, userId: UserId) = GraphChanges.connect(Edge.Pinned)(nodeId, userId)
+
   def undelete(childIds: Iterable[ChildId], parentIds: Iterable[ParentId]): GraphChanges = connect(Edge.Child)(parentIds, childIds)
   def undelete(childId: ChildId, parentIds: Iterable[ParentId]): GraphChanges = undelete(childId :: Nil, parentIds)
   def undelete(childId: ChildId, parentId: ParentId): GraphChanges = undelete(childId :: Nil, parentId :: Nil)
