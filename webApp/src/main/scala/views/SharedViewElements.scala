@@ -693,7 +693,8 @@ object SharedViewElements {
       ),
       modalModifier = VDomModifier(
         cls := "basic",
-        width := "400px"
+        minWidth := "320px",
+        maxWidth := "400px"
       ),
       onClose = onClose
     )
