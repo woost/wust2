@@ -4,6 +4,7 @@ import org.scalajs.dom.console
 import colorado.HCL
 import emojijs.EmojiConvertor
 import highlight.Highlight
+import macros.InlineDFS
 import marked.{Marked, MarkedOptions}
 import monix.reactive.Observable
 import org.scalajs.dom.document
@@ -11,11 +12,11 @@ import outwatch.dom._
 import rx._
 import wust.ids._
 import wust.api.ApiEvent
-import wust.graph.{Node, GraphChanges}
+import wust.graph.{GraphChanges, Node}
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.{MainView, UI, Elements}
+import wust.webApp.views.{Elements, MainView, UI}
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
@@ -26,6 +27,10 @@ object Main {
     Logging.setup()
 
     setupDom()
+
+    println("foo0" + InlineDFS.foo0(_()))
+    println("foo1" + InlineDFS.foo1(_()))
+    println("foo2" + InlineDFS.foo2(_()))
 
     // register the serviceworker and get an update observable when serviceworker updates are available.
     val swUpdateIsAvailable = if (!LinkingInfo.developmentMode) ServiceWorker.register() else Observable.empty
