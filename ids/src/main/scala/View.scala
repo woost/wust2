@@ -93,8 +93,8 @@ object View {
     def viewKey = "tasks"
   }
 
-  def list: List[View] = macro SubObjects.list[View]
-  def contentList: List[View] = list.filter(_.isContent)
+  val list: Array[View] = SubObjects.all[View]
+  val contentList: Array[View] = list.filter(_.isContent)
 
   val map: Map[String, List[String] => Option[View]] = {
 

@@ -16,7 +16,7 @@ object NodeRole {
 
   @inline def default: NodeRole = Message
 
-  def all: List[NodeRole] = macro SubObjects.list[NodeRole]
+  val all: Array[NodeRole] = SubObjects.all[NodeRole]
 
   def fromString(str: String): Option[NodeRole] = {
     val lowercaseStr = str.toLowerCase
