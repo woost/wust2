@@ -543,7 +543,7 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClickNewNamePrompt(state, header = "Create a new Project", placeholderMessage = Some("A new Project")).foreach(newProject(_)),
+      onClickNewNamePrompt(state, header = "Create a new Project", placeholderMessage = Some("Name of the Project")).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
