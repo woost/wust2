@@ -46,9 +46,14 @@ object WelcomeView {
           },
           marginBottom := "10%",
           textAlign.center,
-          newProjectButton(state, label = "+ New Project", view = Some(View.Dashboard)).apply(padding := "20px", margin := "20px 40px")(
+          newProjectButton(state, label = "New Project", view = Some(View.Dashboard)).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:welcome", "newproject") }
           ),
+          div(
+            maxWidth := "80ex",
+            marginBottom := "50px",
+            p("In a ", b("Project"), " you can invite other people to collaborate. You can also add different tools, like a ", b("Checklist"), ", a ", b("Kanban Board"), " or a ", b("Chat."))
+          )
         )
       ),
       Rx {
