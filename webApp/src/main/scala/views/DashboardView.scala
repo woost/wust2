@@ -57,8 +57,20 @@ object DashboardView {
           div(
             Styles.growFull,
             Styles.flex,
-            ListView(state, focusState).apply(widgetStyle),
-            ChatView(state, focusState).apply(widgetStyle)
+            Rx{
+              val graph = state.graph()
+              for{
+                node <- graph.nodesByIdGet(focusState.focusedId)
+                viewList <- node.views
+              } yield VDomModifier(
+                VDomModifier.ifTrue(viewList.exists(view => view == View.List || view == View.Kanban))(
+                  ListView(state, focusState).apply(widgetStyle)
+                ),
+                VDomModifier.ifTrue(viewList.exists(view => view == View.Chat || view == View.Thread))(
+                  ChatView(state, focusState).apply(widgetStyle)
+                )
+              ) 
+            },
           )
         )
       }
