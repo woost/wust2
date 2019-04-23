@@ -2,7 +2,7 @@ package wust.cli
 
 import akka.actor.ActorSystem
 import com.typesafe.config.ConfigFactory
-import wust.api.AuthUser
+import wust.api.{AuthUser, Password}
 import wust.graph._
 import wust.ids._
 
