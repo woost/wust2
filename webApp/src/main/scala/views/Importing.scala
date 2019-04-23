@@ -243,10 +243,11 @@ object Importing {
       div(
         Styles.flex,
         alignItems.center,
+        flexWrap.wrap,
 
         sources.map { source =>
           button(
-            margin := "0 10px",
+            margin := "10px",
             cls := "ui button",
             Styles.flex,
             flexDirection.column,
