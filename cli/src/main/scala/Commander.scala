@@ -63,9 +63,9 @@ object Commander {
     var headers: List[(String, String)] = Nil //TODO: better
     val client = WustHttpClient(config.url, headers)
 
-    client.auth.loginReturnToken(config.username, config.password).onComplete {
+    client.auth.loginReturnToken(config.username, Password(config.password)).onComplete {
       case Success(Some(auth)) =>
-        headers = ("Authorization", auth.token) :: Nil
+        headers = ("Authorization", auth.token.string) :: Nil
         f(client, auth.user)(system.dispatcher).onComplete {
           case Success(_) =>
             system.terminate()
