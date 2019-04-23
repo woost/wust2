@@ -341,13 +341,12 @@ object Elements {
       if(lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
         val currentScrollHeight = elem.scrollHeight
-        elem.style.height = s"${currentScrollHeight}px"
+        elem.style.height = s"${currentScrollHeight + 2}px" // 2 avoids a scrollbar
         lastScrollHeight = currentScrollHeight
       }
     }
 
     val modifiers = VDomModifier(
-      overflowY.hidden,
       onDomMount.asHtml.foreach { textAreaElem =>
         elem = textAreaElem
         lastScrollHeight = elem.scrollHeight

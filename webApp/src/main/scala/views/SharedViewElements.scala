@@ -213,6 +213,7 @@ object SharedViewElements {
 
         textArea(
           onDomUpdate.foreach(autoResizer.trigger()),
+          maxHeight := "400px",
           cls := "field",
           initialValueAndSubmitOptions,
           heightOptions,
