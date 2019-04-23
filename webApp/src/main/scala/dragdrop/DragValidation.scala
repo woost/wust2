@@ -110,7 +110,7 @@ object DragValidation {
          }
        }
        else {
-         println(s"drag action not defined: $payload -> $target")
+         println(s"drag action not defined: $payload -> $target ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
          Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
        }
      case (payload, target) =>
