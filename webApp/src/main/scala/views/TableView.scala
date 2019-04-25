@@ -181,7 +181,7 @@ object TableView {
         property.groups.map { group =>
           columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
-              cls := "orange",
+              cls := "grey",
               display.tableCell, // needed because semantic ui rewrites the td cell to be inline-block, but that messes with our layout.
               div(
                 Styles.growFull,
