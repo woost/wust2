@@ -230,7 +230,7 @@ object TableView {
                   propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(state.user.now.id, tmpGraph, info.node, templateNode = templateNode))
                 } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
               }, keepPropertyAsDefault),
-              dropdownModifier = cls := "top right",
+              dropdownModifier = cls := "top left",
               descriptionModifier = div(
                 padding := "10px",
                 div(
