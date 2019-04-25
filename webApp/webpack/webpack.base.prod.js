@@ -18,7 +18,7 @@ const { execSync } = require('child_process');
 // stderr is sent to stdout of parent process
 // you can set options.stdio if you want it to go elsewhere
 const rootFolder = Path.resolve(__dirname, '../../../../..');
-process.env._JAVA_OPTIONS = "-Xms128M -Xmx500M";
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx800M";
 execSync('cd ' + rootFolder + '; sbt cssJVM/run');
 
 
@@ -70,7 +70,7 @@ module.exports.optimization = {
     minimize: false // disable default uglifyJs
 };
 
-process.env._JAVA_OPTIONS = "-Xms128M -Xmx500M";
+process.env._JAVA_OPTIONS = "-Xms128M -Xmx800M";
 module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
     language_in: 'ECMASCRIPT6',
