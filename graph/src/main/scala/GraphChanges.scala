@@ -130,12 +130,13 @@ object GraphChanges {
   )
 
   val newProjectName = "Untitled Project"
-  def newProject(nodeId: NodeId, userId: UserId, title: String = newProjectName): GraphChanges = {
+  def newProject(nodeId: NodeId, userId: UserId, title: String = newProjectName, views: Option[List[View.Visible]] = None): GraphChanges = {
     val post = new Node.Content(
       nodeId,
       NodeData.Markdown(title),
       NodeRole.Project,
-      NodeMeta(accessLevel = NodeAccess.Inherited)
+      NodeMeta(accessLevel = NodeAccess.Inherited),
+      views = views
     )
     GraphChanges(addNodes = Set(post), addEdges = Set(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId), Edge.Member(nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId)))
   }

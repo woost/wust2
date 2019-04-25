@@ -46,7 +46,7 @@ object WelcomeView {
           },
           marginBottom := "10%",
           textAlign.center,
-          newProjectButton(state, label = "New Project", view = Some(View.Dashboard)).apply(padding := "20px", margin := "20px 40px")(
+          newProjectButton(state).apply(padding := "20px", margin := "20px 40px")(
             onClick foreach { Analytics.sendEvent("view:welcome", "newproject") }
           ),
           div(

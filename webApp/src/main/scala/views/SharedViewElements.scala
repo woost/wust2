@@ -530,12 +530,22 @@ object SharedViewElements {
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def newProjectButton(state: GlobalState, label: String = "New Project", view: Option[View] = None): VNode = {
+  def newProjectButton(state: GlobalState, label: String = "New Project"): VNode = {
+    val selectedViews = Var[Seq[View.Visible]](Seq.empty)
+    val body = div(
+      Styles.flex,
+      flexDirection.column,
+      alignItems.center,
+      color.gray,
+      ViewSwitcher.viewCheckboxes --> selectedViews
+    )
+
     def newProject(name: String) = {
       val newName = if (name.trim.isEmpty) GraphChanges.newProjectName else name
       val nodeId = NodeId.fresh
-      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName))
-      state.urlConfig.update(_.focus(Page(nodeId), view, needsGet = false))
+      val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
+      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName, views))
+      state.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
 
       Ack.Continue
     }
@@ -543,7 +553,7 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClickNewNamePrompt(state, header = "Create a new Project", placeholderMessage = Some("Name of the Project")).foreach(newProject(_)),
+      onClickNewNamePrompt(state, header = "Create a new Project", body = body, placeholderMessage = Some("Name of the Project")).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
@@ -669,7 +679,7 @@ object SharedViewElements {
     }
   }
 
-  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, placeholderMessage: Option[String] = None, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholderMessage: Option[String] = None, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
     UI.ModalConfig(
       header = header,
       description = VDomModifier(
@@ -690,6 +700,8 @@ object SharedViewElements {
 
           )
         ),
+
+        body
       ),
       modalModifier = VDomModifier(
         cls := "basic",
@@ -700,9 +712,9 @@ object SharedViewElements {
     )
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
+  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, placeholderMessage) }) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body, placeholderMessage) }) --> state.uiModalConfig,
       cursor.pointer
     )
   }

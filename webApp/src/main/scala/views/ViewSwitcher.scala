@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import cats.effect.IO
 import clipboard.ClipboardJS
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -8,9 +9,10 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.{Node, Edge, GraphChanges}
+import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
@@ -22,6 +24,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
+import wust.util.collection.RichArray
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -30,41 +33,47 @@ import pageheader.components.{TabContextParms, TabInfo, customTab, doubleTab, si
 
 
 object ViewSwitcher {
+  private def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
+    case View.Dashboard => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
+    case View.Chat => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
+    case View.Thread => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
+    case View.List => TabInfo(View.List, Icons.list, "tasks", numTasks)
+    case View.Kanban => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
+    case View.Files => TabInfo(View.Files, Icons.files, "files", numFiles)
+    case View.Graph => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
+    case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
+    case View.Content => TabInfo(View.Content, Icons.notes, "notes", 0)
+    case View.Gantt => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
+    case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
+    case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
+  }
+
+  private val viewDefs: Array[View.Visible] = Array(
+    View.Dashboard,
+    View.Chat,
+    View.Thread,
+    View.List,
+    View.Kanban,
+    View.Files,
+    View.Graph,
+    View.Table(NodeRole.Task :: Nil),
+    View.Content,
+    // View.Gantt,
+    View.Topological,
+  )
+
+  def viewCheckboxes = {
+    Components.multiCheckbox[View.Visible](
+      viewDefs,
+      view => span(viewToTabInfo(view, 0, 0, 0).icon, span(marginLeft := "4px", view.toString))
+    )
+  }
+
   //TODO FocusState?
   def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     apply(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
   }
   def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
-
-    def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
-      case View.Dashboard => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
-      case View.Chat => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
-      case View.Thread => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
-      case View.List => TabInfo(View.List, Icons.list, "tasks", numTasks)
-      case View.Kanban => TabInfo(View.Kanban, Icons.kanban, "tasks", numTasks)
-      case View.Files => TabInfo(View.Files, Icons.files, "files", numFiles)
-      case View.Graph => TabInfo(View.Graph, Icons.graph, "nodes", numTasks)
-      case view: View.Table => TabInfo(view, Icons.table, "records", (if (view.roles.contains(NodeRole.Task)) numTasks else 0) + (if (view.roles.contains(NodeRole.Message)) numMsg else 0))
-      case View.Content => TabInfo(View.Content, Icons.notes, "notes", 0)
-      case View.Gantt => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
-      case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
-      case view => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
-    }
-
-    val viewDefs: List[View.Visible] =
-      View.Dashboard ::
-      View.Chat ::
-      View.Thread ::
-      View.List ::
-      View.Kanban ::
-      View.Files ::
-      View.Graph ::
-      View.Table(NodeRole.Task :: Nil) ::
-      View.Content ::
-      // View.Gantt ::
-      View.Topological ::
-      Nil
-
     val closeDropdown = PublishSubject[Unit]
 
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
