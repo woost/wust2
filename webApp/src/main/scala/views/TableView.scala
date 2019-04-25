@@ -50,6 +50,7 @@ object TableView {
         edges.map {
           case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
           case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
+          case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag(state, stage, row)
           case (_, node: Node.Content) => Components.editableNodeOnClick(state, node, maxLength = Some(50), config = EditableContent.Config.default)
           case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row)
         },
@@ -138,6 +139,12 @@ object TableView {
         columnHeader("Tags"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
+        }(breakOut)
+      ) ::
+      UI.Column(
+        columnHeader("Stage"),
+        propertyGroup.infos.map { property =>
+          columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
         }(breakOut)
       ) ::
       UI.Column(

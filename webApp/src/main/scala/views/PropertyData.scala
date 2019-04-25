@@ -12,13 +12,14 @@ object PropertyData {
   case class SingleProperty(key: String, values: Array[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]], reverseProperties: Array[Node]) {
+  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]], reverseProperties: Array[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
     def apply(graph: Graph, nodeIdx: Int): BasicInfo = {
       val node: Node = graph.nodes(nodeIdx)
       val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content]).sortBy(_.data.str)
+      val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content]).sortBy(_.data.str)
       val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.User])
       val properties: Map[String, Array[PropertyValue]] = graph.propertiesEdgeIdx.map(nodeIdx) { idx =>
         val edge = graph.edges(idx).asInstanceOf[Edge.LabeledProperty]
@@ -29,7 +30,7 @@ object PropertyData {
         graph.nodes(nodeIdx)
       }
 
-      new BasicInfo(node, tags, assignedUsers, properties, reverseProperties)
+      new BasicInfo(node, tags, stages, assignedUsers, properties, reverseProperties)
     }
   }
 

@@ -273,6 +273,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val projectChildrenDegree = new Array[Int](n)
   private val tagChildrenDegree = new Array[Int](n)
   private val tagParentsDegree = new Array[Int](n)
+  private val stageParentsDegree = new Array[Int](n)
   private val notDeletedParentsDegree = new Array[Int](n)
   private val notDeletedChildrenDegree = new Array[Int](n)
   private val inDeletedGracePeriodDegree = new Array[Int](n)
@@ -320,6 +321,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
             val childIsProject = nodes(targetIdx).role == NodeRole.Project
             val childIsTag = nodes(targetIdx).role == NodeRole.Tag
             val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+            val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
             parentsDegree(targetIdx) += 1
             childrenDegree(sourceIdx) += 1
 
@@ -331,12 +333,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
               case None            =>
                 if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                 if(parentIsTag) tagParentsDegree(targetIdx) += 1
+                if(parentIsStage) stageParentsDegree(targetIdx) += 1
                 notDeletedParentsDegree(targetIdx) += 1
                 notDeletedChildrenDegree(sourceIdx) += 1
               case Some(deletedAt) =>
                 if(deletedAt isAfter now) { // in the future
                   if(childIsTag) tagChildrenDegree(sourceIdx) += 1
                   if(parentIsTag) tagParentsDegree(targetIdx) += 1
+                  if(parentIsStage) stageParentsDegree(targetIdx) += 1
                   notDeletedParentsDegree(targetIdx) += 1
                   notDeletedChildrenDegree(sourceIdx) += 1
                   futureDeletedParentsDegree(targetIdx) += 1
@@ -383,6 +387,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val projectChildrenIdxBuilder = NestedArrayInt.builder(projectChildrenDegree)
   private val tagChildrenIdxBuilder = NestedArrayInt.builder(tagChildrenDegree)
   private val tagParentsIdxBuilder = NestedArrayInt.builder(tagParentsDegree)
+  private val stageParentsIdxBuilder = NestedArrayInt.builder(stageParentsDegree)
   private val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
   private val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
   private val inDeletedGracePeriodParentsIdxBuilder = NestedArrayInt.builder(inDeletedGracePeriodDegree)
@@ -427,6 +432,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         val childIsTag = nodes(targetIdx).role == NodeRole.Tag
         val childIsProject = nodes(targetIdx).role == NodeRole.Project
         val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
+        val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
         parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
         childrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -440,12 +446,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
           case None            =>
             if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
             if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+            if(parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
             notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
           case Some(deletedAt) =>
             if(deletedAt isAfter now) { // in the future
               if(childIsTag) tagChildrenIdxBuilder.add(sourceIdx, targetIdx)
               if(parentIsTag) tagParentsIdxBuilder.add(targetIdx, sourceIdx)
+              if(parentIsStage) stageParentsIdxBuilder.add(targetIdx, sourceIdx)
               notDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
               notDeletedChildrenIdxBuilder.add(sourceIdx, targetIdx)
               futureDeletedParentsIdxBuilder.add(targetIdx, sourceIdx)
@@ -490,6 +498,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val tagChildrenIdx: NestedArrayInt = tagChildrenIdxBuilder.result()
   val projectChildrenIdx: NestedArrayInt = projectChildrenIdxBuilder.result()
   val tagParentsIdx: NestedArrayInt = tagParentsIdxBuilder.result()
+  val stageParentsIdx: NestedArrayInt = stageParentsIdxBuilder.result()
   val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
   val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
   val inDeletedGracePeriodParentIdx: NestedArrayInt = inDeletedGracePeriodParentsIdxBuilder.result()
