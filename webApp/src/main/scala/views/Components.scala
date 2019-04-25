@@ -312,11 +312,6 @@ object Components {
       flexWrap.wrap,
       alignItems.flexStart,
       b(
-        editKey.map {
-          case true => VDomModifier.empty
-          case false => textDecoration.underline
-        },
-        color.gray,
         Styles.flex,
         EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
@@ -374,18 +369,19 @@ object Components {
 
     span(
       cls := "node tag",
+      backgroundColor := "#f0f0f0",
       Styles.flex,
-      alignItems.flexStart,
+      alignItems.center,
 
-      boxShadow := "inset 0 0 1px 1px lightgray",
-      color.gray,
       drag(DragItem.Property(key), target = DragItem.DisableDrag),
 
       div(
+        alignSelf.flexStart,
         Styles.flex,
         alignItems.center,
+        color.gray,
         icon.map(_(marginRight := "4px")),
-        u(s"${key.data.key}:", marginRight := "4px", fontSize.xSmall),
+        s"${key.data.key}:", marginRight := "4px",
       ),
 
       property.role match {
