@@ -201,6 +201,7 @@ object TableView {
     VDomModifier(
       div(
         width := "100%",
+        padding := "5px",
         Styles.flex,
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ++ propertyColumns, sort),
