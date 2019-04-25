@@ -235,14 +235,14 @@ object TableView {
                 padding := "10px",
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                  GraphChangesAutomationUI.settingsButton(state, focusedId).prepend(
-                    span("Manage automations", textDecoration.underline, marginRight := "5px")
-                  ),
-                  i(
-                    padding := "4px",
-                    whiteSpace.normal,
-                    s"* The properties you set here will be applied to ${propertyGroup.infos.size} nodes."
-                  )
+                  // GraphChangesAutomationUI.settingsButton(state, focusedId).prepend(
+                  //   span("Manage automations", textDecoration.underline, marginRight := "5px")
+                  // ),
+                  // i(
+                  //   padding := "4px",
+                  //   whiteSpace.normal,
+                  //   s"* The properties you set here will be applied to ${propertyGroup.infos.size} nodes."
+                  // )
                 )
               ),
             ),
