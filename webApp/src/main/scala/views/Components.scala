@@ -25,7 +25,6 @@ import wust.sdk.NodeColor._
 import wust.util.macros.InlineList
 import wust.util.StringOps._
 import wust.util._
-import wust.util.collection.RichArray
 import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
@@ -1157,7 +1156,7 @@ object Components {
 
     div(
       padding := "10px",
-      checkboxes.mapWithIndex { case (value, idx) =>
+      checkboxes.zipWithIndex.map { case (value, idx) =>
         div(
           input(tpe := "checkbox",
             onInput.checked.foreach { checked =>

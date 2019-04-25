@@ -24,7 +24,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components.{renderNodeData, _}
-import wust.util.collection.RichArray
 
 import scala.collection.breakOut
 import scala.scalajs.js

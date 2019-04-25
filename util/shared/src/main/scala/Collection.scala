@@ -56,19 +56,6 @@ package object collection {
   }
 
 
-  implicit class RichArray[A](val arr: Array[A]) extends AnyVal {
-    def mapWithIndex[B: ClassTag](f: (A, Int) => B): Array[B] = {
-      val result = new Array[B](arr.length)
-      var i = 0
-      while (i < arr.length) {
-        result(i)  = f(arr(i), i)
-        i += 1
-      }
-
-      result
-    }
-  }
-
   private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: CanBuildFrom[That, T, That]): That = {
     val actualLen = elements.size
     val missing = len - actualLen
