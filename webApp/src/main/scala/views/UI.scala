@@ -319,7 +319,7 @@ object UI {
   }
   case class Column(name: VDomModifier, entries: List[ColumnEntry], sortable: Boolean = true)
   case class ColumnSort(index: Int, direction: String)
-  def sortableTable(columns: List[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
+  def sortableTable(columns: Seq[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
     val rows = columns.map(_.entries).transpose
 
     val jqHandler = Handler.unsafe[JQuerySelection]

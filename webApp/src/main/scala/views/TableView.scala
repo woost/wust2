@@ -15,6 +15,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import Components._
+import scala.collection.mutable
 
 import scala.collection.breakOut
 
@@ -108,8 +109,10 @@ object TableView {
 
     val propertyGroup = PropertyData.Group(graph, childrenIdxs)
 
-    val nodeColumns: List[UI.Column] =
-      UI.Column(
+    val nodeColumns: Seq[UI.Column] = {
+      val columns = new mutable.ArrayBuffer[UI.Column]
+
+      columns += UI.Column(
         VDomModifier.empty,
         propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
           UI.ColumnEntry(idx,
@@ -128,32 +131,42 @@ object TableView {
             )
           )
         }(breakOut)
-      ) ::
-      UI.Column(
+      )
+
+      columns += UI.Column(
         columnHeader("Name"),
         propertyGroup.infos.map { property =>
           columnEntryOfNodes(property.node.id, Array(None -> property.node))
         }(breakOut)
-      ) ::
-      UI.Column(
-        columnHeader("Tags"),
-        propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
-        }(breakOut)
-      ) ::
-      UI.Column(
-        columnHeader("Stage"),
-        propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
-        }(breakOut)
-      ) ::
-      UI.Column(
-        columnHeader("Assigned"),
-        propertyGroup.infos.map { property =>
-          columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
-        }(breakOut)
-      ) ::
+      )
+
+      if(propertyGroup.infos.exists(_.tags.nonEmpty))
+        columns += UI.Column(
+          columnHeader("Tags"),
+          propertyGroup.infos.map { property =>
+            columnEntryOfNodes(property.node.id, property.tags.map(None -> _))
+          }(breakOut)
+        )
+
+      if(propertyGroup.infos.exists(_.stages.nonEmpty))
+        columns += UI.Column(
+          columnHeader("Stage"),
+          propertyGroup.infos.map { property =>
+            columnEntryOfNodes(property.node.id, property.stages.map(None -> _))
+          }(breakOut)
+        )
+
+      if(propertyGroup.infos.exists(_.assignedUsers.nonEmpty))
+        columns += UI.Column(
+          columnHeader("Assigned"),
+          propertyGroup.infos.map { property =>
+            columnEntryOfNodes(property.node.id, property.assignedUsers.map(None -> _))
+          }(breakOut)
+        )
+
       Nil
+      columns
+    }
 
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
       val predictedType = property.groups.find(_.values.nonEmpty).map { group =>
@@ -190,7 +203,7 @@ object TableView {
         width := "100%",
         Styles.flex,
         alignItems.flexStart,
-        UI.sortableTable(nodeColumns ::: propertyColumns, sort),
+        UI.sortableTable(nodeColumns ++ propertyColumns, sort),
 
         VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(
           div(
