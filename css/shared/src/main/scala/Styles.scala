@@ -111,6 +111,13 @@ object Styles extends StyleSheet.Inline {
     gridAutoRows := "minmax(50px, 1fr)"
   )
 
+  val overflowEllipsis = style(
+    /* BOTH of the following are required for text-overflow */
+    whiteSpace.nowrap,
+    overflow.hidden,
+    textOverflow := "ellipsis",
+  )
+
   val dragFeedBackKf = keyframes(
     (0 %%) -> style(boxShadow := "0px 0px 0px 0px rgba(0,0,0,1)"),
     (100 %%) -> style(boxShadow := "0px 0px 0px 20px rgba(0,0,0,0)")
@@ -262,10 +269,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".breadcrumb .markdown *" - (
-    /* BOTH of the following are required for text-overflow */
-    whiteSpace.nowrap,
-    overflow.hidden,
-    textOverflow := "ellipsis",
+    Styles.overflowEllipsis
   )
 
   // first/last breadcrumb should not have any margin.
@@ -831,10 +835,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".tag .markdown *" - (
-    /* BOTH of the following are required for text-overflow */
-    whiteSpace.nowrap,
-    overflow.hidden,
-    textOverflow := "ellipsis",
+    Styles.overflowEllipsis
   )
 
   ".tag.colorful a" - (

@@ -67,21 +67,21 @@ object Components {
 
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
 
-  def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
-    case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
-    case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
+  def renderNodeData(nodeData: NodeData): VNode = nodeData match {
+    case NodeData.Markdown(content)  => markdownVNode(content)
+    case NodeData.PlainText(content) => div(content)
     case user: NodeData.User         => div(displayUserName(user))
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
-    case d                           => div(trimToMaxLength(d.str, maxLength))
+    case d                           => div(d.str)
   }
 
-  def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = nodeData match {
-    case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
-    case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
+  def renderNodeDataWithFile(state: GlobalState, nodeId: NodeId, nodeData: NodeData)(implicit ctx: Ctx.Owner): VNode = nodeData match {
+    case NodeData.Markdown(content)  => markdownVNode(content)
+    case NodeData.PlainText(content) => div(content)
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
-    case d                           => div(trimToMaxLength(d.str, maxLength))
+    case d                           => div(d.str)
   }
 
   def renderText(str: String): VNode = {
@@ -312,6 +312,7 @@ object Components {
       flexWrap.wrap,
       alignItems.flexStart,
       b(
+        Styles.flexStatic,
         Styles.flex,
         EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
@@ -330,12 +331,11 @@ object Components {
           div(
             Styles.flex,
             justifyContent.flexEnd,
-            margin := "3px 0px",
 
             Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
               nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
-              maxLength = Some(100), config = EditableContent.Config.default,
+ config = EditableContent.Config.default,
             ),
             div(
               marginLeft := "5px",
@@ -377,6 +377,8 @@ object Components {
 
       div(
         alignSelf.flexStart,
+        Styles.flexStatic,
+
         Styles.flex,
         alignItems.center,
         color.gray,
@@ -385,10 +387,10 @@ object Components {
       ),
 
       property.role match {
-        case NodeRole.Neutral => renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
+        case NodeRole.Neutral => renderNodeDataWithFile(state, property.id, property.data)
         case _ => VDomModifier(
           writeHoveredNode(state, property.id),
-          nodeCardWithFile(state, property, maxLength = Some(50)).apply(
+          nodeCardWithFile(state, property).apply(
             margin := "3px 0",
             sidebarNodeFocusMod(state.rightSidebarNode, property.id),
             cursor.pointer
@@ -533,30 +535,30 @@ object Components {
         ),
       )
     }
-    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = VDomModifier(renderNodeData(node.data).apply(nodeInject), contentInject)
       )
     }
-    def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data).apply(nodeInject), contentInject)
       )
     }
-    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
+        contentInject = VDomModifier(p(node.str, nodeInject), contentInject)
       )
     }
-    def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
         contentInject = VDomModifier(
           prependInject,
-          editableNode(state, node, editMode, maxLength).apply(nodeInject),
+          editableNode(state, node, editMode).apply(nodeInject),
           contentInject
         ),
       ).apply(
@@ -564,13 +566,13 @@ object Components {
       )
     }
 
-  def nodeCardEditableOnClick(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def nodeCardEditableOnClick(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val editMode = Var(false)
     renderNodeCard(
       node,
       contentInject = VDomModifier(
         prependInject,
-        editableNodeOnClick(state, node, maxLength).apply(nodeInject),
+        editableNodeOnClick(state, node).apply(nodeInject),
         contentInject
       ),
     ).apply(
@@ -719,10 +721,10 @@ object Components {
       )
     }
 
-    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+    def editableNodeOnClick(state: GlobalState, node: Node, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editableNode(state, node, editMode, maxLength, config)(ctx)(
+      editableNode(state, node, editMode, config)(ctx)(
         onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
@@ -732,10 +734,10 @@ object Components {
       )
     }
 
-    def editablePropertyNodeOnClick(state: GlobalState, node: Node, edge: Edge.LabeledProperty, nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+    def editablePropertyNodeOnClick(state: GlobalState, node: Node, edge: Edge.LabeledProperty, nonPropertyModifier: VDomModifier = VDomModifier.empty, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editablePropertyNode(state, node, edge, editMode, nonPropertyModifier, maxLength, config)(ctx)(
+      editablePropertyNode(state, node, edge, editMode, nonPropertyModifier, config)(ctx)(
         onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
@@ -745,20 +747,20 @@ object Components {
       )
     }
 
-    def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes,
+        EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes,
       )
     }
 
-    def editablePropertyNode(state: GlobalState, node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editablePropertyNode(state: GlobalState, node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
         node.role match {
           case NodeRole.Neutral => VDomModifier(
-            EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+            EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
+            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
               GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
@@ -784,7 +786,7 @@ object Components {
             span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
             state.graph.map { g =>
               val node = g.nodesById(nodeId)
-              Components.nodeCardWithFile(state, node, maxLength = Some(100)).apply(Styles.wordWrap)
+              Components.nodeCardWithFile(state, node).apply(Styles.wordWrap)
             }
           )
           case None => VDomModifier.empty

@@ -49,12 +49,14 @@ object TableView {
       }.mkString(", "),
       value = VDomModifier(
         edges.map {
-          case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
+          case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, config = EditableContent.Config.default)
           case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
           case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag(state, stage, row)
-          case (_, node: Node.Content) => Components.editableNodeOnClick(state, node, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, node: Node.Content) => Components.editableNodeOnClick(state, node, config = EditableContent.Config.default)
           case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row)
         },
+        maxWidth := "300px",
+        Styles.wordWrap,
         cellModifier
       )
     )

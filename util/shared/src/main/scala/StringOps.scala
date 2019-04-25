@@ -7,12 +7,14 @@ import scala.util.control.NonFatal
 
 object StringOps {
 
+  @deprecated("", "use text-overflow: ellipsis instead")
   def trimToMaxLength(str: String, maxLength: Int): String = {
     val rawString = str.trim
     if(rawString.length > maxLength)
       rawString.take(maxLength - 3) + "..."
     else rawString
   }
+  @deprecated("", "use text-overflow: ellipsis instead")
   def trimToMaxLength(str: String, maxLength: Option[Int]): String = {
     maxLength.fold(str)(trimToMaxLength(str, _))
   }

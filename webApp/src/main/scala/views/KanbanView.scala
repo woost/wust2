@@ -69,7 +69,6 @@ object KanbanView {
     }
   }
 
-  private val maxLength = 300 // TODO: use text-overflow:ellipsis instead.
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val activeAddCardFields = Var(Set.empty[List[NodeId]]) // until we use thunks, we have to track, which text fields are active, so they don't get lost when rerendering the whole kanban board
@@ -196,7 +195,7 @@ object KanbanView {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editable = Var(false)
-    val columnTitle = editableNode(state, node, editable, maxLength = Some(maxLength))(ctx)(cls := "kanbancolumntitle")
+    val columnTitle = editableNode(state, node, editable)(ctx)(cls := "kanbancolumntitle")
 
     val messageChildrenCount = Rx {
       val graph = state.graph()
@@ -521,7 +520,6 @@ object KanbanView {
 
     nodeCard(
       node,
-      maxLength = Some(maxLength),
       contentInject = VDomModifier(
         VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
         VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px"), // marginRight to not interfere with button bar...

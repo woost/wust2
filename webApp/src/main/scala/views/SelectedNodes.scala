@@ -122,9 +122,7 @@ object SelectedNodes {
           selectedNodes.update(_.filterNot(data => data.nodeId == node.id))
         }
       ),
-    ),
-      maxLength = Some(20)
-    )(
+    ))(
       drag(DragItem.SelectedNode(node.id)),
       cls := "draggable"
     )

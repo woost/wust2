@@ -269,10 +269,10 @@ object RightSidebar {
 
     VDomModifier(
       div(
-        marginTop := "10px",
+        margin := "10px",
         propertySingle.properties.map { property =>
           Components.removablePropertySection(state, property.key, property.values).apply(
-            marginBottom := "10px",
+            marginBottom := "5px",
           )
         },
 
@@ -282,7 +282,7 @@ object RightSidebar {
           fontSize.small,
           span("Backlinks: ", color.gray),
           propertySingle.info.reverseProperties.map { node =>
-            Components.nodeCard(node, maxLength = Some(50)).apply(
+            Components.nodeCard(node).apply(
               margin := "3px",
               Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
             )

@@ -380,10 +380,10 @@ object ChatView {
                   case NodeRole.Task => VDomModifier(
                       Styles.flex,
                       "Task: ",
-                      renderNodeData(node.data, maxLength = Some(100))
+                      renderNodeData(node.data)
                     )
                   case _ => VDomModifier(
-                      renderNodeData(node.data, maxLength = Some(100))
+                      renderNodeData(node.data)
                     )
                 }
               ),
