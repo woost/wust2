@@ -459,6 +459,7 @@ object KanbanView {
       Components.automatedNodesOfNode(state, node.id),
       propertySingle.map { propertySingle =>
         VDomModifier(
+          Rx{ VDomModifier.ifTrue(taskStats().isEmpty && !inOneLine)(marginBottom := "3px") },
           propertySingle.info.tags.map { tag =>
             Components.removableNodeTag(state, tag, taggedNodeId = node.id)
           },
