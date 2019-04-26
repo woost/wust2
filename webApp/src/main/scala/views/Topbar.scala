@@ -32,11 +32,6 @@ object Topbar {
         appUpdatePrompt(state).apply(marginRight := "10px", Styles.flexStatic),
         beforeInstallPrompt().apply(marginRight := "10px", Styles.flexStatic),
 
-        Rx {
-          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            voteForFeatures
-          )
-        },
         FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
@@ -46,22 +41,6 @@ object Topbar {
       )
     })
   }
-
-  def voteForFeatures = button(
-    "Vote on upcoming features",
-    cls := "ui violet tiny compact button",
-    marginLeft.auto,
-    cls := "vote-button",
-    snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
-    VDomModifier.ifNot(DevOnly.isTrue)(
-      onDomMount.foreach { _ =>
-        nolt.nolt("init", new nolt.NoltData { 
-          var url = "https://woost.nolt.io"
-          var selector = ".vote-button"
-        });
-      }
-    )
-  )
 
   def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
     padding := "5px 5px",

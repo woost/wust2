@@ -97,15 +97,35 @@ object FeedbackForm {
           button(
             Styles.flexStatic,
             tpe := "button",
-            cls := "ui tiny compact primary button",
+            cls := "ui tiny primary button",
+            marginRight := "0",
             "Submit",
             onClick foreach { submit() },
             // onClick(false) --> show,
           ),
         ),
+
+        hr(width := "50%", margin := "15px auto"),
+        div(voteForFeatures),
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
     )
   }
 
+  def voteForFeatures = button(
+    "Vote on upcoming features",
+    cls := "ui violet tiny fluid button",
+    marginTop := "5px",
+    cls := "vote-button",
+    snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
+    VDomModifier.ifNot(DevOnly.isTrue)(
+      onDomMount.foreach { _ =>
+        nolt.nolt("init", new nolt.NoltData { 
+          var url = "https://woost.nolt.io"
+          var selector = ".vote-button"
+        });
       }
+    )
+  )
+
+}
