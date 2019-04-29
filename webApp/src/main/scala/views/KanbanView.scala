@@ -302,8 +302,18 @@ object KanbanView {
       cls := "childstat",
       Styles.flex,
       Styles.flexStatic,
-      margin := "5px 5px 5px auto",
+      margin := "5px 5px 5px 0px",
       div(Icons.conversation, marginLeft := "5px", marginRight := "5px"),
+    )
+  }
+
+  private val renderNotesCount = {
+    div(
+      cls := "childstat",
+      Styles.flex,
+      Styles.flexStatic,
+      margin := "5px 5px 5px 0px",
+      div(Icons.notes, marginLeft := "5px", marginRight := "5px"),
     )
   }
 
@@ -334,7 +344,7 @@ object KanbanView {
 
     val isDeletedNow = state.graph.map(_.isDeletedNow(node.id, parentId :: Nil))
 
-    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
+    case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
       @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 //&& propertiesCount == 0
       @inline def nonEmpty = !isEmpty
@@ -353,9 +363,11 @@ object KanbanView {
         else count
       }
 
+      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx)
+
       val propertiesCount = graph.propertiesEdgeIdx(nodeIdx).length
 
-      TaskStats(messageChildrenCount, taskChildrenCount, taskDoneCount, propertiesCount)
+      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount)
     }
 
     val buttonBar = {
@@ -492,6 +504,7 @@ object KanbanView {
       cls := "childstats",
       Styles.flex,
       alignItems.center,
+      justifyContent.flexEnd,
       Rx{
         VDomModifier(
           VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
@@ -513,6 +526,14 @@ object KanbanView {
             )
           ),
 
+          VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
+            renderNotesCount(
+              taskStats().noteChildrenCount,
+              UI.popup := "Show notes",
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Content)))) --> state.rightSidebarNode,
+              cursor.pointer,
+            ),
+          ),
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
             renderMessageCount(
               taskStats().messageChildrenCount,
