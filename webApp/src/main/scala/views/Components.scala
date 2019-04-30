@@ -412,6 +412,7 @@ object Components {
       UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
       cursor.pointer,
       onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> state.eventProcessor.changes,
+      drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
     )
   }
 
