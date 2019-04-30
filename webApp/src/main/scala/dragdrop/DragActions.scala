@@ -51,8 +51,8 @@ object DragActions {
       case (payload: DragItem.Task, from: Kanban.Column, into: Kanban.Column, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
-          def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId))
-          def disconnectColumn = GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def addTargetWorkspace = if (from.workspace != into.workspace) GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId)) else GraphChanges.empty
+          def disconnectSourceColumn = if(addTargetColumn.isEmpty) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
           def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
@@ -60,7 +60,7 @@ object DragActions {
           if (ctrl)
             addTargetColumn merge addTargetWorkspace
           else
-            addTargetColumn merge addTargetWorkspace merge disconnectColumn merge disconnectWorkspace
+            addTargetColumn merge addTargetWorkspace merge disconnectSourceColumn merge disconnectWorkspace
 
       // e.g. Subtask into Column
       //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
