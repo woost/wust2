@@ -82,7 +82,7 @@ lazy val commonSettings = Seq(
     case Some((2, scalaMajor)) if scalaMajor >= 12 =>
       "-Xlint:-unused,_" ::
         "-Ywarn-unused:-imports" ::
-        "-Ywarn-self-implicit" ::
+        // "-Ywarn-self-implicit" ::
         // "-Ywarn-dead-code" :: // does not work with js.native
         "-Ywarn-extra-implicit" ::
         "-opt:l:method" ::
