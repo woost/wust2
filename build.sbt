@@ -76,7 +76,7 @@ lazy val commonSettings = Seq(
       "-Ywarn-infer-any" ::
       "-Ywarn-nullary-override" ::
       "-Ywarn-nullary-unit" ::
-      "-opt-warnings:at-inline-failed" ::
+      // "-opt-warnings:at-inline-failed" ::
       Nil,
   scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
     case Some((2, scalaMajor)) if scalaMajor >= 12 =>
@@ -85,6 +85,9 @@ lazy val commonSettings = Seq(
         "-Ywarn-self-implicit" ::
         // "-Ywarn-dead-code" :: // does not work with js.native
         "-Ywarn-extra-implicit" ::
+        "-opt:l:method" ::
+        "-opt:l:inline" ::
+        "-opt-inline-from:**" ::
         Nil
     case _ => Nil
   }),
