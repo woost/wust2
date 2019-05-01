@@ -12,33 +12,36 @@ import scala.reflect.macros.blackbox.Context
 //             KeyHash.keyed(varA, varB)    // shortcut for `dsl.key := KeyHash.keyValue(varA, varB)`
 
 object KeyHashMacro {
-  private def positionHashCode(pos: Position): Int = List(pos.source.path, pos.line, pos.column).hashCode()
+  private def positionHashCode(c: Context): Int = {
+    val pos = c.enclosingPosition
+    List(pos.source.path, pos.line, pos.column).hashCode()
+  }
 
   def keyValue(c: Context): c.Expr[Int] = {
     import c.universe._
 
-    val hash = positionHashCode(c.enclosingPosition)
+    val hash = positionHashCode(c)
 
     c.Expr[Int](q"$hash")
   }
   def keyValueWith(c: Context)(values: c.Expr[Any]*): c.Expr[Int] = {
     import c.universe._
 
-    val hash = positionHashCode(c.enclosingPosition)
+    val hash = positionHashCode(c)
 
     c.Expr[Int](q"_root_.scala.runtime.Statics.mix($hash, ${values.toList}.hashCode())")
   }
   def key(c: Context): c.Expr[Key] = {
     import c.universe._
 
-    val hash = positionHashCode(c.enclosingPosition)
+    val hash = positionHashCode(c)
 
     c.Expr[Key](q"_root_.outwatch.dom.dsl.key := $hash")
   }
   def keyWith(c: Context)(values: c.Expr[Any]*): c.Expr[Key] = {
     import c.universe._
 
-    val hash = positionHashCode(c.enclosingPosition)
+    val hash = positionHashCode(c)
 
     c.Expr[Key](q"_root_.outwatch.dom.dsl.key := _root_.scala.runtime.Statics.mix($hash, ${values.toList}.hashCode())")
   }
