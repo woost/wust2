@@ -2,7 +2,7 @@ package wust.webApp.parsers
 
 import cats.data.NonEmptyList
 import wust.graph.Page
-import wust.ids.{Cuid, NodeId, View, ViewOperator}
+import wust.ids._
 import wust.webApp.state._
 import kantan.regex._
 import kantan.regex.implicits._
@@ -10,6 +10,7 @@ import kantan.regex.generic._
 import wust.api.Authentication
 
 import scala.scalajs.js
+import scala.util.Try
 
 private object ParsingHelpers {
   def decodeSeq[A](list: Seq[DecodeResult[A]]): DecodeResult[Seq[A]] =
@@ -143,8 +144,15 @@ object UrlConfigParser {
     result match {
       case Right(cfg) => searchOptions.fold(cfg) { searchOptions =>
         //Keep in sync with site.webmanifest where mapping of share url is defined
-        (searchOptions.get("share-title"), searchOptions.get("share-text"), searchOptions.get("share-url")) match {
-          case (Some(title), text, urlOption) => cfg.copy(shareOptions = Some(ShareOptions(title = title, text = text.getOrElse(""), url = urlOption.getOrElse(""))))
+        (
+          searchOptions.get("share-title"),
+          searchOptions.get("share-text"),
+          searchOptions.get("share-url"),
+          searchOptions.get("share-node-role").flatMap(NodeRole.fromString),
+          searchOptions.get("share-parent-id").flatMap(s => Try(Cuid.fromBase58(s)).toOption.map(NodeId(_)))
+        ) match {
+          case (Some(title), text, urlOption, Some(nodeRole), Some(parentId)) => cfg.copy(shareOptions = Some(ShareOptions.Direct(title = title, text = text.getOrElse(""), url = urlOption.getOrElse(""), nodeRole = nodeRole, parentId = parentId)))
+          case (Some(title), text, urlOption, _, _) => cfg.copy(shareOptions = Some(ShareOptions.PreFill(title = title, text = text.getOrElse(""), url = urlOption.getOrElse(""))))
           case _ => cfg
         }
       }

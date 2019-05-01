@@ -2,7 +2,7 @@ package wust.webApp.state
 
 import wust.api.Authentication
 import wust.graph._
-import wust.ids.View
+import wust.ids.{NodeId, NodeRole, View}
 import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 
 // ViewConfig and UrlConfig are the configurations driving our application ui.
@@ -15,7 +15,17 @@ import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 //TODO: get rid of pagechange, currently needed to know whether we should get a new graph on page change or not.
 // we only know whether we need this when changing the page. But it feels like mixing data and commands.
 
-case class ShareOptions(title: String, text: String, url: String)
+sealed trait ShareOptions {
+  def title: String
+  def text: String
+  def url: String
+
+  def content = List(title, text, url).filter(_.nonEmpty).mkString(" - ")
+}
+object ShareOptions {
+  case class PreFill(title: String, text: String, url: String) extends ShareOptions
+  case class Direct(title: String, text: String, url: String, nodeRole: NodeRole, parentId: NodeId) extends ShareOptions
+}
 case class PageChange(page: Page, needsGet: Boolean = true)
 
 case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
