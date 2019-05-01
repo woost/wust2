@@ -113,7 +113,7 @@ object FeedbackForm {
   }
 
   def voteForFeatures = button(
-    "Vote on upcoming features",
+    "Vote on / suggest new features",
     cls := "ui violet tiny fluid button",
     marginTop := "5px",
     cls := "vote-button",
