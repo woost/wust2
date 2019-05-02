@@ -106,8 +106,8 @@ object NotificationView {
   }
 
   def existingNewNodes(graph: Graph, user: AuthUser): Boolean = {
-    graph.nodes.foreach { node =>
-      if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) graph.idToIdxGet(node.id).foreach { nodeIdx =>
+    graph.nodes.foreachIndexAndElement {
+      case (nodeIdx, node: Node.Content) if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) =>
         val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
           val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
           if (edge.userId == user.id) Some(edge.data.timestamp)
@@ -120,16 +120,18 @@ object NotificationView {
             return true
           }
         }
-      }
+
+      case _ => ()
     }
+
     false
   }
 
   private def calculateNewNodes(graph: Graph, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
-    graph.nodes.foreach { node =>
-      if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) graph.idToIdxGet(node.id).foreach { nodeIdx =>
+    graph.nodes.foreachIndexAndElement {
+      case (nodeIdx, node: Node.Content) if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) =>
         val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
           val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
           if (edge.userId == user.id) Some(edge.data.timestamp)
@@ -153,11 +155,13 @@ object NotificationView {
         if (newRevisions.nonEmpty) {
           unreadNodes += UnreadNode(nodeIdx, newRevisions)
         }
-      }
+
+      case _ => ()
     }
 
     unreadNodes.result
   }
+
   private def renderUnreadNode(state: GlobalState, graph: Graph, unreadNodes: Array[UnreadNode], parentId: NodeId, focusedId: NodeId, renderTime: EpochMilli, currentTime: EpochMilli)(implicit ctx: Ctx.Owner): VDomModifier = {
     val breadCrumbs = Rx {
       BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
