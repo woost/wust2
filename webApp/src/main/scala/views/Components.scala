@@ -1206,9 +1206,8 @@ object Components {
           },
 
           managedElement.asHtml { elem =>
-            var observer: IntersectionObserver = null
-            observer = new IntersectionObserver(
-              { (entry, obs) =>
+            val observer = new IntersectionObserver(
+              { (entry, observer) =>
                 val isIntersecting = entry.head.isIntersecting
                 if (isIntersecting && isUnread.now) {
                   val changes = GraphChanges(
