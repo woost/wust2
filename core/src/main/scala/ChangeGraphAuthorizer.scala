@@ -90,7 +90,7 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
 
     checkNodeIds match {
       case Right(checkNodeIds) => db.user.inaccessibleNodes(user.id, checkNodeIds.toList).map { inaccessibleNodes =>
-        ChangeGraphAuthorization.cond(inaccessibleNodes.isEmpty, s"There are inaccessible node ids in the changes: ${inaccessibleNodes.map(_.toBase58).mkString(",")}")
+        ChangeGraphAuthorization.cond(inaccessibleNodes.isEmpty, s"There are inaccessible node ids in the changes: ${inaccessibleNodes.map(id => s"${id.toBase58} / ${id.toUuid}").mkString(",")}")
       }
       case Left(reasons) => Future.successful(ChangeGraphAuthorization.Deny(s"There are invalid edges in the changes: ${reasons.mkString(",")}"))
     }
