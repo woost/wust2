@@ -1187,7 +1187,7 @@ object Components {
       if (isRead) false
       else {
         val node = graph.nodes(nodeIdx)
-        InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)
+        InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
       }
     }
 
