@@ -1079,7 +1079,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     inner(nodeIdx, immutable.BitSet.empty)
   }
 
-  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.childrenIdx(workspaceIdx).find { nodeIdx =>
+  def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.childrenIdx.find(workspaceIdx) { nodeIdx =>
     val node = nodes(nodeIdx)
     isDoneStage(node)
   }
