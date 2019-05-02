@@ -61,8 +61,13 @@ object NotificationView {
 
         val unreadNodesByParent = Array.fill[Array[UnreadNode]](graph.nodes.length)(Array.empty)
         sortedUnreadNodes.foreach { n =>
+          var hasParent = false
           graph.parentsIdx.foreachElement(n.nodeIdx) { parentIdx =>
+            hasParent = true
             unreadNodesByParent(parentIdx) = unreadNodesByParent(parentIdx) :+ n
+          }
+          if (!hasParent) {
+            unreadNodesByParent(n.nodeIdx) = unreadNodesByParent(n.nodeIdx) :+ n
           }
         }
         //TODO: sort unreadNodesByParent by latest from bucket
@@ -107,7 +112,7 @@ object NotificationView {
 
   def existingNewNodes(graph: Graph, user: AuthUser): Boolean = {
     graph.nodes.foreachIndexAndElement {
-      case (nodeIdx, node: Node.Content) if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) =>
+      case (nodeIdx, node: Node.Content) if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
         val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
           val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
           if (edge.userId == user.id) Some(edge.data.timestamp)
@@ -131,7 +136,7 @@ object NotificationView {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
     graph.nodes.foreachIndexAndElement {
-      case (nodeIdx, node: Node.Content) if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role)) =>
+      case (nodeIdx, node: Node.Content) if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
         val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
           val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
           if (edge.userId == user.id) Some(edge.data.timestamp)
