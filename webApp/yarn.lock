@@ -4029,6 +4029,11 @@ homedir-polyfill@^1.0.1:
   dependencies:
     parse-passwd "^1.0.0"
 
+hopscotch@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/hopscotch/-/hopscotch-0.3.1.tgz#0663a5a9b42d4307666a9404c02c6f1eac0a6584"
+  integrity sha1-BmOlqbQtQwdmapQEwCxvHqwKZYQ=
+
 hosted-git-info@^2.1.4:
   version "2.7.1"
   resolved "https://registry.yarnpkg.com/hosted-git-info/-/hosted-git-info-2.7.1.tgz#97f236977bd6e125408930ff6de3eec6281ec047"

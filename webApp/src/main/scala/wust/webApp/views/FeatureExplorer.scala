@@ -209,6 +209,7 @@ object FeatureExplorer {
 
   val toggleButton = {
     div(
+      id := "tutorial-feature-explorer",
       display.inlineBlock, // needed for absolute positioning of usedFeatureAnimation
       span(
         "Explored Features: ",
