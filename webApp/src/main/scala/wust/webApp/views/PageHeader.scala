@@ -134,7 +134,13 @@ object PageHeader {
         flexWrap := "wrap-reverse",
 
         ViewSwitcher(pageNodeId)
-          .mapResult(_.apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"))
+          .mapResult(_.apply(
+            Styles.flexStatic,
+            alignSelf.flexStart,
+            marginRight := "5px",
+            id := "tutorial-pageheader-viewswitcher",
+            MainTutorial.onDomMountContinue,
+          ))
           .foreach{ view =>
             view match {
               case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
@@ -158,6 +164,7 @@ object PageHeader {
             channelTitle,
             channelMembersList,
             channelNotification,
+            id := "tutorial-pageheader-title",
             marginBottom := "2px", // else nodecards in title overlap
           ),
           Rx{

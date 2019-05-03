@@ -363,7 +363,7 @@ object LeftSidebar {
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
         channelModifier
-      )
+      ),
 
       // isPinned map {
       //   case false => button(

@@ -49,6 +49,9 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.css'),
         Path.join(__dirname, 'node_modules/wdt-emoji-bundle/sheets/sheet_twitter_64_indexed_128.png'),
         Path.join(__dirname, 'node_modules/tributejs/dist/tribute.css'),
+        Path.join(__dirname, 'node_modules/hopscotch/dist/css/hopscotch.min.css'),
+        Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-green.png'),
+        Path.join(__dirname, 'node_modules/hopscotch/dist/img/sprite-orange.png'),
     ],
     js: [
         Path.join(__dirname, 'node_modules/jquery/dist/jquery.js'),
@@ -59,9 +62,12 @@ files.vendor = {
         Path.join(__dirname, 'node_modules/wdt-emoji-bundle/emoji.js'),
         Path.join(__dirname, 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.js'),
         Path.join(__dirname, 'node_modules/autoresize-textarea/dist/autoresize-textarea.js'),
+        Path.join(__dirname, 'node_modules/hopscotch/dist/js/hopscotch.min.js'),
     ],
     workbox: glob.sync(Path.join(dirs.workbox, '**', '*')) // workbox is required by serviceworker and there is no real dependency to require...
 };
+
+
 
 const woostVersion = process.env.WUST_VERSION ? process.env.WUST_VERSION : "latest";
 

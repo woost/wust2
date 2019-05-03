@@ -57,10 +57,12 @@ object NewProjectPrompt {
           cls := "ui violet button",
           onClick.stopPropagation(()) --> triggerSubmit
         )
-      )
+      ),
+      MainTutorial.onDomMountContinue,
     )
 
     def newProject(sub: InputRow.Submission) = {
+      MainTutorial.waitForNextStep()
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
@@ -102,6 +104,7 @@ object NewProjectPrompt {
       }
     )
   }
+
 
   def viewCheckboxes = multiCheckbox[View.Visible](
     View.selectableList,
