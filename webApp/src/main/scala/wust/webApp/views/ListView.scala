@@ -33,6 +33,8 @@ object ListView {
       overflow.auto,
       padding := "5px",
       flexGrow := 2,
+      id := "tutorial-checklist",
+      TutorialPrivateParty.onDomMountContinue,
     )
   }
 

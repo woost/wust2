@@ -53,8 +53,10 @@ object WelcomeView {
             cls := "primary",
             padding := "20px",
             margin := "0px 40px",
+            id := "tutorial-newprojectbutton",
             onClick.stopPropagation.foreach {
               FeatureState.use(Feature.CreateProjectFromWelcomeView)
+              TutorialPrivateParty.waitForNextStep()
             },
           ),
           Rx{
@@ -72,7 +74,21 @@ object WelcomeView {
                   }), ".")
               )
             )
-          }
+          },
+          div(
+            cls := "ui segment",
+            maxWidth := "80ex",
+            marginTop := "50px",
+            marginBottom := "50px",
+            h3("Welcome to Woost!"),
+            p(
+              "You can explore Woost yourself, be guided by a tutorial or watch a video.",
+            ),
+            button(cls := "ui primary button", "Take the Tour",
+              onClick.stopPropagation.foreach {
+                MainTutorial.startTour()
+              })
+          )
         )
       ),
       Rx {

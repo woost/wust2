@@ -563,6 +563,7 @@ lazy val webApp = project
       Deps.npm.wdtEmojiBundle ::
       Deps.npm.tribute ::
       Deps.npm.autoresizeTextarea ::
+      Deps.npm.hopscotch ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */
