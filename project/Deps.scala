@@ -163,7 +163,7 @@ object Deps {
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
         "webpack-merge" -> "4.2.1" ::
         "copy-webpack-plugin" -> "5.0.0" ::
-        "workbox-webpack-plugin" -> "4.2.0" ::
+        "workbox-webpack-plugin" -> "4.3.1" ::
         "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
         "cssnano" -> "4.1.10" ::
         Nil

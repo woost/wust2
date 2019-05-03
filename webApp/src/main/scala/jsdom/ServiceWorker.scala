@@ -1,34 +1,34 @@
 package wust.webApp.jsdom
 
 import googleAnalytics.Analytics
-import io.circe.{Decoder, Encoder, Json}
+import io.circe.{ Decoder, Encoder, Json }
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom.experimental.serviceworkers.{ServiceWorker => OriginalServiceWorker}
-import org.scalajs.dom.{window, _}
+import org.scalajs.dom.experimental.serviceworkers.{ ServiceWorker => OriginalServiceWorker }
+import org.scalajs.dom.{ window, _ }
 import wust.api.Authentication
 import wust.webApp.outwatchHelpers._
 
 import scala.scalajs.js
-import scala.util.{Failure, Success, Try}
+import scala.util.{ Failure, Success, Try }
 
 object ServiceWorker {
 
-  // Use the window load event to keep the page load performant
   def register(): Observable[Unit] = {
     val subject = PublishSubject[Unit]()
 
     Navigator.serviceWorker.foreach { sw =>
+      // Use the window load event to keep the page load performant
       window.addEventListener("load", (_: Any) => {
         Try(sw.register("sw.js")).toEither match {
           case Right(registered) => registered.toFuture.onComplete {
-            case Success(registration)      =>
+            case Success(registration) =>
               scribe.info(s"SW successfully registered")
               registration.onupdatefound = { event =>
                 val installingWorker = registration.installing
                 installingWorker.onstatechange = { event =>
                   val activeServiceworker = sw.controller
-                  if(installingWorker.state == "installed" && activeServiceworker != null) {
+                  if (installingWorker.state == "installed" && activeServiceworker != null) {
                     scribe.info("New SW installed, can update.")
                     subject.onNext(())
                   }
@@ -38,9 +38,20 @@ object ServiceWorker {
               scribe.warn("SW registration failed: ", registrationError)
               subject.onError(registrationError)
           }
-          case Left(e)             =>
+          case Left(e) =>
             scribe.error("SW could not register:", e)
             subject.onError(e)
+        }
+      })
+
+      // when a new serviceworker took over, reload the page
+      // Approach #2 from
+      // https://redfin.engineering/how-to-fix-the-refresh-button-when-using-service-workers-a8e27af6df68
+      var refreshing = false;
+      sw.addEventListener("controllerchange", { () =>
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
         }
       })
     }
@@ -56,7 +67,6 @@ object ServiceWorker {
         Observable.empty[Unit]
     }
   }
-
 
   sealed trait WorkerMessage
   case class AuthMessage(token: Authentication.Token) extends WorkerMessage {
@@ -75,8 +85,8 @@ object ServiceWorker {
     Navigator.serviceWorker.foreach { sw =>
       auth match {
         case Authentication.Verified(_, _, token) =>
-          val activeServiceworker =  sw.controller
-          if(activeServiceworker != null) {
+          val activeServiceworker = sw.controller
+          if (activeServiceworker != null) {
             scribe.info("Sending auth to serviceworker")
             activeServiceworker.postMessage((AuthMessage(token): WorkerMessage).asJson.noSpaces);
           } else scribe.info("No serviceworker found")
