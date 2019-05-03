@@ -140,7 +140,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def notifiedUsersByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[NotifyRow]] = {
       ctx.run(
-        infix"select * from notified_users_search_fast(${lift(nodesOfInterest)})"
+        infix"select * from notified_users_at_deepest_node(${lift(nodesOfInterest)})"
           .as[Query[NotifyRow]]
       )
     }

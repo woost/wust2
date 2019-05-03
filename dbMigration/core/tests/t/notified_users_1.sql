@@ -1,5 +1,5 @@
 BEGIN;
-SELECT plan(14);
+SELECT plan(16);
 
 -- suppress cascade notices from cleanup()
 SET client_min_messages TO WARNING;
@@ -141,7 +141,7 @@ select notify('11', '11');
 
 SELECT set_eq( --1
     $$
-        select * from notified_users_search_fast(array[node_to_uuid('11')]::uuid[])
+        select * from notified_users_at_deepest_node(array[node_to_uuid('11')]::uuid[])
     $$,
     $$ values
         (user_to_uuid('11'), array[node_to_uuid('11')], node_to_uuid('11'))
@@ -155,7 +155,7 @@ select node('21', 'restricted');
 select notify('21', '21');
 
 SELECT is_empty( --2
-    $$ select * from notified_users_search_fast(array[node_to_uuid('21')]::uuid[]) $$
+    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('21')]::uuid[]) $$
 );
 
 -- test case 3
@@ -167,7 +167,7 @@ select notify('31', '31');
 
 SELECT set_eq( --3
     $$
-        select * from notified_users_search_fast(array[node_to_uuid('31')]::uuid[])
+        select * from notified_users_at_deepest_node(array[node_to_uuid('31')]::uuid[])
     $$,
     $$ values
         (user_to_uuid('31'), array[node_to_uuid('31')], node_to_uuid('31'))
@@ -184,11 +184,11 @@ select member('41', '41', 'readwrite');
 select notify('41', '41');
 
 SELECT is_empty( --4
-    $$ select * from notified_users_search_fast(array[node_to_uuid('42')]::uuid[]) $$
+    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('42')]::uuid[]) $$
 );
 SELECT set_eq( --5
     $$
-        select * from notified_users_search_fast(array[node_to_uuid('41')]::uuid[])
+        select * from notified_users_at_deepest_node(array[node_to_uuid('41')]::uuid[])
     $$,
     $$ values
         (user_to_uuid('41'), array[node_to_uuid('41')], node_to_uuid('41'))
@@ -205,10 +205,10 @@ select member('51', '51', 'readwrite');
 select notify('52', '51');
 
 SELECT is_empty( --6
-    $$ select * from notified_users_search_fast(array[node_to_uuid('52')]::uuid[]) $$
+    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('52')]::uuid[]) $$
 );
 SELECT is_empty( --7
-    $$ select * from notified_users_search_fast(array[node_to_uuid('51')]::uuid[]) $$
+    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('51')]::uuid[]) $$
 );
 
 -- test case 8,9
@@ -221,14 +221,14 @@ select notify('61', '61');
 
 SELECT set_eq( --8
     $$
-        select * from notified_users_search_fast(array[node_to_uuid('61')]::uuid[])
+        select * from notified_users_at_deepest_node(array[node_to_uuid('61')]::uuid[])
     $$,
     $$ values
         (user_to_uuid('61'), array[node_to_uuid('61')], node_to_uuid('61'))
     $$
 );
 SELECT is_empty( --9
-    $$ select * from notified_users_search_fast(array[node_to_uuid('62')]::uuid[]) $$
+    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('62')]::uuid[]) $$
 );
 
 -- test case 10
@@ -246,7 +246,7 @@ select notify('73', '72');
 
 SELECT set_eq( --10
     $$
-        select * from notified_users_search_fast(array[node_to_uuid('71')]::uuid[])
+        select * from notified_users_at_deepest_node(array[node_to_uuid('71')]::uuid[])
     $$,
     $$ values
         (user_to_uuid('72'), array[node_to_uuid('71')], node_to_uuid('73'))
@@ -279,7 +279,7 @@ select notify('83', '84');
 
 SELECT set_eq( --11
     $$ select userid, array_sort(initial_nodes), subscribed_node from
-            notified_users_search_fast(array[
+            notified_users_at_deepest_node(array[
                 node_to_uuid('81'),
                 node_to_uuid('82'),
                 node_to_uuid('83'),
@@ -316,7 +316,7 @@ select notify('95', '92');
 
 SELECT set_eq( --12
     $$ select userid, array_sort(initial_nodes), subscribed_node from
-            notified_users_search_fast(array[
+            notified_users_at_deepest_node(array[
                 node_to_uuid('91'),
                 node_to_uuid('92')
             ]::uuid[])
@@ -344,7 +344,7 @@ select notify('01', '02');
 
 SELECT set_eq( --13
     $$ select userid, array_sort(initial_nodes), subscribed_node from
-            notified_users_search_fast(array[
+            notified_users_at_deepest_node(array[
                 node_to_uuid('01'),
                 node_to_uuid('02'),
                 node_to_uuid('03')
@@ -371,7 +371,7 @@ select notify('03', '02');
 
 SELECT set_eq( --13
     $$ select userid, array_sort(initial_nodes), subscribed_node from
-            notified_users_search_fast(array[
+            notified_users_at_deepest_node(array[
                 node_to_uuid('01')
             ])
     $$
@@ -381,68 +381,68 @@ SELECT set_eq( --13
     $$
 );
 
--- -- test case 14: avoid multiple notifications in multiple subscriptions single node
--- select cleanup();
--- select usernode('01');
--- select usernode('02');
--- select node('01');
--- select node('02');
--- select node('03');
--- select node('04');
--- select child('02', '01');
--- select child('03', '02');
--- select child('04', '03');
--- select notify('01', '01');
--- select notify('03', '01');
--- select notify('02', '02');
--- select notify('04', '02');
+-- test case 14: avoid multiple notifications in multiple subscriptions single node
+select cleanup();
+select usernode('01');
+select usernode('02');
+select node('01');
+select node('02');
+select node('03');
+select node('04');
+select child('02', '01');
+select child('03', '02');
+select child('04', '03');
+select notify('01', '01');
+select notify('03', '01');
+select notify('02', '02');
+select notify('04', '02');
 
--- SELECT set_eq( --14
---     $$ select userid, array_sort(initial_nodes), subscribed_node from
---             notified_users_search_fast(array[
---                 node_to_uuid('02')
---             ]::uuid[])
---     $$
---     ,
---     $$ values
---         (user_to_uuid('01'), array[node_to_uuid('02')], node_to_uuid('03')),
---         (user_to_uuid('02'), array[node_to_uuid('02')], node_to_uuid('02'))
---     $$
--- );
+SELECT set_eq( --14
+    $$ select userid, array_sort(initial_nodes), subscribed_node from
+            notified_users_at_deepest_node(array[
+                node_to_uuid('02')
+            ]::uuid[])
+    $$
+    ,
+    $$ values
+        (user_to_uuid('01'), array[node_to_uuid('02')], node_to_uuid('03')),
+        (user_to_uuid('02'), array[node_to_uuid('02')], node_to_uuid('02'))
+    $$
+);
 
--- -- test case 15: avoid multiple notifications in multiple subscriptions multiple nodes
--- select cleanup();
--- select usernode('01');
--- select usernode('02');
--- select node('01');
--- select node('02');
--- select node('03');
--- select node('04');
--- select child('02', '01');
--- select child('03', '02');
--- select child('04', '03');
--- select notify('01', '01');
--- select notify('03', '01');
--- select notify('02', '02');
--- select notify('04', '02');
+-- test case 15: avoid multiple notifications in multiple subscriptions multiple nodes
+select cleanup();
+select usernode('01');
+select usernode('02');
+select node('01');
+select node('02');
+select node('03');
+select node('04');
+select child('02', '01');
+select child('03', '02');
+select child('04', '03');
+select notify('01', '01');
+select notify('03', '01');
+select notify('02', '02');
+select notify('04', '02');
 
--- SELECT set_eq( --15
---     $$ select userid, array_sort(initial_nodes), subscribed_node from
---             notified_users_search_fast(array[
---                 node_to_uuid('01'),
---                 node_to_uuid('02'),
---                 node_to_uuid('03'),
---                 node_to_uuid('04')
---             ]::uuid[])
---     $$
---     ,
---     $$ values
---         (user_to_uuid('01'), array[node_to_uuid('01')], node_to_uuid('01')),
---         (user_to_uuid('01'), array[node_to_uuid('02'), node_to_uuid('03')], node_to_uuid('03')),
---         (user_to_uuid('02'), array[node_to_uuid('01'), node_to_uuid('02')], node_to_uuid('02')),
---         (user_to_uuid('02'), array[node_to_uuid('03'), node_to_uuid('04')], node_to_uuid('04'))
---     $$
--- );
+SELECT set_eq( --15
+    $$ select userid, array_sort(initial_nodes), subscribed_node from
+            notified_users_at_deepest_node(array[
+                node_to_uuid('01'),
+                node_to_uuid('02'),
+                node_to_uuid('03'),
+                node_to_uuid('04')
+            ]::uuid[])
+    $$
+    ,
+    $$ values
+        (user_to_uuid('01'), array[node_to_uuid('01')], node_to_uuid('01')),
+        (user_to_uuid('01'), array[node_to_uuid('02'), node_to_uuid('03')], node_to_uuid('03')),
+        (user_to_uuid('02'), array[node_to_uuid('01'), node_to_uuid('02')], node_to_uuid('02')),
+        (user_to_uuid('02'), array[node_to_uuid('03'), node_to_uuid('04')], node_to_uuid('04'))
+    $$
+);
 
 
 -- test case X
