@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.ids._
 import java.time.Instant
 
-import wust.api.AuthUser
+import wust.api.{AuthUser, Authentication}
 
 import scala.concurrent.duration._
 
@@ -20,7 +20,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
     JWT.isExpired(auth) mustEqual false
     auth.user mustEqual user
     auth.expires must be > Instant.now.getEpochSecond
-    auth.token.length must be > 0
+    auth.token.string.length must be > 0
   }
 
   "expired auth is expired" in {
@@ -31,7 +31,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
     JWT.isExpired(auth) mustEqual true
     auth.user mustEqual user
     auth.expires must be <= Instant.now.getEpochSecond
-    auth.token.length must be > 0
+    auth.token.string.length must be > 0
   }
 
   "incompatible secret not valid" in {
@@ -55,7 +55,7 @@ class JWTSpec extends FreeSpec with MustMatchers {
   }
 
   "no authentication from invalid token" in {
-    val auth = jwt.authenticationFromToken("invalid token")
+    val auth = jwt.authenticationFromToken(Authentication.Token("invalid token"))
 
     auth mustEqual None
   }
