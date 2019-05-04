@@ -156,6 +156,12 @@ object CommonStyles extends StyleSheet.Standalone {
     userSelect := none,
   )
 
+  ".ui.table.no-inner-table-borders tr td" - (
+    // https://github.com/Semantic-Org/Semantic-UI/issues/1980#issuecomment-259151186
+    borderTop(0 px).important,
+    borderBottom(0 px).important,
+  )
+
 
   ".enable-text-selection, .enable-text-selection *" - (
     (userSelect := "text").important,

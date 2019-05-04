@@ -41,6 +41,17 @@ object NotificationView {
   }
   case class UnreadNode(nodeIdx: Int, newRevisions: Array[Revision])
 
+  object LatestChangeInGroupOrdering extends Ordering[(Int, Array[UnreadNode])] {
+    def compare(a: (Int, Array[UnreadNode]), b: (Int, Array[UnreadNode])) = {
+      val aValue = a._2(0).newRevisions(0).timestamp
+      val bValue = b._2(0).newRevisions(0).timestamp
+      -aValue compare -bValue
+    }
+  }
+  object LatestChangeInUnreadNodeOrdering extends Ordering[UnreadNode] {
+    def compare(a: UnreadNode, b: UnreadNode) = -a.newRevisions(0).timestamp compare -b.newRevisions(0).timestamp
+  }
+
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val renderTime = EpochMilli.now
@@ -55,23 +66,37 @@ object NotificationView {
         val user = state.user()
         val page = state.page()
 
-        val unreadNodes = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateNewNodes(graph, pageParentId, user, renderTime = renderTime))
+        val unreadNodes: Array[UnreadNode] = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateNewNodes(graph, pageParentId, user, renderTime = renderTime)).take(200)
 
         val currentTime = EpochMilli.now
-        val sortedUnreadNodes = unreadNodes.sortBy(n => -graph.nodeModified(n.nodeIdx)).take(200)
 
-        val unreadNodesByParent = Array.fill[Array[UnreadNode]](graph.nodes.length)(Array.empty)
-        sortedUnreadNodes.foreach { n =>
+        val unreadNodesByParentBuilder = new Array[mutable.ArrayBuilder[UnreadNode]](graph.nodes.length) // default = null
+        unreadNodes.foreach { n =>
           var hasParent = false
           graph.parentsIdx.foreachElement(n.nodeIdx) { parentIdx =>
             hasParent = true
-            unreadNodesByParent(parentIdx) = unreadNodesByParent(parentIdx) :+ n
+            if (unreadNodesByParentBuilder(parentIdx) == null) unreadNodesByParentBuilder(parentIdx) = new mutable.ArrayBuilder.ofRef[UnreadNode]
+            unreadNodesByParentBuilder(parentIdx) += n
           }
+
           if (!hasParent) {
-            unreadNodesByParent(n.nodeIdx) = unreadNodesByParent(n.nodeIdx) :+ n
+            if (unreadNodesByParentBuilder(n.nodeIdx) == null) unreadNodesByParentBuilder(n.nodeIdx) = new mutable.ArrayBuilder.ofRef[UnreadNode]
+            unreadNodesByParentBuilder(n.nodeIdx) += n
           }
         }
-        //TODO: sort unreadNodesByParent by latest from bucket
+        val unreadNodesByParentSorted: Array[(Int, Array[UnreadNode])] = {
+          val result = new mutable.ArrayBuilder.ofRef[(Int, Array[UnreadNode])]
+          unreadNodesByParentBuilder.foreachIndexAndElement{ (parentIdx, unreadNodesBuilder) =>
+            if (unreadNodesBuilder != null) {
+              val unreadNodes = unreadNodesBuilder.result()
+              scala.util.Sorting.quickSort(unreadNodes)(LatestChangeInUnreadNodeOrdering)
+              result += (parentIdx -> unreadNodes)
+            }
+          }
+          val sortedResult = result.result
+          scala.util.Sorting.quickSort(sortedResult)(LatestChangeInGroupOrdering)
+          sortedResult
+        }
 
         VDomModifier(
           if (unreadNodes.isEmpty)
@@ -102,12 +127,16 @@ object NotificationView {
                 }
               )
             ),
-          unreadNodesByParent.mapWithIndex { (idx, nodes) =>
-            if (nodes.isEmpty) VDomModifier.empty
-            else renderUnreadNode(state, graph, nodes, parentId = graph.nodeIds(idx), focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime)
+          // render outer groups
+          unreadNodesByParentSorted.map {
+            case (idx, nodes) =>
+              VDomModifier.ifTrue(nodes != null)(
+                renderUnreadGroup(state, graph, nodes, parentId = graph.nodeIds(idx), focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime)
+              )
           }
         )
       },
+      div(height := "20px") // padding bottom workaround in flexbox
     )
   }
 
@@ -147,7 +176,8 @@ object NotificationView {
               else None
             }
             val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
-            val newRevisionsBuilder = Array.newBuilder[Revision]
+
+            val newSortedRevisionsBuilder = Array.newBuilder[Revision]
             var isFirst = true
             graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
               val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
@@ -155,14 +185,14 @@ object NotificationView {
               if (readDuringRender || lastReadTime.forall(_ < edge.data.timestamp)) {
                 val author = graph.nodesById(edge.userId).asInstanceOf[Node.User]
                 val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = readDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = readDuringRender)
-                newRevisionsBuilder += revision
+                newSortedRevisionsBuilder += revision
               }
               isFirst = false
             }
 
-            val newRevisions = newRevisionsBuilder.result
-            if (newRevisions.nonEmpty) {
-              unreadNodes += UnreadNode(nodeIdx, newRevisions)
+            val newSortedRevisions = newSortedRevisionsBuilder.result.reverse //TODO: Performance: instead of reversed, build up newRevisionsBuilder reversed
+            if (newSortedRevisions.nonEmpty) {
+              unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
             }
           case _ =>
         }
@@ -172,7 +202,15 @@ object NotificationView {
     unreadNodes.result
   }
 
-  private def renderUnreadNode(state: GlobalState, graph: Graph, unreadNodes: Array[UnreadNode], parentId: NodeId, focusedId: NodeId, renderTime: EpochMilli, currentTime: EpochMilli)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderUnreadGroup(
+    state: GlobalState,
+    graph: Graph,
+    unreadNodes: Array[UnreadNode],
+    parentId: NodeId,
+    focusedId: NodeId,
+    renderTime: EpochMilli,
+    currentTime: EpochMilli
+  )(implicit ctx: Ctx.Owner): VDomModifier = {
     val breadCrumbs = Rx {
       BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
     }
@@ -202,75 +240,17 @@ object NotificationView {
       VDomModifier(
         padding := "0px",
         table(
-          cls := "ui single line table",
+          cls := "ui fixed table",
           border := "none",
           unreadNodes.map { unreadNode =>
             graph.nodes(unreadNode.nodeIdx) match {
-              case node: Node.Content =>
-                val deletedTime = graph.parentEdgeIdx(unreadNode.nodeIdx).find { idx =>
-                  val edge = graph.edges(idx).asInstanceOf[Edge.Child]
-                  edge.parentId == focusedId
-                }.flatMap { idx =>
-                  val edge = graph.edges(idx).asInstanceOf[Edge.Child]
-                  edge.data.deletedAt
-                }
-
-                val newRevisionsWithDelete = deletedTime match {
-                  case Some(time) => unreadNode.newRevisions :+ Revision.Delete(time)
-                  case _          => unreadNode.newRevisions
-                }
-
-                var allSeen = true
-                val changes = newRevisionsWithDelete.map { revision =>
-                  def authorNode(node: Node.User) = div(
-                    fontSize := "0.8em",
-                    fontWeight.bold,
-                    Styles.flex,
-                    alignItems.center,
-                    Components.nodeAvatar(node, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
-                    Components.displayUserName(node.data),
-                  )
-                  val (doIcon, doDescription, doAuthor, isSeen) = revision match {
-                    case revision: Revision.Edit =>
-                      allSeen = allSeen && revision.seen
-                      (freeSolid.faEdit, s"Edited ${node.role}", Some(revision.author), revision.seen)
-                    case revision: Revision.Create =>
-                      allSeen = allSeen && revision.seen
-                      (freeSolid.faPlus, s"Created ${node.role}", Some(revision.author), revision.seen)
-                    case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${node.role}", None, true)
-                  }
-
-                  div(
-                    Styles.flex,
-                    alignItems.center,
-
-                    VDomModifier.ifTrue(isSeen)(opacity := 0.5),
-
-                    div(cls := "fa-fw", doIcon),
-
-                    div(
-                      marginLeft := "5px",
-                      color.gray,
-                      doDescription
-                    ),
-
-                    doAuthor.map { author =>
-                      authorNode(author)(
-                        marginLeft.auto,
-                      )
-                    },
-
-                    div(
-                      marginLeft := "5px",
-                      s"${DateFns.formatDistance(new Date(revision.timestamp), new Date(currentTime))} ago"
-                    ),
-
-                  )
-                }
+              case node: Node.Content => // node is always Content. See calculateNewNodes.
+                val (revisionTable, allSeen, deletedTime) = renderRevisions(graph, unreadNode, node, focusedId, currentTime)
 
                 tr(
-                  width := "100%",
                   td(
+                    cls := "top aligned",
+                    width := "400px",
                     VDomModifier.ifTrue(allSeen)(opacity := 0.5),
                     nodeCard(node, maxLength = Some(150)).apply(
                       VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
@@ -279,13 +259,13 @@ object NotificationView {
                   ),
 
                   td(
-                    Styles.flex,
-                    flexDirection.column,
-
-                    changes
+                    cls := "top aligned",
+                    revisionTable,
                   ),
 
                   td(
+                    cls := "top aligned",
+                    width := "40px",
                     textAlign.right,
                     if (allSeen) VDomModifier(
                       freeRegular.faCircle,
@@ -321,5 +301,84 @@ object NotificationView {
     ).apply(
         width := "100%"
       )
+  }
+
+  private def renderRevisions(
+    graph: Graph,
+    unreadNode: UnreadNode,
+    node: Node.Content,
+    focusedId: NodeId,
+    currentTime: EpochMilli
+  ): (VNode, Boolean, Option[EpochMilli]) = {
+    val deletedTime = graph.parentEdgeIdx(unreadNode.nodeIdx).find { idx =>
+      val edge = graph.edges(idx).asInstanceOf[Edge.Child]
+      edge.parentId == focusedId
+    }.flatMap { idx =>
+      val edge = graph.edges(idx).asInstanceOf[Edge.Child]
+      edge.data.deletedAt
+    }
+
+    val newRevisionsWithDelete = deletedTime match {
+      case Some(time) => unreadNode.newRevisions :+ Revision.Delete(time)
+      case _          => unreadNode.newRevisions
+    }
+
+    var allSeen = true
+
+    val tableNode = table(
+      cls := "ui compact fixed table",
+      cls := "no-inner-table-borders",
+      border := "none",
+      newRevisionsWithDelete.map { revision =>
+        def authorNode(node: Node.User) = div(
+          fontSize := "0.8em",
+          fontWeight.bold,
+          Styles.flex,
+          alignItems.center,
+          Components.nodeAvatar(node, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
+          Components.displayUserName(node.data),
+        )
+        val (doIcon, doDescription, doAuthor, isSeen) = revision match {
+          case revision: Revision.Edit =>
+            allSeen = allSeen && revision.seen
+            (freeSolid.faEdit, s"Edited ${node.role}", Some(revision.author), revision.seen)
+          case revision: Revision.Create =>
+            allSeen = allSeen && revision.seen
+            (freeSolid.faPlus, s"Created ${node.role}", Some(revision.author), revision.seen)
+          case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${node.role}", None, true)
+        }
+
+        tr(
+          VDomModifier.ifTrue(isSeen)(opacity := 0.5),
+
+          td(
+            color.gray,
+            span(
+              display.inlineBlock,
+              cls := "fa-fw",
+              doIcon,
+              marginRight := "5px",
+            ),
+            doDescription
+          ),
+
+          td(
+            doAuthor.map { author =>
+              authorNode(author)(
+                marginLeft.auto,
+              )
+            }
+          ),
+
+          td(
+            Styles.flexStatic,
+            marginLeft := "5px",
+            s"${DateFns.formatDistance(new Date(revision.timestamp), new Date(currentTime))} ago"
+          ),
+        )
+      }
+    )
+
+    (tableNode, allSeen, deletedTime)
   }
 }
