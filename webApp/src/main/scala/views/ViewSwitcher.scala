@@ -49,14 +49,14 @@ object ViewSwitcher {
 
   private val viewDefs: Array[View.Visible] = Array(
     View.Dashboard,
-    View.Chat,
-    View.Thread,
     View.List,
+    View.Chat,
+    View.Content,
     View.Kanban,
+    View.Table(NodeRole.Task :: Nil),
+    View.Thread,
     View.Files,
     View.Graph,
-    View.Table(NodeRole.Task :: Nil),
-    View.Content,
     // View.Gantt,
     View.Topological,
   )
