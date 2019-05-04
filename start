@@ -122,6 +122,18 @@ function self() {
     pgdump)
         postgres_core_command pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-dev-postgres-backup.sql")
         ;;
+    pgdumpfromprod)
+        echo "clearing local database..."
+        postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading production database and restoring in local database..."
+        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-production-postgres-backup.sql")
+        ;;
+    pgdumpfromstaging)
+        echo "clearing local database..."
+        postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+        echo "downloading staging database and restoring in local database..."
+        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-staging-postgres-backup.sql")
+        ;;
     pgrestore)
         postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         postgres_core_psqlbatch -h localhost -U wust --file=- <$2
@@ -305,6 +317,8 @@ function self() {
     psql [options]
     pgcli [options]
     pgdump
+    pgdumpfromprod
+    pgdumpfromstaging
     pgrestore [file]
     pgrestorefromprod
     pgrestorefromstaging
