@@ -1152,32 +1152,6 @@ object Components {
     styles.extra.transform := "rotate(-7deg)",
   )
 
-  case class Checkbox(icon: IconDefinition, description: String)
-  def multiCheckbox[T](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
-    var checkedState = Array.fill(checkboxes.length)(false)
-    val changed = PublishSubject[Unit]
-
-    div(
-      padding := "10px",
-      checkboxes.zipWithIndex.map { case (value, idx) =>
-        div(
-          input(tpe := "checkbox",
-            onInput.checked.foreach { checked =>
-              checkedState(idx) = checked
-              changed.onNext(())
-            },
-            dsl.checked <-- changed.map(_ => checkedState(idx))
-          ),
-          span(
-            marginLeft := "4px",
-            description(value)
-          )
-        )
-      },
-      emitter(changed).map(_ => checkedState.zipWithIndex.flatMap { case (checked, idx) => if (checked) Some(checkboxes(idx)) else None }) --> sink
-    )
-  }
-
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
       val lastModification = graph.nodeModified(nodeIdx)

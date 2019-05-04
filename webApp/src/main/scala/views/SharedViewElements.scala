@@ -537,8 +537,8 @@ object SharedViewElements {
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      color.gray,
-      ViewSwitcher.viewCheckboxes --> selectedViews
+      color := "#333",
+      ViewSwitcher.viewCheckboxes --> selectedViews,
     )
 
     def newProject(name: String) = {
