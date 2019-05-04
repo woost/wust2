@@ -64,6 +64,31 @@ object Search {
     2.0 * commonSequences(n, h).foldLeft(0)(_ + _.length) / (n.length + h.length)
   }
 
+  protected def singleSearch(f: (String, String) => Double, needle: String, node: Node, boundary: Double) = {
+    val nodeStr = node.str.trim
+    val trimmedNeedle = needle.trim
+    val nodeStrLowered = nodeStr.toLowerCase
+    val trimmedLoweredNeedle = trimmedNeedle.toLowerCase
+
+    val nodeRes = if (trimmedNeedle.length == 0 || nodeStr.length == 0) None
+                  else if (trimmedNeedle == nodeStr) Some(node -> 1.0)
+                  else if (trimmedLoweredNeedle == nodeStrLowered) Some(node -> 0.99999)
+                  else if (nodeStrLowered.contains(trimmedLoweredNeedle)) {
+      val strPerc = 0.99 - 1.0 / trimmedLoweredNeedle.r.findAllMatchIn(nodeStrLowered).length * trimmedLoweredNeedle.length / nodeStrLowered.length
+      Some(node -> strPerc)
+    } else {
+      val sim_1 = f(trimmedLoweredNeedle, nodeStrLowered)
+      if(sim_1 > boundary)
+        Some(node -> sim_1)
+      else {
+        val sim_2 = (for(n <- trimmedLoweredNeedle.split(" "); h <- nodeStr.split(" ")) yield f(n, h)).max
+        if(sim_2 > boundary) Some(node -> (sim_2 - boundary)) else None
+      }
+    }
+
+    nodeRes
+  }
+
   protected def wrapSearch(
     f: (String, String) => Double,
     needle: String,
@@ -76,32 +101,7 @@ object Search {
 
     val maxNum = math.min(nodes.length, math.abs(num.getOrElse(nodes.length)))
 
-    val res = nodes.flatMap { node =>
-
-      val nodeStr = node.str.trim
-      val trimmedNeedle = needle.trim
-      val nodeStrLowered = nodeStr.toLowerCase
-      val trimmedLoweredNeedle = trimmedNeedle.toLowerCase
-
-      val nodeRes = if (trimmedNeedle.length == 0 || nodeStr.length == 0) None
-                else if (trimmedNeedle == nodeStr) Some(node -> 1.0)
-                else if (trimmedLoweredNeedle == nodeStrLowered) Some(node -> 0.99999)
-                else if (nodeStrLowered.contains(trimmedLoweredNeedle)) {
-                  val strPerc = 0.99 - 1.0 / trimmedLoweredNeedle.r.findAllMatchIn(nodeStrLowered).length * trimmedLoweredNeedle.length / nodeStrLowered.length
-                  Some(node -> strPerc)
-                } else {
-                  val sim_1 = f(trimmedLoweredNeedle, nodeStrLowered)
-                  if(sim_1 > boundary)
-                    Some(node -> sim_1)
-                  else {
-                    val sim_2 = (for(n <- trimmedLoweredNeedle.split(" "); h <- nodeStr.split(" ")) yield f(n, h)).max
-                    if(sim_2 > boundary) Some(node -> (sim_2 - boundary)) else None
-                  }
-                }
-
-      nodeRes
-
-    }.sortBy(_._2)
+    val res = nodes.flatMap( node => singleSearch(f, needle, node, boundary) ).sortBy(_._2)
 
     num match {
       case Some(n) => if(n > 0) res.takeRight(maxNum) else res.take(maxNum)
@@ -111,6 +111,10 @@ object Search {
 
   def byString(needle: String, nodes: List[Node], num: Option[Int], boundary: Double = 0.0): List[(Node, Double)] = {
     wrapSearch(ratcliffObershelp, needle, nodes, num, boundary)
+  }
+
+  def singleByString(needle: String, node: Node, boundary: Double = 0.0): Option[(Node, Double)] = {
+    singleSearch(ratcliffObershelp, needle, node, boundary)
   }
 
 }

@@ -108,7 +108,7 @@ object PageSettingsMenu {
         channelAsContent().map(shareButton(state, _))
       }
       val searchItem = Rx {
-        channelAsNode().map(searchButton(state, _))
+        channelAsNode().map(searchModalButton(state, _))
       }
       val notificationItem = Rx {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
@@ -199,7 +199,7 @@ object PageSettingsMenu {
     )
   }
 
-  private def searchButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def searchModalButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
     sealed trait SearchInput
     object SearchInput {
       case class Global(query: String) extends SearchInput
@@ -302,17 +302,12 @@ object PageSettingsMenu {
       )
     )
 
-    div(
-      cls := "item",
-      cursor.pointer,
-      Elements.icon(Icons.search),
-      span("Search"),
-
-      onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description,
-        modalModifier = cls := "form",
-        contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+    SharedViewElements.searchButtonWithIcon(onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description,
+      modalModifier = cls := "form",
+      contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       ))) --> state.uiModalConfig
     )
+
   }
 
   private def manageMembers(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {

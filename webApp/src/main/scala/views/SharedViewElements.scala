@@ -578,6 +578,14 @@ object SharedViewElements {
     )
   }
 
+  def searchButtonWithIcon(onClickAction: VDomModifier)(implicit ctx: Ctx.Owner) = div(
+    cls := "item",
+    cursor.pointer,
+    Elements.icon(Icons.search),
+    span("Search"),
+    onClickAction,
+  )
+
   def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     val urlImporter = Handler.unsafe[String]
 

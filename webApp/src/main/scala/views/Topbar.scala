@@ -69,7 +69,8 @@ object Topbar {
         ))
       },
       syncStatus(state)(ctx)(fontSize := "20px"),
-    )
+      ViewFilter.filterBySearchInputWithIcon(state)(ctx)(marginLeft := "35px"),
+    ),
   }
 
   def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {

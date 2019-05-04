@@ -19,8 +19,9 @@ import wust.util.algorithm
 import wust.util.macros.{InlineList, SubObjects}
 import wust.webApp.Ownable
 import wust.webApp.Icons
-import wust.webApp.state.GlobalState
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.outwatchHelpers._
+import wust.webApp.search.Search
 import wust.webApp.views.GraphOperation.{GraphFilter, GraphTransformation}
 
 import scala.collection.breakOut
@@ -127,6 +128,28 @@ object ViewFilter {
     }
     GraphChanges.addToParents(ChildId(nodeId), currentTagFilters)
   }
+
+  def filterBySearchInputWithIcon(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    import scala.concurrent.duration._
+    div(
+      Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
+      cls := "ui search",
+      div(
+        cls := "ui icon input",
+        input(
+          `type` := "text",
+          placeholder := "Search",
+          onInput.value.debounce(500 milliseconds).map{ needle =>
+            val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
+            if(needle.length < 2) baseTransform
+            else baseTransform :+ GraphOperation.ContentContains(needle)
+          } --> state.graphTransformations
+        ),
+        i(cls :="search icon"),
+      )
+    )
+  }
+
 }
 
 
@@ -339,6 +362,23 @@ object GraphOperation {
   case object Identity extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       (graph, graph.edges)
+    }
+  }
+
+  case class ContentContains(needle: String) extends UserViewGraphTransformation {
+    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
+      pageId.fold((graph, graph.edges)) { _ =>
+        val tmpEdges = graph.edges.collect {
+          case e: Edge.Child if Search.singleByString(needle, graph.nodesById(e.childId), 0.75).isDefined => e.childId
+        }
+        val newEdges = graph.edges.filter{
+          case e: Edge.Child if tmpEdges.contains(e.childId)                           => true
+          case e: Edge.Child if graph.descendants(e.childId).exists(tmpEdges.contains) => true
+          case _: Edge.Child                                                           => false
+          case _                                                                       => true
+        }
+        (graph, newEdges)
+      }
     }
   }
 }
