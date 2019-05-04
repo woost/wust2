@@ -302,6 +302,7 @@ object CommonStyles extends StyleSheet.Standalone {
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     minHeight(1 em),
     marginBottom(2 px), // remove margin when title is in <p> (rendered my markdown)
+    Styles.flex, // for notification count
   )
 
   ".pageheader-channeltitle.nodecard" - (
