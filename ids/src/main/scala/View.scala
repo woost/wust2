@@ -29,9 +29,11 @@ object View {
     def viewKey = "files"
   }
   case object Kanban extends Visible {
+    override def toString = "Kanban Board"
     def viewKey = "kanban"
   }
   case object List extends Visible {
+    override def toString = "Checklist"
     def viewKey = "list"
   }
   case object Graph extends Visible {
