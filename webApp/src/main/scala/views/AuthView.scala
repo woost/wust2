@@ -182,8 +182,8 @@ object AuthView {
       submitAction = {userValue =>
         hotjar.pageView("/login/submit")
         Client.auth.login(userValue.email, Password(userValue.password)).map {
-          case AuthResult.BadPassword => Some("Wrong Password")
-          case AuthResult.BadEmail    => Some("Email address does not exist")
+          case AuthResult.BadPassword => Some("Wrong password.")
+          case AuthResult.BadEmail    => Some("No account with this email address exists.")
           case AuthResult.Success     =>
             Analytics.sendEvent("auth", "login")
             None
