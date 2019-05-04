@@ -413,14 +413,16 @@ object SharedViewElements {
   def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
-      val node = graph.nodesById(nodeId)
-      val selection = selectedNodes()
-      // payload is call by name, so it's always the current selectedNodeIds
-      def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
-      VDomModifier(
-        nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
-        onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
-      )
+      graph.idToIdxGet(nodeId).map { nodeIdx =>
+        val node = graph.nodes(nodeIdx)
+        val selection = selectedNodes()
+        // payload is call by name, so it's always the current selectedNodeIds
+        def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
+        VDomModifier(
+          nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
+          onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
+        )
+      }
     },
   )
 
