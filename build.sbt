@@ -67,33 +67,34 @@ lazy val commonSettings = Seq(
     "-encoding" :: "UTF-8" ::
     // "-Ymacro-debug-lite" :: "-Yshow-trees-compact" :: "-Yshow-trees-stringified" :: // to debug macros, use: sbt compile > macros-expanded
     "-unchecked" :: // Enable additional warnings where generated code depends on assumptions
-      "-deprecation" ::
-      "-explaintypes" :: // Explain type errors in more detail
-      "-feature" ::
-      "-language:_" ::
-      "-Xfuture" ::
-      "-Yno-adapted-args" ::
-      "-Ywarn-infer-any" ::
-      "-Ywarn-nullary-override" ::
-      "-Ywarn-nullary-unit" ::
-      // "-opt-warnings:at-inline-failed" ::
-      Nil,
-  scalacOptions ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, scalaMajor)) if scalaMajor >= 12 =>
-      "-Xlint:-unused,_" ::
-        "-Ywarn-unused:-imports" ::
-        // "-Ywarn-self-implicit" ::
-        // "-Ywarn-dead-code" :: // does not work with js.native
-        "-Ywarn-extra-implicit" ::
-        "-opt:l:method" ::
-        "-opt:l:inline" ::
-        "-opt-inline-from:**" ::
-        Nil
-    case _ => Nil
-  }),
+    "-deprecation" ::
+    "-explaintypes" :: // Explain type errors in more detail
+    "-feature" ::
+    "-language:_" ::
+    "-Xfuture" ::
+    "-Yno-adapted-args" ::
+    "-Ywarn-infer-any" ::
+    "-Ywarn-nullary-override" ::
+    "-Ywarn-nullary-unit" ::
+    // "-opt-warnings:at-inline-failed" ::
+    "-Xlint:-unused,_" ::
+    "-Ywarn-unused:-imports" ::
+    // "-Ywarn-self-implicit" ::
+    // "-Ywarn-dead-code" :: // does not work with js.native
+    "-Ywarn-extra-implicit" ::
+    Nil,
 
-  // remove assertions from code in production
-  scalacOptions += {if (isDevRun.?.value.getOrElse(false)) None else Some("-Xdisable-assertions")},
+  scalacOptions ++= {
+    if (isDevRun.?.value.getOrElse(false)) Nil
+    else 
+      // remove assertions from code in production
+      "-Xdisable-assertions" ::
+      // enable inlining (https://www.lightbend.com/blog/scala-inliner-optimizer)
+      "-opt:l:method" ::
+      "-opt:l:inline" ::
+      "-opt-inline-from:**" ::
+      Nil
+  },
 
   // Acyclic: https://github.com/lihaoyi/acyclic
   libraryDependencies += Deps.acyclic.value,
