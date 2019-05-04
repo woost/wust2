@@ -496,25 +496,27 @@ object SharedViewElements {
   def messageTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       val graph = state.graph()
-      val directNodeTags = graph.directNodeTags(graph.idToIdx(nodeId))
-      VDomModifier.ifTrue(directNodeTags.nonEmpty)(
-        state.screenSize.now match {
-          case ScreenSize.Small =>
-            div(
-              cls := "tags",
-              directNodeTags.map { tag =>
-                nodeTagDot(state, tag, pageOnClick = true)(Styles.flexStatic)
-              },
-            )
-          case _                =>
-            div(
-              cls := "tags",
-              directNodeTags.map { tag =>
-                removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
-              },
-            )
-        }
-      )
+      graph.idToIdxGet(nodeId).map{ nodeIdx =>
+        val directNodeTags = graph.directNodeTags(nodeIdx)
+        VDomModifier.ifTrue(directNodeTags.nonEmpty)(
+          state.screenSize.now match {
+            case ScreenSize.Small =>
+              div(
+                cls := "tags",
+                directNodeTags.map { tag =>
+                  nodeTagDot(state, tag, pageOnClick = true)(Styles.flexStatic)
+                },
+              )
+            case _                =>
+              div(
+                cls := "tags",
+                directNodeTags.map { tag =>
+                  removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
+                },
+              )
+          }
+        )
+      }
     }
   }
 
