@@ -30,7 +30,7 @@ object ViewFilter {
   private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
 //    ViewGraphTransformation.Deleted.inGracePeriod(state),
     ViewGraphTransformation.Deleted.onlyDeleted(state),
-    ViewGraphTransformation.Deleted.noDeleted(state),
+    ViewGraphTransformation.Deleted.excludeDeleted(state),
 //    ViewGraphTransformation.Deleted.noDeletedButGraced(state),
     ViewGraphTransformation.Assignments.onlyAssignedTo(state),
     ViewGraphTransformation.Assignments.onlyNotAssigned(state),
@@ -68,11 +68,11 @@ object ViewFilter {
               Components.MenuItem(
                 title = transformation.icon,
                 description = transformation.description,
-                active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.isHide),
+                active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
                 clickAction = { () =>
                   state.graphTransformations.update { transformations =>
                     if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
-                    else transformations :+ transformation.transform
+                    else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
                   }
                   Analytics.sendEvent("filter", transformation.toString)
                 }
@@ -135,7 +135,9 @@ case class ViewGraphTransformation(
   transform: UserViewGraphTransformation,
   icon: VDomModifier,
   description: String,
-  isHide: Boolean = false
+  enablesTransform: Seq[UserViewGraphTransformation] = Seq.empty[UserViewGraphTransformation],
+  disablesTransform: Seq[UserViewGraphTransformation] = Seq.empty[UserViewGraphTransformation],
+  invertedSwitch: Boolean = false, //Filter is active, so enabling it will turn it off
 )
 
 object ViewGraphTransformation {
@@ -147,31 +149,32 @@ object ViewGraphTransformation {
   )
 
   object Deleted {
-    def inGracePeriod(state: GlobalState) = ViewGraphTransformation (
+    def onlyInDeletionGracePeriod(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon  = Icons.delete,
       description = "Show soon auto-deleted items",
-      transform = GraphOperation.InDeletedGracePeriodParents,
+      transform = GraphOperation.OnlyInDeletionGracePeriodChildren,
     )
     def onlyDeleted(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.delete,
       description = "Show only deleted items",
-      transform = GraphOperation.OnlyDeletedParents,
+      transform = GraphOperation.OnlyDeletedChildren,
+      disablesTransform = List(GraphOperation.ExcludeDeletedChildren)
     )
-    def noDeleted(state: GlobalState) = ViewGraphTransformation (
+    def excludeDeleted(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
-      description = "Show deleted items",
-      transform = GraphOperation.NoDeletedParents,
-      isHide = true
+      description = "Show deleted items", // Turns this filter off
+      transform = GraphOperation.ExcludeDeletedChildren,
+      invertedSwitch = true
     )
-    def noDeletedButGraced(state: GlobalState) = ViewGraphTransformation (
+    def includeDeletionGracePeriod(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.undelete,
       description = "Show older deleted items",
-      transform = GraphOperation.NoDeletedButGracedParents,
-      isHide = true
+      transform = GraphOperation.IncludeInDeletionGracePeriodChildren,
+      invertedSwitch = true
     )
   }
 
@@ -179,9 +182,9 @@ object ViewGraphTransformation {
     def hideTemplates(state: GlobalState) = ViewGraphTransformation(
       state = state,
       icon = Icons.automate,
-      description = s"Show automation templates",
+      description = "Show automation templates", // Turns this filter off
       transform = GraphOperation.AutomatedHideTemplates,
-      isHide = true
+      invertedSwitch = true
     )
   }
 
@@ -248,7 +251,7 @@ object GraphOperation {
     }
   }
 
-  case object InDeletedGracePeriodParents extends UserViewGraphTransformation {
+  case object OnlyInDeletionGracePeriodChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
@@ -260,7 +263,7 @@ object GraphOperation {
     }
   }
 
-  case object OnlyDeletedParents extends UserViewGraphTransformation {
+  case object OnlyDeletedChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
@@ -272,7 +275,7 @@ object GraphOperation {
     }
   }
 
-  case object NoDeletedParents extends UserViewGraphTransformation {
+  case object ExcludeDeletedChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
@@ -284,7 +287,7 @@ object GraphOperation {
     }
   }
 
-  case object NoDeletedButGracedParents extends UserViewGraphTransformation {
+  case object IncludeInDeletionGracePeriodChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {

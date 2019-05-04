@@ -174,7 +174,7 @@ class GlobalState(
   val sortableEvents = new SortableEvents(this, sortable)
 
 
-  val defaultTransformations: Seq[UserViewGraphTransformation] = Seq(GraphOperation.NoDeletedParents, GraphOperation.AutomatedHideTemplates)
+  val defaultTransformations: Seq[UserViewGraphTransformation] = Seq(GraphOperation.ExcludeDeletedChildren, GraphOperation.AutomatedHideTemplates)
   // Allow filtering / transformation of the graph on globally
   val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(defaultTransformations)
 
