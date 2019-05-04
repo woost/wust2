@@ -207,15 +207,17 @@ object ChatView {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = state.graph()
-      graph.nodeCreator(graph.idToIdx(groupHeadId))
+      graph.idToIdxGet(groupHeadId).flatMap(graph.nodeCreator)
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
-    val pageParentIdx = groupGraph.idToIdx(pageParentId)
-    val commonParentsIdx = groupGraph.parentsIdx(group(0)).filter{ idx =>
-      val role = groupGraph.nodes(idx).role
-      idx != pageParentIdx && role != NodeRole.Stage && role != NodeRole.Tag
-    }.sortBy(idx => groupGraph.nodeCreated(idx))
+    val pageParentIdx = groupGraph.idToIdxGet(pageParentId)
+    val commonParentsIdx = pageParentIdx.fold(IndexedSeq.empty[Int]){ pageParentIdx =>
+      groupGraph.parentsIdx(group(0)).filter{ idx =>
+        val role = groupGraph.nodes(idx).role
+        idx != pageParentIdx && role != NodeRole.Stage && role != NodeRole.Tag
+      }.sortBy(idx => groupGraph.nodeCreated(idx))
+    }
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
     val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds)
 
