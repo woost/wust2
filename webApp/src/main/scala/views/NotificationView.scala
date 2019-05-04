@@ -53,8 +53,9 @@ object NotificationView {
       Rx {
         val graph = state.rawGraph()
         val user = state.user()
+        val page = state.page()
 
-        val unreadNodes = calculateNewNodes(graph, user, renderTime = renderTime)
+        val unreadNodes = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateNewNodes(graph, pageParentId, user, renderTime = renderTime))
 
         val currentTime = EpochMilli.now
         val sortedUnreadNodes = unreadNodes.sortBy(n => -graph.nodeModified(n.nodeIdx)).take(200)
@@ -132,36 +133,40 @@ object NotificationView {
     false
   }
 
-  private def calculateNewNodes(graph: Graph, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
+  private def calculateNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
-    graph.nodes.foreachIndexAndElement {
-      case (nodeIdx, node: Node.Content) if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-        val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-          val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
-          if (edge.userId == user.id) Some(edge.data.timestamp)
-          else None
-        }
-        val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
-        val newRevisionsBuilder = Array.newBuilder[Revision]
-        var isFirst = true
-        graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-          val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
-          val readDuringRender = lastReadTime.exists(_ > renderTime)
-          if (readDuringRender || lastReadTime.forall(_ < edge.data.timestamp)) {
-            val author = graph.nodesById(edge.userId).asInstanceOf[Node.User]
-            val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = readDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = readDuringRender)
-            newRevisionsBuilder += revision
-          }
-          isFirst = false
-        }
+    graph.idToIdxGet(parentNodeId).foreach { parentNodeIdx =>
+      graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
+        val node = graph.nodes(nodeIdx)
+        node match {
+          case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
+            val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
+              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+              if (edge.userId == user.id) Some(edge.data.timestamp)
+              else None
+            }
+            val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
+            val newRevisionsBuilder = Array.newBuilder[Revision]
+            var isFirst = true
+            graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
+              val readDuringRender = lastReadTime.exists(_ > renderTime)
+              if (readDuringRender || lastReadTime.forall(_ < edge.data.timestamp)) {
+                val author = graph.nodesById(edge.userId).asInstanceOf[Node.User]
+                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = readDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = readDuringRender)
+                newRevisionsBuilder += revision
+              }
+              isFirst = false
+            }
 
-        val newRevisions = newRevisionsBuilder.result
-        if (newRevisions.nonEmpty) {
-          unreadNodes += UnreadNode(nodeIdx, newRevisions)
+            val newRevisions = newRevisionsBuilder.result
+            if (newRevisions.nonEmpty) {
+              unreadNodes += UnreadNode(nodeIdx, newRevisions)
+            }
+          case _ =>
         }
-
-      case _ => ()
+      }
     }
 
     unreadNodes.result
