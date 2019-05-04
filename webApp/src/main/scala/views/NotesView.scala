@@ -64,21 +64,21 @@ object NotesView {
     }
 
     div(
-      borderTop := "1px solid lightgray",
+      cls := "ui segment",
       Styles.flex,
       justifyContent.spaceBetween,
       alignItems.flexStart,
 
-      editableNodeOnClick(state, node),
+      editableNodeOnClick(state, node).apply(width := "100%"),
 
       div(
         Styles.flex,
         alignItems.center,
 
-        zoomButton(state, node.id)( padding := "2px"),
+        zoomButton(state, node.id)( padding := "3px", marginRight := "5px"),
 
         div(
-          padding := "2px",
+          padding := "3px",
           isDeleted.map {
             case true => renderFontAwesomeObject(Icons.undelete)
             case false => renderFontAwesomeIcon(Icons.delete)
