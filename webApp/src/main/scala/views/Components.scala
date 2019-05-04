@@ -448,6 +448,7 @@ object Components {
       tagModifier: VDomModifier = VDomModifier.empty,
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+      withAutomation: Boolean = false,
     )(implicit ctx: Ctx.Owner): VNode = {
 
       div( // checkbox and nodetag are both inline elements because of fomanticui
@@ -464,6 +465,7 @@ object Components {
           label(), // needed for fomanticui
         ),
         nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
+        VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible).apply(cls := "singleButtonWithBg", marginLeft.auto)),
       )
     }
 

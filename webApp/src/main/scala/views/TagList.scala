@@ -92,7 +92,7 @@ object TagList {
 
     def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
       state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
-    ), dragOptions = id => drag(DragItem.Tag(id)))
+    ), dragOptions = id => drag(DragItem.Tag(id)), withAutomation = true)
 
     def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
