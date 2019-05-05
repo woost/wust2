@@ -30,7 +30,7 @@ object UserSettingsView {
         a(
           subject,
           href := s"https://woost.space/$link",
-          target :="_blank",
+          Elements.safeTargetBlank
         )
     )
     private val privacy = legalEntry(
