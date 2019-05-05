@@ -452,6 +452,7 @@ object Components {
     )(implicit ctx: Ctx.Owner): VNode = {
 
       div( // checkbox and nodetag are both inline elements because of fomanticui
+        cls := "tagWithCheckbox",
         Styles.flex,
         alignItems.center,
         div(

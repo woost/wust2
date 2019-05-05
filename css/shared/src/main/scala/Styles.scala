@@ -1020,17 +1020,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
-  ".singleButtonWithBg" - (
-    padding(0 px, 1 px),
-    borderRadius(3 px),
-    color(c"rgba(255, 255, 255, 0.83)"),
-    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
-  )
-
-  ".singleButtonWithBg:hover" - (
-    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
-  )
-
   ".kanbancolumnheader .buttonbar > div," +
   ".kanban-uncategorized-title .buttonbar > div" - (
     padding(5 px),
@@ -1157,6 +1146,30 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
+  ".singleButtonWithBg" - (
+    padding(0 px, 1 px),
+    borderRadius(3 px),
+    color(c"rgba(255, 255, 255, 0.83)"),
+    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+  )
+
+  ".singleButtonWithBg:hover" - (
+    color.white,
+    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
+  )
+
+  ".activeButton.singleButtonWithBg:hover" - (
+    color(selectedNodesBgColor),
+    backgroundColor(c"hsla(0, 0%, 0%, 0.72)"),
+  )
+
+  ".tagWithCheckbox .singleButtonWithBg" - (
+    visibility.hidden,
+  )
+
+  ".tagWithCheckbox:hover .singleButtonWithBg" - (
+    visibility.visible,
+  )
 
 
 
