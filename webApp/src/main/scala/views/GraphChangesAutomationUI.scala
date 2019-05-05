@@ -78,7 +78,7 @@ object GraphChangesAutomationUI {
                 Styles.flex,
                 alignItems.center,
                 b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
-                state.rawGraph.map(_.nodesByIdGet(state.page.now.parentId.get).map(PageHeader.channelMembers(state, _))),
+                PageHeader.channelMembers(state, state.page.now.parentId.get),
               ),
 
               Components.registerDragContainer(state),

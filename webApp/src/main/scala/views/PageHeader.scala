@@ -35,35 +35,73 @@ object PageHeader {
       VDomModifier(
         cls := "pageheader",
 
-        Rx {
-          val graph = state.graph()
-          val page = state.page()
-          val pageNode = page.parentId.flatMap(graph.nodesByIdGet)
-          pageNode.map { pageNode => pageRow(state, pageNode) }
-        },
+        state.page.map(_.parentId.map(pageRow(state, _)))
       )
     })
   }
 
-  private def pageRow(state: GlobalState, pageNode: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val maxLength = if (BrowserDetect.isPhone) Some(30) else Some(60)
+  private def pageRow(state: GlobalState, pageNodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val channelTitle = Components.nodeCardAsOneLineText(pageNode).apply(
-      cls := "pageheader-channeltitle",
-      registerDragContainer(state, DragContainer.Chat),
-      DragItem.fromNodeRole(pageNode.id, pageNode.role).map(drag(_)),
-      Components.sidebarNodeFocusMod(state.rightSidebarNode, pageNode.id),
-      Components.showHoveredNode(state, pageNode.id),
-      Components.readObserver(state, pageNode.id)
-    )
+    val pageNode = Rx {
+      state.graph().nodesById(pageNodeId)
+    }
+
+    val channelTitle = Rx {
+      val node = pageNode()
+      val rendered = Components.nodeCardAsOneLineText(node).apply(
+        cls := "pageheader-channeltitle",
+        registerDragContainer(state, DragContainer.Chat),
+        DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
+        Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+        Components.showHoveredNode(state, node.id),
+        Components.readObserver(state, node.id)
+      )
+
+      node.role match {
+        case NodeRole.Project => rendered.prepend(
+          Styles.flex,
+          nodeAvatar(node, size = 25)(marginRight := "5px", alignSelf.center)
+        )
+        case _ => rendered
+      }
+    }
+
+    val haveUnreadNotifications = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      NotificationView.existingNewNodes(graph, pageNodeId, user)
+    }
+
+    val channelNotification = Rx{
+      VDomModifier.ifTrue(haveUnreadNotifications())(
+        button(
+          marginLeft := "5px",
+          marginBottom := "2px",
+          cls := "ui compact button",
+          backgroundColor := Styles.unreadColor.value,
+          color := "white",
+          Icons.notifications,
+          onClick.stopPropagation.foreach {
+            state.urlConfig.update(_.focus(View.Notifications))
+          }
+        )
+      )
+    }
+
+    val hasBigScreen = Rx {
+      state.screenSize() != ScreenSize.Small
+    }
 
     val channelMembersList = Rx {
-      val hasBigScreen = state.screenSize() != ScreenSize.Small
-      hasBigScreen.ifTrue[VDomModifier](channelMembers(state, pageNode).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
+      VDomModifier.ifTrue(hasBigScreen())(channelMembers(state, pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
+    }
+
+    val permissionLevel = Rx {
+      Permission.resolveInherited(state.graph(), pageNodeId)
     }
 
     val permissionIndicator = Rx {
-      val level = Permission.resolveInherited(state.graph(), pageNode.id)
+      val level = permissionLevel()
       div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
 
@@ -76,7 +114,7 @@ object PageHeader {
       alignItems.flexEnd,
       flexWrap := "wrap-reverse",
 
-      ViewSwitcher(state, pageNode.id).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
+      ViewSwitcher(state, pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
       div(
         Styles.flex,
         justifyContent.spaceBetween,
@@ -85,59 +123,37 @@ object PageHeader {
         div(
           Styles.flex,
           alignItems.center,
-          pageNode.role match {
-            case NodeRole.Project =>
-              channelTitle.prepend(
-                Styles.flex,
-                nodeAvatar(pageNode, size = 25)(marginRight := "5px", alignSelf.center)
-              )
-            case _ =>
-              channelTitle
-          },
           flexShrink := 3,
-          Rx{
-            val graph = state.graph()
-            val user = state.user()
-            val haveUnread = NotificationView.existingNewNodes(graph, pageNode.id, user)
-            VDomModifier.ifTrue(haveUnread)(
-              button(
-                marginLeft := "5px",
-                marginBottom := "2px",
-                cls := "ui compact button",
-                backgroundColor := Styles.unreadColor.value,
-                color := "white",
-                Icons.notifications,
-                onClick.stopPropagation.foreach {
-                  state.urlConfig.update(_.focus(View.Notifications))
-                }
-              )
-            )
-          }
+
+          channelTitle,
+
+          channelNotification
         ),
         div(
           Styles.flex,
           alignItems.center,
-          Components.automatedNodesOfNode(state, pageNode.id),
+          Components.automatedNodesOfNode(state, pageNodeId),
           channelMembersList,
           permissionIndicator,
-          menuItems(state, pageNode)
+
+          menuItems(state, pageNodeId)
         )
       ),
     )
   }
 
-  private def menuItems(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def menuItems(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val isSpecialNode = Rx {
       //TODO we should use the permission system here and/or share code with the settings menu function
-      channel.id == state.user().id
+      channelId == state.user().id
     }
-    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(state, channel.id)
+    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(state, channelId)
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
     val pinButton = Rx {
       val hideBookmarkButton = isSpecialNode() || isBookmarked()
-      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channel).apply(
+      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channelId).apply(
         cls := "mini",
         buttonStyle,
         marginRight := "5px"
@@ -146,11 +162,11 @@ object PageHeader {
 
     VDomModifier(
       pinButton,
-      PageSettingsMenu(state, channel.id).apply(buttonStyle, fontSize := "20px"),
+      PageSettingsMenu(state, channelId).apply(buttonStyle, fontSize := "20px"),
     )
   }
 
-  def channelMembers(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner) = {
+  def channelMembers(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       cls := "tiny-scrollbar",
@@ -159,7 +175,7 @@ object PageHeader {
       registerDragContainer(state),
       Rx {
         val graph = state.graph()
-        val nodeIdx = graph.idToIdx(channel.id)
+        val nodeIdx = graph.idToIdx(channelId)
         val members = graph.membersByIndex(nodeIdx)
 
         members.map(user => div(

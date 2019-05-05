@@ -487,11 +487,11 @@ object PageSettingsMenu {
     )
   }
 
-  def addToChannelsButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  def addToChannelsButton(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     button(
       cls := "ui compact primary button",
       if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-      onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channel.id, state.user.now.id), Edge.Notify(channel.id, state.user.now.id)), delEdges = Set(Edge.Invite(channel.id, state.user.now.id)))) --> state.eventProcessor.changes,
+      onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Set(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
   }
