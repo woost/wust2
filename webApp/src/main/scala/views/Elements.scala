@@ -25,6 +25,7 @@ import wust.webApp.outwatchHelpers._
 import rx._
 import wust.graph.Node
 import wust.ids.EpochMilli
+import wust.webApp.state.GlobalState
 
 import scala.scalajs.js
 
@@ -231,6 +232,12 @@ object Elements {
       .foreach { orig =>
         elem.asInstanceOf[js.Dynamic].updateDynamic("addEventListener")(orig)
     }
+  }
+
+  def clearOnPageSwitch(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
+    state.page.foreach(_ => clear.onNext(()))
+    clear
   }
 
   final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true) {

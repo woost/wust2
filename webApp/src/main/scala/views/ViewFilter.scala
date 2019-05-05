@@ -131,14 +131,24 @@ object ViewFilter {
 
   def filterBySearchInputWithIcon(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import scala.concurrent.duration._
+
+    val clear = Elements.clearOnPageSwitch(state)
+
     div(
       Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
       cls := "ui search",
       div(
+        state.isFilterActive.map(VDomModifier.ifTrue(_)(
+          color := "green",
+          outline := "none",
+          borderColor := "green",
+          boxShadow := "0 0 10px 3px green",
+        )),
         cls := "ui icon input",
         input(
           `type` := "text",
-          placeholder := "Search",
+          placeholder := "Search & Filter",
+          value <-- clear,
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if(needle.length < 2) baseTransform
