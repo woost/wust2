@@ -33,29 +33,46 @@ object UserSettingsView {
         val user = state.user()
         VDomModifier(
           header(state, user).apply(marginBottom := "50px"),
-          accountSettings(state, user).apply(marginBottom := "50px"),
-          pluginSettings(user).apply(marginBottom := "50px"),
-          uploadSettings(state, user)
+          UI.accordion(
+            Seq(
+              accordionEntry("Account Settings", accountSettings(state, user)),
+              accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
+              accordionEntry( span( i(Icons.files), b(" Uploaded files") ), uploadSettings(state, user))
+            ),
+            styles = "fluid",
+            exclusive = false,
+            initialActive = Seq(0),
+          )
         )
       }
     )
   }
 
+  def accordionEntry(name: VDomModifier, body: VDomModifier): (VDomModifier, VDomModifier) = {
+    VDomModifier(
+      Styles.flexStatic,
+      marginTop := "4px",
+      name,
+    ) -> VDomModifier(
+      margin := "4px 4px 12px 20px",
+      padding := "0px",
+      body
+    )
+  }
 
   private def uploadSettings(state: GlobalState, ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
     val fileUploads = Var[Option[Seq[UploadedFile]]](None)
     div(
+      margin := "10px 30px 10px 0px",
       div(
-        i(Icons.files),
-        b(" Uploaded files:"),
-      ),
-      br,
-      div(
-        marginLeft := "10px",
         width := "500px",
         Rx {
           if (fileUploads().isDefined) VDomModifier.empty
-          else button(cls := "ui button", "Show all", onClick.foreach {
+          else button(
+            cls := "ui button",
+            marginTop := "6px",
+            "Show all",
+            onClick.foreach {
             Client.api.getUploadedFiles.onComplete {
               case Success(files) =>
                 fileUploads() = Some(files)
@@ -101,30 +118,28 @@ object UserSettingsView {
   }
 
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
-    width := "300px",
+    Styles.flex,
+    flexWrap.wrap,
     div(
-      i(Icons.plugin),
-      b(" Plugins:")
-    ),
-    br,
-    div(
-      marginLeft := "10px",
+      margin := "10px 30px 10px 0px",
+      minWidth := "200px",
       Observable.fromFuture(slackButton(user))
     )
   )
 
   private def accountSettings(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
-
     div(
-      width := "300px",
-      b("Account settings:"),
-      br,
-      changeEmail(state, user).apply(
-        marginLeft := "10px",
+      Styles.flex,
+      flexWrap.wrap,
+      div(
+        margin := "10px 30px 10px 0px",
+        minWidth := "200px",
+        changeEmail(state, user)
       ),
-      br,
-      changePassword(user).apply(
-        marginLeft := "10px",
+      div(
+        margin := "10px 30px 10px 0px",
+        minWidth := "200px",
+        changePassword(user)
       )
     )
   }
@@ -208,6 +223,7 @@ object UserSettingsView {
       },
       button(
         "Change email",
+        marginTop := "6px",
         cls := "ui fluid primary button",
         display.block,
 
@@ -263,6 +279,7 @@ object UserSettingsView {
       button(
         "Change password",
         cls := "ui fluid primary button",
+        marginTop := "6px",
         display.block,
         onClick(password).foreach { email =>
           if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
@@ -338,10 +355,9 @@ object UserSettingsView {
   private def slackPlaceholder = div(
     Styles.flex,
     flexDirection.column,
-    div("Slack plugin not enabled"),
     button(
       cls := "ui button green",
-      margin := "5px 0 0",
+      marginTop := "6px",
       "Enable Slack plugin",
       onClick foreach {
         Analytics.sendEvent("slack", "enableplugin")
@@ -349,7 +365,12 @@ object UserSettingsView {
       onClick foreach {
         UI.toast("Thanks for your interest in the slack plugin. It will be available soon.")
       }
-    )
+    ),
+      div(
+      fontSize := "10px",
+      textAlign.center,
+      "Slack plugin not enabled"
+    ),
   )
 
   private def slackButton(user: UserInfo): Future[VNode] = {
