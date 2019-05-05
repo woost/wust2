@@ -98,7 +98,7 @@ object PageHeader {
           Rx{
             val graph = state.graph()
             val user = state.user()
-            val haveUnread = NotificationView.existingNewNodes(graph, user)
+            val haveUnread = NotificationView.existingNewNodes(graph, pageNode.id, user)
             VDomModifier.ifTrue(haveUnread)(
               button(
                 marginLeft := "5px",

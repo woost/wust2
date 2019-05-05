@@ -140,23 +140,27 @@ object NotificationView {
     )
   }
 
-  def existingNewNodes(graph: Graph, user: AuthUser): Boolean = {
-    graph.nodes.foreachIndexAndElement {
-      case (nodeIdx, node: Node.Content) if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-        val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-          val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
-          if (edge.userId == user.id) Some(edge.data.timestamp)
-          else None
+  def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
+    graph.idToIdxGet(parentNodeId).foreach { parentNodeIdx =>
+      graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
+        val node = graph.nodes(nodeIdx)
+        node match {
+          case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
+            val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
+              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+              if (edge.userId == user.id) Some(edge.data.timestamp)
+              else None
+            }
+            val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
+            graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
+              if (lastReadTime.forall(_ < edge.data.timestamp)) {
+                return true
+              }
+            }
+          case _ =>
         }
-        val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
-        graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-          val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
-          if (lastReadTime.forall(_ < edge.data.timestamp)) {
-            return true
-          }
-        }
-
-      case _ => ()
+      }
     }
 
     false
