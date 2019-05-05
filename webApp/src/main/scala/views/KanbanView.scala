@@ -685,7 +685,7 @@ object KanbanView {
               fontSize.larger,
               fontWeight.bold,
             ),
-            showMarkdownHelp = true
+            showMarkdownHelp = false
           ).apply(
             cls := "kanbannewcolumnareaform",
           )
