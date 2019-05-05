@@ -66,27 +66,10 @@ object PageHeader {
       }
     }
 
-    val haveUnreadNotifications = Rx {
-      val graph = state.graph()
-      val user = state.user()
-      NotificationView.existingNewNodes(graph, pageNodeId, user)
-    }
-
-    val channelNotification = Rx{
-      VDomModifier.ifTrue(haveUnreadNotifications())(
-        button(
-          marginLeft := "5px",
-          marginBottom := "2px",
-          cls := "ui compact button",
-          backgroundColor := Styles.unreadColor.value,
-          color := "white",
-          Icons.notifications,
-          onClick.stopPropagation.foreach {
-            state.urlConfig.update(_.focus(View.Notifications))
-          }
-        )
-      )
-    }
+    val channelNotification = NotificationView.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
+      marginLeft := "5px",
+      marginBottom := "2px",
+    )).foreach(view => state.urlConfig.update(_.focus(view)))
 
     val hasBigScreen = Rx {
       state.screenSize() != ScreenSize.Small

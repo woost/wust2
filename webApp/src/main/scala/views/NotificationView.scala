@@ -140,7 +140,29 @@ object NotificationView {
     )
   }
 
-  def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
+  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    val haveUnreadNotifications = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      existingNewNodes(graph, nodeId, user)
+    }
+
+    val channelNotification = Rx {
+      VDomModifier.ifTrue(haveUnreadNotifications())(
+        button(
+          cls := "ui compact button",
+          backgroundColor := Styles.unreadColor.value,
+          color := "white",
+          Icons.notifications,
+          onClick.stopPropagation(View.Notifications) --> sink,
+          modifiers,
+        )
+      )
+    }
+    channelNotification
+  }
+
+  private def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
     graph.idToIdxGet(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
         val node = graph.nodes(nodeIdx)

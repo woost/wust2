@@ -131,6 +131,7 @@ object RightSidebar {
             alignItems.center,
             ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
             borderBottom := "2px solid black",
+            NotificationView.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
             button(
               cls := "ui compact button",
               backgroundColor := "transparent",
