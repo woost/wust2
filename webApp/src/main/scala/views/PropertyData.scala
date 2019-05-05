@@ -5,6 +5,9 @@ import wust.ids.NodeId
 
 import scala.collection.breakOut
 
+//TODO: We should not use Array here, because scala.rx cannot do equality on them (when streaming property data)
+//TODO: separate calculations into separate rx: rx for tags, stages, users, properties
+//TODO: use ids instead of nodes and listen to node changes in each rendered node
 object PropertyData {
 
   case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
