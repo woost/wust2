@@ -25,6 +25,37 @@ import scala.util.{Failure, Success}
 
 object UserSettingsView {
 
+  object LegalNotice {
+    @inline private val legalEntry = (subject: String, link: String) => div(
+        a(
+          subject,
+          href := s"https://woost.space/$link",
+          target :="_blank",
+        )
+    )
+    private val privacy = legalEntry(
+      "Privacy Policy",
+      "privacy-policy",
+    )
+    private val terms = legalEntry(
+      "Terms of Service",
+      "terms",
+    )
+    private val imprint = legalEntry(
+      "Imprint",
+      "imprint",
+    )
+
+    val information = div(
+      Styles.flex,
+      Styles.flexStatic,
+      flexDirection.column,
+      privacy,
+      terms,
+      imprint
+    )
+  }
+
   def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
     div(
       padding := "20px",
@@ -37,7 +68,8 @@ object UserSettingsView {
             Seq(
               accordionEntry("Account Settings", accountSettings(state, user)),
               accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
-              accordionEntry( span( i(Icons.files), b(" Uploaded files") ), uploadSettings(state, user))
+              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings(state, user)),
+              accordionEntry( b("§ Legal Information" ), LegalNotice.information),
             ),
             styles = "fluid",
             exclusive = false,
