@@ -136,7 +136,7 @@ object Collapse {
       collapsing: collection.Set[NodeId]
   ): Boolean = {
     val space = graph removeNodes (collapsing - sourceId)
-    depthFirstSearchWithStartInCycleDetection[NodeId](sourceId, space.parents).iterator contains targetId
+    dfs.withStartInCycleDetection[NodeId](sourceId, space.parents).iterator contains targetId
   }
 
   def highestParents(graph: Graph, child: NodeId, predicate: NodeId => Boolean): Set[NodeId] = {

@@ -62,6 +62,28 @@ class GraphSpec extends FreeSpec with MustMatchers {
       graph.descendants(3).toSet mustEqual Set[NodeId](3, 2, 1)
     }
 
+    "descendants don't include start" in {
+      val graph = Graph(List(1), List())
+      graph.descendants(1).toSet mustEqual Set[NodeId]()
+    }
+    "descendants handles diamond" in {
+      val graph = Graph(List(1,2,3), List(1 cont 3, 1 cont 2, 2 cont 3))
+      graph.descendants(1).toList mustEqual List[NodeId](2, 3)
+      val graph2 = Graph(List(1,2,3), List(1 cont 2, 1 cont 3, 2 cont 3))
+      graph2.descendants(1).toList mustEqual List[NodeId](3, 2)
+    }
+
+    "ancestors don't include start" in {
+      val graph = Graph(List(1), List())
+      graph.ancestors(1).toSet mustEqual Set[NodeId]()
+    }
+    "ancestors handles diamond" in {
+      val graph = Graph(List(1,2,3), List(1 cont 2, 1 cont 3, 2 cont 3))
+      graph.ancestors(3).toList mustEqual List[NodeId](2, 1)
+      val graph2 = Graph(List(1,2,3), List(1 cont 2, 2 cont 3, 1 cont 3))
+      graph2.ancestors(3).toList mustEqual List[NodeId](1, 2)
+    }
+
     "filter" in {
       val connections: List[Edge] = List(1 -> 2, 2 -> 3)
       val containments: List[Edge] = List(1 cont 2, 2 cont 3)

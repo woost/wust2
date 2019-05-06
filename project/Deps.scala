@@ -49,13 +49,13 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
-  val vectory = dep("com.github.fdietze" % "vectory" % "1189c49")
+  val vectory = dep("com.github.fdietze" % "vectory" % "cb9cb49")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "a15d3ae")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
   val outwatch = dep("com.github.outwatch" % "outwatch" % "f41b8a3d")
   // val outwatch = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
-  val bench = dep("com.github.fdietze.bench" %%% "bench" % "8fd636f")
+  val bench = dep("com.github.fdietze.bench" %%% "bench" % "e66a721")
   // val bench = dep("com.github.fdietze" %%% "bench" % "master-SNAPSHOT")
 
   // utility
@@ -83,7 +83,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.csv" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.csv-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "557b47d")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "637887d")
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 
   // graalvm

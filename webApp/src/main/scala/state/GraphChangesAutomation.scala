@@ -10,6 +10,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.macros.InlineList
 import wust.util.{StringOps, algorithm}
+import wust.util.algorithm.dfs
 import wust.webApp.views.UI
 
 import scala.collection.{breakOut, mutable}
@@ -56,7 +57,7 @@ object GraphChangesAutomation {
 
     @inline def manualSuccessorsSize = graph.contentsEdgeIdx.size
     @inline def manualSuccessors(nodeIdx: Int, f: Int => Unit): Unit = {
-      graph.contentsEdgeIdx(nodeIdx).foreachElement { edgeIdx =>
+      graph.contentsEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
         val descendantIdx = graph.edgesIdx.b(edgeIdx)
         graph.nodes(descendantIdx) match {
           case descendant: Node.Content =>
@@ -76,7 +77,7 @@ object GraphChangesAutomation {
     // newNode was already automated with this template before. If it was, we
     // do not want to copy again in the automation but reuse the node that was
     // copied in the previous automation run.
-    newNodeIdx.foreach(newNodeIdx => algorithm.depthFirstSearchWithManualSuccessors(newNodeIdx, manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
+    newNodeIdx.foreach(newNodeIdx => dfs.withManualSuccessors(_(newNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
       val descendant = graph.nodes(descendantIdx).asInstanceOf[Node.Content]
       graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
         val interfaceIdx = graph.edgesIdx.b(edgeIdx)
@@ -90,7 +91,7 @@ object GraphChangesAutomation {
     // descendant. If we do, we just keep this node, else we will create a copy
     // of the descendant node. We want to have a copy of each descendant of the
     // template.
-    algorithm.depthFirstSearchWithManualSuccessors(templateNodeIdx, manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
+    dfs.withManualSuccessors(_(templateNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
       val descendant = graph.nodes(descendantIdx).asInstanceOf[Node.Content]
       alreadyExistingNodes.get(descendant.id) match {
         case Some(implementationNode) =>
@@ -167,7 +168,7 @@ object GraphChangesAutomation {
             val targetIdxs: Array[(Int, Set[NodeId])] = if (parentNode.role == NodeRole.Stage) {
               val targetIdxs = Array.newBuilder[(Int, Set[NodeId])]
               targetIdxs += parentIdx -> Set.empty
-              algorithm.depthFirstSearchAfterStartWithContinue(parentIdx, graph.parentsIdx, { idx =>
+              dfs.withContinue(_(parentIdx), dfs.afterStart, graph.parentsIdx, { idx =>
                 val node = graph.nodes(idx)
                 if (node.role == NodeRole.Stage) {
                   targetIdxs += idx -> Set(node.id)

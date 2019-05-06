@@ -31,6 +31,7 @@ import wust.api.ApiEvent
 import wust.util.macros.InlineList
 import wust.webApp
 import wust.webApp.views.UI.ToastLevel.Success
+import algorithm.dfs
 
 import scala.collection.immutable
 import scala.collection.{breakOut, mutable}
@@ -409,7 +410,7 @@ object ChatView {
     var nodeCount = 0
     if(pageParentIdx == -1) return js.Array[Int]()
 
-    algorithm.depthFirstSearchAfterStartsWithContinue(starts = Array(pageParentIdx), graph.childrenIdx, continue = {nodeIdx =>
+    dfs.withContinue(_(pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = {nodeIdx =>
       val node = graph.nodes(nodeIdx)
       node.role match {
         case NodeRole.Message =>

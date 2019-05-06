@@ -20,6 +20,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, FocusPreference, GlobalState, NodePermission}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
+import algorithm.dfs
 
 object KanbanView {
   import SharedViewElements._
@@ -38,7 +39,7 @@ object KanbanView {
       val allStages: ArraySet = {
         val stages = ArraySet.create(graph.size)
         topLevelStages.foreachElement(stages.add)
-        algorithm.depthFirstSearchAfterStartsWithContinue(starts = topLevelStages.toArray, graph.childrenIdx, { idx =>
+        dfs.withContinue(starts = topLevelStages.foreachElement, dfs.afterStart, graph.childrenIdx, { idx =>
           val isStage = graph.nodes(idx).role == NodeRole.Stage
           if(isStage) stages += idx
           isStage
