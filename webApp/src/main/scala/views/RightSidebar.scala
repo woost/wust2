@@ -33,14 +33,13 @@ object RightSidebar {
     GenericSidebar.right(
       toggleVar,
       config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = VDomModifier(content(state, focusedNodeId, parentIdAction), openModifier)
+        openModifier = VDomModifier(focusedNodeId.map(_.map(content(state, _, parentIdAction))), openModifier)
       )}
     )
   }
 
-  // TODO rewrite to rely on static focusid
-  def content(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
-    val nodeStyle = focusedNodeId.map(n => PageStyle.ofNode(n.map(_.nodeId)))
+  def content(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
     def accordionEntry(name: VDomModifier, body: VDomModifier): (VDomModifier, VDomModifier) = {
       VDomModifier(
@@ -59,7 +58,7 @@ object RightSidebar {
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
       color.black,
-      backgroundColor <-- nodeStyle.map(_.bgLightColor),
+      backgroundColor := nodeStyle.bgLightColor,
       onClick.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       div(
@@ -74,29 +73,27 @@ object RightSidebar {
         ),
         div(
           marginLeft := "5px",
-          nodeBreadcrumbs(state, focusedNodeId, parentIdAction),
+          nodeBreadcrumbs(state, focusPref, parentIdAction),
         ),
       ),
       UI.accordion(
         Seq(
           accordionEntry(VDomModifier(Rx {
-            focusedNodeId().map { focusPreference =>
-              val graph = state.rawGraph()
-              val node = graph.nodesById(focusPreference.nodeId)
-              node.role.toString
-            }
+            val graph = state.rawGraph()
+            val node = graph.nodesById(focusPref.nodeId)
+            node.role.toString
           }), VDomModifier(
-            nodeContent(state, focusedNodeId, parentIdAction),
+            nodeContent(state, focusPref, parentIdAction),
             overflowY.auto,
             maxHeight := "40%"
           )),
           accordionEntry("Custom Fields", VDomModifier(
-            nodeDetailsMenu(state, focusedNodeId, parentIdAction),
+            nodeProperties(state, focusPref),
             overflowY.auto,
             flex := "1 1 20%"
           )),
           accordionEntry("Views", VDomModifier(
-            viewContent(state, focusedNodeId, parentIdAction),
+            viewContent(state, focusPref, parentIdAction),
             flex := "1 1 40%"
           )),
         ),
@@ -109,137 +106,131 @@ object RightSidebar {
         Styles.flex,
         flexDirection.column,
         justifyContent.flexStart,
-        backgroundColor <-- nodeStyle.map(_.bgLightColor), //explicitly overwrite bg color from accordion.
+        backgroundColor := nodeStyle.bgLightColor, //explicitly overwrite bg color from accordion.
         boxShadow := "none", //explicitly overwrite boxshadow from accordion.
       )
     )
   }
-  private def viewContent(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
+    val initialView = graph.nodesByIdGet(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
+    val viewVar = Var[View.Visible](initialView)
+    def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
+
     VDomModifier(
       Styles.flex,
       flexDirection.column,
-      focusedNodeId.map(_.map { focusPref =>
-        val graph = state.rawGraph.now
-        val initialView = graph.nodesByIdGet(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
-        val viewVar = Var[View.Visible](initialView)
-        def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
 
-        VDomModifier(
-          div(
-            Styles.flexStatic,
-            Styles.flex,
-            alignItems.center,
-            ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-            borderBottom := "2px solid black",
-            NotificationView.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
-            button(
-              cls := "ui compact button",
-              backgroundColor := "transparent",
-              marginLeft := "10px",
-              Icons.zoom,
-              cursor.pointer,
-              onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
-            ),
-          ),
-          Rx {
-            val view = viewVar()
-              ViewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
-                Styles.growFull,
-                flexGrow := 1,
-              ).prepend(
-                overflow.visible,
-              )
-          }
-        )
-      })
-    )
-  }
+      div(
+        Styles.flexStatic,
+        Styles.flex,
+        alignItems.center,
+        ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        borderBottom := "2px solid black",
+        NotificationView.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
+        button(
+          cls := "ui compact button",
+          backgroundColor := "transparent",
+          marginLeft := "10px",
+          Icons.zoom,
+          cursor.pointer,
+          onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
+        ),
+      ),
 
-  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
-    VDomModifier(
       Rx {
-        BreadCrumbs(state, state.page().parentId, focusedNodeId.map(_.map(_.nodeId)), nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")
+        val view = viewVar()
+        ViewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+          Styles.growFull,
+          flexGrow := 1,
+        ).prepend(
+          overflow.visible,
+        )
       }
     )
   }
 
-  private def nodeContent(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+    VDomModifier(
+      Rx {
+        BreadCrumbs(state, state.graph(), state.user(), state.page().parentId, Some(focusedNodeId.nodeId), nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")
+      }
+    )
+  }
+
+  private def nodeContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
-    VDomModifier(
-      Rx {
-        focusedNodeId().flatMap { focusPref =>
-          state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
+    val node = Rx {
+      state.graph().nodesById(focusPref.nodeId)
+    }
+
+    val hasNotDeletedParents = Rx {
+      state.graph().hasNotDeletedParents(focusPref.nodeId)
+    }
+
+    div(
+      div(
+        Styles.flex,
+        alignItems.flexStart,
+
+        Rx {
+          Components.nodeCardEditable(state, node(), editMode).apply(
+            Styles.wordWrap,
+            width := "100%",
+            margin := "3px 3px 3px 3px",
+            cls := "enable-text-selection",
+            onClick.stopPropagation(true) --> editMode,
+            Components.readObserver(state, node().id)
+          )
+        },
+
+        Rx {
+          VDomModifier.ifTrue(hasNotDeletedParents())(
             div(
-              div(
-                Styles.flex,
-                alignItems.flexStart,
-                Components.nodeCardEditable(state, node, editMode).apply(
-                  Styles.wordWrap,
-                  width := "100%",
-                  margin := "3px 3px 3px 3px",
-                  cls := "enable-text-selection",
-                  onClick.stopPropagation(true) --> editMode,
-                  Components.readObserver(state, node.id)
-                ),
-                Rx{
-                  val graph = state.graph()
-                  VDomModifier.ifTrue(graph.hasNotDeletedParents(node.id))(
-                    div(
-                      Icons.delete,
-                      padding := "8px 5px",
-                      cursor.pointer,
-                      onClick.stopPropagation.foreach { _ =>
-                        state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(node.id), graph))
-                        parentIdAction(None)
-                      },
-                      cursor.pointer, UI.popup := "Archive"
-                    )
-                  )
-                }
-              ),
-              div(
-                nodeAuthor(state, state.rawGraph(), focusPref.nodeId)
-              ),
+              Icons.delete,
+              padding := "8px 5px",
+              cursor.pointer,
+              onClick.stopPropagation.foreach { _ =>
+                state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
+                parentIdAction(None)
+              },
+              cursor.pointer, UI.popup := "Archive"
             )
-          }
+          )
         }
-      }
+      ),
+
+      nodeAuthor(state, focusPref.nodeId)
     )
   }
 
-  private def nodeAuthor(state: GlobalState, graph: Graph, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val idx = graph.idToIdxOrThrow(nodeId)
-    val author = graph.nodeCreator(idx)
-    val creationEpochMillis = graph.nodeCreated(idx)
+  private def nodeAuthor(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val authorship = Rx {
+      val graph = state.graph()
+      val idx = graph.idToIdxOrThrow(nodeId)
+      val author = graph.nodeCreator(idx)
+      val creationEpochMillis = graph.nodeCreated(idx)
+      (author, creationEpochMillis)
+    }
 
-    VDomModifier(
+    div(
       Styles.flex,
       alignItems.center,
       justifyContent.flexEnd,
-      author.map { userNode =>
-        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)),
+      authorship.map { case (author, creationEpochMillis) =>
+        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar))
       },
     )
   }
 
-  private def nodeDetailsMenu(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
-    VDomModifier(
-      Rx {
-        focusedNodeId().flatMap { focusPref =>
-          state.rawGraph().nodesByIdGet(focusPref.nodeId).map { node =>
-            nodeProperties(state, state.rawGraph(), node)
-          }
-        }
-      }
-    )
-  }
+  private def nodeProperties(state: GlobalState, focusPref: FocusPreference)(implicit ctx: Ctx.Owner) = {
 
-  private def nodeProperties(state: GlobalState, graph: Graph, node: Node)(implicit ctx: Ctx.Owner) = {
-    val nodeIdx = graph.idToIdxOrThrow(node.id)
-
-    val propertySingle = PropertyData.Single(graph, nodeIdx)
-
+    val propertySingle = Rx {
+      val graph = state.rawGraph()
+      val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
+      PropertyData.Single(graph, nodeIdx)
+    }
     def renderSplit(left: VDomModifier, right: VDomModifier) = div(
       Styles.flex,
       justifyContent.spaceBetween,
@@ -256,7 +247,7 @@ object RightSidebar {
     def createNewTag(str: String): Boolean = {
       val createdNode = Node.MarkdownTag(str)
       val change = GraphChanges.addNodeWithParent(createdNode, ParentId(state.page.now.parentId)) merge
-        GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(node.id))
+        GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(focusPref.nodeId))
       state.eventProcessor.changes.onNext(change)
       true
     }
@@ -272,24 +263,28 @@ object RightSidebar {
     VDomModifier(
       div(
         marginTop := "10px",
-        propertySingle.properties.map { property =>
-          Components.removablePropertySection(state, property.key, property.values).apply(
-            marginBottom := "10px",
-          )
-        },
+        Rx {
+          VDomModifier(
+            propertySingle().properties.map { property =>
+              Components.removablePropertySection(state, property.key, property.values).apply(
+                marginBottom := "10px",
+              )
+            },
 
-        VDomModifier.ifTrue(propertySingle.info.reverseProperties.nonEmpty)(div(
-          Styles.flex,
-          flexWrap.wrap,
-          fontSize.small,
-          span("Backlinks: ", color.gray),
-          propertySingle.info.reverseProperties.map { node =>
-            Components.nodeCard(node, maxLength = Some(50)).apply(
-              margin := "3px",
-              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
-            )
-          }
-        )),
+            VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
+              Styles.flex,
+              flexWrap.wrap,
+              fontSize.small,
+              span("Backlinks: ", color.gray),
+              propertySingle().info.reverseProperties.map { node =>
+                Components.nodeCard(node, maxLength = Some(50)).apply(
+                  margin := "3px",
+                  Components.sidebarNodeFocusMod(state.rightSidebarNode, focusPref.nodeId)
+                )
+              }
+            ))
+          )
+        }
       ),
       div(
         Styles.flex,
@@ -299,37 +294,41 @@ object RightSidebar {
             cls := "ui compact button mini",
             "+ Custom field"
           ),
-          ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(node.id), dropdownModifier = cls := "top right"),
+          ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(focusPref.nodeId), dropdownModifier = cls := "top right"),
         )
       ),
       renderSplit(
         left = VDomModifier(
           searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(node.id)))
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
           }
         ),
         right = VDomModifier(
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          propertySingle.info.tags.map { tag =>
-            Components.removableNodeTag(state, tag, taggedNodeId = node.id)
-          },
+          Rx {
+            propertySingle().info.tags.map { tag =>
+              Components.removableNodeTag(state, tag, taggedNodeId = focusPref.nodeId)
+            },
+          }
         ),
       ).apply(marginTop := "10px"),
       renderSplit(
         left = VDomModifier(
           searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(node.id, UserId(userId)))
+            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
           }
         ),
         right = VDomModifier(
           Styles.flex,
           alignItems.center,
           flexWrap.wrap,
-          propertySingle.info.assignedUsers.map { user =>
-            Components.removableAssignedUser(state, user, node.id)
-          },
+          Rx {
+            propertySingle().info.assignedUsers.map { user =>
+              Components.removableAssignedUser(state, user, focusPref.nodeId)
+            },
+          }
         )
       ).apply(marginTop := "10px"),
 
