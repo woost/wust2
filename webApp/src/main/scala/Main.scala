@@ -80,7 +80,7 @@ object Main {
 
     DevOnly {
       setupRuntimeScalaCSSInjection()
-       setupSnabbdomDebugging()
+       // setupSnabbdomDebugging()
     }
   }
 
