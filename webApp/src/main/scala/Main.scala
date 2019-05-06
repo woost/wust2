@@ -33,8 +33,6 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
-    setupFomanticUISearch(state)
-
     DevOnly { enableEventLogging(state) }
 
     // render main content
@@ -45,7 +43,7 @@ object Main {
     OutWatch.renderReplace("#sidebar-placeholder", UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }
 
-  private def setupFomanticUISearch(state: GlobalState): Unit = {
+  private def setupFomanticUISearch(): Unit = {
     import dsl._, wust.css.Styles
 
     jquery.JQuery.asInstanceOf[js.Dynamic].`$`.fn.search.settings.templates.node = { results =>
@@ -78,10 +76,11 @@ object Main {
     setupSetImmediatePolyfill()
     setupMarked()
     setupEmojis()
+    setupFomanticUISearch()
 
     DevOnly {
       setupRuntimeScalaCSSInjection()
-      // setupSnabbdomDebugging()
+       setupSnabbdomDebugging()
     }
   }
 
