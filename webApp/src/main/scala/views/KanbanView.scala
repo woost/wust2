@@ -30,87 +30,6 @@ object KanbanView {
 
   val sortableAreaMinHeight = "10px"
 
-  case class KanbanData(inboxNodes: Seq[Node], columnTree: Seq[Tree])
-  object KanbanData {
-    def inboxNodes(graph: Graph, focusedId: NodeId): Seq[NodeId] = {
-      val focusedIdx = graph.idToIdx(focusedId)
-
-      val topLevelStages = graph.childrenIdx(focusedIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
-      val allStages: ArraySet = {
-        val stages = ArraySet.create(graph.size)
-        topLevelStages.foreachElement(stages.add)
-        dfs.withContinue(starts = topLevelStages.foreachElement, dfs.afterStart, graph.childrenIdx, { idx =>
-          val isStage = graph.nodes(idx).role == NodeRole.Stage
-          if(isStage) stages += idx
-          isStage
-        })
-        stages
-      }
-
-      val inboxTasks: ArraySet = {
-        val inboxTasks = ArraySet.create(graph.size)
-        graph.childrenIdx.foreachElement(focusedIdx) { childIdx =>
-          if(graph.nodes(childIdx).role == NodeRole.Task) {
-            @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
-
-            if(!hasStageParentInWorkspace) inboxTasks += childIdx
-          }
-        }
-        inboxTasks
-      }
-
-      TaskOrdering.constructOrderingOf[NodeId](graph, focusedId, inboxTasks.map(graph.nodeIds(_)), identity)
-    }
-
-    def columns(graph: Graph, focusedId: NodeId): Seq[NodeId] = {
-      val focusedIdx = graph.idToIdx(focusedId)
-
-      val columnIds = graph.childrenIdx.flatMap[NodeId](focusedIdx) { idx =>
-        val node = graph.nodes(idx)
-        if (node.role == NodeRole.Stage) Array(node.id) else Array()
-      }
-
-      TaskOrdering.constructOrderingOf[NodeId](graph, focusedId, columnIds, identity)
-    }
-
-    def calculate(graph: Graph, focusedId: NodeId): KanbanData = {
-      val focusedIdx = graph.idToIdx(focusedId)
-
-      val topLevelStages = graph.childrenIdx(focusedIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
-      val allStages: ArraySet = {
-        val stages = ArraySet.create(graph.size)
-        topLevelStages.foreachElement(stages.add)
-        dfs.withContinue(starts = topLevelStages.foreachElement, dfs.afterStart, graph.childrenIdx, { idx =>
-          val isStage = graph.nodes(idx).role == NodeRole.Stage
-          if(isStage) stages += idx
-          isStage
-        })
-        stages
-      }
-
-      val inboxTasks: ArraySet = {
-        val inboxTasks = ArraySet.create(graph.size)
-        graph.childrenIdx.foreachElement(focusedIdx) { childIdx =>
-          if(graph.nodes(childIdx).role == NodeRole.Task) {
-            @inline def hasStageParentInWorkspace = graph.parentsIdx(childIdx).exists(allStages.contains)
-
-            if(!hasStageParentInWorkspace) inboxTasks += childIdx
-          }
-        }
-        inboxTasks
-      }
-
-      val topLevelStageTrees: Seq[Tree] = topLevelStages.map { stageIdx =>
-        graph.roleTree(stageIdx, NodeRole.Stage)
-      }
-
-      val sortedTopLevelColumns: Seq[Tree] = TaskOrdering.constructOrderingOf[Tree](graph, focusedId, topLevelStageTrees, (t: Tree) => t.node.id)
-      val assigneInbox: Seq[Node] = TaskOrdering.constructOrderingOf[Node](graph, focusedId, inboxTasks.map(graph.nodes), _.id)
-
-      KanbanData(assigneInbox, sortedTopLevelColumns)
-    }
-  }
-
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
@@ -132,10 +51,10 @@ object KanbanView {
 
   private def renderTaskOrStage(
     state: GlobalState,
+    focusState: FocusState,
     nodeId: NodeId,
     nodeRole: NodeRole,
     parentId: NodeId,
-    focusState: FocusState,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -241,14 +160,7 @@ object KanbanView {
     }
     val children = Rx {
       val graph = state.graph()
-      graph.idToIdxGet(nodeId).fold(Seq.empty[(NodeId, NodeRole)]){ nodeIdx =>
-        val childrenIds = graph.childrenIdx.flatMap[(NodeId, NodeRole)](nodeIdx) { childIdx =>
-          val node = graph.nodes(childIdx)
-          if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role)) Array((node.id, node.role)) else Array()
-        }
-
-        TaskOrdering.constructOrderingOf[(NodeId, NodeRole)](graph, nodeId, childrenIds, { case (id, _) => id })
-      }
+      KanbanData.columnNodes(graph, nodeId)
     }
     val columnTitle = Rx {
       editableNode(state, node(), editable, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -317,7 +229,7 @@ object KanbanView {
             Rx {
               VDomModifier(
                 registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                children().map { case (childId, childRole) => renderTaskOrStage(state, childId, childRole, parentId = nodeId, focusState = focusState, selectedNodeIds) },
+                children().map { case (id, role) => renderTaskOrStage(state, focusState, nodeId = id, nodeRole = role, parentId = nodeId, selectedNodeIds) },
               )
             },
             scrollHandler.modifier,

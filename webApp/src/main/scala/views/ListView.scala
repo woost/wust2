@@ -12,7 +12,7 @@ import wust.sdk.{BaseColors, NodeColor}
 import wust.sdk.NodeColor._
 import wust.util._
 import flatland._
-import wust.webApp.{BrowserDetect, Icons}
+import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
@@ -35,28 +35,16 @@ object ListView {
     div(
       addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
 
-      Rx {
-        val graph = state.graph()
+      renderInboxColumn(state, focusState),
 
-        val kanbanData = KanbanView.KanbanData.calculate(graph, focusState.focusedId)
-        // val userTasks = graph.assignedNodesIdx(graph.idToIdx(state.user().id))
-
-        val inboxNodes = kanbanData.inboxNodes.reverse
-        val inboxIds = inboxNodes.map(_.id)
-        VDomModifier(
-          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
-          renderInboxColumn(state, focusState, inboxNodes, inboxIds),
-
-          renderColumns(state, graph, focusState, parentId = focusState.focusedId, children = kanbanData.columnTree),
-        )
-      }
+      renderToplevelColumns(state, focusState),
     )
   }
 
-  def renderNodeCard(state: GlobalState, focusState: FocusState, parentId: NodeId, node: Node, isDone: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    TaskNodeCard.render(
+  private def renderNodeCard(state: GlobalState, focusState: FocusState, parentId: NodeId, nodeId: NodeId, isDone: Boolean): VNode = {
+    TaskNodeCard.renderThunk(
       state = state,
-      node = node,
+      nodeId = nodeId,
       parentId = parentId,
       focusState = focusState,
       showCheckbox = true,
@@ -67,84 +55,121 @@ object ListView {
     )
   }
 
-  private def renderInboxColumn(state: GlobalState, focusState: FocusState, children: Seq[Node], childrenIds: Seq[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderToplevelColumns(
+    state: GlobalState,
+    focusState: FocusState,
+  )(implicit ctx: Ctx.Owner): VDomModifier = {
+    val columns = Rx {
+      val graph = state.graph()
+      KanbanData.columns(graph, focusState.focusedId)
+    }
+
     div(
-      registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, childrenIds)),
+      Rx {
+        VDomModifier(
+          columns().map { columnId =>
+            renderColumn(state, parentId = focusState.focusedId, nodeId = columnId, focusState = focusState)
+          },
+          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
+        )
+      }
+    )
+  }
+
+  private def renderInboxColumn(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val children = Rx {
+      val graph = state.graph()
+      KanbanData.inboxNodes(graph, focusState.focusedId).reverse // TODO: build ordering reversed...
+    }
+
+    //      registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
+    div(
       minHeight := KanbanView.sortableAreaMinHeight,
 
       Styles.flex,
       flexDirection.column,
 
-      children.map { node =>
-        renderNodeCard(state, focusState = focusState, parentId = focusState.focusedId, node = node, isDone = false)
+      Rx {
+        VDomModifier(
+          registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children())),
+
+          children().map { nodeId =>
+            renderNodeCard(state, focusState = focusState, parentId = focusState.focusedId, nodeId = nodeId, isDone = false)
+          }
+        )
       }
     )
   }
 
-  private def renderColumns(state: GlobalState, graph: Graph, focusState: FocusState, parentId: NodeId, children: Seq[Tree], isDone: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      children.collect {
-        case Tree.Leaf(node) =>
-          node.role match {
-            case NodeRole.Stage => renderStageColumn(state, parentId, node, VDomModifier.empty)
-            case NodeRole.Task => renderNodeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
-            case _ => VDomModifier.empty
-          }
-        case Tree.Parent(node, children) =>
-          node.role match {
-            case NodeRole.Stage =>
-              //TODO: better? prefill tree correctly?
-              val cardChildren = graph.taskChildrenIdx(graph.idToIdx(node.id)).map(idx => Tree.Leaf(graph.nodes(idx)))
-              val sortedChildren = TaskOrdering.constructOrderingOf[Tree](graph, node.id, children ++ cardChildren, (t: Tree) => t.node.id)
-              val nodeIsDone = graph.isDoneStage(node)
-              renderStageColumn(state, parentId, node, VDomModifier(
-                VDomModifier.ifTrue(nodeIsDone)(opacity := 0.5),
-                renderColumns(state, graph, focusState, parentId = node.id, children = sortedChildren, isDone = nodeIsDone).apply(
-                  Styles.flex,
-                  flexDirection.columnReverse,
-                  minHeight := KanbanView.sortableAreaMinHeight,
-                  registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), focusState.focusedId)),
-                )
-              ))
-            case NodeRole.Task => renderNodeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
-            case _ => VDomModifier.empty
-          }
-      }
-    )
+  private def renderTaskOrStage(
+    state: GlobalState,
+    focusState: FocusState,
+    nodeId: NodeId,
+    nodeRole: NodeRole,
+    parentId: NodeId,
+    parentIsDone: Boolean,
+  )(implicit ctx: Ctx.Owner): VDomModifier = {
+    nodeRole match {
+      case NodeRole.Task => renderNodeCard(state, focusState, nodeId = nodeId, parentId = parentId, isDone = parentIsDone)
+      case NodeRole.Stage => renderColumn(state, focusState, nodeId = nodeId, parentId = parentId)
+      case _ => VDomModifier.empty
+    }
   }
 
-  private def renderStageColumn(state: GlobalState, parentId: NodeId, stage: Node, innerModifier: VDomModifier)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderColumn(state: GlobalState, focusState: FocusState, parentId: NodeId, nodeId: NodeId): VNode = div.static(nodeId.hashCode)(Ownable { implicit ctx =>
     val isExpanded = Rx {
       val graph = state.graph()
       val user = state.user()
-      graph.isExpanded(user.id, stage.id).getOrElse(true)
+      graph.isExpanded(user.id, nodeId).getOrElse(true)
     }
-    div(
+
+    val stage = Rx {
+      state.graph().nodesById(nodeId)
+    }
+
+    val isDone = Rx {
+      state.graph().isDoneStage(stage())
+    }
+
+    val children = Rx {
+      val graph = state.graph()
+      KanbanData.columnNodes(graph, nodeId).reverse //TODO build ordering reverse...
+    }
+
+    VDomModifier(
       paddingTop := "5px",
       div(
         height := "1px",
-        backgroundColor := NodeColor.tagColor(stage.id).toHex,
-        margin  := "15px 5px 3px 5px",
+        backgroundColor := NodeColor.tagColor(nodeId).toHex,
+        margin := "15px 5px 3px 5px",
       ),
       div(
         Styles.flex,
-        renderExpandCollapseButton(state, stage.id, isExpanded, alwaysShow = true),
-        renderNodeData(stage.data).apply(paddingLeft := "5px")
+        renderExpandCollapseButton(state, nodeId, isExpanded, alwaysShow = true),
+        Rx {
+          renderNodeData(stage().data).apply(paddingLeft := "5px")
+        }
       ),
 
       Rx {
         VDomModifier.ifTrue(isExpanded())(
-          expandedNodeContentWithLeftTagColor(state, stage.id).apply(
+          expandedNodeContentWithLeftTagColor(state, nodeId).apply(
             div(
               flexGrow := 2,
               paddingLeft := "5px",
-              innerModifier,
+              //TODO inner children
+              Rx {
+                VDomModifier(
+                  registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
+                  children().map { case (id, role) => renderTaskOrStage(state, focusState, nodeId = id, nodeRole = role, parentId = nodeId, parentIsDone = isDone()) }
+                )
+              }
             )
           )
         )
       }
     )
-  }
+  })
 
   private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(str: String) = {
@@ -163,7 +188,7 @@ object ListView {
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeHolderMessage = Some(placeHolder),
           submitIcon = freeSolid.faPlus
-        )(ctx)(Styles.flexStatic)
+        ).apply(Styles.flexStatic)
       }
     )
   }
