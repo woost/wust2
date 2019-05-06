@@ -66,7 +66,8 @@ object NotificationView {
         val user = state.user()
         val page = state.page()
 
-        val unreadNodes: Array[UnreadNode] = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateNewNodes(graph, pageParentId, user, renderTime = renderTime)).take(200)
+        val allUnreadNodes: Array[UnreadNode] = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateNewNodes(graph, pageParentId, user, renderTime = renderTime))
+        val unreadNodes: Array[UnreadNode] = allUnreadNodes.take(200)
 
         val currentTime = EpochMilli.now
 
@@ -140,7 +141,7 @@ object NotificationView {
     )
   }
 
-  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner):EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val haveUnreadNotifications = Rx {
       val graph = state.graph()
       val user = state.user()
