@@ -265,14 +265,14 @@ object ChatView {
 
             group.map { nodeIdx =>
               val nodeId = groupGraph.nodeIds(nodeIdx)
-              val parentIds = groupGraph.parentsByIndex(nodeIdx)
-
               val previousNodeId = _previousNodeId
               _previousNodeId = Some(nodeId)
 
               div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
+                val parentIdxs = groupGraph.parentsIdx(nodeIdx)
+                val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
 
-                val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
+                val isDeletedNow = state.graph.map(_.isDeletedNowIdx(nodeIdx, parentIdxs))
 
                 renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
@@ -303,7 +303,7 @@ object ChatView {
     } else VDomModifier.empty
 
     val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes))
-    val controls = msgControls(state, nodeId, directParentIds.map(ParentId(_)), selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
+    val controls = msgControls(state, nodeId, directParentIds.asInstanceOf[Iterable[ParentId]], selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>

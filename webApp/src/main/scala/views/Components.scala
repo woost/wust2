@@ -514,9 +514,8 @@ object Components {
       }, pageOnClick)
     }
 
-    def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
-      div(
-        keyed(node.id),
+    def renderNodeCardMod(node: Node, contentInject: VDomModifier): VDomModifier = {
+      VDomModifier(
         cls := "nodecard",
         node.role match {
           case NodeRole.Project => VDomModifier(
@@ -536,6 +535,19 @@ object Components {
           cls := "nodecard-content",
           contentInject
         ),
+      )
+    }
+
+    def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
+      div(
+        keyed(node.id),
+        renderNodeCardMod(node, contentInject)
+      )
+    }
+    def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VDomModifier = {
+      renderNodeCardMod(
+        node,
+        contentInject = VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
     def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {

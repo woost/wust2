@@ -37,7 +37,9 @@ object PropertyData {
     }
   }
 
-  case class Single(info: BasicInfo, properties: Array[SingleProperty])
+  case class Single(info: BasicInfo, properties: Array[SingleProperty]) {
+    def isEmpty = info.isEmpty && properties.isEmpty
+  }
   object Single {
     def apply(graph: Graph, nodeIdx: Int): Single = {
       val info = BasicInfo(graph, nodeIdx)

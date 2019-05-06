@@ -84,7 +84,7 @@ object TopologicalView {
         nodeInfos().map { nodeInfo =>
           val isNewGroup = lastLevel != nodeInfo.depth
           lastLevel = nodeInfo.depth
-          KanbanView.renderCard(
+          TaskNodeCard.render(
             state,
             nodeInfo.node,
             parentId = focusState.focusedId,

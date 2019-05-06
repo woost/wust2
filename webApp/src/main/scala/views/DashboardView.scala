@@ -131,7 +131,7 @@ object DashboardView {
       ),
 
       onClick foreach {
-        focusState.parentIdAction(project.id)
+        focusState.contextParentIdAction(project.id)
       },
       cursor.pointer,
 

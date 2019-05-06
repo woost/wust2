@@ -53,8 +53,8 @@ object ListView {
     )
   }
 
-  def renderKanbanLikeCard(state: GlobalState, focusState: FocusState, parentId: NodeId, node: Node, isDone: Boolean)(implicit ctx: Ctx.Owner): VNode = {
-    KanbanView.renderCard(
+  def renderNodeCard(state: GlobalState, focusState: FocusState, parentId: NodeId, node: Node, isDone: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+    TaskNodeCard.render(
       state = state,
       node = node,
       parentId = parentId,
@@ -76,7 +76,7 @@ object ListView {
       flexDirection.column,
 
       children.map { node =>
-        renderKanbanLikeCard(state, focusState = focusState, parentId = focusState.focusedId, node = node, isDone = false)
+        renderNodeCard(state, focusState = focusState, parentId = focusState.focusedId, node = node, isDone = false)
       }
     )
   }
@@ -87,7 +87,7 @@ object ListView {
         case Tree.Leaf(node) =>
           node.role match {
             case NodeRole.Stage => renderStageColumn(state, parentId, node, VDomModifier.empty)
-            case NodeRole.Task => renderKanbanLikeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
+            case NodeRole.Task => renderNodeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
             case _ => VDomModifier.empty
           }
         case Tree.Parent(node, children) =>
@@ -106,7 +106,7 @@ object ListView {
                   registerDragContainer(state, DragContainer.Kanban.Column(node.id, sortedChildren.map(_.node.id), focusState.focusedId)),
                 )
               ))
-            case NodeRole.Task => renderKanbanLikeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
+            case NodeRole.Task => renderNodeCard(state, focusState, parentId = parentId, node = node, isDone = isDone)
             case _ => VDomModifier.empty
           }
       }
