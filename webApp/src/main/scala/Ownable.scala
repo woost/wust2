@@ -23,5 +23,8 @@ object Ownable {
     }
   }
 
+  // IMPORTANT: if you are using this in VNodes without a key, you are potentially fucked. so don't.
+  // fucked in the sense of: if the dom element is unmounted and mounted again by snabbdom (which can happen),
+  // then the owner is killed and can never be recovered. the element does not react to changes anymore
   implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable(_))
 }
