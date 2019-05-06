@@ -169,7 +169,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Signup",
-        onClick.mapTo(state.urlConfig.now.showViewWithRedirect(View.Signup)) --> state.urlConfig,
+        onClick.mapTo(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "signup")
         },
@@ -177,7 +177,7 @@ object Topbar {
       button(
         cls := "tiny compact ui inverted button",
         "Login",
-        onClick.mapTo(state.urlConfig.now.showViewWithRedirect(View.Login)) --> state.urlConfig,
+        onClick.mapTo(state.urlConfig.now.focusWithRedirect(View.Login)) --> state.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "login")
         },

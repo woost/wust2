@@ -38,7 +38,7 @@ object WelcomeView {
                 maxWidth := "80ex",
                 marginBottom := "50px",
                 user.data.isImplicit.ifTrue[VDomModifier](p("You can use Woost without registration. Everything you create is private (unless you share it). If you want to access your data from another device, ", a(href := "#", "create an account",
-                  onClick.preventDefault(state.urlConfig.now.showViewWithRedirect(View.Signup)) --> state.urlConfig,
+                  onClick.preventDefault(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
                   onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") },
                 ),"."))
               )
