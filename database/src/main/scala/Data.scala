@@ -61,7 +61,7 @@ object Data {
 
   // Result of notifiedUsersByNodes
   case class RawPushData(subscription: Data.WebPushSubscription, notifiedNodes: List[NodeId], subscribedNode: NodeId, subscribedNodeContent: String)
-  case class NotifyRow(userId: UserId, nodeIds: List[NodeId], subscribedNode: NodeId)
+  case class NotifyRow(userId: UserId, newCreatedNodes: List[NodeId], subscribedNode: NodeId)
   case class WebPushNotifications(
     id: Long,
     userId: UserId,
