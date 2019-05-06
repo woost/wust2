@@ -52,7 +52,7 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           def addTargetWorkspace = if (from.workspace != into.workspace) GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId)) else GraphChanges.empty
-          def disconnectSourceColumn = if(addTargetColumn.isEmpty) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def disconnectSourceColumn = if (addTargetColumn.isEmpty) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
           def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
@@ -144,6 +144,8 @@ object DragActions {
       case (payload: Tag, target: Tag, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: TagBar, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
       case (payload: Tag, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
+
+      case (payload: Stage, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), ParentId(target.nodeId), graph, ctrl)
 
       case (payload: User, target: ContentNode, false, false) => (graph, userId) => assign(target.nodeId, payload.userId)
     }

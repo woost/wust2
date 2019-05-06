@@ -22,7 +22,7 @@ object DragItem {
   case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { override def toString = s"Property($edge)" }
 
   case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
-  case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Column(${nodeId.shortHumanReadable})" }
+  case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Stage(${nodeId.shortHumanReadable})" }
 
   case object Sidebar extends DragTarget
   case class Channel(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable})" }
