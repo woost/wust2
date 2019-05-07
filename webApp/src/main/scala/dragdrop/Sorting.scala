@@ -11,7 +11,7 @@ import wust.util._
 import org.scalajs.dom.raw.HTMLElement
 import wust.api.AuthUser
 import wust.graph.{Edge, GraphChanges, Tree, _}
-import wust.ids.{EdgeData, NodeId, NodeRole, UserId}
+import wust.ids.{ChildId, CuidOrdering, EdgeData, EpochMilli, NodeId, NodeRole, ParentId, UserId}
 import wust.webApp.{BrowserDetect, DevOnly}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -53,7 +53,7 @@ object Sorting {
   // - Only one "big" sortable => container always the same (oldContainer == newContainer)
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
-  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer, revert: Boolean = false): GraphChanges = {
+  def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer): GraphChanges = {
 
     import DragContainer._
     scribe.debug("Computing sorting change")
@@ -63,20 +63,65 @@ object Sorting {
         val containerChanged = checkContainerChanged(from, into)
 
         val gc = if(!containerChanged && !checkPositionChanged(previousDomPosition, newDomPosition)) { scribe.debug("item dropped on same place (no movement)"); GraphChanges.empty }
-                 else
-                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items, revert)
-
-
-        //                 else if(from.isInstanceOf[Kanban.Inbox] && into.isInstanceOf[Kanban.Inbox])
-        //                   TaskOrdering.constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.asInstanceOf[Kanban.Inbox].items, into.asInstanceOf[Kanban.Inbox].items)
-        //                 else
-        //                   TaskOrdering.constructGraphChangesByOrdering(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId)
+                 else constructGraphChangesByContainer(graph, userId, sortNode, containerChanged, previousDomPosition, newDomPosition, from.parentId, into.parentId, from.items, into.items)
 
         scribe.debug("Calculated new sorting graph change!")
         scribe.debug(gc.toPrettyString(graph))
         gc
       case _                                           =>
-        TaskOrdering.abortSorting("Could not determine position of elements")
+        scribe.error("Could not determine position of elements")
+        GraphChanges.empty
     }
+  }
+
+  @inline private def checkBounds(containerSize: Int, index: Int) = index >= 0 && index < containerSize
+
+  private def constructGraphChangesByContainer(graph: Graph, userId: UserId, nodeId: NodeId, containerChanged: Boolean, previousDomPosition: Position, newDomPosition: Position, from: NodeId, into: NodeId, fromItems: Seq[NodeId], intoItems: Seq[NodeId]): GraphChanges = {
+
+    scribe.debug(s"calculate for movement: from position $previousDomPosition to new position $newDomPosition into ${if(containerChanged) "different" else "same"} container")
+
+    // Reconstruct order of nodes in the `into` container
+    val newOrderedNodes: Seq[NodeId] = intoItems
+
+    if(newOrderedNodes.isEmpty) return GraphChanges.connect(Edge.Child)(ParentId(into), ChildId(nodeId))
+
+    // Get corresponding nodes that are before and after the dragged node
+    val indexOffset = if(!containerChanged && previousDomPosition < newDomPosition) 1 else 0
+    val beforeNodeIndex = newDomPosition - 1 + indexOffset
+    val afterNodeIndex = newDomPosition + indexOffset
+
+    scribe.debug(s"before index = $beforeNodeIndex, after index = $afterNodeIndex")
+
+    val newOrderingValue = {
+      val beforeNodeIndexDefined = checkBounds(newOrderedNodes.size, beforeNodeIndex)
+      val afterNodeIndexDefined = checkBounds(newOrderedNodes.size, afterNodeIndex)
+      if(beforeNodeIndexDefined && afterNodeIndexDefined) {
+        val beforeNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(beforeNodeIndex))
+        val afterNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(afterNodeIndex))
+        val before = TaskOrdering.getChildEdgeOrThrow(graph, into, beforeNodeIdx).data.ordering
+        val after = TaskOrdering.getChildEdgeOrThrow(graph, into, afterNodeIdx).data.ordering
+        before + (after - before)/2
+      } else if(beforeNodeIndexDefined) {
+        val beforeNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(beforeNodeIndex))
+        val before = TaskOrdering.getChildEdgeOrThrow(graph, into, beforeNodeIdx).data.ordering
+        before + 1
+      } else if(afterNodeIndexDefined) {
+        val afterNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(afterNodeIndex))
+        val after = TaskOrdering.getChildEdgeOrThrow(graph, into, afterNodeIdx).data.ordering
+        after - 1
+      } else { // workaround: infamous 'should never happen' case
+        scribe.warn("NON-EMPTY but no before / after")
+        CuidOrdering.calculate(nodeId)
+      }
+    }
+
+    val newParentEdge =
+      if(containerChanged) Edge.Child(ParentId(into), EdgeData.Child(newOrderingValue), ChildId(nodeId))
+      else {
+        val keptDeletedAt = TaskOrdering.getChildEdgeOrThrow(graph, from, graph.idToIdxOrThrow(nodeId)).data.deletedAt
+        Edge.Child(ParentId(into), new EdgeData.Child(keptDeletedAt, newOrderingValue), ChildId(nodeId))
+      }
+
+    GraphChanges(addEdges = Set(newParentEdge))
   }
 }

@@ -115,7 +115,7 @@ object GraphChanges {
   def addNodesWithParents(nodes: Iterable[Node], parentIds: Iterable[ParentId]) =
     GraphChanges(addNodes = nodes.toSet, addEdges = nodes.flatMap(node => parentIds.map(parentId => Edge.Child(parentId, ChildId(node.id))))(breakOut))
   def addNodeWithDeletedParent(node: Node, parentIds: Iterable[ParentId], deletedAt: EpochMilli) =
-    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Child(parentId, EdgeData.Child(Some(deletedAt), None), ChildId(node.id)))(breakOut))
+    GraphChanges(addNodes = Set(node), addEdges = parentIds.map(parentId => Edge.Child.delete(parentId, deletedAt, ChildId(node.id)))(breakOut))
 
   def addToParent(nodeId: ChildId, parentId: ParentId): GraphChanges = addToParent(List(nodeId), parentId)
   def addToParent(nodeIds: Iterable[ChildId], parentId: ParentId): GraphChanges= GraphChanges(
@@ -152,7 +152,7 @@ object GraphChanges {
     childIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(childId: ChildId, parentIds: Iterable[ParentId], deletedAt: EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
-      parentId => Edge.Child.delete(parentId, childId, deletedAt)
+      parentId => Edge.Child.delete(parentId, deletedAt, childId)
     )(breakOut)
   )
   def delete(childId: ChildId, parentId: ParentId): GraphChanges = GraphChanges(
@@ -196,9 +196,9 @@ object GraphChanges {
   }
 
   def connect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge: (SOURCE, TARGET) => EDGE) = new ConnectFactory(edge, (edges: collection.Set[Edge]) => GraphChanges(addEdges = edges))
-  def connect[SOURCE <: NodeId, TARGET <: NodeId, DATA <: EdgeData, EDGE <: Edge](edge: (SOURCE, DATA, TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges: collection.Set[Edge]) => GraphChanges(addEdges = edges))
+  def connect[SOURCE <: NodeId, TARGET <: NodeId, DATA, EDGE <: Edge](edge: (SOURCE, DATA, TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges: collection.Set[Edge]) => GraphChanges(addEdges = edges))
   def disconnect[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge: (SOURCE, TARGET) => EDGE) = new ConnectFactory(edge, (edges: collection.Set[Edge]) => GraphChanges(delEdges = edges))
-  def disconnect[SOURCE <: NodeId, TARGET <: NodeId, DATA <: EdgeData, EDGE <: Edge](edge: (SOURCE, DATA, TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges: collection.Set[Edge]) => GraphChanges(delEdges = edges))
+  def disconnect[SOURCE <: NodeId, TARGET <: NodeId, DATA, EDGE <: Edge](edge: (SOURCE, DATA, TARGET) => EDGE) = new ConnectFactoryWithData(edge, (edges: collection.Set[Edge]) => GraphChanges(delEdges = edges))
 
   def changeSource[SOURCE <: NodeId, TARGET <: NodeId, EDGE <: Edge](edge: (SOURCE, TARGET) => EDGE)(targetIds: Iterable[TARGET], oldSourceIds: Iterable[SOURCE], newSourceIds: Iterable[SOURCE]): GraphChanges = {
     val disconnect: GraphChanges = GraphChanges.disconnect(edge)(oldSourceIds, targetIds)
@@ -226,7 +226,7 @@ object GraphChanges {
         val subjectIdx = graph.idToIdx(subjectId)
         val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
 
-        Edge.Child(newParentId, EdgeData.Child(deletedAt, None), subjectId)
+        Edge.Child(newParentId, deletedAt, subjectId)
       }(breakOut)
 
     val cycleFreeSubjects: Iterable[NodeId] = subjectIds.filterNot(subject => subject == newParentId || (graph.ancestors(newParentId) contains subject)) // avoid self loops and cycles
@@ -288,7 +288,7 @@ object GraphChanges {
     nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
       val subjectIdx = graph.idToIdx(nodeId)
       val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
-      currentChange merge GraphChanges.connect((s, d, t) => new Edge.Child(s, d, t))(tagIds, EdgeData.Child(deletedAt, None), nodeIds)
+      currentChange merge GraphChanges.connect[ParentId, ChildId, Option[EpochMilli], Edge.Child](Edge.Child(_, _, _))(tagIds, deletedAt, nodeIds)
     }
   }
 

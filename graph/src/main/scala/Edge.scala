@@ -81,8 +81,10 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(parentId = ParentId(sourceId), childId = ChildId(targetId))
   }
   object Child extends ((ParentId, ChildId) => Child) {
-    def delete(parentId: ParentId, childId: ChildId, deletedAt: EpochMilli = EpochMilli.now): Child = Child(parentId, EdgeData.Child(Some(deletedAt), None), childId)
-    def apply(parentId: ParentId, childId: ChildId): Child = Child(parentId, EdgeData.Child, childId)
+    @inline def delete(parentId: ParentId, childId: ChildId): Child = delete(parentId, EpochMilli.now, childId)
+    @inline def delete(parentId: ParentId, deletedAt: EpochMilli, childId: ChildId): Child = Child(parentId, EdgeData.Child(deletedAt, ordering = CuidOrdering.calculate(childId)), childId)
+    @inline def apply(parentId: ParentId, childId: ChildId): Child = Child(parentId, EdgeData.Child(ordering = CuidOrdering.calculate(childId)), childId)
+    @inline def apply(parentId: ParentId, deletedAt: Option[EpochMilli], childId: ChildId): Child = Child(parentId, EdgeData.Child(deletedAt, ordering = CuidOrdering.calculate(childId)), childId)
   }
 
   case class DerivedFromTemplate(nodeId: NodeId, data: EdgeData.DerivedFromTemplate, referenceNodeId: TemplateId) extends Edge.Content {

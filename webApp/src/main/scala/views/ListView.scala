@@ -79,7 +79,7 @@ object ListView {
   private def renderInboxColumn(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val children = Rx {
       val graph = state.graph()
-      KanbanData.inboxNodes(graph, focusState.focusedId).reverse // TODO: build ordering reversed...
+      KanbanData.inboxNodes(graph, focusState.focusedId)
     }
 
     //      registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
@@ -87,7 +87,7 @@ object ListView {
       minHeight := KanbanView.sortableAreaMinHeight,
 
       Styles.flex,
-      flexDirection.column,
+      flexDirection.columnReverse,
 
       Rx {
         VDomModifier(
@@ -133,7 +133,7 @@ object ListView {
 
     val children = Rx {
       val graph = state.graph()
-      KanbanData.columnNodes(graph, nodeId).reverse //TODO build ordering reverse...
+      KanbanData.columnNodes(graph, nodeId)
     }
 
     VDomModifier(
@@ -157,7 +157,9 @@ object ListView {
             div(
               flexGrow := 2,
               paddingLeft := "5px",
-              //TODO inner children
+              Styles.flex,
+              flexDirection.columnReverse,
+
               Rx {
                 VDomModifier(
                   registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),

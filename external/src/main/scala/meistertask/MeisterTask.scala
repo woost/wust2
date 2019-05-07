@@ -141,8 +141,7 @@ object MeisterTask {
 
           addEdges += Edge.Child(ParentId(doneStageId), ChildId(taskNode.id))
         case 18 => // 18 - archived
-          val edgeData = EdgeData.Child(timestamp = currentTime)
-          addEdges += Edge.Child(ParentId(nodeIdSection), edgeData, ChildId(taskNode.id))
+          addEdges += Edge.Child.delete(ParentId(nodeIdSection), currentTime, ChildId(taskNode.id))
         case _ => // 1 - open
           addEdges += Edge.Child(ParentId(nodeIdSection), ChildId(taskNode.id))
       }

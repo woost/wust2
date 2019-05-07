@@ -1,5 +1,7 @@
 package wust.ids
 
+import java.math.MathContext
+
 import supertagged._
 
 sealed trait EdgeData {
@@ -22,18 +24,12 @@ object EdgeData {
   case class Member(level: AccessLevel) extends Named with EdgeData
   object Member extends Named
 
-  case class Child(deletedAt: Option[EpochMilli], ordering: Option[BigDecimal]) extends Named with EdgeData {
-    override def toString: String = s"Child(${
-      List(
-        deletedAt.map(deletedAt => s"deletedAt=${deletedAt.humanReadable}"),
-        ordering.map(ordering => s"ordering=$ordering")
-      ).flatten.mkString(", ")
-    })"
+  case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
+    override def toString: String = s"Child(${deletedAt.map(_.humanReadable)}, $ordering)"
   }
-  object Child extends Child(None, None) {
-    def apply(timestamp: EpochMilli): Child = Child(Some(timestamp), None)
-    def apply(ordering: BigDecimal): Child = Child(None, Some(ordering))
-    def apply(timestamp: EpochMilli, ordering: BigDecimal): Child = Child(Some(timestamp), Some(ordering))
+  object Child extends Named {
+    @inline def apply(ordering: BigDecimal): Child = Child(None, ordering)
+    @inline def apply(timestamp: EpochMilli, ordering: BigDecimal): Child = Child(Some(timestamp), ordering)
   }
 
   case object Automated extends Named with EdgeData

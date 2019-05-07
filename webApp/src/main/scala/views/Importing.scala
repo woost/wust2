@@ -292,7 +292,7 @@ object Importing {
                     val g = state.graph.now
                     val focusedIdx = g.idToIdxOrThrow(focusedId)
                     val children = state.graph.now.childEdgeIdx(focusedIdx)
-                    val minOrderingNum: BigDecimal = if (children.isEmpty) BigDecimal(0) else children.minBy[BigDecimal](edgeIdx => g.edges(edgeIdx).asInstanceOf[Edge.Child].data.ordering.getOrElse(BigDecimal(0))) - 1
+                    val minOrderingNum: BigDecimal = if (children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => g.edges(edgeIdx).asInstanceOf[Edge.Child].data.ordering) - 1
                     GraphChanges(
                       addEdges = importChanges.topLevelNodeIds.zipWithIndex.map { case (nodeId, idx) =>
                         Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))

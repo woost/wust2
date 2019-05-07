@@ -27,9 +27,8 @@ import org.sazabi.base58.Base58
   }
 
   @inline def toCuidString: String = {
-    val base = 36
-    val leftCuid: String = java.lang.Long.toString(left, base).leftPadTo(12, '0')
-    val rightCuid: String = java.lang.Long.toString(right, base).leftPadTo(12, '0')
+    val leftCuid: String = java.lang.Long.toString(left, cuidBase).leftPadTo(12, '0')
+    val rightCuid: String = java.lang.Long.toString(right, cuidBase).leftPadTo(12, '0')
     "c" + leftCuid + rightCuid
   }
 
@@ -83,8 +82,32 @@ import org.sazabi.base58.Base58
   }
 
   @inline override def toString: String = toStringFast // needs to be as fast as possible, so it can be used as snabbdom key
+
+  // Structure of a cuid: c - h72gsb32 - 0000 - udoc - l363eofy
+  // The groups, in order, are:
+  // - 'c' - identifies this as a cuid, and allows you to use it in html entity ids.
+  // - Timestamp
+  // - Counter - a single process might generate the same random string. The weaker the pseudo-random source, the higher the probability. That problem gets worse as processors get faster. The counter will roll over if the value gets too big.
+  // - Client fingerprint
+  // - Random (using cryptographically secure libraries where available).
+  def toParts: Cuid.Parts = {
+    val cuid = toCuidString
+    val timestampStr = cuid.substring(1, 9)
+    val counterStr = cuid.substring(9, 13)
+    val fingerprintStr = cuid.substring(13, 17)
+    val randomStr = cuid.substring(17, 25)
+
+    Cuid.Parts(
+      timestamp = java.lang.Long.parseLong(timestampStr, cuidBase),
+      counter = java.lang.Integer.parseInt(counterStr, cuidBase),
+      fingerprint = java.lang.Integer.parseInt(fingerprintStr, cuidBase),
+      random = java.lang.Long.parseLong(randomStr, cuidBase)
+    )
+  }
 }
 object Cuid {
+  def cuidBase = 36
+
   def fromUuid(uuid: UUID): Cuid =
     Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
 
@@ -96,11 +119,10 @@ object Cuid {
     require(cuid.startsWith("c"), "Cuid string needs to start with letter c.")
     require(cuid.length == 25, "Cuid string needs to have length of 25.")
 
-    val base = 36
     val leftCuid = cuid.substring(1, 13)
     val rightCuid = cuid.substring(13, 25)
-    val leftLong = java.lang.Long.parseLong(leftCuid, base)
-    val rightLong = java.lang.Long.parseLong(rightCuid, base)
+    val leftLong = java.lang.Long.parseLong(leftCuid, cuidBase)
+    val rightLong = java.lang.Long.parseLong(rightCuid, cuidBase)
     Cuid(leftLong, rightLong)
   }
 
@@ -121,4 +143,6 @@ object Cuid {
   @inline private def maxLong = 4738381338321616895L
 
   @inline implicit def ord:Ordering[Cuid] = Ordering.by(cuid => (cuid.left, cuid.right))
+
+  @inline case class Parts(timestamp: Long, counter: Int, fingerprint: Int, random: Long)
 }

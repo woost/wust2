@@ -105,11 +105,6 @@ object DragActions {
           else
             addTargetWorkspace merge disconnectFromWorkspace
 
-      //// List View ////
-      case (payload: DragItem.Task, from: List, into: List, false, false) =>
-        (sortableStopEvent, graph, userId) =>
-          sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into, revert = true)
-
     }
   }
 

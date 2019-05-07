@@ -62,7 +62,6 @@ object DragContainer {
     case class Card(parentId: NodeId, items: Seq[NodeId]) extends AreaForCards with Workspace { override def toString = s"Card(${parentId.shortHumanReadable})" }
   }
 
-  case class List(parentId: NodeId, items: Seq[NodeId]) extends SortableContainer
   // Fixme: items workaround. Differentiate what is parent and what are the items
   // case class AvatarHolder(nodeId: NodeId) extends DragContainer { @inline def parentId = nodeId; @inline def items = Seq(nodeId); }
 

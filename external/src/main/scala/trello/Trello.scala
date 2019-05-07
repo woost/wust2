@@ -136,7 +136,7 @@ object Trello {
       val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, Some(View.List :: Nil))
       addNodes += listNode
       val deletedAt = if (list.closed) Some(currentTime) else None // TODO: deletion time?
-      val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = Some(BigDecimal(list.pos)))
+      val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = BigDecimal(list.pos))
       addEdges += Edge.Child(ParentId(boardNode.id), edgeData, ChildId(listNode.id))
       listsById += list.id -> listNode.id
     }
@@ -171,7 +171,7 @@ object Trello {
 
       // attach to board and its stage
       val deletedAt = if (card.closed) Some(currentTime) else None // TODO: deletion time?
-      val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = Some(BigDecimal(card.pos)))
+      val edgeData = EdgeData.Child(deletedAt = deletedAt, ordering = BigDecimal(card.pos))
       addEdges += Edge.Child(ParentId(boardNode.id), edgeData, ChildId(cardNode.id))
       listsById.get(card.idList).foreach { nodeIdList =>
         addEdges += Edge.Child(ParentId(nodeIdList), edgeData, ChildId(cardNode.id))

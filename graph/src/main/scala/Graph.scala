@@ -1164,7 +1164,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       if child != parent
       if isChannel.contains(parent)
       if reachable(child, parent)
-    } yield Edge.Child(ParentId(nodes(parent).id), ChildId(nodes(child).id))
+      childNode = nodes(child)
+    } yield Edge.Child(ParentId(nodes(parent).id), ChildId(childNode.id))
 
     val topologicalMinor = Graph(channelIndices.map(nodes), topologicalParents)
     topologicalMinor.lookup.redundantForestExcludingCycleLeafs
