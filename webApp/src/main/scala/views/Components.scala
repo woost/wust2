@@ -134,13 +134,12 @@ object Components {
       Styles.growFull
     )
 
-    val trimmedFileName = StringOps.trimToMaxLength(file.fileName, 20)
-    def downloadLink = a(downloadUrl(href), s"Download ${trimmedFileName}", onClick.stopPropagation --> Observer.empty)
+    def downloadLink = a(downloadUrl(href), s"Download ${file.fileName}", onClick.stopPropagation --> Observer.empty)
 
     div(
       if (file.key.isEmpty) { // this only happens for currently-uploading files
         VDomModifier(
-          trimmedFileName,
+          file.fileName,
           Rx {
             val uploadingFiles = state.uploadingFiles()
             uploadingFiles.get(nodeId) match {
