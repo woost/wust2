@@ -84,37 +84,6 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     set
   }
 
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def pageContent(page: Page): Graph = {
-    val pageChildren = page.parentId.fold(Seq.empty[NodeId])(lookup.descendants)
-    this.filterIds(pageChildren.toSet)
-  }
-
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def filterIds(p: NodeId => Boolean): Graph = filter(node => p(node.id))
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def filter(p: Node => Boolean): Graph = {
-    // we only want to call p once for each node
-    // and not trigger the pre-caching machinery of nodeIds
-    val filteredNodes = nodes.filter(p)
-
-    @inline def nothingFiltered = filteredNodes.length == nodes.length
-
-    if (nothingFiltered) this
-    else {
-      val filteredNodeIds: Set[NodeId] = filteredNodes.map(_.id)(breakOut)
-      new Graph(
-        nodes = filteredNodes,
-        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
-      )
-    }
-  }
-
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def filterNotIds(p: NodeId => Boolean): Graph = filterIds(id => !p(id))
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def filterNot(p: Node => Boolean): Graph = filter(node => !p(node))
-
   def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = {
     val addNodes = if (c.addNodes.exists(_.id == user.id)) c.addNodes else c.addNodes ++ Set(user) // do not add author of change if the node was updated, the author might be outdated.
     changeGraphInternal(addNodes = addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
@@ -184,16 +153,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   }
 
   @deprecated("Be aware that you are constructing a new graph here.", "")
-  def removeNodes(nids: Iterable[NodeId]): Graph = filterNotIds(nids.toSet)
-
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def removeEdges(es: Iterable[Edge]): Graph = new Graph(nodes = nodes, edges = edges.filterNot(es.toSet))
-
-  @deprecated("Be aware that you are constructing a new graph here.", "")
   def addNodes(newNodes: Iterable[Node]): Graph = new Graph(nodes = nodes ++ newNodes, edges = edges)
-
-  @deprecated("Be aware that you are constructing a new graph here.", "")
-  def addEdges(newEdges: Iterable[Edge]): Graph = new Graph(nodes = nodes, edges = edges ++ newEdges)
 }
 
 final case class RoleStat(role: NodeRole, count: Int, unreadCount: Int)
@@ -898,11 +858,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
     topologicalSort(parentSet.collectAllElements, childrenIdx)
   }
-
-  private lazy val nodeDefaultNeighbourhood: collection.Map[NodeId, Set[NodeId]] =
-    defaultNeighbourhood(nodeIds, emptyNodeIdSet)
-  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
-  lazy val successorsWithoutParent: collection.Map[NodeId, collection.Set[NodeId]] = nodeDefaultNeighbourhood ++ directedAdjacencyList[NodeId, Edge, NodeId](???, ???, ???)
 
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean =
     parents(child).contains(possibleParent)

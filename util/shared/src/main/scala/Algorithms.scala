@@ -97,6 +97,7 @@ package object algorithm {
     run(Set(source), Map(source -> 0), Map.empty)
   }
 
+  @deprecated("", "this is old and slow")
   def connectedComponents[V](vertices: Iterable[V], continue: V => Iterable[V]): List[Set[V]] = {
     val left = mutable.HashSet.empty ++ vertices
     var components: List[Set[V]] = Nil
@@ -240,52 +241,4 @@ package object algorithm {
 
     (eulerZones, NestedArrayInt(eulerZoneNodes), edges)
   }
-
-  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
-  def defaultNeighbourhood[V, T](vertices: Iterable[V], default: T): scala.collection.Map[V, T] = {
-    val map = mutable.HashMap[V, T]().withDefaultValue(default)
-    map.sizeHint(vertices.size)
-    vertices.foreach { v =>
-      map(v) = default
-    }
-    map
-  }
-
-  @deprecated("Old and slow Graph algorithm. Don't use this.", "")
-  def directedAdjacencyList[V1, E, V2](
-    edges: Iterable[E],
-    inf: E => V1,
-    outf: E => V2
-  ): scala.collection.Map[V1, scala.collection.Set[V2]] = { // TODO: Multimap
-    val map =
-      mutable.HashMap[V1, scala.collection.Set[V2]]().withDefaultValue(mutable.HashSet.empty[V2])
-    edges.foreach { e =>
-      val in = inf(e)
-      val out = outf(e)
-      map(in) += out
-    }
-    map
-  }
-
-  @deprecated("This is the old, slow version of topologicalSort", "")
-  def topologicalSortSlow[V, COLL[V]](
-    vertices: IterableLike[V, COLL[V]],
-    successors: V => Iterable[V]
-  ): List[V] = {
-    var sorted: List[V] = Nil
-    val unmarked = mutable.LinkedHashSet.empty[V] ++ vertices.toList.reverse // for stable algorithm
-
-    def visit(n: V): Unit = {
-      if (unmarked(n)) {
-        unmarked -= n
-        for (m <- successors(n)) visit(m)
-        sorted ::= n
-      }
-    }
-
-    while (unmarked.nonEmpty) visit(unmarked.head)
-
-    sorted
-  }
-
 }
