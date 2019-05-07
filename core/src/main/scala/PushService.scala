@@ -13,7 +13,35 @@ import wust.db.Data
 import scala.concurrent.{Future, Promise}
 import scala.util.Try
 
-case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, parentId: Option[String], parentContent: Option[String], epoch: String)
+/**
+  * Max Payload
+  *   - Android: 2-4kB
+  *   - iOS: 2-4kB
+  *   - Microsoft: 2-5kB
+  *   -> 2kB should be save
+  * Length of variables = 76
+  * Number of variables = 8
+  * json overhead pre variable = 2 -> {}, 2 -> "", 1 -> :, 2 -> "" = 7
+  * const json overhead = 2
+  * overhead ~ 76 + 56 + 2
+  * metaLength ~ username.length + nodeId.length + subscribedId.length + parentId.getOrElse("null").length + epoch.length
+  */
+
+object VisiblePushData {
+  val maxTitleLength = 60
+  val maxContentLength = 600
+  val maxTotalLength = 2048
+}
+
+case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, parentId: Option[String], parentContent: Option[String], epoch: String) {
+  import wust.util.StringOps._
+  def trimToSize: PushData = this.copy(
+    username = trimToMaxLength(username, VisiblePushData.maxTitleLength),
+    content = trimToMaxLength(content, VisiblePushData.maxContentLength),
+    subscribedContent = trimToMaxLength(subscribedContent, VisiblePushData.maxTitleLength),
+    parentContent = parentContent.map(trimToMaxLength(_, VisiblePushData.maxTitleLength)),
+  )
+}
 
 class PushService private(service: webpush.PushService) {
   // we write our own version, because service.send is synchronous and service.sendAsync returns a stupid java-future.
@@ -49,7 +77,7 @@ class PushService private(service: webpush.PushService) {
       sub.endpointUrl,
       PushService.base64UrlSafe(sub.p256dh),
       PushService.base64UrlSafe(sub.auth),
-      payload
+      payload.take(VisiblePushData.maxTotalLength)
     )
 
     scribe.info(s"Sending push notification to ${sub}: $payload")
@@ -65,7 +93,7 @@ class PushService private(service: webpush.PushService) {
       sub.endpointUrl,
       PushService.base64UrlSafe(sub.p256dh),
       PushService.base64UrlSafe(sub.auth),
-      payload.asJson.noSpaces
+      payload.trimToSize.asJson.noSpaces
     )
 
     scribe.info(s"Sending push notification to ${sub}: ${payload.content}")
