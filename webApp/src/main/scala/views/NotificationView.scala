@@ -120,7 +120,7 @@ object NotificationView {
 
                 onClick.stopPropagation.foreach {
                   val changes = GraphChanges(
-                    addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
+                    addEdges = allUnreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
                   )
 
                   state.eventProcessor.changes.onNext(changes)
