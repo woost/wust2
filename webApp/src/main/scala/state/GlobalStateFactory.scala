@@ -143,9 +143,17 @@ object GlobalStateFactory {
       }
     }
 
-    def getNewGraph(page: Page) = for {
-      graph <- Client.api.getGraph(page)
-    } yield enrichVisitedGraphWithSideEffects(page, graph)
+    def getNewGraph(page: Page) = {
+      isLoading() = true
+      val graph = for {
+        graph <- Client.api.getGraph(page)
+      } yield enrichVisitedGraphWithSideEffects(page, graph)
+
+      graph.transform { result =>
+        isLoading() = false
+        result
+      }
+    }
 
     // if we have a invitation token, we merge this invited user into our account and get the graph again.
     urlConfig.foreach { viewConfig =>
@@ -214,11 +222,9 @@ object GlobalStateFactory {
             val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
             val observable: Observable[Graph] =
               if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
-                isLoading() = true
                 Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
               } else if (prevPage == null || prevPage != viewConfig.pageChange) {
                 if (viewConfig.pageChange.needsGet && (!viewConfig.pageChange.page.isEmpty || isFirstGraphRequest)) {
-                  isLoading() = true
                   Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
                 } else Observable.empty
               } else {
@@ -233,7 +239,6 @@ object GlobalStateFactory {
               .onErrorHandle(_ => Graph.empty)
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
-        .doOnNext(_ => Task { isLoading() = false })
         .subscribe(eventProcessor.localEvents)
     }
 
