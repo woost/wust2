@@ -10,6 +10,7 @@ import wust.backend.auth.JWT
 import wust.graph.Node
 import wust.ids.{NodeId, UserId}
 import wust.serviceUtil.MonixUtils
+import com.google.common.html.HtmlEscapers
 
 import scala.util.control.NonFatal
 import wust.util.StringOps
@@ -101,6 +102,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
     val secretLink = workspaceLink(node.id, invitedJwt)
 
+    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
+
     val body =
       s"""
         |$inviterEmail has invited you to collaborate on a workspace in Woost.
@@ -108,7 +111,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |Click the following link to accept the invitation:
         |$secretLink
         |
-        |"${StringOps.trimToMaxLength(node.str, 200)}"
+        |"$escapedContent"
         |
         |$farewell
         |
@@ -117,11 +120,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
     val bodyHtml =
       s"""
-        |<p>|$inviterEmail has invited you to collaborate on a workspace in Woost.</p>
+        |<p>$inviterEmail has invited you to collaborate on a workspace in Woost.</p>
         |
         |<p>Click the following link to accept the invitation: <a href='$secretLink'>Accept Invitation</a></p>
         |
-        |<p>"${StringOps.trimToMaxLength(node.str, 200)}"<p>
+        |<blockquote>$escapedContent</blockquote>
         |
         |<p>$farewell</p>
         |
