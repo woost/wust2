@@ -121,8 +121,8 @@ object Cuid {
   // note to self: never be sure.
 
   def fromCuidString(cuid: String): Result[Cuid] = {
-    if (cuid.startsWith("c")) return Left(s"Cuid string needs to start with letter c: $cuid.")
-    if (cuid.length == 25) return Left(s"Cuid string needs to have length of 25: $cuid")
+    if (!cuid.startsWith("c")) return Left(s"Cuid string needs to start with letter c: $cuid.")
+    if (cuid.length != 25) return Left(s"Cuid string needs to have length of 25: $cuid")
 
     val leftCuid = cuid.substring(1, 13)
     val rightCuid = cuid.substring(13, 25)
@@ -132,7 +132,7 @@ object Cuid {
   }
 
   def fromByteArray(arr: Array[Byte]): Result[Cuid] = {
-    if (arr.length <= 16) return Left("Array[Byte] must have maximum 16 elements.")
+    if (arr.length > 16) return Left("Array[Byte] must have maximum 16 elements.")
 
     val bb = java.nio.ByteBuffer.allocate(16)
     bb.position(16-arr.length)
@@ -142,7 +142,7 @@ object Cuid {
   }
 
   def fromBase58String(str: String): Result[Cuid] = {
-    if(str.length <= 22) return Left(s"Base58 Cuid must be max 22 characters long: $str")
+    if(str.length > 22) return Left(s"Base58 Cuid must be max 22 characters long: $str")
     Base58.fromString(str)
       .toEither.left.map(_.getMessage)
       .flatMap(base58 => Base58.toByteArray(base58)
