@@ -57,7 +57,8 @@ object MeisterTask {
     val sectionsByName = new mutable.HashMap[String, NodeId]
     val doneStageInSection = new mutable.HashMap[String, NodeId]
     project.tasks.foreach { task =>
-      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, Some(View.List :: Nil))
+      val views = if (task.notes.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
+      val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, Some(views))
       addNodes += taskNode
 
       // attach tags
@@ -75,11 +76,11 @@ object MeisterTask {
         addEdges += Edge.Child(ParentId(nodeIdTag), ChildId(taskNode.id))
       }
 
-      // attach notes as description
+      // attach notes
       task.notes.foreach { notes =>
-        val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(notes), NodeRole.Neutral, NodeMeta.default, None)
+        val notesNode = Node.Content(NodeId.fresh, NodeData.Markdown(notes), NodeRole.Note, NodeMeta.default, None)
         addNodes += notesNode
-        addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.description, PropertyId(notesNode.id))
+        addEdges += Edge.Child(ParentId(taskNode.id), ChildId(notesNode.id))
       }
 
       // attach comments

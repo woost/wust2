@@ -144,15 +144,16 @@ object Trello {
     // collect all cards in board
     val cardsById = new mutable.HashMap[String, NodeId]
     board.cards.foreach { card =>
-      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(View.List :: Nil))
+      val views = if (card.desc.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
+      val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(views))
       addNodes += cardNode
       cardsById += card.id -> cardNode.id
 
-      // attach description as property
+      // attach description as note
       if (card.desc.nonEmpty) {
-        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Neutral, NodeMeta.default, None)
+        val descNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.desc), NodeRole.Note, NodeMeta.default, None)
         addNodes += descNode
-        addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.description, PropertyId(descNode.id))
+        addEdges += Edge.Child(ParentId(cardNode.id), ChildId(descNode.id))
       }
 
       // attach labels
