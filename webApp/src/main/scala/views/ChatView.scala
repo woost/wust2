@@ -269,10 +269,14 @@ object ChatView {
               _previousNodeId = Some(nodeId)
 
               div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
+                // the parent ids of this node are a dependency of the thunk above us thunkRxFun
+                // therefore we know they will never change and we can use the groupGraph
+                // and statically calculate the parentIds and use inReplyGroup here.
+                // isDeletedNow on the other hand needs to be dynamically calculated.
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
                 val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
 
-                val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
+                val isDeletedNow = state.graph.map(g => g.idToIdxGet(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
 
                 renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
