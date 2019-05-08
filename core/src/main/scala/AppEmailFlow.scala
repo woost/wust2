@@ -63,13 +63,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       s"""
         |<p>Hi there,</p>
         |
-        |<p>
-        |please verify your email address by clicking this link: <a href='$secretLink'>Verify your email address</a>
-        |</p>
+        |<p>please verify your email address by clicking this link: <a href='$secretLink'>Verify your email address</a></p>
         |
-        |<p>
-        |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail in your <a href='$userSettingsLink'>user settings</a>.
-        |</p>
+        |<p>This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail in your <a href='$userSettingsLink'>user settings</a>.</p>
         |
         |<p>Thank you!</p>
         |
@@ -103,13 +99,14 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
     val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
+    val secretLink = workspaceLink(node.id, invitedJwt)
+
     val body =
       s"""
         |$inviterEmail has invited you to collaborate on a workspace in Woost.
         |
         |Click the following link to accept the invitation:
-        |
-        |${workspaceLink(node.id, invitedJwt)}
+        |$secretLink
         |
         |"${StringOps.trimToMaxLength(node.str, 200)}"
         |
@@ -118,7 +115,20 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |$signature
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body)
+    val bodyHtml =
+      s"""
+        |<p>|$inviterEmail has invited you to collaborate on a workspace in Woost.</p>
+        |
+        |<p>Click the following link to accept the invitation: <a href='$secretLink'>Accept Invitation</a></p>
+        |
+        |<p>"${StringOps.trimToMaxLength(node.str, 200)}"<p>
+        |
+        |<p>$farewell</p>
+        |
+        |<p>$signature</p>
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
