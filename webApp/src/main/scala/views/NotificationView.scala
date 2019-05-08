@@ -74,7 +74,7 @@ object NotificationView {
         val unreadNodesByParentBuilder = new Array[mutable.ArrayBuilder[UnreadNode]](graph.nodes.length) // default = null
         unreadNodes.foreach { n =>
           var hasParent = false
-          graph.parentsIdx.foreachElement(n.nodeIdx) { parentIdx =>
+          graph.workspacesForNode(n.nodeIdx).foreach { parentIdx =>
             hasParent = true
             if (unreadNodesByParentBuilder(parentIdx) == null) unreadNodesByParentBuilder(parentIdx) = new mutable.ArrayBuilder.ofRef[UnreadNode]
             unreadNodesByParentBuilder(parentIdx) += n
