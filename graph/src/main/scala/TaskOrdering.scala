@@ -18,7 +18,6 @@ object TaskOrdering {
   object SortMode {
     case object Ascending extends SortMode
     case object Descending extends SortMode
-
   }
 
   def constructOrderingOf[T: ClassTag](graph: Graph, parentId: NodeId, container: Seq[T], extractNodeId: T => NodeId, mode: SortMode = SortMode.Ascending): Seq[T] = {
