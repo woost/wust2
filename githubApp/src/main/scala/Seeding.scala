@@ -12,7 +12,7 @@ import github4s.GithubResponses.GHResult
 import github4s.free.domain.{Comment, Issue, User => GHUser}
 import github4s.jvm.Implicits._
 import com.redis._
-import wust.serviceUtil.StringOps
+import wust.serviceUtil.StringJvmOps
 
 object GitHubImporter {
 
@@ -144,7 +144,7 @@ object GitHubImporter {
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
-        implicit def StringToEpochMilli(s: String): EpochMilli = StringOps.toEpoch(s)
+        implicit def StringToEpochMilli(s: String): EpochMilli = StringJvmOps.toEpoch(s)
         // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order

@@ -136,7 +136,7 @@ object EditStringParser extends EditStringParserInstances0 {
   implicit def EditOption[T: EditStringParser]: EditStringParser[Option[T]] = EditStringParser[T].map(Some(_))
 
   implicit def EditNodeId: EditStringParser[NodeId] = EditString.flatMap[NodeId] { cuid =>
-    EditInteraction.fromEither(Try(Cuid.fromCuidString(cuid)).toEither.fold(e => Left(e.getMessage), id => Right(NodeId(id))))
+    EditInteraction.fromEither(Cuid.fromCuidString(cuid).map(NodeId(_)))
   }
 
   def forNodeDataType(tpe: NodeData.Type): Option[EditStringParser[NodeData.Content]] = tpe match {

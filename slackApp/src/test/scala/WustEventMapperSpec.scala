@@ -68,10 +68,10 @@ case object MockAdapter extends PersistenceAdapter {
 }
 
 object TestConstants {
-  val workspaceId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkw")
-  val messageNodeId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkJ")
-  val channelNodeId: NodeId = NodeId.fromBase58String("5R73E84pCdVisswaNFr47x")
-  val userId: UserId = UserId.fromBase58String("5R5TZsZJeL3enTMmq8Jwmg")
+  val workspaceId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkw").right.get
+  val messageNodeId: NodeId = NodeId.fromBase58String("5R73FK2PwrEU6Kt1dEUzkJ").right.get
+  val channelNodeId: NodeId = NodeId.fromBase58String("5R73E84pCdVisswaNFr47x").right.get
+  val userId: UserId = UserId.fromBase58String("5R5TZsZJeL3enTMmq8Jwmg").right.get
 }
 
 class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
@@ -321,16 +321,16 @@ class WustEventMapperSpec extends FreeSpec with EitherValues with Matchers {
     val undeleteChannel = GraphChanges(
       addNodes = Set(
         Node.User(
-          UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf"),
+          UserId.fromBase58String("5RBLjXEbmu16SNUjyee7Bf").right.get,
           NodeData.User("j",false,0),
           NodeMeta(NodeAccess.Restricted)
         )
       ),
       addEdges = Set(
         Edge.Child(
-          ParentId(NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK")),
+          ParentId(NodeId.fromBase58String("5RGHCHpdWsK4X6NpzbCVMK").right.get),
           EdgeData.Child(None, None),
-          ChildId(NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25")),
+          ChildId(NodeId.fromBase58String("5RGHCTvXSd1cKniWc3xc25").right.get),
         ),
       )
     )

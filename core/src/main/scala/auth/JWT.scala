@@ -6,7 +6,6 @@ import wust.api.serialize.Circe._
 import wust.backend.config.Config
 import wust.ids._
 
-import scala.util.{Failure, Success, Try}
 import java.time.Instant
 
 import scala.concurrent.duration._
@@ -57,7 +56,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
           expires <- claim.expiration
           emailVerify <- parser.decode[CustomClaim](claim.content)
             .right.toOption.collect { case verify: CustomClaim.EmailVerify => verify }
-          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption)
+          subject <- claim.subject.flatMap(str => Cuid.fromBase58String(str).map(id => UserId(NodeId(id))).toOption)
           if emailVerify.userId == subject
         } yield auth.VerifiedEmailActivationToken(emailVerify.userId, emailVerify.email, expires)
       case _ => None
@@ -107,7 +106,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
         for {
           user <- parser.decode[CustomClaim](claim.content)
             .right.toOption.collect { case CustomClaim.Invitation(user) => user }
-          subject <- claim.subject.flatMap(str => Try(UserId(NodeId(Cuid.fromBase58(str)))).toOption) // TODO: proper failable fromBase58
+          subject <- claim.subject.flatMap(str => Cuid.fromBase58String(str).map(id => UserId(NodeId(id))).toOption)
           if user.id == subject
         } yield user
       case _ => None

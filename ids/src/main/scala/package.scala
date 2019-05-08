@@ -7,36 +7,36 @@ package object ids {
   type UuidType = String
 
   object NodeId extends TaggedType[Cuid] {
-    @inline def fresh: NodeId = apply(Cuid.fromCuidString(cuid.Cuid()))
-    @inline def fromBase58String(str: String): NodeId = apply(Cuid.fromBase58(str))
+    @inline def fresh: NodeId = apply(Cuid.fromCuidString(cuid.Cuid())).right.get //ok, because cuid comes from cuid function
+    @inline def fromBase58String(str: String): Either[String, NodeId] = Cuid.fromBase58String(str).map(apply(_))
   }
   type NodeId = NodeId.Type
 
   object UserId extends OverTagged(NodeId) {
     @inline def fresh: UserId = apply(NodeId.fresh)
-    @inline def fromBase58String(str: String): UserId = apply(NodeId.fromBase58String(str))
+    @inline def fromBase58String(str: String): Either[String, UserId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type UserId = UserId.Type
 
 
   object ChildId extends OverTagged(NodeId) {
     @inline def fresh: ChildId = apply(NodeId.fresh)
-    @inline def fromBase58String(str: String): ChildId = apply(NodeId.fromBase58String(str))
+    @inline def fromBase58String(str: String): Either[String, ChildId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type ChildId = ChildId.Type
   object ParentId extends OverTagged(NodeId) {
     @inline def fresh: ParentId = apply(NodeId.fresh)
-    @inline def fromBase58String(str: String): ParentId = apply(NodeId.fromBase58String(str))
+    @inline def fromBase58String(str: String): Either[String, ParentId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type ParentId = ParentId.Type
   object PropertyId extends OverTagged(NodeId) {
     @inline def fresh: PropertyId = apply(NodeId.fresh)
-    @inline def fromBase58String(str: String): PropertyId = apply(NodeId.fromBase58String(str))
+    @inline def fromBase58String(str: String): Either[String, PropertyId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type PropertyId = PropertyId.Type
   object TemplateId extends OverTagged(NodeId) {
     @inline def fresh: TemplateId = apply(NodeId.fresh)
-    @inline def fromBase58String(str: String): TemplateId = apply(NodeId.fromBase58String(str))
+    @inline def fromBase58String(str: String): Either[String, TemplateId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type TemplateId = TemplateId.Type
 

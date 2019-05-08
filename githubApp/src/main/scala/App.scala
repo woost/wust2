@@ -37,7 +37,7 @@ import monix.reactive.subjects.ConcurrentSubject
 import scala.util.{Failure, Success, Try}
 import scalaj.http.HttpResponse
 import wust.api.Authentication.Token
-import wust.serviceUtil.StringOps
+import wust.serviceUtil.StringJvmOps
 
 object Constants {
   //TODO
@@ -91,7 +91,7 @@ object AppServer {
   import akka.http.scaladsl.Http
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  implicit def StringToEpochMilli(s: String): EpochMilli = StringOps.toEpoch(s)
+  implicit def StringToEpochMilli(s: String): EpochMilli = StringJvmOps.toEpoch(s)
 
   private def createOrIgnore(issue: Issue): NodeId = ???
   private def createOrIgnore(comment: Comment): NodeId = ???

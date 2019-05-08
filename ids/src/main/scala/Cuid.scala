@@ -108,6 +108,11 @@ import org.sazabi.base58.Base58
 object Cuid {
   def cuidBase = 36
 
+  type Result[T] = Either[String, T]
+
+  //TODO: private constructor and factory with checks (see asserts in cuid)
+
+  //TODO: strictly speaking not all uuids are cuids, because they numbers might be too high. so this method should be either as well
   def fromUuid(uuid: UUID): Cuid =
     Cuid(uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
 
@@ -115,29 +120,34 @@ object Cuid {
   // you can still do an explicit `.get` on the client side if you are so sure.
   // note to self: never be sure.
 
-  def fromCuidString(cuid: String): Cuid = {
-    require(cuid.startsWith("c"), "Cuid string needs to start with letter c.")
-    require(cuid.length == 25, "Cuid string needs to have length of 25.")
+  def fromCuidString(cuid: String): Result[Cuid] = {
+    if (cuid.startsWith("c")) return Left(s"Cuid string needs to start with letter c: $cuid.")
+    if (cuid.length == 25) return Left(s"Cuid string needs to have length of 25: $cuid")
 
     val leftCuid = cuid.substring(1, 13)
     val rightCuid = cuid.substring(13, 25)
     val leftLong = java.lang.Long.parseLong(leftCuid, cuidBase)
     val rightLong = java.lang.Long.parseLong(rightCuid, cuidBase)
-    Cuid(leftLong, rightLong)
+    Right(Cuid(leftLong, rightLong))
   }
 
-  def fromByteArray(arr: Array[Byte]): Cuid = {
-    require(arr.length <= 16, "Array[Byte] must have maximum 16 elements.")
+  def fromByteArray(arr: Array[Byte]): Result[Cuid] = {
+    if (arr.length <= 16) return Left("Array[Byte] must have maximum 16 elements.")
+
     val bb = java.nio.ByteBuffer.allocate(16)
     bb.position(16-arr.length)
     bb.put(arr)
     bb.flip()
-    Cuid(bb.getLong, bb.getLong)
+    Right(Cuid(bb.getLong, bb.getLong))
   }
 
-  def fromBase58(str: String): Cuid = {
-    require(str.length <= 22, "Base58 Cuid must be max 22 characters long.")
-    fromByteArray(Base58.toByteArray(Base58.fromString(str).get).get)
+  def fromBase58String(str: String): Result[Cuid] = {
+    if(str.length <= 22) return Left(s"Base58 Cuid must be max 22 characters long: $str")
+    Base58.fromString(str)
+      .toEither.left.map(_.getMessage)
+      .flatMap(base58 => Base58.toByteArray(base58)
+        .toEither.left.map(_.getMessage)
+        .flatMap(fromByteArray))
   }
 
   @inline private def maxLong = 4738381338321616895L

@@ -79,8 +79,9 @@ private object UrlOption {
     val key = "page"
 
     val regex = Regex[String](rx"^(\w+)$$")
-      .map(_.map { case parentId =>
-        Page(NodeId(Cuid.fromBase58(parentId)))
+      .map(_.flatMap { parentId =>
+        Cuid.fromBase58String(parentId).map(id => Page(NodeId(id)))
+          .left.map(DecodeError.TypeError(_))
       })
 
     def update(config: UrlConfig, text: String): DecodeResult[UrlConfig] =

@@ -25,23 +25,23 @@ class CuidSpec extends FreeSpec with MustMatchers {
 
   "cuid" in {
     val original = cuid.Cuid()
-    val bag = Cuid.fromCuidString(original)
+    val bag = Cuid.fromCuidString(original).right.get
     val converted = bag.toCuidString
 
-    converted mustEqual original
+    converted mustEqual Right(original)
   }
 
   "cuid byte array" in {
-    val original = Cuid.fromCuidString(cuid.Cuid())
+    val original = Cuid.fromCuidString(cuid.Cuid()).right.get
     val converted = Cuid.fromByteArray(original.toByteArray)
 
-    converted mustEqual original
+    converted mustEqual Right(original)
   }
 
   "cuid base58" in {
-    val original = Cuid.fromCuidString(cuid.Cuid())
-    val converted = Cuid.fromBase58(original.toBase58)
+    val original = Cuid.fromCuidString(cuid.Cuid()).right.get
+    val converted = Cuid.fromBase58String(original.toBase58)
 
-    converted mustEqual original
+    converted mustEqual Right(original)
   }
 }

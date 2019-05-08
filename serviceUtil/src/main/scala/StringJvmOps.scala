@@ -4,7 +4,7 @@ import wust.ids.EpochMilli
 
 import scala.util.control.NonFatal
 
-object StringJVMOps {
+object StringJvmOps {
   @inline def toEpoch(time: String): EpochMilli = {
     import java.time.Instant
     EpochMilli(Instant.parse(time).toEpochMilli)
