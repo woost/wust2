@@ -272,7 +272,7 @@ object ChatView {
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
                 val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
 
-                val isDeletedNow = state.graph.map(_.isDeletedNowIdx(nodeIdx, parentIdxs))
+                val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentIds))
 
                 renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
