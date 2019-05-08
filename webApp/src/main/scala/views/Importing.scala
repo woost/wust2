@@ -301,7 +301,6 @@ object Importing {
                   }
 
                 val changes = importChanges.changes merge addToParentChanges
-                println("WTF " + changes + importChanges.topLevelNodeIds)
                 UI.toast("Successfully imported Project")
 
                 //TODO: do not sideeffect with state changes here...
