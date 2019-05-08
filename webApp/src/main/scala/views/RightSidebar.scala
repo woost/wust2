@@ -201,7 +201,14 @@ object RightSidebar {
         }
       ),
 
-      nodeAuthor(state, focusPref.nodeId)
+      nodeAuthor(state, focusPref.nodeId),
+
+      div(
+        Styles.flex,
+        alignItems.center,
+
+        Components.automatedNodesOfNode(state, focusPref.nodeId),
+      ),
     )
   }
 
