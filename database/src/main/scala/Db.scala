@@ -29,6 +29,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
   // schema meta: we can define how a type corresponds to a db table
   private implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.
+  private implicit val nodeRawSchema = schemaMeta[NodeRaw]("node") // NodeRaw is just a raw representation of node
+
   // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
   private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
 
@@ -67,10 +69,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx.run {
-        query[Node].filter(accessedNode =>
+        query[NodeRaw].filter(accessedNode =>
           accessedNode.id == lift(nodeId) && canAccess(lift(userId), lift(nodeId))
         ).take(1)
-      }.map(_.headOption)
+      }.map(_.headOption.map(_.toNode))
     }
 
     def get(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
@@ -79,15 +81,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       val q = quote {
         infix"""
           select node.* from unnest(${lift(nodeIds.toList)} :: uuid[]) inputNodeId join node on node.id = inputNodeId
-        """.as[Query[Node]]
+        """.as[Query[NodeRaw]]
       }
 
-      ctx.run(q)
+      ctx.run(q).map(_.map(_.toNode))
     }
 
     def getFileNodes(keys: Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
       ctx.run {
-        query[Node].filter(node =>
+        query[NodeRaw].filter(node =>
           node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys.toList).contains(node.data->>"key")
         )
       }.map(_.map(n => n.id -> n.data.asInstanceOf[NodeData.File]))
@@ -243,23 +245,23 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def allMembershipConnections(userId: UserId): Quoted[Query[Edge]] = quote {
       for {
-        user <- query[Node].filter(_.id == lift(userId))
+        user <- query[NodeRaw].filter(_.id == lift(userId))
         membershipConnection <- query[Edge].filter(c =>
           c.targetId == user.id && c.data.jsonType == lift(EdgeData.Member.tpe)
         )
       } yield membershipConnection
     }
 
-    def allNodesQuery(userId: UserId): Quoted[Query[Node]] = quote {
+    def allNodesQuery(userId: UserId): Quoted[Query[NodeRaw]] = quote {
       for {
         c <- allMembershipConnections(userId)
-        p <- query[Node].join(p => p.id == c.sourceId)
+        p <- query[NodeRaw].join(p => p.id == c.sourceId)
       } yield p
     }
 
     def getAllNodes(userId: UserId)(implicit ec: ExecutionContext): Future[List[Node]] = ctx.run {
       allNodesQuery(userId)
-    }
+    }.map(_.map(_.toNode))
 
     // TODO share code with createimplicit?
     def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[User] = {
