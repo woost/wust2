@@ -399,13 +399,13 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.headOption)
     }
 
-    //TODO: we should update the revision of the user here, too. something changed and we could therefore invalidate existing tokens
-    def changePassword(userId: UserId, digest: Array[Byte])(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
-      ctx.run(
-        query[Password].filter(_.userId == lift(userId)).update(_.digest -> lift(digest))
-      ).flatMap { numberUpdated =>
-        checkUnexpected(numberUpdated == 1, s"Unexpected number of password updates for user ${userId.toUuid}: $numberUpdated / 1")
-      }
+    def changePassword(userId: UserId, digest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
+      for {
+        SuccessResult <- ctx.run(infix"update node set data = data || json_build_object('revision', (data->>'revision')::int + 1)::jsonb where data->>'type' = 'User' and id = ${lift(userId)}".as[Update[User]])
+          .flatMap(userUpdated => checkUnexpected(userUpdated == 1, s"Unexpected number of user updates for user ${userId.toUuid}: $userUpdated / 1"))
+        SuccessResult <- ctx.run(query[Password].filter(_.userId == lift(userId)).update(_.digest -> lift(digest)))
+          .flatMap(passwordUpdated => checkUnexpected(passwordUpdated == 1, s"Unexpected number of password updates for user ${userId.toUuid}: $passwordUpdated / 1"))
+      } yield SuccessResult
     }
 
     def byName(name: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
