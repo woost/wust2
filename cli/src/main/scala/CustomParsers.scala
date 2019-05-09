@@ -12,7 +12,7 @@ object CustomParsers {
   implicit def overTaggedParser[R, T <: TaggedType[R], U](implicit f: ArgParser[T#Type]): ArgParser[Tagged[T#Type, U]] = f.asInstanceOf[ArgParser[Tagged[T#Type, U]]]
 
   implicit val cuidParser: ArgParser[Cuid] = SimpleArgParser.from[Cuid]("Cuid") { str =>
-    Try(Cuid.fromBase58String(str)).toOption.toRight(core.Error.MalformedValue("Cuid", s"Value '$str' is not a valid cuid"))
+    Cuid.fromBase58String(str).left.map(err => core.Error.MalformedValue("Cuid", err))
   }
 
   implicit val parser: ArgParser[NodeRole] = SimpleArgParser.from[NodeRole]("NodeRole") {
