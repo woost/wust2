@@ -20,8 +20,9 @@ class PushApiImpl(dsl: GuardDsl, db: Db, pushConfig: Option[PushNotificationConf
     }
 
   override def cancelSubscription(subscription: WebPushSubscription): ApiFunction[Boolean] = Action {
-    db.notifications.cancelWebPush(endpointUrl = subscription.endpointUrl, p256dh = subscription.p256dh, auth = subscription.auth)
-      .map(_ => true)
+    db.ctx.transaction { implicit ec =>
+      db.notifications.cancelWebPush(endpointUrl = subscription.endpointUrl, p256dh = subscription.p256dh, auth = subscription.auth)
+    }.map(_ => true)
   }
 
   override def getPublicKey(): ApiFunction[Option[String]] = Action {

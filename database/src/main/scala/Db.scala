@@ -34,10 +34,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
   // enforce check of json-type for extra safety. additional this makes sure that partial indices on user.data are used.
   private val queryUser = quote { query[User].filter(_.data.jsonType == lift(NodeData.User.tpe)) }
 
-  def checkUnexpected[U](cond: Boolean, success: U, errorMsg: => String): Future[U] = {
+  // ! Require implicit transactional execution context so people just use it within a transaction,
+  // ! only then can checkUnexpected failure be rolled back
+  def checkUnexpected[U](cond: Boolean, success: U, errorMsg: => String)(implicit _not_used: TransactionalExecutionContext): Future[U] = {
     if (cond) Future.successful(success) else Future.failed(new Exception(errorMsg))
   }
-  def checkUnexpected(cond: Boolean, errorMsg: => String): Future[SuccessResult.type] = {
+  def checkUnexpected(cond: Boolean, errorMsg: => String)(implicit _not_used: TransactionalExecutionContext): Future[SuccessResult.type] = {
     checkUnexpected(cond, SuccessResult, errorMsg)
   }
 
@@ -123,7 +125,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
     }
 
-    def removeMember(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def removeMember(nodeId: NodeId, userId: UserId)(implicit ec: TransactionalExecutionContext): Future[Boolean] = {
       ctx.run(query[Edge].filter(e => e.sourceId == lift(nodeId) && e.targetId == lift(userId) && e.data.jsonType == lift(EdgeData.Member.tpe)).delete).flatMap { touched =>
         checkUnexpected(touched <= 1, success = touched == 1, s"Unexpected number of edge deletes: $touched <= 1")
       }
@@ -166,15 +168,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       //.flatMap(numberInserts => checkUnexpected(numberInserts == 1, s"Unexpected number of webpush subscription inserts of user '${subscription.userId.toUuid}': $numberInserts == 1"))
     }
 
-    def cancelWebPush(endpointUrl: String, p256dh: String, auth: String)(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
+    def cancelWebPush(endpointUrl: String, p256dh: String, auth: String)(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       ctx.run(
         query[WebPushSubscription]
           .filter(s => s.endpointUrl == lift(endpointUrl) && s.p256dh == lift(p256dh) && s.auth == lift(auth)).delete
       ).flatMap(numberDeletes => checkUnexpected(numberDeletes <= 1, s"Unexpected number of webpush subscription deletes: $numberDeletes <= 1"))
     }
 
-    def delete(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[SuccessResult.type] = delete(List(subscription))
-    def delete(subscriptions: Seq[WebPushSubscription])(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
+    def delete(subscription: WebPushSubscription)(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = delete(List(subscription))
+    def delete(subscriptions: Seq[WebPushSubscription])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       ctx.run(
         liftQuery(subscriptions.toList)
           .foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete)
@@ -264,7 +266,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }.map(_.map(_.toNode))
 
     // TODO share code with createimplicit?
-    def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: ExecutionContext): Future[User] = {
+    def create(userId: UserId, name: String, email: String, passwordDigest: Array[Byte])(implicit ec: TransactionalExecutionContext): Future[User] = {
       val userData = NodeData.User(name = name, isImplicit = false, revision = 0)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)
@@ -284,7 +286,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         }
     }
 
-    def createImplicitUser(userId: UserId, name: String)(implicit ec: ExecutionContext): Future[User] = {
+    def createImplicitUser(userId: UserId, name: String)(implicit ec: TransactionalExecutionContext): Future[User] = {
       val userData = NodeData.User(name = name, isImplicit = true, revision = 0)
       val user = User(userId, userData, NodeAccess.Level(AccessLevel.Restricted))
       val membership: EdgeData = EdgeData.Member(AccessLevel.ReadWrite)

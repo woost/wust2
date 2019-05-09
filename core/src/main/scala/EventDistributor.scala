@@ -123,7 +123,9 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
   }
 
   private def deleteSubscriptions(subscriptions: Seq[Data.WebPushSubscription]): Unit = if(subscriptions.nonEmpty) {
-    db.notifications.delete(subscriptions).onComplete {
+    db.ctx.transaction { implicit ec =>
+      db.notifications.delete(subscriptions)
+    }.onComplete {
       case Success(res) =>
         scribe.info(s"Deleted subscriptions ($subscriptions): $res.")
       case Failure(res) =>

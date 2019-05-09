@@ -20,8 +20,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
 
   def changePassword(password: Password): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
     val digest = passwordDigest(password)
-    db.user.changePassword(user.id, digest)
-      .map(_ => Returns(true))
+    db.ctx.transaction { implicit ec =>
+      db.user.changePassword(user.id, digest)
+        .map(_ => Returns(true))
+    }
   }
 
   //TODO: some email or name or password checks?
@@ -34,12 +36,14 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
         }.recover { case NonFatal(t) => None }
         resultOnVerifiedAuthAfterRegister(user, email = email, replaces = Some(prevUserId))
       case Some(AuthUser.Assumed(userId)) =>
-        val user = db.user.create(userId, name = name, email = email, passwordDigest = digest)
-          .map(Some(_)).recover{ case NonFatal(t) => None }
+        val user = db.ctx.transaction { implicit ec =>
+          db.user.create(userId, name = name, email = email, passwordDigest = digest)
+        }.map(Some(_)).recover{ case NonFatal(t) => None }
         resultOnVerifiedAuthAfterRegister(user, email = email)
       case _ =>
-        val user = db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
-          .map(Some(_)).recover { case NonFatal(t) => None }
+        val user = db.ctx.transaction { implicit ec =>
+          db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
+        }.map(Some(_)).recover { case NonFatal(t) => None }
         resultOnVerifiedAuthAfterRegister(user, email = email)
     }
   }
@@ -116,7 +120,10 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
 
   def createImplicitUserForApp(): ApiFunction[Option[Authentication.Verified]] = Action { _ =>
     val userId = UserId.fresh
-    val implUser = db.user.createImplicitUser(userId, userId.toBase58)
+    val implUser = db.ctx.transaction { implicit ec =>
+      db.user.createImplicitUser(userId, userId.toBase58)
+    }
+
     implUser.map { auth =>
       Some(jwt.generateAuthentication(auth))
     }
