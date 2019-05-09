@@ -130,6 +130,11 @@ object Styles extends StyleSheet.Inline {
     (100 %%) -> style(opacity(1))
   )
 
+  val fadeInKfWithVisibility = keyframes(
+    (0 %%) -> style(opacity(0), visibility.visible),
+    (100 %%) -> style(opacity(1), visibility.visible)
+  )
+
   object Woost {
     val color = c"#6636b7"
   }
@@ -328,6 +333,15 @@ object CommonStyles extends StyleSheet.Standalone {
     animationName(Styles.fadeInKf),
     animationDuration(1.5 seconds),
     animationDelay(100 milliseconds),
+    animationFillMode.forwards,
+  )
+
+  ".animated-late-fadein" - (
+    opacity(0),
+    visibility.hidden,
+    animationName(Styles.fadeInKfWithVisibility),
+    animationDuration(2 seconds),
+    animationDelay(6 seconds),
     animationFillMode.forwards,
   )
 

@@ -254,7 +254,27 @@ object Components {
   def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
 
   def spaceFillingLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
-    div(Styles.flex, alignItems.center, justifyContent.center, Styles.growFull, woostLoadingAnimationWithFadeIn)
+    div(
+      Styles.flex,
+      alignItems.center,
+      justifyContent.center,
+      flexDirection.column,
+      Styles.growFull,
+
+      woostLoadingAnimationWithFadeIn,
+
+      div(
+        cls := "animated-late-fadein",
+        Styles.flex,
+        alignItems.center,
+
+        fontSize.xSmall,
+        marginTop := "20px",
+
+        span("Loading forever?", marginRight := "10px"),
+        button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+      )
+    )
   }
 
   private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier, pageOnClick: Boolean): VNode = {
