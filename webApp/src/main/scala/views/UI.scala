@@ -154,7 +154,7 @@ object UI {
       config.map[VDomModifier] { config =>
         config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
           VDomModifier(
-            emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
+            emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
               e.sidebar("hide")
               // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[sidebarconfig]]]
               // workaround: kill the ctx owner, so we stop updating this node when it is closed.
