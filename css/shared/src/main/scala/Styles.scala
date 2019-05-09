@@ -341,7 +341,7 @@ object CommonStyles extends StyleSheet.Standalone {
     visibility.hidden,
     animationName(Styles.fadeInKfWithVisibility),
     animationDuration(2 seconds),
-    animationDelay(6 seconds),
+    animationDelay(12 seconds),
     animationFillMode.forwards,
   )
 
