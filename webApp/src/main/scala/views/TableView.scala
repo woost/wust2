@@ -113,7 +113,7 @@ object TableView {
       val columns = new mutable.ArrayBuffer[UI.Column]
 
       columns += UI.Column(
-        VDomModifier.empty,
+        "#",
         propertyGroup.infos.zipWithIndex.map { case (property, idx) =>
           UI.ColumnEntry(idx,
             VDomModifier(
