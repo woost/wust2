@@ -145,7 +145,7 @@ object ViewFilter {
         cls := "ui icon input",
         input(
           `type` := "text",
-          placeholder := "Search & Filter",
+          placeholder := "Filter",
           value <-- Elements.clearOnPageSwitch(state),
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
