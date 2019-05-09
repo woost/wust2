@@ -115,3 +115,23 @@ object Edge {
     case data: EdgeData.DerivedFromTemplate => new Edge.DerivedFromTemplate(sourceId, data, TemplateId(targetId))
   }
 }
+
+sealed trait EdgeEquality { def eq(other: EdgeEquality): Boolean }
+object EdgeEquality {
+  case object Never extends EdgeEquality {
+    def eq(other: EdgeEquality): Boolean = false
+  }
+  case class Unique(sourceId: NodeId, tpe: EdgeData.Type, key: String, targetId: NodeId) extends EdgeEquality {
+    def eq(other: EdgeEquality): Boolean = equals(other)
+  }
+  object Unique {
+    // unique constraints how they are defined in the database for edges
+    def apply(edge: Edge): Option[Unique] = edge match {
+      case _: Edge.Author => None
+      case e: Edge.LabeledProperty => Some(Unique(e.sourceId, e.data.tpe, e.data.key, e.targetId))
+      case e => Some(Unique(e.sourceId, e.data.tpe, null, e.targetId))
+    }
+  }
+
+  def apply(edge: Edge): EdgeEquality = Unique(edge).getOrElse(Never)
+}
