@@ -61,7 +61,8 @@ object UI {
 
           emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
             e.modal("hide")
-            // kill the ctx owner, so we stop updating this node when it is closed.
+              // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[modalconfig]]]
+              // workaround: kill the ctx owner, so we stop updating this node when it is closed.
             ctx.contextualRx.kill()
           },
           managedElement.asJquery { e =>
@@ -155,7 +156,8 @@ object UI {
           VDomModifier(
             emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
               e.sidebar("hide")
-              // kill the ctx owner, so we stop updating this node when it is closed.
+              // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[sidebarconfig]]]
+              // workaround: kill the ctx owner, so we stop updating this node when it is closed.
               ctx.contextualRx.kill()
             },
             managedElement.asJquery { e =>
