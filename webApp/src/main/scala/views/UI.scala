@@ -59,7 +59,7 @@ object UI {
           key := scala.util.Random.nextInt, // force new elem on every render. fixes slowly rendering modal in firefox
           config.modalModifier,
 
-          emitter(globalClose).useLatest(onDomMount.asJquery).foreach { e =>
+          emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
             e.modal("hide")
             // kill the ctx owner, so we stop updating this node when it is closed.
             ctx.contextualRx.kill()
