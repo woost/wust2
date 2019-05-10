@@ -246,7 +246,6 @@ object LeftSidebar {
         val channelForest = state.channelForest()
         val graph = state.graph()
         val page = state.page()
-        val pageStyle = state.pageStyle()
 
         VDomModifier(
           channelForest.map { channelTree =>
