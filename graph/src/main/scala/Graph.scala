@@ -850,10 +850,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentIds.exists(p.contains)
   }
 
-  lazy val incidentParentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
-  lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
-  lazy val incidentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
-
   def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
 
   //TODO: make faster
