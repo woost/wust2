@@ -8,9 +8,7 @@ import wust.util.algorithm.dfs
 import wust.util.macros.InlineList
 
 object KanbanData {
-  def inboxNodes(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[NodeId] = {
-    val focusedIdx = graph.idToIdx(focusedId)
-
+  def inboxNodes(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[NodeId] = graph.idToIdxFold(focusedId)(Seq.empty[NodeId]) { focusedIdx =>
     val topLevelStages = graph.childrenIdx(focusedIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
     val allStages: ArraySet = {
       val stages = ArraySet.create(graph.size)
@@ -38,9 +36,7 @@ object KanbanData {
     TaskOrdering.constructOrderingOf[NodeId](graph, focusedId, inboxTasks.map(graph.nodeIds(_)), identity, mode)
   }
 
-  def columns(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[NodeId] = {
-    val focusedIdx = graph.idToIdx(focusedId)
-
+  def columns(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[NodeId] = graph.idToIdxFold(focusedId)(Seq.empty[NodeId]){ focusedIdx =>
     val columnIds = graph.childrenIdx.flatMap[NodeId](focusedIdx) { idx =>
       val node = graph.nodes(idx)
       if (node.role == NodeRole.Stage) Array(node.id) else Array()
@@ -49,14 +45,12 @@ object KanbanData {
     TaskOrdering.constructOrderingOf[NodeId](graph, focusedId, columnIds, identity, mode)
   }
 
-  def columnNodes(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[(NodeId, NodeRole)] = {
-    graph.idToIdxGet(focusedId).fold(Seq.empty[(NodeId, NodeRole)]){ nodeIdx =>
-      val childrenIds = graph.childrenIdx.flatMap[(NodeId, NodeRole)](nodeIdx) { childIdx =>
-        val node = graph.nodes(childIdx)
-        if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role)) Array((node.id, node.role)) else Array()
-      }
-
-      TaskOrdering.constructOrderingOf[(NodeId, NodeRole)](graph, focusedId, childrenIds, { case (id, _) => id }, mode)
+  def columnNodes(graph: Graph, focusedId: NodeId, mode: SortMode = SortMode.Ascending): Seq[(NodeId, NodeRole)] = graph.idToIdxFold(focusedId)(Seq.empty[(NodeId, NodeRole)]){ nodeIdx =>
+    val childrenIds = graph.childrenIdx.flatMap[(NodeId, NodeRole)](nodeIdx) { childIdx =>
+      val node = graph.nodes(childIdx)
+      if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role)) Array((node.id, node.role)) else Array()
     }
+
+    TaskOrdering.constructOrderingOf[(NodeId, NodeRole)](graph, focusedId, childrenIds, { case (id, _) => id }, mode)
   }
 }

@@ -117,9 +117,8 @@ object GlobalStateFactory {
       val user = state.user.now
 
       page.parentId.fold(graph) { parentId =>
-        val userIdx = graph.idToIdxGet(user.id)
-        val pageIdx = graph.idToIdx(parentId)
-        if (pageIdx >= 0) {
+        val userIdx = graph.idToIdx(user.id)
+        graph.idToIdxFold(parentId)(graph) { pageIdx =>
           def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
           def pageIsInvited = userIdx.fold(false)(userIdx => graph.inviteNodeIdx.contains(userIdx)(pageIdx))
           def userIsMemberOfPage: Boolean = userIdx.fold(false)(userIdx => graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx))
@@ -139,7 +138,7 @@ object GlobalStateFactory {
             eventProcessor.changes.onNext(allChanges)
             graph.applyChanges(allChanges)
           } else graph
-        } else graph
+        }
       }
     }
 
@@ -246,7 +245,7 @@ object GlobalStateFactory {
     // switch to View name in title if view switches to non-content
     Rx {
       if (view().isContent) {
-        val channelName = page().parentId.flatMap(id => graph().nodesByIdGet(id).map(n => StringOps.trimToMaxLength(n.str, 30))).map(EmojiTitleConverter.emojiTitleConvertor.replace_colons)
+        val channelName = page().parentId.flatMap(id => graph().nodesById(id).map(n => StringOps.trimToMaxLength(n.str, 30))).map(EmojiTitleConverter.emojiTitleConvertor.replace_colons)
         window.document.title = channelName.fold(titleSuffix)(name => s"${if (name.contains("unregistered-user")) "Unregistered User" else name} - $titleSuffix")
       } else {
         window.document.title = s"${view().toString} - $titleSuffix"

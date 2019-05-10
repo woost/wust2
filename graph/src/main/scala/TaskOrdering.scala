@@ -21,8 +21,8 @@ object TaskOrdering {
   }
 
   def constructOrderingOf[T: ClassTag](graph: Graph, parentId: NodeId, container: Seq[T], extractNodeId: T => NodeId, mode: SortMode = SortMode.Ascending): Seq[T] = {
-    assert(container.forall(t => graph.idToIdxGet(extractNodeId(t)).isDefined), "every item in container has to be in the graph")
-    assert(container.forall(t => graph.parentsIdx.exists(graph.idToIdx(extractNodeId(t)))(idx => graph.nodeIds(idx) == parentId)), "parentId has to be a direct parent of all items in container")
+    assert(container.forall(t => graph.idToIdx(extractNodeId(t)).isDefined), "every item in container has to be in the graph")
+    assert(container.forall(t => graph.parentsIdx.exists(graph.idToIdxOrThrow(extractNodeId(t)))(idx => graph.nodeIds(idx) == parentId)), "parentId has to be a direct parent of all items in container")
 
     val sortable = container.map { elem =>
       val nodeId = extractNodeId(elem)

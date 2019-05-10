@@ -21,7 +21,7 @@ object GraphChangesAutomationUI {
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
   def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
     val header: VDomModifier = Rx {
-      state.rawGraph().nodesByIdGet(focusedId).map { node =>
+      state.rawGraph().nodesById(focusedId).map { node =>
         UI.ModalConfig.defaultHeader(state, node, "Automation", Icons.automate)
       }
     }
@@ -44,7 +44,7 @@ object GraphChangesAutomationUI {
 
       Rx {
         val graph = state.rawGraph()
-        val templates = graph.templateNodes(graph.idToIdx(focusedId))
+        val templates = graph.templateNodes(graph.idToIdxOrThrow(focusedId))
         if(templates.isEmpty) {
           VDomModifier(
             padding := "10px",
@@ -172,7 +172,7 @@ object GraphChangesAutomationUI {
 
       Rx {
         val graph = state.rawGraph()
-        val templates = graph.templateNodes(graph.idToIdx(focusedId))
+        val templates = graph.templateNodes(graph.idToIdxOrThrow(focusedId))
         if (templates.isEmpty) VDomModifier(
           UI.popup := "Automation: inactive",
           inactiveMod

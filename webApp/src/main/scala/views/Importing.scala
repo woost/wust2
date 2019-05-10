@@ -328,7 +328,7 @@ object Importing {
     val allSources = Source.all
 
     val header: VDomModifier = Rx {
-      state.rawGraph().nodesByIdGet(focusedId).map { node =>
+      state.rawGraph().nodesById(focusedId).map { node =>
         val header = selectedSource() match {
           case Some(source) => VDomModifier(source.icon(height := "1em", marginRight := "10px"), span(s"Import from ${source.description}"))
           case None => span("Import your data")

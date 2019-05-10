@@ -70,8 +70,8 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     s"Graph(nodes: ${nodes.length}, edges: ${edges.length})"
   }
 
-  def debug(node: Node): String = lookup.idToIdxGet(node.id).map(debug).toString
-  def debug(nodeId: NodeId): String = lookup.idToIdxGet(nodeId).map(debug).toString
+  def debug(node: Node): String = lookup.idToIdx(node.id).map(idx => debug(idx)).toString
+  def debug(nodeId: NodeId): String = lookup.idToIdx(nodeId).map(debug).toString
   def debug(nodeIds: Iterable[NodeId]): String = nodeIds.map(debug).mkString(", ")
   def debug(nodeIdx: Int): String = nodeStr(nodeIdx)
   def debug(nodesIdx: Seq[Int]): String = nodesIdx.map(debug).mkString(", ")
@@ -158,9 +158,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def createArraySet(ids: Iterable[NodeId]): ArraySet = {
     val marker = ArraySet.create(n)
     ids.foreach { id =>
-      val idx = idToIdx(id)
-      if (idx != -1)
-        marker.add(idx)
+      idToIdxForeach(id)(marker.add)
     }
     marker
   }
@@ -168,40 +166,41 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def createImmutableBitSet(ids: Iterable[NodeId]): immutable.BitSet = {
     val builder = immutable.BitSet.newBuilder
     ids.foreach { id =>
-      val idx = idToIdx(id)
-      if (idx != -1)
-        builder += idx
+      idToIdxForeach(id)(builder += _)
     }
     builder.result()
   }
 
-  private val _idToIdx = mutable.HashMap.empty[NodeId, Int]
-  _idToIdx.sizeHint(n)
+  private val _idToIdxMap = mutable.HashMap.empty[NodeId, Int]
+  _idToIdxMap.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
 
   nodes.foreachIndexAndElement { (i, node) =>
     val nodeId = node.id
-    _idToIdx(nodeId) = i
+    _idToIdxMap(nodeId) = i
     nodeIds(i) = nodeId
   }
 
-  def idToIdxOrThrow(id: NodeId): Int = _idToIdx.getOrElse(id, throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph"))
-  val idToIdx: collection.Map[NodeId, Int] = _idToIdx.withDefaultValue(-1)
-  @inline def idToIdxGet(nodeId: NodeId): Option[Int] = {
-    val idx = idToIdx(nodeId)
-    if (idx == -1) None
-    else Some(idx)
+  private val idToIdxMap = _idToIdxMap.withDefaultValue(-1)
+  @inline def idToIdxIsEmpty = idToIdxMap.isEmpty
+  @inline def idToIdxForeach[U](id: NodeId)(f: Int => U): Unit = {
+    val idx = idToIdxMap(id)
+    if (idx != -1) f(idx)
   }
-  @inline def nodesById(nodeId: NodeId): Node = nodes(idToIdx(nodeId))
-  @inline def nodesByIdGet(nodeId: NodeId): Option[Node] = {
-    val idx = idToIdx(nodeId)
-    if (idx == -1) None
-    else Some(nodes(idx))
+  @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
+    val idx = idToIdxMap(id)
+    if (idx == -1) default
+    else f(idx)
   }
+  @inline private def throwIdNotFound(id: NodeId) = throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph")
+  def idToIdxOrThrow(nodeId: NodeId): Int = idToIdxFold[Int](nodeId)(throwIdNotFound(nodeId))(x => x)
+  def idToIdx(nodeId: NodeId): Option[Int] = idToIdxFold[Option[Int]](nodeId)(None)(Some(_))
+  def nodesByIdOrThrow(nodeId: NodeId): Node = idToIdxFold[Node](nodeId)(throwIdNotFound(nodeId))(idx => nodes(idx))
+  def nodesById(nodeId: NodeId): Option[Node] = idToIdxFold[Option[Node]](nodeId)(None)(idx => Some(nodes(idx)))
 
-  @inline def contains(nodeId: NodeId): Boolean = idToIdx.isDefinedAt(nodeId)
+  @inline def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
 
-  assert(idToIdx.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
+  assert(idToIdxMap.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
 
   private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
@@ -247,10 +246,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   private val remorseTimeForDeletedParents: EpochMilli = EpochMilli(now - (24 * 3600 * 1000))
 
   edges.foreachIndexAndElement { (edgeIdx, edge) =>
-    val sourceIdx = idToIdx(edge.sourceId)
-    if (sourceIdx != -1) {
-      val targetIdx = idToIdx(edge.targetId)
-      if (targetIdx != -1) {
+    idToIdxForeach(edge.sourceId) { sourceIdx =>
+      idToIdxForeach(edge.targetId) { targetIdx =>
         consistentEdges.add(edgeIdx)
         edgesIdx.updatea(edgeIdx, sourceIdx)
         edgesIdx.updateb(edgeIdx, targetIdx)
@@ -481,24 +478,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
   val derivedFromTemplateReverseEdgeIdx: NestedArrayInt = derivedFromTemplateRerverseEdgeIdxBuilder.result()
 
-  def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).map(e => (e, graph.nodesById(e.targetId)))
-
-  private val parentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
-    if (idx != -1) parentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
-  }
-  private val notDeletedParentsByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
-    if (idx != -1) notDeletedParentsIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
-  }
-  @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdxGet(nodeId).flatMap(isExpanded(userId, _))
+  @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
   @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {
     case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).asInstanceOf[Edge.Expanded].data.isExpanded
   }
-  @inline def parents(nodeId: NodeId): collection.Set[NodeId] = parentsByIndex(idToIdx(nodeId))
-  @inline def notDeletedParents(nodeId: NodeId): collection.Set[NodeId] = notDeletedParentsByIndex(idToIdx(nodeId))
-  val childrenByIndex: Int => collection.Set[NodeId] = Memo.arrayMemo[collection.Set[NodeId]](n).apply { idx =>
-    if (idx != -1) childrenIdx(idx).map(i => nodes(i).id)(breakOut) else emptyNodeIdSet
-  }
-  @inline def children(nodeId: NodeId): collection.Set[NodeId] = childrenByIndex(idToIdx(nodeId))
+
+  //TODO these should not exist
+  @inline def parents(nodeId: NodeId): Set[NodeId] = idToIdx(nodeId).fold(emptyNodeIdSet)(idx => parentsIdx(idx).map(nodeIds(_))(breakOut))
+  @inline def children(nodeId: NodeId): Set[NodeId] = idToIdx(nodeId).fold(emptyNodeIdSet)(idx => childrenIdx(idx).map(nodeIds(_))(breakOut))
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
@@ -590,8 +577,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     def isRead(childIdx: Int): Boolean = readEdgeIdx.exists(childIdx)(edgeIdx => graph.edges(edgeIdx).targetId == userId)
 
     parentIds.foreach { nodeId =>
-      val nodeIdx = idToIdx(nodeId)
-      if (nodeIdx != -1) {
+      idToIdxForeach(nodeId) { nodeIdx =>
         childrenIdx.foreachElement(nodeIdx) { childIdx =>
           nodes(childIdx).role match {
             case NodeRole.Message =>
@@ -626,13 +612,13 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
-  val authorsByIndex: Int => Seq[Node.User] = Memo.arrayMemo[Seq[Node.User]](n).apply { idx =>
+  def authorsByIndex(idx: Int): Seq[Node.User] = {
     if (idx < 0) Nil
     else authorsIdx(idx).map(idx => nodes(idx).asInstanceOf[Node.User])
   }
-  @inline def authors(nodeId: NodeId): Seq[Node.User] = authorsByIndex(idToIdx(nodeId))
+  @inline def authors(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(authorsByIndex(_))
 
-  val authorsInByIndex: Int => Seq[Node.User] = Memo.arrayMemo[Seq[Node.User]](n).apply { idx =>
+  def authorsInByIndex(idx: Int): Seq[Node.User] = {
     if (idx < 0) Nil
     else {
       val rootAuthors = authorsByIndex(idx)
@@ -645,16 +631,15 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       builder.result().distinct
     }
   }
-  @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = authorsInByIndex(idToIdx(nodeId))
+  @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(authorsInByIndex(_))
 
-  val membersByIndex: Int => Seq[Node.User] = Memo.arrayMemo[Seq[Node.User]](n).apply { idx =>
-    membershipEdgeForNodeIdx(idx).map(edgeIdx => nodesById(edges(edgeIdx).asInstanceOf[Edge.Member].userId).asInstanceOf[Node.User])
+  def membersByIndex(idx: Int): Seq[Node.User] = {
+    membershipEdgeForNodeIdx(idx).flatMap(edgeIdx => nodesById(edges(edgeIdx).targetId).asInstanceOf[Option[Node.User]])
   }
-  @inline def members(nodeId: NodeId): Seq[Node.User] = membersByIndex(idToIdx(nodeId))
+  @inline def members(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(membersByIndex(_))
 
-  def usersInNode(id: NodeId): collection.Set[Node.User] = {
+  def usersInNode(id: NodeId): collection.Set[Node.User] = idToIdxFold(id)(collection.Set.empty[Node.User]) { nodeIdx =>
     val builder = new mutable.LinkedHashSet[Node.User]
-    val nodeIdx = idToIdx(id)
     val members = membersByIndex(nodeIdx)
     builder ++= members
     dfs.withManualAppend(_(nodeIdx), dfs.withStart, childrenIdx, append = { idx =>
@@ -675,24 +660,22 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
-  def getRoleParents(nodeId: NodeId, nodeRole: NodeRole): IndexedSeq[NodeId] =
-    parentsIdx(idToIdx(nodeId)).collect{ case idx if nodes(idx).role == nodeRole => nodeIds(idx) }
+  def getRoleParents(nodeId: NodeId, nodeRole: NodeRole): IndexedSeq[NodeId] = idToIdxFold(nodeId)(IndexedSeq.empty[NodeId]) { nodeIdx =>
+    parentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => nodeIds(idx) }
+  }
 
   def getRoleParentsIdx(nodeIdx: Int, nodeRole: NodeRole): IndexedSeq[Int] =
     parentsIdx(nodeIdx).collect{ case idx if nodes(idx).role == nodeRole => idx }
 
-  def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Child] = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).flatMap { e =>
+  def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Child] = idToIdxFold(nodeId)(IndexedSeq.empty[Edge.Child])(nodeIdx => graph.parentEdgeIdx(nodeIdx).map(edges).flatMap { e =>
     val parentEdge = e.asInstanceOf[Edge.Child]
     val deleted = parentEdge.data.deletedAt.fold(false)(_ isBefore now)
     if (deleted) Some(parentEdge) else None
-  }
-  def isPartiallyDeleted(nodeId: NodeId): Boolean = graph.parentEdgeIdx(idToIdx(nodeId)).map(edges).exists{ e => e.asInstanceOf[Edge.Child].data.deletedAt.fold(false)(_ isBefore now) }
+  })
+  def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).map(edges).exists{ e => e.asInstanceOf[Edge.Child].data.deletedAt.fold(false)(_ isBefore now) })
 
   def isInDeletedGracePeriod(nodeId: NodeId, parent: NodeId): Boolean = isInDeletedGracePeriod(nodeId, Iterable(parent))
-  def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
-    val nodeIdx = idToIdx(nodeId)
-    if (nodeIdx == -1) return false
-
+  def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = idToIdxFold(nodeId)(false){ nodeIdx =>
     @inline def nodeIsDeletedInAtLeastOneParent = inDeletedGracePeriodParentIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
@@ -701,7 +684,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       set
     }
 
-    @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => deletedParentSet.contains(idToIdx(parent)))
+    @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => idToIdxFold(parent)(true)(deletedParentSet.contains(_)))
 
     @inline def hasNoParents = parentsIdx.sliceIsEmpty(nodeIdx)
 
@@ -711,10 +694,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     } else false // node is nowhere deleted
   }
 
-  def isDeletedInFuture(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = {
-    val nodeIdx = idToIdx(nodeId)
-    if (nodeIdx == -1) return false
-
+  def isDeletedInFuture(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = idToIdxFold(nodeId)(false) { nodeIdx =>
     @inline def nodeIsDeletedInAtLeastOneParent = futureDeletedParentsIdx.sliceNonEmpty(nodeIdx)
 
     @inline def deletedParentSet = {
@@ -723,7 +703,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       set
     }
 
-    @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => deletedParentSet.contains(idToIdx(parent)))
+    @inline def deletedInAllSpecifiedParentIndices = parents.forall(parent => idToIdxFold(parent)(true)(deletedParentSet.contains(_)))
 
     @inline def hasNoParents = parentsIdx.sliceIsEmpty(nodeIdx)
 
@@ -779,8 +759,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     else !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   }
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
-  def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdx(nodeId), idToIdx(parentId))
-  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && isDeletedNowIdx(idToIdx(nodeId), parentIds.map(idToIdx))
+  def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdxMap(nodeId), idToIdxMap(parentId))
+  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && isDeletedNowIdx(idToIdxMap(nodeId), parentIds.map(idToIdxMap))
   def isDeletedNowInAllParents(nodeId: NodeId): Boolean = {
     val nodeIdx = idToIdxOrThrow(nodeId)
     val parentIndices = parentsIdx(nodeIdx)
@@ -858,13 +838,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   @inline def hasNotDeletedChildrenIdx(nodeIdx: Int): Boolean = notDeletedChildrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasNotDeletedParentsIdx(nodeIdx: Int): Boolean = notDeletedParentsIdx.sliceNonEmpty(nodeIdx)
 
-  @inline private def hasSomethingById(nodeId: NodeId, lookup: Int => Boolean) = {
-    val idx = idToIdx(nodeId)
-    if (idx == -1)
-      false
-    else
-      lookup(idx)
-  }
+  @inline private def hasSomethingById(nodeId: NodeId, lookup: Int => Boolean) = idToIdxFold(nodeId)(false)(lookup)
   def hasChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasChildrenIdx)
   def hasParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasParentsIdx)
 
@@ -880,13 +854,16 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val incidentChildContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
   lazy val incidentContainments: collection.Map[NodeId, collection.Set[Edge]] = ???
 
+  def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
+
   //TODO: make faster
   val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>
-    val pageIdx = graph.idToIdx(pageParentId)
-    (pageIdx +: graph.descendantsIdx(pageIdx)).flatMap { nodeIdx =>
-      graph.propertyPairIdx(nodeIdx).flatMap {
-        case (_, Node.Content(id, file: NodeData.File, _, _, _)) => Some(id -> file)
-        case (_, _) => None
+    graph.idToIdxFold(pageParentId)(Seq.empty[(NodeId, NodeData.File)]) { pageIdx =>
+      (pageIdx +: graph.descendantsIdx(pageIdx)).flatMap { nodeIdx =>
+        graph.propertyPairIdx(nodeIdx).flatMap {
+          case (_, Node.Content(id, file: NodeData.File, _, _, _)) => Some(id -> file)
+          case (_, _)                                              => None
+        }
       }
     }
   }
@@ -897,50 +874,18 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def involvedInNotDeletedContainmentCycleIdx(idx: Int): Boolean = {
     dfs.exists(_(idx), dfs.afterStart, notDeletedChildrenIdx, isFound = _ == idx)
   }
-  def involvedInContainmentCycle(id: NodeId): Boolean = {
-    val idx = idToIdx(id)
-    if (idx == -1) false
-    else involvedInContainmentCycleIdx(idx)
-  }
+  def involvedInContainmentCycle(id: NodeId): Boolean = idToIdxFold(id)(false)(involvedInContainmentCycleIdx)
 
-  def descendantsIdx(nodeIdx: Int) = _descendantsIdx(nodeIdx)
-  private val _descendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
-    dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
-  }
-  def descendants(nodeId: NodeId) = _descendants(idToIdx(nodeId))
-  private val _descendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
-    if (nodeIdx == -1) Nil
-    else descendantsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
-  }
+  def descendantsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
+  def descendants(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => descendantsIdx(nodeIdx).map(nodeIds))
 
-  def notDeletedDescendantsIdx(nodeIdx: Int) = _notDeletedDescendantsIdx(nodeIdx)
-  private val _notDeletedDescendantsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx: Int =>
-    dfs.toArray(_(nodeIdx), dfs.withoutStart, notDeletedChildrenIdx)
-  }
-  def notDeletedDescendants(nodeId: NodeId) = _notDeletedDescendants(idToIdx(nodeId))
-  private val _notDeletedDescendants: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
-    if (nodeIdx == -1) Nil
-    else notDeletedDescendantsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
-  }
+  def ancestorsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, parentsIdx)
+  def ancestors(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => ancestorsIdx(nodeIdx).map(nodeIds))
 
-  def ancestorsIdx(nodeIdx: Int) = _ancestorsIdx(nodeIdx)
-  private val _ancestorsIdx: Int => Array[Int] = Memo.arrayMemo[Array[Int]](n).apply { nodeIdx =>
-    dfs.toArray(_(nodeIdx), dfs.afterStart, parentsIdx)
-  }
-  def ancestors(nodeId: NodeId) = _ancestors(idToIdx(nodeId))
-  private val _ancestors: Int => Seq[NodeId] = Memo.arrayMemo[Seq[NodeId]](n).apply { nodeIdx =>
-    if (nodeIdx == -1) Nil
-    else ancestorsIdx(nodeIdx).map(nodeIds) // instead of dfs, we use already memoized results
-  }
-
-  def anyAncestorIsPinned(nodeIds: Iterable[NodeId], userId: NodeId): Boolean = {
-    val userIdx = idToIdx(userId)
-    if (userIdx == -1) return false
-
+  def anyAncestorIsPinned(nodeIds: Iterable[NodeId], userId: NodeId): Boolean = idToIdxFold(userId)(false) { userIdx =>
     val starts = new mutable.ArrayBuilder.ofInt
     nodeIds.foreach { nodeId =>
-      val idx = idToIdx(nodeId)
-      if (idx != -1) starts += idx
+      idToIdxForeach(nodeId)(starts += _)
     }
 
     val isPinnedSet = {
@@ -963,23 +908,25 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     ): Boolean = {
       if (visited(nodeId)) return false // prevent inheritance cycles
 
-      // is there a membership?
-      val levelFromMembership = membershipEdgeForNodeIdx(idToIdx(nodeId)).map(edges).collectFirst {
-        case Edge.Member(_, EdgeData.Member(level), `userId`) => level
-      }
-      levelFromMembership match {
-        case None => // if no member edge exists
-          // read access level directly from node
-          nodesById(nodeId).meta.accessLevel match {
-            case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
-            case NodeAccess.Inherited =>
-              // recursively inherit permissions from parents. minimum one parent needs to allow access.
-              parents(nodeId).exists(
-                parentId => can_access_node_recursive(userId, parentId, visited + nodeId)
-              )
-          }
-        case Some(level) =>
-          level == AccessLevel.ReadWrite
+      idToIdxFold(nodeId)(false) { nodeIdx =>
+        // is there a membership?
+        val levelFromMembership = membershipEdgeForNodeIdx(nodeIdx).map(edges).collectFirst {
+          case Edge.Member(_, EdgeData.Member(level), `userId`) => level
+        }
+        levelFromMembership match {
+          case None => // if no member edge exists
+            // read access level directly from node
+            nodesById(nodeId).exists(_.meta.accessLevel match {
+              case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
+              case NodeAccess.Inherited =>
+                // recursively inherit permissions from parents. minimum one parent needs to allow access.
+                parents(nodeId).exists(
+                  parentId => can_access_node_recursive(userId, parentId, visited + nodeId)
+                )
+            })
+          case Some(level) =>
+            level == AccessLevel.ReadWrite
+        }
       }
     }
 
@@ -1012,9 +959,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
 
     // everybody has full access to non-existent nodes
-    val nodeIdx = idToIdx(nodeId)
-    if (nodeIdx < 0) return Some(AccessLevel.ReadWrite)
-    inner(nodeIdx, immutable.BitSet.empty)
+    idToIdxFold[Option[AccessLevel]](nodeId)(None)(inner(_, immutable.BitSet.empty))
   }
 
   def doneNodeForWorkspace(workspaceIdx: Int): Option[Int] = graph.childrenIdx.find(workspaceIdx) { nodeIdx =>
@@ -1127,8 +1072,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree]).sortBy(_.node.id)
   }
 
-  def notDeletedChannelTree(user: UserId): Seq[Tree] = {
-    val userIdx = idToIdx(user)
+  def notDeletedChannelTree(user: UserId): Seq[Tree] = idToIdxFold(user)(Seq.empty[Tree]) { userIdx =>
     val channelIndices = pinnedNodeIdx(userIdx)
     val isChannel = ArraySet.create(n)
     pinnedNodeIdx.foreachElement(userIdx)(isChannel.add)

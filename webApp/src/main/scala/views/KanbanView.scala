@@ -151,7 +151,7 @@ object KanbanView {
     val editable = Var(false)
     val node = Rx {
       val graph = state.graph()
-      graph.nodesById(nodeId)
+      graph.nodesByIdOrThrow(nodeId)
     }
     val isExpanded = Rx {
       val graph = state.graph()
@@ -284,7 +284,7 @@ object KanbanView {
     def submitAction(userId: UserId)(str:String) = {
       val createdNode = Node.MarkdownTask(str)
       val graph = state.graph.now
-      val workspaces:Set[ParentId] = graph.workspacesForParent(graph.idToIdx(parentId)).map(idx => ParentId(graph.nodeIds(idx)))(breakOut)
+      val workspaces:Set[ParentId] = graph.workspacesForParent(graph.idToIdxOrThrow(parentId)).map(idx => ParentId(graph.nodeIds(idx)))(breakOut)
       val addNode = GraphChanges.addNodeWithParent(createdNode, workspaces + ParentId(parentId))
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
 

@@ -65,7 +65,7 @@ object Client {
   val slackApi = slackClient.wire[PluginApi]
 
   val apiErrorSubject = PublishSubject[Unit]
-  val factory: WustClientFactory[Future] = WustClient(wustUrl, apiErrorSubject)
+  val factory: WustClientFactory[Future] = WustClient(wustUrl, apiErrorSubject, enableRequestLogging = DevOnly.isTrue)
   val api = factory.defaultPriority.api
   val auth = factory.defaultPriority.auth
   val push = factory.defaultPriority.push

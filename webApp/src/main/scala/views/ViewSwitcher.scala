@@ -122,7 +122,7 @@ object ViewSwitcher {
 
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
       closeDropdown.onNext(())
-      val node = state.graph.now.nodesByIdGet(channelId)
+      val node = state.graph.now.nodesById(channelId)
       node.foreach { node =>
         val currentViews = node.views match {
           case None        => ViewHeuristic.bestView(state.graph.now, node).toList // no definitions yet, take the current view and additionally a new one
@@ -146,7 +146,7 @@ object ViewSwitcher {
 
     def resetViews() = {
       closeDropdown.onNext(())
-      val node = state.graph.now.nodesByIdGet(channelId)
+      val node = state.graph.now.nodesById(channelId)
       node.foreach { node =>
         if (node.views.isDefined) {
           val newNode = node match {
@@ -166,7 +166,7 @@ object ViewSwitcher {
 
     def removeView(view: View.Visible) = {
       closeDropdown.onNext(())
-      val node = state.graph.now.nodesByIdGet(channelId)
+      val node = state.graph.now.nodesById(channelId)
       node.foreach { node =>
         val existingViews = node.views.getOrElse(Nil)
         val filteredViews = existingViews.filterNot(_ == view)
@@ -188,7 +188,7 @@ object ViewSwitcher {
     }
 
     val node = Rx {
-      state.graph().nodesById(channelId)
+      state.graph().nodesByIdOrThrow(channelId)
     }
 
     def addNewTabDropdown = div(
@@ -282,12 +282,12 @@ object ViewSwitcher {
         val currentView = viewRx()
         val pageStyle = PageStyle.ofNode(Some(channelId))
         val graph = state.graph()
-        val channelNode = graph.nodesByIdGet(channelId)
+        val channelNode = graph.nodesById(channelId)
 
-        def bestView = graph.nodesByIdGet(channelId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
+        def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
 
         val (numMsg, numTasks, numFiles) = if(!BrowserDetect.isPhone) {
-          val nodeIdx = graph.idToIdx(channelId)
+          val nodeIdx = graph.idToIdxOrThrow(channelId)
           val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
           val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
           val filesCount = graph.pageFiles(channelId).length

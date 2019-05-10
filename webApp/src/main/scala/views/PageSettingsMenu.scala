@@ -34,8 +34,8 @@ object PageSettingsMenu {
 
   def nodeIsBookmarked(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
     val g = state.graph()
-    val channelIdx = g.idToIdx(channelId)
-    val userIdx = g.idToIdx(state.user().id)
+    val channelIdx = g.idToIdxOrThrow(channelId)
+    val userIdx = g.idToIdxOrThrow(state.user().id)
     state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
   }
 
@@ -44,7 +44,7 @@ object PageSettingsMenu {
       val isBookmarked = nodeIsBookmarked(state, channelId)
 
       val channelAsNode: Rx[Option[Node]] = Rx {
-        state.graph().nodesByIdGet(channelId)
+        state.graph().nodesById(channelId)
       }
       val channelAsContent: Rx[Option[Node.Content]] = channelAsNode.map(_.collect { case n: Node.Content => n })
       val channelIsContent: Rx[Boolean] = channelAsContent.map(_.isDefined)
@@ -447,8 +447,7 @@ object PageSettingsMenu {
           marginLeft := "10px",
           Rx {
             val graph = state.graph()
-            val nodeIdx = graph.idToIdx(node.id)
-            if(nodeIdx != -1) {
+            graph.idToIdx(node.id).map { nodeIdx =>
               graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
                 val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
                 val user = graph.nodesById(membership.userId).asInstanceOf[User]
@@ -461,7 +460,7 @@ object PageSettingsMenu {
                   )
                 )
               }:VDomModifier
-            } else VDomModifier.empty
+            }
           },
           if(true) VDomModifier.empty else List(div)
         )

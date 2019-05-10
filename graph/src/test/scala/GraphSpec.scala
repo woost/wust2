@@ -23,11 +23,11 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
   "graph" - {
     "empty is empty" in {
-      Graph.empty.lookup.idToIdx mustBe empty
+      Graph.empty.lookup.idToIdxIsEmpty mustBe true
 
       Graph.empty.nodes mustBe empty
 
-      Graph().lookup.idToIdx mustBe empty
+      Graph().lookup.idToIdxIsEmpty mustBe true
 
       Graph().nodes mustBe empty
     }
@@ -458,7 +458,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
-      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = false)
+      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdxOrThrow(node.id), excludeCycleLeafs = false)
 
       "root only" in {
         val g = Graph(
@@ -531,7 +531,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
       import Tree._
       implicit def node(id:String):Node = Node.Content(NodeId(stringToCuid(id)), NodeData.PlainText(id.toString), NodeRole.default)
       def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
-      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdx(node.id), excludeCycleLeafs = true)
+      def redundantTree(g:Graph, node:Node) = g.redundantTree(g.idToIdxOrThrow(node.id), excludeCycleLeafs = true)
 
       "root only" in {
         val g = Graph(

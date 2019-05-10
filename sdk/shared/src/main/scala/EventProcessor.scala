@@ -179,7 +179,7 @@ class EventProcessor private (
   graph.withLatestFrom(currentAuth)((_,_)).subscribe(
     {
       case (graph, auth@Authentication.Verified(user: AuthUser.Persisted, _, _)) =>
-        graph.nodesByIdGet(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
+        graph.nodesById(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
           val newName = userNode.data.name
           if (newName != user.name) currentAuthUpdate.onNext(auth.copy(user = user.updateName(name = newName)))
           else Ack.Continue

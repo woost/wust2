@@ -27,7 +27,7 @@ import wust.util._
 object DashboardView {
 
   private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
-    val pageParentIdx = graph.idToIdx(focusedId)
+    val pageParentIdx = graph.idToIdxOrThrow(focusedId)
     val directSubProjects = graph.projectChildrenIdx(pageParentIdx)
     directSubProjects.map(graph.nodes).sortBy(_.str)
   }
@@ -60,7 +60,7 @@ object DashboardView {
             Rx{
               val graph = state.graph()
               for{
-                node <- graph.nodesByIdGet(focusState.focusedId)
+                node <- graph.nodesById(focusState.focusedId)
                 viewList <- node.views
               } yield VDomModifier(
                 VDomModifier.ifTrue(viewList.exists(view => view == View.List || view == View.Kanban))(

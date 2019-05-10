@@ -97,8 +97,8 @@ object GraphView {
   def onDrop(state: GlobalState)(draggingId: NodeId, targetId: NodeId, ctrl: Boolean): Boolean = {
     val graph = state.graph.now
 
-    def payload:DragPayload = { roleToDragItemPayload.applyOrElse((draggingId, graph.nodesById(draggingId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
-    def target:DragTarget = { roleToDragItemTarget.applyOrElse((targetId, graph.nodesById(targetId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
+    def payload:DragPayload = { roleToDragItemPayload.applyOrElse((draggingId, graph.nodesByIdOrThrow(draggingId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
+    def target:DragTarget = { roleToDragItemTarget.applyOrElse((targetId, graph.nodesByIdOrThrow(targetId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
 
     val changes = for {
       changes <- DragActions.dragAction.lift((payload, target, ctrl, false))

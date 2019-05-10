@@ -60,7 +60,7 @@ object TagList {
           VDomModifier.ifTrue(state.view().isContent)(
             backgroundColor := state.pageStyle().bgLightColor,
             page.parentId.map { pageParentId =>
-              val pageParentIdx = graph.idToIdx(pageParentId)
+              val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
               val workspaces = graph.workspacesForParent(pageParentIdx)
               val firstWorkspaceIdx = workspaces.head
               val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
@@ -86,7 +86,7 @@ object TagList {
 
     val tags:Rx[Seq[Tree]] = Rx {
       val graph = state.graph()
-      val workspaceIdx = graph.idToIdx(workspaceId)
+      val workspaceIdx = graph.idToIdxOrThrow(workspaceId)
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 

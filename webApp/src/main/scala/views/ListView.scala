@@ -124,7 +124,7 @@ object ListView {
     }
 
     val stage = Rx {
-      state.graph().nodesById(nodeId)
+      state.graph().nodesByIdOrThrow(nodeId)
     }
 
     val isDone = Rx {

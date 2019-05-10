@@ -80,8 +80,7 @@ object RightSidebar {
         Seq(
           accordionEntry(VDomModifier(Rx {
             val graph = state.rawGraph()
-            val node = graph.nodesById(focusPref.nodeId)
-            node.role.toString
+            graph.nodesById(focusPref.nodeId).fold("")(_.role.toString)
           }), VDomModifier(
             nodeContent(state, focusPref, parentIdAction),
             overflowY.auto,
@@ -113,7 +112,7 @@ object RightSidebar {
   }
   private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
-    val initialView = graph.nodesByIdGet(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
+    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
     def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
 
@@ -162,7 +161,7 @@ object RightSidebar {
     val editMode = Var(false)
 
     val node = Rx {
-      state.graph().nodesById(focusPref.nodeId)
+      state.graph().nodesByIdOrThrow(focusPref.nodeId)
     }
 
     val hasNotDeletedParents = Rx {

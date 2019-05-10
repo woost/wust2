@@ -8,7 +8,7 @@ object ViewHeuristic {
   def apply(graph:Graph, parentId: NodeId, view: Option[View]): Option[View.Visible] = view match {
     case Some(view) => visibleView(graph, parentId, view)
     case None =>
-      graph.idToIdxGet(parentId).flatMap[View.Visible] { parentIdx =>
+      graph.idToIdx(parentId).flatMap[View.Visible] { parentIdx =>
         val node = graph.nodes(parentIdx)
         bestView(graph, node)
       }
@@ -17,7 +17,7 @@ object ViewHeuristic {
   def visibleView(graph: Graph, parentId: NodeId, view: View): Option[View.Visible] = view match {
     case view: View.Visible => Some(view)
     case View.Tasks =>
-      graph.idToIdxGet(parentId).map { parentIdx =>
+      graph.idToIdx(parentId).map { parentIdx =>
         val stageCount = graph.childrenIdx(parentIdx).count { childIdx =>
           val node = graph.nodes(childIdx)
           node.role == NodeRole.Stage && !graph.isDoneStage(node)

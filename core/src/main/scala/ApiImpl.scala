@@ -113,7 +113,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
         case _ => None
       }
 
-      parentId.flatMap(graph.idToIdxGet).fold[List[api.SimpleNode]](graph.nodes.flatMap(toSimpleNode)(breakOut)) { parentIdx =>
+      parentId.flatMap(graph.idToIdx).fold[List[api.SimpleNode]](graph.nodes.flatMap(toSimpleNode)(breakOut)) { parentIdx =>
         graph.notDeletedChildrenIdx(parentIdx).flatMap(idx => toSimpleNode(graph.nodes(idx)))(breakOut)
       }
     }

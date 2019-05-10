@@ -15,7 +15,7 @@ object FilesView {
       val graph = state.graph()
 
       graph.pageFiles(focusState.focusedId).map { case (id, data) =>
-        val creationDate = graph.nodeCreated(graph.idToIdx(id))
+        val creationDate = graph.nodeCreated(graph.idToIdxOrThrow(id))
         (id, data, creationDate)
       }.sortBy { case (_, _, date) => date }.reverse
     }

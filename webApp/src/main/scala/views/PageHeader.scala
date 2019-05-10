@@ -43,7 +43,7 @@ object PageHeader {
   private def pageRow(state: GlobalState, pageNodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val pageNode = Rx {
-      state.graph().nodesById(pageNodeId)
+      state.graph().nodesByIdOrThrow(pageNodeId)
     }
 
     val channelTitle = Rx {
@@ -158,7 +158,7 @@ object PageHeader {
       registerDragContainer(state),
       Rx {
         val graph = state.graph()
-        val nodeIdx = graph.idToIdx(channelId)
+        val nodeIdx = graph.idToIdxOrThrow(channelId)
         val members = graph.membersByIndex(nodeIdx)
 
         members.map(user => div(
