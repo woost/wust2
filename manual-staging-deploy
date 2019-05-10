@@ -2,7 +2,15 @@
 set -e
 set -o pipefail
 
-ci/build-docker
+git_branch=$(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD) # branch, or fall back to commit hash
+
+if [[ "$git_branch" != "staging" ]]; then
+    echo "Please switch to staging branch to deploy staging."
+    exit 0
+fi
+
+sbt clean
+OVERRIDE_BRANCH=staging ci/build-docker
 
 [[ -n "$DOCKER_USERNAME" ]] || exit 0
 [[ -n "$DOCKER_PASSWORD" ]] || exit 0
@@ -15,7 +23,10 @@ docker push "$DOCKER_REGISTRY/woost/db-migration:latest-core"
 docker push "$DOCKER_REGISTRY/woost/core:latest"
 docker push "$DOCKER_REGISTRY/woost/web:latest"
 
-[[ -n "$STAGING_URL" ]] || exit 0
-echo "Triggering staging deploy..."
-sleep 3
-curl "$STAGING_URL"
+if [[ -n "$STAGING_URL" ]]; then
+    echo "Triggering staging deploy..."
+    sleep 3
+    curl "$STAGING_URL"
+else
+    echo "Not triggering deploy, since no STAGING_URL given"
+fi
