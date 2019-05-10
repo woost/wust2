@@ -124,8 +124,8 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
 }
 
 private[sdk] trait NativeWustClient {
-  def apply(location: String, apiError: Observer[Unit])(implicit ec: ExecutionContext): WustClientFactory[Future] = {
-    val logger = if (LinkingInfo.developmentMode) new BrowserLogHandler(apiError)
+  def apply(location: String, apiError: Observer[Unit], enableRequestLogging: Boolean)(implicit ec: ExecutionContext): WustClientFactory[Future] = {
+    val logger = if (enableRequestLogging) new BrowserLogHandler(apiError)
     else new LogHandler[Future] //new DefaultLogHandler[Future](identity)
     new WustClientFactory(
       WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, logger)

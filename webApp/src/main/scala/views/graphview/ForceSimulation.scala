@@ -151,7 +151,7 @@ class ForceSimulation(
       scribe.info(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
       time(log("filtering graph")) {
         val graph = state.graph()
-        val focusedIdx = graph.idToIdx(focusState.focusedId)
+        val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val taskChildrenSet = graph.taskChildrenIdx.toArraySet(focusedIdx)
         val tagSet = ArraySet.create(graph.size)
         graph.nodes.foreachIndexAndElement{ (i,elem) =>

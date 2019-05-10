@@ -100,7 +100,7 @@ object ChatView {
           Styles.flex,
           currentReply().map { replyNodeId =>
             val isDeletedNow = graph.isDeletedNow(replyNodeId, focusState.focusedId)
-            val node = graph.nodesById(replyNodeId)
+            val node = graph.nodesByIdOrThrow(replyNodeId)
             div(
               padding := "5px",
               minWidth := "0", // fixes overflow-wrap for parent preview
@@ -208,11 +208,11 @@ object ChatView {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = state.graph()
-      graph.idToIdxGet(groupHeadId).flatMap(graph.nodeCreator)
+      graph.idToIdx(groupHeadId).flatMap(graph.nodeCreator)
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
 
-    val pageParentIdx = groupGraph.idToIdxGet(pageParentId)
+    val pageParentIdx = groupGraph.idToIdx(pageParentId)
     val commonParentsIdx = pageParentIdx.fold(IndexedSeq.empty[Int]){ pageParentIdx =>
       groupGraph.parentsIdx(group(0)).filter{ idx =>
         val role = groupGraph.nodes(idx).role
@@ -276,7 +276,7 @@ object ChatView {
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
                 val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
 
-                val isDeletedNow = state.graph.map(g => g.idToIdxGet(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
+                val isDeletedNow = state.graph.map(g => g.idToIdx(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
 
                 renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
@@ -300,9 +300,9 @@ object ChatView {
 
     def messageHeader: VDomModifier = if (inReplyGroup) Rx {
       val graph = state.graph()
-      val idx = graph.idToIdx(nodeId)
+      val idx = graph.idToIdxOrThrow(nodeId)
       val author: Option[Node.User] = graph.nodeCreator(idx)
-      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdx(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), nodeId, author.map(smallAuthorAvatar))
+      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdxOrThrow(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), nodeId, author.map(smallAuthorAvatar))
       else VDomModifier.empty
     } else VDomModifier.empty
 
@@ -347,15 +347,14 @@ object ChatView {
   )(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = state.graph()
-      val idx = graph.idToIdx(parentId)
-      val authors = graph.authors(parentId)
-      val creationEpochMillis = if(idx == -1) None else Some(graph.nodeCreated(idx))
-      (authors.headOption, creationEpochMillis)
+      graph.idToIdxFold(parentId)((Option.empty[Node.User], Option.empty[EpochMilli])) { parentIdx =>
+        (graph.authorsByIndex(parentIdx).headOption, Some(graph.nodeCreated(parentIdx)))
+      }
     }
 
     val parent = Rx{
       val graph = state.graph()
-      graph.nodesByIdGet(parentId)
+      graph.nodesById(parentId)
     }
 
     div(
@@ -409,32 +408,32 @@ object ChatView {
   }
 
   private def selectChatMessages(pageParentId: NodeId, graph: Graph): js.Array[Int] = {
-    val pageParentIdx = graph.idToIdx(pageParentId)
-    val nodeSet = ArraySet.create(graph.nodes.length)
-    var nodeCount = 0
-    if(pageParentIdx == -1) return js.Array[Int]()
+    graph.idToIdxFold(pageParentId)(js.Array[Int]()) { pageParentIdx =>
+      val nodeSet = ArraySet.create(graph.nodes.length)
+      var nodeCount = 0
 
-    dfs.withContinue(_(pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = {nodeIdx =>
-      val node = graph.nodes(nodeIdx)
-      node.role match {
-        case NodeRole.Message =>
-          nodeSet.add(nodeIdx)
-          nodeCount += 1
-        case _ =>
-      }
-      true // always continue traversal
-    })
+      dfs.withContinue(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
+        val node = graph.nodes(nodeIdx)
+        node.role match {
+          case NodeRole.Message =>
+            nodeSet.add(nodeIdx)
+            nodeCount += 1
+          case _                =>
+        }
+        true // always continue traversal
+      })
 
-    val nodes = new js.Array[Int](nodeCount)
-    nodeSet.foreachIndexAndElement( (i,nodeIdx) => nodes(i) = nodeIdx)
-    sortByCreated(nodes, graph)
-    nodes
+      val nodes = new js.Array[Int](nodeCount)
+      nodeSet.foreachIndexAndElement((i, nodeIdx) => nodes(i) = nodeIdx)
+      sortByCreated(nodes, graph)
+      nodes
+    }
   }
 
   private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentId: NodeId): Array[Array[Int]] = {
     if(messages.isEmpty) return Array[Array[Int]]()
 
-    val pageParentIdx = graph.idToIdx(pageParentId)
+    val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
     val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
     val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
     var lastAuthor: Int = -2 // to distinguish between no author and no previous group

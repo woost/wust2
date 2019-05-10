@@ -95,7 +95,7 @@ object BreadCrumbs {
               e.stopPropagation()
             }
           )
-          graph.nodesByIdGet(nid) match {
+          graph.nodesById(nid) match {
             // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
             // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
             case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>

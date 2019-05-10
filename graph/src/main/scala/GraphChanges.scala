@@ -70,7 +70,7 @@ case class GraphChanges(
     def id(nid: NodeId): String = {
       val str = (
         for {
-          node <- addNodeLookup.get(nid).orElse(graph.lookup.nodesByIdGet(nid))
+          node <- addNodeLookup.get(nid).orElse(graph.lookup.nodesById(nid))
         } yield node.str
       ).fold("")(str => s"${ "\"" }$str${ "\"" }")
       s"[${ nid.shortHumanReadable }]$str"
@@ -159,9 +159,9 @@ object GraphChanges {
     addEdges = Set(Edge.Child.delete(parentId, childId))
   )
 
-  def deleteFromGraph(childId: ChildId, graph:Graph, timestamp: EpochMilli = EpochMilli.now) = {
+  def deleteFromGraph(childId: ChildId, graph:Graph, timestamp: EpochMilli = EpochMilli.now) = graph.idToIdxFold(childId)(GraphChanges.empty) { childIdx =>
     GraphChanges(
-      addEdges = graph.parentEdgeIdx(graph.idToIdx(childId)).flatMap { edgeIdx =>
+      addEdges = graph.parentEdgeIdx(childIdx).flatMap { edgeIdx =>
         val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
         if (edge.data.deletedAt.isDefined) None
         else Some(edge.copy(data = edge.data.copy(deletedAt = Some(timestamp))))
@@ -223,8 +223,7 @@ object GraphChanges {
       .map { subjectId =>
         // if subject was not deleted in one of its parents => keep it
         // if it was deleted, take the latest deletion date
-        val subjectIdx = graph.idToIdx(subjectId)
-        val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
+        val deletedAt = graph.idToIdxFold(subjectId)(Option.empty[EpochMilli])(graph.latestDeletedAt)
 
         Edge.Child(newParentId, deletedAt, subjectId)
       }(breakOut)
@@ -234,8 +233,8 @@ object GraphChanges {
       for {
         subject <- cycleFreeSubjects
         parent <- graph.parents(subject)
-        subjectRole = graph.nodesById(subject).role
-        parentRole = graph.nodesById(parent).role
+        subjectRole <- graph.nodesById(subject).map(_.role)
+        parentRole <- graph.nodesById(parent).map(_.role)
         // moving nodes should keep its tags. Except for tags itself.
         if subjectRole == NodeRole.Tag || (subjectRole != NodeRole.Tag && parentRole != NodeRole.Tag)
       } yield Edge.Child(ParentId(parent), ChildId(subject))
@@ -252,8 +251,7 @@ object GraphChanges {
   @inline def moveInto(nodeIds: Iterable[ChildId], newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
   }
-  def movePinnedChannel(channelId: ChildId, targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = {
-    val channelIdx = graph.idToIdx(channelId)
+  def movePinnedChannel(channelId: ChildId, targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = graph.idToIdxFold(channelId)(GraphChanges.empty) { channelIdx =>
     val directParentsInChannelTree = graph.parentsIdx(channelIdx).collect {
       case parentIdx if graph.anyAncestorIsPinned(graph.nodeIds(parentIdx) :: Nil, userId) => ParentId(graph.nodeIds(parentIdx))
     }
@@ -286,8 +284,7 @@ object GraphChanges {
   def linkInto(nodeIds: Iterable[ChildId], tagIds: Iterable[ParentId], graph:Graph): GraphChanges = {
     // tags will be added with the same (latest) deletedAt date, which the node already has for other parents
     nodeIds.foldLeft(GraphChanges.empty) { (currentChange, nodeId) =>
-      val subjectIdx = graph.idToIdx(nodeId)
-      val deletedAt = if(subjectIdx == -1) None else graph.latestDeletedAt(subjectIdx)
+      val deletedAt = graph.idToIdxFold(nodeId)(Option.empty[EpochMilli])(graph.latestDeletedAt)
       currentChange merge GraphChanges.connect[ParentId, ChildId, Option[EpochMilli], Edge.Child](Edge.Child(_, _, _))(tagIds, deletedAt, nodeIds)
     }
   }

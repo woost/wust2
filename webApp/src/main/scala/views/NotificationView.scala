@@ -164,7 +164,7 @@ object NotificationView {
   }
 
   private def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
-    graph.idToIdxGet(parentNodeId).foreach { parentNodeIdx =>
+    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node match {
@@ -192,7 +192,7 @@ object NotificationView {
   private def calculateNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
-    graph.idToIdxGet(parentNodeId).foreach { parentNodeIdx =>
+    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node match {

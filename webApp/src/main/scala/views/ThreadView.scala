@@ -156,7 +156,7 @@ object ThreadView {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = state.graph()
-      graph.nodeCreator(graph.idToIdx(groupHeadId))
+      graph.nodeCreator(graph.idToIdxOrThrow(groupHeadId))
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
     val firstNodeId = groupGraph.nodeIds(group(0))
@@ -329,8 +329,7 @@ object ThreadView {
     val nodeSet = ArraySet.create(graph.nodes.length)
     //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
     parentIds.foreach { parentId =>
-      val parentIdx = graph.idToIdx(parentId)
-      if(parentIdx != -1) {
+      graph.idToIdxForeach(parentId) { parentIdx =>
         graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
           val childNode = graph.nodes(childIdx)
           if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || (childNode.role.isInstanceOf[NodeRole.ContentRole] && graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role))))

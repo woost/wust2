@@ -316,7 +316,7 @@ object SharedViewElements {
     val node = Rx {
       // we need to get the latest node content from the graph
       val graph = state.graph()
-      graph.nodesByIdGet(nodeId) //TODO: why option? shouldn't the node always exist?
+      graph.nodesById(nodeId) //TODO: why option? shouldn't the node always exist?
     }
 
     val propertyData = Rx {
@@ -404,7 +404,9 @@ object SharedViewElements {
         authorName(state, author),
         creationDate(creationEpochMillis),
         state.graph.map { graph =>
-          modifications(author, graph.nodeModifier(graph.idToIdx(nodeId)))
+          graph.idToIdx(nodeId).map { nodeIdx =>
+            modifications(author, graph.nodeModifier(nodeIdx))
+          }
         },
       )
     },
@@ -413,7 +415,7 @@ object SharedViewElements {
   def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
-      graph.idToIdxGet(nodeId).map { nodeIdx =>
+      graph.idToIdx(nodeId).map { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         val selection = selectedNodes()
         // payload is call by name, so it's always the current selectedNodeIds
@@ -496,7 +498,7 @@ object SharedViewElements {
   def messageTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
       val graph = state.graph()
-      graph.idToIdxGet(nodeId).map{ nodeIdx =>
+      graph.idToIdx(nodeId).map{ nodeIdx =>
         val directNodeTags = graph.directNodeTags(nodeIdx)
         VDomModifier.ifTrue(directNodeTags.nonEmpty)(
           state.screenSize.now match {
@@ -670,7 +672,7 @@ object SharedViewElements {
   def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean], alwaysShow: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
       val graph = state.graph()
-      graph.messageChildrenIdx.sliceLength(graph.idToIdx(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdx(nodeId))
+      graph.messageChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId))
     }
     Rx {
       if(isExpanded()) {

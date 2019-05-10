@@ -37,7 +37,7 @@ object MainView {
     val viewWidthMod = minWidth := s"${320-LeftSidebar.minWidthSidebar}px"
 
     val projectName = Rx {
-      state.page().parentId.map(pid => state.graph().nodesById(pid).str)
+      state.page().parentId.map(pid => state.graph().nodesByIdOrThrow(pid).str)
     }
     val viewIsContent = Rx {
       state.view().isContent

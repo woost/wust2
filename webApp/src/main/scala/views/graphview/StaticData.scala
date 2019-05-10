@@ -158,7 +158,7 @@ object StaticData {
       var maxRadius = 0.0
       var reservedArea = 0.0
       selection.each[html.Element] { (elem: html.Element, node: Node, i: Int) =>
-        if(graph.nodesById(node.id).role == NodeRole.Tag) {
+        if(graph.nodesByIdOrThrow(node.id).role == NodeRole.Tag) {
           staticData.bgColor(i) = tagColor(node.id).toCSS
           staticData.nodeCssClass(i) = "graphnode-tag"
         } else {
@@ -195,19 +195,17 @@ object StaticData {
       staticData.maxRadius = maxRadius
       staticData.totalReservedArea = reservedArea
 
-      val nodeIdToIndex = graph.idToIdx
-
       var i = 0
       while (i < edgeCount) {
-        staticData.source(i) = nodeIdToIndex(edges(i).sourceId)
-        staticData.target(i) = nodeIdToIndex(edges(i).targetId)
+        staticData.source(i) = graph.idToIdxOrThrow(edges(i).sourceId)
+        staticData.target(i) = graph.idToIdxOrThrow(edges(i).targetId)
         i += 1
       }
 
       i = 0
       while (i < containmentCount) {
-        val child = nodeIdToIndex(containments(i).targetId)
-        val parent = nodeIdToIndex(containments(i).sourceId)
+        val child = graph.idToIdxOrThrow(containments(i).targetId)
+        val parent = graph.idToIdxOrThrow(containments(i).sourceId)
         staticData.containmentChild(i) = child
         staticData.containmentParent(i) = parent
         staticData.containmentTest.set(child, parent)

@@ -69,7 +69,7 @@ object TaskNodeCard {
     }
     val taskStats = Rx {
       val graph = state.graph()
-      val nodeIdx = graph.idToIdx(nodeId)
+      val nodeIdx = graph.idToIdxOrThrow(nodeId)
 
       val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
 
@@ -108,8 +108,8 @@ object TaskNodeCard {
       }
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
-        val focusedIdx = graph.idToIdx(focusState.focusedId)
-        val nodeIdx = graph.idToIdx(nodeId)
+        val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
+        val nodeIdx = graph.idToIdxOrThrow(nodeId)
         val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
@@ -263,7 +263,7 @@ object TaskNodeCard {
 
     val node = Rx {
       val graph = state.graph()
-      graph.nodesById(nodeId)
+      graph.nodesByIdOrThrow(nodeId)
     }
 
     VDomModifier(
@@ -340,7 +340,7 @@ object TaskNodeCard {
     }
     val taskStats = Rx {
       val graph = state.graph()
-      val nodeIdx = graph.idToIdx(node.id)
+      val nodeIdx = graph.idToIdxOrThrow(node.id)
 
       val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
 
@@ -379,8 +379,8 @@ object TaskNodeCard {
       }
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
-        val focusedIdx = graph.idToIdx(focusState.focusedId)
-        val nodeIdx = graph.idToIdx(node.id)
+        val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
+        val nodeIdx = graph.idToIdxOrThrow(node.id)
         val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))

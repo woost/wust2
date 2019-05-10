@@ -72,7 +72,7 @@ object SelectedNodes {
 //      alignItems.center,
       flexWrap.wrap,
       selectedNodeIds.map { nodeId =>
-          val node = graph.nodesById(nodeId)
+          val node = graph.nodesByIdOrThrow(nodeId)
           selectedNodeCard(state, selectedNodes, node)
         }
     )

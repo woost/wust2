@@ -142,7 +142,7 @@ object LeftSidebar {
     val invites:Rx[Seq[Node]] = Rx {
       val graph = state.graph()
       val user = state.user()
-      val userIdx = graph.idToIdxGet(user.id) // can fail when logging out
+      val userIdx = graph.idToIdx(user.id) // can fail when logging out
       userIdx match {
         case Some(userIdx) =>
           graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodes(idx) } (breakOut)

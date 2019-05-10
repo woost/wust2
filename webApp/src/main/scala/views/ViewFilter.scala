@@ -260,10 +260,10 @@ object GraphOperation {
   case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
-        graph.idToIdxGet(tagId).fold((graph, graph.edges)) { tagIdx =>
+        graph.idToIdx(tagId).fold((graph, graph.edges)) { tagIdx =>
           val newEdges = graph.edges.filter {
             case e: Edge.Child =>
-              graph.idToIdxGet(e.childId).fold(false) { childIdx =>
+              graph.idToIdx(e.childId).fold(false) { childIdx =>
                 val node = graph.nodes(childIdx)
                 if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
                   if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
@@ -347,7 +347,7 @@ object GraphOperation {
         case e: Edge.Assigned if e.userId == userId => e.nodeId
       }
       val newEdges = graph.edges.filter {
-        case e: Edge.Child if graph.nodesById(e.childId).role == NodeRole.Task => assignedNodeIds.contains(e.childId)
+        case e: Edge.Child if graph.nodesByIdOrThrow(e.childId).role == NodeRole.Task => assignedNodeIds.contains(e.childId)
         case _                                                                    => true
       }
       (graph, newEdges)
@@ -377,7 +377,7 @@ object GraphOperation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val tmpEdges = graph.edges.collect {
-          case e: Edge.Child if Search.singleByString(needle, graph.nodesById(e.childId), 0.75).isDefined => e.childId
+          case e: Edge.Child if Search.singleByString(needle, graph.nodesByIdOrThrow(e.childId), 0.75).isDefined => e.childId
         }
         val newEdges = graph.edges.filter{
           case e: Edge.Child if tmpEdges.contains(e.childId)                           => true

@@ -28,7 +28,7 @@ object GraphChangesAutomation {
     scribe.info(s"Copying sub graph of node $newNode with template $templateNode")
 
     val templateNodeIdx = graph.idToIdxOrThrow(templateNode.id)
-    val newNodeIdx = graph.idToIdxGet(newNode.id)
+    val newNodeIdx = graph.idToIdx(newNode.id)
 
     val alreadyExistingNodes = new mutable.HashMap[NodeId, Node]
     val replacedNodes = new mutable.HashMap[NodeId, Node]
@@ -149,13 +149,13 @@ object GraphChangesAutomation {
 
       case parent: Edge.Child if parent.data.deletedAt.isEmpty && !graph.parents(parent.childId).contains(parent.parentId) => // a new, undeleted parent edge
         scribe.info(s"Inspecting parent edge '$parent' for automation")
-        val parentIdx = graph.idToIdx(parent.parentId)
-        if (parentIdx < 0) addEdges += parent
-        else {
+        graph.idToIdxFold[Unit](parent.parentId)(addEdges += parent) { parentIdx =>
           val (childNode, childIsTemplate) = {
-            val childIdx = graph.idToIdx(parent.childId)
-            if (childIdx < 0) (changes.addNodes.find(_.id == parent.childId).get, changes.addEdges.exists { case Edge.Automated(_, parent.childId) => true; case _ => false })
-            else (graph.nodes(childIdx), graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
+            graph.idToIdxFold(parent.childId)(
+              (changes.addNodes.find(_.id == parent.childId).get, changes.addEdges.exists { case Edge.Automated(_, parent.childId) => true; case _ => false })
+            ) ( childIdx =>
+              (graph.nodes(childIdx), graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
+            )
           }
 
           if (childIsTemplate) addEdges += parent // do not automate template nodes

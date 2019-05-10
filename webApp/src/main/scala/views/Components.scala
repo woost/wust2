@@ -221,10 +221,9 @@ object Components {
       VDomModifier(
         onClick.foreach{
           val graph = state.graph.now
-          val previousDmNode: Option[Node] = {
-            val userIdx = graph.idToIdx(userId)
-            graph.chronologicalNodesAscending.find{ n =>
-              n.str == dmName && graph.isPinned(graph.idToIdx(n.id), userIdx)
+          val previousDmNode: Option[Node] = graph.idToIdxFold(userId)(Option.empty[Node]) { userIdx =>
+            graph.chronologicalNodesAscending.find { n =>
+              n.str == dmName && graph.idToIdxFold(n.id)(false)(graph.isPinned(_, userIdx))
             }
           } // Max 1 dm node with this name
           previousDmNode match {
@@ -617,9 +616,9 @@ object Components {
     def taskCheckbox(state:GlobalState, node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
       val isChecked:Rx[Boolean] = Rx {
         val graph = state.graph()
-        val nodeIdx = graph.idToIdx(node.id)
+        val nodeIdx = graph.idToIdxOrThrow(node.id)
         @inline def nodeIsDoneInParent(parentId:NodeId) = {
-          val parentIdx = graph.idToIdx(parentId)
+          val parentIdx = graph.idToIdxOrThrow(parentId)
           val workspaces = graph.workspacesForParent(parentIdx)
           graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
         }
@@ -634,7 +633,7 @@ object Components {
           onClick.stopPropagation --> Observer.empty,
           onChange.checked foreach { checking =>
             val graph = state.graph.now
-            directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdx(id))).foreach { workspaceIdx =>
+            directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdxOrThrow(id))).foreach { workspaceIdx =>
               val doneIdx = graph.doneNodeForWorkspace(workspaceIdx)
 
               if(checking) {
@@ -644,7 +643,7 @@ object Components {
                     (freshDoneNode.id, GraphChanges.addNodeWithParent(freshDoneNode, ParentId(graph.nodeIds(workspaceIdx))))
                   case Some(existingDoneNode) => (graph.nodeIds(existingDoneNode), GraphChanges.empty)
                 }
-                val stageParents = graph.parentsIdx(graph.idToIdx(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
+                val stageParents = graph.parentsIdx(graph.idToIdxOrThrow(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
                 val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
                 state.eventProcessor.changes.onNext(changes)
               } else { // unchecking
@@ -794,7 +793,7 @@ object Components {
             EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesById(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
+            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
               GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
@@ -819,7 +818,7 @@ object Components {
             justifyContent.spaceBetween,
             span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
             state.graph.map { g =>
-              val node = g.nodesById(nodeId)
+              val node = g.nodesByIdOrThrow(nodeId)
               Components.nodeCardWithFile(state, node, maxLength = Some(100)).apply(Styles.wordWrap)
             }
           )
@@ -1047,7 +1046,7 @@ object Components {
   def automatedNodesOfNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val automatedNodes: Rx[Seq[Node]] = Rx {
       val graph = state.rawGraph()
-      graph.automatedNodes(graph.idToIdx(nodeId))
+      graph.automatedNodes(graph.idToIdxOrThrow(nodeId))
     }
 
     Rx {

@@ -85,8 +85,8 @@ object WoostNotification {
 
   private def notifyControl(graph: Graph, user: User, permissionState: PermissionState, channel: Node)(implicit ctx: Ctx.Owner) = {
 
-    val channelIdx = graph.idToIdx(channel.id)
-    val userIdx = graph.idToIdx(user.id)
+    val channelIdx = graph.idToIdxOrThrow(channel.id)
+    val userIdx = graph.idToIdxOrThrow(user.id)
     val hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
 
     val notify = if(hasNotifyEdge) NotificationState(
@@ -120,8 +120,8 @@ object WoostNotification {
 
   def generateNotificationItem(state: GlobalState, permissionState: PermissionState, graph: Graph, user: User, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val channelIdx = graph.idToIdx(channel.id)
-    val userIdx = graph.idToIdx(user.id)
+    val channelIdx = graph.idToIdxOrThrow(channel.id)
+    val userIdx = graph.idToIdxOrThrow(user.id)
 
     @inline def permissionGranted = permissionState == PermissionState.granted
     @inline def hasNotifyEdge = graph.notifyByUserIdx(userIdx).contains(channelIdx)
