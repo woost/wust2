@@ -70,8 +70,8 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     s"Graph(nodes: ${nodes.length}, edges: ${edges.length})"
   }
 
-  def debug(node: Node): String = lookup.idToIdx(node.id).map(idx => debug(idx)).toString
-  def debug(nodeId: NodeId): String = lookup.idToIdx(nodeId).map(debug).toString
+  def debug(node: Node): String = lookup.idToIdxMap(node.id)(idx => debug(idx)).toString
+  def debug(nodeId: NodeId): String = lookup.idToIdxMap(nodeId)(debug).toString
   def debug(nodeIds: Iterable[NodeId]): String = nodeIds.map(debug).mkString(", ")
   def debug(nodeIdx: Int): String = nodeStr(nodeIdx)
   def debug(nodesIdx: Seq[Int]): String = nodesIdx.map(debug).mkString(", ")
@@ -171,28 +171,26 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     builder.result()
   }
 
-  private val _idToIdxMap = mutable.HashMap.empty[NodeId, Int]
-  _idToIdxMap.sizeHint(n)
+  private val idToIdxMap = mutable.HashMap.empty[NodeId, Int]
+  idToIdxMap.sizeHint(n)
   val nodeIds = new Array[NodeId](n)
 
   nodes.foreachIndexAndElement { (i, node) =>
     val nodeId = node.id
-    _idToIdxMap(nodeId) = i
+    idToIdxMap(nodeId) = i
     nodeIds(i) = nodeId
   }
 
-  private val idToIdxMap = _idToIdxMap.withDefaultValue(-1)
   @inline def idToIdxIsEmpty = idToIdxMap.isEmpty
-  @inline def idToIdxForeach[U](id: NodeId)(f: Int => U): Unit = {
-    val idx = idToIdxMap(id)
-    if (idx != -1) f(idx)
-  }
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
-    val idx = idToIdxMap(id)
-    if (idx == -1) default
-    else f(idx)
+    idToIdxMap.get(id) match {
+      case Some(idx) => f(idx)
+      case None => default
+    }
   }
-  @inline private def throwIdNotFound(id: NodeId) = throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph")
+  @inline def idToIdxForeach[U](id: NodeId)(f: Int => U): Unit = idToIdxFold(id)(())(f(_))
+  @inline def idToIdxMap[T](id: NodeId)(f: Int => T): Option[T] = idToIdxFold(id)(Option.empty[T])(idx => Some(f(idx)))
+  private def throwIdNotFound(id: NodeId) = throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph")
   def idToIdxOrThrow(nodeId: NodeId): Int = idToIdxFold[Int](nodeId)(throwIdNotFound(nodeId))(x => x)
   def idToIdx(nodeId: NodeId): Option[Int] = idToIdxFold[Option[Int]](nodeId)(None)(Some(_))
   def nodesByIdOrThrow(nodeId: NodeId): Node = idToIdxFold[Node](nodeId)(throwIdNotFound(nodeId))(idx => nodes(idx))
@@ -470,9 +468,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).as[Edge.Expanded].data.isExpanded
   }
 
-  //TODO these should not exist
-  @inline def parents(nodeId: NodeId): Set[NodeId] = idToIdx(nodeId).fold(emptyNodeIdSet)(idx => parentsIdx(idx).map(nodeIds(_))(breakOut))
-  @inline def children(nodeId: NodeId): Set[NodeId] = idToIdx(nodeId).fold(emptyNodeIdSet)(idx => childrenIdx(idx).map(nodeIds(_))(breakOut))
+  @inline def parents(nodeId: NodeId): Set[NodeId] = idToIdxFold(nodeId)(emptyNodeIdSet)(idx => parentsIdx(idx).map(nodeIds(_))(breakOut))
+  @inline def children(nodeId: NodeId): Set[NodeId] = idToIdxFold(nodeId)(emptyNodeIdSet)(idx => childrenIdx(idx).map(nodeIds(_))(breakOut))
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
@@ -603,7 +600,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     if (idx < 0) Nil
     else authorsIdx(idx).map(idx => nodes(idx).as[Node.User])
   }
-  @inline def authors(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(authorsByIndex(_))
+  @inline def authors(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(authorsByIndex(_))
 
   def authorsInByIndex(idx: Int): Seq[Node.User] = {
     if (idx < 0) Nil
@@ -618,12 +615,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       builder.result().distinct
     }
   }
-  @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(authorsInByIndex(_))
+  @inline def authorsIn(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(authorsInByIndex(_))
 
   def membersByIndex(idx: Int): Seq[Node.User] = {
     membershipEdgeForNodeIdx(idx).flatMap(edgeIdx => nodesById(edges(edgeIdx).targetId).asInstanceOf[Option[Node.User]])
   }
-  @inline def members(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(membersByIndex(_))
+  @inline def members(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(membersByIndex(_))
 
   def usersInNode(id: NodeId): collection.Set[Node.User] = idToIdxFold(id)(collection.Set.empty[Node.User]) { nodeIdx =>
     val builder = new mutable.LinkedHashSet[Node.User]
@@ -664,13 +661,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).map(edges).exists{ e => e.as[Edge.Child].data.deletedAt.fold(false)(_ isBefore buildNow) })
 
-  def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = {
-    if (nodeIdx < 0 || parentIdx < 0) false
-    else !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
-  }
+  @inline def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
-  def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = isDeletedNowIdx(idToIdxMap(nodeId), idToIdxMap(parentId))
-  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && isDeletedNowIdx(idToIdxMap(nodeId), parentIds.map(idToIdxMap))
+  def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => idToIdxFold(parentId)(false)(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx)))
+  def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && idToIdxFold(nodeId)(false)(nodeIdx => isDeletedNowIdx(nodeIdx, parentIds.flatMap(idToIdx)))
   def isDeletedNowInAllParents(nodeId: NodeId): Boolean = {
     val nodeIdx = idToIdxOrThrow(nodeId)
     val parentIndices = parentsIdx(nodeIdx)
