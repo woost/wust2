@@ -3,12 +3,11 @@ package wust.webApp
 import scribe._
 import scribe.format._
 import scribe.writer.ConsoleWriter
-import scala.scalajs.LinkingInfo
 
 object Logging {
   val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
   val logFormatter: Formatter = {
-    if(LinkingInfo.developmentMode)
+    if(DevOnly.isTrue)
       formatter"$message$newLine"
     else
       formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
@@ -16,7 +15,7 @@ object Logging {
 
   //TODO setup api-logging as logwriter
   def setup(): Unit = {
-    if (LinkingInfo.developmentMode)
+    if (DevOnly.isTrue)
       Logger.root
         .clearHandlers()
         .withMinimumLevel(Level.Info)
