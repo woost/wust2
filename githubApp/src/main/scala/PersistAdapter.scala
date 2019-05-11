@@ -63,7 +63,7 @@ object RedisAdapter extends PersistAdapter {
     val rawUser =
       client.hget[String](s"${DBConstants.githubPrefix}$githubUserId", DBConstants.wustUserId)
     //    rawUser.map(userStr => UserId(userStr.drop(DBConstants.wustPrefix.length)))
-    rawUser.map(userStr => (userStr.drop(DBConstants.wustPrefix.length)).asInstanceOf[UserId])
+    rawUser.map(userStr => UserId((userStr.drop(DBConstants.wustPrefix.length))))
   }
 
   def addOAuthState(state: String): Boolean = {

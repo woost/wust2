@@ -170,13 +170,13 @@ object NotificationView {
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
             val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+              val edge = graph.edges(edgeIdx).as[Edge.Read]
               if (edge.userId == user.id) Some(edge.data.timestamp)
               else None
             }
             val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
             graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
+              val edge = graph.edges(edgeIdx).as[Edge.Author]
               if (lastReadTime.forall(_ < edge.data.timestamp)) {
                 return true
               }
@@ -198,7 +198,7 @@ object NotificationView {
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
             val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+              val edge = graph.edges(edgeIdx).as[Edge.Read]
               if (edge.userId == user.id) Some(edge.data.timestamp)
               else None
             }
@@ -207,10 +207,10 @@ object NotificationView {
             val newSortedRevisionsBuilder = Array.newBuilder[Revision]
             var isFirst = true
             graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-              val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Author]
+              val edge = graph.edges(edgeIdx).as[Edge.Author]
               val readDuringRender = lastReadTime.exists(_ > renderTime)
               if (readDuringRender || lastReadTime.forall(_ < edge.data.timestamp)) {
-                val author = graph.nodesById(edge.userId).asInstanceOf[Node.User]
+                val author = graph.nodesByIdOrThrow(edge.userId).as[Node.User]
                 val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = readDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = readDuringRender)
                 newSortedRevisionsBuilder += revision
               }
@@ -307,7 +307,7 @@ object NotificationView {
 
                     onClick.stopPropagation.foreach {
                       val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
-                        val edge = state.graph.now.edges(idx).asInstanceOf[Edge.Read]
+                        val edge = state.graph.now.edges(idx).as[Edge.Read]
                         if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
                       })
                       else GraphChanges(
@@ -338,10 +338,10 @@ object NotificationView {
     currentTime: EpochMilli
   ): (VNode, Boolean, Option[EpochMilli]) = {
     val deletedTime = graph.parentEdgeIdx(unreadNode.nodeIdx).find { idx =>
-      val edge = graph.edges(idx).asInstanceOf[Edge.Child]
+      val edge = graph.edges(idx).as[Edge.Child]
       edge.parentId == focusedId
     }.flatMap { idx =>
-      val edge = graph.edges(idx).asInstanceOf[Edge.Child]
+      val edge = graph.edges(idx).as[Edge.Child]
       edge.data.deletedAt
     }
 

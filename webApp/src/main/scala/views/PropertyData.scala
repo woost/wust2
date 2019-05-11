@@ -21,12 +21,12 @@ object PropertyData {
   object BasicInfo {
     def apply(graph: Graph, nodeIdx: Int): BasicInfo = {
       val node: Node = graph.nodes(nodeIdx)
-      val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content]).sortBy(_.data.str)
-      val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.Content]).sortBy(_.data.str)
-      val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).asInstanceOf[Node.User])
+      val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
+      val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
+      val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.User])
       val properties: Map[String, Array[PropertyValue]] = graph.propertiesEdgeIdx.map(nodeIdx) { idx =>
-        val edge = graph.edges(idx).asInstanceOf[Edge.LabeledProperty]
-        PropertyValue(edge, graph.nodesById(edge.propertyId).asInstanceOf[Node.Content])
+        val edge = graph.edges(idx).as[Edge.LabeledProperty]
+        PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
       }.groupBy(_.edge.data.key)
       val reverseProperties: Array[Node] = graph.propertiesEdgeReverseIdx.map(nodeIdx) { idx =>
         val nodeIdx = graph.edgesIdx.a(idx)

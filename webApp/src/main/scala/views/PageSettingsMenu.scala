@@ -449,8 +449,8 @@ object PageSettingsMenu {
             val graph = state.graph()
             graph.idToIdx(node.id).map { nodeIdx =>
               graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
-                val membership = graph.edges(membershipIdx).asInstanceOf[Edge.Member]
-                val user = graph.nodesById(membership.userId).asInstanceOf[User]
+                val membership = graph.edges(membershipIdx).as[Edge.Member]
+                val user = graph.nodesByIdOrThrow(membership.userId).as[User]
                 userLine(user).apply(
                   button(
                     cls := "ui tiny compact negative basic button",

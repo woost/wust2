@@ -1187,7 +1187,7 @@ object Components {
     def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
       val lastModification = graph.nodeModified(nodeIdx)
       val isRead = graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
-        val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Read]
+        val edge = graph.edges(edgeIdx).as[Edge.Read]
         edge.targetId == userId && edge.data.timestamp >= lastModification
       }
 

@@ -108,13 +108,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
 
         graph.parents(1: NodeId) mustEqual Set.empty
         graph.parents(2: NodeId) mustEqual Set[NodeId](1)
-        assert(graph.edges.head.asInstanceOf[Edge.Child].data.ordering == BigDecimal(5.0))
+        assert(graph.edges.head.as[Edge.Child].data.ordering == BigDecimal(5.0))
 
         val newParent: List[Edge] = List(Edge.Child(ParentId(NodeId(Cuid(1, 0)): NodeId), EdgeData.Child(deletedAt = None, ordering = BigDecimal(7.0)), ChildId(NodeId(Cuid(2, 0)): NodeId)))
         val gc: GraphChanges = GraphChanges.from(addEdges = newParent)
         val newGraph: Graph = graph.applyChanges(gc)
 
-        assert(newGraph.edges.head.asInstanceOf[Edge.Child].data.ordering == BigDecimal(7.0))
+        assert(newGraph.edges.head.as[Edge.Child].data.ordering == BigDecimal(7.0))
       }
 
       "replace parent edge in graph multiple parents" in {
@@ -130,13 +130,13 @@ class GraphSpec extends FreeSpec with MustMatchers {
         graph.parents(2: NodeId) mustEqual Set[NodeId](1)
         graph.parents(3: NodeId) mustEqual Set[NodeId](1)
 
-        assert(graph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering == BigDecimal(5.0)))
-        assert(graph.edges.find(e => e.targetId == (3: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering == BigDecimal(4.0)))
+        assert(graph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.as[Edge.Child].data.ordering == BigDecimal(5.0)))
+        assert(graph.edges.find(e => e.targetId == (3: NodeId) && e.sourceId == (1: NodeId)).exists(_.as[Edge.Child].data.ordering == BigDecimal(4.0)))
 
         val newParent = Edge.Child(ParentId(1: NodeId), EdgeData.Child(deletedAt = None, ordering = BigDecimal(7.0)), ChildId(2: NodeId))
         val newGraph = graph.applyChanges(GraphChanges(addEdges = Set(newParent)))
 
-        assert(newGraph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.asInstanceOf[Edge.Child].data.ordering == BigDecimal(7.0)))
+        assert(newGraph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.as[Edge.Child].data.ordering == BigDecimal(7.0)))
       }
 
     }

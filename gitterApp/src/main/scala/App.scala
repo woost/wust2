@@ -79,7 +79,7 @@ class WustReceiver(client: WustClient[Future])(implicit ec: ExecutionContext) ex
 object WustReceiver {
   type Result[T] = Either[String, T]
 
-  val wustUser: UserId = "wust-gitter".asInstanceOf[UserId]
+  val wustUser: UserId = UserId("wust-gitter")
 
   def run(config: WustConfig, gitter: GitterClient)(
       implicit system: ActorSystem

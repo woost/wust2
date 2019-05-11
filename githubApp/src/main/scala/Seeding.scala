@@ -115,16 +115,16 @@ object GitHubImporter {
         // Get wust user from github id or create new user
         val githubUserOfIssue = issue.user
         val wustUserOfIssue = githubUserOfIssue match {
-          case None => "unknown".asInstanceOf[UserId]
+          case None => UserId("unknown")
           case Some(githubUser: GHUser) =>
             RedisAdapter.getWustUser(githubUser.id).getOrElse(UserId.fresh)
         }
 
         //TODO what about this userid?
-        val userId = (issue.user match {
+        val userId = UserId((issue.user match {
           case None                     => ???
           case Some(githubUser: GHUser) => githubUser.id.toString
-        }).asInstanceOf[UserId] //TODO: create this user
+        })) //TODO: create this user
         // val tempUserId = user.id
         val tempUserId = wustUserOfIssue
 
