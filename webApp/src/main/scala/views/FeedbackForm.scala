@@ -121,11 +121,15 @@ object FeedbackForm {
     snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
     VDomModifier.ifNot(LinkingInfo.developmentMode)(
       onDomMount.foreach { _ =>
+        try {
           nolt.nolt("init", new nolt.NoltData { 
             var url = "https://woost.nolt.io"
             var selector = ".vote-button"
           });
+        } catch { case e =>
+          scribe.error("Failed to init nolt", e)
         }
+      }
     )
   )
 
