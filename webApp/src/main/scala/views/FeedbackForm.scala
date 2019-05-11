@@ -17,6 +17,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{ GlobalState, PageChange, ScreenSize, NodePermission }
 import wust.webApp.views.Elements._
 import wust.util._
+import scala.scalajs.LinkingInfo
 
 import scala.util.{ Success, Failure }
 
@@ -118,13 +119,13 @@ object FeedbackForm {
     marginTop := "5px",
     cls := "vote-button",
     snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
-    VDomModifier.ifNot(DevOnly.isTrue)(
+    VDomModifier.ifNot(LinkingInfo.developmentMode)(
       onDomMount.foreach { _ =>
-        nolt.nolt("init", new nolt.NoltData { 
-          var url = "https://woost.nolt.io"
-          var selector = ".vote-button"
-        });
-      }
+          nolt.nolt("init", new nolt.NoltData { 
+            var url = "https://woost.nolt.io"
+            var selector = ".vote-button"
+          });
+        }
     )
   )
 

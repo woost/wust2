@@ -78,7 +78,7 @@ object Main {
     setupEmojis()
     setupFomanticUISearch()
 
-    DevOnly {
+    if (LinkingInfo.developmentMode) {
       setupRuntimeScalaCSSInjection()
        // setupSnabbdomDebugging()
     }
