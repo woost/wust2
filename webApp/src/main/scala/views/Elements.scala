@@ -58,7 +58,7 @@ object Elements {
     } // at bottom + 10 px tolerance
 
     def modifier(implicit ctx: Ctx.Owner) = VDomModifier(
-      onDomPreUpdate foreach {
+      onScroll foreach {
         isScrolledToBottom() = isScrolledToBottomNow
       },
       onDomUpdate foreach {
