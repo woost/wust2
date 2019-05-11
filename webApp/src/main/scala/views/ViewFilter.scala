@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import flatland.ArraySet
 import fomanticui.SidebarOptions
 import googleAnalytics.Analytics
 import jquery.JQuerySelection
@@ -22,7 +23,6 @@ import wust.webApp.Icons
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
-import wust.webApp.views.GraphOperation.{GraphFilter, GraphTransformation}
 
 import scala.collection.breakOut
 
@@ -224,131 +224,155 @@ object ViewGraphTransformation {
 }
 
 sealed trait UserViewGraphTransformation {
-  def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter
-  def transformWithViewData(pageId: Option[NodeId], userId: UserId): GraphTransformation =
-    GraphOperation.filterToTransformation(filterWithViewData(pageId, userId))
+  def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): GraphOperation.EdgeFilter
 }
 object GraphOperation {
-  type GraphTransformation = Graph => Graph
-  type GraphFilter = Graph => (Graph, Array[Edge])
+  type EdgeFilter = Option[Int => Boolean] // edgeidx => boolean
 
-  def filterToTransformation(graphFilter: GraphFilter): GraphTransformation = {
-    graphFilter.andThen {
-      case (graph: Graph, newEdges: Array[Edge]) => graph.copy(edges = newEdges)
+  def filter(graph: Graph, pageId: Option[NodeId], userId: UserId, filters: Seq[UserViewGraphTransformation]): Graph = {
+    val pageIdx = pageId.flatMap(graph.idToIdx)
+    val userIdx = graph.idToIdxOrThrow(userId)
+    val edgeFilters = filters.flatMap(_.filterWithViewData(pageIdx, userIdx, graph))
+    if (edgeFilters.isEmpty) graph else {
+      val newEdges = Array.newBuilder[Edge]
+      flatland.loop(graph.edges.length) { i =>
+        if (edgeFilters.forall(_(i))) newEdges += graph.edges(i)
+      }
+
+      graph.copy(edges = newEdges.result)
     }
   }
 
-  def stackFilter(firstFilter: GraphFilter, secondFilter: GraphFilter, logicFilter: (Array[Edge], Array[Edge]) => Array[Edge] = (a1, a2) => a1.intersect(a2)): Graph => (Graph, Array[Edge]) = { graph: Graph =>
-    val (_, e1) = firstFilter(graph)
-    val (_, e2) = secondFilter(graph)
-    (graph, logicFilter(e1, e2))
-  }
-
   case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        graph.idToIdx(tagId).fold((graph, graph.edges)) { tagIdx =>
-          val newEdges = graph.edges.filter {
-            case e: Edge.Child =>
-              graph.idToIdx(e.childId).fold(false) { childIdx =>
-                val node = graph.nodes(childIdx)
-                if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
-                  if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
-                  else {
-                    val tagDescendants = graph.descendantsIdx(tagIdx)
-                    if(tagDescendants.contains(childIdx)) true
-                    else false
-                  }
-                } else true
-              }
-            case _                                                                                                                   => true
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      pageIdx.flatMap { _ =>
+        graph.idToIdx(tagId).map { tagIdx =>
+          edgeIdx => graph.edges(edgeIdx) match {
+            case _: Edge.Child =>
+              val childIdx = graph.edgesIdx.b(edgeIdx)
+              val node = graph.nodes(childIdx)
+              if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
+                if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
+                else {
+                  if(graph.descendantsIdx(tagIdx).contains(childIdx)) true
+                  else false
+                }
+              } else true
+            case _ => true
           }
-          (graph, newEdges)
         }
       }
     }
   }
 
   case object OnlyDeletedChildren extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        val newEdges = graph.edges.filter {
-          case e: Edge.Child => graph.isDeletedNow(e.childId, e.parentId)
-          case _                                     => true
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      pageIdx.map { _ =>
+        edgeIdx => graph.edges(edgeIdx) match {
+          case _: Edge.Child =>
+            val parentIdx = graph.edgesIdx.a(edgeIdx)
+            val childIdx = graph.edgesIdx.b(edgeIdx)
+            graph.isDeletedNowIdx(childIdx, parentIdx)
+          case _ => true
         }
-        (graph, newEdges)
       }
     }
   }
 
   case object ExcludeDeletedChildren extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        val newEdges = graph.edges.filter {
-          case e: Edge.Child  => !graph.isDeletedNow(e.childId, e.parentId)
-          case _                                  => true
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      pageIdx.map { _ =>
+        edgeIdx => graph.edges(edgeIdx) match {
+          case _: Edge.Child  =>
+            val parentIdx = graph.edgesIdx.a(edgeIdx)
+            val childIdx = graph.edgesIdx.b(edgeIdx)
+            !graph.isDeletedNowIdx(childIdx, parentIdx)
+          case _ => true
         }
-        (graph, newEdges)
       }
     }
   }
 
   case object AutomatedHideTemplates extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      val templateNodeIds: Set[NodeId] = graph.edges.collect { case e: Edge.Automated => e.templateNodeId }(breakOut)
-      val newEdges = graph.edges.filter {
-        case e: Edge.Child if templateNodeIds.contains(e.childId) => false
-        case _              => true
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      val templateNodes = ArraySet.create(graph.nodes.length)
+      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+        graph.edges(edgeIdx) match {
+          case _: Edge.Automated => templateNodes += targetIdx
+          case _ =>
+        }
       }
-      (graph, newEdges)
+      Some(edgeIdx => graph.edges(edgeIdx) match {
+        case _: Edge.Child =>
+          val childIdx = graph.edgesIdx.b(edgeIdx)
+          !templateNodes.contains(childIdx)
+        case _ => true
+      })
     }
   }
 
   case object OnlyAssignedTo extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      val assignedNodeIds = graph.edges.collect {
-        case e: Edge.Assigned if e.userId == userId => e.nodeId
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      val assignedNodes = ArraySet.create(graph.nodes.length)
+      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+          graph.edges(edgeIdx) match {
+            case _: Edge.Assigned if targetIdx == userIdx => assignedNodes += sourceIdx
+            case _ =>
+          }
       }
-      val newEdges = graph.edges.filter {
-        case e: Edge.Child if graph.nodesByIdOrThrow(e.childId).role == NodeRole.Task => assignedNodeIds.contains(e.childId)
-        case _                                                                    => true
-      }
-      (graph, newEdges)
+      Some(edgeIdx => graph.edges(edgeIdx) match {
+        case _: Edge.Child =>
+          val childIdx = graph.edgesIdx.b(edgeIdx)
+          graph.nodes(childIdx).role == NodeRole.Task && assignedNodes.contains(childIdx)
+        case _ => true
+      })
     }
   }
 
   case object OnlyNotAssigned extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      val assignedNodeIds = graph.edges.collect {
-        case e: Edge.Assigned => e.nodeId
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      val assignedNodes = ArraySet.create(graph.nodes.length)
+      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+        graph.edges(edgeIdx) match {
+          case _: Edge.Assigned => assignedNodes += sourceIdx
+          case _ => ()
+        }
       }
-      val newEdges = graph.edges.filterNot {
-        case e: Edge.Child => assignedNodeIds.contains(e.childId)
-        case _             => false
-      }
-      (graph, newEdges)
+      Some(edgeIdx => graph.edges(edgeIdx) match {
+        case _: Edge.Child =>
+          val childIdx = graph.edgesIdx.b(edgeIdx)
+          !assignedNodes.contains(childIdx)
+        case _ => true
+      })
     }
   }
 
   case object Identity extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      (graph, graph.edges)
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      None
     }
   }
 
   case class ContentContains(needle: String) extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        val tmpEdges = graph.edges.collect {
-          case e: Edge.Child if Search.singleByString(needle, graph.nodesByIdOrThrow(e.childId), 0.75).isDefined => e.childId
+    def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
+      //TODO better without descendants? one dfs?
+
+      pageIdx.map { _ =>
+        val foundChildren = ArraySet.create(graph.nodes.length)
+        //TODO: go over all nodes? using edge children searches nodes multiple times
+        graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+          graph.edges(edgeIdx) match {
+            case _: Edge.Child if Search.singleByString(needle, graph.nodes(targetIdx), 0.75).isDefined => foundChildren += targetIdx
+            case _ => ()
+          }
         }
-        val newEdges = graph.edges.filter{
-          case e: Edge.Child if tmpEdges.contains(e.childId)                           => true
-          case e: Edge.Child if graph.descendants(e.childId).exists(tmpEdges.contains) => true
-          case _: Edge.Child                                                           => false
-          case _                                                                       => true
+
+        edgeIdx => graph.edges(edgeIdx) match {
+          case e: Edge.Child =>
+            val childIdx = graph.edgesIdx.b(edgeIdx)
+            foundChildren.contains(childIdx) || graph.descendantsIdx(childIdx).exists(foundChildren.contains)
+          case _ => true
         }
-        (graph, newEdges)
       }
     }
   }
