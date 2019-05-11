@@ -72,8 +72,8 @@ object ViewFilter {
                 active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
                 clickAction = { () =>
                   state.graphTransformations.update { transformations =>
-                    if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
-                    else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
+                    val filtered = transformations.filter(t => t != transformation.transform && !transformation.disablesTransform.contains(t) && !transformation.enablesTransform.contains(t))
+                    filtered ++ transformation.enablesTransform :+ transformation.transform
                   }
                   Analytics.sendEvent("filter", transformation.toString)
                 }
@@ -180,12 +180,6 @@ object ViewGraphTransformation {
   )
 
   object Deleted {
-    def onlyInDeletionGracePeriod(state: GlobalState) = ViewGraphTransformation (
-      state = state,
-      icon  = Icons.delete,
-      description = "Show soon auto-deleted items",
-      transform = GraphOperation.OnlyInDeletionGracePeriodChildren,
-    )
     def onlyDeleted(state: GlobalState) = ViewGraphTransformation (
       state = state,
       icon = Icons.delete,
@@ -198,13 +192,6 @@ object ViewGraphTransformation {
       icon = Icons.undelete,
       description = "Show deleted items", // Turns this filter off
       transform = GraphOperation.ExcludeDeletedChildren,
-      invertedSwitch = true
-    )
-    def includeDeletionGracePeriod(state: GlobalState) = ViewGraphTransformation (
-      state = state,
-      icon = Icons.undelete,
-      description = "Show older deleted items",
-      transform = GraphOperation.IncludeInDeletionGracePeriodChildren,
       invertedSwitch = true
     )
   }
@@ -282,23 +269,11 @@ object GraphOperation {
     }
   }
 
-  case object OnlyInDeletionGracePeriodChildren extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        val newEdges = graph.edges.filter {
-          case e: Edge.Child => graph.isInDeletedGracePeriod(e.childId, e.parentId)
-          case _                                     => true
-        }
-        (graph, newEdges)
-      }
-    }
-  }
-
   case object OnlyDeletedChildren extends UserViewGraphTransformation {
     def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
       pageId.fold((graph, graph.edges)) { _ =>
         val newEdges = graph.edges.filter {
-          case e: Edge.Child => graph.isDeletedNow(e.childId, e.parentId) || graph.isInDeletedGracePeriod(e.childId, e.parentId)
+          case e: Edge.Child => graph.isDeletedNow(e.childId, e.parentId)
           case _                                     => true
         }
         (graph, newEdges)
@@ -312,18 +287,6 @@ object GraphOperation {
         val newEdges = graph.edges.filter {
           case e: Edge.Child  => !graph.isDeletedNow(e.childId, e.parentId)
           case _                                  => true
-        }
-        (graph, newEdges)
-      }
-    }
-  }
-
-  case object IncludeInDeletionGracePeriodChildren extends UserViewGraphTransformation {
-    def filterWithViewData(pageId: Option[NodeId], userId: UserId): GraphFilter = { graph: Graph =>
-      pageId.fold((graph, graph.edges)) { _ =>
-        val newEdges = graph.edges.filter {
-          case e: Edge.Child => !graph.isDeletedNow(e.childId, e.parentId) || graph.isInDeletedGracePeriod(e.childId, e.parentId)
-          case _                                     => true
         }
         (graph, newEdges)
       }
