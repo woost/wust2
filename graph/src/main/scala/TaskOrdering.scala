@@ -35,7 +35,7 @@ object TaskOrdering {
 
   def getChildEdgeOrThrow(graph: Graph, parentId: NodeId, nodeIdx: Int): Edge.Child = {
     graph.parentEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-      val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+      val edge = graph.edges(edgeIdx).as[Edge.Child]
       if (edge.parentId == parentId) return edge
     }
 

@@ -24,6 +24,8 @@ sealed trait Node {
   def meta: NodeMeta
   def views: Option[List[View.Visible]]
 
+  @inline def as[T <: Node]: T = asInstanceOf[T]
+
   @inline def str: String = data.str
   @inline def tpe: String = data.tpe
 }

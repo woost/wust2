@@ -480,7 +480,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
   @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {
-    case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).asInstanceOf[Edge.Expanded].data.isExpanded
+    case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).as[Edge.Expanded].data.isExpanded
   }
 
   //TODO these should not exist
@@ -527,7 +527,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
-  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).asInstanceOf[Edge.Author].data.timestamp).toArray).toArray)
+  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray).toArray)
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeCreatorIdx: Array[Int], nodeModified: Array[EpochMilli]) = {
@@ -539,9 +539,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       val authorEdgeIndices: ArraySliceInt = sortedAuthorshipEdgeIdx(nodeIdx)
       if (authorEdgeIndices.nonEmpty) {
         val (createdEdgeIdx, lastModifierEdgeIdx) = (authorEdgeIndices.head, authorEdgeIndices.last)
-        nodeCreated(nodeIdx) = edges(createdEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
+        nodeCreated(nodeIdx) = edges(createdEdgeIdx).as[Edge.Author].data.timestamp
         nodeCreator(nodeIdx) = edgesIdx.b(createdEdgeIdx)
-        nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).asInstanceOf[Edge.Author].data.timestamp
+        nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).as[Edge.Author].data.timestamp
       } else {
         nodeCreator(nodeIdx) = -1
       }
@@ -553,7 +553,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def nodeCreator(idx: Int): Option[Node.User] = {
     nodeCreatorIdx(idx) match {
       case -1        => None
-      case authorIdx => Option(nodes(authorIdx).asInstanceOf[Node.User])
+      case authorIdx => Option(nodes(authorIdx).as[Node.User])
     }
   }
 
@@ -561,8 +561,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     val numAuthors = sortedAuthorshipEdgeIdx(idx).length
     if (numAuthors > 1) {
       sortedAuthorshipEdgeIdx(idx).tail.map{ eIdx =>
-        val user = nodes(edgesIdx.b(eIdx)).asInstanceOf[Node.User]
-        val time = edges(eIdx).asInstanceOf[Edge.Author].data.timestamp
+        val user = nodes(edgesIdx.b(eIdx)).as[Node.User]
+        val time = edges(eIdx).as[Edge.Author].data.timestamp
         (user, time)
       }
     } else IndexedSeq.empty[(Node.User, EpochMilli)]
@@ -614,7 +614,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def authorsByIndex(idx: Int): Seq[Node.User] = {
     if (idx < 0) Nil
-    else authorsIdx(idx).map(idx => nodes(idx).asInstanceOf[Node.User])
+    else authorsIdx(idx).map(idx => nodes(idx).as[Node.User])
   }
   @inline def authors(nodeId: NodeId): Seq[Node.User] = idToIdx(nodeId).fold(Seq.empty[Node.User])(authorsByIndex(_))
 
@@ -651,7 +651,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def latestDeletedAt(subjectIdx: Int): Option[EpochMilli] = {
     parentEdgeIdx(subjectIdx).foldLeft(Option.empty[EpochMilli]) { (result, currentEdgeIdx) =>
-      val currentDeletedAt = edges(currentEdgeIdx).asInstanceOf[Edge.Child].data.deletedAt
+      val currentDeletedAt = edges(currentEdgeIdx).as[Edge.Child].data.deletedAt
       (result, currentDeletedAt) match {
         case (None, currentDeletedAt)               => currentDeletedAt
         case (result, None)                         => result
@@ -670,12 +670,12 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def partiallyDeletedParents(nodeId: NodeId): IndexedSeq[Edge.Child] = idToIdxFold(nodeId)(IndexedSeq.empty[Edge.Child]) { nodeIdx =>
     val now = EpochMilli.now
     graph.parentEdgeIdx(nodeIdx).map(edges).flatMap { e =>
-      val parentEdge = e.asInstanceOf[Edge.Child]
+      val parentEdge = e.as[Edge.Child]
       val deleted = parentEdge.data.deletedAt.fold(false)(_ isBefore now)
       if (deleted) Some(parentEdge) else None
     }
   }
-  def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).map(edges).exists{ e => e.asInstanceOf[Edge.Child].data.deletedAt.fold(false)(_ isBefore buildNow) })
+  def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).map(edges).exists{ e => e.as[Edge.Child].data.deletedAt.fold(false)(_ isBefore buildNow) })
 
   def isInDeletedGracePeriod(nodeId: NodeId, parent: NodeId): Boolean = isInDeletedGracePeriod(nodeId, Iterable(parent))
   def isInDeletedGracePeriod(nodeId: NodeId, parents: Iterable[NodeId]): Boolean = idToIdxFold(nodeId)(false){ nodeIdx =>
@@ -853,7 +853,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     parentIds.exists(p.contains)
   }
 
-  def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).asInstanceOf[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
+  def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).as[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
 
   //TODO: make faster
   val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>

@@ -94,13 +94,13 @@ object GraphChangesAutomationUI {
                   state.eventProcessor.changes.redirectMap { templateNode =>
                     val g = state.rawGraph.now
                     val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
-                      val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+                      val edge = graph.edges(edgeIdx).as[Edge.Child]
                       edge.parentId == focusedId
                     }
 
                     GraphChanges(
                       addEdges = existingParent.map { edgeIdx =>
-                        val edge = graph.edges(edgeIdx).asInstanceOf[Edge.Child]
+                        val edge = graph.edges(edgeIdx).as[Edge.Child]
                         edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
                       }.toSet,
                       delEdges = Set(Edge.Automated(focusedId, TemplateId(templateNode.id)))

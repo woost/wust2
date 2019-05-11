@@ -30,7 +30,7 @@ object DragItem {
   case class Workspace(nodeId: NodeId) extends DragTarget { override def toString = s"Workspace(${nodeId.shortHumanReadable})" }
   case class TagBar(nodeId: NodeId) extends DragTarget { override def toString = s"TagBar(${nodeId.shortHumanReadable})" }
 
-  case class User(userId: UserId) extends DragPayload { @inline def nodeId = userId.asInstanceOf[NodeId]; override def toString = s"User(${nodeId.shortHumanReadable})" }
+  case class User(userId: UserId) extends DragPayload { @inline def nodeId = userId: NodeId; override def toString = s"User(${nodeId.shortHumanReadable})" }
 
   case class SelectedNode(nodeId: NodeId) extends DragPayload { override def toString = s"SelectedNode(${nodeId.shortHumanReadable})" }
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload { override def toString = s"SelectedNodes(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }

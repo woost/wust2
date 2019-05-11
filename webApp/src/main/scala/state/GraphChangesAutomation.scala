@@ -78,7 +78,7 @@ object GraphChangesAutomation {
     // do not want to copy again in the automation but reuse the node that was
     // copied in the previous automation run.
     newNodeIdx.foreach(newNodeIdx => dfs.withManualSuccessors(_(newNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
-      val descendant = graph.nodes(descendantIdx).asInstanceOf[Node.Content]
+      val descendant = graph.nodes(descendantIdx).as[Node.Content]
       graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
         val interfaceIdx = graph.edgesIdx.b(edgeIdx)
         val interfaceId = graph.nodeIds(interfaceIdx)
@@ -92,7 +92,7 @@ object GraphChangesAutomation {
     // of the descendant node. We want to have a copy of each descendant of the
     // template.
     dfs.withManualSuccessors(_(templateNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
-      val descendant = graph.nodes(descendantIdx).asInstanceOf[Node.Content]
+      val descendant = graph.nodes(descendantIdx).as[Node.Content]
       alreadyExistingNodes.get(descendant.id) match {
         case Some(implementationNode) =>
           replacedNodes += descendant.id -> implementationNode

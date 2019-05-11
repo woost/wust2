@@ -9,6 +9,8 @@ sealed trait Edge {
   // a copy method to change the sourceId and/or targetId of an edge
   // without pattern matching over all edge types.
   def copyId(sourceId: NodeId, targetId: NodeId): Edge
+
+  @inline def as[T <: Edge]: T = asInstanceOf[T]
 }
 
 /**
