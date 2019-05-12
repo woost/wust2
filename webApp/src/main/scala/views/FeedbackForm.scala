@@ -126,7 +126,7 @@ object FeedbackForm {
             var url = "https://woost.nolt.io"
             var selector = ".vote-button"
           });
-        } catch { case e =>
+        } catch { case e: Throwable =>
           scribe.error("Failed to init nolt", e)
         }
       }
