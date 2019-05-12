@@ -179,12 +179,12 @@ object UI {
   }
 
   // javascript version of tooltip
-  def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
-    managedElement.asJquery { elem =>
-      elem.popup(options)
-      Cancelable(() => elem.popup("destroy"))
-    }
-  )
+  def popup(options: PopupOptions): VDomModifier = VDomModifier.empty //VDomModifier.ifNot(BrowserDetect.isMobile)(
+   // managedElement.asJquery { elem =>
+    //   elem.popup(options)
+    //   Cancelable(() => elem.popup("destroy"))
+    // }
+  // )
   val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position

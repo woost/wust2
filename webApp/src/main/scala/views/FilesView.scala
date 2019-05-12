@@ -21,6 +21,7 @@ object FilesView {
     }
 
     div(
+      keyed,
       padding := "20px",
       overflow.auto,
       Components.uploadField(state, Components.defaultFileUploadHandler(state, focusState.focusedId)),

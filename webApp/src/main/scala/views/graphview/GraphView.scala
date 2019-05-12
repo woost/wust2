@@ -33,6 +33,7 @@ object GraphView {
     val showControls = Var(LinkingInfo.developmentMode)
 
     div(
+      keyed,
       position.relative, // for absolute positioned menu overlays
       emitter(state.jsErrors).foreach { _ =>
         forceSimulation.stop()

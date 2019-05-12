@@ -35,6 +35,7 @@ object KanbanView {
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
     div(
+      keyed,
       cls := "kanbanview",
       height := "100%",
       overflow.auto,

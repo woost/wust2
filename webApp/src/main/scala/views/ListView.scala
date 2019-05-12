@@ -24,15 +24,17 @@ object ListView {
   import SharedViewElements._
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-      fieldAndList(state, focusState).apply(
-        overflow.auto,
-        padding := "5px",
-        flexGrow := 2,
-      )
+    fieldAndList(state, focusState).apply(
+      overflow.auto,
+      padding := "5px",
+      flexGrow := 2,
+    )
   }
 
   def fieldAndList(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner) = {
     div(
+      keyed,
+
       addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
 
       renderInboxColumn(state, focusState),
