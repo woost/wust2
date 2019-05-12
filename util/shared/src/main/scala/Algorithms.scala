@@ -80,6 +80,7 @@ package object algorithm {
     memoizedLengths
   }
 
+  @deprecated("", "this is old and slow")
   def dijkstra[V](edges: V => Iterable[V], source: V): (Map[V, Int], Map[V, V]) = {
     def run(active: Set[V], res: Map[V, Int], pred: Map[V, V]): (Map[V, Int], Map[V, V]) =
       if (active.isEmpty) (res, pred)

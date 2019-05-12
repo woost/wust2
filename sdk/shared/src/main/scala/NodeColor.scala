@@ -51,5 +51,5 @@ object NodeColor {
   }
 
   def mixedDirectParentColors(graph: Graph, nodeId: NodeId): Option[Color] =
-    NonEmptyList.fromList(graph.parents(nodeId).map(eulerBgColor).toList).map(mixColors)
+    NonEmptyList.fromList[HCL](graph.parents(nodeId).map(eulerBgColor)(breakOut)).map(mixColors)
 }
