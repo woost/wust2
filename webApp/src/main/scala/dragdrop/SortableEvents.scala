@@ -77,7 +77,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val payload: js.UndefOr[DragPayload] = readDragPayload(sortableStartEvent.dragEvent.originalSource)
     payload.foreach(writeDragPayload(sortableStartEvent.dragEvent.source, _))
 
-    if (payload == js.defined(DragItem.DisableDrag)) { println("Drag is disabled on this element."); sortableStartEvent.cancel() }
+    DevOnly {
+      if (payload == js.defined(DragItem.DisableDrag)) { println("Drag is disabled on this element."); sortableStartEvent.cancel() }
+    }
   })
 
 
@@ -90,7 +92,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
         if(overSortcontainer) {
-          println("over sortcontainer, validating sort information...")
           validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrlDown, shiftDown)
         } else {
           // drag action is handled by dragOverEvent instead
@@ -110,7 +111,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val notOverSortContainer = !readDragContainer(dragOverEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
     if (notOverSortContainer) {
-      println("not over sort container, validating drag information...")
       validateDragInformation(dragOverEvent, ctrlDown, shiftDown)
     } else {
       // drag action is handled by sortableSortEvent instead
@@ -134,7 +134,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
             performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
           }
         case _ =>
-          println("dropped outside container or target")
+          scribe.debug("dropped outside container or target")
       }
     } finally {
       onStopDrag()

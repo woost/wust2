@@ -40,15 +40,15 @@ object DragValidation {
     extractSortInformation(e, lastDragOverContainerEvent) match {
       case (JSDefined(sourceContainer), JSDefined(payload), JSDefined(overContainer)) =>
         if(sortAction.isDefinedAt((payload, sourceContainer, overContainer, ctrl, shift))) {
-          println(s"valid sort action: $payload: $sourceContainer -> $overContainer")
+          scribe.debug(s"valid sort action: $payload: $sourceContainer -> $overContainer")
         } else {
           e.cancel()
-          println(s"sort not allowed: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
+          scribe.debug(s"sort not allowed: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
           validateDragInformation(e.dragEvent, ctrl, shift)
         }
       case (sourceContainer, payload, overContainer)                                                                              =>
         e.cancel()
-        println(s"incomplete sort information: $payload: $sourceContainer -> $overContainer")
+        scribe.debug(s"incomplete sort information: $payload: $sourceContainer -> $overContainer")
     }
   }
 
@@ -58,14 +58,14 @@ object DragValidation {
     (payloadOpt, targetOpt) match {
       case (JSDefined(payload), JSDefined(target)) =>
         if(dragAction.isDefinedAt((payload, target, ctrl, shift))) {
-          println(s"valid drag action: $payload -> $target)")
+          scribe.debug(s"valid drag action: $payload -> $target)")
         } else {
           e.cancel()
-          println(s"drag not allowed: $payload -> $target)")
+          scribe.debug(s"drag not allowed: $payload -> $target)")
         }
       case (payload, target)                                          =>
         e.cancel()
-        println(s"incomplete drag information: $payload -> $target)")
+        scribe.debug(s"incomplete drag information: $payload -> $target)")
     }
   }
 
@@ -78,20 +78,20 @@ object DragValidation {
         }((payload, sourceContainer, overContainer, ctrl, shift))
 
         if(successful) {
-          println(s"sort action successful: $payload: $sourceContainer -> $overContainer")
+          scribe.debug(s"sort action successful: $payload: $sourceContainer -> $overContainer")
           Analytics.sendEvent("drag", "sort", s"${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
         }
         else {
-          println(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
+          scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
           performDrag(state, e,currentOverEvent,ctrl, shift)
         }
       case (sourceContainerOpt, payloadOpt, overContainerOpt)                                                                     =>
-        println(s"incomplete sort information: $payloadOpt: $sourceContainerOpt -> $overContainerOpt")
+        scribe.debug(s"incomplete sort information: $payloadOpt: $sourceContainerOpt -> $overContainerOpt")
     }
   }
 
   def performDrag(state:GlobalState, e: SortableStopEvent, currentOverEvent:DragOverEvent, ctrl: Boolean, shift: Boolean): Unit = {
-    println("performing drag...")
+    scribe.debug("performing drag...")
     val afterDraggedActionOpt = readDraggableDraggedAction(e.dragEvent.originalSource)
     val payloadOpt = readDragPayload(e.dragEvent.originalSource)
     val targetOpt = readDragTarget(currentOverEvent.over)
@@ -102,19 +102,19 @@ object DragValidation {
        }((payload, target, ctrl, shift))
 
        if(successful) {
-         println(s"drag action successful: $payload -> $target")
+         scribe.debug(s"drag action successful: $payload -> $target")
          Analytics.sendEvent("drag", "drop", s"${ payload.productPrefix }-${ target.productPrefix }${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
          afterDraggedActionOpt.foreach{action =>
-           println(s"performing afterDraggedAction...")
+           scribe.debug(s"performing afterDraggedAction...")
            action.apply()
          }
        }
        else {
-         println(s"drag action not defined: $payload -> $target ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
+         scribe.debug(s"drag action not defined: $payload -> $target ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
          Analytics.sendEvent("drag", "nothandled", s"${ payload.productPrefix }-${ target.productPrefix } ${ ctrl.ifTrue(" +ctrl") }${ shift.ifTrue(" +shift") }")
        }
      case (payload, target) =>
-       println(s"incomplete drag information: $payload -> $target)")
+       scribe.debug(s"incomplete drag information: $payload -> $target)")
     }
   }
 }
