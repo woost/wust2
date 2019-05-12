@@ -1184,7 +1184,7 @@ object Components {
   )
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
-    def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
+    def nodeIsRead(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
       val node = graph.nodes(nodeIdx)
       if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)) {
         val lastModification = graph.nodeModified(nodeIdx)
@@ -1201,14 +1201,14 @@ object Components {
       val graph = state.graph()
       val user = state.user()
 
-      nodeIsUnread(graph, user.id, nodeIdx())
+      !nodeIsRead(graph, user.id, nodeIdx())
     }
 
     val unreadChildren = Rx {
       val graph = state.graph()
       val user = state.user()
 
-      graph.descendantsIdxCount(nodeIdx())(nodeIsUnread(graph, user.id, _))
+      graph.descendantsIdxCount(nodeIdx())(idx => !nodeIsRead(graph, user.id, idx))
     }
 
     val unreadLabel = div(
