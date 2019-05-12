@@ -10,16 +10,16 @@ package object dfs {
   // toArray | manual append | exists
 
   // mode selection helpers
-  @inline def withStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet) = {
+  @inline def withStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet): Unit = {
     stack.push(start)
   }
-  @inline def afterStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet) = {
+  @inline def afterStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet): Unit = {
     foreachSuccessor(start, { next =>
       visited += next
       stack.push(next)
     })
   }
-  @inline def withoutStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet) = {
+  @inline def withoutStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet): Unit = {
     visited += start
     foreachSuccessor(start, { next =>
       visited += next
@@ -76,7 +76,7 @@ package object dfs {
     start: Int,
     successors: NestedArrayInt,
     continue: Int => Boolean
-  ) = {
+  ): Unit = {
     var running = true
     successors.depthFirstSearchGeneric(
       init = (stack, _) => stack.push(start),
@@ -92,7 +92,7 @@ package object dfs {
     start: Int,
     successors: NestedArrayInt,
     continue: Int => Boolean
-  ) = {
+  ): Unit = {
     successors.depthFirstSearchGeneric[Boolean](
       init = (stack, _) => stack.push(start),
       processVertex = continue,
