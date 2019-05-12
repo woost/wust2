@@ -518,7 +518,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     }
   }
 
-  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray).toArray)
+  val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray)(breakOut) : Array[Array[Int]])
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeCreatorIdx: Array[Int], nodeModified: Array[EpochMilli]) = {
@@ -710,7 +710,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   lazy val chronologicalNodesAscendingIdx: Array[Int] = {
-    nodes.indices.toArray.sortBy(nodeCreated)
+    Array.range(0, nodes.length).sortBy(nodeCreated)
   }
 
   lazy val chronologicalNodesAscending: IndexedSeq[Node] = {
@@ -720,13 +720,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def topologicalSortByIdx[T](seq: Seq[T], extractIdx: T => Int, liftIdx: Int => Option[T]): Seq[T] = {
     if (seq.isEmpty || nodes.isEmpty) return seq
 
-    @inline def idSeq: Seq[Int] = seq.map(extractIdx)
-    @inline def idArray: Array[Int] = idSeq.toArray
+    @inline def idArray: Array[Int] = seq.map(extractIdx)(breakOut)
 
-    val chronological: Array[Int] = idArray.sortBy(nodeCreated)
-    //TODO: Sort by ordering idx
-    val res: Seq[T] = chronological.map(liftIdx).toSeq.flatten
-    res
+    idArray.sortBy(nodeCreated).flatMap(i => liftIdx(i))(breakOut)
   }
 
   lazy val allParentIdsTopologicallySortedByChildren: Array[Int] = {
@@ -1017,7 +1013,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     // NodeId -> distance
     val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
-    val groupedByCycle = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, parents).toSet }
+    val groupedByCycle = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, parents) }
     type GroupIdx = Int
     type Distance = Int
     val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =
@@ -1028,7 +1024,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       }.flatten.toMap
 
     // we want: distance -> (nocycle : Seq[NodeId], cycle1 : Seq[NodeId],...)
-    (distanceMap.keys.toSet ++ distanceMapForCycles.keys.toSet).foldLeft(
+    (distanceMap.keySet ++ distanceMapForCycles.keySet).foldLeft(
       ResultMap()
     ) { (result, nodeid) =>
         // in case that the nodeid is inside distanceMapForCycles, it is contained
