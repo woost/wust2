@@ -139,9 +139,9 @@ object GraphChangesAutomation {
   def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
-    val addNodes = mutable.HashSet.empty[Node]
-    val addEdges = mutable.HashSet.newBuilder[Edge]
-    val delEdges = mutable.HashSet.newBuilder[Edge]
+    val addNodes = mutable.ArrayBuffer[Node]()
+    val addEdges = mutable.ArrayBuffer[Edge]()
+    val delEdges = mutable.ArrayBuffer[Edge]()
 
     val automatedNodes = mutable.HashSet.newBuilder[Node]
 
@@ -226,10 +226,10 @@ object GraphChangesAutomation {
       )
     }
 
-    GraphChanges(
+    GraphChanges.from(
       addNodes = addNodes,
-      addEdges = addEdges.result(),
-      delEdges = delEdges.result()
+      addEdges = addEdges,
+      delEdges = delEdges,
     )
   }
 }
