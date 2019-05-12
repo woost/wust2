@@ -136,17 +136,13 @@ object TaskNodeCard {
         if (isExpanded()) collapse else expand
       }
 
-      /// these are always visible on hover
-      val immediateMenuItems = Seq(
-        toggle, toggleDelete
-      )
-
       div(
         cls := "buttonbar",
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
         Components.drag(DragItem.DisableDrag),
         Styles.flex,
-        immediateMenuItems
+        toggle,
+        toggleDelete
       )
     }
 
@@ -407,15 +403,13 @@ object TaskNodeCard {
         if (isExpanded()) collapse else expand
       }
 
-      /// these are always visible on hover
-      val immediateMenuItems = Seq(toggle, toggleDelete)
-
       div(
         cls := "buttonbar",
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
         Components.drag(DragItem.DisableDrag),
         Styles.flex,
-        immediateMenuItems
+        toggle,
+        toggleDelete
       )
     }
 
