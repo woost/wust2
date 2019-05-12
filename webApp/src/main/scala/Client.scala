@@ -106,7 +106,7 @@ object Client {
   }
 
   storage.backendTimeDelta.foreach { delta =>
-    println(s"backend time delta: ${ delta }ms")
+    scribe.info(s"backend time delta: ${ delta }ms")
     EpochMilli.delta = delta
   }
 
