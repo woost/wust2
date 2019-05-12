@@ -787,9 +787,8 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def ancestors(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => ancestorsIdx(nodeIdx).map(nodeIds))
 
   def anyAncestorIsPinned(nodeIds: Iterable[NodeId], userId: NodeId): Boolean = idToIdxFold(userId)(false) { userIdx =>
-    val starts = new mutable.ArrayBuilder.ofInt
-    nodeIds.foreach { nodeId =>
-      idToIdxForeach(nodeId)(starts += _)
+    def starts(f: Int => Unit): Unit = nodeIds.foreach { nodeId =>
+      idToIdxForeach(nodeId)(f)
     }
 
     val isPinnedSet = {
@@ -798,7 +797,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       set
     }
 
-    dfs.exists(starts.result().foreachElement, dfs.withStart, parentsIdx, isFound = isPinnedSet.contains)
+    dfs.exists(starts, dfs.withStart, parentsIdx, isFound = isPinnedSet.contains)
   }
 
   // IMPORTANT:
