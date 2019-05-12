@@ -59,8 +59,14 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunk(nodeId.hashCode)(isDone)(Ownable { implicit ctx =>
 
-    val isDeletedNow = state.graph.map(_.isDeletedNow(nodeId, parentId :: Nil))
-    val isExpanded = state.graph.map(_.isExpanded(state.user.now.id, nodeId).getOrElse(false))
+    val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
+    val parentIdx = state.graph.map(_.idToIdxOrThrow(parentId))
+    val isDeletedNow = Rx {
+      state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+    }
+    val isExpanded = Rx {
+      state.graph().isExpanded(state.user().id, nodeIdx()).getOrElse(false)
+    }
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
@@ -69,11 +75,10 @@ object TaskNodeCard {
     }
     val taskStats = Rx {
       val graph = state.graph()
-      val nodeIdx = graph.idToIdxOrThrow(nodeId)
 
-      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
 
-      val taskChildren = graph.taskChildrenIdx(nodeIdx)
+      val taskChildren = graph.taskChildrenIdx(nodeIdx())
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
@@ -81,9 +86,9 @@ object TaskNodeCard {
         else count
       }
 
-      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx)
+      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
 
-      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx).length
+      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx()).length
 
       TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount)
     }
@@ -109,8 +114,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val nodeIdx = graph.idToIdxOrThrow(nodeId)
-        val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
@@ -326,8 +330,14 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
 
-    val isDeletedNow = state.graph.map(_.isDeletedNow(node.id, parentId :: Nil))
-    val isExpanded = state.graph.map(_.isExpanded(state.user.now.id, node.id).getOrElse(false))
+    val nodeIdx = state.graph.map(_.idToIdxOrThrow(node.id))
+    val parentIdx = state.graph.map(_.idToIdxOrThrow(parentId))
+    val isDeletedNow = Rx {
+      state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+    }
+    val isExpanded = Rx {
+      state.graph().isExpanded(state.user().id, nodeIdx()).getOrElse(false)
+    }
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
@@ -336,11 +346,10 @@ object TaskNodeCard {
     }
     val taskStats = Rx {
       val graph = state.graph()
-      val nodeIdx = graph.idToIdxOrThrow(node.id)
 
-      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
+      val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
 
-      val taskChildren = graph.taskChildrenIdx(nodeIdx)
+      val taskChildren = graph.taskChildrenIdx(nodeIdx())
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
@@ -348,9 +357,9 @@ object TaskNodeCard {
         else count
       }
 
-      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx)
+      val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
 
-      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx).length
+      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx()).length
 
       TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount)
     }
@@ -376,8 +385,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val nodeIdx = graph.idToIdxOrThrow(node.id)
-        val stageParents = graph.getRoleParentsIdx(nodeIdx, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))
 
