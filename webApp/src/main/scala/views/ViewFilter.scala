@@ -72,8 +72,8 @@ object ViewFilter {
                 active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
                 clickAction = { () =>
                   state.graphTransformations.update { transformations =>
-                    val filtered = transformations.filter(t => t != transformation.transform && !transformation.disablesTransform.contains(t) && !transformation.enablesTransform.contains(t))
-                    filtered ++ transformation.enablesTransform :+ transformation.transform
+                    if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
+                    else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
                   }
                   Analytics.sendEvent("filter", transformation.toString)
                 }
