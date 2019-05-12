@@ -143,7 +143,7 @@ object GraphChangesAutomation {
     val addEdges = mutable.ArrayBuffer[Edge]()
     val delEdges = mutable.ArrayBuffer[Edge]()
 
-    val automatedNodes = mutable.HashSet.newBuilder[Node]
+    val automatedNodes = mutable.HashSet[Node]()
 
     changes.addEdges.foreach {
 
@@ -218,7 +218,7 @@ object GraphChangesAutomation {
     addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
     delEdges ++= changes.delEdges
 
-    automatedNodes.result.foreach { childNode =>
+    automatedNodes.foreach { childNode =>
       UI.toast(
         StringOps.trimToMaxLength(childNode.str, 50),
         title = s"New ${ childNode.role } is automated",
