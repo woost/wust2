@@ -125,8 +125,6 @@ class GlobalState(
   }
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
-  val channelForest: Rx[Seq[Tree]] = Rx { rawGraph().notDeletedChannelTree(user().id) }
-
   val addNodesInTransit: Rx[Set[NodeId]] = {
     val changesAddNodes = eventProcessor.changesInTransit
       .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
