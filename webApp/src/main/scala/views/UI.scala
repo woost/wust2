@@ -178,8 +178,8 @@ object UI {
     )
   }
 
-  val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, data.variation := "mini basic")
-  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, data.position := position, data.variation := "mini basic")
+  val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.variation := "mini basic")
+  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.position := position, data.variation := "mini basic")
 
   // javascript version of tooltip
   def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
