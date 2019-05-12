@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import monix.reactive.Observer
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
 import wust.ids._
 import wust.graph._
 import outwatch.dom._
@@ -48,9 +48,9 @@ object TaskNodeCard {
 
   def renderThunk(
     state: GlobalState,
-    nodeId: NodeId,
-    parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to focusState.focusedId
     focusState: FocusState,
+    traverseState: TraverseState,
+    nodeId: NodeId,
     selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty),
     showCheckbox:Boolean = false,
     isDone:Boolean = false, //TODO decide here reactively based on parent and focusState...
@@ -60,7 +60,7 @@ object TaskNodeCard {
   ): VNode = div.thunk(nodeId.hashCode)(isDone)(Ownable { implicit ctx =>
 
     val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
-    val parentIdx = state.graph.map(_.idToIdxOrThrow(parentId))
+    val parentIdx = state.graph.map(_.idToIdxOrThrow(traverseState.parentId))
     val isDeletedNow = Rx {
       state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
@@ -115,10 +115,10 @@ object TaskNodeCard {
         val graph = state.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
-        val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
+        val hasMultipleStagesInFocusedNode = stageParents.exists(_ != traverseState.parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
-        val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(nodeId), ParentId(parentId))
+        val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(nodeId), ParentId(traverseState.parentId))
         state.eventProcessor.changes.onNext(changes)
         selectedNodeIds.update(_ - nodeId)
       }
@@ -271,7 +271,7 @@ object TaskNodeCard {
       Components.showHoveredNode(state, nodeId),
       Components.readObserver(state, nodeId, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
-        node.map(Components.taskCheckbox(state, _, parentId :: Nil).apply(float.left, marginRight := "5px"))
+        node.map(Components.taskCheckbox(state, _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
       ),
 
       node.map { node =>
@@ -302,7 +302,7 @@ object TaskNodeCard {
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = nodeId)).apply(
+          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId)).apply(
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),
@@ -561,7 +561,7 @@ object TaskNodeCard {
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id)).apply(
+          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id)).apply( // TODO: proper traverstate
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),

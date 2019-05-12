@@ -18,7 +18,7 @@ import wust.util.macros.InlineList
 import wust.webApp.{BrowserDetect, Icons, ItemProperties, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, TraverseState}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import algorithm.dfs
@@ -34,6 +34,8 @@ object KanbanView {
 
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
+    val traverseState = TraverseState(focusState.focusedId)
+
     div(
       keyed,
       cls := "kanbanview",
@@ -42,9 +44,9 @@ object KanbanView {
       Styles.flex,
       alignItems.flexStart,
 
-      renderInboxColumn(state, focusState, selectedNodeIds),
+      renderInboxColumn(state, focusState, traverseState, selectedNodeIds),
 
-      renderToplevelColumns(state, focusState, selectedNodeIds),
+      renderToplevelColumns(state, focusState, traverseState, selectedNodeIds),
 
       newColumnArea(state, focusState.focusedId).apply(Styles.flexStatic),
     )
@@ -53,15 +55,15 @@ object KanbanView {
   private def renderTaskOrStage(
     state: GlobalState,
     focusState: FocusState,
+    traverseState: TraverseState,
     nodeId: NodeId,
     nodeRole: NodeRole,
-    parentId: NodeId,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     nodeRole match {
-      case NodeRole.Task => TaskNodeCard.renderThunk(state, nodeId, parentId, focusState, selectedNodeIds)
-      case NodeRole.Stage => renderColumn(state, nodeId, parentId, focusState, selectedNodeIds, isTopLevel = isTopLevel)
+      case NodeRole.Task => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds)
+      case NodeRole.Stage => renderColumn(state, focusState, traverseState, nodeId, selectedNodeIds, isTopLevel = isTopLevel)
       case _ => VDomModifier.empty
     }
   }
@@ -69,11 +71,12 @@ object KanbanView {
   private def renderToplevelColumns(
     state: GlobalState,
     focusState: FocusState,
+    traverseState: TraverseState,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val columns = Rx {
       val graph = state.graph()
-      KanbanData.columns(graph, focusState.focusedId)
+      KanbanData.columns(graph, traverseState)
     }
 
     div(
@@ -85,7 +88,7 @@ object KanbanView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn(state, columnId, focusState.focusedId, focusState, selectedNodeIds, isTopLevel = true)
+            renderColumn(state, focusState, traverseState, columnId, selectedNodeIds, isTopLevel = true)
           },
           registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -97,6 +100,7 @@ object KanbanView {
   private def renderInboxColumn(
     state: GlobalState,
     focusState: FocusState,
+    traverseState: TraverseState,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
     val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(focusState.focusedId)).toHex
@@ -104,7 +108,7 @@ object KanbanView {
 
     val children = Rx {
       val graph = state.graph()
-      KanbanData.inboxNodes(graph, focusState.focusedId)
+      KanbanData.inboxNodes(graph, traverseState)
     }
 
     div(
@@ -133,7 +137,7 @@ object KanbanView {
         children.map { children =>
           VDomModifier(
             registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children)),
-            children.map(nodeId => TaskNodeCard.renderThunk(state, nodeId, parentId = focusState.focusedId, focusState = focusState, selectedNodeIds))
+            children.map(nodeId => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds))
           )
         }
       ),
@@ -143,9 +147,9 @@ object KanbanView {
 
   private def renderColumn(
     state: GlobalState,
-    nodeId: NodeId,
-    parentId: NodeId,
     focusState: FocusState,
+    traverseState: TraverseState,
+    nodeId: NodeId,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
@@ -159,9 +163,12 @@ object KanbanView {
       val user = state.user()
       graph.isExpanded(user.id, nodeId).getOrElse(true)
     }
+
+    val nextTraverseState = traverseState.step(nodeId)
+
     val children = Rx {
       val graph = state.graph()
-      KanbanData.columnNodes(graph, nodeId)
+      KanbanData.columnNodes(graph, nextTraverseState)
     }
     val columnTitle = Rx {
       editableNode(state, node(), editable, maxLength = Some(TaskNodeCard.maxLength))(ctx)(cls := "kanbancolumntitle")
@@ -190,7 +197,7 @@ object KanbanView {
             div(
               div(cls := "fa-fw", Icons.delete),
               onClick.stopPropagation foreach {
-                state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), ParentId(parentId)))
+                state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId)))
                 selectedNodeIds.update(_ - nodeId)
               },
               cursor.pointer, UI.tooltip("bottom center") := "Archive"
@@ -230,7 +237,7 @@ object KanbanView {
             Rx {
               VDomModifier(
                 registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                children().map { case (id, role) => renderTaskOrStage(state, focusState, nodeId = id, nodeRole = role, parentId = nodeId, selectedNodeIds) },
+                children().map { case (id, role) => renderTaskOrStage(state, focusState, nextTraverseState, nodeId = id, nodeRole = role, selectedNodeIds) },
               )
             },
             scrollHandler.modifier,

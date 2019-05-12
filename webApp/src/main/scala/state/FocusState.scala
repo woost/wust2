@@ -3,6 +3,14 @@ package wust.webApp.state
 import wust.graph.Page
 import wust.ids.{NodeId, View}
 
+case class TraverseState(
+  parentId: NodeId,
+  parentIdChain: List[NodeId] = Nil
+) {
+  def contains(nodeId: NodeId): Boolean = parentId == nodeId || parentIdChain.contains(nodeId)
+  def step(nodeId: NodeId): TraverseState = TraverseState(nodeId, parentId :: parentIdChain)
+}
+
 // a class for representing a preference to focus something in a certain view. e.g. used for configuring the right sidebar
 case class FocusPreference(
   nodeId: NodeId,
