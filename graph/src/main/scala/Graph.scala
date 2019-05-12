@@ -780,6 +780,11 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
   def involvedInContainmentCycle(id: NodeId): Boolean = idToIdxFold(id)(false)(involvedInContainmentCycleIdx)
 
+  def descendantsIdxCount(nodeIdx: Int)(f: Int => Boolean): Int = {
+    var count = 0
+    dfs.withManualAppend(_(nodeIdx), dfs.afterStart, childrenIdx, append = idx => if (f(idx)) count += 1)
+    count
+  }
   def descendantsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, childrenIdx, isFound = f)
   def descendantsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
   def descendants(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => descendantsIdx(nodeIdx).map(nodeIds))

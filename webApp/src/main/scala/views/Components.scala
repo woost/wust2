@@ -1185,33 +1185,30 @@ object Components {
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
-      val lastModification = graph.nodeModified(nodeIdx)
-      val isRead = graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
-        val edge = graph.edges(edgeIdx).as[Edge.Read]
-        edge.targetId == userId && edge.data.timestamp >= lastModification
-      }
-
-      if (isRead) false
-      else {
-        val node = graph.nodes(nodeIdx)
-        InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
-      }
+      val node = graph.nodes(nodeIdx)
+      if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)) {
+        val lastModification = graph.nodeModified(nodeIdx)
+        graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.Read]
+          edge.targetId == userId && edge.data.timestamp >= lastModification
+        }
+      } else true
     }
+
+    val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
 
     val isUnread = Rx {
       val graph = state.graph()
       val user = state.user()
-      val nodeIdx = graph.idToIdxOrThrow(nodeId)
 
-      nodeIsUnread(graph, user.id, nodeIdx)
+      nodeIsUnread(graph, user.id, nodeIdx())
     }
 
     val unreadChildren = Rx {
       val graph = state.graph()
       val user = state.user()
-      val nodeIdx = graph.idToIdxOrThrow(nodeId)
 
-      graph.descendantsIdx(nodeIdx).count(nodeIsUnread(graph, user.id, _))
+      graph.descendantsIdxCount(nodeIdx())(nodeIsUnread(graph, user.id, _))
     }
 
     val unreadLabel = div(
