@@ -359,18 +359,21 @@ object GraphOperation {
 
       pageIdx.map { _ =>
         val foundChildren = ArraySet.create(graph.nodes.length)
-        //TODO: go over all nodes? using edge children searches nodes multiple times
-        graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
-          graph.edges(edgeIdx) match {
-            case _: Edge.Child if Search.singleByString(needle, graph.nodes(targetIdx), 0.75).isDefined => foundChildren += targetIdx
-            case _ => ()
+        flatland.loop(graph.nodes.length) { nodeIdx =>
+          if (graph.parentsIdx.sliceNonEmpty(nodeIdx) && Search.singleByString(needle, graph.nodes(nodeIdx), 0.75).isDefined) {
+            foundChildren += nodeIdx
           }
         }
 
         edgeIdx => graph.edges(edgeIdx) match {
-          case e: Edge.Child =>
+          case _: Edge.Child =>
             val childIdx = graph.edgesIdx.b(edgeIdx)
-            foundChildren.contains(childIdx) || graph.descendantsIdx(childIdx).exists(foundChildren.contains)
+            if (foundChildren.contains(childIdx)) true
+            else {
+              val hasDescendant = graph.descendantsIdxExists(childIdx)(foundChildren.contains)
+              if (hasDescendant) foundChildren += childIdx // cache the result of this partial dfs
+              hasDescendant
+            }
           case _ => true
         }
       }
