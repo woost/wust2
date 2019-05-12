@@ -194,7 +194,7 @@ object RightSidebar {
                 state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
                 parentIdAction(None)
               },
-              cursor.pointer, UI.popup := "Archive"
+              cursor.pointer, UI.tooltip := "Archive"
             )
           )
         }

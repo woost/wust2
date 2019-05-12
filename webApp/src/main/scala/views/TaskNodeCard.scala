@@ -104,7 +104,7 @@ object TaskNodeCard {
           span(cls := "icon", icon),
           action,
           cursor.pointer,
-          UI.popup := longDesc
+          UI.tooltip("left center") := longDesc
         )
       }
 
@@ -166,7 +166,7 @@ object TaskNodeCard {
           padding := "0",
           width := s"${math.max(progress, 0)}%",
           backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
-          UI.popup := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
+          UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
         ),
       )
     }
@@ -244,7 +244,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
             renderNotesCount(
               taskStats().noteChildrenCount,
-              UI.popup := "Show notes",
+              UI.tooltip("left center") := "Show notes",
               onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Content)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
@@ -252,7 +252,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
             renderMessageCount(
               taskStats().messageChildrenCount,
-              UI.popup := "Show comments",
+              UI.tooltip("left center") := "Show comments",
               onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
@@ -375,7 +375,7 @@ object TaskNodeCard {
           span(cls := "icon", icon),
           action,
           cursor.pointer,
-          UI.popup := longDesc
+          UI.tooltip("left center") := longDesc
         )
       }
 
@@ -437,7 +437,7 @@ object TaskNodeCard {
           padding := "0",
           width := s"${math.max(progress, 0)}%",
           backgroundColor := s"${if(progress < 100) "#ccc" else "#32CD32"}",
-          UI.popup := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
+          UI.tooltip("top right") := s"$progress% Progress. ${taskStats.taskDoneCount} / ${taskStats.taskChildrenCount} done."
         ),
       )
     }
@@ -511,7 +511,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
             renderNotesCount(
               taskStats().noteChildrenCount,
-              UI.popup := "Show notes",
+              UI.tooltip("left center") := "Show notes",
               onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Content)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
@@ -519,7 +519,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
             renderMessageCount(
               taskStats().messageChildrenCount,
-              UI.popup := "Show comments",
+              UI.tooltip("left center") := "Show comments",
               onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),

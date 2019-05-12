@@ -183,20 +183,20 @@ object KanbanView {
             ),
             onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!isExpanded.now), state.user.now.id)) --> state.eventProcessor.changes,
             cursor.pointer,
-            UI.popup := "Collapse"
+            UI.tooltip("bottom center") := "Collapse"
           ),
           VDomModifier.ifTrue(canWrite())(
-            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.popup := "Edit"),
+            div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
             div(
               div(cls := "fa-fw", Icons.delete),
               onClick.stopPropagation foreach {
                 state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), ParentId(parentId)))
                 selectedNodeIds.update(_ - nodeId)
               },
-              cursor.pointer, UI.popup := "Archive"
+              cursor.pointer, UI.tooltip("bottom center") := "Archive"
             )
           ),
-          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(nodeId)) --> state.page, cursor.pointer, UI.popup := "Zoom in"),
+          //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(nodeId)) --> state.page, cursor.pointer, UI.tooltip("bottom center") := "Zoom in"),
         )
       },
 
@@ -249,7 +249,7 @@ object KanbanView {
               opacity := 0.5,
               Styles.flex,
               justifyContent.center,
-              div(cls := "fa-fw", Icons.expand, UI.popup := "Expand"),
+              div(cls := "fa-fw", Icons.expand, UI.tooltip("bottom center") := "Expand"),
               onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes,
               cursor.pointer,
               paddingBottom := "7px",

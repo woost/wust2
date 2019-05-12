@@ -206,7 +206,7 @@ object SharedViewElements {
             float.right,
             freeSolid.faQuestion,
             Elements.safeTargetBlank,
-            UI.popup("left center") := "Use Markdown to format your text. Click for more details.",
+            UI.tooltip("left center") := "Use Markdown to format your text. Click for more details.",
             href := "https://www.markdownguide.org/basic-syntax/"
           ),
         ),
@@ -246,20 +246,20 @@ object SharedViewElements {
 
   val replyButton: VNode = {
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Reply to message", freeSolid.faReply),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Reply to message", freeSolid.faReply),
       cursor.pointer,
     )
   }
 
   val deleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Archive message", Icons.delete),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Archive message", Icons.delete),
       cursor.pointer,
     )
 
   val undeleteButton: VNode =
     div(
-      div(cls := "fa-fw", UI.popup("bottom right") := "Recover message", Icons.undelete),
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Recover message", Icons.undelete),
       cursor.pointer,
     )
 

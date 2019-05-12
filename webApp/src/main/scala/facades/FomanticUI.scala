@@ -76,6 +76,7 @@ trait DropdownOptions extends js.Object {
 }
 
 trait PopupOptions extends js.Object {
+  var on: js.UndefOr[String] = js.undefined
   var target: js.UndefOr[String | jquery.JQuerySelection] = js.undefined
   var inline: js.UndefOr[Boolean] = js.undefined
   var hoverable: js.UndefOr[Boolean] = js.undefined

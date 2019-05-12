@@ -61,7 +61,7 @@ object LeftSidebar {
           channelIcons(state, minWidthSidebar),
           newProjectButton(state, "+").apply(
             cls := "newChannelButton-small " + buttonStyles,
-            UI.popup("right center") := "New Project",
+            UI.tooltip("right center") := "New Project",
             onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
           )
         ))

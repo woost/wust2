@@ -178,6 +178,9 @@ object UI {
     )
   }
 
+  val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, data.variation := "mini basic")
+  def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier(data.tooltip := str, data.position := position, data.variation := "mini basic")
+
   // javascript version of tooltip
   def popup(options: PopupOptions): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     managedElement.asJquery { elem =>
@@ -185,15 +188,15 @@ object UI {
       Cancelable(() => elem.popup("destroy"))
     }
   )
-  val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; })
+  val popup: AttributeBuilder[String, VDomModifier] = str => popup(new PopupOptions { content = str; hideOnScroll = true; exclusive = true; variation = "mini basic" })
   def popup(position: String): AttributeBuilder[String, VDomModifier] = str => {
     val _position = position
-    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; })
+    popup(new PopupOptions { content = str; position = _position; hideOnScroll = true; exclusive = true; variation = "mini basic" })
   }
-  val popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true })
+  val popupHtml: AttributeBuilder[VNode, VDomModifier] = node => popup(new PopupOptions { html = node.render; hideOnScroll = true; exclusive = true; inline = true; variation = "mini basic" })
   def popupHtml(position: String): AttributeBuilder[VNode, VDomModifier] = node => {
     val _position = position
-    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; inline = true })
+    popup(new PopupOptions { html = node.render; position = _position; hideOnScroll = true; exclusive = true; inline = true; variation = "mini basic" })
   }
 
   def dropdown(options: DropdownEntry*): EmitterBuilder[String, VDomModifier] = dropdown(VDomModifier.empty, options: _*)

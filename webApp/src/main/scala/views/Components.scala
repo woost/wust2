@@ -245,7 +245,7 @@ object Components {
           }
         },
         cursor.pointer,
-        UI.popup := s"Start Conversation with ${displayUserName(dmUser.data)}"
+        UI.tooltip := s"Start Conversation with ${displayUserName(dmUser.data)}"
       )
     })
   }
@@ -427,7 +427,7 @@ object Components {
         cls := "avatar",
         ),
       keyed(userNode.id),
-      UI.popup := s"Assigned to ${displayUserName(userNode.data)}. Click to remove.",
+      UI.tooltip("top right") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
       onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> state.eventProcessor.changes,
       drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
@@ -451,7 +451,7 @@ object Components {
       span(
         cls := "node tagdot",
         backgroundColor := tagColor(tag.id).toHex,
-        UI.popup := tag.data.str,
+        UI.tooltip := tag.data.str,
         if(pageOnClick) onClick foreach { e =>
           state.urlConfig.update(_.focus(Page(tag.id)))
           e.stopPropagation()
@@ -1032,7 +1032,7 @@ object Components {
           renderElement(element),
 
           button(
-            tooltip.map(UI.popup := _),
+            tooltip.map(UI.tooltip := _),
             cls := "ui mini compact negative basic button",
             marginLeft := "10px",
             "Remove",
@@ -1055,7 +1055,7 @@ object Components {
         automatedNodes().map { node =>
           div(
             div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
-            UI.popup("bottom center") := "This node is an active automation template")
+            UI.tooltip("bottom center") := "This node is an active automation template")
             Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
           )
         }

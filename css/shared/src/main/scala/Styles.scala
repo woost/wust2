@@ -357,6 +357,11 @@ object CommonStyles extends StyleSheet.Standalone {
     zIndex(ZIndex.uiModal + 1),
   )
   ".ui.popup" - (
+    padding := "5px",
+    zIndex(ZIndex.tooltip),
+  )
+  "[data-tooltip]:before,[data-tooltip]:after" - (
+    padding := "5px",
     zIndex(ZIndex.tooltip),
   )
 
