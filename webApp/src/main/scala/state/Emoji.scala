@@ -16,7 +16,7 @@ object EmojiReplacer {
   val emojiTextConvertor = new EmojiConvertor()
   emojiTextConvertor.colons_mode = true
   emojiTextConvertor.text_mode = true
-  private def replaceToColons(nodes: Iterable[Node]): Set[Node] = nodes.map {
+  private def replaceToColons(nodes: collection.Set[Node]): collection.Set[Node] = nodes.map {
     case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
       scribe.debug(s"replacing node emoji: ${ n.str }.")
       editable.updateStr(emojiTextConvertor.replace_unified(emojiTextConvertor.replace_emoticons(n.str))) match {
@@ -26,6 +26,6 @@ object EmojiReplacer {
         case None => n
       }
     case n => n
-  }(breakOut)
+  }
   def replaceChangesToColons(graphChanges: GraphChanges) = graphChanges.copy(addNodes = replaceToColons(graphChanges.addNodes))
 }
