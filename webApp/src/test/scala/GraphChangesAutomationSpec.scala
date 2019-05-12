@@ -36,7 +36,10 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       edges = Array.empty
     )
 
-    copySubGraphOfNode(graph, newNode, templateNode).isEmpty mustEqual true
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+    changes.addEdges mustEqual Set.empty
+    changes.delEdges mustEqual Set.empty
+    changes.addNodes mustEqual Set.empty
   }
 
   "empty template node with some graph" in {
@@ -53,7 +56,10 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       )
     )
 
-    copySubGraphOfNode(graph, newNode, templateNode).isEmpty mustEqual true
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+    changes.addEdges mustEqual Set.empty
+    changes.delEdges mustEqual Set.empty
+    changes.addNodes mustEqual Set.empty
   }
 
   "self-looping" in {
