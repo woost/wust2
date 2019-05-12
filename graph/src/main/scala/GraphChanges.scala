@@ -213,6 +213,7 @@ object GraphChanges {
 
   //TODO: The GrahpChange.moveInto function needs tests!
   //TODO: unify with moveInto used for drag&drop?
+  //TODO: write with int
   def moveInto(graph: Graph, subjectIds: Iterable[ChildId], newParentIds: Iterable[ParentId]): GraphChanges =
     newParentIds.foldLeft(GraphChanges.empty) { (changes, targetId) => changes merge GraphChanges.moveInto(graph, subjectIds, targetId) }
   def moveInto(graph: Graph, subjectId: ChildId, newParentId: ParentId): GraphChanges = moveInto(graph, subjectId :: Nil, newParentId)

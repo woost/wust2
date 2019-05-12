@@ -147,18 +147,18 @@ object GraphChangesAutomation {
 
     changes.addEdges.foreach {
 
-      case parent: Edge.Child if parent.data.deletedAt.isEmpty && !graph.parents(parent.childId).contains(parent.parentId) => // a new, undeleted parent edge
+      case parent: Edge.Child if parent.data.deletedAt.isEmpty => // a new, undeleted parent edge
         scribe.info(s"Inspecting parent edge '$parent' for automation")
         graph.idToIdxFold[Unit](parent.parentId)(addEdges += parent) { parentIdx =>
-          val (childNode, childIsTemplate) = {
-            graph.idToIdxFold(parent.childId)(
+          val (childNode, shouldAutomate) = {
+            graph.idToIdxFold(parent.childId) {
               (changes.addNodes.find(_.id == parent.childId).get, changes.addEdges.exists { case Edge.Automated(_, parent.childId) => true; case _ => false })
-            ) ( childIdx =>
-              (graph.nodes(childIdx), graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
-            )
+            } { childIdx =>
+              (graph.nodes(childIdx), !graph.parentsIdx.contains(childIdx)(parentIdx) && graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
+            }
           }
 
-          if (childIsTemplate) addEdges += parent // do not automate template nodes
+          if (!shouldAutomate) addEdges += parent // do not automate template nodes
           else {
             var doneSomethingLocally = false
             var doneAutomatedParent = false

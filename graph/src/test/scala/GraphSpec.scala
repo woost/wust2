@@ -94,8 +94,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
         edges = List(Connection(1, 14)) ++ List(Containment(1, 11), Containment(1, 12), Containment(13, 12))
       )
 
-      graph.parents(1:NodeId) mustEqual Set.empty
-      graph.parents(12:NodeId) mustEqual Set[NodeId](1, 13)
+      graph.parents(1:NodeId) mustEqual Seq.empty
+      graph.parents(12:NodeId) mustEqual Seq[NodeId](1, 13)
     }
 
     "change graph" - {
@@ -106,8 +106,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
           edges = Set(Edge.Child(ParentId(1: NodeId), new EdgeData.Child(deletedAt = None, ordering = BigDecimal(5.0)), ChildId(2: NodeId)))
         )
 
-        graph.parents(1: NodeId) mustEqual Set.empty
-        graph.parents(2: NodeId) mustEqual Set[NodeId](1)
+        graph.parents(1: NodeId) mustEqual Seq.empty
+        graph.parents(2: NodeId) mustEqual Seq[NodeId](1)
         assert(graph.edges.head.as[Edge.Child].data.ordering == BigDecimal(5.0))
 
         val newParent: List[Edge] = List(Edge.Child(ParentId(NodeId(Cuid(1, 0)): NodeId), EdgeData.Child(deletedAt = None, ordering = BigDecimal(7.0)), ChildId(NodeId(Cuid(2, 0)): NodeId)))
@@ -126,9 +126,9 @@ class GraphSpec extends FreeSpec with MustMatchers {
           )
         )
 
-        graph.parents(1: NodeId) mustEqual Set.empty
-        graph.parents(2: NodeId) mustEqual Set[NodeId](1)
-        graph.parents(3: NodeId) mustEqual Set[NodeId](1)
+        graph.parents(1: NodeId) mustEqual Seq.empty
+        graph.parents(2: NodeId) mustEqual Seq[NodeId](1)
+        graph.parents(3: NodeId) mustEqual Seq[NodeId](1)
 
         assert(graph.edges.find(e => e.targetId == (2: NodeId) && e.sourceId == (1: NodeId)).exists(_.as[Edge.Child].data.ordering == BigDecimal(5.0)))
         assert(graph.edges.find(e => e.targetId == (3: NodeId) && e.sourceId == (1: NodeId)).exists(_.as[Edge.Child].data.ordering == BigDecimal(4.0)))

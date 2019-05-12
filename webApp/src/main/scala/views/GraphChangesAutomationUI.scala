@@ -137,7 +137,7 @@ object GraphChangesAutomationUI {
                           }
                         },
 
-                        state.rawGraph.map(g => VDomModifier.ifNot(g.parents(templateNode.id).contains(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
+                        state.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
                       ),
 
                       DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => Components.drag(target = dragItem)),

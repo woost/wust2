@@ -182,6 +182,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   }
 
   @inline def idToIdxIsEmpty = idToIdxMap.isEmpty
+  //TODO: measure performance if these inline helper are better than just idToIdxMap.get.fold
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
     idToIdxMap.get(id) match {
       case Some(idx) => f(idx)
@@ -468,8 +469,14 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).as[Edge.Expanded].data.isExpanded
   }
 
-  @inline def parents(nodeId: NodeId): Set[NodeId] = idToIdxFold(nodeId)(emptyNodeIdSet)(idx => parentsIdx(idx).map(nodeIds(_))(breakOut))
-  @inline def children(nodeId: NodeId): Set[NodeId] = idToIdxFold(nodeId)(emptyNodeIdSet)(idx => childrenIdx(idx).map(nodeIds(_))(breakOut))
+  @inline def parents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => parentsIdx.map(idx)(nodeIds(_)))
+  @inline def children(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => childrenIdx.map(idx)(nodeIds(_)))
+  @inline def parentsContains(nodeId: NodeId)(parentId: NodeId): Boolean = idToIdxFold(nodeId)(false) { nodeIdx =>
+    idToIdxFold(parentId)(false)(parentIdx => parentsIdx.contains(nodeIdx)(parentIdx))
+  }
+  @inline def childrenContains(nodeId: NodeId)(childId: NodeId): Boolean = idToIdxFold(nodeId)(false) { nodeIdx =>
+    idToIdxFold(childId)(false)(childIdx => childrenIdx.contains(nodeIdx)(childIdx))
+  }
 
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
@@ -731,8 +738,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     topologicalSort(parentSet.collectAllElements, childrenIdx)
   }
 
-  def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean =
-    parents(child).contains(possibleParent)
+  def inChildParentRelation(childIdx: Int, possibleParent: Int): Boolean = parentsIdx.contains(childIdx)(possibleParent)
+  def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = idToIdxFold(child)(false) { childIdx =>
+    idToIdxFold(possibleParent)(false)(parentIdx => inChildParentRelation(childIdx, parentIdx))
+  }
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
     ancestors(descendent).contains(possibleAncestor)
 
@@ -748,11 +757,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   def hasNotDeletedChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedChildrenIdx)
   def hasNotDeletedParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedParentsIdx)
-
-  def isChildOfAny(childId: NodeId, parentIds: Iterable[NodeId]): Boolean = {
-    val p = parents(childId)
-    parentIds.exists(p.contains)
-  }
 
   def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).as[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
 
@@ -802,37 +806,33 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   // when changing things, make sure to change them for the stored procedure as well.
   def can_access_node(userId: UserId, nodeId: NodeId): Boolean = {
     def can_access_node_recursive(
-      userId: NodeId,
-      nodeId: NodeId,
-      visited: Set[NodeId] = emptyNodeIdSet
+      nodeIdx: Int,
+      visited: immutable.BitSet,
     ): Boolean = {
-      if (visited(nodeId)) return false // prevent inheritance cycles
+      if (visited(nodeIdx)) return false // prevent inheritance cycles
 
-      idToIdxFold(nodeId)(false) { nodeIdx =>
-        // is there a membership?
-        val levelFromMembership = membershipEdgeForNodeIdx(nodeIdx).map(edges).collectFirst {
-          case Edge.Member(_, EdgeData.Member(level), `userId`) => level
-        }
-        levelFromMembership match {
-          case None => // if no member edge exists
-            // read access level directly from node
-            nodesById(nodeId).exists(_.meta.accessLevel match {
-              case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
-              case NodeAccess.Inherited =>
-                // recursively inherit permissions from parents. minimum one parent needs to allow access.
-                parents(nodeId).exists(
-                  parentId => can_access_node_recursive(userId, parentId, visited + nodeId)
-                )
-            })
-          case Some(level) =>
-            level == AccessLevel.ReadWrite
-        }
+      // is there a membership?
+      val levelFromMembership = membershipEdgeForNodeIdx(nodeIdx).map(edges).collectFirst {
+        case Edge.Member(_, EdgeData.Member(level), `userId`) => level
+      }
+      levelFromMembership match {
+        case None => // if no member edge exists
+          // read access level directly from node
+          nodes(nodeIdx).meta.accessLevel match {
+            case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
+            case NodeAccess.Inherited =>
+              // recursively inherit permissions from parents. minimum one parent needs to allow access.
+              parentsIdx.exists(nodeIdx) { parentIdx =>
+                can_access_node_recursive(parentIdx, visited + nodeIdx)
+              }
+          }
+        case Some(level) =>
+          level == AccessLevel.ReadWrite
       }
     }
 
     // everybody has full access to non-existent nodes
-    if (!(nodeIds contains nodeId)) return true
-    can_access_node_recursive(userId, nodeId)
+    idToIdxFold(nodeId)(true)(can_access_node_recursive(_, immutable.BitSet.empty))
   }
 
   def accessLevelOfNode(nodeId: NodeId): Option[AccessLevel] = {
