@@ -344,7 +344,7 @@ object Elements {
     var elem:HTMLElement = _
     var lastScrollHeight: Int = 0
 
-    def trigger(): Unit = {
+    val trigger: () => Unit = requestSingleAnimationFrame {
       if(lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
         val currentScrollHeight = elem.scrollHeight
@@ -354,7 +354,7 @@ object Elements {
     }
 
     val modifiers = VDomModifier(
-      onDomMount.asHtml.foreach { textAreaElem =>
+      onDomMount.asHtml --> inNextAnimationFrame { textAreaElem =>
         elem = textAreaElem
         lastScrollHeight = elem.scrollHeight
         elem.style.height = s"${elem.scrollHeight}px"
