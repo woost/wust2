@@ -19,9 +19,9 @@ OVERRIDE_BRANCH=staging ci/build-docker
 docker images | grep latest
 echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" "$DOCKER_REGISTRY" --password-stdin;
 
-docker push "$DOCKER_REGISTRY/woost/db-migration:latest-core"
-docker push "$DOCKER_REGISTRY/woost/core:latest"
-docker push "$DOCKER_REGISTRY/woost/web:latest"
+docker push "$DOCKER_REGISTRY/woost/db-migration:staging-core"
+docker push "$DOCKER_REGISTRY/woost/core:staging"
+docker push "$DOCKER_REGISTRY/woost/web:staging"
 
 if [[ -n "$STAGING_URL" ]]; then
     echo "Triggering staging deploy..."
