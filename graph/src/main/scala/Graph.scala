@@ -939,22 +939,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     rootNodesIdx.result()
   }
 
-  def redundantTree(root: Int, excludeCycleLeafs: Boolean, visited: ArraySet = ArraySet.create(n)): Tree = {
-    if (visited.containsNot(root) && hasChildrenIdx(root)) {
-      visited.add(root)
-      if (excludeCycleLeafs) {
-        val nonCycleChildren = childrenIdx(root).filterNot(visited.contains)
-        if (nonCycleChildren.nonEmpty) {
-          Tree.Parent(nodes(root), (nonCycleChildren.map(n => redundantTree(n, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
-        } else
-          Tree.Leaf(nodes(root))
-      } else {
-        Tree.Parent(nodes(root), (childrenIdx(root).map(idx => redundantTree(idx, excludeCycleLeafs, visited))(breakOut): List[Tree]).sortBy(_.node.id))
-      }
-    } else
-      Tree.Leaf(nodes(root))
-  }
-
   def roleTree(root: Int, role: NodeRole, visited: ArraySet = ArraySet.create(n)): Tree = {
     if (visited.containsNot(root) && nodes(root).role == role) {
       visited.add(root)
@@ -966,44 +950,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       ).sortBy(_.node.id))
     } else
       Tree.Leaf(nodes(root))
-  }
-
-  lazy val redundantForestExcludingCycleLeafs: List[Tree] = {
-    (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = true))(breakOut): List[Tree]).sortBy(_.node.id)
-  }
-  lazy val redundantForestIncludingCycleLeafs: List[Tree] = {
-    (rootNodes.map(idx => redundantTree(idx, excludeCycleLeafs = false))(breakOut): List[Tree]).sortBy(_.node.id)
-  }
-
-  def notDeletedChannelTree(user: UserId): Seq[Tree] = idToIdxFold(user)(Seq.empty[Tree]) { userIdx =>
-    val channelIndices = pinnedNodeIdx(userIdx)
-    val isChannel = ArraySet.create(n)
-    pinnedNodeIdx.foreachElement(userIdx)(isChannel.add)
-
-    //TODO: more efficient algorithm? https://en.wikipedia.org/wiki/Reachability#Algorithms
-    def reachable(childChannelIdx: Int, parentChannelIdx: Int): Boolean = {
-      // child --> ...no other channel... --> parent
-      // if child channel is transitive child of parent channel,
-      // without traversing over other channels
-      val excludedChannels = ArraySet.create(n)
-      pinnedNodeIdx.foreachElement(userIdx) { channelIdx =>
-        excludedChannels += channelIdx
-      }
-      excludedChannels -= parentChannelIdx
-      dfs.exists(_(childChannelIdx), dfs.withoutStart, notDeletedParentsIdx, isFound = _ == parentChannelIdx, isIncluded = excludedChannels.containsNot)
-    }
-
-    val topologicalParents = for {
-      child <- channelIndices
-      parent <- ancestorsIdx(child)
-      if child != parent
-      if isChannel.contains(parent)
-      if reachable(child, parent)
-      childNode = nodes(child)
-    } yield Edge.Child(ParentId(nodes(parent).id), ChildId(childNode.id))
-
-    val topologicalMinor = Graph(channelIndices.map(nodes), topologicalParents)
-    topologicalMinor.lookup.redundantForestExcludingCycleLeafs
   }
 
   def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
