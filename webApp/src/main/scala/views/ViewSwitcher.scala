@@ -194,7 +194,7 @@ object ViewSwitcher {
       state.graph().nodesByIdOrThrow(channelId)
     }
 
-    def addNewTabDropdown = div.thunkStatic(keyValue)(VDomModifier(
+    def addNewTabDropdown = div.thunkStatic(keyValue)(Ownable { implicit ctx => VDomModifier(
       div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
       UI.dropdownMenu(VDomModifier(
         padding := "5px",
@@ -267,7 +267,7 @@ object ViewSwitcher {
           )
         }
       ), close = closeDropdown, dropdownModifier = cls := "top left")
-    ))
+    )})
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 
