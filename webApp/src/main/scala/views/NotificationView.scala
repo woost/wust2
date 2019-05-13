@@ -165,7 +165,7 @@ object NotificationView {
 
   private def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
+      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
@@ -193,7 +193,7 @@ object NotificationView {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdx(parentNodeIdx).foreachElement { nodeIdx =>
+      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>

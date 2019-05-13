@@ -91,7 +91,7 @@ object ItemProperties {
         case Target.Node(nodeId) => Rx {
           val graph = state.graph()
           val nodeIdx = graph.idToIdxOrThrow(nodeId)
-          graph.automatedNodes(nodeIdx).nonEmpty || graph.ancestorsIdx(nodeIdx).exists(parentIdx => graph.automatedNodes(parentIdx).nonEmpty)
+          graph.automatedEdgeReverseIdx.sliceNonEmpty(nodeIdx) || graph.ancestorsIdxExists(nodeIdx)(parentIdx => graph.automatedEdgeReverseIdx.sliceNonEmpty(parentIdx))
         }
         case Target.Custom(_, isAutomation) => isAutomation
       }

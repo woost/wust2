@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import flatland.ArraySet
 import fontAwesome._
 import googleAnalytics.Analytics
 import monix.reactive.Observable
@@ -253,9 +254,11 @@ object PageSettingsMenu {
       case SearchInput.Local(query) if query.nonEmpty =>
         val graph = state.graph.now
         val nodes = graph.nodes.toList
-        val descendants = graph.descendants(node.id)
+        val nodeIdx = graph.idToIdxOrThrow(node.id)
+        val descendants = ArraySet.create(graph.nodes.length)
+        graph.descendantsIdxForeach(nodeIdx)(descendants += _)
 
-        val channelDescendants = nodes.filter(n => descendants.toSeq.contains(n.id))
+        val channelDescendants = nodes.filter(n => graph.idToIdxFold(n.id)(false)(descendants(_)))
         renderSearchResult(query, channelDescendants, false)
       case SearchInput.Global(query) if query.nonEmpty =>
         Observable.fromFuture(Client.api.getGraph(Page.empty)).map { graph => //TODO? get whole graph? does that make sense?

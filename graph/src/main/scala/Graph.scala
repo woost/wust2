@@ -616,7 +616,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
       val builder = new mutable.ArrayBuilder.ofRef[Node.User]
       builder.sizeHint(rootAuthors.size)
       builder ++= rootAuthors
-      descendantsIdx(idx).foreach { idx =>
+      descendantsIdxForeach(idx) { idx =>
         builder ++= authorsByIndex(idx)
       }
       builder.result().distinct
@@ -699,10 +699,10 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     //        .map(nodesById)
     val tagSet = ArraySet.create(n)
 
-    ancestorsIdx(nodeIdx).foreachElement(tagSet.add)
+    ancestorsIdxForeach(nodeIdx)(tagSet.add)
     parentIndices.foreach { parentIdx =>
       tagSet.remove(parentIdx)
-      ancestorsIdx(parentIdx).foreachElement(tagSet.remove)
+      ancestorsIdxForeach(parentIdx)(tagSet.remove)
     }
     parentsIdx.foreachElement(nodeIdx)(tagSet.remove)
 
@@ -739,7 +739,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     idToIdxFold(possibleParent)(false)(parentIdx => inChildParentRelation(childIdx, parentIdx))
   }
   def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
-    ancestors(descendent).contains(possibleAncestor)
+    idToIdxFold(descendent)(false)(ancestorsIdxExists(_)(_ == possibleAncestor))
 
   @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)
@@ -783,10 +783,17 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     count
   }
   @inline def descendantsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, childrenIdx, isFound = f) // inline to inline f
+  @inline def descendantsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.withManualAppend(_(nodeIdx), dfs.afterStart, childrenIdx, f)
   def descendantsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
   def descendants(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => descendantsIdx(nodeIdx).map(nodeIds))
 
+  @inline def ancestorsIdxCount(nodeIdx: Int)(f: Int => Boolean): Int = { // inline to inline f
+    var count = 0
+    dfs.withManualAppend(_(nodeIdx), dfs.afterStart, parentsIdx, append = idx => if (f(idx)) count += 1)
+    count
+  }
   @inline def ancestorsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, parentsIdx, isFound = f) // inline to inline f
+  @inline def ancestorsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.withManualAppend(_(nodeIdx), dfs.afterStart, parentsIdx, f)
   def ancestorsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, parentsIdx)
   def ancestors(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => ancestorsIdx(nodeIdx).map(nodeIds))
 

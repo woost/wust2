@@ -254,7 +254,7 @@ object GraphOperation {
               if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
                 if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
                 else {
-                  if(graph.descendantsIdx(tagIdx).contains(childIdx)) true
+                  if(graph.descendantsIdxExists(tagIdx)(_ == childIdx)) true
                   else false
                 }
               } else true

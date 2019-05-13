@@ -97,8 +97,7 @@ object WoostNotification {
       changesOnSuccessPrompt = false
     ) else {
       val canNotifyParents = graph
-        .ancestorsIdx(channelIdx)
-        .exists(idx => graph.notifyByUserIdx(userIdx).contains(idx))
+        .ancestorsIdxExists(channelIdx)(idx => graph.notifyByUserIdx(userIdx).contains(idx))
 
       if(canNotifyParents) NotificationState(
         permissionState = permissionState,
