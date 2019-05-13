@@ -371,7 +371,7 @@ object Elements {
   )
 
 
-  def markdownVNode(str: String) = div(cls := "markdown", div(innerHTML := UnsafeHTML(markdownString(str)))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  def markdownVNode(str: String) = div.static(keyValue(str))(VDomModifier(cls := "markdown", div(innerHTML := UnsafeHTML(markdownString(str))))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
   def markdownString(str: String): String = EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
 
   def escapeHtml(content: String): String = {
