@@ -80,7 +80,7 @@ object InfiniteScroll {
             onDomPreUpdate.asHtml.foreach { elem =>
               lastScrollTop = elem.scrollTop
             },
-            onDomUpdate.asHtml.foreach { elem =>
+            onDomUpdate.asHtml --> inNextAnimationFrame { elem =>
               if (elem.scrollHeight > lastHeight) {
                 val diff = elem.scrollHeight - lastHeight
                 lastHeight = elem.scrollHeight
