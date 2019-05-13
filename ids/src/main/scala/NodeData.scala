@@ -5,6 +5,8 @@ import supertagged._
 sealed trait NodeData {
   def str: String //TODO: define this properly via typeclass to plugin from the outside.
   val tpe: NodeData.Type
+
+  @inline def as[T <: NodeData]: T = asInstanceOf[T]
 }
 object NodeData {
   object Type extends TaggedType[String]

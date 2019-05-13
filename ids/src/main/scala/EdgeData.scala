@@ -6,6 +6,8 @@ import supertagged._
 
 sealed trait EdgeData {
   val tpe: EdgeData.Type
+
+  @inline def as[T <: EdgeData]: T = asInstanceOf[T]
 }
 object EdgeData {
   object Type extends TaggedType[String]

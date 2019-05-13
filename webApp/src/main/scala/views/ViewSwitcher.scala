@@ -293,7 +293,7 @@ object ViewSwitcher {
           val nodeIdx = graph.idToIdxOrThrow(channelId)
           val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
           val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
-          val filesCount = graph.pageFiles(channelId).length
+          val filesCount = graph.pageFilesIdx(nodeIdx).length
           (messageChildrenCount, taskChildrenCount, filesCount)
         } else (0, 0, 0)
 

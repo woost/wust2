@@ -754,18 +754,19 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def hasNotDeletedChildren(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedChildrenIdx)
   def hasNotDeletedParents(nodeId: NodeId): Boolean = hasSomethingById(nodeId, hasNotDeletedParentsIdx)
 
-  def propertyPairIdx(subjectIdx: Int): IndexedSeq[(Edge.LabeledProperty, Node)] = propertiesEdgeIdx(subjectIdx).map(graph.edges(_).as[Edge.LabeledProperty]).flatMap(e => graph.nodesById(e.targetId).map(e -> _))
-
-  //TODO: make faster
-  val pageFiles: NodeId => Seq[(NodeId, NodeData.File)] = { pageParentId: NodeId =>
-    graph.idToIdxFold(pageParentId)(Seq.empty[(NodeId, NodeData.File)]) { pageIdx =>
-      (pageIdx +: graph.descendantsIdx(pageIdx)).flatMap { nodeIdx =>
-        graph.propertyPairIdx(nodeIdx).flatMap {
-          case (_, Node.Content(id, file: NodeData.File, _, _, _)) => Some(id -> file)
-          case (_, _)                                              => None
+  def pageFilesIdx(pageIdx: Int): Seq[Int] = {
+    val pageFiles = mutable.ArrayBuffer[Int]()
+    dfs.withManualAppend(_(pageIdx), dfs.withStart, childrenIdx, { idx =>
+      propertiesEdgeIdx.foreachElement(idx) { edgeIdx =>
+        val targetIdx = graph.edgesIdx.b(edgeIdx)
+        val targetNode = graph.nodes(targetIdx)
+        targetNode.data match {
+          case data: NodeData.File => pageFiles += targetIdx
+          case _ => ()
         }
       }
-    }
+    })
+    pageFiles
   }
 
   def involvedInContainmentCycleIdx(idx: Int): Boolean = {

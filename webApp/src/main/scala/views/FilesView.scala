@@ -13,11 +13,13 @@ object FilesView {
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val files: Rx.Dynamic[Seq[(NodeId, NodeData.File, EpochMilli)]] = Rx {
       val graph = state.graph()
+      val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
-      graph.pageFiles(focusState.focusedId).map { case (id, data) =>
-        val creationDate = graph.nodeCreated(graph.idToIdxOrThrow(id))
-        (id, data, creationDate)
-      }.sortBy { case (_, _, date) => date }.reverse
+      graph.pageFilesIdx(focusedIdx).map { fileIdx =>
+        val node = graph.nodes(fileIdx)
+        val creationDate = graph.nodeCreated(fileIdx)
+        (node.id, node.data.as[NodeData.File], creationDate)
+      }.sortBy { case (_, _, date) => -date }
     }
 
     div(
