@@ -194,7 +194,7 @@ object EditableContent {
       flexDirection.column,
       alignItems.center,
       width := "100%",
-      dsl.span.static(current.hashCode)(Ownable { implicit ctx => VDomModifier(
+      dsl.span.thunkStatic(current.hashCode)(Ownable { implicit ctx => VDomModifier(
         display.inlineFlex,
         alignItems.flexStart,
         width := "100%",

@@ -89,7 +89,7 @@ object MoveableElement {
 
     show.map {
       case true =>
-        div.static(toggle.hashCode)(VDomModifier(
+        div.thunkStatic(toggle.hashCode)(VDomModifier(
           cls := "moveable-window",
 
           Styles.flex,

@@ -285,7 +285,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
   private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
     val tag = stringToTag(tree.tag)
-    tag.static(keyValue(key))(treeToModifiers(tree))
+    tag.thunkStatic(keyValue(key))(treeToModifiers(tree))
   }
 
   implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
@@ -355,12 +355,18 @@ class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
   override def onComplete(): Unit = ()
 }
 
-trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] {
+trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
   def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transformRx[O](implicit ctx => _.filter(predicate))
   @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = mapOption(f.lift)
   @inline def mapOption[T](f: O => Option[T]): EmitterBuilder[T, R] = transformRx[T](implicit ctx => v => v.map(v => f(v)).filter(_.isEmpty).map(_.get))
+
+  def mapResult[S](f: R => S): EmitterBuilder[O, S] = new RxEmitterBuilderBase[O, S] {
+    @inline def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, S] = self.transform(tr).mapResult(f)
+    @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, S] = self.transformRx(tr).mapResult(f)
+    @inline def -->(observer: Observer[O]): S = f(self --> observer)
+  }
 }
 class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[E] => Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
   import outwatchHelpers._

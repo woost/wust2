@@ -119,7 +119,7 @@ object ListView {
     }
   }
 
-  private def renderColumn(state: GlobalState, focusState: FocusState, traverseState: TraverseState, nodeId: NodeId): VNode = div.static(nodeId.hashCode)(Ownable { implicit ctx =>
+  private def renderColumn(state: GlobalState, focusState: FocusState, traverseState: TraverseState, nodeId: NodeId): VNode = div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
     val isExpanded = Rx {
       val graph = state.graph()
       val user = state.user()

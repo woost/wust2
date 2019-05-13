@@ -118,7 +118,7 @@ object Avatar {
   def verticalMirror(seed: Any, n: Int): VNode = {
     import outwatch.dom.dsl.svg.svg
 
-    svg.static(keyValue(seed)) {
+    svg.thunkStatic(keyValue(seed)) {
       val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
       val half = (n / 2) + (n % 2)
@@ -150,7 +150,7 @@ object Avatar {
   def twoMirror(seed: Any, n: Int): VNode = {
     import outwatch.dom.dsl.svg.svg
 
-    svg.static(keyValue(seed)) {
+    svg.thunkStatic(keyValue(seed)) {
       val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
 
       val half = (n / 2) + (n % 2)

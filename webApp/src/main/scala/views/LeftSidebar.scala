@@ -126,7 +126,7 @@ object LeftSidebar {
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.static(traverseState.parentId.hashCode)(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.hashCode)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
           ChannelTreeData.children(graph, traverseState, userId)
@@ -245,7 +245,7 @@ object LeftSidebar {
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.static(traverseState.parentId.hashCode)(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.hashCode)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
           ChannelTreeData.children(graph, traverseState, userId)

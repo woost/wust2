@@ -31,7 +31,7 @@ import pageheader.components.{ TabContextParms, TabInfo, customTab, doubleTab, s
 object PageHeader {
 
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    div.static(keyValue)(Ownable { implicit ctx =>
+    div.thunkStatic(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
 

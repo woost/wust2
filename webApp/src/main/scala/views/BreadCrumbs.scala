@@ -47,12 +47,12 @@ object BreadCrumbs {
   }
 
   def apply(state: GlobalState): VNode = {
-    div.static(keyValue)(Ownable { implicit ctx =>
+    div.thunkStatic(keyValue)(Ownable { implicit ctx =>
       modifier(state, None, state.page.map(_.parentId), nid => state.urlConfig.update(_.focus(Page(nid))))
     })
   }
   def apply(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
-   div.static(keyValue)(Ownable { implicit ctx =>
+   div.thunkStatic(keyValue)(Ownable { implicit ctx =>
       modifier(state, filterUpTo, parentIdRx, parentIdAction)
    })
   }

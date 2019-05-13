@@ -24,7 +24,7 @@ import scala.scalajs.js
 object Topbar {
 
   def apply(state: GlobalState): VNode = {
-    div.static(keyValue)(Ownable { implicit ctx =>
+    div.thunkStatic(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
         header(state).apply(marginRight := "10px"),
