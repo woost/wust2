@@ -37,8 +37,8 @@ object GraphChangesAutomation {
     val addEdges = mutable.HashSet.newBuilder[Edge]
 
     newNode match {
-      // add views of template to new node
-      case newNode: Node.Content => addNodes += newNode.copy(views = templateNode.views)
+      // add defined views of template to new node
+      case newNode: Node.Content if templateNode.views.isDefined => addNodes += newNode.copy(views = templateNode.views)
       case _ => ()
     }
 
@@ -152,9 +152,9 @@ object GraphChangesAutomation {
         graph.idToIdxFold[Unit](parent.parentId)(addEdges += parent) { parentIdx =>
           val (childNode, shouldAutomate) = {
             graph.idToIdxFold(parent.childId) {
-              (changes.addNodes.find(_.id == parent.childId).get, changes.addEdges.exists { case Edge.Automated(_, parent.childId) => true; case _ => false })
+              (changes.addNodes.find(_.id == parent.childId).get, !changes.addEdges.exists { case Edge.Automated(_, parent.childId) => true; case _ => false })
             } { childIdx =>
-              (graph.nodes(childIdx), !graph.parentsIdx.contains(childIdx)(parentIdx) && graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
+              (graph.nodes(childIdx), !graph.parentsIdx.contains(childIdx)(parentIdx) && !graph.automatedEdgeReverseIdx.sliceNonEmpty(childIdx))
             }
           }
 

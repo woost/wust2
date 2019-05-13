@@ -21,6 +21,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
   def newNodeUser(str: String) = Node.User(UserId(freshNodeId()), NodeData.User(str, false, 0), NodeMeta.User)
   val copyTime = EpochMilli.now
 
+  val defaultChildData = EdgeData.Child(deletedAt = None, ordering = BigDecimal(0))
+
   def copySubGraphOfNode(graph: Graph, newNode: Node, templateNode: Node) = GraphChangesAutomation.copySubGraphOfNode(
     UserId(freshNodeId()), graph, newNode, templateNode, newId = copyNodeId(_), copyTime = copyTime
   )
@@ -42,6 +44,26 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
   }
 
+  "template node with view" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateViews = List(View.Chat, View.Kanban)
+    val templateNode = newNodeContent("template", NodeRole.Task).copy(views = Some(templateViews))
+    val graph = new Graph(
+      nodes = Array(
+        newNode, templateNode
+      ),
+
+      edges = Array.empty
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+    changes.addEdges mustEqual Set.empty
+    changes.delEdges mustEqual Set.empty
+    changes.addNodes mustEqual Set(
+      newNode.copy(views = Some(templateViews))
+    )
+  }
+
   "empty template node with some graph" in {
     val newNode = newNodeContent("new-node", NodeRole.Task)
     val templateNode = newNodeContent("template", NodeRole.Task)
@@ -52,7 +74,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(newNode.id), ChildId(otherNode.id)),
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(otherNode.id)),
       )
     )
 
@@ -71,8 +93,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(newNode.id), ChildId(newNode.id)),
-        Edge.Child(ParentId(templateNode.id), ChildId(templateNode.id)),
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(templateNode.id)),
       )
     )
 
@@ -81,7 +103,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(newNode.id)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
     )
   }
 
@@ -95,8 +117,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(node.id)),
-        Edge.Child(ParentId(node.id), ChildId(templateNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node.id)),
+        Edge.Child(ParentId(node.id), defaultChildData, ChildId(templateNode.id)),
       )
     )
 
@@ -107,8 +129,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(copyNodeId(node.id)), ChildId(newNode.id)),
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(newNode.id)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
     )
   }
@@ -122,7 +144,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(newNode.id), ChildId(templateNode.id)),
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(templateNode.id)),
       )
     )
 
@@ -131,7 +153,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(newNode.id))
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id))
     )
   }
 
@@ -144,7 +166,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(newNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(newNode.id)),
       )
     )
 
@@ -153,7 +175,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(newNode.id)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
     )
   }
 
@@ -168,8 +190,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(userNode.id: NodeId)),
-        Edge.Child(ParentId(userNode.id: NodeId), ChildId(otherNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(userNode.id: NodeId)),
+        Edge.Child(ParentId(userNode.id: NodeId), defaultChildData, ChildId(otherNode.id)),
       )
     )
 
@@ -178,7 +200,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(userNode.id: NodeId)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(userNode.id: NodeId)),
     )
   }
 
@@ -193,8 +215,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(node.id)),
-        Edge.Child(ParentId(node.id), ChildId(otherNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node.id)),
+        Edge.Child(ParentId(node.id), defaultChildData, ChildId(otherNode.id)),
       )
     )
 
@@ -205,8 +227,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
-      Edge.Child(ParentId(copyNodeId(node.id)), ChildId(copyNodeId(otherNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
       Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id))
     )
@@ -253,7 +275,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(node.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("copy"), PropertyId(neutralNode.id)),
       )
@@ -266,7 +288,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("copy"), PropertyId(copyNodeId(neutralNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
@@ -285,8 +307,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(node.id), ChildId(templateNode.id)),
-        Edge.Child(ParentId(node.id), ChildId(otherNode.id)),
+        Edge.Child(ParentId(node.id), defaultChildData, ChildId(templateNode.id)),
+        Edge.Child(ParentId(node.id), defaultChildData, ChildId(otherNode.id)),
       )
     )
 
@@ -295,7 +317,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes.addNodes mustEqual Set.empty
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(node.id), ChildId(newNode.id)),
+      Edge.Child(ParentId(node.id), defaultChildData, ChildId(newNode.id)),
     )
   }
 
@@ -310,8 +332,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       ),
 
       edges = Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(node.id)),
-        Edge.Child(ParentId(node.id), ChildId(otherNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node.id)),
+        Edge.Child(ParentId(node.id), defaultChildData, ChildId(otherNode.id)),
       )
     )
 
@@ -322,8 +344,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
     changes.delEdges mustEqual Set.empty
     changes.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
-      Edge.Child(ParentId(copyNodeId(node.id)), ChildId(copyNodeId(otherNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
       Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id))
     )
@@ -334,8 +356,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     changes2.addNodes mustEqual Set.empty
     changes2.delEdges mustEqual Set.empty
     changes2.addEdges mustEqual Set( // TODO: not really idempotent as of changes (but the result is still the same). it readds already existing edges of the newNode.
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
-      Edge.Child(ParentId(copyNodeId(node.id)), ChildId(copyNodeId(otherNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
     )
 
     val nextNode = newNodeContent("node2", NodeRole.Task)
@@ -346,7 +368,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         nextNode, linkedNode, neutralNode
       ),
       edges = graph2.edges ++ Array(
-        Edge.Child(ParentId(templateNode.id), ChildId(nextNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(nextNode.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("copy"), PropertyId(neutralNode.id)),
       )
@@ -359,9 +381,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
     changes3.delEdges mustEqual Set.empty
     changes3.addEdges mustEqual Set(
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(node.id))),
-      Edge.Child(ParentId(copyNodeId(node.id)), ChildId(copyNodeId(otherNode.id))),
-      Edge.Child(ParentId(newNode.id), ChildId(copyNodeId(nextNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
+      Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(nextNode.id))),
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("copy"), PropertyId(copyNodeId(neutralNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(nextNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(nextNode.id)),
