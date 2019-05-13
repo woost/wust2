@@ -114,10 +114,13 @@ object ViewSwitcher {
 
 
   //TODO FocusState?
-  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  @inline def apply(state: GlobalState, channelId: NodeId): VNode = {
     apply(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
   }
-  def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None)(implicit ctx: Ctx.Owner): VNode = {
+  @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
+    div.thunk(keyValue(channelId))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
+  }
+  def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
@@ -191,7 +194,7 @@ object ViewSwitcher {
       state.graph().nodesByIdOrThrow(channelId)
     }
 
-    def addNewTabDropdown = div(
+    def addNewTabDropdown = div.static(keyValue)(VDomModifier(
       div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
       UI.dropdownMenu(VDomModifier(
         padding := "5px",
@@ -264,14 +267,14 @@ object ViewSwitcher {
           )
         }
       ), close = closeDropdown, dropdownModifier = cls := "top left")
-    )
+    ))
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
 
     viewRx.triggerLater { view => addNewView(view) }
     initialView.foreach(addNewView(_))
 
-    div(
+    VDomModifier(
       marginLeft := "5px",
       Styles.flex,
       justifyContent.center,
