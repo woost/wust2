@@ -6,7 +6,7 @@ import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.{BrowserDetect, DevOnly}
+import wust.webApp.{ BrowserDetect, DevOnly }
 
 import scala.scalajs.js
 
@@ -32,10 +32,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
   //  }
 
-  def onStartDrag():Unit = {
+  def onStartDrag(): Unit = {
     state.eventProcessor.stopEventProcessing.onNext(true)
   }
-  def onStopDrag():Unit = {
+  def onStopDrag(): Unit = {
     state.eventProcessor.stopEventProcessing.onNext(false)
   }
 
@@ -70,18 +70,18 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     currentOverContainerEvent = js.undefined
   })
 
-  draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent:SortableStartEvent) =>
+  draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent: SortableStartEvent) =>
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(sortableStartEvent.startContainer)
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
     val payload: js.UndefOr[DragPayload] = readDragPayload(sortableStartEvent.dragEvent.originalSource)
     payload.foreach(writeDragPayload(sortableStartEvent.dragEvent.source, _))
 
-    DevOnly {
-      if (payload == js.defined(DragItem.DisableDrag)) { println("Drag is disabled on this element."); sortableStartEvent.cancel() }
+    if (payload == js.defined(DragItem.DisableDrag)) {
+      scribe.debug("Drag is disabled on this element.")
+      sortableStartEvent.cancel()
     }
   })
-
 
   // when dragging over
   draggable.on[SortableSortEvent]("sortable:sort", (sortableSortEvent: SortableSortEvent) => {
@@ -91,13 +91,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       case (sortableSortEvent, JSDefined(currentOverContainerEvent)) =>
         val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
-        if(overSortcontainer) {
+        if (overSortcontainer) {
           validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrlDown, shiftDown)
         } else {
           // drag action is handled by dragOverEvent instead
           sortableSortEvent.cancel()
         }
-      case (sortableSortEvent, _)                              => sortableSortEvent.cancel()
+      case (sortableSortEvent, _) => sortableSortEvent.cancel()
     }
   })
 
@@ -117,7 +117,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
       dragOverEvent.cancel()
     }
   })
-
 
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
