@@ -43,8 +43,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
       for {
         _ <- db.node.create(addNodes.map(forDb)(breakOut))
-        _ <- db.edge.create(addEdges.map(forDb)(breakOut))
         _ <- db.edge.delete(delEdges.map(forDb)(breakOut))
+        _ <- db.edge.create(addEdges.map(forDb)(breakOut))
         _ <- db.node.addMember(addNodes.map(_.id)(breakOut), user.id, AccessLevel.ReadWrite)
       } yield SuccessResult
     }
