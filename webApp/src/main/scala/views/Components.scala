@@ -86,12 +86,12 @@ object Components {
   }
 
   def renderText(str: String): VNode = {
-    p(
+    p.static(keyValue(str))(VDomModifier(
       overflow.hidden,
       textOverflow.ellipsis,
       whiteSpace.nowrap,
       Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
-    )
+    ))
   }
   def renderText(node: Node): VNode = renderText(node.str)
 
