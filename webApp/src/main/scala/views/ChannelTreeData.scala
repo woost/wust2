@@ -17,7 +17,8 @@ object ChannelTreeData {
 
     val channels = mutable.ArrayBuffer[NodeId]()
     graph.pinnedNodeIdx.foreachElement(userIdx) { idx =>
-      if (!graph.ancestorsIdxExists(idx)(pinnedNodes.contains)) channels += graph.nodeIds(idx)
+      //TODO better? need to check for cycles, so you are still a toplevel channel if you are involved in a cycle
+      if (!graph.ancestorsIdxExists(idx)(ancestorIdx => pinnedNodes.contains(ancestorIdx) && !graph.ancestorsIdxExists(ancestorIdx)(_ == idx))) channels += graph.nodeIds(idx)
     }
 
     channels.sorted
