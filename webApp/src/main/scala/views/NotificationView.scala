@@ -39,12 +39,12 @@ object NotificationView {
     case class Edit(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
     case class Create(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
   }
-  case class UnreadNode(nodeIdx: Int, newRevisions: Array[Revision])
+  case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision])
 
   object LatestChangeInGroupOrdering extends Ordering[(Int, Array[UnreadNode])] {
     def compare(a: (Int, Array[UnreadNode]), b: (Int, Array[UnreadNode])) = {
-      val aValue = a._2(0).newRevisions(0).timestamp
-      val bValue = b._2(0).newRevisions(0).timestamp
+      val aValue = a._2(0).newRevisions.head.timestamp
+      val bValue = b._2(0).newRevisions.head.timestamp
       -aValue compare -bValue
     }
   }
@@ -204,24 +204,36 @@ object NotificationView {
         val node = graph.nodes(nodeIdx)
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
-            val newSortedRevisionsBuilder = Array.newBuilder[Revision]
-            var isFirst = true
-            graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-              val edge = graph.edges(edgeIdx).as[Edge.Author]
-              val isReadDuringRender = lastReadTime > renderTime
-              def isUnread = lastReadTime < edge.data.timestamp
-              if (isReadDuringRender || isUnread) {
-                val author = graph.nodesByIdOrThrow(edge.userId).as[Node.User]
-                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = isReadDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = isReadDuringRender)
-                newSortedRevisionsBuilder += revision
-              }
-              isFirst = false
-            }
 
-            val newSortedRevisions = newSortedRevisionsBuilder.result.reverse //TODO: Performance: instead of reversed, build up newRevisionsBuilder reversed
-            if (newSortedRevisions.nonEmpty) {
-              unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
+            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
+            val isReadDuringRender = lastReadTime > renderTime
+            if (isReadDuringRender) {
+              val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
+              if (sliceLength > 0) {
+                val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
+                val edge = graph.edges(edgeIdx).as[Edge.Author]
+                val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+                val isFirst = sliceLength == 1
+                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
+                unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+              }
+            } else {
+              var newSortedRevisions = List.empty[Revision]
+              var isFirst = true
+              graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+                val edge = graph.edges(edgeIdx).as[Edge.Author]
+                def isUnread = lastReadTime < edge.data.timestamp
+                if (isUnread) {
+                  val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+                  val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
+                  newSortedRevisions ::= revision
+                }
+                isFirst = false
+              }
+
+              if (newSortedRevisions.nonEmpty) {
+                unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
+              }
             }
           case _ =>
         }
