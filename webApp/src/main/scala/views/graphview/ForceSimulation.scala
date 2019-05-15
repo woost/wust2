@@ -155,8 +155,15 @@ class ForceSimulation(
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val taskChildrenSet = graph.taskChildrenIdx.toArraySet(focusedIdx)
         val tagSet = ArraySet.create(graph.size)
-        graph.nodes.foreachIndexAndElement{ (i,elem) =>
-          if(elem.role == NodeRole.Tag && graph.childrenIdx.sliceNonEmpty(i)) tagSet += i
+        graph.taskChildrenIdx.foreachElement(focusedIdx) { nodeIdx =>
+          graph.parentsIdx.foreachElement(nodeIdx) { parentIdx =>
+            val elem = graph.nodes(parentIdx)
+            if(elem.role == NodeRole.Tag) tagSet += parentIdx
+          }
+        }
+        graph.childrenIdx.foreachElement(focusedIdx) { nodeIdx =>
+          val elem = graph.nodes(nodeIdx)
+          if(elem.role == NodeRole.Tag) tagSet += nodeIdx
         }
         graph.filterIdx(nodeIdx => taskChildrenSet.contains(nodeIdx) || tagSet.contains(nodeIdx))
       }
