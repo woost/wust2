@@ -534,7 +534,7 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
         nodeCreator(nodeIdx) = edgesIdx.b(createdEdgeIdx)
         nodeModified(nodeIdx) = edges(lastModifierEdgeIdx).as[Edge.Author].data.timestamp
       } else {
-        nodeCreator(nodeIdx) = -1
+        nodeCreator(nodeIdx) = -1 //TODO: we do not want -1 indices...
       }
       nodeIdx += 1
     }
