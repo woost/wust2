@@ -152,13 +152,22 @@ object ViewSwitcher {
       state.graph().nodesByIdOrThrow(channelId)
     }
 
+    val existingViews = Rx {
+      val node = nodeRx()
+      node.views match {
+        case None        => ViewHeuristic.bestView(state.graph(), node).toList
+        case Some(views) => views
+      }
+    }
+
+    val hasViews = Rx {
+      nodeRx().views.isDefined
+    }
+
     def addNewView(newView: View.Visible) : Unit = if (viewDefs.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
-      val currentViews = node.views match {
-        case None        => ViewHeuristic.bestView(state.graph.now, node).toList // no definitions yet, take the current view and additionally a new one
-        case Some(views) => views // just add a new view
-      }
+      val currentViews = existingViews.now
 
       if (!currentViews.contains(newView)) {
         val newNode = node match {
@@ -195,8 +204,8 @@ object ViewSwitcher {
     def removeView(view: View.Visible): Unit = {
       done.onNext(())
       val node = nodeRx.now
-      val existingViews = node.views.getOrElse(Nil)
-      val filteredViews = existingViews.filterNot(_ == view)
+      val currentViews = node.views.getOrElse(Nil)
+      val filteredViews = currentViews.filterNot(_ == view)
       val newNode = node match {
         case n: Node.Content => n.copy(views = Some(filteredViews))
         case n: Node.User => n.copy(views = Some(filteredViews))
@@ -204,7 +213,7 @@ object ViewSwitcher {
 
       //switch to remaining view
       if (viewRx.now == view) {
-        val currPosition = existingViews.indexWhere(_ == view)
+        val currPosition = currentViews.indexWhere(_ == view)
         val nextPosition = currPosition - 1
         val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
         viewAction(newView)
@@ -218,82 +227,81 @@ object ViewSwitcher {
     initialView.foreach(addNewView(_))
 
     VDomModifier(
-      Rx {
-        val node = nodeRx()
-        val existingViews = node.views match {
-          case None        => ViewHeuristic.bestView(state.graph(), node).toList
-          case Some(views) => views
+      div(
+        Styles.flex,
+        flexDirection.column,
+        alignItems.flexStart,
+        padding := "5px",
+
+        b(
+          "Select a view:",
+        ),
+
+
+        Rx {
+          val currentViews = existingViews()
+          val possibleViews = viewDefs.filterNot(currentViews.contains)
+          possibleViews.map { view =>
+            val info = viewToTabInfo(view, 0, 0, 0)
+            div(
+              marginTop := "8px",
+              cls := "ui button compact mini",
+              Elements.icon(info.icon),
+              view.toString,
+              onClick.stopPropagation.foreach(addNewView(view)),
+              cursor.pointer
+            )
+          }
         }
-        val possibleViews = viewDefs.filterNot(existingViews.contains)
+      ),
 
-        VDomModifier(
-          div(
-            Styles.flex,
-            flexDirection.column,
-            alignItems.flexStart,
-            padding := "5px",
+      div(
+        Styles.flex,
+        flexDirection.column,
+        alignItems.center,
+        width := "100%",
+        marginTop := "20px",
+        padding := "5px",
 
-            b(
-              "Select a view:",
-            ),
+        b(
+          "Current views:",
+          alignSelf.flexStart
+        ),
 
-            possibleViews.map { view =>
-              val info = viewToTabInfo(view, 0, 0, 0)
+        Rx {
+          val currentViews = existingViews()
+          if (currentViews.isEmpty) div("Nothing, yet.")
+          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView)) { view =>
+            val info = viewToTabInfo(view, 0, 0, 0)
+            VDomModifier(
+              marginTop := "8px",
               div(
-                marginTop := "8px",
-                cls := "ui button compact mini",
+                cls := "ui button primary compact mini",
+                Styles.flex,
+                alignItems.center,
                 Elements.icon(info.icon),
                 view.toString,
-                onClick.stopPropagation.foreach(addNewView(view)),
-                cursor.pointer
-              )
-            }
-          ),
-
-          div(
-            Styles.flex,
-            flexDirection.column,
-            alignItems.center,
-            width := "100%",
-            marginTop := "20px",
-            padding := "5px",
-
-            b(
-              "Current views:",
-              alignSelf.flexStart
-            ),
-
-            if (existingViews.isEmpty) div("Nothing, yet.")
-            else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
-              val info = viewToTabInfo(view, 0, 0, 0)
-              VDomModifier(
-                marginTop := "8px",
-                div(
-                  cls := "ui button primary compact mini",
-                  Styles.flex,
-                  alignItems.center,
-                  Elements.icon(info.icon),
-                  view.toString,
-                  onClick.stopPropagation.foreach { viewAction(view) },
-                  cursor.pointer,
-                )
-              )
-            },
-
-            node.views.map { _ =>
-              div(
-                alignSelf.flexEnd,
-                marginLeft := "auto",
-                marginTop := "10px",
-                cls := "ui button compact mini",
-                "Reset to default",
+                onClick.stopPropagation.foreach { viewAction(view) },
                 cursor.pointer,
-                onClick.stopPropagation.foreach { resetViews() }
               )
-            }
+            )
+          }
+        },
+
+        Rx {
+          VDomModifier.ifTrue(hasViews())(
+            div(
+              alignSelf.flexEnd,
+              marginLeft := "auto",
+              marginTop := "10px",
+              cls := "ui button compact mini",
+              "Reset to default",
+              cursor.pointer,
+              onClick.stopPropagation.foreach { resetViews() }
+            )
           )
-        )
-      }
+        }
+      )
     )
   }
 }
