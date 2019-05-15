@@ -38,28 +38,48 @@ object DashboardView {
       margin := "10px"
     )
 
-    div(
+    val configWidgets = VDomModifier(
+      Styles.flex,
+      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
+    )
+
+    val detailWidgets = VDomModifier(
+      Styles.flex,
+      //TODO: renderSubprojects mit summary
+      UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(segmentMod),
+
+      UI.segment("Notifications", NotificationView(state, focusState)).apply(segmentMod),
+    )
+
+    val dashboard = if (BrowserDetect.isMobile) VDomModifier(
+      Styles.flex,
+      flexDirection.column,
+
+      detailWidgets,
+      configWidgets
+    ) else VDomModifier(
       padding := "20px",
       Styles.flex,
-      justifyContent.flexStart,
-      alignItems.flexStart,
-      overflow.auto,
-      flexWrap.wrap,
-      overflow.auto,
-
-      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
 
       div(
-        Styles.flex,
         flexDirection.column,
         flex := "1",
-        minWidth := "400px",
+        minWidth := "500px",
+        detailWidgets
+      ),
 
-        //TODO: renderSubprojects mit summary
-        UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(segmentMod),
-
-        UI.segment("Notifications", NotificationView(state, focusState)).apply(segmentMod),
+      div(
+        minWidth := "250px",
+        flexDirection.column,
+        configWidgets
       )
+    )
+
+    div(
+      Styles.growFull,
+      overflow.auto,
+
+      dashboard
     )
   }
 
@@ -159,8 +179,7 @@ object DashboardView {
     div(
       borderRadius := "3px",
       margin := "0.5em",
-      padding := "15px",
-      minHeight := "70px",
+      padding := "5px",
       backgroundColor := "rgba(158, 158, 158, 0.25)",
       border := "3px solid transparent",
       onClick.stopPropagation(true) --> fieldActive,
@@ -176,9 +195,7 @@ object DashboardView {
               placeHolderMessage = Some(placeHolder),
               submitIcon = freeSolid.faPlus,
               textAreaModifiers = VDomModifier(
-                fontSize.larger,
-                fontWeight.bold,
-                minHeight := "50px"
+                fontWeight.bold
               )
             ).apply(
               margin := "0px"
@@ -186,7 +203,7 @@ object DashboardView {
           )
         }
         else
-          h1(
+          h2(
             "+ Add Sub-Project",
             color := "rgba(0, 0, 0, 0.62)",
             fontSize := "1.5em",

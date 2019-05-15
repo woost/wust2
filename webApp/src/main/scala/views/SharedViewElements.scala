@@ -173,7 +173,7 @@ object SharedViewElements {
           backgroundColor := "steelblue",
           color := "white",
         ),
-        onClick foreach {
+        onClick.stopPropagation foreach {
           val str = currentTextArea.value
           handleInput(str)
           currentTextArea.value = ""

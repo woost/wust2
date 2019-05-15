@@ -399,6 +399,7 @@ object UI {
     ),
     div(
       cls := "ui segment",
+      padding := "0.5em 0.5em",
       description
     )
   )
