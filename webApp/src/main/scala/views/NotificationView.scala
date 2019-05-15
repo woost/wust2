@@ -142,6 +142,7 @@ object NotificationView {
   }
 
   def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+
     val haveUnreadNotifications = Rx {
       val graph = state.graph()
       val user = state.user()
@@ -163,21 +164,27 @@ object NotificationView {
     channelNotification
   }
 
+  private def findLastReadTime(graph: Graph, nodeIdx: Int, userId: UserId): EpochMilli = {
+    var lastReadTime = EpochMilli.min
+    graph.readEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+      val edge = graph.edges(edgeIdx).as[Edge.Read]
+      if (edge.userId == userId && lastReadTime < edge.data.timestamp) {
+        lastReadTime = edge.data.timestamp
+      }
+    }
+    lastReadTime
+  }
+
   private def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-            val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-              val edge = graph.edges(edgeIdx).as[Edge.Read]
-              if (edge.userId == user.id) Some(edge.data.timestamp)
-              else None
-            }
-            val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
+            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
             graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
               val edge = graph.edges(edgeIdx).as[Edge.Author]
-              if (lastReadTime.forall(_ < edge.data.timestamp)) {
+              if (lastReadTime < edge.data.timestamp) {
                 return true
               }
             }
@@ -197,21 +204,16 @@ object NotificationView {
         val node = graph.nodes(nodeIdx)
         node match {
           case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-            val readTimes = graph.readEdgeIdx(nodeIdx).flatMap { edgeIdx =>
-              val edge = graph.edges(edgeIdx).as[Edge.Read]
-              if (edge.userId == user.id) Some(edge.data.timestamp)
-              else None
-            }
-            val lastReadTime = if (readTimes.isEmpty) None else Some(readTimes.max)
-
+            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
             val newSortedRevisionsBuilder = Array.newBuilder[Revision]
             var isFirst = true
             graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
               val edge = graph.edges(edgeIdx).as[Edge.Author]
-              val readDuringRender = lastReadTime.exists(_ > renderTime)
-              if (readDuringRender || lastReadTime.forall(_ < edge.data.timestamp)) {
+              val isReadDuringRender = lastReadTime > renderTime
+              def isUnread = lastReadTime < edge.data.timestamp
+              if (isReadDuringRender || isUnread) {
                 val author = graph.nodesByIdOrThrow(edge.userId).as[Node.User]
-                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = readDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = readDuringRender)
+                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = isReadDuringRender) else Revision.Edit(author, edge.data.timestamp, seen = isReadDuringRender)
                 newSortedRevisionsBuilder += revision
               }
               isFirst = false
