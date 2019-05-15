@@ -347,17 +347,17 @@ object Elements {
     val trigger: () => Unit = requestSingleAnimationFrame {
       if(lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
-        val currentScrollHeight = elem.scrollHeight
-        elem.style.height = s"${currentScrollHeight + 2}px" // 2 avoids a scrollbar
-        lastScrollHeight = currentScrollHeight
+        lastScrollHeight = elem.scrollHeight
+        elem.style.height = s"${lastScrollHeight + 4}px" // 4 avoids a scrollbar
       }
     }
 
     val modifiers = VDomModifier(
       onDomMount.asHtml --> inNextAnimationFrame { textAreaElem =>
         elem = textAreaElem
+        elem.style.height = "auto" // fixes the behaviour of scrollHeight
         lastScrollHeight = elem.scrollHeight
-        elem.style.height = s"${elem.scrollHeight}px"
+        elem.style.height = s"${lastScrollHeight + 4}px" // 4 avoids a scrollbar
       },
       onInput.debounce(300 milliseconds).foreach { trigger() }
     )
