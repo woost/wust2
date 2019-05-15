@@ -27,6 +27,7 @@ object GraphChangesAutomation {
   def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNode: Node, ignoreParents: Set[NodeId] = Set.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
     scribe.info(s"Copying sub graph of node $newNode with template $templateNode")
 
+    // we expect the template to be in the graph. the newNode may or may not be in the graph
     val templateNodeIdx = graph.idToIdxOrThrow(templateNode.id)
     val newNodeIdx = graph.idToIdx(newNode.id)
 
