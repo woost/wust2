@@ -11,7 +11,7 @@ object CuidBenchmarks {
     Seq(
       Benchmark[Array[Cuid]]("toCuidString",
         { size =>
-          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
@@ -23,7 +23,7 @@ object CuidBenchmarks {
       ),
       Benchmark[Array[Cuid]]("toUuid",
         { size =>
-          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
@@ -35,7 +35,7 @@ object CuidBenchmarks {
       ),
       Benchmark[Array[Cuid]]("toBase58",
         { size =>
-          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
@@ -47,7 +47,7 @@ object CuidBenchmarks {
       ),
       Benchmark[Array[Cuid]]("toHex",
         { size =>
-          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
@@ -59,7 +59,7 @@ object CuidBenchmarks {
       ),
       Benchmark[Array[Cuid]]("toStringFast",
         { size =>
-          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()))
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
