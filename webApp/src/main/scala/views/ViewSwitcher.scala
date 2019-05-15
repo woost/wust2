@@ -80,6 +80,11 @@ object ViewSwitcher {
   @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
     div.thunk(keyValue(channelId))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
   }
+
+  def selectForm(state: GlobalState, channelId: NodeId): VNode = {
+    div.thunkStatic(keyValue(channelId))(Ownable { implicit ctx => selector(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)), None, Observer.empty) })
+  }
+
   private def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
@@ -220,11 +225,17 @@ object ViewSwitcher {
           div(
             Styles.flex,
             flexDirection.column,
-            alignItems.flexEnd,
+            alignItems.flexStart,
+            padding := "5px",
+
+            b(
+              "Select a view:",
+            ),
+
             possibleViews.map { view =>
               val info = viewToTabInfo(view, 0, 0, 0)
               div(
-                marginBottom := "5px",
+                marginTop := "8px",
                 cls := "ui button compact mini",
                 Elements.icon(info.icon),
                 view.toString,
@@ -253,10 +264,13 @@ object ViewSwitcher {
               VDomModifier(
                 marginTop := "8px",
                 div(
+                  cls := "ui button primary compact mini",
                   Styles.flex,
                   alignItems.center,
                   Elements.icon(info.icon),
-                  view.toString
+                  view.toString,
+                  onClick.stopPropagation.foreach { viewAction(view) },
+                  cursor.pointer,
                 )
               )
             },

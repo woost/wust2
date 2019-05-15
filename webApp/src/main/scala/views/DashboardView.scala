@@ -35,45 +35,17 @@ object DashboardView {
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
-    val widgetStyle = VDomModifier(
-      Styles.growFull,
-      backgroundColor := "rgba(255,255,255,0.6)",
-      borderRadius := "10px",
-      margin := "10px",
-      padding := "5px",
-    )
-
     div(
       Styles.flex,
       flexDirection.column,
-      justifyContent.flexStart,
+      alignItems.center,
       padding := "20px",
       overflow.auto,
 
       //TODO: renderSubprojects mit summary
-      renderSubprojects(state, focusState),
-      Rx {
-        VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-          div(
-            Styles.growFull,
-            Styles.flex,
-            Rx{
-              val graph = state.graph()
-              for{
-                node <- graph.nodesById(focusState.focusedId)
-                viewList <- node.views
-              } yield VDomModifier(
-                VDomModifier.ifTrue(viewList.exists(view => view == View.List || view == View.Kanban))(
-                  ListView(state, focusState).apply(widgetStyle)
-                ),
-                VDomModifier.ifTrue(viewList.exists(view => view == View.Chat || view == View.Thread))(
-                  ChatView(state, focusState).apply(widgetStyle)
-                )
-              ) 
-            },
-          )
-        )
-      }
+      UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(width := "100%"),
+
+      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId))
     )
   }
 
