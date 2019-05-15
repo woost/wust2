@@ -540,9 +540,6 @@ object SharedViewElements {
   def newProjectButton(state: GlobalState, label: String = "New Project"): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
     val body = div(
-      Styles.flex,
-      flexDirection.column,
-      alignItems.center,
       color := "#333",
       ViewSwitcher.viewCheckboxes --> selectedViews,
     )
@@ -709,17 +706,11 @@ object SharedViewElements {
           allowEmptyString = true,
           submitIcon = freeSolid.faPlus,
           showSubmitIcon = true,
-          textAreaModifiers = VDomModifier(
-            color.white,
-            backgroundColor := "rgba(0, 0, 0, 0.6)"
-
-          )
         ),
 
         body
       ),
       modalModifier = VDomModifier(
-        cls := "basic",
         minWidth := "320px",
         maxWidth := "400px"
       ),

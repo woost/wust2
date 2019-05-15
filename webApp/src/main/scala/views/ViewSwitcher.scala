@@ -61,14 +61,19 @@ object ViewSwitcher {
     View.Topological,
   )
 
-  def viewCheckboxes = {
-    UI.multiCheckbox[View.Visible](
-      viewDefs,
-      view => span(
-        marginLeft := "4px",
-        viewToTabInfo(view, 0, 0, 0).icon,
-        span(marginLeft := "4px", view.toString)
-      ),
+  def viewCheckboxes = UI.multiCheckbox[View.Visible](
+    viewDefs,
+    view => span(
+      marginLeft := "4px",
+      viewToTabInfo(view, 0, 0, 0).icon,
+      span(marginLeft := "4px", view.toString)
+    ),
+  ).mapResult { modifier =>
+    VDomModifier(
+      width := "100%",
+      padding := "20px 10px",
+      h2("Select views:"),
+      modifier,
       div(width := "100%", fontSize.smaller, textAlign.right, color.gray, "(can be changed later)"),
     )
   }
