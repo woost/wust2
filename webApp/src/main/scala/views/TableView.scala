@@ -43,7 +43,7 @@ object TableView {
       case Nil       => NodeRole.default
     }
 
-    def columnEntryOfNodes(row: NodeId, edges: Array[(Option[Edge.LabeledProperty], Node)], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
+    def columnEntryOfNodes(row: NodeId, edges: Seq[(Option[Edge.LabeledProperty], Node)], cellModifier: VDomModifier = VDomModifier.empty): UI.ColumnEntry = UI.ColumnEntry(
       sortValue = edges.map {
         case (_, node: Node.Content) => node.str
         case (_, user: Node.User) => Components.displayUserName(user.data) // sort users by display name

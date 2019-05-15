@@ -2,6 +2,7 @@ package wust.webApp.views
 
 import wust.graph.{Edge, Graph, Node}
 import wust.ids.NodeId
+import wust.util.PlatformMap
 
 import scala.collection.breakOut
 
@@ -11,11 +12,11 @@ import scala.collection.breakOut
 object PropertyData {
 
   case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
-  case class PropertyGroupValue(node: Node, values: Array[PropertyValue])
-  case class SingleProperty(key: String, values: Array[PropertyValue])
+  case class PropertyGroupValue(node: Node, values: List[PropertyValue])
+  case class SingleProperty(key: String, values: List[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: Map[String, Array[PropertyValue]], reverseProperties: Array[Node]) {
+  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: PlatformMap.Type[List[PropertyValue]], reverseProperties: Array[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
@@ -24,10 +25,16 @@ object PropertyData {
       val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.User])
-      val properties: Map[String, Array[PropertyValue]] = graph.propertiesEdgeIdx.map(nodeIdx) { idx =>
+      val properties = PlatformMap[List[PropertyValue]]()
+      graph.propertiesEdgeIdx.foreachElement(nodeIdx) { idx =>
         val edge = graph.edges(idx).as[Edge.LabeledProperty]
-        PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
-      }.groupBy(_.edge.data.key)
+        val value = PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
+        properties.get(edge.data.key).fold {
+          properties += edge.data.key -> List(value)
+        } { props =>
+          properties += edge.data.key -> (value :: props)
+        }
+      }
       val reverseProperties: Array[Node] = graph.propertiesEdgeReverseIdx.map(nodeIdx) { idx =>
         val nodeIdx = graph.edgesIdx.a(idx)
         graph.nodes(nodeIdx)
@@ -56,7 +63,7 @@ object PropertyData {
       val allProperties: Array[String] = infos.flatMap(_.propertyMap.keys).distinct.sorted
       val groupProperties: Array[GroupProperty] = allProperties.map { propertyKey =>
         GroupProperty(propertyKey, infos.map { info =>
-          PropertyGroupValue(info.node, info.propertyMap.getOrElse(propertyKey, Array()))
+          PropertyGroupValue(info.node, info.propertyMap.getOrElse(propertyKey, Nil))
         })
       }
 

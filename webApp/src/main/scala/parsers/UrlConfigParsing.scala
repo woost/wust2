@@ -8,6 +8,7 @@ import kantan.regex._
 import kantan.regex.implicits._
 import kantan.regex.generic._
 import wust.api.Authentication
+import wust.util.PlatformMap
 
 import scala.scalajs.js
 
@@ -122,7 +123,14 @@ object UrlConfigParser {
   )
 
   def parse(route: UrlRoute): UrlConfig = {
-    val searchOptions = route.search.fold[Option[Map[String, String]]](None)(search => decodeSeq(allOptionsRegex.eval(search).toList).toOption.map(_.toMap.mapValues(js.URIUtils.decodeURIComponent)))
+    val searchOptions = PlatformMap[String]()
+    route.search.foreach { search =>
+      decodeSeq(allOptionsRegex.eval(search).toSeq).foreach { res =>
+        res.foreach { case (key, value) =>
+          searchOptions += key -> js.URIUtils.decodeURIComponent(value)
+        }
+      }
+    }
 
     val result = route.hash.fold[DecodeResult[UrlConfig]](Right(UrlConfig.default)) { hash =>
       val matched = decodeSeq(allOptionsRegex.eval(hash).toList)
@@ -142,7 +150,7 @@ object UrlConfigParser {
     }
 
     result match {
-      case Right(cfg) => searchOptions.fold(cfg) { searchOptions =>
+      case Right(cfg) => {
         //Keep in sync with site.webmanifest where mapping of share url is defined
         (searchOptions.get("share-title"), searchOptions.get("share-text"), searchOptions.get("share-url")) match {
           case (Some(title), text, urlOption) => cfg.copy(shareOptions = Some(ShareOptions(title = title, text = text.getOrElse(""), url = urlOption.getOrElse(""))))

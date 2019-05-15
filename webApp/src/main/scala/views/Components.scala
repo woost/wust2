@@ -319,7 +319,7 @@ object Components {
   def removablePropertySection(
     state: GlobalState,
     key: String,
-    properties: Array[PropertyData.PropertyValue],
+    properties: Seq[PropertyData.PropertyValue],
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editKey = Var(false)

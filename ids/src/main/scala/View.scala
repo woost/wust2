@@ -2,6 +2,7 @@ package wust.ids
 
 import cats.data.NonEmptyList
 import wust.util.macros.SubObjects
+import wust.util.PlatformMap
 
 import scala.collection.breakOut
 
@@ -102,15 +103,16 @@ object View {
   val list: Array[View] = SubObjects.all[View]
   val contentList: Array[View] = list.filter(_.isContent)
 
-  val map: Map[String, List[String] => Option[View]] = {
+  val map: PlatformMap.Type[List[String] => Option[View]] = {
+    val map = PlatformMap[List[String] => Option[View]]()
+    list.foreach { v =>
+      map += v.viewKey -> ((_: List[String]) => Some(v))
+    }
 
-    val staticMap: Map[String, List[String] => Option[View]] = list.map(v => v.viewKey -> ((_: List[String]) => Some(v)))(breakOut)
-    val parameterMap: Map[String, List[String] => Option[View]] = Map(
-      "table" -> { params => Some(Table(params.flatMap(s => NodeRole.fromString(s))(breakOut))) }
-      //TODO viewops for TiledView should be done here too. currently hardcoded in UrlParsing
-    )
+    map += "table" -> { params => Some(Table(params.flatMap(s => NodeRole.fromString(s))(breakOut))) }
+    //TODO viewops for TiledView should be done here too. currently hardcoded in UrlParsing
 
-    staticMap ++ parameterMap
+    map
   }
 }
 
