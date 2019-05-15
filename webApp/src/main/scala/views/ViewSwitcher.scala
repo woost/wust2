@@ -4,7 +4,7 @@ import cats.effect.IO
 import clipboard.ClipboardJS
 import fontAwesome._
 import googleAnalytics.Analytics
-import monix.reactive.Observable
+import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
@@ -80,79 +80,8 @@ object ViewSwitcher {
   @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
     div.thunk(keyValue(channelId))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
   }
-  def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
-
-    def addNewView(newView: View.Visible) = if (viewDefs.contains(newView)) { // only allow defined views
-      closeDropdown.onNext(())
-      val node = state.graph.now.nodesById(channelId)
-      node.foreach { node =>
-        val currentViews = node.views match {
-          case None        => ViewHeuristic.bestView(state.graph.now, node).toList // no definitions yet, take the current view and additionally a new one
-          case Some(views) => views // just add a new view
-        }
-
-        if (!currentViews.contains(newView)) {
-          val newNode = node match {
-            case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
-            case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
-          }
-
-          state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
-        }
-
-        if (viewRx.now != newView) {
-          viewAction(newView)
-        }
-      }
-    }
-
-    def resetViews() = {
-      closeDropdown.onNext(())
-      val node = state.graph.now.nodesById(channelId)
-      node.foreach { node =>
-        if (node.views.isDefined) {
-          val newNode = node match {
-            case n: Node.Content => n.copy(views = None)
-            case n: Node.User => n.copy(views = None)
-          }
-
-          val newView = ViewHeuristic.bestView(state.graph.now, node).getOrElse(View.Empty)
-          if (viewRx.now != newView) {
-            viewAction(newView)
-          }
-
-          state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
-        }
-      }
-    }
-
-    def removeView(view: View.Visible) = {
-      closeDropdown.onNext(())
-      val node = state.graph.now.nodesById(channelId)
-      node.foreach { node =>
-        val existingViews = node.views.getOrElse(Nil)
-        val filteredViews = existingViews.filterNot(_ == view)
-        val newNode = node match {
-          case n: Node.Content => n.copy(views = Some(filteredViews))
-          case n: Node.User => n.copy(views = Some(filteredViews))
-        }
-
-        //switch to remaining view
-        if (viewRx.now == view) {
-          val currPosition = existingViews.indexWhere(_ == view)
-          val nextPosition = currPosition - 1
-          val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
-          viewAction(newView)
-        }
-
-        state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
-      }
-    }
-
-    val node = Rx {
-      state.graph().nodesByIdOrThrow(channelId)
-    }
 
     def addNewTabDropdown = div.thunkStatic(keyValue)(Ownable { implicit ctx => VDomModifier(
       div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
@@ -160,79 +89,11 @@ object ViewSwitcher {
         padding := "5px",
         div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-        Rx {
-          val existingViews = node().views match {
-            case None        => ViewHeuristic.bestView(state.graph(), node()).toList
-            case Some(views) => views
-          }
-          val possibleViews = viewDefs.filterNot(existingViews.contains)
-
-          VDomModifier(
-            div(
-              Styles.flex,
-              flexDirection.column,
-              alignItems.flexEnd,
-              possibleViews.map { view =>
-                val info = viewToTabInfo(view, 0, 0, 0)
-                div(
-                  marginBottom := "5px",
-                  cls := "ui button compact mini",
-                  Elements.icon(info.icon),
-                  view.toString,
-                  onClick.stopPropagation.foreach(addNewView(view)),
-                  cursor.pointer
-                )
-              }
-            ),
-
-            div(
-              Styles.flex,
-              flexDirection.column,
-              alignItems.center,
-              width := "100%",
-              marginTop := "20px",
-              padding := "5px",
-
-              b(
-                "Current views:",
-                alignSelf.flexStart
-              ),
-
-              if (existingViews.isEmpty) div("Nothing, yet.")
-              else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
-                val info = viewToTabInfo(view, 0, 0, 0)
-                VDomModifier(
-                  marginTop := "8px",
-                  div(
-                    Styles.flex,
-                    alignItems.center,
-                    Elements.icon(info.icon),
-                    view.toString
-                  )
-                )
-              },
-
-              node().views.map { _ =>
-                div(
-                  alignSelf.flexEnd,
-                  marginLeft := "auto",
-                  marginTop := "10px",
-                  cls := "ui button compact mini",
-                  "Reset to default",
-                  cursor.pointer,
-                  onClick.stopPropagation.foreach { resetViews() }
-                )
-              }
-            )
-          )
-        }
+        selector(state, channelId, viewRx, viewAction, initialView, closeDropdown)
       ), close = closeDropdown, dropdownModifier = cls := "top left")
     )})
 
     val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
-
-    viewRx.triggerLater { view => addNewView(view) }
-    initialView.foreach(addNewView(_))
 
     VDomModifier(
       marginLeft := "5px",
@@ -273,6 +134,147 @@ object ViewSwitcher {
         viewTabs :+ addNewViewTab
       },
 
+    )
+  }
+
+  private def selector(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible], done: Observer[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val nodeRx = Rx {
+      state.graph().nodesByIdOrThrow(channelId)
+    }
+
+    def addNewView(newView: View.Visible) : Unit = if (viewDefs.contains(newView)) { // only allow defined views
+      done.onNext(())
+      val node = nodeRx.now
+      val currentViews = node.views match {
+        case None        => ViewHeuristic.bestView(state.graph.now, node).toList // no definitions yet, take the current view and additionally a new one
+        case Some(views) => views // just add a new view
+      }
+
+      if (!currentViews.contains(newView)) {
+        val newNode = node match {
+          case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
+          case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+        }
+
+        state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+      }
+
+      if (viewRx.now != newView) {
+        viewAction(newView)
+      }
+    }
+
+    def resetViews(): Unit = {
+      done.onNext(())
+      val node = nodeRx.now
+      if (node.views.isDefined) {
+        val newNode = node match {
+          case n: Node.Content => n.copy(views = None)
+          case n: Node.User => n.copy(views = None)
+        }
+
+        val newView = ViewHeuristic.bestView(state.graph.now, node).getOrElse(View.Empty)
+        if (viewRx.now != newView) {
+          viewAction(newView)
+        }
+
+        state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+      }
+    }
+
+    def removeView(view: View.Visible): Unit = {
+      done.onNext(())
+      val node = nodeRx.now
+      val existingViews = node.views.getOrElse(Nil)
+      val filteredViews = existingViews.filterNot(_ == view)
+      val newNode = node match {
+        case n: Node.Content => n.copy(views = Some(filteredViews))
+        case n: Node.User => n.copy(views = Some(filteredViews))
+      }
+
+      //switch to remaining view
+      if (viewRx.now == view) {
+        val currPosition = existingViews.indexWhere(_ == view)
+        val nextPosition = currPosition - 1
+        val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
+        viewAction(newView)
+      }
+
+      state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+    }
+
+    //TODO rewrite this in a less sideeffecting way
+    viewRx.triggerLater { view => addNewView(view) }
+    initialView.foreach(addNewView(_))
+
+    VDomModifier(
+      Rx {
+        val node = nodeRx()
+        val existingViews = node.views match {
+          case None        => ViewHeuristic.bestView(state.graph(), node).toList
+          case Some(views) => views
+        }
+        val possibleViews = viewDefs.filterNot(existingViews.contains)
+
+        VDomModifier(
+          div(
+            Styles.flex,
+            flexDirection.column,
+            alignItems.flexEnd,
+            possibleViews.map { view =>
+              val info = viewToTabInfo(view, 0, 0, 0)
+              div(
+                marginBottom := "5px",
+                cls := "ui button compact mini",
+                Elements.icon(info.icon),
+                view.toString,
+                onClick.stopPropagation.foreach(addNewView(view)),
+                cursor.pointer
+              )
+            }
+          ),
+
+          div(
+            Styles.flex,
+            flexDirection.column,
+            alignItems.center,
+            width := "100%",
+            marginTop := "20px",
+            padding := "5px",
+
+            b(
+              "Current views:",
+              alignSelf.flexStart
+            ),
+
+            if (existingViews.isEmpty) div("Nothing, yet.")
+            else Components.removeableList(existingViews, removeSink = Sink.fromFunction(removeView)) { view =>
+              val info = viewToTabInfo(view, 0, 0, 0)
+              VDomModifier(
+                marginTop := "8px",
+                div(
+                  Styles.flex,
+                  alignItems.center,
+                  Elements.icon(info.icon),
+                  view.toString
+                )
+              )
+            },
+
+            node.views.map { _ =>
+              div(
+                alignSelf.flexEnd,
+                marginLeft := "auto",
+                marginTop := "10px",
+                cls := "ui button compact mini",
+                "Reset to default",
+                cursor.pointer,
+                onClick.stopPropagation.foreach { resetViews() }
+              )
+            }
+          )
+        )
+      }
     )
   }
 }
