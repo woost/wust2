@@ -522,9 +522,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
   val (nodeCreated: Array[EpochMilli], nodeCreatorIdx: Array[Int], nodeModified: Array[EpochMilli]) = {
-    val nodeCreated = Array.fill(n)(EpochMilli.min)
     val nodeCreator = new Array[Int](n)
-    val nodeModified = Array.fill(n)(EpochMilli.min)
+    val nodeCreated = new Array[EpochMilli](n) // filled with 0L = EpochMilli.min by default
+    val nodeModified = new Array[EpochMilli](n) // filled with 0L = EpochMilli.min by default
     var nodeIdx = 0
     while (nodeIdx < n) {
       val authorEdgeIndices: ArraySliceInt = sortedAuthorshipEdgeIdx(nodeIdx)
