@@ -34,18 +34,32 @@ object DashboardView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val segmentMod = VDomModifier(
+      margin := "10px"
+    )
 
     div(
-      Styles.flex,
-      flexDirection.column,
-      alignItems.center,
       padding := "20px",
+      Styles.flex,
+      justifyContent.flexStart,
+      alignItems.flexStart,
+      overflow.auto,
+      flexWrap.wrap,
       overflow.auto,
 
-      //TODO: renderSubprojects mit summary
-      UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(width := "100%"),
+      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
 
-      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId))
+      div(
+        Styles.flex,
+        flexDirection.column,
+        flex := "1",
+        minWidth := "400px",
+
+        //TODO: renderSubprojects mit summary
+        UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(segmentMod),
+
+        UI.segment("Notifications", NotificationView(state, focusState)).apply(segmentMod),
+      )
     )
   }
 
