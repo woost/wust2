@@ -3,6 +3,7 @@ package wust.external.trello
 import cats.Eval
 import wust.ids._
 import wust.graph._
+import wust.util.PlatformMap
 
 import scala.collection.mutable
 
@@ -94,7 +95,7 @@ object Trello {
     addNodes += boardNode
 
     // collect all labels in board
-    val labelsById = new mutable.HashMap[String, NodeId]
+    val labelsById = PlatformMap[NodeId]()
     board.labels.foreach { label =>
       val content = if (label.name.isEmpty) label.color else label.name // TODO: user-defined colors
       val labelNode = Node.Content(NodeId.fresh, NodeData.Markdown(content), NodeRole.Tag, NodeMeta.default, None)
@@ -104,7 +105,7 @@ object Trello {
     }
 
     // collect all checklists in board
-    val checklistsById = new mutable.HashMap[String, NodeId]
+    val checklistsById = PlatformMap[NodeId]()
     board.checklists.foreach { checklist =>
       val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, Some(View.List :: Nil))
       addNodes += checklistNode
@@ -131,7 +132,7 @@ object Trello {
     }
 
     // collect all lists/columns in board
-    val listsById = new mutable.HashMap[String, NodeId]
+    val listsById = PlatformMap[NodeId]()
     board.lists.foreach { list =>
       val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, Some(View.List :: Nil))
       addNodes += listNode
@@ -142,7 +143,7 @@ object Trello {
     }
 
     // collect all cards in board
-    val cardsById = new mutable.HashMap[String, NodeId]
+    val cardsById = PlatformMap[NodeId]()
     board.cards.foreach { card =>
       val views = if (card.desc.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
       val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(views))
