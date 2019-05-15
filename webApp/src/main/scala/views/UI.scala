@@ -402,4 +402,44 @@ object UI {
       description
     )
   )
+
+  def multiCheckbox[T](checkboxes: Array[T], description: T => VDomModifier, modifiers: VDomModifier = VDomModifier.empty): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    var checkedState = Array.fill(checkboxes.length)(false)
+    val changed = PublishSubject[Unit]
+
+    div(
+      cls := "ui segment",
+      width := "100%",
+      h2("Select views:"),
+      div(
+        Styles.flex,
+        flexDirection.column,
+        fontSize.larger,
+        checkboxes.zipWithIndex.map {
+          case (value, idx) =>
+            div(
+              marginLeft := "10px",
+              marginBottom := "10px",
+              label(
+                Styles.flex,
+                alignItems.center,
+                input(
+                  tpe := "checkbox",
+                  onInput.checked.foreach { checked =>
+                    checkedState(idx) = checked
+                    changed.onNext(())
+                  },
+                  dsl.checked <-- changed.map(_ => checkedState(idx))
+                ),
+                description(value),
+                cursor.pointer,
+              )
+            )
+        },
+      ),
+      modifiers,
+      emitter(changed).map(_ => checkedState.zipWithIndex.flatMap { case (checked, idx) => if (checked) Some(checkboxes(idx)) else None }) --> sink,
+    )
+  }
+
 }
