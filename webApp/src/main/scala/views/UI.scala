@@ -395,6 +395,7 @@ object UI {
     cls := "ui segments",
     div(
       cls :="ui secondary segment",
+      padding := "0.5em 0.5em",
       header
     ),
     div(

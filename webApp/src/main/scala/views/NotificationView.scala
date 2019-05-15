@@ -1,30 +1,30 @@
 package wust.webApp.views
 
-import wust.webApp.dragdrop.{ DragContainer, DragItem }
-import fontAwesome.{ freeSolid, freeRegular }
+import wust.webApp.dragdrop.{DragContainer, DragItem}
+import fontAwesome.{IconDefinition, freeRegular, freeSolid}
 import SharedViewElements._
 import dateFns.DateFns
-import wust.webApp.{ BrowserDetect, Icons, ItemProperties }
+import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.Icons
 import outwatch.dom._
-import wust.sdk.{ BaseColors, NodeColor }
+import wust.sdk.{BaseColors, NodeColor}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webApp.views.Elements._
-import monix.reactive.subjects.{ BehaviorSubject, PublishSubject }
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import rx._
 import wust.api.AuthUser
-import wust.css.{ Styles, ZIndex }
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ FocusState, GlobalState }
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.util._
 import wust.util.macros.InlineList
 import flatland._
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js.Date
 
 // Unread view, this view is for showing all new unread items in the current page.
@@ -60,7 +60,8 @@ object NotificationView {
       keyed,
       Styles.growFull,
       overflow.auto,
-      padding := "20px",
+      if (BrowserDetect.isMobile) padding := "5px" else padding := "20px",
+
       Rx {
         val graph = state.rawGraph()
         val user = state.user()
@@ -260,11 +261,13 @@ object NotificationView {
       div(
         Styles.flex,
         justifyContent.spaceBetween,
+        flexWrap.wrap,
 
         breadCrumbs,
         button(
           cls := "ui tiny compact button",
           "Mark all as read",
+          marginLeft := "auto",
 
           cursor.pointer,
 
@@ -289,6 +292,7 @@ object NotificationView {
                 val (revisionTable, allSeen, deletedTime) = renderRevisions(graph, unreadNode, node, focusedId, currentTime)
 
                 tr(
+                  padding := "0px",
                   td(
                     cls := "top aligned",
                     width := "400px",
@@ -307,6 +311,11 @@ object NotificationView {
                   td(
                     cls := "top aligned",
                     width := "40px",
+                    padding := "1px 3px",
+
+                    //TODO: hack for having a better layout on mobile with this table
+                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-10px"),
+
                     textAlign.right,
                     if (allSeen) VDomModifier(
                       freeRegular.faCircle,
@@ -366,56 +375,77 @@ object NotificationView {
 
     var allSeen = true
 
-    val tableNode = table(
-      cls := "ui compact fixed table",
-      cls := "no-inner-table-borders",
-      border := "none",
-      newRevisionsWithDelete.map { revision =>
-        def authorNode(node: Node.User) = div(
+    def revisionVisuals(revision: Revision): (IconDefinition, String, Option[Node.User], Boolean) = {
+      revision match {
+        case revision: Revision.Edit   =>
+          allSeen = allSeen && revision.seen
+          (freeSolid.faEdit, s"Edited ${ node.role }", Some(revision.author), revision.seen)
+        case revision: Revision.Create =>
+          allSeen = allSeen && revision.seen
+          (freeSolid.faPlus, s"Created ${ node.role }", Some(revision.author), revision.seen)
+        case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${ node.role }", None, true)
+      }
+    }
+
+    def descriptionModifiers(doIcon: IconDefinition, doDescription: String) = VDomModifier(
+      color.gray,
+      span(
+        display.inlineBlock,
+        cls := "fa-fw",
+        doIcon,
+        marginRight := "5px",
+      ),
+      doDescription
+    )
+
+    def authorModifiers(doAuthor: Option[Node.User]) = VDomModifier(
+      doAuthor.map { author =>
+        div(
           fontSize := "0.8em",
           fontWeight.bold,
           Styles.flex,
           alignItems.center,
-          Components.nodeAvatar(node, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
-          Components.displayUserName(node.data),
+          Components.nodeAvatar(author, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
+          Components.displayUserName(author.data),
+          marginLeft.auto,
         )
-        val (doIcon, doDescription, doAuthor, isSeen) = revision match {
-          case revision: Revision.Edit =>
-            allSeen = allSeen && revision.seen
-            (freeSolid.faEdit, s"Edited ${node.role}", Some(revision.author), revision.seen)
-          case revision: Revision.Create =>
-            allSeen = allSeen && revision.seen
-            (freeSolid.faPlus, s"Created ${node.role}", Some(revision.author), revision.seen)
-          case revision: Revision.Delete => (freeSolid.faTrash, s"Archived ${node.role}", None, true)
-        }
+      }
+    )
+
+    def timestampModifiers(timestamp: EpochMilli) = VDomModifier(
+      fontSize.smaller,
+      s"${DateFns.formatDistance(new Date(timestamp), new Date(currentTime))} ago"
+    )
+
+    val tableNode = if (BrowserDetect.isMobile) div(
+      newRevisionsWithDelete.map { revision =>
+        val (doIcon, doDescription, doAuthor, isSeen) = revisionVisuals(revision)
+
+        div(
+          Styles.flex,
+          justifyContent.spaceBetween,
+          flexWrap.wrap,
+
+          VDomModifier.ifTrue(isSeen)(opacity := 0.5),
+
+          div(descriptionModifiers(doIcon, doDescription)),
+          div(authorModifiers(doAuthor)),
+          div(timestampModifiers(revision.timestamp))
+        )
+      }
+    ) else table(
+      cls := "ui compact fixed table",
+      cls := "no-inner-table-borders",
+      border := "none",
+      newRevisionsWithDelete.map { revision =>
+        val (doIcon, doDescription, doAuthor, isSeen) = revisionVisuals(revision)
 
         tr(
           VDomModifier.ifTrue(isSeen)(opacity := 0.5),
 
-          td(
-            color.gray,
-            span(
-              display.inlineBlock,
-              cls := "fa-fw",
-              doIcon,
-              marginRight := "5px",
-            ),
-            doDescription
-          ),
-
-          td(
-            doAuthor.map { author =>
-              authorNode(author)(
-                marginLeft.auto,
-              )
-            }
-          ),
-
-          td(
-            Styles.flexStatic,
-            marginLeft := "5px",
-            s"${DateFns.formatDistance(new Date(revision.timestamp), new Date(currentTime))} ago"
-          ),
+          td(descriptionModifiers(doIcon, doDescription)),
+          td(authorModifiers(doAuthor)),
+          td(timestampModifiers(revision.timestamp))
         )
       }
     )
