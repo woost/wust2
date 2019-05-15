@@ -172,14 +172,14 @@ object GraphChangesAutomationUI {
 
       Rx {
         val graph = state.rawGraph()
-        val templates = graph.templateNodes(graph.idToIdxOrThrow(focusedId))
-        if (templates.isEmpty) VDomModifier(
-          UI.tooltip("bottom center") := "Automation: inactive",
-          inactiveMod
-        ) else VDomModifier(
+        val hasTemplates = graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
+        if (hasTemplates) VDomModifier(
           UI.tooltip("bottom center") := "Automation: active",
           color := CommonStyles.selectedNodesBgColorCSS,
           activeMod
+        ) else VDomModifier(
+          UI.tooltip("bottom center") := "Automation: inactive",
+          inactiveMod
         )
       },
       cursor.pointer,
