@@ -17,6 +17,7 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
 import wust.util.time.time
+import wust.util.macros.InlineList
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, FocusState, FocusPreference}
 import wust.webApp.views.Components._
@@ -306,8 +307,10 @@ class ForceSimulation(
       scribe.info(s"clicked node[$i]")
       d3.event.stopPropagation() // prevent click from bubbling to background
 
-      val nextNode = if (state.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))
-      state.rightSidebarNode() = nextNode
+      if (InlineList.contains[NodeRole](NodeRole.Task, NodeRole.Message, NodeRole.Note)(node.role)) {
+        val nextNode = if (state.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))
+        state.rightSidebarNode() = nextNode
+      }
     }
 
     // should be called when the size of the visualization changed
