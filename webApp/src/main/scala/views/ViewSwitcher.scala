@@ -50,9 +50,9 @@ object ViewSwitcher {
   private val viewDefs: Array[View.Visible] = Array(
     View.Dashboard,
     View.List,
+    View.Kanban,
     View.Chat,
     View.Content,
-    View.Kanban,
     View.Table(NodeRole.Task :: Nil),
     View.Thread,
     View.Files,
