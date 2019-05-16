@@ -60,7 +60,7 @@ object NotificationView {
       keyed,
       Styles.growFull,
       overflow.auto,
-      if (BrowserDetect.isMobile) padding := "5px" else padding := "20px",
+      if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
       Rx {
         val graph = state.rawGraph()
@@ -326,7 +326,7 @@ object NotificationView {
                     padding := "1px 3px",
 
                     //TODO: hack for having a better layout on mobile with this table
-                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-8px"),
+                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-6px"),
 
                     textAlign.right,
                     if (allSeen) VDomModifier(

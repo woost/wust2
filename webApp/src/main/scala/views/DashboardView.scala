@@ -48,7 +48,7 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(segmentMod),
 
-      UI.segment("Notifications", NotificationView(state, focusState)).apply(segmentMod),
+      UI.segment("Notifications", NotificationView(state, focusState).apply(padding := "0px")).apply(segmentMod),
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
@@ -85,34 +85,34 @@ object DashboardView {
 
   /// Render all subprojects as a list
   private def renderSubprojects(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
-    Rx {
-      val graph = state.graph()
-      val projectNodes = getProjectList(graph, focusState.focusedId)
-      ul(
-        Styles.flexStatic,
 
-        display.flex,
-        flexWrap.wrap,
-        justifyContent.flexStart,
+    ul(
+      Styles.flexStatic,
 
-        padding := "0px", // remove ul default padding
+      display.flex,
+      flexWrap.wrap,
+      justifyContent.flexStart,
 
+      padding := "0px", // remove ul default padding
+
+      Rx {
+        val projectNodes = getProjectList(state.graph(), focusState.focusedId)
         projectNodes map { projectInfo =>
           li(
             Styles.flexStatic,
             listStyle := "none",
-            renderSubproject(state, graph, focusState, projectInfo)
+            renderSubproject(state, state.graph(), focusState, projectInfo)
           )
-        },
-        li(
-          listStyle := "none",
-          Styles.flexStatic,
+        }
+      },
+      li(
+        listStyle := "none",
+        Styles.flexStatic,
 
-          newSubProjectButton(state, focusState.focusedId)
-        ),
-        registerDragContainer(state)
-      )
-    }
+        newSubProjectButton(state, focusState.focusedId)
+      ),
+      registerDragContainer(state)
+    )
   }
 
   /// Render the overview of a single (sub-) project
