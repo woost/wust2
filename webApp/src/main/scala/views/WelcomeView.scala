@@ -4,16 +4,18 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles}
+import wust.css.{ CommonStyles, Styles }
 import wust.ids.View
 import wust.ids.NodeRole
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.SharedViewElements._
 import wust.util._
 import wust.webApp.views.Components._
+import scala.scalajs.js
 
 object WelcomeView {
+
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
@@ -34,24 +36,35 @@ object WelcomeView {
                 displayUserName(user.data),
                 "!"
               ),
-              div(
-                maxWidth := "80ex",
-                marginBottom := "50px",
-                user.data.isImplicit.ifTrue[VDomModifier](p("You can use Woost without registration. Everything you create is private (unless you share it). If you want to access your data from another device, ", a(href := "#", "create an account",
-                  onClick.preventDefault(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
-                  onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") },
-                ),"."))
+              user.data.isImplicit.ifTrue[VDomModifier](
+                div(
+                  cls := "ui segment",
+                  maxWidth := "80ex",
+                  marginBottom := "50px",
+                  p("You can use Woost without registration."),p("Everything you create is private (unless you share it). Whenever you want to access your data from another device, just ", a(href := "#", "create an account",
+                    onClick.preventDefault(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
+                    onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") }), ".")
+                )
               )
             )
           },
           marginBottom := "10%",
           textAlign.center,
-          newProjectButton(state).apply(padding := "20px", margin := "20px 40px")(
-            onClick foreach { Analytics.sendEvent("view:welcome", "newproject") }
+          newProjectButton(state).apply(
+            cls := "primary",
+            padding := "20px",
+            margin := "0px 40px",
+            onClick foreach {
+              Analytics.sendEvent("view:welcome", "newproject")
+            },
           ),
           div(
+            cls := "ui segment",
             maxWidth := "80ex",
+            marginTop := "50px",
             marginBottom := "50px",
+            h3("Welcome to Woost!"),
+            p("If you are new to Woost, start by creating a Project."),
             p("In a ", b("Project"), " you can invite other people to collaborate. You can also add different tools, like a ", b("Checklist"), ", a ", b("Kanban Board"), " or a ", b("Chat."))
           )
         )
