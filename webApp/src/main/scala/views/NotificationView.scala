@@ -214,9 +214,11 @@ object NotificationView {
                 val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
                 val edge = graph.edges(edgeIdx).as[Edge.Author]
                 val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                val isFirst = sliceLength == 1
-                val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
-                unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                if (author.id != user.id) {
+                  val isFirst = sliceLength == 1
+                  val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
+                  unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                }
               }
             } else if (BrowserDetect.isMobile) { // just take last revision on mobile
               val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
