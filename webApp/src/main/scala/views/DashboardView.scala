@@ -46,9 +46,9 @@ object DashboardView {
     val detailWidgets = VDomModifier(
       Styles.flex,
       //TODO: renderSubprojects mit summary
-      UI.segment("Sub-Projects", renderSubprojects(state, focusState)).apply(segmentMod),
+      UI.segment("Sub-Projects", VDomModifier(renderSubprojects(state, focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
 
-      UI.segment("Notifications", NotificationView(state, focusState).apply(padding := "0px")).apply(segmentMod),
+      UI.segment("Notifications", NotificationView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
