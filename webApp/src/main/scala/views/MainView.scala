@@ -33,8 +33,8 @@ object MainView {
 
   private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    // a view should never be shrinked to less than 320px-45px collapsed sidebar
-    val viewWidthMod = minWidth := s"${320-LeftSidebar.minWidthSidebar}px"
+    // a view should never be shrinked to less than 300px-45px collapsed sidebar
+    val viewWidthMod = minWidth := s"${300-LeftSidebar.minWidthSidebar}px"
 
     val projectName = Rx {
       state.page().parentId.map(pid => state.graph().nodesByIdOrThrow(pid).str)
