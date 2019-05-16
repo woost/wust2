@@ -208,7 +208,7 @@ object NotificationView {
 
             val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
             val isReadDuringRender = lastReadTime > renderTime
-            if (isReadDuringRender) {
+            if (isReadDuringRender) { // show only last revision if read during this rendering
               val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
               if (sliceLength > 0) {
                 val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
@@ -217,6 +217,18 @@ object NotificationView {
                 val isFirst = sliceLength == 1
                 val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
                 unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+              }
+            } else if (BrowserDetect.isMobile) { // just take last revision on mobile
+              val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
+              if (sliceLength > 0) {
+                val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
+                val edge = graph.edges(edgeIdx).as[Edge.Author]
+                if (lastReadTime < edge.data.timestamp) {
+                  val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+                  val isFirst = sliceLength == 1
+                  val revision = if(isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
+                  unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                }
               }
             } else {
               var newSortedRevisions = List.empty[Revision]
@@ -314,7 +326,7 @@ object NotificationView {
                     padding := "1px 3px",
 
                     //TODO: hack for having a better layout on mobile with this table
-                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-10px"),
+                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-8px"),
 
                     textAlign.right,
                     if (allSeen) VDomModifier(
