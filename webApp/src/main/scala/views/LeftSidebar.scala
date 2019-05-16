@@ -166,7 +166,6 @@ object LeftSidebar {
     }
 
     div(
-      keyed,
       cls := "channels",
       Rx {
         val user = state.user()
@@ -179,8 +178,8 @@ object LeftSidebar {
       Rx {
         val user = state.user()
 
-        VDomModifier(
-          invites().nonEmpty.ifTrue[VDomModifier](UI.horizontalDivider("invitations")(cls := "inverted")),
+        VDomModifier.ifTrue(invites().nonEmpty)(
+          UI.horizontalDivider("invitations")(cls := "inverted"),
           invites().map(nodeId => channelLine(TraverseState(nodeId), user.id, expanded = Var(false), hasChildren = Var(false)).apply(
             div(
               cls := "ui icon buttons",
@@ -276,7 +275,6 @@ object LeftSidebar {
     }
 
     div(
-      keyed,
       cls := "channelIcons",
       Rx {
         val user = state.user()

@@ -402,13 +402,6 @@ object CommonStyles extends StyleSheet.Standalone {
     alignContent.stretch,
   )
 
-  ".left-sidebar" - (
-    // borderRight(2 px, solid, sidebarBgColorCSS),
-  )
-  ".right-sidebar" - (
-    // borderLeft(2 px, solid, sidebarBgColorCSS),
-  )
-
   ".overlay-right-sidebar" - (
     right(0 px),
   )
@@ -431,12 +424,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".expanded-right-sidebar > .sidebar-open" - (
     maxWidth(500.px),
     width(500.px),
-  )
-
-  ".expanded-left-sidebar > .sidebar-close" - (
-  )
-
-  ".expanded-right-sidebar > .sidebar-close" - (
   )
 
   ".overlay-sidebar" - (

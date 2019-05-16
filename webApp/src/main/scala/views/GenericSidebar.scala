@@ -20,14 +20,11 @@ object GenericSidebar {
     def closeSwipe = (if (isRight) onSwipeRight(false) else onSwipeLeft(false)) --> sidebarOpen
     def directionOverlayModifier = if (isRight) cls := "overlay-right-sidebar" else cls := "overlay-left-sidebar"
     def directionExpandedModifier = if (isRight) cls := "expanded-right-sidebar" else cls := "expanded-left-sidebar"
-    def directionSidebarModifier = if (isRight) cls := "right-sidebar" else cls := "left-sidebar"
 
     def closedSidebar(config: Config) = VDomModifier(
-      cls := "sidebar-close",
       config.closedModifier.map { closedModifier =>
         VDomModifier(
           cls := "sidebar",
-          directionSidebarModifier,
           openSwipe,
           closedModifier
         )
@@ -36,7 +33,6 @@ object GenericSidebar {
 
     def openSidebar(config: Config) = VDomModifier(
       cls := "sidebar sidebar-open",
-      directionSidebarModifier,
       config.openModifier
     )
 
