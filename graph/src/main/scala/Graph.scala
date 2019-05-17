@@ -738,8 +738,9 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   def inChildParentRelation(child: NodeId, possibleParent: NodeId): Boolean = idToIdxFold(child)(false) { childIdx =>
     idToIdxFold(possibleParent)(false)(parentIdx => inChildParentRelation(childIdx, parentIdx))
   }
-  def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean =
-    idToIdxFold(descendent)(false)(ancestorsIdxExists(_)(_ == possibleAncestor))
+  def inDescendantAncestorRelation(descendent: NodeId, possibleAncestor: NodeId): Boolean = idToIdxFold(descendent)(false) { descendantIdx =>
+    idToIdxFold(possibleAncestor)(false)(possibleAncestorIdx => ancestorsIdxExists(descendantIdx)(_ == possibleAncestorIdx))
+  }
 
   @inline def hasChildrenIdx(nodeIdx: Int): Boolean = childrenIdx.sliceNonEmpty(nodeIdx)
   @inline def hasParentsIdx(nodeIdx: Int): Boolean = parentsIdx.sliceNonEmpty(nodeIdx)
