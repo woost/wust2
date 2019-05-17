@@ -184,7 +184,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     nodeIds(i) = nodeId
   }
 
-  @inline def isEmpty = n == 0
   //TODO: measure performance if these inline helper are better than just idToIdxMap.get.fold
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
     idToIdxMap.get(id) match {
