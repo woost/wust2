@@ -1,8 +1,7 @@
 package wust.util
 
-import scala.collection.generic.{CanBuildFrom, CanCombineFrom}
-import scala.collection.{IterableLike, breakOut, mutable}
-import scala.reflect.ClassTag
+import scala.collection.generic.CanBuildFrom
+import scala.collection.{IterableLike, mutable}
 
 package object collection {
 

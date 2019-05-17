@@ -20,7 +20,7 @@ import rx._
 import wust.css.{ Styles, ZIndex }
 import wust.graph._
 import wust.ids._
-import wust.util.PlatformMap
+import wust.util.collection.BasicMap
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{ FocusState, GlobalState }
 import wust.webApp.views.Components._
@@ -33,7 +33,7 @@ object GanttView {
 
   case class Bar(node: Node, yPos: Int, startDate: Option[EpochMilli], endDate: Option[EpochMilli])
 
-  def getFirstDate(propertyMap: PlatformMap.Type[List[PropertyData.PropertyValue]], search: String): Option[EpochMilli] = {
+  def getFirstDate(propertyMap: BasicMap[String, List[PropertyData.PropertyValue]], search: String): Option[EpochMilli] = {
     propertyMap
       .get(search)
       .flatMap(_.collectFirst{

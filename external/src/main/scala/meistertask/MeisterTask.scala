@@ -6,8 +6,7 @@ import cats.Eval
 import wust.graph._
 import wust.ids._
 import wust.util.StringOps
-import wust.util.PlatformMap
-import wust.util.collection.eitherSeq
+import wust.util.collection.{BasicMap, eitherSeq}
 
 import scala.collection.{breakOut, mutable}
 import scala.util.{Failure, Success, Try}
@@ -51,12 +50,13 @@ object MeisterTask {
     val addNodes = mutable.Set.newBuilder[Node]
     val addEdges = mutable.Set.newBuilder[Edge]
 
+    val tagsByName = BasicMap.ofString[NodeId]()
+    val sectionsByName = BasicMap.ofString[NodeId]()
+    val doneStageInSection = BasicMap.ofString[NodeId]()
+
     val projectNode = Node.Content(NodeId.fresh, NodeData.Markdown(project.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
     addNodes += projectNode
 
-    val tagsByName = PlatformMap[NodeId]()
-    val sectionsByName = PlatformMap[NodeId]()
-    val doneStageInSection = PlatformMap[NodeId]()
     project.tasks.foreach { task =>
       val views = if (task.notes.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
       val taskNode = Node.Content(NodeId.fresh, NodeData.Markdown(task.name), NodeRole.Task, NodeMeta.default, Some(views))

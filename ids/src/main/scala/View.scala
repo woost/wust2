@@ -2,7 +2,7 @@ package wust.ids
 
 import cats.data.NonEmptyList
 import wust.util.macros.SubObjects
-import wust.util.PlatformMap
+import wust.util.collection.BasicMap
 
 import scala.collection.breakOut
 
@@ -103,8 +103,8 @@ object View {
   val list: Array[View] = SubObjects.all[View]
   val contentList: Array[View] = list.filter(_.isContent)
 
-  val map: PlatformMap.Type[List[String] => Option[View]] = {
-    val map = PlatformMap[List[String] => Option[View]]()
+  val map: BasicMap[String, List[String] => Option[View]] = {
+    val map = BasicMap.ofString[List[String] => Option[View]]()
     list.foreach { v =>
       map += v.viewKey -> ((_: List[String]) => Some(v))
     }

@@ -3,7 +3,7 @@ package wust.external.trello
 import cats.Eval
 import wust.ids._
 import wust.graph._
-import wust.util.PlatformMap
+import wust.util.collection.BasicMap
 
 import scala.collection.mutable
 
@@ -91,11 +91,15 @@ object Trello {
     val addNodes = mutable.Set.newBuilder[Node]
     val addEdges = mutable.Set.newBuilder[Edge]
 
+    val labelsById = BasicMap.ofString[NodeId]()
+    val checklistsById = BasicMap.ofString[NodeId]()
+    val listsById = BasicMap.ofString[NodeId]()
+    val cardsById = BasicMap.ofString[NodeId]()
+
     val boardNode = Node.Content(NodeId.fresh, NodeData.Markdown(board.name), NodeRole.Project, NodeMeta.default, Some(View.Kanban :: Nil))
     addNodes += boardNode
 
     // collect all labels in board
-    val labelsById = PlatformMap[NodeId]()
     board.labels.foreach { label =>
       val content = if (label.name.isEmpty) label.color else label.name // TODO: user-defined colors
       val labelNode = Node.Content(NodeId.fresh, NodeData.Markdown(content), NodeRole.Tag, NodeMeta.default, None)
@@ -105,7 +109,6 @@ object Trello {
     }
 
     // collect all checklists in board
-    val checklistsById = PlatformMap[NodeId]()
     board.checklists.foreach { checklist =>
       val checklistNode = Node.Content(NodeId.fresh, NodeData.Markdown(checklist.name), NodeRole.Task, NodeMeta.default, Some(View.List :: Nil))
       addNodes += checklistNode
@@ -132,7 +135,6 @@ object Trello {
     }
 
     // collect all lists/columns in board
-    val listsById = PlatformMap[NodeId]()
     board.lists.foreach { list =>
       val listNode = Node.Content(NodeId.fresh, NodeData.Markdown(list.name), NodeRole.Stage, NodeMeta.default, Some(View.List :: Nil))
       addNodes += listNode
@@ -143,7 +145,6 @@ object Trello {
     }
 
     // collect all cards in board
-    val cardsById = PlatformMap[NodeId]()
     board.cards.foreach { card =>
       val views = if (card.desc.nonEmpty) View.List :: View.Chat :: View.Content :: Nil else View.List :: View.Chat :: Nil
       val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(views))

@@ -2,7 +2,7 @@ package wust.webApp.views
 
 import wust.graph.{Edge, Graph, Node}
 import wust.ids.NodeId
-import wust.util.PlatformMap
+import wust.util.collection.BasicMap
 
 import scala.collection.breakOut
 
@@ -16,7 +16,7 @@ object PropertyData {
   case class SingleProperty(key: String, values: List[PropertyValue])
   case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: PlatformMap.Type[List[PropertyValue]], reverseProperties: Array[Node]) {
+  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Array[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
@@ -25,7 +25,7 @@ object PropertyData {
       val tags: Array[Node.Content] = graph.tagParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val stages: Array[Node.Content] = graph.stageParentsIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.Content]).sortBy(_.data.str)
       val assignedUsers: Array[Node.User] = graph.assignedUsersIdx.map(nodeIdx)(idx => graph.nodes(idx).as[Node.User])
-      val properties = PlatformMap[List[PropertyValue]]()
+      val properties = BasicMap.ofString[List[PropertyValue]]()
       graph.propertiesEdgeIdx.foreachElement(nodeIdx) { idx =>
         val edge = graph.edges(idx).as[Edge.LabeledProperty]
         val value = PropertyValue(edge, graph.nodesByIdOrThrow(edge.propertyId).as[Node.Content])
@@ -50,7 +50,15 @@ object PropertyData {
   object Single {
     def apply(graph: Graph, nodeIdx: Int): Single = {
       val info = BasicInfo(graph, nodeIdx)
-      val properties: Array[SingleProperty] = info.propertyMap.map { case (key, values) => SingleProperty(key, values)}(breakOut)
+      val properties = {
+        val arr = new Array[SingleProperty](info.propertyMap.size)
+        var i = 0
+        info.propertyMap.foreach { (key, values) =>
+          arr(i) = SingleProperty(key, values)
+          i += 1
+        }
+        arr
+      }
 
       new Single(info, properties.sortBy(_.key.toLowerCase))
     }

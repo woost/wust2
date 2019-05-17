@@ -8,7 +8,7 @@ import kantan.regex._
 import kantan.regex.implicits._
 import kantan.regex.generic._
 import wust.api.Authentication
-import wust.util.PlatformMap
+import wust.util.collection.BasicMap
 
 import scala.scalajs.js
 
@@ -123,7 +123,7 @@ object UrlConfigParser {
   )
 
   def parse(route: UrlRoute): UrlConfig = {
-    val searchOptions = PlatformMap[String]()
+    val searchOptions = BasicMap.ofString[String]()
     route.search.foreach { search =>
       decodeSeq(allOptionsRegex.eval(search).toSeq).foreach { res =>
         res.foreach { case (key, value) =>
