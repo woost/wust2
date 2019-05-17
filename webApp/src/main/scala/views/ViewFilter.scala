@@ -232,7 +232,7 @@ object GraphOperation {
   def filter(graph: Graph, pageId: NodeId, userId: UserId, filters: Seq[UserViewGraphTransformation]): Graph = {
     val pageIdx = graph.idToIdx(pageId)
     val userIdx = graph.idToIdxOrThrow(userId)
-    val edgeFilters = filters.flatMap(_.filterWithViewData(pageIdx, userIdx, graph))
+    val edgeFilters: Seq[Int => Boolean] = filters.flatMap(_.filterWithViewData(pageIdx, userIdx, graph))
     if (edgeFilters.isEmpty) graph else {
       val newEdges = Array.newBuilder[Edge]
       flatland.loop(graph.edges.length) { i =>
