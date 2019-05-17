@@ -7,13 +7,13 @@ import wust.util.algorithm.dfs
 import wust.util.macros.InlineList
 import wust.webApp.state.TraverseState
 
+import scala.collection.mutable
+
 object KanbanData {
   def inboxNodes(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
-    val topLevelStages = graph.childrenIdx(parentIdx).filter(idx => graph.nodes(idx).role == NodeRole.Stage)
     val allStages: ArraySet = {
       val stages = ArraySet.create(graph.size)
-      topLevelStages.foreachElement(stages.add)
-      dfs.withContinue(starts = topLevelStages.foreachElement, dfs.afterStart, graph.childrenIdx, { idx =>
+      dfs.withContinue(starts = graph.childrenIdx.foreachElement(parentIdx), dfs.withStart, graph.childrenIdx, { idx =>
         val isStage = graph.nodes(idx).role == NodeRole.Stage
         if(isStage) stages += idx
         isStage
@@ -38,18 +38,24 @@ object KanbanData {
   }
 
   def columns(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]){ parentIdx =>
-    val columnIds = graph.childrenIdx.flatMap[NodeId](parentIdx) { idx =>
+    val columnIds = mutable.ArrayBuffer[NodeId]()
+    graph.childrenIdx.foreachElement(parentIdx) { idx =>
       val node = graph.nodes(idx)
-      if (node.role == NodeRole.Stage && !traverseState.contains(node.id)) Array(node.id) else Array()
+      if (node.role == NodeRole.Stage && !traverseState.contains(node.id)) {
+        columnIds += node.id
+      }
     }
 
     TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, columnIds, identity)
   }
 
   def columnNodes(graph: Graph, traverseState: TraverseState): Seq[(NodeId, NodeRole)] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[(NodeId, NodeRole)]){ parentIdx =>
-    val childrenIds = graph.childrenIdx.flatMap[(NodeId, NodeRole)](parentIdx) { childIdx =>
+    val childrenIds = mutable.ArrayBuffer[(NodeId, NodeRole)]()
+    graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
       val node = graph.nodes(childIdx)
-      if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role) && !traverseState.contains(node.id)) Array((node.id, node.role)) else Array()
+      if (InlineList.contains(NodeRole.Stage, NodeRole.Task)(node.role) && !traverseState.contains(node.id)) {
+        childrenIds += node.id -> node.role
+      }
     }
 
     TaskOrdering.constructOrderingOf[(NodeId, NodeRole)](graph, traverseState.parentId, childrenIds, { case (id, _) => id })
