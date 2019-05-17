@@ -26,6 +26,7 @@ object Graph {
 
 //TODO: this is only a case class because julius is too  lazy to write a custom encoder/decoder for boopickle and circe
 final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
+  scribe.info(s"Creating new graph (nodes = ${nodes.length}, edges = ${edges.length})")
 
   // because it is a case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
@@ -152,6 +153,8 @@ final case class RoleStats(roles: List[RoleStat]) {
 }
 
 final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
+  scribe.info(s"Creating new graph lookup (nodes = $n, edges = $m)")
+
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
