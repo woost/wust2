@@ -67,7 +67,7 @@ object Permission {
           Components.MenuItem(
             title = Elements.icon(item.icon),
             description = Rx {
-              item.inherited match {//TODO: report Scala.Rx bug, where two reactive variables in one function call give a compile error: selection.name(state.user().id, node.id, state.graph())
+              item.inherited match {
                 case None => item.value
                 case Some(inheritance) => s"Inherited (${inheritance(state.graph(), channel.id).value})"
               }
