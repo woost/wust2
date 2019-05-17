@@ -193,13 +193,12 @@ final class GraphLookup(
   }
   @inline def idToIdxForeach[U](id: NodeId)(f: Int => U): Unit = idToIdxFold(id)(())(f(_))
   @inline def idToIdxMap[T](id: NodeId)(f: Int => T): Option[T] = idToIdxFold(id)(Option.empty[T])(idx => Some(f(idx)))
-  private def throwIdNotFound(id: NodeId) = throw new Exception(s"Id '${id.toBase58}'/'${id.toUuid}' not found in graph")
-  def idToIdxOrThrow(nodeId: NodeId): Int = idToIdxFold[Int](nodeId)(throwIdNotFound(nodeId))(x => x)
+  @inline def idToIdxOrThrow(nodeId: NodeId): Int = idToIdxHashMap(nodeId)
   def idToIdx(nodeId: NodeId): Option[Int] = idToIdxFold[Option[Int]](nodeId)(None)(Some(_))
-  def nodesByIdOrThrow(nodeId: NodeId): Node = idToIdxFold[Node](nodeId)(throwIdNotFound(nodeId))(idx => nodes(idx))
+  def nodesByIdOrThrow(nodeId: NodeId): Node = nodes(idToIdxOrThrow(nodeId))
   def nodesById(nodeId: NodeId): Option[Node] = idToIdxFold[Option[Node]](nodeId)(None)(idx => Some(nodes(idx)))
 
-  @inline def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
+  def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
 
   private val consistentEdges = ArraySet.create(edges.length)
   val edgesIdx = InterleavedArrayInt.create(edges.length)
