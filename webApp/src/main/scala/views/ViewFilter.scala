@@ -229,8 +229,8 @@ sealed trait UserViewGraphTransformation {
 object GraphOperation {
   type EdgeFilter = Option[Int => Boolean] // edgeidx => boolean
 
-  def filter(graph: Graph, pageId: Option[NodeId], userId: UserId, filters: Seq[UserViewGraphTransformation]): Graph = {
-    val pageIdx = pageId.flatMap(graph.idToIdx)
+  def filter(graph: Graph, pageId: NodeId, userId: UserId, filters: Seq[UserViewGraphTransformation]): Graph = {
+    val pageIdx = graph.idToIdx(pageId)
     val userIdx = graph.idToIdxOrThrow(userId)
     val edgeFilters = filters.flatMap(_.filterWithViewData(pageIdx, userIdx, graph))
     if (edgeFilters.isEmpty) graph else {

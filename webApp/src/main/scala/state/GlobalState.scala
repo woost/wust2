@@ -117,6 +117,7 @@ class GlobalState(
 
   val view: Rx[View.Visible] = viewConfig.map(_.view)
 
+  val urlPage = urlConfig.map(_.pageChange.page)
   val page: Rx[Page] = viewConfig.map(_.page)
   val pageWithoutReload: Rx[Page] = viewConfig.map(_.page)
   val pageNotFound:Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
@@ -177,15 +178,16 @@ class GlobalState(
   val graphTransformations: Var[Seq[UserViewGraphTransformation]] = Var(defaultTransformations)
 
   // transform graph with graphTransformations
-  val graph: Rx[Graph] = for {
-    graphTrans <- graphTransformations
-    currentGraph <- rawGraph
-    userId <- user.map(_.id)
-    pageId <- urlConfig.map(_.pageChange.page.parentId)
-  } yield {
-    if(currentGraph.nonEmpty && pageId.exists(pid => currentGraph.contains(pid)) && graphTrans.nonEmpty) {
-      GraphOperation.filter(currentGraph, pageId, userId, graphTrans)
-    } else currentGraph
+  val graph: Rx[Graph] = Rx {
+    val graphTrans = graphTransformations()
+    val currentGraph = rawGraph()
+    val currentUserId = userId()
+    val currentPage = urlPage()
+
+    currentPage.parentId.fold(currentGraph) { parentId =>
+      if (currentGraph.contains(parentId) && graphTrans.nonEmpty) GraphOperation.filter(currentGraph, parentId, currentUserId, graphTrans)
+      else currentGraph
+    }
   }
   val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
