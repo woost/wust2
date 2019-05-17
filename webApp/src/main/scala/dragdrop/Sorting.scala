@@ -98,16 +98,17 @@ object Sorting {
       if(beforeNodeIndexDefined && afterNodeIndexDefined) {
         val beforeNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(beforeNodeIndex))
         val afterNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(afterNodeIndex))
-        val before = TaskOrdering.getChildEdgeOrThrow(graph, into, beforeNodeIdx).data.ordering
-        val after = TaskOrdering.getChildEdgeOrThrow(graph, into, afterNodeIdx).data.ordering
+        val intoIdx = graph.idToIdxOrThrow(into)
+        val before = TaskOrdering.getChildEdgeOrThrow(graph, intoIdx, beforeNodeIdx).data.ordering
+        val after = TaskOrdering.getChildEdgeOrThrow(graph, intoIdx, afterNodeIdx).data.ordering
         before + (after - before)/2
       } else if(beforeNodeIndexDefined) {
         val beforeNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(beforeNodeIndex))
-        val before = TaskOrdering.getChildEdgeOrThrow(graph, into, beforeNodeIdx).data.ordering
+        val before = TaskOrdering.getChildEdgeOrThrow(graph, graph.idToIdxOrThrow(into), beforeNodeIdx).data.ordering
         before + 1
       } else if(afterNodeIndexDefined) {
         val afterNodeIdx = graph.idToIdxOrThrow(newOrderedNodes(afterNodeIndex))
-        val after = TaskOrdering.getChildEdgeOrThrow(graph, into, afterNodeIdx).data.ordering
+        val after = TaskOrdering.getChildEdgeOrThrow(graph, graph.idToIdxOrThrow(into), afterNodeIdx).data.ordering
         after - 1
       } else { // workaround: infamous 'should never happen' case
         scribe.warn("NON-EMPTY but no before / after")
@@ -118,7 +119,7 @@ object Sorting {
     val newParentEdge =
       if(containerChanged) Edge.Child(ParentId(into), EdgeData.Child(newOrderingValue), ChildId(nodeId))
       else {
-        val keptDeletedAt = TaskOrdering.getChildEdgeOrThrow(graph, from, graph.idToIdxOrThrow(nodeId)).data.deletedAt
+        val keptDeletedAt = TaskOrdering.getChildEdgeOrThrow(graph, graph.idToIdxOrThrow(from), graph.idToIdxOrThrow(nodeId)).data.deletedAt
         Edge.Child(ParentId(into), new EdgeData.Child(keptDeletedAt, newOrderingValue), ChildId(nodeId))
       }
 
