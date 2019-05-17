@@ -7,6 +7,7 @@ object DevOnly {
   }
 
   @inline def isTrue = LinkingInfo.developmentMode
+  @inline def showDebugLogs = false
 }
 
 object DevPrintln {
