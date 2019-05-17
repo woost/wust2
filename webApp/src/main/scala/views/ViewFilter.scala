@@ -239,7 +239,7 @@ object GraphOperation {
         if (edgeFilters.forall(_(i))) newEdges += graph.edges(i)
       }
 
-      graph.copy(edges = newEdges.result)
+      graph.copyOnlyEdges(newEdges.result)
     }
   }
 

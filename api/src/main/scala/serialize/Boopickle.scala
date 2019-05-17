@@ -6,6 +6,18 @@ import boopickle.Default._
 
 object Boopickle extends wust.ids.serialize.Boopickle {
 
+  implicit val graphPickler: Pickler[Graph] = new Pickler[Graph] {
+    override def pickle(obj: Graph)(implicit state: PickleState): Unit = {
+      state.pickle(obj.nodes)
+      state.pickle(obj.edges)
+    }
+    override def unpickle(implicit state: UnpickleState): Graph = {
+      val nodes = state.unpickle[Array[Node]]
+      val edges = state.unpickle[Array[Edge]]
+      Graph(nodes, edges)
+    }
+  }
+
   implicit val PasswordPickler: Pickler[Password] = stringPickler.xmap(Password)(_.string)
   implicit val AuthTokenPickler: Pickler[Authentication.Token] = stringPickler.xmap(Authentication.Token)(_.string)
 
@@ -16,7 +28,6 @@ object Boopickle extends wust.ids.serialize.Boopickle {
   implicit val userPersistedPickler: Pickler[AuthUser.Persisted] =
     generatePickler[AuthUser.Persisted]
   implicit val userPickler: Pickler[AuthUser] = generatePickler[AuthUser]
-  implicit val graphPickler: Pickler[Graph] = generatePickler[Graph]
   implicit val graphChangesPickler: Pickler[GraphChanges] = generatePickler[GraphChanges]
 
   implicit val authenticationPickler: Pickler[Authentication] = generatePickler[Authentication]

@@ -13,26 +13,36 @@ import scala.collection
 import flatland._
 
 object Graph {
-  val empty = new Graph(Array.empty, Array.empty)
+  val empty = apply(Array.empty, Array.empty)
   val doneText: String = "Done"
   val doneTextLower: String = doneText.toLowerCase
 
-  def apply(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
-    new Graph(nodes.toArray, edges.toArray)
+  @inline def apply(nodes: Array[Node], edges: Array[Edge]): Graph = {
+    new Graph(nodes, edges, GraphLookup(_))
+  }
+  @inline def apply(nodes: Array[Node], edges: Array[Edge], createNewLookup: Graph => GraphLookup): Graph = {
+    new Graph(nodes, edges, createNewLookup)
+  }
+
+  @inline def from(nodes: Iterable[Node] = Nil, edges: Iterable[Edge] = Nil): Graph = {
+    new Graph(nodes.toArray, edges.toArray, GraphLookup(_))
   }
 
   @inline implicit def graphToGraphLookup(graph: Graph): GraphLookup = graph.lookup
 }
 
-//TODO: this is only a case class because julius is too  lazy to write a custom encoder/decoder for boopickle and circe
-final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
+final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLookup: Graph => GraphLookup) {
   scribe.info(s"Creating new graph (nodes = ${nodes.length}, edges = ${edges.length})")
+
+  def copy(nodes: Array[Node], edges: Array[Edge]) = Graph(nodes, edges)
+  def copyOnlyNodes(nodes: Array[Node]) = Graph(nodes, edges)
+  def copyOnlyEdges(edges: Array[Edge]) = Graph(nodes, edges, graph => GraphLookup.withNodeKnowledge(graph, lookup.idToIdxHashMap, lookup.nodeIds))
 
   // because it is a case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
   override def equals(that: Any): Boolean = super.equals(that)
 
-  lazy val lookup = GraphLookup(this, nodes, edges)
+  lazy val lookup = createNewLookup(this)
 
   @inline def isEmpty: Boolean = nodes.isEmpty
   @inline def nonEmpty: Boolean = !isEmpty
@@ -89,7 +99,7 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
     val addNodes = if (c.addNodes.exists(_.id == user.id)) c.addNodes else c.addNodes ++ Set(user) // do not add author of change if the node was updated, the author might be outdated.
     changeGraphInternal(addNodes = addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
   }
-  def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+  @inline def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
 
   def replaceNode(oldNodeId: NodeId, newNode: Node): Graph = {
     val newNodes = Array.newBuilder[Node]
@@ -111,38 +121,46 @@ final case class Graph(nodes: Array[Node], edges: Array[Edge]) {
   }
 
   private def changeGraphInternal(addNodes: collection.Set[Node], addEdges: collection.Set[Edge], deleteEdges: collection.Set[Edge] = Set.empty): Graph = {
-    val nodesBuilder = mutable.ArrayBuilder.make[Node]()
-    val edgesBuilder = mutable.ArrayBuilder.make[Edge]()
-    // nodesBuilder.sizeHint(nodes.length + addNodes.size)
-    // edgesBuilder.sizeHint(edges.length + addEdges.size)
 
-    val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
-    val addEdgeIds: Set[EdgeEquality.Unique] = addEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
-    val deleteEdgeIds: Set[EdgeEquality.Unique] = deleteEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
-    val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
+    def collectNodes() = {
+      val nodesBuilder = mutable.ArrayBuilder.make[Node]()
+      // nodesBuilder.sizeHint(nodes.length + addNodes.size)
+      val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
+      nodes.foreach { node =>
+        if (!addNodeIds(node.id)) nodesBuilder += node
+      }
+      addNodes.foreach { node =>
+        nodesBuilder += node
+      }
+      nodesBuilder.result
+    }
+    def collectEdges() = {
+      val edgesBuilder = mutable.ArrayBuilder.make[Edge]()
+      // edgesBuilder.sizeHint(edges.length + addEdges.size)
+      val addEdgeIds: Set[EdgeEquality.Unique] = addEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val deleteEdgeIds: Set[EdgeEquality.Unique] = deleteEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
 
-    nodes.foreach { node =>
-      if (!addNodeIds(node.id)) nodesBuilder += node
-    }
-    addNodes.foreach { node =>
-      nodesBuilder += node
-    }
-    edges.foreach { edge =>
-      val alreadyUpdated = EdgeEquality.Unique(edge).exists(updatedEdgeIds)
-      if (!alreadyUpdated) edgesBuilder += edge
-    }
-    addEdges.foreach { edge =>
-      edgesBuilder += edge
+      edges.foreach { edge =>
+        val alreadyUpdated = EdgeEquality.Unique(edge).exists(updatedEdgeIds)
+        if (!alreadyUpdated) edgesBuilder += edge
+      }
+      addEdges.foreach { edge =>
+        edgesBuilder += edge
+      }
+      edgesBuilder.result()
     }
 
-    new Graph(
-      nodes = nodesBuilder.result(),
-      edges = edgesBuilder.result()
-    )
+    val hasNodes = addNodes.nonEmpty
+    val hasEdges = addEdges.nonEmpty || deleteEdges.nonEmpty
+    if (hasNodes && hasEdges) copy(collectNodes(), collectEdges())
+    else if (hasNodes) copyOnlyNodes(collectNodes())
+    else if (hasEdges) copyOnlyEdges(collectEdges())
+    else this
   }
 
   @deprecated("Be aware that you are constructing a new graph here.", "")
-  def addNodes(newNodes: Iterable[Node]): Graph = new Graph(nodes = nodes ++ newNodes, edges = edges)
+  def addNodes(newNodes: Iterable[Node]): Graph = Graph(nodes = nodes ++ newNodes, edges = edges)
 }
 
 final case class RoleStat(role: NodeRole, count: Int, unreadCount: Int)
@@ -152,41 +170,23 @@ final case class RoleStats(roles: List[RoleStat]) {
   def contains(role: NodeRole): Boolean = active.exists(_.role == role)
 }
 
-final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge]) {
+final class GraphLookup(
+  graph: Graph,
+  val idToIdxHashMap: mutable.Map[NodeId, Int],
+  val nodeIds: Array[NodeId]
+) {
   scribe.info(s"Creating new graph lookup (nodes = $n, edges = $m)")
+  assert(idToIdxHashMap.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
+
+  @inline def nodes = graph.nodes
+  @inline def edges = graph.edges
 
   @inline private def n = nodes.length
   @inline private def m = edges.length
 
-  def createArraySet(ids: Iterable[NodeId]): ArraySet = {
-    val marker = ArraySet.create(n)
-    ids.foreach { id =>
-      idToIdxForeach(id)(marker.add)
-    }
-    marker
-  }
-
-  def createImmutableBitSet(ids: Iterable[NodeId]): immutable.BitSet = {
-    val builder = immutable.BitSet.newBuilder
-    ids.foreach { id =>
-      idToIdxForeach(id)(builder += _)
-    }
-    builder.result()
-  }
-
-  private val idToIdxMap = mutable.HashMap.empty[NodeId, Int]
-  idToIdxMap.sizeHint(n)
-  val nodeIds = new Array[NodeId](n)
-
-  nodes.foreachIndexAndElement { (i, node) =>
-    val nodeId = node.id
-    idToIdxMap(nodeId) = i
-    nodeIds(i) = nodeId
-  }
-
   //TODO: measure performance if these inline helper are better than just idToIdxMap.get.fold
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
-    idToIdxMap.get(id) match {
+    idToIdxHashMap.get(id) match {
       case Some(idx) => f(idx)
       case None => default
     }
@@ -201,9 +201,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
 
   @inline def contains(nodeId: NodeId): Boolean = idToIdxFold[Boolean](nodeId)(false)(_ => true)
 
-  assert(idToIdxMap.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
-
-  private val emptyNodeIdSet = Set.empty[NodeId]
   private val consistentEdges = ArraySet.create(edges.length)
   val edgesIdx = InterleavedArrayInt.create(edges.length)
 
@@ -592,15 +589,15 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     // and not trigger the pre-caching machinery of nodeIds
     val (filteredNodesIndices, retained) = nodes.filterIdxToArraySet(p)
 
-    @inline def nothingFiltered = retained == nodes.length
-
-    if (nothingFiltered) graph
+    if (retained == nodes.length) graph
     else {
-      val filteredNodeIds: Set[NodeId] = filteredNodesIndices.map(nodeIds)(breakOut)
-      val filteredNodes: Set[Node] = filteredNodesIndices.map(nodes)(breakOut)
+      val newEdges = Array.newBuilder[Edge]
+      edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
+        if (filteredNodesIndices(sourceIdx) && filteredNodesIndices(targetIdx)) newEdges += edges(edgeIdx)
+      }
       Graph(
-        nodes = filteredNodes,
-        edges = edges.filter(e => filteredNodeIds(e.sourceId) && filteredNodeIds(e.targetId))
+        nodes = filteredNodesIndices.mapToArray[Node](nodes),
+        edges = newEdges.result()
       )
     }
   }
@@ -929,26 +926,6 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
   lazy val childDepth: Array[Int] = longestPathsIdx(childrenIdx)
   lazy val parentDepth: Array[Int] = longestPathsIdx(parentsIdx)
 
-  lazy val rootNodes: Array[Int] = {
-    // val coveredChildrenx: Set[NodeId] = nodes.filter(n => !hasParents(n.id)).flatMap(n => descendants(n.id))(breakOut)
-    val coveredChildren = ArraySet.create(n)
-    nodes.foreachIndex { i =>
-      if (!hasParentsIdx(i)) {
-        coveredChildren ++= descendantsIdx(i)
-      }
-    }
-
-    // val rootNodes = nodes.filter(n => coveredChildren(idToIdx(n.id)) == 0 && (!hasParents(n.id) || involvedInContainmentCycle(n.id))).toSet
-    val rootNodesIdx = new mutable.ArrayBuilder.ofInt
-    rootNodesIdx.sizeHint(n)
-    nodes.foreachIndex { i =>
-      // assert(coveredChildren(i) == coveredChildren(idToIdx(nodes(i).id)))
-      if (coveredChildren.containsNot(i) && (!hasParentsIdx(i) || involvedInContainmentCycleIdx(i)))
-        rootNodesIdx += i
-    }
-    rootNodesIdx.result()
-  }
-
   def roleTree(root: Int, role: NodeRole, visited: ArraySet = ArraySet.create(n)): Tree = {
     if (visited.containsNot(root) && nodes(root).role == role) {
       visited.add(root)
@@ -985,23 +962,49 @@ final case class GraphLookup(graph: Graph, nodes: Array[Node], edges: Array[Edge
     (distanceMap.keySet ++ distanceMapForCycles.keySet).foldLeft(
       ResultMap()
     ) { (result, nodeid) =>
-        // in case that the nodeid is inside distanceMapForCycles, it is contained
-        // inside a cycle, so we use the smallest distance of the cycle
-        val (gId, dist) = if (distanceMapForCycles.contains(nodeid))
-          distanceMapForCycles(nodeid)
-        else
-          (-1, distanceMap(nodeid))
+      // in case that the nodeid is inside distanceMapForCycles, it is contained
+      // inside a cycle, so we use the smallest distance of the cycle
+      val (gId, dist) = if (distanceMapForCycles.contains(nodeid))
+                          distanceMapForCycles(nodeid)
+                        else
+                          (-1, distanceMap(nodeid))
 
-        import monocle.function.At._
-        (monocle.Iso.id[ResultMap] composeLens at(dist)).modify { optInnerMap =>
-          val innerMap = optInnerMap.getOrElse(Map.empty)
-          Some(((monocle.Iso.id[Map[GroupIdx, Seq[NodeId]]] composeLens at(gId)) modify { optInnerSeq =>
-            val innerSeq = optInnerSeq.getOrElse(Nil)
-            Some(innerSeq ++ Seq(nodeid))
-          }) (innerMap))
-        }(result)
-      }
+      import monocle.function.At._
+      (monocle.Iso.id[ResultMap] composeLens at(dist)).modify { optInnerMap =>
+        val innerMap = optInnerMap.getOrElse(Map.empty)
+        Some(((monocle.Iso.id[Map[GroupIdx, Seq[NodeId]]] composeLens at(gId)) modify { optInnerSeq =>
+          val innerSeq = optInnerSeq.getOrElse(Nil)
+          Some(innerSeq ++ Seq(nodeid))
+        }) (innerMap))
+      }(result)
+    }
   }
+}
+
+object GraphLookup {
+  def apply(graph: Graph): GraphLookup = {
+    val n = graph.nodes.length
+    val idToIdxMap = mutable.HashMap.empty[NodeId, Int]
+    idToIdxMap.sizeHint(n)
+    val nodeIds = new Array[NodeId](n)
+
+    graph.nodes.foreachIndexAndElement { (i, node) =>
+      val nodeId = node.id
+      idToIdxMap(nodeId) = i
+      nodeIds(i) = nodeId
+    }
+    new GraphLookup(
+      graph,
+      idToIdxMap,
+      nodeIds
+    )
+  }
+
+  def withNodeKnowledge(
+    graph: Graph,
+    idToIdxMap: mutable.Map[NodeId, Int],
+    nodeIds: Array[NodeId]
+  ): GraphLookup = new GraphLookup(graph, idToIdxMap, nodeIds)
 }
 
 sealed trait Tree {

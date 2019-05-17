@@ -3,7 +3,8 @@ package wust.api.serialize
 import wust.api._
 import wust.ids._
 import wust.graph._
-import io.circe._, io.circe.generic.extras.semiauto._
+import io.circe._
+import io.circe.generic.extras.semiauto._
 
 object Circe extends wust.ids.serialize.Circe {
 
@@ -50,6 +51,19 @@ object Circe extends wust.ids.serialize.Circe {
   implicit val connectionContentTypeKeyEncoder: KeyEncoder[EdgeData.Type] =
     KeyEncoder[String].contramap[EdgeData.Type](identity)
 
-  implicit val GraphDecoder: Decoder[Graph] = deriveDecoder[Graph]
-  implicit val GraphEncoder: Encoder[Graph] = deriveEncoder[Graph]
+  implicit val graphDecoder: Decoder[Graph] = Decoder.instance[Graph] { cursor =>
+    val nodes = cursor.downField("nodes")
+    val edges = cursor.downField("edges")
+    for {
+      nodes <- nodes.as[Array[Node]]
+      edges <- edges.as[Array[Edge]]
+    } yield Graph(nodes, edges)
+  }
+  implicit val graphEncoder: Encoder[Graph] = Encoder.instance[Graph] { graph =>
+    import io.circe.syntax._
+    Json.obj(
+      "nodes" -> Json.fromValues(graph.nodes.map(_.asJson)),
+      "edges" -> Json.fromValues(graph.edges.map(_.asJson))
+    )
+  }
 }
