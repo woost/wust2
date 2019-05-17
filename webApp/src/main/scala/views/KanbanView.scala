@@ -311,7 +311,7 @@ object KanbanView {
       Rx {
         if(active())
           inputRow(state,
-            submitAction(state.user().id),
+            submitAction(state.userId()),
             autoFocus = true,
             blurAction = Some(blurAction),
             placeHolderMessage = Some(placeHolder),

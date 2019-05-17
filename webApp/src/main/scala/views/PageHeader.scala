@@ -128,7 +128,7 @@ object PageHeader {
   private def menuItems(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val isSpecialNode = Rx {
       //TODO we should use the permission system here and/or share code with the settings menu function
-      channelId == state.user().id
+      channelId == state.userId()
     }
     val isBookmarked = PageSettingsMenu.nodeIsBookmarked(state, channelId)
 

@@ -65,7 +65,7 @@ object TaskNodeCard {
       state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
     val isExpanded = Rx {
-      state.graph().isExpanded(state.user().id, nodeIdx()).getOrElse(false)
+      state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
     }
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
@@ -336,7 +336,7 @@ object TaskNodeCard {
       state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
     val isExpanded = Rx {
-      state.graph().isExpanded(state.user().id, nodeIdx()).getOrElse(false)
+      state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
     }
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {

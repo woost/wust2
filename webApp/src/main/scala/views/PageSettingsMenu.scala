@@ -36,7 +36,7 @@ object PageSettingsMenu {
   def nodeIsBookmarked(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
     val g = state.graph()
     val channelIdx = g.idToIdxOrThrow(channelId)
-    val userIdx = g.idToIdxOrThrow(state.user().id)
+    val userIdx = g.idToIdxOrThrow(state.userId())
     state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
   }
 

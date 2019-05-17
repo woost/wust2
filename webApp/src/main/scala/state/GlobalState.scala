@@ -50,6 +50,7 @@ class GlobalState(
 
   val auth: Rx[Authentication] = eventProcessor.currentAuth.unsafeToRx(seed = eventProcessor.initialAuth)
   val user: Rx[AuthUser] = auth.map(_.user)
+  val userId: Rx[UserId] = user.map(_.id)
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 

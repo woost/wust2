@@ -190,7 +190,7 @@ object ListView {
 
     div(
       Rx {
-        inputRow(state, submitAction(state.user().id),
+        inputRow(state, submitAction(state.userId()),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeHolderMessage = Some(placeHolder),
