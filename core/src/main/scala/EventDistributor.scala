@@ -107,7 +107,7 @@ class HashSetEventDistributorWithPush(db: Db, pushConfig: Option[PushNotificatio
 
   private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
     state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
-      db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSet)
+      db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds)
         .map { permittedNodeIds =>
           val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
             case e: Edge.User    => List(e.sourceId)

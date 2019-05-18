@@ -149,7 +149,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       )
     }
 
-    def updateNodesForConnectedUser(userId: UserId, nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+    def updateNodesForConnectedUser(userId: UserId, nodeIds: scala.collection.Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
       ctx.run(
         infix"select id from unnest(${lift(nodeIds.toList)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
       )

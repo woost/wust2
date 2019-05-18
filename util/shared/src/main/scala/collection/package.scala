@@ -5,6 +5,13 @@ import scala.collection.{IterableLike, mutable}
 
 package object collection {
 
+  def HashSetFromArray[T](arr: Array[T]): mutable.HashSet[T] = {
+    val set = new mutable.HashSet[T]()
+    set.sizeHint(arr.length)
+    arr.foreach(set += _)
+    set
+  }
+
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
 
     def by[X](lens: T => X): scala.collection.Map[X, T] = {

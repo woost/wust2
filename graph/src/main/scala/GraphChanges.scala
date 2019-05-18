@@ -6,6 +6,7 @@ import wust.util.macros.InlineList
 
 import scala.collection.{breakOut, mutable}
 import scala.reflect.ClassTag
+import wust.util.collection.HashSetFromArray
 
 case class GraphChanges(
   addNodes: Array[Node] = Array.empty,
@@ -13,6 +14,7 @@ case class GraphChanges(
   // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
   delEdges: Array[Edge] = Array.empty
 ) {
+
   def withAuthor(userId: UserId, timestamp: EpochMilli = EpochMilli.now): GraphChanges = {
     if (addNodes.isEmpty) this
     else {
@@ -31,12 +33,11 @@ case class GraphChanges(
 
   def merge(other: GraphChanges): GraphChanges = {
     val delEdgesBuilder = Array.newBuilder[Edge]
+    val otherAddEdgesSet = HashSetFromArray(other.addEdges)
     delEdges.foreach { delEdge =>
-      // Use exists instead of contains, because contains does boxing (at least in js)
-      if (!other.addNodes.exists(_ == delEdge)) delEdgesBuilder += delEdge
+      if (!otherAddEdgesSet(delEdge)) delEdgesBuilder += delEdge
     }
     delEdgesBuilder ++= other.delEdges
-
 
     GraphChanges.from(
       addNodes = addNodes ++ other.addNodes,
@@ -63,15 +64,25 @@ case class GraphChanges(
   }
 
   lazy val consistent: GraphChanges = {
+    val addEdgesBuilder = Array.newBuilder[Edge]
+    val addEdgesSet = new mutable.HashSet[Edge]()
+    val delEdgesSet = HashSetFromArray(delEdges)
+    addEdges.foreach { addEdge =>
+      if (!addEdgesSet(addEdge) && !delEdgesSet(addEdge)) {
+        addEdgesBuilder += addEdge
+        addEdgesSet += addEdge
+      }
+    }
+
     copy(
       addNodes = addNodes.distinct,
-      addEdges = (addEdges diff delEdges).distinct,
+      addEdges = addEdgesBuilder.result(),
       delEdges = delEdges.distinct
     )
   }
 
-  lazy val involvedNodeIds: Array[NodeId] = {
-    val involved = Array.newBuilder[NodeId]
+  lazy val involvedNodeIds: collection.Set[NodeId] = {
+    val involved = new mutable.HashSet[NodeId]()
     addNodes.foreach(node => involved += node.id)
     addEdges.foreach { edge =>
       involved += edge.sourceId
@@ -81,7 +92,7 @@ case class GraphChanges(
       involved += edge.sourceId
       involved += edge.targetId
     }
-    involved.result()
+    involved
   }
 
   lazy val size: Int = InlineList.foldLeft(addNodes, addEdges, delEdges)(0)(_ + _.length)
