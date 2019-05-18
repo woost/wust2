@@ -123,6 +123,6 @@ object Sorting {
         Edge.Child(ParentId(into), new EdgeData.Child(keptDeletedAt, newOrderingValue), ChildId(nodeId))
       }
 
-    GraphChanges(addEdges = Set(newParentEdge))
+    GraphChanges(addEdges = Array(newParentEdge))
   }
 }

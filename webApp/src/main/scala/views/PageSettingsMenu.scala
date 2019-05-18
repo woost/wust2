@@ -71,7 +71,7 @@ object PageSettingsMenu {
           ) else VDomModifier(
             Elements.icon(Icons.pin),
             span("Pin to sidebar"),
-            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Set(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
+            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
           )
         ))
       }
@@ -320,7 +320,7 @@ object PageSettingsMenu {
     val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
 
     def addUserMember(userId: UserId): Unit = {
-      val change:GraphChanges = GraphChanges.from(addEdges = Set(
+      val change:GraphChanges = GraphChanges(addEdges = Array(
         Edge.Invite(node.id, userId),
         Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
       ))
@@ -368,7 +368,7 @@ object PageSettingsMenu {
         } else return
       }
 
-      val change:GraphChanges = GraphChanges.from(delEdges = Set(membership))
+      val change:GraphChanges = GraphChanges(delEdges = Array(membership))
       state.eventProcessor.changes.onNext(change)
     }
 
@@ -493,7 +493,7 @@ object PageSettingsMenu {
     button(
       cls := "ui compact primary button",
       if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-      onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Set(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes,
+      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
   }

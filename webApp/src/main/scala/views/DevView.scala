@@ -160,7 +160,7 @@ object DevView {
                 selected += randomConnection
               }
 
-              state.eventProcessor.changes.onNext(GraphChanges(addEdges = selected.toSet))
+              state.eventProcessor.changes.onNext(GraphChanges.from(addEdges = selected))
             }
           }
 
@@ -177,7 +177,7 @@ object DevView {
 
           def contain(count: Int): Unit = {
             state.eventProcessor.changes
-              .onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection).toSet))
+              .onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection)))
           }
 
           div(
@@ -192,7 +192,7 @@ object DevView {
 
           def disconnect(count: Int): Unit = {
             state.eventProcessor.changes
-              .onNext(GraphChanges(delEdges = connections.take(count).toSet))
+              .onNext(GraphChanges.from(delEdges = connections.take(count)))
           }
 
           div(

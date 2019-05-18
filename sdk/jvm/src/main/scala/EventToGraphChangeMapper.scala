@@ -2,6 +2,7 @@ package wust.sdk
 
 import wust.graph._
 import wust.ids._
+import scala.collection.breakOut
 
 object EventToGraphChangeMapper {
 
@@ -12,27 +13,27 @@ object EventToGraphChangeMapper {
 //    val nodeAuthorEdge = Edge.Author(wustAuthorUserId, EdgeData.Author(timestamp), nodeContent.id)
 //    val nodeAuthorMemberEdge = Edge.Member(wustAuthorUserId, EdgeData.Member(AccessLevel.ReadWrite), nodeContent.id)
 
-    val parentEdges: Set[Edge] = parents.map(parent => Edge.Child(ParentId(parent), ChildId(nodeContent.id)))
+    val parentEdges: Array[Edge] = parents.map(parent => Edge.Child(ParentId(parent), ChildId(nodeContent.id)))(breakOut)
 //    val memberEdges: Set[Edge] = additionalMembers.collect {
 //      case (member: UserId, access: AccessLevel) => Edge.Member(member, EdgeData.Member(access), nodeContent.id)
 //    }
 
 
     GraphChanges(
-      addNodes = Set(
+      addNodes = Array(
         nodeContent
       ),
       addEdges = parentEdges
 //        ++ memberEdges
-        ++ Set(
+//        ++ Array(
 //        nodeAuthorEdge, nodeAuthorMemberEdge
-      )
+//      )
     )
   }
 
   def editNodeContentInWust(nodeId: NodeId, nodeContent: NodeData.Content): GraphChanges = {
     GraphChanges(
-      addNodes = Set(Node.Content(nodeId, nodeContent, NodeRole.Message))
+      addNodes = Array(Node.Content(nodeId, nodeContent, NodeRole.Message))
     )
   }
 
@@ -91,7 +92,7 @@ object EventToGraphChangeMapper {
 
   def archiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId, timestamp: EpochMilli): GraphChanges = {
     GraphChanges(
-      addEdges = Set(Edge.Child.delete(ParentId(workspaceNodeId), timestamp, ChildId(channelId)))
+      addEdges = Array(Edge.Child.delete(ParentId(workspaceNodeId), timestamp, ChildId(channelId)))
     )
   }
 
@@ -104,7 +105,7 @@ object EventToGraphChangeMapper {
 
   def unArchiveChannelInWust(channelId: NodeId, workspaceNodeId: NodeId): GraphChanges = {
     GraphChanges(
-      addEdges = Set(Edge.Child(ParentId(workspaceNodeId), ChildId(channelId)))
+      addEdges = Array(Edge.Child(ParentId(workspaceNodeId), ChildId(channelId)))
     )
   }
 

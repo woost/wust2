@@ -191,7 +191,7 @@ object ItemProperties {
           def addProperty(targetNodeId: NodeId): GraphChanges = {
             val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
             val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
-            GraphChanges(addNodes = Set(newPropertyNode), addEdges = Set(propertyEdge))
+            GraphChanges(addNodes = Array(newPropertyNode), addEdges = Array(propertyEdge))
           }
 
           sendChanges(addProperty, Right(propertyNode))
@@ -199,7 +199,7 @@ object ItemProperties {
         case Left(nodeId)                  =>
           def addProperty(targetNodeId: NodeId): GraphChanges = {
             val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(nodeId))
-            GraphChanges(addEdges = Set(propertyEdge))
+            GraphChanges(addEdges = Array(propertyEdge))
           }
 
           sendChanges(addProperty, Left(nodeId))

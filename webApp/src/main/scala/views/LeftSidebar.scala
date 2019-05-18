@@ -190,14 +190,14 @@ object LeftSidebar {
                 cls := "ui mini compact inverted green button",
                 padding := "4px",
                 freeSolid.faCheck,
-                onClick.mapTo(GraphChanges(addEdges = Set(Edge.Pinned(nodeId, user.id), Edge.Notify(nodeId, state.user.now.id)), delEdges = Set(Edge.Invite(nodeId, state.user.now.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, user.id), Edge.Notify(nodeId, state.user.now.id)), delEdges = Array(Edge.Invite(nodeId, state.user.now.id)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               ),
               button(
                 cls := "ui mini compact inverted button",
                 padding := "4px",
                 freeSolid.faTimes,
-                onClick.mapTo(GraphChanges(delEdges = Set(Edge.Invite(nodeId, user.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, user.id)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               )
             )

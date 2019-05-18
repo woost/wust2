@@ -47,8 +47,8 @@ case class Project(
 
 object MeisterTask {
   def translate(project: Project, currentTime: EpochMilli = EpochMilli.now): GraphChanges.Import = {
-    val addNodes = mutable.Set.newBuilder[Node]
-    val addEdges = mutable.Set.newBuilder[Edge]
+    val addNodes = Array.newBuilder[Node]
+    val addEdges = Array.newBuilder[Edge]
 
     val tagsByName = BasicMap.ofString[NodeId]()
     val sectionsByName = BasicMap.ofString[NodeId]()

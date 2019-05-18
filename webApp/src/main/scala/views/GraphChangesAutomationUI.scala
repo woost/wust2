@@ -34,7 +34,7 @@ object GraphChangesAutomationUI {
 
       onClick.mapTo {
         val templateNode = Node.MarkdownTask("Template")
-        GraphChanges(addEdges = Set(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Set(templateNode))
+        GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
       } --> state.eventProcessor.changes,
     )
 
@@ -102,8 +102,8 @@ object GraphChangesAutomationUI {
                       addEdges = existingParent.map { edgeIdx =>
                         val edge = graph.edges(edgeIdx).as[Edge.Child]
                         edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
-                      }.toSet,
-                      delEdges = Set(Edge.Automated(focusedId, TemplateId(templateNode.id)))
+                      }.toArray,
+                      delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
                     )
                   },
                 )({ templateNode =>

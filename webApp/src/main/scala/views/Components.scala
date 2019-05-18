@@ -233,7 +233,7 @@ object Components {
               val nodeId = NodeId.fresh
               val change:GraphChanges =
                 GraphChanges.newProject(nodeId, userId, title = dmName) merge
-                GraphChanges.from(addEdges = Set(
+                GraphChanges(addEdges = Array(
                   Edge.Invite(nodeId = nodeId, userId = dmUserId),
                   Edge.Notify(nodeId = nodeId, userId = dmUserId),
                   Edge.Member(nodeId = nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId = dmUserId)
@@ -362,7 +362,7 @@ object Components {
               editValue.map {
                 case true => VDomModifier(
                   Icons.delete,
-                  onClick(GraphChanges(delEdges = Set(property.edge))) --> state.eventProcessor.changes
+                  onClick(GraphChanges(delEdges = Array(property.edge))) --> state.eventProcessor.changes
                 )
                 case false => VDomModifier(
                   Icons.edit,
@@ -441,7 +441,7 @@ object Components {
   def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     removablePropertyTagCustom(state, key, propertyNode, () => {
       state.eventProcessor.changes.onNext(
-        GraphChanges(delEdges = Set(key))
+        GraphChanges(delEdges = Array(key))
       )
     }, pageOnClick)
   }
@@ -527,7 +527,7 @@ object Components {
         //   else
         //     Set.empty
         state.eventProcessor.changes.onNext(
-        GraphChanges.disconnect(Edge.Child)(Set(ParentId(tag.id)), ChildId(taggedNodeId))
+        GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
       }, pageOnClick)
     }
@@ -795,7 +795,7 @@ object Components {
           case _ => VDomModifier(
             EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
-              GraphChanges(delEdges = Set(edge), addEdges = Set(edge.copy(propertyId = PropertyId(newNode.id))))
+              GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
           )
         }
@@ -1238,7 +1238,7 @@ object Components {
                 val isIntersecting = entry.head.isIntersecting
                 if (isIntersecting && isUnread.now) {
                   val changes = GraphChanges(
-                    addEdges = Set(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                    addEdges = Array(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), state.user.now.id))
                   )
 
                   // stop observing once read

@@ -111,8 +111,8 @@ object Importing {
           val nodes = str.lines.map[Node] { line => Node.MarkdownTask(line.trim) }.toIterable
 
           Right(GraphChanges.Import(
-            GraphChanges(addNodes = nodes.to[Set]),
-            topLevelNodeIds = nodes.to[List].reverseMap(_.id),
+            GraphChanges(addNodes = nodes.to[Array]),
+            topLevelNodeIds = nodes.to[Array].reverseMap(_.id),
             focusNodeId = None
           ))
         },

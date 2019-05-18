@@ -34,8 +34,8 @@ object GraphChangesAutomation {
     val alreadyExistingNodes = new mutable.HashMap[NodeId, Node]
     val replacedNodes = new mutable.HashMap[NodeId, Node]
 
-    val addNodes = mutable.HashSet.newBuilder[Node]
-    val addEdges = mutable.HashSet.newBuilder[Edge]
+    val addNodes = Array.newBuilder[Node]
+    val addEdges = Array.newBuilder[Edge]
 
     newNode match {
       // add defined views of template to new node

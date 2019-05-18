@@ -348,7 +348,7 @@ object NotificationView {
                         if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
                       })
                       else GraphChanges(
-                        addEdges = Set(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                        addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
                       )
 
                       state.eventProcessor.changes.onNext(changes)

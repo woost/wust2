@@ -88,8 +88,8 @@ case class Board(
 
 object Trello {
   def translate(board: Board, currentTime: EpochMilli = EpochMilli.now): GraphChanges.Import = {
-    val addNodes = mutable.Set.newBuilder[Node]
-    val addEdges = mutable.Set.newBuilder[Edge]
+    val addNodes = Array.newBuilder[Node]
+    val addEdges = Array.newBuilder[Edge]
 
     val labelsById = BasicMap.ofString[NodeId]()
     val checklistsById = BasicMap.ofString[NodeId]()

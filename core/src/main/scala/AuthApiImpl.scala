@@ -173,7 +173,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
               // make him a member of this node and create an invite edge
               val invitedUserId = UserId.fresh
               val invitedName = inviteTargetMail.split("@").head
-              val invitedEdges = List(Edge.Member(nodeId = node.id, EdgeData.Member(AccessLevel.ReadWrite), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
+              val invitedEdges = Array[Edge](Edge.Member(nodeId = node.id, EdgeData.Member(AccessLevel.ReadWrite), userId = invitedUserId), Edge.Invite(nodeId = node.id, userId = invitedUserId))
               db.ctx.transaction { implicit ec =>
                 for {
                   invitedUser <- db.user.createImplicitUser(invitedUserId, invitedName)
@@ -187,7 +187,7 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(impl
                     inviterEmail = inviterEmail,
                     node = node
                   )
-                  val changes = GraphChanges(addEdges = invitedEdges.toSet)
+                  val changes = GraphChanges(addEdges = invitedEdges)
                   Returns((), Seq(NewGraphChanges.forAll(invitedUser.toNode, changes))) // we make inivitedUser the author of this graphchange, so receivers get the new user node.
                 }
               }

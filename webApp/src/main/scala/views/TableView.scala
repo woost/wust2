@@ -65,7 +65,7 @@ object TableView {
       minWidth := "100px"
     )
 
-    def columnHeaderWithDelete(name: String, edges: Set[Edge.LabeledProperty]) = {
+    def columnHeaderWithDelete(name: String, edges: Array[Edge.LabeledProperty]) = {
       val editMode = Var(false)
       def miniButton = span(
         paddingLeft := "5px",
@@ -178,7 +178,7 @@ object TableView {
         }
       }
       UI.Column(
-        columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))(breakOut)),
+        columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
         property.groups.map { group =>
           columnEntryOfNodes(group.node.id, group.values.map(v => Some(v.edge) -> v.node),
             cellModifier = VDomModifier.ifTrue(group.values.isEmpty)(
@@ -219,8 +219,8 @@ object TableView {
                 if (keepPropertyAsDefault.now) {
                   val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
                   val changes = changesf(templateNode.id) merge GraphChanges(
-                    addNodes = Set(templateNode),
-                    addEdges = Set(
+                    addNodes = Array(templateNode),
+                    addEdges = Array(
                       Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
                       Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id))
                     )

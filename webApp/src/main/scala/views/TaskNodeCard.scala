@@ -235,7 +235,7 @@ object TaskNodeCard {
 
               onClick.stopPropagation.mapTo {
                 val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), state.user.now.id)
-                GraphChanges(addEdges = Set(edge))
+                GraphChanges(addEdges = Array(edge))
               } --> state.eventProcessor.changes,
               cursor.pointer,
             )
@@ -502,7 +502,7 @@ object TaskNodeCard {
 
               onClick.stopPropagation.mapTo {
                 val edge = Edge.Expanded(node.id, EdgeData.Expanded(!isExpanded()), state.user.now.id)
-                GraphChanges(addEdges = Set(edge))
+                GraphChanges(addEdges = Array(edge))
               } --> state.eventProcessor.changes,
               cursor.pointer,
             )

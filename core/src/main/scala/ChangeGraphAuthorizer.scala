@@ -8,7 +8,7 @@ import wust.util.collection._
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 
 sealed trait ChangeGraphAuthorization
 object ChangeGraphAuthorization {
@@ -33,8 +33,8 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
   type Rule = (AuthUser, GraphChanges) => Future[ChangeGraphAuthorization]
 
   val canOnlyAddNodesWithAuthors: Rule = { (_, changes) =>
-    val addNodeIds: collection.Set[NodeId] = changes.addNodes.map(_.id)
-    val authoredNodeIds: collection.Set[NodeId] = changes.addEdges.collect { case e: Edge.Author => e.nodeId }
+    val addNodeIds: mutable.HashSet[NodeId] = changes.addNodes.map(_.id)(breakOut)
+    val authoredNodeIds: mutable.HashSet[NodeId] = changes.addEdges.collect { case e: Edge.Author => e.nodeId }(breakOut)
 
     val allNodesHaveAuthor = addNodeIds.forall(authoredNodeIds.contains)
     val allAuthorsHaveNode = authoredNodeIds.forall(addNodeIds)

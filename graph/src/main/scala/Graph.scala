@@ -120,12 +120,12 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
     Graph(newNodes.result(), newEdges)
   }
 
-  private def changeGraphInternal(addNodes: collection.Set[Node], addEdges: collection.Set[Edge], deleteEdges: collection.Set[Edge] = Set.empty): Graph = {
+  private def changeGraphInternal(addNodes: Array[Node], addEdges: Array[Edge], deleteEdges: Array[Edge] = Array.empty): Graph = {
 
     def collectNodes() = {
       val nodesBuilder = mutable.ArrayBuilder.make[Node]()
       // nodesBuilder.sizeHint(nodes.length + addNodes.size)
-      val addNodeIds: Set[NodeId] = addNodes.map(_.id)(breakOut)
+      val addNodeIds: mutable.Set[NodeId] = addNodes.map(_.id)(breakOut)
       nodes.foreach { node =>
         if (!addNodeIds(node.id)) nodesBuilder += node
       }
@@ -137,8 +137,8 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
     def collectEdges() = {
       val edgesBuilder = mutable.ArrayBuilder.make[Edge]()
       // edgesBuilder.sizeHint(edges.length + addEdges.size)
-      val addEdgeIds: Set[EdgeEquality.Unique] = addEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
-      val deleteEdgeIds: Set[EdgeEquality.Unique] = deleteEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val addEdgeIds: mutable.Set[EdgeEquality.Unique] = addEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
+      val deleteEdgeIds: mutable.Set[EdgeEquality.Unique] = deleteEdges.flatMap(EdgeEquality.Unique(_))(breakOut)
       val updatedEdgeIds = addEdgeIds ++ deleteEdgeIds
 
       edges.foreach { edge =>
