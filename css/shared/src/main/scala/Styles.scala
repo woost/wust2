@@ -292,7 +292,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".ui.button.inverted" - (
     // reduce inverted box-shadow
     boxShadow := "0 0 0 1px #fff inset !important",
-    border := "1px solid transparent",
+    border(1 px, solid, transparent),
   )
 
 
