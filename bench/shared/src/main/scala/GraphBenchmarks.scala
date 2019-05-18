@@ -40,14 +40,14 @@ object GraphBenchmarks {
     def randomGraph(size: Int, d: Double) = {
       val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
       val edges = for (a <- nodes; b <- nodes if rDouble <= d) yield Edge.Child(ParentId(b.id), ChildId(a.id))
-      Graph(nodes, edges)
+      Graph.from(nodes, edges)
     }
 
     def randomChannelGraph(size: Int, d: Double): (Graph, Node.User) = {
       val graph = randomGraph(size, d)
       val userNode = Node.User(UserId.fresh, NodeData.User("harals", true, 1), NodeMeta.User)
-      val edges = graph.nodes.map(n => Edge.Pinned(n.id, userNode.id))
-      (graph addEdges edges, userNode)
+      val edges = graph.nodes.map(n => Edge.Pinned(n.id, userNode.id): Edge)
+      (graph applyChanges GraphChanges(addEdges = edges), userNode)
     }
 
     Seq(
@@ -55,7 +55,7 @@ object GraphBenchmarks {
         "parents w/o edges",
         { size =>
           val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-          Graph(nodes)
+          Graph.from(nodes)
         },
         (graph) =>
           graph.parents(graph.nodes.head.id)
@@ -64,8 +64,8 @@ object GraphBenchmarks {
         "parents path",
         { size =>
           val nodes = List.fill(size)(Node.Content(NodeData.PlainText(""), NodeRole.default))
-          val edges = nodes.zip(nodes.tail).map { case (a, b) => Edge.Child(ParentId(b.id), EdgeData.Child, ChildId(a.id)) }
-          Graph(nodes, edges)
+          val edges = nodes.zip(nodes.tail).map { case (a, b) => Edge.Child(ParentId(b.id), ChildId(a.id)) }
+          Graph.from(nodes, edges)
         },
         (graph) =>
           graph.parents(graph.nodes.head.id)
@@ -77,16 +77,6 @@ object GraphBenchmarks {
         },
         (graph) =>
           graph.parents(graph.nodes.head.id)
-      ),
-      Benchmark[(Graph, Node)](
-        "channelTree rand(0.05)",
-        { size =>
-          randomChannelGraph(size, 0.05)
-        },
-        {
-          case ((graph, userNode: Node.User)) =>
-            graph.notDeletedChannelTree(userNode.id)
-        }
       ),
     )
   })
