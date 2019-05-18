@@ -160,7 +160,7 @@ object DashboardView {
   }
 
 
-  private def newSubProjectButton(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def newSubProjectButton(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val fieldActive = Var(false)
     def submitAction(str:String) = {
       val change = {
@@ -176,18 +176,10 @@ object DashboardView {
 
     val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
 
-    div(
-      borderRadius := "3px",
-      margin := "0.5em",
-      padding := "5px",
-      backgroundColor := "rgba(158, 158, 158, 0.25)",
-      border := "3px solid transparent",
-      onClick.stopPropagation(true) --> fieldActive,
-      cursor.pointer,
+    VDomModifier(
       Rx {
         if(fieldActive()) {
           VDomModifier(
-            padding := "0px",
             inputRow(state,
               submitAction,
               autoFocus = true,
@@ -198,19 +190,17 @@ object DashboardView {
                 fontWeight.bold
               )
             ).apply(
-              margin := "0px"
+              margin := "0.5em"
             )
           )
         }
-        else
-          h2(
-            "+ Add Sub-Project",
-            color := "rgba(0, 0, 0, 0.62)",
-            fontSize := "1.5em",
-            fontWeight.normal,
-            margin := "0 0.5em",
-            height := "30px"
-          )
+        else button(
+          margin := "0.5em",
+          onClick.stopPropagation(true) --> fieldActive,
+          cursor.pointer,
+          cls := "ui big button",
+          "+ Add Sub-Project",
+        )
       },
     )
   }

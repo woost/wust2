@@ -354,7 +354,6 @@ object KanbanView {
     div(
       cls := s"kanbannewcolumnarea",
       keyed,
-      onClick.stopPropagation(true) --> fieldActive,
       Rx {
         if(fieldActive()) {
           inputRow(state,
@@ -368,16 +367,12 @@ object KanbanView {
               fontWeight.bold,
             ),
             showMarkdownHelp = false
-          ).apply(
-            cls := "kanbannewcolumnareaform",
           )
-        }
-        else
-          div(
-            cls := "kanbannewcolumnareacontent",
-            margin.auto,
-            "+ Add Column",
-          )
+        } else button(
+          onClick.stopPropagation(true) --> fieldActive,
+          cls := "ui massive button",
+          "+ Add Column",
+        )
       },
       marginRightHack
     )

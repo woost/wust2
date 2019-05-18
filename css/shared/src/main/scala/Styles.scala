@@ -895,31 +895,11 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbannewcolumnarea" - (
     minWidth(kanbanColumnWidth),
     maxWidth(kanbanColumnWidth), // prevents inner fluid textarea to exceed size
-    minHeight(100 px),
-    backgroundColor(c"rgba(158, 158, 158, 0.25)"),
-    borderRadius(kanbanColumnBorderRadius),
-    cursor.pointer,
-  )
-
-  ".kanbannewcolumnareaform" - (
-    padding(7 px)
   )
 
   ".kanban-uncategorized-title" - (
     padding(5 px),
     color(c"rgba(0, 0, 0, 0.62)"),
-  )
-
-  ".kanbannewcolumnareacontent" - (
-    width(kanbanColumnWidth),
-    paddingTop(35 px),
-    textAlign.center,
-    fontSize.larger,
-    color(c"rgba(0, 0, 0, 0.62)"),
-  )
-
-  ".kanbannewcolumnarea .kanbancolumn" - (
-    margin(0 px).important
   )
 
   ".kanbannewcolumnarea, " +
