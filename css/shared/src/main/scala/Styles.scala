@@ -289,6 +289,12 @@ object CommonStyles extends StyleSheet.Standalone {
     marginRight(0 px),
     )
 
+  ".ui.button.inverted" - (
+    // reduce inverted box-shadow
+    boxShadow := "0 0 0 1px #fff inset !important",
+    border := "1px solid transparent",
+  )
+
 
   val sidebarBgColorCSS = c"#2A3238"
   val sidebarBgColor = sidebarBgColorCSS.value
