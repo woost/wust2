@@ -33,7 +33,7 @@ object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div.thunkStatic(keyValue)(Ownable { implicit ctx =>
       VDomModifier(
-        cls := "pageheader",
+        cls := "pageheader viewswitcher-border",
 
         state.page.map(_.parentId.map(pageRow(state, _)))
       )
