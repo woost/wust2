@@ -1137,18 +1137,18 @@ object Components {
 
   def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
-      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 2px 2px ${CommonStyles.selectedNodesBgColorCSS}")
+      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 1px 1px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
   def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
-      VDomModifier.ifTrue(isFocused)(boxShadow := s"4px 0px 2px -2px ${CommonStyles.selectedNodesBgColorCSS}")
+      VDomModifier.ifTrue(isFocused)(boxShadow := s"2px 0px 1px -1px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
 
   def showHoveredNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier.ifNot(BrowserDetect.isMobile)(
     state.hoverNodeId.map {
-      case Some(`nodeId`) => boxShadow := s"inset 0 0 2px 2px gray"
+      case Some(`nodeId`) => boxShadow := s"inset 0 0 1px 1px gray"
       case _ => VDomModifier.empty
     }
   )
