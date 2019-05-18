@@ -24,6 +24,7 @@ import wust.util.algorithm
 import wust.webApp.Ownable
 
 import scala.collection.breakOut
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -127,10 +128,10 @@ class GlobalState(
   }
   val selectedNodes: Var[List[NodeId]] = Var(Nil)
 
-  val addNodesInTransit: Rx[Set[NodeId]] = {
+  val addNodesInTransit: Rx[collection.Set[NodeId]] = {
     val changesAddNodes = eventProcessor.changesInTransit
-      .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): Set[NodeId])
-      .unsafeToRx(Set.empty)
+      .map(changes => changes.flatMap(_.addNodes.map(_.id))(breakOut): mutable.HashSet[NodeId])
+      .unsafeToRx(mutable.HashSet.empty)
 
     Rx {
       changesAddNodes() ++ uploadingFiles().keySet
