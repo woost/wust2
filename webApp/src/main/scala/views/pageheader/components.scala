@@ -86,8 +86,7 @@ object components {
 
   def customTab = {
     div(
-      cls := "viewswitcher-item single",
-      backgroundColor := "rgba(255, 255, 255, 0.8)"
+      cls := "viewswitcher-item"
     )
   }
 

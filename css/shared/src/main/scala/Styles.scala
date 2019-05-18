@@ -293,7 +293,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val sidebarBgColorCSS = c"#2A3238"
   val sidebarBgColor = sidebarBgColorCSS.value
 
-  val tabsOutlineColor = c"#6B808F"
+  val tabsOutlineColor = c"#86A0B3"
   val tabsInactiveBackgroundColor = c"#97aaba"
   val tabsOutlineWidth = 2.px
 
@@ -1334,9 +1334,8 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.larger,
     height(100 %%),
     padding(tabsPadding),
-    borderRadius(3 px, 3 px, 0 px, 0 px),
     marginLeft(2 px),
-    border(2 px, solid, tabsOutlineColor),
+    borderBottom(2 px, solid, tabsOutlineColor),
     marginBottom(-tabsOutlineWidth),
     Styles.flex,
     alignItems.center,
@@ -1344,34 +1343,21 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".viewswitcher-item.active" - (
     // bgColor set programatically to topic color
+    borderTop(1 px, solid, tabsOutlineColor),
   )
   ".viewswitcher-item.active:hover" - (
     zIndex(1500)
   )
   ".viewswitcher-item.inactive" - (
-    backgroundColor :=! s"${tabsInactiveBackgroundColor.value + "55"}",
-    border :=! s"2px solid ${ tabsOutlineColor.value + "55"} ",
-    borderBottomColor(CommonStyles.tabsOutlineColor),
+    marginTop(1 px),
     color(rgba(0,0,0,0.7)),
   )
   ".viewswitcher-item.inactive span" - (opacity(0.5))
   ".viewswitcher-item.inactive .fa-fw" - (opacity(0.5))
   val tabsBoxShadowColor = c"#000000"
-  ".viewswitcher-item.single.active" - (
-    boxShadow := s"1px -1px 2px -1px ${tabsBoxShadowColor.value}"
-  )
   ".viewswitcher-item.double.right" - (
     marginLeft(0 px),
     borderLeft(0 px),
-  )
-  ".viewswitcher-item.double.left.active" - (
-    boxShadow := s"2px -1px 1px -1px ${tabsBoxShadowColor.value}",
-    // -- we reduce the border & increase padding, to keep the tab in place --
-    borderRight(0 px),
-    paddingRight((tabsPadding.n + 2).px),
-  )
-  ".viewswitcher-item.double.right.active" - (
-    boxShadow := s"1px -1px 1px -1px ${tabsBoxShadowColor.value}"
   )
 
   ".emoji-outer" - (
@@ -1387,12 +1373,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".emoji-sizer" - (
     fontSize.larger,
-  )
-
-
-  ".main-viewrender" - (
-    // FIXME: overlapped by tabs
-    boxShadow := "0px -1px 5px 0px"
   )
 }
 
