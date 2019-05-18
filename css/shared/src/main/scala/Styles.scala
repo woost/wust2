@@ -1317,22 +1317,21 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.larger,
     height(100 %%),
     padding(tabsPadding),
-    marginLeft(2 px),
-    borderBottom(2 px, solid, tabsOutlineColor),
-    marginBottom(-tabsOutlineWidth),
+//    marginLeft(2 px),
     Styles.flex,
     alignItems.center,
     cursor.pointer,
   )
   ".viewswitcher-item.active" - (
-    // bgColor set programatically to topic color
-    borderTop(1 px, solid, tabsOutlineColor),
+    // borderBottomColor set programatically to topic color
+    border(tabsOutlineWidth, solid, tabsOutlineColor),
+    marginBottom(-tabsOutlineWidth),
   )
   ".viewswitcher-item.active:hover" - (
     zIndex(1500)
   )
   ".viewswitcher-item.inactive" - (
-    marginTop(1 px),
+    margin(tabsOutlineWidth, tabsOutlineWidth, 0 px, tabsOutlineWidth),
     color(rgba(0,0,0,0.7)),
   )
   ".viewswitcher-item.inactive span" - (opacity(0.5))
