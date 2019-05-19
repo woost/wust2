@@ -45,7 +45,7 @@ object Elements {
 
   final class ScrollBottomHandler(initialScrollToBottom:Boolean = true) {
     val scrollableElem: Var[Option[HTMLElement]] = Var(None)
-    val isScrolledToBottom = Var[Boolean](true)
+    val isScrolledToBottom = Var[Boolean](initialScrollToBottom)
 
     val scrollToBottomInAnimationFrame: () => Unit = requestSingleAnimationFrame {
       scrollableElem.now.foreach { elem =>
