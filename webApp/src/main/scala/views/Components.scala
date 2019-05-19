@@ -86,7 +86,7 @@ object Components {
   }
 
   def renderText(str: String): VNode = {
-    p.thunkStatic(keyValue(str))(VDomModifier(
+    p.thunkStatic(uniqueKey(str))(VDomModifier(
       overflow.hidden,
       textOverflow.ellipsis,
       whiteSpace.nowrap,
@@ -186,7 +186,7 @@ object Components {
   private val woostPathCurve = "m51.843 221.96c81.204 0-6.6913-63.86 18.402 13.37 25.093 77.23 58.666-26.098-7.029 21.633-65.695 47.73 42.949 47.73-22.746 0-65.695-47.731-32.122 55.597-7.029-21.633 25.093-77.23-62.802-13.37 18.402-13.37z"
   val woostIcon = {
     import svg._
-    svg.thunkStatic(keyValue)(VDomModifier(
+    svg.thunkStatic(uniqueKey)(VDomModifier(
       cls := "svg-inline--fa fa-w-14",
       viewBox := "0 0 10 10",
       g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",

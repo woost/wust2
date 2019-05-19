@@ -285,7 +285,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
   private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
     val tag = stringToTag(tree.tag)
-    tag.thunkStatic(keyValue(key))(treeToModifiers(tree))
+    tag.thunkStatic(uniqueKey(key))(treeToModifiers(tree))
   }
 
   implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {

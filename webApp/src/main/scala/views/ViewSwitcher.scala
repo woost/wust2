@@ -83,17 +83,17 @@ object ViewSwitcher {
     apply(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
   }
   @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(keyValue(channelId))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
+    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
   }
 
   def selectForm(state: GlobalState, channelId: NodeId): VNode = {
-    div.thunkStatic(keyValue(channelId))(Ownable { implicit ctx => selector(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)), None, Observer.empty) })
+    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx => selector(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)), None, Observer.empty) })
   }
 
   private def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
-    def addNewTabDropdown = div.thunkStatic(keyValue)(Ownable { implicit ctx => VDomModifier(
+    def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx => VDomModifier(
       div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
       UI.dropdownMenu(VDomModifier(
         padding := "5px",

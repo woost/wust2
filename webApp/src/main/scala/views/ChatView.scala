@@ -268,7 +268,7 @@ object ChatView {
               val previousNodeId = _previousNodeId
               _previousNodeId = Some(nodeId)
 
-              div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
+              div.thunk(nodeId.toStringFast)(state.screenSize.now)(Ownable { implicit ctx =>
                 // the parent ids of this node are a dependency of the thunk above us thunkRxFun
                 // therefore we know they will never change and we can use the groupGraph
                 // and statically calculate the parentIds and use inReplyGroup here.

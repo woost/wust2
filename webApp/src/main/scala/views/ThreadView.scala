@@ -175,7 +175,7 @@ object ThreadView {
         group.map { nodeIdx =>
           val nodeId = ParentId(groupGraph.nodeIds(nodeIdx))
 
-          div.thunk(keyValue(nodeId))(state.screenSize.now)(Ownable { implicit ctx =>
+          div.thunk(nodeId.toStringFast)(state.screenSize.now)(Ownable { implicit ctx =>
             val nodeIdList = nodeId :: Nil
 
             val showReplyField = Var(false)

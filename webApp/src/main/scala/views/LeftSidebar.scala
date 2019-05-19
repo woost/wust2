@@ -85,7 +85,7 @@ object LeftSidebar {
     )
   }
 
-  private def channels(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  private def channels(state: GlobalState): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
       val nodeId = traverseState.parentId
@@ -126,7 +126,7 @@ object LeftSidebar {
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(keyValue(traverseState.parentId.hashCode))(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
           ChannelTreeData.children(graph, traverseState, userId)
@@ -165,7 +165,7 @@ object LeftSidebar {
       }
     }
 
-    div(
+    VDomModifier(
       cls := "channels",
       Rx {
         val user = state.user()
@@ -205,9 +205,9 @@ object LeftSidebar {
         )
       },
     )
-  }
+  })
 
-  private def channelIcons(state: GlobalState, size: Int)(implicit ctx: Ctx.Owner): VNode = {
+  private def channelIcons(state: GlobalState, size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
     val focusBorderWidth = 2
     val defaultPadding = CommonStyles.channelIconDefaultPadding
@@ -244,7 +244,7 @@ object LeftSidebar {
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(keyValue(traverseState.parentId.hashCode))(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
           ChannelTreeData.children(graph, traverseState, userId)
@@ -274,7 +274,7 @@ object LeftSidebar {
       ChannelTreeData.toplevel(graph, user.id)
     }
 
-    div(
+    VDomModifier(
       cls := "channelIcons",
       Rx {
         val user = state.user()
@@ -284,7 +284,7 @@ object LeftSidebar {
         )
       },
     )
-  }
+  })
 
   private def channelIcon(state: GlobalState, nodeId: NodeId, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     div(

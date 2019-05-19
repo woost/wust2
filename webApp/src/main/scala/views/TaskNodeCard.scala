@@ -551,7 +551,7 @@ object TaskNodeCard {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
       VDomModifier.ifNot(isDone)(Components.drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
-      keyed(node.id, parentId),
+      keyed(node.id.toStringFast),
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
 
