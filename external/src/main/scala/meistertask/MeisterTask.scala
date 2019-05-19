@@ -118,7 +118,11 @@ object MeisterTask {
         addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
 
-      // attach task to board and stage
+
+      // attach task to board
+      addEdges += Edge.Child(ParentId(projectNode.id), ChildId(taskNode.id))
+
+      // attach task to stage
       val nodeIdSection = sectionsByName.get(task.section) match {
         case Some(nodeId) => nodeId
         case None =>
@@ -147,7 +151,6 @@ object MeisterTask {
         case _ => // 1 - open
           addEdges += Edge.Child(ParentId(nodeIdSection), ChildId(taskNode.id))
       }
-
     }
 
     GraphChanges.Import(
