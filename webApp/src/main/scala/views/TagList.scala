@@ -131,8 +131,6 @@ object TagList {
       if(v.isEmpty) newTagFieldActive() = false
     }
 
-    val placeHolder = ""
-
     div(
       cls := "kanbanaddnodefield",
       keyed(parentId),
@@ -142,7 +140,6 @@ object TagList {
             submitAction,
             autoFocus = true,
             blurAction = Some(blurAction),
-            placeHolderMessage = Some(placeHolder),
             submitIcon = freeSolid.faPlus,
           )
         else

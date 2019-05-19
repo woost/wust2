@@ -24,7 +24,7 @@ import monix.reactive.Observable
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, ScreenSize}
+import wust.webApp.state.{FocusState, GlobalState, ScreenSize, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 
@@ -92,7 +92,7 @@ object ThreadView {
 
         val inputFieldFocusTrigger = PublishSubject[Unit]
 
-        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true)(ctx)(Styles.flexStatic)
+        inputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage)(ctx)(Styles.flexStatic)
       }
     )
   }
@@ -264,8 +264,7 @@ object ThreadView {
       window.setTimeout(() => showReplyField() = false, 150)
     }
 
-
-    inputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true, showMarkdownHelp = true, enforceUserName = true).apply(
+    inputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage).apply(
       closeButton(
         padding := "15px",
         onClick.stopPropagation foreach { showReplyField() = false },

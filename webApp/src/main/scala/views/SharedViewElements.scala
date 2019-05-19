@@ -57,7 +57,7 @@ object SharedViewElements {
     scrollHandler:Option[ScrollBottomHandler] = None,
     triggerFocus:Observable[Unit] = Observable.empty,
     autoFocus:Boolean = false,
-    placeHolderMessage:Option[String] = None,
+    placeholder: Placeholder = Placeholder.empty,
     preFillByShareApi:Boolean = false,
     submitIcon:VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
@@ -99,7 +99,7 @@ object SharedViewElements {
               val userNode = user.toNode
               userNode.data.updateName(str).map(data => GraphChanges.addNode(userNode.copy(data = data)))
             }
-            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholderMessage = Some(Components.implicitUserName), onClose = () => { handle(); true })))
+            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true })))
           case _ => handle()
         }
       } else {
@@ -115,10 +115,7 @@ object SharedViewElements {
       }
     }
 
-    val placeHolderString = placeHolderMessage.getOrElse {
-      if(BrowserDetect.isMobile || state.screenSize.now == ScreenSize.Small) "Write a message"
-      else "Write a message and press Enter to submit."
-    }
+    val placeholderString = if(BrowserDetect.isMobile || state.screenSize.now == ScreenSize.Small) placeholder.short else placeholder.long
 
     val immediatelyFocus = {
       autoFocus.ifTrue(
@@ -217,7 +214,7 @@ object SharedViewElements {
           cls := "field",
           initialValueAndSubmitOptions,
           heightOptions,
-          placeholder := placeHolderString,
+          dsl.placeholder := placeholderString,
 
           immediatelyFocus,
           blurAction.map(onBlur.value foreach _),
@@ -557,7 +554,7 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClickNewNamePrompt(state, header = "Create a new Project", body = body, placeholderMessage = Some("Name of the Project")).foreach(newProject(_)),
+      onClickNewNamePrompt(state, header = "Create a new Project", body = body, placeholder = Placeholder("Name of the Project")).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
@@ -691,7 +688,7 @@ object SharedViewElements {
     }
   }
 
-  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholderMessage: Option[String] = None, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
     UI.ModalConfig(
       header = header,
       description = VDomModifier(
@@ -702,7 +699,7 @@ object SharedViewElements {
             newNameSink.onNext(str)
           },
           autoFocus = true,
-          placeHolderMessage = placeholderMessage,
+          placeholder = placeholder,
           allowEmptyString = true,
           submitIcon = freeSolid.faPlus,
           showSubmitIcon = true,
@@ -718,9 +715,9 @@ object SharedViewElements {
     )
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholderMessage: Option[String] = None) = EmitterBuilder.ofModifier[String] { sink =>
+  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[String] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body, placeholderMessage) }) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body, placeholder) }) --> state.uiModalConfig,
       cursor.pointer
     )
   }

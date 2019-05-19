@@ -22,7 +22,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.collection.BasicMap
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ FocusState, GlobalState }
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder }
 import wust.webApp.views.Components._
 import wust.util._
 import d3v4._
@@ -104,7 +104,7 @@ object GanttView {
           val changes = GraphChanges.addNodesWithParents(newNode :: Nil, state.page.now.parentId.map(ParentId(_)))
           state.eventProcessor.changes.onNext(changes)
         },
-        placeHolderMessage = Some("Add a task"),
+        placeholder = Placeholder.newTask,
         showMarkdownHelp = true
       ),
       div(

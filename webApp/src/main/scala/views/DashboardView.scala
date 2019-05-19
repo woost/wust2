@@ -16,7 +16,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, ScreenSize}
+import wust.webApp.state.{FocusState, GlobalState, ScreenSize, Placeholder}
 import wust.webApp.views.Components._
 import wust.util._
 
@@ -174,8 +174,6 @@ object DashboardView {
       if(v.isEmpty) fieldActive() = false
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
-
     VDomModifier(
       Rx {
         if(fieldActive()) {
@@ -184,7 +182,7 @@ object DashboardView {
               submitAction,
               autoFocus = true,
               blurAction = Some(blurAction),
-              placeHolderMessage = Some(placeHolder),
+              placeholder = Placeholder.newProject,
               submitIcon = freeSolid.faPlus,
               textAreaModifiers = VDomModifier(
                 fontWeight.bold

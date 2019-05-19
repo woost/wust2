@@ -18,7 +18,7 @@ import wust.util.macros.InlineList
 import wust.webApp.{BrowserDetect, Icons, ItemProperties, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, TraverseState}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, TraverseState, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import algorithm.dfs
@@ -303,8 +303,6 @@ object KanbanView {
       if(v.isEmpty) active() = false
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
-
     div(
       cls := "kanbanaddnodefield",
       keyed(parentId),
@@ -314,7 +312,7 @@ object KanbanView {
             submitAction(state.userId()),
             autoFocus = true,
             blurAction = Some(blurAction),
-            placeHolderMessage = Some(placeHolder),
+            placeholder = Placeholder.newTask,
             submitIcon = freeSolid.faPlus,
             showMarkdownHelp = false
           )
@@ -344,8 +342,6 @@ object KanbanView {
       if(v.isEmpty) fieldActive() = false
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add."
-
     val marginRightHack = VDomModifier(
       position.relative,
       div(position.absolute, left := "100%", width := "10px", height := "1px") // https://www.brunildo.org/test/overscrollback.html
@@ -360,7 +356,7 @@ object KanbanView {
             submitAction,
             autoFocus = true,
             blurAction = Some(blurAction),
-            placeHolderMessage = Some(placeHolder),
+            placeholder = Placeholder.newStage,
             submitIcon = freeSolid.faPlus,
             textAreaModifiers = VDomModifier(
               fontSize.larger,

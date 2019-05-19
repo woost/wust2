@@ -15,7 +15,7 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, TraverseState}
+import wust.webApp.state.{FocusState, GlobalState, TraverseState, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.util.collection._
@@ -186,14 +186,12 @@ object ListView {
       state.eventProcessor.changes.onNext(addNode merge addTags)
     }
 
-    val placeHolder = if(BrowserDetect.isMobile) "" else "Press Enter to add a task."
-
     div(
       Rx {
         inputRow(state, submitAction(state.userId()),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
-          placeHolderMessage = Some(placeHolder),
+          placeholder = Placeholder.newTask,
           submitIcon = freeSolid.faPlus
         ).apply(Styles.flexStatic)
       }

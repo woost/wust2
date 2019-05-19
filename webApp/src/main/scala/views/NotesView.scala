@@ -16,7 +16,7 @@ import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
 import wust.util._
 
@@ -52,7 +52,7 @@ object NotesView {
           val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId))
           state.eventProcessor.changes.onNext(changes)
         },
-        placeHolderMessage = Some("Add a note"),
+        placeholder = Placeholder.newNote,
         showMarkdownHelp = true
       )
     )

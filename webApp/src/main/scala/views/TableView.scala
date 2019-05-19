@@ -12,7 +12,7 @@ import wust.ids._
 import wust.webApp.{ItemProperties, Icons}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation}
+import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import Components._
 import scala.collection.mutable
@@ -256,7 +256,7 @@ object TableView {
         cls := "ui mini compact button",
         "+ New Row",
         cursor.pointer,
-        onClickNewNamePrompt(state, header = "Add a new Row", placeholderMessage = Some(s"A new ${targetRole}")).foreach { str =>
+        onClickNewNamePrompt(state, header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { str =>
           val newNode = Node.Content(NodeData.Markdown(str), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
