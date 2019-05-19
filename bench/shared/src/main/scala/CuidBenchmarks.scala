@@ -57,14 +57,59 @@ object CuidBenchmarks {
           s
         }
       ),
-      Benchmark[Array[Cuid]]("toStringFast",
+      Benchmark[Array[Cuid]]("string-plus",
         { size =>
           Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
         },
         { (cuids) =>
           var s: String = ""
           cuids.foreachElement { cuid =>
-            s = cuid.toStringFast
+            s = cuid.lefthi.toString + "|" + cuid.leftlo.toString + "|" + cuid.righthi.toString + "|" + cuid.rightlo.toString
+          }
+          s
+        }
+      ),
+      Benchmark[Array[Cuid]]("stringbuilder",
+        { size =>
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
+        },
+        { (cuids) =>
+          var s: String = ""
+          cuids.foreachElement { cuid =>
+            val sb = new StringBuilder
+            sb.append(cuid.lefthi)
+            sb.append("|")
+            sb.append(cuid.leftlo)
+            sb.append("|")
+            sb.append(cuid.righthi)
+            sb.append("|")
+            sb.append(cuid.rightlo)
+            s = sb.result
+          }
+          s
+        }
+      ),
+      Benchmark[Array[Cuid]]("format",
+        { size =>
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
+        },
+        { (cuids) =>
+          var s: String = ""
+          cuids.foreachElement { cuid =>
+            s = s"${cuid.lefthi}|${cuid.leftlo}|${cuid.righthi}|${cuid.rightlo}"
+          }
+          s
+        }
+      ),
+      Benchmark[Array[Cuid]]("perfolation",
+        { size =>
+          Array.fill(size)(Cuid.fromCuidString(cuid.Cuid()).right.get)
+        },
+        { (cuids) =>
+          import perfolation._
+          var s: String = ""
+          cuids.foreachElement { cuid =>
+            s = p"${cuid.lefthi}|${cuid.leftlo}|${cuid.righthi}|${cuid.rightlo}"
           }
           s
         }
