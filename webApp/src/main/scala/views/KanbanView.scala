@@ -22,6 +22,7 @@ import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermissi
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import algorithm.dfs
+import wust.util.collection._
 
 import scala.scalajs.js
 
@@ -292,8 +293,8 @@ object KanbanView {
     def submitAction(userId: UserId)(str:String) = {
       val createdNode = Node.MarkdownTask(str)
       val graph = state.graph.now
-      val workspaces:Set[ParentId] = graph.workspacesForParent(graph.idToIdxOrThrow(parentId)).map(idx => ParentId(graph.nodeIds(idx)))(breakOut)
-      val addNode = GraphChanges.addNodeWithParent(createdNode, workspaces + ParentId(parentId))
+      val workspaces = graph.workspacesForParent(graph.idToIdxOrThrow(parentId)).viewMap(idx => ParentId(graph.nodeIds(idx)))
+      val addNode = GraphChanges.addNodeWithParent(createdNode, workspaces :+ ParentId(parentId))
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
 
       state.eventProcessor.changes.onNext(addNode merge addTags)

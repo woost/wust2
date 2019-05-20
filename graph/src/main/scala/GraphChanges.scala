@@ -182,7 +182,7 @@ object GraphChanges {
   def undelete(childId: ChildId, parentIds: Iterable[ParentId]): GraphChanges = undelete(childId :: Nil, parentIds)
   def undelete(childId: ChildId, parentId: ParentId): GraphChanges = undelete(childId :: Nil, parentId :: Nil)
 
-  def delete(childIds: Iterable[ChildId], parentIds: Set[ParentId]): GraphChanges =
+  def delete(childIds: Iterable[ChildId], parentIds: Iterable[ParentId]): GraphChanges =
     childIds.foldLeft(empty)((acc, nextNode) => acc merge delete(nextNode, parentIds))
   def delete(childId: ChildId, parentIds: Iterable[ParentId], deletedAt: EpochMilli = EpochMilli.now): GraphChanges = GraphChanges(
     addEdges = parentIds.map(
