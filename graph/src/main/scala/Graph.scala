@@ -318,11 +318,9 @@ final class GraphLookup(
   }
 
   private val outgoingEdgeIdxBuilder = NestedArrayInt.builder(outDegree)
-  private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
   private val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
-  private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val messageChildrenIdxBuilder = NestedArrayInt.builder(messageChildrenDegree)
   private val taskChildrenIdxBuilder = NestedArrayInt.builder(taskChildrenDegree)
@@ -334,7 +332,6 @@ final class GraphLookup(
   private val notDeletedParentsIdxBuilder = NestedArrayInt.builder(notDeletedParentsDegree)
   private val notDeletedChildrenIdxBuilder = NestedArrayInt.builder(notDeletedChildrenDegree)
   private val authorshipEdgeIdxBuilder = NestedArrayInt.builder(authorshipDegree)
-  private val authorIdxBuilder = NestedArrayInt.builder(authorshipDegree)
   private val membershipEdgeForNodeIdxBuilder = NestedArrayInt.builder(membershipsForNodeDegree)
   private val notifyByUserIdxBuilder = NestedArrayInt.builder(notifyByUserDegree)
   private val pinnedNodeIdxBuilder = NestedArrayInt.builder(pinnedNodeDegree)
@@ -363,7 +360,6 @@ final class GraphLookup(
     edge match {
       case _: Edge.Author =>
         authorshipEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        authorIdxBuilder.add(sourceIdx, targetIdx)
       case _: Edge.Member =>
         membershipEdgeForNodeIdxBuilder.add(sourceIdx, edgeIdx)
       case e: Edge.Child =>
@@ -374,9 +370,7 @@ final class GraphLookup(
         val childIsProject = nodes(targetIdx).role == NodeRole.Project
         val parentIsTag = nodes(sourceIdx).role == NodeRole.Tag
         val parentIsStage = nodes(sourceIdx).role == NodeRole.Stage
-        parentsIdxBuilder.add(targetIdx, sourceIdx)
         parentEdgeIdxBuilder.add(targetIdx, edgeIdx)
-        childrenIdxBuilder.add(sourceIdx, targetIdx)
         childEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
         if (childIsProject) projectChildrenIdxBuilder.add(sourceIdx, targetIdx)
@@ -428,11 +422,11 @@ final class GraphLookup(
   }
 
   val outgoingEdgeIdx: NestedArrayInt = outgoingEdgeIdxBuilder.result()
-  val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
+  val parentsIdx: NestedArrayInt = parentEdgeIdx.viewMapInt(edgeIdx => edgesIdx.a(edgeIdx))
   val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
-  val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
   val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
+  val childrenIdx: NestedArrayInt = childEdgeIdx.viewMapInt(edgeIdx => edgesIdx.b(edgeIdx))
   val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
   val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
   val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
@@ -443,10 +437,10 @@ final class GraphLookup(
   val stageParentsIdx: NestedArrayInt = stageParentsIdxBuilder.result()
   val notDeletedParentsIdx: NestedArrayInt = notDeletedParentsIdxBuilder.result()
   val notDeletedChildrenIdx: NestedArrayInt = notDeletedChildrenIdxBuilder.result()
-  val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
   val membershipEdgeForNodeIdx: NestedArrayInt = membershipEdgeForNodeIdxBuilder.result()
   val notifyByUserIdx: NestedArrayInt = notifyByUserIdxBuilder.result()
-  val authorsIdx: NestedArrayInt = authorIdxBuilder.result()
+  val authorshipEdgeIdx: NestedArrayInt = authorshipEdgeIdxBuilder.result()
+  val authorsIdx: NestedArrayInt = authorshipEdgeIdx.viewMapInt(edgeIdx => edgesIdx.b(edgeIdx))
   val pinnedNodeIdx: NestedArrayInt = pinnedNodeIdxBuilder.result()
   val inviteNodeIdx: NestedArrayInt = inviteNodeIdxBuilder.result()
   val expandedEdgeIdx: NestedArrayInt = expandedEdgeIdxBuilder.result()
@@ -454,8 +448,8 @@ final class GraphLookup(
   val assignedUsersIdx: NestedArrayInt = assignedUsersIdxBuilder.result() // node -> user
   val propertiesEdgeIdx: NestedArrayInt = propertiesEdgeIdxBuilder.result() // node -> property edge
   val propertiesEdgeReverseIdx: NestedArrayInt = propertiesEdgeReverseIdxBuilder.result() // node -> property edge
-  val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
-  val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
+  val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result() // node -> template
+  val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result() // template -> node
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
 
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
