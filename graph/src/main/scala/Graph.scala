@@ -236,7 +236,6 @@ final class GraphLookup(
   private val automatedDegree = new Array[Int](n)
   private val automatedReverseDegree = new Array[Int](n)
   private val derivedFromTemplateDegree = new Array[Int](n)
-  private val derivedFromTemplateReverseDegree = new Array[Int](n)
 
   private val buildNow = EpochMilli.now
 
@@ -310,7 +309,6 @@ final class GraphLookup(
             automatedReverseDegree(targetIdx) += 1
           case _: Edge.DerivedFromTemplate =>
             derivedFromTemplateDegree(sourceIdx) += 1
-            derivedFromTemplateReverseDegree(targetIdx) += 1
           case _: Edge.Read =>
             readDegree(sourceIdx) += 1
           case _ =>
@@ -349,7 +347,6 @@ final class GraphLookup(
   private val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
   private val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
   private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
-  private val derivedFromTemplateRerverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
 
   consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
@@ -424,7 +421,6 @@ final class GraphLookup(
         automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.DerivedFromTemplate =>
         derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
-        derivedFromTemplateRerverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.Read =>
         readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _ =>
@@ -461,7 +457,6 @@ final class GraphLookup(
   val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
   val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
-  val derivedFromTemplateReverseEdgeIdx: NestedArrayInt = derivedFromTemplateRerverseEdgeIdxBuilder.result()
 
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
   @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {
