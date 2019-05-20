@@ -34,6 +34,33 @@ package object collection {
       }
     }
 
+    def foreachWithIndex[U](f: (Int, T) => U): Unit = {
+      var counter = 0
+      col.foreach { a =>
+        val b = f(counter, a)
+        counter += 1
+        b
+      }
+    }
+
+    def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+      var counter = 0
+      col.map[B, That] { a =>
+        val b = f(counter, a)
+        counter += 1
+        b
+      }
+    }
+
+    def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+      var counter = 0
+      col.flatMap[B, That] { a =>
+        val b = f(counter, a)
+        counter += 1
+        b
+      }
+    }
+
     def randomSelect: T = col.iterator.drop(scala.util.Random.nextInt(col.size)).next
 
     def leftPadTo(len: Int, elem: T)(implicit canBuildFrom: CanBuildFrom[Repr[T], T, Repr[T]]): Repr[T] = {
@@ -55,6 +82,16 @@ package object collection {
   }
   implicit class RichArrayOps[A](val array: Array[A]) extends AnyVal {
     @inline def viewMap[B](f: A => B): MappedArray[A, B] = new MappedArray[A,B](array, f)
+
+    //TODO: add to flatland
+    def flatMapWithIndex[B : ClassTag](f: (Int, A) => Array[B]): Array[B] = {
+      var counter = 0
+      array.flatMap[B, Array[B]] { a =>
+        val b = f(counter, a)
+        counter += 1
+        b
+      }
+    }
   }
 
   implicit class RichSet[A](val set: Set[A]) extends AnyVal {

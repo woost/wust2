@@ -13,10 +13,13 @@ import outwatch.dom.helpers._
 import rx._
 import wust.css.{Styles, ZIndex}
 import wust.ids.View
+import wust.util.collection._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.{BrowserDetect, Ownable}
 import wust.webApp.views.Components._
+import flatland._
 
+import scala.reflect.ClassTag
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -283,7 +286,8 @@ object UI {
                 duration : Int = 250,
                 initialActive : Seq[Int] = Seq.empty): VNode = div(
     cls := s"ui ${ styles } accordion",
-    content.zipWithIndex.map { case ((title, content), index) =>
+    content.mapWithIndex { (index, titleAndContent) =>
+      val (title, content) = titleAndContent
       VDomModifier(
         div(
           padding := "0px",
@@ -363,7 +367,7 @@ object UI {
 
       thead(
         tr(
-          columns.zipWithIndex.map { case (column, idx) =>
+          columns.mapWithIndex { (idx, column) =>
             th(column.name, VDomModifier.ifNot(column.sortable)(cls := "no-sort"))
           }
         )
@@ -405,7 +409,7 @@ object UI {
     )
   )
 
-  def multiCheckbox[T](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     var checkedState = Array.fill(checkboxes.length)(false)
     val changed = PublishSubject[Unit]
 
@@ -413,28 +417,27 @@ object UI {
       Styles.flex,
       flexDirection.column,
       fontSize.larger,
-      checkboxes.zipWithIndex.map {
-        case (value, idx) =>
-          div(
-            marginLeft := "10px",
-            marginBottom := "10px",
-            label(
-              Styles.flex,
-                alignItems.center,
-              input(
-                tpe := "checkbox",
-                onInput.checked.foreach { checked =>
-                  checkedState(idx) = checked
-                  changed.onNext(())
-                },
-                dsl.checked <-- changed.map(_ => checkedState(idx))
-              ),
-              description(value),
-              cursor.pointer,
-            )
+      checkboxes.mapWithIndex { (idx, value) =>
+        div(
+          marginLeft := "10px",
+          marginBottom := "10px",
+          label(
+            Styles.flex,
+              alignItems.center,
+            input(
+              tpe := "checkbox",
+              onInput.checked.foreach { checked =>
+                checkedState(idx) = checked
+                changed.onNext(())
+              },
+              dsl.checked <-- changed.map(_ => checkedState(idx))
+            ),
+            description(value),
+            cursor.pointer,
           )
+        )
       },
-      emitter(changed).map(_ => checkedState.zipWithIndex.flatMap { case (checked, idx) => if (checked) Some(checkboxes(idx)) else None }) --> sink,
+      emitter(changed).map(_ => checkedState.flatMapWithIndex { (idx, checked) => if (checked) Array(checkboxes(idx)) else Array.empty } : Seq[T]) --> sink,
     )
   }
 

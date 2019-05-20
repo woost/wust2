@@ -7,6 +7,7 @@ import flatland._
 import collection.mutable
 import scala.reflect.ClassTag
 import wust.util.algorithm.dfs
+import wust.util.collection._
 
 object DepthFirstSearch {
 
@@ -31,7 +32,7 @@ object DepthFirstSearch {
       val flat = generateLatticeGraph(size)
       val vertices: Array[Vertex] = Array.tabulate(flat.size)(i => Vertex(i.toString, s"$i name"))
       val map = mutable.HashMap.empty[String, Array[Vertex]]
-      map ++= flat.zipWithIndex.map{ case (successors, i) => vertices(i).id -> successors.map(vertices).toArray }
+      map ++= flat.mapWithIndex{ case (successors, i) => vertices(i).id -> successors.map(vertices).toArray }
       map
     }
 

@@ -15,6 +15,7 @@ import wust.external.trello
 import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids._
 import wust.util.StringOps
+import wust.util.collection._
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
@@ -294,7 +295,7 @@ object Importing {
                     val children = state.graph.now.childEdgeIdx(focusedIdx)
                     val minOrderingNum: BigDecimal = if (children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => g.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
                     GraphChanges(
-                      addEdges = importChanges.topLevelNodeIds.zipWithIndex.map { case (nodeId, idx) =>
+                      addEdges = importChanges.topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
                         Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
                       }(breakOut)
                     )

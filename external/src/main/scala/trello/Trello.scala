@@ -3,7 +3,7 @@ package wust.external.trello
 import cats.Eval
 import wust.ids._
 import wust.graph._
-import wust.util.collection.BasicMap
+import wust.util.collection._
 
 import scala.collection.mutable
 
@@ -166,7 +166,7 @@ object Trello {
       }
 
       // attach checklists
-      card.idChecklists.zipWithIndex.foreach { case (idChecklist, idx) =>
+      card.idChecklists.foreachWithIndex { (idx, idChecklist) =>
         checklistsById.get(idChecklist).foreach { nodeIdChecklist =>
           addEdges += Edge.Child(ParentId(cardNode.id), EdgeData.Child(ordering = BigDecimal(idx)), ChildId(nodeIdChecklist))
         }

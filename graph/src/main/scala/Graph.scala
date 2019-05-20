@@ -941,22 +941,21 @@ final class GraphLookup(
 
   def parentDepths(node: NodeId): Map[Int, Map[Int, Seq[NodeId]]] = {
     import wust.util.algorithm.dijkstra
+    type GroupIdx = Int
+    type Distance = Int
     type ResultMap = Map[Distance, Map[GroupIdx, Seq[NodeId]]]
-
     def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
 
     // NodeId -> distance
     val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
-    val groupedByCycle = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, parents) }
-    type GroupIdx = Int
-    type Distance = Int
+    val groupedByCycle: Map[Iterable[NodeId], Iterable[NodeId]] = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, parents) }
     val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =
-      groupedByCycle.zipWithIndex.map {
-        case ((group, cycledNodes), groupIdx) =>
+      groupedByCycle.flatMapWithIndex { (groupIdx, groupAndNodes) =>
+          val (group, cycledNodes) = groupAndNodes
           val smallestDistToGroup: Int = group.map(distanceMap).min
           cycledNodes.zip(Stream.continually { (groupIdx, smallestDistToGroup) })
-      }.flatten.toMap
+      }(breakOut)
 
     // we want: distance -> (nocycle : Seq[NodeId], cycle1 : Seq[NodeId],...)
     (distanceMap.keySet ++ distanceMapForCycles.keySet).foldLeft(
