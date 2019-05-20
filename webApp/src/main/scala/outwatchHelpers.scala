@@ -245,7 +245,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   implicit class WustRichHandler[T](val o: Handler[T]) extends AnyVal {
     def unsafeToVar(seed: T)(implicit ctx: Ctx.Owner): rx.Var[T] = {
       val rx = Var[T](seed)
-      o.subscribe(rx)
+      o.unsafeSubscribeFn(rx)
       rx.triggerLater(o.onNext(_))
       rx
     }
@@ -254,12 +254,11 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
     //This is unsafe, as we leak the subscription here, this should only be done
     //for rx that are created only once in the app lifetime (e.g. in globalState)
-    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.subscribe(_) }
+    def unsafeToRx(seed: T): rx.Rx[T] = Rx.create(seed) { o.unsafeSubscribeFn(_) }
 
-    def subscribe(that: Var[T]): Cancelable = o.subscribe(new VarObserver[T](that))
+    def subscribe(that: Var[T]): Cancelable = o.unsafeSubscribeFn(new VarObserver[T](that))
 
-    def onErrorThrow: Cancelable = o.subscribe(_ => Ack.Continue, throw _)
-    def foreachSafe(callback: T => Unit): Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.subscribe()
+    def foreachSafe(callback: T => Unit): Cancelable = o.map(callback).onErrorRecover{ case NonFatal(e) => scribe.warn(e); Unit }.unsafeSubscribeFn(Observer.empty)
 
     def debug: Cancelable = debug()
     def debug(name: String = ""): CancelableFuture[Unit] = o.foreach(x => scribe.info(s"$name: $x"))

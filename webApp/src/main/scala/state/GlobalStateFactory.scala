@@ -42,7 +42,7 @@ object GlobalStateFactory {
       Client.currentAuth
     )
 
-    Observable(EditableContent.currentlyEditing, UI.currentlyEditing).merge.subscribe(eventProcessor.stopEventProcessing)
+    Observable(EditableContent.currentlyEditing, UI.currentlyEditing).merge.unsafeSubscribeFn(eventProcessor.stopEventProcessing)
 
     val isOnline = Observable(
       Client.observable.connected.map(_ => true),
@@ -238,7 +238,7 @@ object GlobalStateFactory {
               .onErrorHandle(_ => Graph.empty)
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
-        .subscribe(eventProcessor.localEvents)
+        .unsafeSubscribeFn(eventProcessor.localEvents)
     }
 
     val titleSuffix = if (DevOnly.isTrue) "dev" else "Woost"
