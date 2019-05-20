@@ -71,7 +71,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     @inline def apply(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.apply(mods :_*))
     @inline def prepend(mods: VDomModifier*): F[VNode] = Functor[F].map(f)(_.prepend(mods :_*))
   }
-  cats.data.Nested
+
   @inline implicit class RichFunctorVNodeNested[F[_]: Functor, G[_]: Functor](val f: F[G[VNode]]) {
     @inline def apply(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
     @inline def prepend(mods: VDomModifier*): F[G[VNode]] = Functor[F].map(f)(g => Functor[G].map(g)(_.apply(mods :_*)))
