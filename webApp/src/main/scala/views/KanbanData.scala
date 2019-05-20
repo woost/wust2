@@ -5,6 +5,7 @@ import wust.graph.{Graph, Node, TaskOrdering, Tree}
 import wust.ids._
 import wust.util.algorithm.dfs
 import wust.util.macros.InlineList
+import wust.util.collection._
 import wust.webApp.state.TraverseState
 
 import scala.collection.mutable
@@ -21,8 +22,8 @@ object KanbanData {
       stages
     }
 
-    val inboxTasks: ArraySet = {
-      val inboxTasks = ArraySet.create(graph.size)
+    val inboxTasks: Array[Int] = {
+      val inboxTasks = Array.newBuilder[Int]
       graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
         val node = graph.nodes(childIdx)
         if(node.role == NodeRole.Task && !traverseState.contains(node.id)) {
@@ -31,10 +32,10 @@ object KanbanData {
           if(!hasStageParentInWorkspace) inboxTasks += childIdx
         }
       }
-      inboxTasks
+      inboxTasks.result()
     }
 
-    TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, inboxTasks.map(graph.nodeIds(_)), identity)
+    TaskOrdering.constructOrderingOf[NodeId](graph, traverseState.parentId, inboxTasks.viewMap(graph.nodeIds), identity)
   }
 
   def columns(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]){ parentIdx =>

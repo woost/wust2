@@ -193,13 +193,13 @@ object ChatView {
 
   private def thunkRxFun(state:GlobalState, graph:Graph, group: Array[Int], pageParentId:NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
-    val nodeIds: Seq[NodeId] = group.map(graph.nodeIds)
+    val nodeIds: Seq[NodeId] = group.viewMap(graph.nodeIds)
     val key = nodeIds.head.toString
     val commonParentIds: Seq[NodeId] = graph.parentsIdx(group(0)).filter{parentIdx =>
       val parentNode = graph.nodes(parentIdx)
 
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
-    }.map(graph.nodeIds)
+    }.viewMap(graph.nodeIds)
     div.thunk(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 

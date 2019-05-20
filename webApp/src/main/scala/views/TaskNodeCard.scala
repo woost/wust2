@@ -9,6 +9,7 @@ import outwatch.dom.dsl._
 import wust.webApp.outwatchHelpers._
 import rx._
 import wust.css.Styles
+import wust.util.collection._
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 
@@ -114,7 +115,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).viewMap(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != traverseState.parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
@@ -385,7 +386,7 @@ object TaskNodeCard {
       def toggleDeleteClickAction(): Unit = {
         val graph = state.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
-        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).map(graph.nodeIds)
+        val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).viewMap(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))
 

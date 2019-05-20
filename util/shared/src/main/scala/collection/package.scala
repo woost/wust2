@@ -1,7 +1,8 @@
 package wust.util
 
 import scala.collection.generic.CanBuildFrom
-import scala.collection.{IterableLike, mutable}
+import scala.collection.{GenTraversableOnce, IterableLike, mutable}
+import scala.reflect.ClassTag
 
 package object collection {
 
@@ -44,6 +45,16 @@ package object collection {
     def leftPadTo(len: Int, elem: Char): String = {
       leftPadWithBuilder(len, elem, s)
     }
+  }
+
+  implicit class RichSeqOps[A](val sequence: Seq[A]) extends AnyVal {
+    @inline def viewMap[B](f: A => B): MappedSeq[A, B] = new MappedSeq[A,B](sequence, f)
+  }
+  implicit class RichIndexedSeqOps[A](val sequence: IndexedSeq[A]) extends AnyVal {
+    @inline def viewMap[B](f: A => B): MappedIndexedSeq[A, B] = new MappedIndexedSeq[A,B](sequence, f)
+  }
+  implicit class RichArrayOps[A](val array: Array[A]) extends AnyVal {
+    @inline def viewMap[B](f: A => B): MappedArray[A, B] = new MappedArray[A,B](array, f)
   }
 
   implicit class RichSet[A](val set: Set[A]) extends AnyVal {
