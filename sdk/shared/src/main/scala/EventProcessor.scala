@@ -103,15 +103,15 @@ class EventProcessor private (
     val enrichedChanges = enrichedChangesf(changes)
     val enrichedChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
 
-    def localChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
-      case (changes, user) if changes.nonEmpty => changes.consistent.withAuthor(user.id)
+    def localChangesf(changes: Observable[GraphChanges]): Observable[(GraphChanges, AuthUser)] = changes.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
+      case (changes, user) if changes.nonEmpty => (changes.consistent.withAuthor(user.id), user)
     }.share
 
     val localChanges = localChangesf(enrichedChanges)
     val localChangesRemoteOnly = localChangesf(enrichedChangesRemoteOnly)
 
-    val localChangesAsEvents = localChanges.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).map(gc => Seq(NewGraphChanges.forPrivate(gc._2.toNode, gc._1)))
-    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing).map(_.flatten)
+    val localChangesAsEvents = localChanges.map { case (changes, user) => Seq(NewGraphChanges.forPrivate(user.toNode, changes)) }
+    val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing)
 
     val graphWithChanges: Observable[Graph] = {
       var lastGraph = Graph.empty
@@ -137,7 +137,7 @@ class EventProcessor private (
 
     graphWithChanges unsafeSubscribeFn rawGraph
 
-    (localChanges, localChangesRemoteOnly, sharedRawGraph)
+    (localChanges.map(_._1), localChangesRemoteOnly.map(_._1), sharedRawGraph)
   }
 
   // whenever the user changes something himself, we want to open up event processing again

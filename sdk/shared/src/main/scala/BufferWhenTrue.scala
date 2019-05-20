@@ -13,7 +13,7 @@ object BufferWhenTrue {
     * Buffers for as long as `selector` emits `true`, otherwise for as long as
     * `selector` emits `false` it directly streams any incoming events.
     */
-  def apply[A](source: Observable[A], selector: Observable[Boolean])(implicit scheduler: Scheduler): Observable[Seq[A]] =
+  def apply[A](source: Observable[Seq[A]], selector: Observable[Boolean])(implicit scheduler: Scheduler): Observable[Seq[A]] =
     Observable.unsafeCreate { out =>
       val conn = CompositeCancelable()
       val subscriber = new SourceSubscriber[A](out, conn)
@@ -23,18 +23,16 @@ object BufferWhenTrue {
       conn
     }
 
-  final class SelectorSubscriber(out: SourceSubscriber[_])
-    extends Subscriber[Boolean] {
-
+  final class SelectorSubscriber(out: SourceSubscriber[_]) extends Subscriber[Boolean] {
     override val scheduler = out.scheduler
     def onError(ex: Throwable): Unit = out.onError(ex)
     def onComplete(): Unit = ()
-    def onNext(elem: Boolean) = out.changeBufferState(elem)
+    def onNext(elem: Boolean): Future[Ack] = out.changeBufferState(elem)
   }
 
   final class SourceSubscriber[A](out: Subscriber[Seq[A]], conn: CompositeCancelable)
     (implicit val scheduler: Scheduler)
-    extends Subscriber[A] {
+    extends Subscriber[Seq[A]] {
 
     @volatile var shouldBuffer = false
     private[this] var buffer = ArrayBuffer.empty[A]
@@ -61,19 +59,19 @@ object BufferWhenTrue {
         }
       }
 
-    def onNext(elem: A): Future[Ack] =
+    def onNext(elem: Seq[A]): Future[Ack] =
       synchronized {
         if (isDone) Stop else {
           lastAck = lastAck.syncFlatMap {
             case Stop => Stop
             case Continue =>
               if (shouldBuffer || buffer.nonEmpty) {
-                buffer += elem
+                buffer ++= elem
                 if (shouldBuffer) Continue
                 else changeBufferState(false)
               } else {
                 // Fast path
-                out.onNext(Seq(elem))
+                out.onNext(elem)
               }
           }
           // If downstream stops or fails, we cancel everything!
