@@ -292,11 +292,11 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
   }
 
-  implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
+  @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
     abstractTreeToVNode(icon.`abstract`(0))
   }
 
-  def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
+  @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
 
   import scalacss.defaults.Exports.StyleA
   @inline implicit def styleToAttr(styleA: StyleA): VDomModifier = dsl.cls := styleA.htmlClass
@@ -346,17 +346,17 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 }
 
-class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
-  override def onNext(elem: T): Ack = {
+@inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
+  @inline override def onNext(elem: T): Ack = {
     rx() = elem
     Ack.Continue
   }
-  override def onError(ex: Throwable): Unit = throw ex
-  override def onComplete(): Unit = ()
+  @inline override def onError(ex: Throwable): Unit = throw ex
+  @inline override def onComplete(): Unit = ()
 }
 
 trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
-  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
+  @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
   @inline def filter(predicate: O => Boolean): EmitterBuilder[O, R] = transformRx[O](implicit ctx => _.filter(predicate))
   @inline def collect[T](f: PartialFunction[O, T]): EmitterBuilder[T, R] = mapOption(f.lift)
@@ -370,8 +370,8 @@ trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
 }
 class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[E] => Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
   import outwatchHelpers._
-  override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable[T](tr(rx.toObservable(transformer)))
-  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder[E,T](rx, ctx => rx => tr(ctx)(transformer(ctx)(rx)))
+  @inline override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable[T](tr(rx.toObservable(transformer)))
+  @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder[E,T](rx, ctx => rx => tr(ctx)(transformer(ctx)(rx)))
   override def -->(observer: Observer[O]): VDomModifier = {
     outwatch.dom.managed { () =>
       implicit val ctx = createManualOwner()
@@ -382,8 +382,8 @@ class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[
 }
 class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
   import outwatchHelpers._
-  override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toObservable))
-  def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder(rx, tr)
+  @inline override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toObservable))
+  @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, VDomModifier] = new RxTransformingEmitterBuilder(rx, tr)
   override def -->(observer: Observer[O]): VDomModifier = {
     outwatch.dom.managed { () =>
       implicit val ctx = Ctx.Owner.Unsafe
