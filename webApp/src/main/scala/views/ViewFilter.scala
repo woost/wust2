@@ -296,12 +296,10 @@ object GraphOperation {
   case object AutomatedHideTemplates extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       val templateNodes = ArraySet.create(graph.nodes.length)
-      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
-        graph.edges(edgeIdx) match {
-          case _: Edge.Automated => templateNodes += targetIdx
-          case _ =>
-        }
-      }
+      graph.automatedEdgeIdx.foreach(_.foreach( edgeIdx =>
+        templateNodes += graph.edgesIdx.b(edgeIdx)
+
+      ))
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
@@ -314,12 +312,7 @@ object GraphOperation {
   case object OnlyAssignedTo extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       val assignedNodes = ArraySet.create(graph.nodes.length)
-      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
-          graph.edges(edgeIdx) match {
-            case _: Edge.Assigned if targetIdx == userIdx => assignedNodes += sourceIdx
-            case _ =>
-          }
-      }
+      graph.assignedNodesIdx.foreachElement(userIdx)(assignedNodes += _)
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
@@ -332,12 +325,7 @@ object GraphOperation {
   case object OnlyNotAssigned extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       val assignedNodes = ArraySet.create(graph.nodes.length)
-      graph.edgesIdx.foreachIndexAndTwoElements { (edgeIdx, sourceIdx, targetIdx) =>
-        graph.edges(edgeIdx) match {
-          case _: Edge.Assigned => assignedNodes += sourceIdx
-          case _ => ()
-        }
-      }
+      graph.assignedNodesIdx.foreachElement(userIdx)(assignedNodes += _)
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
