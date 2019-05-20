@@ -30,10 +30,9 @@ object TaskOrdering {
   }
 
   def getChildEdgeOrThrow(graph: Graph, parentIdx: Int, childIdx: Int): Edge.Child = {
-    graph.parentEdgeIdx.foreachElement(childIdx) { edgeIdx =>
-      if (graph.edgesIdx.a(edgeIdx) == parentIdx) return graph.edges(edgeIdx).as[Edge.Child]
-    }
+    val edgeIdx = graph.parentEdgeIdx.find(childIdx)(edgeIdx => graph.edgesIdx.a(edgeIdx) == parentIdx)
+      .getOrElse(throw new Exception(s"Cannot order nodes. Node ${graph.nodes(childIdx)} is not a child of ${graph.nodes(parentIdx)}"))
 
-    throw new Exception(s"Cannot order nodes. Node ${graph.nodes(childIdx)} is not a child of ${graph.nodes(parentIdx)}")
+    graph.edges(edgeIdx).as[Edge.Child]
   }
 }
