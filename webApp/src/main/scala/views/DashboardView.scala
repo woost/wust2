@@ -15,6 +15,7 @@ import rx._
 import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
+import wust.util.collection._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, ScreenSize, Placeholder}
 import wust.webApp.views.Components._
