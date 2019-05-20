@@ -316,7 +316,7 @@ object GraphOperation {
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
-          graph.nodes(childIdx).role == NodeRole.Task && assignedNodes.contains(childIdx)
+          graph.nodes(childIdx).role != NodeRole.Task || assignedNodes.contains(childIdx)
         case _ => true
       })
     }
@@ -329,7 +329,7 @@ object GraphOperation {
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
-          !assignedNodes.contains(childIdx)
+          graph.nodes(childIdx).role != NodeRole.Task || !assignedNodes.contains(childIdx)
         case _ => true
       })
     }
