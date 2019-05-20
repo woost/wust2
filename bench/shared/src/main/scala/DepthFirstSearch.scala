@@ -32,7 +32,7 @@ object DepthFirstSearch {
       val flat = generateLatticeGraph(size)
       val vertices: Array[Vertex] = Array.tabulate(flat.size)(i => Vertex(i.toString, s"$i name"))
       val map = mutable.HashMap.empty[String, Array[Vertex]]
-      map ++= flat.mapWithIndex{ case (successors, i) => vertices(i).id -> successors.map(vertices).toArray }
+      map ++= flat.mapWithIndex{ (i, successors) => vertices(i).id -> successors.map(vertices).toArray }
       map
     }
 
