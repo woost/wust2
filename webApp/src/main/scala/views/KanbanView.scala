@@ -294,7 +294,7 @@ object KanbanView {
       val createdNode = Node.MarkdownTask(str)
       val graph = state.graph.now
       val workspaces = graph.workspacesForParent(graph.idToIdxOrThrow(parentId)).viewMap(idx => ParentId(graph.nodeIds(idx)))
-      val addNode = GraphChanges.addNodeWithParent(createdNode, workspaces :+ ParentId(parentId))
+      val addNode = GraphChanges.addNodeWithParent(createdNode, (workspaces :+ ParentId(parentId)).distinct)
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
 
       state.eventProcessor.changes.onNext(addNode merge addTags)
