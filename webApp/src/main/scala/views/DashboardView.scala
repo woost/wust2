@@ -29,7 +29,7 @@ object DashboardView {
   private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
     val pageParentIdx = graph.idToIdxOrThrow(focusedId)
     val directSubProjects = graph.projectChildrenIdx(pageParentIdx)
-    directSubProjects.map(graph.nodes).sortBy(_.str)
+    directSubProjects.viewMap(graph.nodes).sortBy(_.str)
   }
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)

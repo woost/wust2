@@ -144,7 +144,7 @@ object ThreadView {
 
   private def thunkRxFun(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
     // because of equals check in thunk, we implicitly generate a wrapped array
-    val nodeIds: Seq[NodeId] = group.map(groupGraph.nodeIds)
+    val nodeIds: Seq[NodeId] = group.viewMap(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
     div.thunk(key)(nodeIds, state.screenSize.now)(Ownable { implicit ctx =>

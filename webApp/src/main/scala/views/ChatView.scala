@@ -220,7 +220,7 @@ object ChatView {
       }.sortBy(idx => groupGraph.nodeCreated(idx))
     }
     @inline def inReplyGroup = commonParentsIdx.nonEmpty
-    val commonParentIds = commonParentsIdx.map(groupGraph.nodeIds)
+    val commonParentIds = commonParentsIdx.viewMap(groupGraph.nodeIds)
 
     def renderCommonParents(implicit ctx: Ctx.Owner) = div(
       cls := "chat-common-parents",
