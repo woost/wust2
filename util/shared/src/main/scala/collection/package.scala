@@ -82,16 +82,6 @@ package object collection {
   }
   implicit class RichArrayOps[A](val array: Array[A]) extends AnyVal {
     @inline def viewMap[B](f: A => B): MappedArray[A, B] = new MappedArray[A,B](array, f)
-
-    //TODO: add to flatland
-    def flatMapWithIndex[B : ClassTag](f: (Int, A) => Array[B]): Array[B] = {
-      var counter = 0
-      array.flatMap[B, Array[B]] { a =>
-        val b = f(counter, a)
-        counter += 1
-        b
-      }
-    }
   }
 
   implicit class RichSet[A](val set: Set[A]) extends AnyVal {
