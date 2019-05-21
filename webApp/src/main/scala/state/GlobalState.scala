@@ -46,6 +46,7 @@ class GlobalState(
   val hoverNodeId: Var[Option[NodeId]] = Var(None)
 
   val askedForUnregisteredUserName: Var[Boolean] = Var(false)
+  val askedForNotifications: Var[Boolean] = Var(false)
 
   val rightSidebarNode: Var[Option[FocusPreference]] = Var(None)
 

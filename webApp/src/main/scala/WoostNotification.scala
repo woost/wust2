@@ -4,7 +4,7 @@ import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx.{Ctx, Var}
+import rx.{Ctx, Rx, Var}
 import wust.css
 import wust.graph.Node.User
 import wust.graph._
@@ -133,20 +133,32 @@ object WoostNotification {
     )
   }
 
-  def banner(state: GlobalState, permissionState: PermissionState, projectName: Option[String]): VDomModifier = {
-    if(permissionState == PermissionState.prompt) {
+  def banner(state: GlobalState, permissionState: PermissionState, projectName: Option[String])(implicit ctx: Ctx.Owner): VDomModifier = Rx {
+    if(!state.askedForNotifications() && permissionState == PermissionState.prompt) {
       def mobileText = div(
+        marginLeft.auto,
         s"Allow ${StringOps.trimToMaxLength(projectName.getOrElse("Woost"), 20)} to ",
         span("send notifications.", textDecoration.underline),
       )
       def desktopText = div(
+        marginLeft.auto,
         s"${projectName.fold("Woost")(name => s"${StringOps.trimToMaxLength(name, 20)} (Woost)")} needs your permission to ",
         span("enable notifications.", textDecoration.underline),
       )
 
       div(
         Elements.topBanner(Some(desktopText), Some(mobileText)),
-        onClick foreach { Notifications.requestPermissionsAndSubscribe { } }
+        onClick foreach {
+          Notifications.requestPermissionsAndSubscribe()
+          state.askedForNotifications() = true
+        },
+
+        div(
+          freeSolid.faTimes,
+          onClick.stopPropagation(true) --> state.askedForNotifications,
+          marginLeft.auto,
+          marginRight := "10px"
+        )
       )
     }
     else
