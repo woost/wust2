@@ -316,7 +316,7 @@ lazy val sdkJS = sdk.js
 lazy val sdkJVM = sdk.jvm
 
 
-//TODO: rename to atoms/basetypes
+//TODO: rename to atoms/basetypes/domain
 lazy val ids = crossProject(JSPlatform, JVMPlatform)
   .crossType(CrossType.Pure)
   .dependsOn(util)
