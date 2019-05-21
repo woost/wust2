@@ -50,7 +50,7 @@ object GraphChangesAutomation {
     def copyAndTransformNode(node: Node.Content): Node.Content = {
       // transform certain node data in automation
       val newData = node.data match {
-        case NodeData.RelativeDate(duration) => NodeData.Date(copyTime plus duration)
+        case NodeData.RelativeDate(duration) => NodeData.DateTime(DateTimeMilli(copyTime plus duration))
         case data => data
       }
       node.copy(id = newId(node.id), data = newData)

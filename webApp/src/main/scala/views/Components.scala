@@ -67,6 +67,13 @@ object Components {
     case d                           => d.str
   }
 
+  def iconByNodeData(data: NodeData): Option[VNode] = Some(data) collect {
+    case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
+    case _: NodeData.Date | _: NodeData.DateTime | _: NodeData.RelativeDate | _: NodeData.Duration => Icons.propertyDate
+    case _: NodeData.File                            => Icons.files
+  }
+
+  def displayDuration(data: NodeData.Duration) = span(StringJsOps.durationToString(data.content))
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
@@ -74,6 +81,7 @@ object Components {
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
+    case data: NodeData.Duration     => div(displayDuration(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -83,6 +91,7 @@ object Components {
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
+    case data: NodeData.Duration     => div(displayDuration(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -341,7 +350,7 @@ object Components {
       alignItems.flexStart,
       b(
         Styles.flex,
-        EditableContent.inputInlineOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
+        EditableContent.inlineEditorOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> state.eventProcessor.changes,
         cursor.pointer,
@@ -360,7 +369,7 @@ object Components {
             justifyContent.flexEnd,
             margin := "3px 0px",
 
-            Elements.icon(ItemProperties.iconByNodeData(property.node.data))(marginRight := "5px"),
+            Elements.icon(iconByNodeData(property.node.data))(marginRight := "5px"),
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
               nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
               maxLength = Some(100), config = EditableContent.Config.default,
@@ -393,7 +402,7 @@ object Components {
     pageOnClick: Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
 
-    val icon = ItemProperties.iconByNodeData(property.data)
+    val icon = iconByNodeData(property.data)
 
     span(
       cls := "node tag",
@@ -801,7 +810,7 @@ object Components {
             EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNode(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
+            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNodeApplied(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
               GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
@@ -810,30 +819,32 @@ object Components {
       )
     }
 
-    def searchAndSelectNode(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current, current.onNext(_))
-    def searchAndSelectNode(state: GlobalState, observable: Observable[Option[NodeId]], observer: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner): VNode = {
-      div(
-        Components.searchInGraph(state.rawGraph, "Search", filter = {
-          case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role)
-          case _ => false
-        }, innerElementModifier = width := "100%", inputModifiers = width := "100%").map(Some(_)).foreach(observer),
+    def searchAndSelectNodeApplied(state: GlobalState, current: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current.toObservable) --> current
+    def searchAndSelectNodeApplied(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current) --> current
+    def searchAndSelectNode(state: GlobalState, observable: Observable[Option[NodeId]])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
+      Components.searchInGraph(state.rawGraph, "Search", filter = {
+            case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role)
+            case _ => false
+      }, innerElementModifier = width := "100%", inputModifiers = width := "100%").mapResult[VNode] { search =>
+        div(
+          search,
 
-        observable.map[VDomModifier] {
-          case Some(nodeId) => div(
-            marginTop := "4px",
-            Styles.flex,
-            alignItems.flexStart,
-            justifyContent.spaceBetween,
-            span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
-            state.graph.map { g =>
-              val node = g.nodesByIdOrThrow(nodeId)
-              Components.nodeCardWithFile(state, node, maxLength = Some(100)).apply(Styles.wordWrap)
-            }
-          )
-          case None => VDomModifier.empty
-        }
-      )
-    }
+          observable.map[VDomModifier] {
+            case Some(nodeId) => div(
+              marginTop := "4px",
+              Styles.flex,
+              alignItems.flexStart,
+              justifyContent.spaceBetween,
+              span("Selected:", color.gray, margin := "0px 5px 0px 5px"),
+              state.graph.map { g =>
+                val node = g.nodesByIdOrThrow(nodeId)
+                Components.nodeCardWithFile(state, node, maxLength = Some(100)).apply(Styles.wordWrap)
+              }
+            )
+            case None => VDomModifier.empty
+          }
+        )
+      }.map(Some(_))
 
     def searchInGraph(graph: Rx[Graph], placeholder: String, valid: Rx[Boolean] = Var(true), filter: Node => Boolean = _ => true, completeOnInit: Boolean = true, showNotFound: Boolean = true, elementModifier: VDomModifier = VDomModifier.empty, innerElementModifier: VDomModifier = VDomModifier.empty, inputModifiers: VDomModifier = VDomModifier.empty, resultsModifier: VDomModifier = VDomModifier.empty, createNew: String => Boolean = _ => false)(implicit ctx: Ctx.Owner): EmitterBuilder[NodeId, VDomModifier] = EmitterBuilder.ofModifier(sink => IO {
       var inputElem: dom.html.Element = null
@@ -1021,7 +1032,7 @@ object Components {
     def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
       implicit val context = EditContext(state)
 
-      EditableContent.inputFieldRx[AWS.UploadableFile](selected, config = EditableContent.Config(
+      EditableContent.editorRx[AWS.UploadableFile](selected, config = EditableContent.Config(
         errorMode = EditableContent.ErrorMode.ShowToast,
         submitMode = EditableContent.SubmitMode.Off
       )).apply(marginLeft := "3px")

@@ -144,7 +144,7 @@ object GitHubImporter {
         // TODO: delete transitive containments of comments in issue
 
         // Issue posts and connections
-        implicit def StringToEpochMilli(s: String): EpochMilli = StringJvmOps.toEpoch(s)
+        implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.parse(s).get //TODO: really?
         // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         // val issueTitle = Post(NodeId(issue.number.toString), s"#${issue.number} ${issue.title}", tempUserId, issue.created_at, issue.updated_at)
         val issueIdZeros = (9 - issue.number.toString.length - 1) // temp. workaround for cuid order

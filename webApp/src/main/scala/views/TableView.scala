@@ -76,7 +76,7 @@ object TableView {
       span(
         Styles.inlineFlex,
         justifyContent.spaceBetween,
-        EditableContent.inputInlineOrRender[String](name, editMode, columnHeader(_)).editValue.foreach { newName =>
+        EditableContent.inlineEditorOrRender[String](name, editMode, columnHeader(_)).editValue.foreach { newName =>
           if (newName.nonEmpty) {
             state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
           }
@@ -201,6 +201,7 @@ object TableView {
 
     VDomModifier(
       div(
+        cls := "ui mini form",
         width := "100%",
         padding := "5px",
         Styles.flex,

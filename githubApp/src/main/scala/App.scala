@@ -91,7 +91,7 @@ object AppServer {
   import akka.http.scaladsl.Http
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
-  implicit def StringToEpochMilli(s: String): EpochMilli = StringJvmOps.toEpoch(s)
+  implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.parse(s).get //TODO: really?
 
   private def createOrIgnore(issue: Issue): NodeId = ???
   private def createOrIgnore(comment: Comment): NodeId = ???

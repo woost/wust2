@@ -113,7 +113,7 @@ object MeisterTask {
       }
 
       task.dueDate.foreach { date =>
-        val dateNode = Node.Content(NodeId.fresh, NodeData.Date(date), NodeRole.Neutral, NodeMeta.default, None)
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
         addNodes += dateNode
         addEdges += Edge.LabeledProperty(taskNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
@@ -163,19 +163,12 @@ object MeisterTask {
     )
   }
 
-  private def convertToEpochMilli(str: String) = {
-    StringOps.safeToDate(str) match {
-      case Some(date) => Right(EpochMilli(date.getTime))
-      case None => Left("Is not a Date")
-    }
-  }
-
   object RegexDecoders {
     import kantan.regex._
     import kantan.regex.ops._
     import kantan.regex.implicits._
 
-    implicit val dateMatch: GroupDecoder[EpochMilli] = GroupDecoder[String].emap(convertToEpochMilli(_).left.map(DecodeError.TypeError(_)))
+    implicit val dateMatch: GroupDecoder[EpochMilli] = GroupDecoder[String].emap(str => EpochMilli.parse(str).toRight(DecodeError.TypeError("Is not a Date")))
 
     val commentRegex = Regex[(String, EpochMilli, String)](rx"([^(]*) \(([^)]*)\): (.*)").map(_.map { case (author, date, content) =>
       Comment(name = content, author = author, date = date)
@@ -204,7 +197,7 @@ object MeisterTask {
         case Left(err) => Left(DecodeError.TypeError(err.getMessage))
       }).left.map(_.head)
     }
-    implicit val dateCodec: CellDecoder[EpochMilli] = CellDecoder.from(convertToEpochMilli(_).left.map(DecodeError.TypeError(_)))
+    implicit val dateCodec: CellDecoder[EpochMilli] = CellDecoder.from(str => EpochMilli.parse(str).toRight(DecodeError.TypeError("Is not a Date")))
     implicit def listCodec[T: CellDecoder]: CellDecoder[Seq[T]] = CellDecoder.from { str =>
       if (str.isEmpty) Right(Nil) else eitherSeq(str.split(";").map(CellDecoder[T].decode)(breakOut)).left.map(_.head)
     }

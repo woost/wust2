@@ -1,42 +1,24 @@
 package wust.webApp.views
 
 import monix.eval.Task
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import outwatch.Sink
-import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
+import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.util._
-import wust.api.ApiEvent
 import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Elements._
 
-import scala.concurrent.duration._
 import scala.scalajs.js
+import scala.scalajs.js.Date
 import scala.util.Try
 
-object EditImplicits {
-  import io.circe._
-  import io.circe.parser._
-  import io.circe.syntax._
-
-  object circe {
-    implicit def StringParser[T : Decoder]: EditStringParser[T] = new EditStringParser[T] {
-      def parse(str: String) = Task.pure(EditInteraction.fromEither(decode[T](str).toOption.toRight("Cannot parse")))
-    }
-    implicit def Stringifier[T : Encoder]: ValueStringifier[T] = new ValueStringifier[T] {
-      def stringify(current: T) = current.asJson.noSpaces
-    }
-  }
-}
-
+// How to stringify a type to fit into the value/textcontent field of an html element.
 trait ValueStringifier[-T] { self =>
   def stringify(current: T): String
 
@@ -64,8 +46,11 @@ object ValueStringifier {
   implicit object ValueDouble extends ValueStringifier[Double] {
     def stringify(value: Double) = value.toString
   }
-  implicit object ValueEpochMilli extends ValueStringifier[EpochMilli] {
-    def stringify(value: EpochMilli) = value.isoDate
+  implicit object ValueTimeMilli extends ValueStringifier[TimeMilli] {
+    def stringify(value: TimeMilli) = StringJsOps.timeToTimeString(value)
+  }
+  implicit object ValueDateMilli extends ValueStringifier[DateMilli] {
+    def stringify(value: DateMilli) = value.isoDate
   }
   implicit object ValueDurationMilli extends ValueStringifier[DurationMilli] {
     def stringify(value: DurationMilli) = StringJsOps.durationToString(value)
@@ -79,12 +64,14 @@ object ValueStringifier {
 
   implicit val ValueNodeId: ValueStringifier[NodeId] = ValueString.map[NodeId](_.toCuidString)
 
+  //TODO: remove, is not correct for compound parsers...
   implicit object ValueNodeData extends ValueStringifier[NodeData] {
     override def stringify(current: NodeData): String = current match {
       case data: NodeData.Integer      => ValueInteger.stringify(data.content)
       case data: NodeData.Decimal      => ValueDouble.stringify(data.content)
-      case data: NodeData.Date         => ValueEpochMilli.stringify(data.content)
+      case data: NodeData.Date         => ValueDateMilli.stringify(data.content)
       case data: NodeData.RelativeDate => ValueDurationMilli.stringify(data.content)
+      case data: NodeData.Duration     => ValueDurationMilli.stringify(data.content)
       case data: NodeData.File         => data.fileName
       case data                        => ValueString.stringify(data.str)
     }
@@ -104,6 +91,13 @@ trait EditStringParser[+T] { self =>
   final def flatMapEval[R](f: T => Task[EditInteraction[R]]): EditStringParser[R] = new EditStringParser[R] {
     def parse(elem: String) = self.parse(elem).flatMap(_.toEither.fold(Task.pure, f))
   }
+  final def flatMapParser[R](f: T => EditStringParser[R]): EditStringParser[R] = new EditStringParser[R] {
+    def parse(elem: String) = self.parse(elem).flatMap(_.toEither.fold(Task.pure, t => f(t).parse(elem)))
+  }
+  @inline final def mapEditInteraction[R](f: EditInteraction[T] => R): EditStringParser[R] = flatMapEditInteraction[R](t => EditInteraction.Input(f(t)))
+  final def flatMapEditInteraction[R](f: EditInteraction[T] => EditInteraction[R]): EditStringParser[R] = new EditStringParser[R] {
+    override def parse(elem: String) = self.parse(elem).map(f)
+  }
 }
 trait EditStringParserInstances0 {
   implicit object EditString extends EditStringParser[String] {
@@ -114,26 +108,19 @@ trait EditStringParserInstances0 {
 object EditStringParser extends EditStringParserInstances0 {
   @inline def apply[T](implicit parser: EditStringParser[T]): EditStringParser[T] = parser
 
-  def combine[A: EditStringParser, B: EditStringParser, T](fa: A => T, fb: B => T): EditStringParser[T] = combineParsers(EditStringParser[A].map(fa), EditStringParser[B].map(fb))
-
-  def combineParsers[T](parserA: EditStringParser[T], parserB: EditStringParser[T]): EditStringParser[T] = new EditStringParser[T] {
-    def parse(str: String) = parserA.parse(str).flatMap {
-      case errA: EditInteraction.Error => parserB.parse(str).map {
-        case errB: EditInteraction.Error => EditInteraction.Error(s"$errA and $errB")
-        case e => e
-      }
-      case e => Task.pure(e)
-    }
-  }
-
-
   //TODO only allow valid node data type strings
   implicit val EditNodeDataType: EditStringParser[NodeData.Type] = EditString.map(NodeData.Type(_))
   implicit val EditNodeDataPlainText: EditStringParser[NodeData.PlainText] = EditString.map[NodeData.PlainText](NodeData.PlainText.apply)
   implicit val EditNodeDataMarkdown: EditStringParser[NodeData.Markdown] = EditString.map[NodeData.Markdown](NodeData.Markdown.apply)
-  def EditNodeDataUser(user: NodeData.User): EditStringParser[NodeData.User] = EditNonEmptyString.flatMap[NodeData.User](s => EditInteraction.fromOption(user.updateName(s.string)))
+  implicit def EditNodeDataUser(user: NodeData.User): EditStringParser[NodeData.User] = EditNonEmptyString.flatMap[NodeData.User](s => EditInteraction.fromOption(user.updateName(s.string)))
 
   implicit def EditOption[T: EditStringParser]: EditStringParser[Option[T]] = EditStringParser[T].map(Some(_))
+  implicit def EditEditInteraction[T: EditStringParser]: EditStringParser[EditInteraction[T]] = EditStringParser[T].mapEditInteraction[EditInteraction[T]](identity)
+  implicit def EditEither[T: EditStringParser]: EditStringParser[Either[EditInteraction.Error, T]] = EditStringParser[T].flatMapEditInteraction {
+    case EditInteraction.Input(value) => EditInteraction.Input(Right(value))
+    case edit: EditInteraction.Error => EditInteraction.Input(Left(edit))
+    case EditInteraction.Cancel => EditInteraction.Cancel
+  }
 
   implicit def EditNodeId: EditStringParser[NodeId] = EditString.flatMap[NodeId] { cuid =>
     EditInteraction.fromEither(Cuid.fromCuidString(cuid).map(NodeId(_)))
@@ -148,119 +135,180 @@ object EditStringParser extends EditStringParserInstances0 {
     case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
     case user: Node.User => Some(EditNodeDataUser(user.data).map[Node](data => user.copy(data = data)))
   }
-
-  def parseElement[T: EditStringParser](element: dom.Element): Task[EditInteraction[T]] = EditStringParser[T].parse(element.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String]) // innerText because textContent would remove line-breaks in firefox
-  def parseTextArea[T: EditStringParser](element: dom.html.TextArea): Task[EditInteraction[T]] = EditStringParser[T].parse(element.value)
-  def parseSelect[T: EditStringParser](element: dom.html.Select): Task[EditInteraction[T]] = EditStringParser[T].parse(element.value)
 }
 
-trait EditInputParser[+T] { self =>
-  def parse(elem: dom.html.Input): Task[EditInteraction[T]]
-  def modifier(implicit ctx: Ctx.Owner): EditInputParser.Modifier
+trait EditElementParser[T] { self =>
+  import EditElementParser.Config
 
-  @inline final def map[R](f: T => R): EditInputParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))
-  @inline final def mapEval[R](f: T => Task[R]): EditInputParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))
-  @inline final def flatMap[R](f: T => EditInteraction[R]): EditInputParser[R] = flatMapEval(t => Task.pure(f(t)))
-  final def flatMapEval[R](f: T => Task[EditInteraction[R]]): EditInputParser[R] = new EditInputParser[R] {
-    def parse(elem: dom.html.Input) = self.parse(elem).flatMap(_.toEither.fold(Task.pure, f))
-    def modifier(implicit ctx: Ctx.Owner) = self.modifier
+  def render(config: Config, initial: Task[Option[T]], handler: Handler[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier
+
+  @inline final def map[R](f: T => R)(g: R => T): EditElementParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))(r => EditInteraction.Input(g(r)))
+  @inline final def flatMap[R](f: T => EditInteraction[R])(g: R => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.map(_.flatMap(g(_).toOption)), handler.mapHandler[EditInteraction[T]](_.toEither.map(f).merge)(_.toEither.map(g).merge))
+  }
+  @inline final def mapEval[R](f: T => Task[R])(g: R => Task[T]): EditElementParser[R] = flatMapEval[R](t => f(t).map(EditInteraction.Input(_)))(r => g(r).map(EditInteraction.Input(_)))
+  final def flatMapEval[R](f: T => Task[EditInteraction[R]])(g: R => Task[EditInteraction[T]]): EditElementParser[R] = new EditElementParser[R] {
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.flatMap(_.fold[Task[Option[T]]](Task.pure(None))(g(_).map(_.toOption))), ProHandler(handler.redirectEval(_.toEither.fold(Task.pure(_), f)), handler.mapEval(_.toEither.fold(Task.pure(_), g))))
+  }
+  @inline final def mapEditInteraction[R](f: EditInteraction[T] => R)(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = flatMapEditInteraction[R](t => EditInteraction.Input(f(t)))(g)
+  final def flatMapEditInteraction[R](f: EditInteraction[T] => EditInteraction[R])(g: EditInteraction[R] => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
+    def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner) = self.render(config, initial.map(initial => g(EditInteraction.fromOption(initial)).toOption), handler.mapHandler(f)(g))
   }
 }
-object EditInputParser {
-  @inline def apply[T](implicit parser: EditInputParser[T]): EditInputParser[T] = parser
+object EditElementParser {
+  import EditHelper.renderSimpleInput
 
-  case class Modifier(
-    mod: VDomModifier,
-    outerMod: VDomModifier = VDomModifier.empty,
-    fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None,
-    valueSetter: AttributeBuilder[Either[String, String], VDomModifier] = either => either.fold(value := _, value := _)
+  @inline def apply[T](implicit parser: EditElementParser[T]): EditElementParser[T] = parser
+
+  case class Config(
+    inputEmitter: EmitterBuilder[Any, VDomModifier], // preference by the caller, but can be overwritten by element parser if not applicable. e.g. for file input only onChange makes sense.
+    inputModifier: VDomModifier, // modifiers to be applied to the edit element. but can be overwritten by element parser if not applicable. e.g.  for file input additional modifiers make no sense>
+    modifier: VDomModifier, // mandatory modifiers for the edit element
   )
 
-  object Disabled extends EditInputParser[Nothing] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.Cancel)
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(disabled := true)
+  object Disabled extends EditElementParser[Nothing] {
+    def render(config: Config, initial: Task[Option[Nothing]], handler: Handler[EditInteraction[Nothing]])(implicit ctx: Ctx.Owner) = input(disabled := true)
   }
 
-  implicit def EditStringParsing[T: EditStringParser] = new EditInputParser[T] {
-    def parse(elem: dom.html.Input) = EditStringParser[T].parse(elem.value)
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.textInputMod)
+  implicit def EditStringParsing[T: EditStringParser: ValueStringifier] = new EditElementParser[T] {
+    def render(config: Config, initial: Task[Option[T]], handler: Handler[EditInteraction[T]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, config.inputEmitter, VDomModifier(config.inputModifier, config.modifier, Elements.textInputMod),
+      elem => EditStringParser[T].parse(elem.value)
+    )
   }
 
-  implicit object EditInteger extends EditInputParser[Int] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.integerInputMod)
+  implicit object EditInteger extends EditElementParser[Int] {
+    def render(config: Config, initial: Task[Option[Int]], handler: Handler[EditInteraction[Int]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, config.inputEmitter, VDomModifier(config.inputModifier, config.modifier, Elements.integerInputMod),
+      elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
+    )
   }
-  implicit object EditDouble extends EditInputParser[Double] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.decimalInputMod)
+  implicit object EditDouble extends EditElementParser[Double] {
+    def render(config: Config, initial: Task[Option[Double]], handler: Handler[EditInteraction[Double]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, config.inputEmitter, VDomModifier(config.inputModifier, config.modifier, Elements.decimalInputMod),
+      elem => Task.pure(EditInteraction.fromEither(util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
+    )
   }
-  implicit object EditEpochMilli extends EditInputParser[EpochMilli] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringJsOps.safeToEpoch(elem.value).toRight("Not a Date")))
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.dateInputMod)
+  implicit object EditDateMilli extends EditElementParser[DateMilli] {
+    def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, onChange, VDomModifier(config.modifier, Elements.dateInputMod),
+      elem => Task.pure(EditInteraction.Input(DateMilli(EpochMilli.parse(elem.value).getOrElse(EpochMilli.zero))))
+    )
   }
-  implicit object EditDurationMilli extends EditInputParser[DurationMilli] {
-    def parse(elem: dom.html.Input) = Task.pure(EditInteraction.fromEither(StringJsOps.safeToDuration(elem.value)))
-    def modifier(implicit ctx: Ctx.Owner) = Modifier(Elements.durationInputMod)
+  implicit object EditTimeMilli extends EditElementParser[TimeMilli] {
+    def render(config: Config, initial: Task[Option[TimeMilli]], handler: Handler[EditInteraction[TimeMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, onChange, VDomModifier(config.modifier, Elements.timeInputMod),
+      elem => Task.pure(EditInteraction.Input(TimeMilli(StringJsOps.timeStringToTime(elem.value).getOrElse(EpochMilli.zero))))
+    )
+  }
+  implicit object EditDurationMilli extends EditElementParser[DurationMilli] {
+    def render(config: Config, initial: Task[Option[DurationMilli]], handler: Handler[EditInteraction[DurationMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
+      initial, handler, onChange, VDomModifier(config.inputModifier, config.modifier, Elements.durationInputMod),
+      elem => Task.pure(EditInteraction.fromEither(StringJsOps.safeToDuration(elem.value)))
+    )
   }
 
-  implicit def EditOption[T: EditInputParser]: EditInputParser[Option[T]] = EditInputParser[T].map(Some(_))
+  implicit object EditDateTimeMilli extends EditElementParser[DateTimeMilli] {
+    private def splitDateTime(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
+      val d = new Date(dateTime)
+      val time = d.getUTCHours() * EpochMilli.hour + d.getUTCMinutes() * EpochMilli.minute
+      (DateMilli(EpochMilli(dateTime - time + d.getTimezoneOffset() * EpochMilli.minute)), TimeMilli(EpochMilli(time)))
+    }
 
-  implicit object EditFile extends EditInputParser[dom.File] {
-    def parse(elem: dom.html.Input) = Task {
+    def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
+      var lastDateTime: DateTimeMilli = DateTimeMilli(EpochMilli(0L))
+      val dateHandler = handler.mapHandler[EditInteraction[DateMilli]](_.map { date =>
+        val (_, time) = splitDateTime(lastDateTime)
+        DateTimeMilli(EpochMilli(date + time))
+      })(_.map { dateTime =>
+        val (date, _) = splitDateTime(dateTime)
+        date
+      })
+      val timeHandler = handler.mapHandler[EditInteraction[TimeMilli]](_.map { time =>
+        val (date, _) = splitDateTime(lastDateTime)
+        DateTimeMilli(EpochMilli(date + time))
+      }) (_.map { dateTime =>
+        val (_, time) = splitDateTime(dateTime)
+        time
+      })
+
+      val initialDateAndTime = initial.map(_.map(splitDateTime))
+
+      div(
+        Styles.flex,
+        alignItems.center,
+        flexWrap.wrap,
+        config.modifier,
+
+        EditDateMilli.render(config, initialDateAndTime.map(_.map(_._1)), dateHandler),
+        EditTimeMilli.render(config, initialDateAndTime.map(_.map(_._2)), timeHandler),
+
+        emitter(handler).foreach(_.foreach(lastDateTime = _))
+      )
+    }
+  }
+
+  implicit def EditOption[T: EditElementParser]: EditElementParser[Option[T]] = EditElementParser[T].flatMap[Option[T]](t => EditInteraction.Input(Some(t)))(_.fold[EditInteraction[T]](EditInteraction.Cancel)(EditInteraction.Input(_)))
+  implicit def EditEditInteraction[T: EditElementParser]: EditElementParser[EditInteraction[T]] = EditElementParser[T].mapEditInteraction[EditInteraction[T]](identity)(_.flatMap(identity))
+  implicit def EditEither[T: EditElementParser]: EditElementParser[Either[EditInteraction.Error, T]] = EditElementParser[T].flatMapEditInteraction {
+    case EditInteraction.Input(value) => EditInteraction.Input(Right(value))
+    case edit: EditInteraction.Error => EditInteraction.Input(Left(edit))
+    case EditInteraction.Cancel => EditInteraction.Cancel
+  }(_.flatMap(_.map(EditInteraction.Input(_)).merge))
+
+  implicit object EditFile extends EditElementParser[dom.File] {
+    private def parse(elem: dom.html.Input) = {
       val file = elem.asInstanceOf[js.Dynamic].files.asInstanceOf[js.UndefOr[dom.FileList]].collect { case list if list.length > 0 => list(0) }
       EditInteraction.fromOption(file.toOption)
     }
-    def modifier(implicit ctx: Ctx.Owner) = {
-      // TODO: we do not have the current state of the file input field, so we just get it again on change
-      // This belongs into a more sophisticated ValueStringifier for not only writing strings...
-      val fileValue = Handler.unsafe[Option[dom.File]](None)
-      var fileElem: dom.html.Input = null
-      val getFileValue = VDomModifier(
-        onDomMount.foreach { e => fileElem = e.asInstanceOf[dom.html.Input] },
-        onChange.transform(_.mapEval(_ => parse(fileElem))).editValueOption --> fileValue
-      )
-
+    def render(config: Config, initial: Task[Option[dom.File]], handler: Handler[EditInteraction[dom.File]])(implicit ctx: Ctx.Owner) = {
       val randomId = scala.util.Random.nextInt.toString
-      val fileLabel = Components.uploadFieldModifier(fileValue, randomId)
-      Modifier(
-        VDomModifier(display.none, id := randomId, Elements.fileInputMod, getFileValue),
-        outerMod = fileLabel,
-        fixedSubmitEvent = Some(onChange),
-        valueSetter = {
-          case Right(value) =>
-           parse(fileElem).runToFuture.map(e => fileValue.onNext(e.toOption))
-           VDomModifier.empty
-          case Left(resetValue) =>
-            fileValue.onNext(None)
-            value := ""
-        }
+
+      div(
+        config.modifier,
+
+        input(
+          display.none, id := randomId, Elements.fileInputMod,
+          onChange.map(e => parse(e.target.asInstanceOf[dom.html.Input])) --> handler,
+          handler.map {
+            case EditInteraction.Cancel => value := ""
+            case _ => VDomModifier.empty
+          }
+        ),
+        Components.uploadFieldModifier(handler.map(_.toOption), randomId)
       )
     }
   }
 
-  implicit val EditNodeDataInteger: EditInputParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)
-  implicit val EditNodeDataDecimal: EditInputParser[NodeData.Decimal] = EditDouble.map[NodeData.Decimal](NodeData.Decimal.apply)
-  implicit val EditNodeDataDate: EditInputParser[NodeData.Date] = EditEpochMilli.map[NodeData.Date](NodeData.Date.apply)
-  implicit val EditNodeDataRelativeDate: EditInputParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)
+  implicit val EditNodeDataInteger: EditElementParser[NodeData.Integer] = EditInteger.map[NodeData.Integer](NodeData.Integer.apply)(_.content)
+  implicit val EditNodeDataDecimal: EditElementParser[NodeData.Decimal] = EditDouble.map[NodeData.Decimal](NodeData.Decimal.apply)(_.content)
+  implicit val EditNodeDataDate: EditElementParser[NodeData.Date] = EditDateMilli.map[NodeData.Date](NodeData.Date.apply)(_.content)
+  implicit val EditNodeDataDateTime: EditElementParser[NodeData.DateTime] = EditDateTimeMilli.map[NodeData.DateTime](NodeData.DateTime.apply)(_.content)
+  implicit val EditNodeDataRelativeDate: EditElementParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)(_.content)
+  implicit val EditNodeDataDuration: EditElementParser[NodeData.Duration] = EditDurationMilli.map[NodeData.Duration](NodeData.Duration.apply)(_.content)
 
-  implicit def EditUploadableFile(implicit context: EditContext): EditInputParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(context.state, file)))
-  implicit def EditNodeDataFile(implicit context: EditContext): EditInputParser[NodeData.File] = EditUploadableFile.mapEval(AWS.uploadFileAndCreateNodeData(context.state, _))
+  implicit def EditUploadableFile(implicit context: EditContext): EditElementParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(context.state, file)))(aws => EditInteraction.Input(aws.file))
+  implicit def EditNodeDataFile(implicit context: EditContext): EditElementParser[NodeData.File] = EditUploadableFile.flatMapEval(aws => AWS.uploadFileAndCreateNodeData(context.state, aws).map(EditInteraction.Input(_)))(_ => Task.pure(EditInteraction.Cancel))
 
-  def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditInputParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_)).orElse(tpe match {
-    case NodeData.Integer.tpe => Some(EditNodeDataInteger)
-    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal)
-    case NodeData.Date.tpe => Some(EditNodeDataDate)
-    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate)
-    case NodeData.File.tpe => Some(EditNodeDataFile)
+  //TODO: FIX! as instance of buillshit. one parser for node.
+  def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditElementParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_, ValueStringifier.ValueNodeData)).orElse(tpe match {
+    case NodeData.Integer.tpe => Some(EditNodeDataInteger).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.Date.tpe => Some(EditNodeDataDate).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.DateTime.tpe => Some(EditNodeDataDateTime).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.Duration.tpe => Some(EditNodeDataDuration).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.File.tpe => Some(EditNodeDataFile).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
     case _ => None
   })
-  def forNode(node: Node)(implicit context: EditContext): Option[EditInputParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_)).orElse(node match {
-    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
+  def forNode(node: Node)(implicit context: EditContext): Option[EditElementParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_, ValueStringifier.ValueNode)).orElse(node match {
+    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data)).asInstanceOf[Option[EditElementParser[Node]]]
     case _ => None
   })
 }
 
 sealed trait EditInteraction[+T] {
+  @inline def foreach[U](f: T => U): Unit = map(f)
   @inline def map[R](f: T => R): EditInteraction[R] = flatMap[R](t => EditInteraction.Input(f(t)))
   @inline def flatMap[R](f: T => EditInteraction[R]): EditInteraction[R]
   @inline def toEither: Either[EditInteraction.WithoutValue, T]
@@ -288,4 +336,69 @@ object EditInteraction {
     case Some(value) => EditInteraction.Input(value)
     case None => EditInteraction.Cancel
   }
+}
+
+object EditHelper {
+
+  def valueParsingModifier[T: ValueStringifier, Elem >: Null <: dom.html.Element](
+    initial: Task[Option[T]],
+    handler: Handler[EditInteraction[T]],
+    inputEmitter: EmitterBuilder[Any, VDomModifier],
+    valueSetter: String => VDomModifier,
+    valueGetter: Elem => String,
+    parse: Elem => Task[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val valueHandler = Var[String]("")
+    var elem: Elem = null
+    initial.runToFuture.foreach { initial => //TODO meh?
+      val str = initial.fold("")(ValueStringifier[T].stringify)
+      valueHandler() = str
+    }
+
+    VDomModifier(
+      onDomMount.foreach { e => elem = e.asInstanceOf[Elem] },
+
+      emitter(handler).foreach({
+        case EditInteraction.Input(v) =>
+          valueHandler() = ValueStringifier[T].stringify(v)
+        case _ =>
+      }: EditInteraction[T] => Unit),
+
+      inputEmitter.transform(_.mapEval[EditInteraction[T]] { _ =>
+        val str = valueGetter(elem)
+        valueHandler() = str
+        parse(elem)
+      }) --> handler,
+
+      valueHandler.map(valueSetter)
+    )
+  }
+
+  def renderSimpleInput[T: ValueStringifier](
+    initial: Task[Option[T]],
+    handler: Handler[EditInteraction[T]],
+    inputEmitter: EmitterBuilder[Any, VDomModifier],
+    inputModifier: VDomModifier,
+    parse: dom.html.Input => Task[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    input(
+      inputModifier,
+      EditHelper.valueParsingModifier[T, dom.html.Input](initial, handler, inputEmitter, value := _, _.value, parse)
+    )
+  }
+}
+
+// Get EditStringParser and ValueStringifier instances from/to json. It uses circe decoders. Should be explicitly imported.
+object EditImplicits {
+  import io.circe._
+  import io.circe.parser._
+  import io.circe.syntax._
+
+  object circe {
+    implicit def StringParser[T : Decoder]: EditStringParser[T] = new EditStringParser[T] {
+      def parse(str: String) = Task.pure(EditInteraction.fromEither(decode[T](str).toOption.toRight("Cannot parse")))
+    }
+    implicit def Stringifier[T : Encoder]: ValueStringifier[T] = new ValueStringifier[T] {
+      def stringify(current: T) = current.asJson.noSpaces
+    }
+  }
+
 }

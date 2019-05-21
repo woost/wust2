@@ -282,14 +282,18 @@ object Elements {
     tpe := "date",
   )
 
-  val textInputMod = VDomModifier(
-    tpe := "text",
-    placeholder := "Text",
+  val timeInputMod = VDomModifier(
+    tpe := "time",
   )
 
   val durationInputMod = VDomModifier(
     tpe := "text",
     placeholder := "1y 2h 3m 4s, ...",
+  )
+
+  val textInputMod = VDomModifier(
+    tpe := "text",
+    placeholder := "Text",
   )
 
   val fileInputMod = VDomModifier(

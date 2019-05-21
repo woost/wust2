@@ -3,11 +3,13 @@ package wust.webApp
 import cats.Functor
 import fontAwesome._
 import jquery.JQuerySelection
+import monix.eval.Task
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.{console, document}
+import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
@@ -249,6 +251,19 @@ package object outwatchHelpers extends KeyHash with RxInstances {
       rx.triggerLater(o.onNext(_))
       rx
     }
+
+    //TODO: helper in outwatch monixops
+    @inline def transformObserverWith[R](f: Observer[T] => Observer[R]): ProHandler[R, T] =  ProHandler(f(o), o)
+  }
+
+  implicit class WustRichObserver[T](val o: Observer[T]) extends AnyVal {
+    //TODO: helper in outwatch monixops for redirectFuture
+    @inline def redirectEval[R](f: R => Task[T]): Observer[R] =  redirectFuture(r => f(r).runToFuture)
+    def redirectFuture[R](f: R => Future[T]): Observer[R] =  new Observer[R] {
+      override def onNext(elem: R): Future[Ack] = f(elem).flatMap(o.onNext(_))
+      override def onError(ex: Throwable): Unit = o.onError(ex)
+      override def onComplete(): Unit = o.onComplete()
+    }
   }
 
   implicit class WustRichObservable[T](val o: Observable[T]) extends AnyVal {
@@ -331,7 +346,12 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO AsEmitterBuilder type class in outwatch?
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
 
-  implicit class RichEmitterBuilder[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
+  implicit class RichEmitterBuilder(val factory: EmitterBuilder.type ) extends AnyVal {
+    def combine[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
+      others.map(_ --> sink)
+    }
+  }
+  implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
   }
   implicit class RichEmitterBuilderEditInteraction[T,R](val builder: EmitterBuilder[EditInteraction[T],R]) extends AnyVal {

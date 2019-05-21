@@ -92,9 +92,9 @@ object Importing {
             cls := "ui mini form",
 
             b("Project Name:", marginRight := "10px", Styles.flexStatic),
-            EditableContent.inputField[NonEmptyString](EditableContent.Config(
+            EditableContent.editor[NonEmptyString](EditableContent.Config(
               submitMode = EditableContent.SubmitMode.OnInput,
-              innerModifier = placeholder := "Project Name"
+              modifier = placeholder := "Project Name"
             )).editValueOption.map(_.map(_.string)) --> formVar
           )
         }
@@ -158,19 +158,18 @@ object Importing {
 
      case Input.FromFile(description, acceptType) =>
        stringImporter("Upload file", description, source.parser) { current =>
-         EditableContent.inputField[dom.File](EditableContent.Config(
+         EditableContent.editor[dom.File](EditableContent.Config(
            submitMode = EditableContent.SubmitMode.OnChange,
-           innerModifier = acceptType.map(accept := _)
+           modifier = acceptType.map(accept := _)
          )).editValueOption.map(_.map(file => IO.fromFuture(IO(FileReaderOps.readAsText(file))).map(Right(_)))) --> current
        }
 
      case Input.FromRemoteFile(description, getUrl) =>
        stringImporter("Import from Url", description, source.parser) { current =>
-         EditableContent.inputField[NonEmptyString](EditableContent.Config(
+         EditableContent.editor[NonEmptyString](EditableContent.Config(
            submitMode = EditableContent.SubmitMode.OnInput,
-           outerModifier = cls := "ui mini form",
-           innerModifier = placeholder := "Url to public Trello board"
-         )).editValueOption.map(_.map { value =>
+           modifier = placeholder := "Url to public Trello board"
+         )).mapResult(_.apply(cls := "ui mini form")).editValueOption.map(_.map { value =>
            getUrl(value.string) match {
              case Some(url) => IO.fromFuture(IO(
                dom.experimental.Fetch.fetch(url).toFuture

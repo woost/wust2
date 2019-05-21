@@ -1,7 +1,11 @@
 package wust
 
 
+import java.util.Date
+
 import supertagged._
+
+import scala.util.Try
 
 package object ids {
   type UuidType = String
@@ -43,17 +47,28 @@ package object ids {
   object DurationMilli extends TaggedType[Long]
   type DurationMilli = DurationMilli.Type
 
+  object DateTimeMilli extends OverTagged(EpochMilli)
+  type DateTimeMilli = DateTimeMilli.Type
+
+  object TimeMilli extends OverTagged(EpochMilli)
+  type TimeMilli = TimeMilli.Type
+
+  object DateMilli extends OverTagged(EpochMilli)
+  type DateMilli = DateMilli.Type
+
   object EpochMilli extends TaggedType[Long] {
     var delta: Long = 0 //TODO we should not have a var here, we use the delta for something very specific in the client and not for every epochmilli instance!
-    @inline def localNow: EpochMilli =
-      EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
-    @inline def now: EpochMilli =
-      EpochMilli(localNow + delta)
+    @inline def localNow: EpochMilli = EpochMilli(System.currentTimeMillis()) // UTC: https://docs.oracle.com/javase/8/docs/api/java/lang/System.html#currentTimeMillis--
+    @inline def now: EpochMilli = EpochMilli(localNow + delta)
+    @inline def zero: EpochMilli = EpochMilli(0L)
     @inline def second: Long = 1000L
     @inline def minute: Long = 60L * second
     @inline def hour: Long = 60L * minute
     @inline def day: Long = 24L * hour
     @inline def week: Long = 7L * day
+
+    def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
+
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli): Boolean = t < that
       @inline def >(that: EpochMilli): Boolean = t > that
@@ -85,6 +100,18 @@ package object ids {
         val month = d.getMonth + 1
         val day = d.getDate
         f"$year%04d-$month%02d-$day%02d"
+      }
+      def isoDateAndTime: String = {
+        // java.util.Date is deprecated, but implemented in java and scalajs
+        // and therefore a simple cross-compiling solution
+        import java.util.Date
+        val d = new Date(t)
+        val year = d.getYear + 1900
+        val month = d.getMonth + 1
+        val day = d.getDate
+        val hour = d.getHours
+        val minute = d.getMinutes
+        f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d"
       }
     }
 

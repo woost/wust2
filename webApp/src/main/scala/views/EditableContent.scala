@@ -53,8 +53,7 @@ object EditableContent {
   }
 
   case class Config(
-    innerModifier: VDomModifier = VDomModifier.empty,
-    outerModifier: VDomModifier = VDomModifier.empty,
+    modifier: VDomModifier = VDomModifier.empty,
     submitMode: SubmitMode = SubmitMode.Explicit,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
@@ -71,86 +70,71 @@ object EditableContent {
   }
 
   //TODO elegant wrap in form to check reportvalidity on inputfield constraints?
-  @inline def inputField[T: EditInputParser: ValueStringifier](implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = inputField[T](Config.default)
-  def inputField[T: EditInputParser: ValueStringifier](config: Config)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
+
+  @inline def editor[T: EditElementParser](implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = editor[T](Config.default)
+  def editor[T: EditElementParser](config: Config)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = EmitterBuilder.ofNode { action =>
     val currentVar = Handler.unsafe[EditInteraction[T]]
-
-    VDomModifier(
-      emitter(currentVar) --> action,
-      inputFieldRxInteraction(currentVar, config)
-    )
+    editorHandler(None, currentVar, config).apply(emitter(currentVar) --> action)
   }
-
-  def inputField[T: EditInputParser: ValueStringifier](current: T, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
-    val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
-
-    VDomModifier(
-      emitter(currentVar.drop(1)) --> action,
-      inputFieldRxInteraction(currentVar, config)
-    )
-  }
-
-  @inline def inputFieldRx[T: EditInputParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = inputFieldRxInteraction[T](zoomOutToEditInteraction(current), config)
-  def inputFieldRxInteraction[T: EditInputParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
-    val modifier = EditInputParser[T].modifier
-    commonEditStructure(current, config)(
-      input(
-        width := "100%",
-        modifier.mod,
-        commonEditMods[T, dom.html.Input](current, config, EditInputParser[T].parse(_), modifier.valueSetter, modifier.fixedSubmitEvent),
-      ),
-      modifier.outerMod,
-    )
-  }
-
-  @inline def inputInline[T: EditStringParser: ValueStringifier](implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = inputInline[T](Config.default)
-  def inputInline[T: EditStringParser: ValueStringifier](config: Config)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier{ action =>
+  def editor[T: EditElementParser](current: T, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = EmitterBuilder.ofNode { action =>
     val currentVar = Handler.unsafe[EditInteraction[T]]
-
-    VDomModifier(
-      emitter(currentVar) --> action,
-      inputInlineRxInteraction[T](currentVar, config)
-    )
+    editorHandler(Some(current), currentVar, config).apply(emitter(currentVar) --> action)
+  }
+  @inline def editorRx[T: EditElementParser](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
+    val currentVar = zoomOutToEditInteraction(current)
+    editorHandler[T](current.now, currentVar, config)
+  }
+  private def editorHandler[T: EditElementParser](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
+    commonEditStructure(initial, current, config, handle)(current => VDomModifier(
+      EditElementParser[T].render(EditElementParser.Config(
+        inputEmitter = inputEmitter(config),
+        inputModifier = inputModifiers(config, current),
+        modifier = basicModifiers(config, current),
+      ), Task.pure(initial), current)
+    ))
   }
 
-  def inputInline[T: EditStringParser: ValueStringifier](current: T, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
-    val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
+  @inline def inlineEditor[T: EditStringParser: ValueStringifier](implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = inlineEditor[T](Config.default)
+  def inlineEditor[T: EditStringParser: ValueStringifier](config: Config)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = EmitterBuilder.ofNode { action =>
+    val currentVar = Handler.unsafe[EditInteraction[T]]
+    inlineEditorHandler[T](None, currentVar, config).apply(emitter(currentVar) --> action)
+  }
+  def inlineEditor[T: EditStringParser: ValueStringifier](current: T, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VNode] = EmitterBuilder.ofNode { action =>
+    val currentVar = Handler.unsafe[EditInteraction[T]]
+    inlineEditorHandler[T](Some(current), currentVar, config).apply(emitter(currentVar.drop(1)) --> action)
+  }
+  @inline def inlineEditorRx[T: EditStringParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
+    val currentVar = zoomOutToEditInteraction(current)
+    inlineEditorHandler[T](current.now, currentVar, config)
+  }
+  private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
+    commonEditStructure(initial, current, config, handle)(current => dsl.span(
+      outline := "none", // hides contenteditable outline
+      contentEditable := true,
+      backgroundColor := "#FFF",
+      color := "#000",
+      cursor.auto,
+      minWidth := "20px", minHeight := "20px", // minimal edit area
+      lineHeight := "1.4285em", // like semantic UI <p>
 
-    VDomModifier(
-      emitter(currentVar.drop(1)) --> action,
-      inputInlineRxInteraction[T](currentVar, config)
-    )
+      basicModifiers(config, current),
+      inputModifiers(config, current),
+
+      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), current, inputEmitter(config), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
+    ))
   }
 
-  @inline def inputInlineRx[T: EditStringParser: ValueStringifier](current: Var[Option[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = inputInlineRxInteraction[T](zoomOutToEditInteraction(current), config)
-  def inputInlineRxInteraction[T: EditStringParser: ValueStringifier](current: Handler[EditInteraction[T]], config: Config = Config.default)(implicit ctx: Ctx.Owner): VNode = {
-    commonEditStructure(current, config)(
-      dsl.span(
-        outline := "none", // hides contenteditable outline
-        contentEditable := true,
-        backgroundColor := "#FFF",
-        color := "#000",
-        cursor.auto,
-        minWidth := "20px", minHeight := "20px", // minimal edit area
-        lineHeight := "1.4285em", // like semantic UI <p>
-        width := "100%",
-
-        commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], _.fold[String](identity, identity))
-      )
-    )
-  }
-
-  def inputFieldOrRender[T: EditInputParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, inputFieldRxInteraction(_, config))
-
-  def inputInlineOrRender[T: EditStringParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, inputInlineRxInteraction(_, config))
+  @inline def editorOrRender[T: EditElementParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, editorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
+  @inline def inlineEditorOrRender[T: EditStringParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, inlineEditorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
+  @inline def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, commonEditStructure(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode))(inputFn))
 
   def ofNode(state: GlobalState, node: Node, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
     implicit val context = EditContext(state)
 
     EditStringParser.forNode(node).map { implicit parser =>
-      inputInline[Node](node, config) --> action
-    } orElse EditInputParser.forNode(node).map { implicit parser =>
-      inputField[Node](node, config) --> action
+      inlineEditor[Node](node, config) --> action
+    } orElse EditElementParser.forNode(node).map { implicit parser =>
+      editor[Node](node, config) --> action
     }
   }
 
@@ -158,9 +142,9 @@ object EditableContent {
     implicit val context = EditContext(state)
 
     EditStringParser.forNode(node).map { implicit parser =>
-      inputInlineOrRender[Node](node, editMode, renderFn, config) --> action
-    } orElse EditInputParser.forNode(node).map { implicit parser =>
-      inputFieldOrRender[Node](node, editMode, renderFn, config) --> action
+      inlineEditorOrRender[Node](node, editMode, renderFn, config) --> action
+    } orElse EditElementParser.forNode(node).map { implicit parser =>
+      editorOrRender[Node](node, editMode, renderFn, config) --> action
     }
   }
 
@@ -174,9 +158,12 @@ object EditableContent {
       elements.map { case (title, element) =>
         option(value := ValueStringifier[T].stringify(element), title, selected <-- activeElement.map(_ contains element)),
       },
-      onInput.transform(_.mapEval(e => EditStringParser.parseSelect(e.currentTarget.asInstanceOf[dom.html.Select]))).editValueOption --> activeElement,
+      onInput.transform(_.mapEval(e => EditStringParser[T].parse(stringFromSelect(e.currentTarget.asInstanceOf[dom.html.Select])))).editValueOption --> activeElement,
     )
   }
+
+  @inline private def stringFromElement(element: dom.Element): String = element.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // innerText because textContent would remove line-breaks in firefox
+  @inline private def stringFromSelect(element: dom.html.Select): String = element.value
 
   private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
     "Cancel",
@@ -189,116 +176,48 @@ object EditableContent {
     onClick.stopPropagation(EditInteraction.Cancel) --> current
   )
 
-  private def commonEditStructure[T](current: Handler[EditInteraction[T]], config: Config)(modifiers: VDomModifier*) = {
+  private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: Handler[EditInteraction[T]] => VDomModifier) = {
+    val handledCurrent = current.transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
+
     dsl.span(
       display.inlineFlex,
       flexDirection.column,
       alignItems.center,
       width := "100%",
-      dsl.span.thunkStatic(current.hashCode)(Ownable { implicit ctx => VDomModifier(
+      dsl.span(
         display.inlineFlex,
         alignItems.flexStart,
         width := "100%",
-        modifiers,
-        Some(config.submitMode).collect {
+        modifier(handledCurrent),
+        config.submitMode match {
           case SubmitMode.Explicit => dsl.span(
             display.inlineFlex,
             alignItems.flexStart,
             marginLeft := "auto",
             marginTop := "4px", // center on first line
-            cancelButton(current)
+            cancelButton(handledCurrent)
           )
+          case _ => VDomModifier.empty
         }
-      )}),
-
-      config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(
-          onGlobalEscape(EditInteraction.Cancel) --> current
-        )
-        case _ => VDomModifier.empty
-      },
-
-      config.outerModifier,
-      showErrorsOutside(current, config.errorMode)
-    )
-  }
-
-  private def commonEditMods[T: ValueStringifier, Elem <: dom.html.Element](current: Handler[EditInteraction[T]], config: Config, rawParse: Elem => Task[EditInteraction[T]], valueSetter: AttributeBuilder[Either[String, String], VDomModifier], fixedSubmitEvent: Option[EmitterBuilder[dom.Event, VDomModifier]] = None) = {
-    var elem: dom.html.Element = null
-    var lastValue: Option[T] = None
-    val parse: Elem => Task[EditInteraction[T]] = { elem =>
-      rawParse(elem).map {
-        case e@EditInteraction.Input(v) =>
-          val newe = config.submitMode match {
-            case SubmitMode.Explicit => if (lastValue contains v) EditInteraction.Cancel else e
-            case _ => e
-          }
-          lastValue = Some(v)
-          newe
-        case e@EditInteraction.Error(error) => config.errorMode match {
-          case ErrorMode.Cancel => EditInteraction.Cancel
-          case _ => e
-        }
-        case e => e
-      }
-    }
-
-    def shouldFocus = {
-      dom.document.activeElement.tagName.toLowerCase != "input"
-    }
-    VDomModifier(
-      onDomMount.asHtml.foreach { elem = _ },
-      current.map {
-        case EditInteraction.Input(value) if !lastValue.contains(value) =>
-          lastValue = Some(value)
-          valueSetter := Right(ValueStringifier[T].stringify(value))
-        case EditInteraction.Cancel =>
-          valueSetter := Left(lastValue.fold("")(ValueStringifier[T].stringify))
-        case _ =>
-          VDomModifier.empty
-      },
-
-      cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-      whiteSpace.preWrap, // preserve white space in Markdown code
-
-      onClick.stopPropagation --> Observer.empty, // prevent e.g. selecting node, but only when editing
-
-      onDomMount.asHtml --> inNextAnimationFrame { elem => if (shouldFocus) elem.focus() },
-      onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocus) elem.focus() },
-      VDomModifier.ifTrue(config.selectTextOnFocus)(
-        onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
       ),
 
       config.submitMode match {
-        case SubmitMode.Explicit => VDomModifier(
-          fixedSubmitEvent.getOrElse(onBlur.transform(_.delayOnNext(200 millis))).transform(_.mapEval { e => // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-            parse(e.target.asInstanceOf[Elem])
-          }) --> current,
-          BrowserDetect.isMobile.ifFalse[VDomModifier](VDomModifier(
-            VDomModifier.ifTrue(fixedSubmitEvent.isEmpty)(onEnter.transform(_.mapEval(e => parse(e.target.asInstanceOf[Elem]))) --> current),
-          )),
-        )
-        case SubmitMode.Emitter(builders) => VDomModifier(
-          fixedSubmitEvent.fold(builders)(_ :: Nil).map(_.transform(_.mapEval(e => parse(e.target.asInstanceOf[Elem]))) --> current)
-        )
+        case SubmitMode.Explicit => VDomModifier.ifNot(BrowserDetect.isMobile)(onGlobalEscape(EditInteraction.Cancel) --> handledCurrent)
+        case _ => VDomModifier.empty
       },
 
-      config.innerModifier,
-
-      showErrorsInside(current)
+      showErrorsOutside(handledCurrent, config.errorMode)
     )
   }
 
-  def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, handler => commonEditStructure(handler, config)(inputFn(handler)))
-
   private def editOrRender[T](current: T, editMode: Var[Boolean], renderFn: T => VDomModifier, inputFn: Handler[EditInteraction[T]] => VDomModifier)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = EmitterBuilder.ofModifier { action =>
-    val currentVar = Handler.unsafe[EditInteraction[T]](EditInteraction.Input(current))
+    val currentVar = Handler.unsafe[EditInteraction[T]]
 
     editMode.foreach { currentlyEditingSubject.onNext(_) }
 
     val editRender = inputFn(currentVar)
     VDomModifier(
-      emitter(currentVar.drop(1)).map(handleEditInteractionInOrRender(editMode)) --> action,
+      emitter(currentVar.drop(1)) --> action,
 
       Rx {
         //components are keyed, becasue otherwise setting editMode to false does not reliably cancel editRender (happens in table with search-and-select of reference node)
@@ -308,6 +227,19 @@ object EditableContent {
     )
   }
 
+  private def handleEditInteraction[T](initial: Option[T], config: Config): EditInteraction[T] => EditInteraction[T] = {
+    var lastValue = initial
+
+    {
+      case EditInteraction.Input(value) if config.submitMode == SubmitMode.Explicit && lastValue.contains(value) => EditInteraction.Cancel
+      case _: EditInteraction.Error if config.errorMode == ErrorMode.Cancel => EditInteraction.Cancel
+      case e@EditInteraction.Input(value) =>
+        lastValue = Some(value)
+        e
+      case e => e
+    }
+  }
+
   private def handleEditInteractionInOrRender[T](editMode: Var[Boolean]): EditInteraction[T] => EditInteraction[T] = {
     case e@EditInteraction.Cancel =>
       editMode() = false
@@ -315,8 +247,7 @@ object EditableContent {
     case e@EditInteraction.Input(t) =>
       editMode() = false
       e
-    case e =>
-      e
+    case e => e
   }
 
   private def showErrorsOutside[T](interaction: Observable[EditInteraction[T]], errorMode: ErrorMode): VDomModifier = errorMode match {
@@ -341,13 +272,12 @@ object EditableContent {
       backgroundColor := "#fff6f6",
       color := "#9f3a38",
     )
-    case _ =>
-      VDomModifier.empty
+    case _ => VDomModifier.empty
   }
 
   private def zoomOutToEditInteraction[T](current: Var[Option[T]])(implicit ctx: Ctx.Owner): Handler[EditInteraction[T]] = {
     var lastValue: EditInteraction[T] = EditInteraction.fromOption(current.now)
-    val handler = Handler.unsafe[EditInteraction[T]](lastValue)
+    val handler = Handler.unsafe[EditInteraction[T]]
     current.triggerLater { v =>
       val newValue =  EditInteraction.fromOption(v)
       if (newValue != lastValue) {
@@ -363,5 +293,37 @@ object EditableContent {
       }
       e
     }
+  }
+
+  //TODO: bad heuristic...
+  private def shouldFocusInput= dom.document.activeElement.tagName.toLowerCase != "input"
+
+  private def basicModifiers[T](config: Config, handler: Handler[EditInteraction[T]]) = VDomModifier(
+    width := "100%",
+    cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
+    whiteSpace.preWrap, // preserve white space in Markdown code
+    config.modifier,
+    showErrorsInside(handler)
+  )
+
+  private def inputModifiers[T](config: Config, handler: Handler[EditInteraction[T]]) = VDomModifier(
+    VDomModifier.ifTrue(config.selectTextOnFocus)(
+      onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
+    ),
+    onClick.stopPropagation --> Observer.empty, // prevent e.g. selecting node, but only when editing
+    onDomMount.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
+    onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
+  )
+
+  private def inputEmitter(config: Config): EmitterBuilder[dom.html.Element, VDomModifier] = {
+    val emitters = config.submitMode match {
+      case SubmitMode.Explicit => Seq(
+        // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
+        onBlur.transform(_.delayOnNext(200 millis))
+      ) ++ (if (BrowserDetect.isMobile) Seq.empty else Seq(onEnter))
+      case SubmitMode.Emitter(builders) => builders
+    }
+
+    EmitterBuilder.combine(emitters.map(_.map(_.target.asInstanceOf[dom.html.Element])))
   }
 }

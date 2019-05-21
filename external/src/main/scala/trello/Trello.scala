@@ -15,7 +15,9 @@ case class Card(
   pos: Double,
   idLabels: List[String],
   idChecklists: List[String],
-  idList: String
+  idList: String,
+  due: Option[String],
+  dueComplete: Boolean
 )
 
 case class Membership(
@@ -150,6 +152,15 @@ object Trello {
       val cardNode = Node.Content(NodeId.fresh, NodeData.Markdown(card.name), NodeRole.Task, NodeMeta.default, Some(views))
       addNodes += cardNode
       cardsById += card.id -> cardNode.id
+
+      // attach due date
+      card.due.foreach { dateStr =>
+        EpochMilli.parse(dateStr).foreach { date =>
+          val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+          addNodes += dateNode
+          addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
+        }
+      }
 
       // attach description as note
       if (card.desc.nonEmpty) {

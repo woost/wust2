@@ -49,11 +49,20 @@ object NodeData {
   }
   object Decimal extends Named
 
-  case class Date(content: EpochMilli) extends Named with Content {
+  case class DateTime(content: DateTimeMilli) extends Named with Content {
+    def plainStr = content.toString
+    def str = content.isoDateAndTime
+  }
+  object DateTime extends Named
+  case class Date(content: DateMilli) extends Named with Content {
     def plainStr = content.toString
     def str = content.isoDate
   }
   object Date extends Named
+  case class Duration(content: DurationMilli) extends Named with Content {
+    def str = content.toString
+  }
+  object Duration extends Named
   case class RelativeDate(content: DurationMilli) extends Named with Content {
     def str = content.toString
   }

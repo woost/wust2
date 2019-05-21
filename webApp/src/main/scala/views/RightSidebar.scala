@@ -296,6 +296,7 @@ object RightSidebar {
 
     VDomModifier(
       div(
+        cls := "ui mini form",
         marginTop := "10px",
         Rx {
           VDomModifier(

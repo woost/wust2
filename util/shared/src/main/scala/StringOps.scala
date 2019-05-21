@@ -22,8 +22,4 @@ object StringOps {
   @inline def safeToDouble(doubleStr: String): Option[Double] = {
     try { Some(doubleStr.toDouble) } catch { case NonFatal(_) => None }
   }
-  @inline def safeToDate(epochString: String): Option[Date] = {
-    // new Date(str) is deprecated, but alternative DateFormat#parse is not available in js
-    try { Some(new Date(epochString)) } catch { case NonFatal(_) => None }
-  }
 }
