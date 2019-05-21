@@ -32,46 +32,62 @@ object LeftSidebar {
 
     GenericSidebar.left(
       state.leftSidebarOpen,
-      config = Ownable { implicit ctx => GenericSidebar.Config(
-        mainModifier = VDomModifier(
-          registerDragContainer(state, DragContainer.Sidebar),
-          drag(target = DragItem.Sidebar),
-        ),
-        openModifier = VDomModifier(
-          Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
-          channels(state),
-          newProjectButton(state).apply(
-            cls := "newChannelButton-large " + buttonStyles,
-            onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
+      config = Ownable { implicit ctx =>
+        val toplevelChannels = toplevelChannelsRx(state)
+        val invites = invitesRx(state)
+
+        GenericSidebar.Config(
+          mainModifier = VDomModifier(
+            registerDragContainer(state, DragContainer.Sidebar),
+            drag(target = DragItem.Sidebar),
           ),
-        ),
-        overlayOpenModifier = VDomModifier(
-          Rx {
-            VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(authStatus)
-          },
-          onClick(false) --> state.leftSidebarOpen
-        ),
-        expandedOpenModifier = VDomModifier(
-          Rx {
-            VDomModifier.ifNot(state.topbarIsVisible())(authStatus)
-          },
-        ),
-        closedModifier = Some(VDomModifier(
-          minWidth := s"${ minWidthSidebar }px", // this is needed when the hamburger is not rendered inside the sidebar
-          Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
-          channelIcons(state, minWidthSidebar),
-          newProjectButton(state, "+").apply(
-            cls := "newChannelButton-small " + buttonStyles,
-            UI.tooltip("right center") := "New Project",
-            onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
-          )
-        ))
-      )}
+          openModifier = VDomModifier(
+            Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
+            channels(state, toplevelChannels, invites),
+            newProjectButton(state).apply(
+              cls := "newChannelButton-large " + buttonStyles,
+              onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
+            ),
+          ),
+          overlayOpenModifier = VDomModifier(
+            Rx {
+              VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(authStatus)
+            },
+            onClick(false) --> state.leftSidebarOpen
+          ),
+          expandedOpenModifier = VDomModifier(
+            Rx {
+              VDomModifier.ifNot(state.topbarIsVisible())(authStatus)
+            },
+          ),
+          closedModifier = Some(VDomModifier(
+            minWidth := s"${ minWidthSidebar }px", // this is needed when the hamburger is not rendered inside the sidebar
+            Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
+            channelIcons(state, toplevelChannels, minWidthSidebar),
+            newProjectButton(state, "+").apply(
+              cls := "newChannelButton-small " + buttonStyles,
+              UI.tooltip("right center") := "New Project",
+              onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
+            )
+          ))
+        )
+      }
     )
   }
 
-  val buttonStyles = "tiny compact inverted grey"
+  private val buttonStyles = "tiny compact inverted grey"
 
+  private def toplevelChannelsRx(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+    val graph = state.rawGraph()
+    val userId = state.userId()
+    ChannelTreeData.toplevelChannels(graph, userId)
+  }
+
+  private def invitesRx(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+    val graph = state.rawGraph()
+    val userId = state.userId()
+    ChannelTreeData.invites(graph, userId)
+  }
 
   private def expandToggleButton(state: GlobalState, nodeId :NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
 
@@ -85,7 +101,7 @@ object LeftSidebar {
     )
   }
 
-  private def channels(state: GlobalState): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], invites: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
       val nodeId = traverseState.parentId
@@ -125,11 +141,11 @@ object LeftSidebar {
       )
     }
 
-    def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
+    def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
-          ChannelTreeData.children(graph, traverseState, userId)
+          findChildren(graph, traverseState)
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
@@ -142,45 +158,30 @@ object LeftSidebar {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "10px",
               fontSize := s"${ math.max(8, 14 - depth) }px",
-              children().map { child => channelList(traverseState.step(child), userId, depth = depth + 1) }
+              children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
         )
       })
     }
 
-    val toplevelChannels = Rx {
-      val graph = state.rawGraph()
-      val user = state.user()
-      ChannelTreeData.toplevel(graph, user.id)
-    }
-
-    val invites:Rx[Seq[NodeId]] = Rx {
-      val graph = state.rawGraph()
-      val user = state.user()
-      val userIdx = graph.idToIdx(user.id) // can fail when logging out
-      userIdx match {
-        case Some(userIdx) => graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) } (breakOut)
-        case None => Seq.empty[NodeId]
-      }
-    }
-
     VDomModifier(
       cls := "channels",
+
       Rx {
-        val user = state.user()
+        val userId = state.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), user.id))
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
         )
       },
 
       Rx {
-        val user = state.user()
+        val userId = state.userId()
 
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations")(cls := "inverted"),
-          invites().map(nodeId => channelLine(TraverseState(nodeId), user.id, expanded = Var(false), hasChildren = Var(false)).apply(
+          invites().map(nodeId => channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false)).apply(
             div(
               cls := "ui icon buttons",
               height := "22px",
@@ -190,14 +191,14 @@ object LeftSidebar {
                 cls := "ui mini compact inverted green button",
                 padding := "4px",
                 freeSolid.faCheck,
-                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, user.id), Edge.Notify(nodeId, state.user.now.id)), delEdges = Array(Edge.Invite(nodeId, state.user.now.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               ),
               button(
                 cls := "ui mini compact inverted button",
                 padding := "4px",
                 freeSolid.faTimes,
-                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, user.id)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               )
             )
@@ -207,7 +208,7 @@ object LeftSidebar {
     )
   })
 
-  private def channelIcons(state: GlobalState, size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channelIcons(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
     val focusBorderWidth = 2
     val defaultPadding = CommonStyles.channelIconDefaultPadding
@@ -243,11 +244,11 @@ object LeftSidebar {
       )
     }
 
-    def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
+    def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = state.rawGraph()
-          ChannelTreeData.children(graph, traverseState, userId)
+          findChildren(graph, traverseState)
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
@@ -261,26 +262,21 @@ object LeftSidebar {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := s"${indentFactor}px",
               fontSize := s"${ math.max(8, 14 - depth) }px",
-              children().map { child => channelList(traverseState.step(child), userId, depth = depth + 1) }
+              children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
         )
       })
     }
 
-    val toplevelChannels = Rx {
-      val graph = state.rawGraph()
-      val user = state.user()
-      ChannelTreeData.toplevel(graph, user.id)
-    }
-
     VDomModifier(
       cls := "channelIcons",
+
       Rx {
-        val user = state.user()
+        val userId = state.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), user.id))
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
         )
       },
     )

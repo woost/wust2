@@ -1,16 +1,23 @@
 package views
 
 import flatland.ArraySet
-import wust.graph.{Graph, TaskOrdering}
-import wust.ids.{NodeId, UserId}
+import wust.graph.{Graph, TaskOrdering, Node}
+import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm.dfs
 import wust.webApp.state.TraverseState
+import flatland._
 
 import scala.collection.mutable
+import scala.collection.breakOut
 
 object ChannelTreeData {
 
-  def toplevel(graph: Graph, userId: UserId): Seq[NodeId] = {
+  def invites(graph: Graph, userId: UserId): Seq[NodeId] = {
+    val userIdx = graph.idToIdxOrThrow(userId)
+    graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) }(breakOut)
+  }
+
+  def toplevelChannels(graph: Graph, userId: UserId): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
     val pinnedNodes = ArraySet.create(graph.nodes.length)
     graph.pinnedNodeIdx.foreachElement(userIdx)(pinnedNodes += _)
@@ -24,14 +31,30 @@ object ChannelTreeData {
     channels.sorted
   }
 
-  def children(graph: Graph, traverseState: TraverseState, userId: UserId): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
+  def childrenChannels(graph: Graph, traverseState: TraverseState, userId: UserId): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
+    nextLayer(graph, traverseState, graph.childrenIdx, isChannel(_, _, userIdx))
+  }
+
+  def parentProjects(graph: Graph, traverseState: TraverseState): Seq[NodeId] = {
+    val parents = nextLayer(graph, traverseState, graph.parentsIdx, isProject)
+    if (parents.isEmpty) Seq(traverseState.parentId) else parents
+  }
+
+  def childrenProjects(graph: Graph, traverseState: TraverseState): Seq[NodeId] = {
+    nextLayer(graph, traverseState, graph.childrenIdx, isProject)
+  }
+
+  @inline private def isProject(graph: Graph, idx: Int) = graph.nodes(idx).role == NodeRole.Project
+  @inline private def isChannel(graph: Graph, idx: Int, userIdx: Int) = graph.isPinned(idx, userIdx = userIdx)
+
+  @inline private def nextLayer(graph: Graph, traverseState: TraverseState, next: NestedArrayInt, shouldCollect: (Graph, Int) => Boolean): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
     val channels = mutable.ArrayBuffer[NodeId]()
-    dfs.withContinue(_(parentIdx), dfs.withoutStart, graph.childrenIdx, { idx =>
+    dfs.withContinue(_(parentIdx), dfs.withoutStart, next, { idx =>
       val nodeId = graph.nodeIds(idx)
       if (traverseState.contains(nodeId)) false
       else {
-        if (graph.isPinned(idx, userIdx = userIdx)) {
+        if (shouldCollect(graph, idx)) {
           channels += nodeId
           false
         } else true
@@ -40,5 +63,4 @@ object ChannelTreeData {
 
     channels.sorted
   }
-
 }
