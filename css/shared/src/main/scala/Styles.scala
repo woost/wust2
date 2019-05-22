@@ -3,26 +3,9 @@ package wust.css
 import scalacss.DevDefaults._
 import scalacss.internal.{Attr, CanIUse, Literal, Transform}
 import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
-import wust.css.Styles.Woost
+import wust.sdk.Colors
 
 import scala.concurrent.duration._
-
-object ZIndex {
-  val controls = 10
-  val draggable = 100
-  val overlaySwitch = 300
-  val selected = 400
-  val overlayLow = 1000
-  val overlayMiddle = 1600
-  val loading = 1750
-  val overlay = 12000
-  val formOverlay = 13000
-  val uiModal = 15000
-  val uiSidebar = 16000
-  val tooltip = 18000
-  val dragging = 20000
-  val toast = 25000
-}
 
 object userDrag extends TypedAttrT1[Len] with ZeroLit {
   import CanIUse.Agent._
@@ -62,7 +45,6 @@ object overflowBehavior extends TypedAttrBase {
   def contain = av("contain")
   def none = av("none")
 }
-
 
 object Styles extends StyleSheet.Inline {
   import dsl._
@@ -134,12 +116,6 @@ object Styles extends StyleSheet.Inline {
     (0 %%) -> style(opacity(0), visibility.visible),
     (100 %%) -> style(opacity(1), visibility.visible)
   )
-
-  object Woost {
-    val color = c"#6636b7"
-  }
-
-  val unreadColor = c"#1F81F3"
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -204,12 +180,6 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := "0px 7px 21px -6px rgba(0,0,0,0.75)"
   )
 
-  ".mainview" - (
-    flexDirection.column,
-    Styles.growFull,
-    Styles.flex
-  )
-
   ".taglist" - (
     width(180.px),
     paddingLeft(10.px),
@@ -226,7 +196,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- breadcrumb --
   ".breadcrumbs" - (
-    padding(2 px, 3 px),
+    padding(2 px, 0 px),
 
     Styles.flex,
     alignItems.flexStart,
@@ -244,9 +214,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumbs .divider" - (
     marginLeft(3 px),
     marginRight(3 px),
-    color.gray,
-    fontSize(16 px),
-    fontWeight.bold
+    color(c"rgba(0,0,0, 0.3)"),
+    fontSize(18 px),
   )
 
   ".breadcrumb" - (
@@ -296,25 +265,16 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  val sidebarBgColorCSS = c"#2A3238"
-  val sidebarBgColor = sidebarBgColorCSS.value
-
-  val tabsOutlineColor = c"#86A0B3"
-  val tabsInactiveBackgroundColor = c"#97aaba"
-  val tabsOutlineWidth = 2.px
-
   ".moveable-window" - (
+    backgroundColor(Color(Colors.sidebarBg)),
     position.absolute,
-    border(2.px, solid,  CommonStyles.sidebarBgColorCSS),
-    borderRadius(4.px, 4.px, 4.px, 4.px),
-    boxShadow := "5px 10px 18px -6px rgba(0,0,0,0.75)"
+    borderRadius(4 px),
+    boxShadow := "0px 10px 18px -6px rgba(0,0,0,0.75)"
   )
 
-  ".viewswitcher-border" - (
-    borderBottom(tabsOutlineWidth, solid, tabsOutlineColor),
-  )
-
-  ".pageheader" -(
+  ".pageheader" - (
+    color.white,
+    padding(0 px, 5 px),
   )
 
   ".pageheader-channeltitle" - (
@@ -330,8 +290,12 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingBottom(0 px),
   )
 
+  ".pageheader-channeltitle.nodecard .nodecard-content" - (
+    padding(2 px),
+  )
+
   ".avatar" - (
-    backgroundColor(c"rgba(255, 255, 255, 0.90)"),
+    backgroundColor(c"rgb(255, 255, 255)"),
     borderRadius(2 px),
     padding(2 px),
     Styles.flexStatic,
@@ -400,8 +364,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".sidebar" - (
-    color.white,
-    backgroundColor(sidebarBgColorCSS),
+    backgroundColor(Color(Colors.sidebarBg)),
     Styles.flexStatic,
     height(100 %%),
     Styles.flex,
@@ -422,7 +385,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".expanded-sidebar" - (
     height(100 %%),
     zIndex(ZIndex.overlay),
-    boxShadow := "-2px 4px 5px 0px rgba(0,0,0,0.5)",
+    boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.32)",
   )
 
   ".expanded-left-sidebar > .sidebar-open" - (
@@ -484,15 +447,14 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(0 px, 3 px),
     minWidth(200 px),
     overflowY.auto,
-    color(c"#C4C4CA"),
   )
 
   ".channel-line" - (
     Styles.flex,
     alignItems.center,
     cursor.pointer.important, // overwrites cursor from .draggable
-    marginBottom(2 px),
     borderRadius(2 px),
+    paddingLeft(5 px),
   )
 
   ".channel-line > .channelicon" - (
@@ -531,8 +493,17 @@ object CommonStyles extends StyleSheet.Standalone {
     alignItems.flexStart, // in safari and firefox the scrollbar takes away some with. this alignment controls which part of the icons is shown
   )
 
+  ".channelIcons .channelicon" - (
+    backgroundColor.white,
+  )
+
   val channelIconDefaultPadding = 4
   ".channelicon" - (
+    Styles.flex,
+    justifyContent.center,
+    alignItems.center,
+    fontSize(16 px),
+
     padding(channelIconDefaultPadding px),
     Styles.flexStatic,
     margin(0 px),
@@ -765,8 +736,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".nodecard.project" - (
-    border(1 px, solid), // when dragging this will be replaced with a color
-    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
+    color.white,
   )
 
   ".nodecard.node" - (
@@ -790,6 +760,17 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.wordWrap,
     padding(2 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
+  )
+
+  ".listview .nodecard-content," +
+  ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
+    padding(8 px),
+  )
+
+  ".listview .nodecard > .checkbox" - (
+    marginTop(9 px),
+    marginTop(9 px),
+    marginLeft(9 px),
   )
 
   ".nodecard-content pre" - (
@@ -821,9 +802,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard.node-deleted" - (
     fontSize.smaller,
     opacity(0.5),
-  )
-  ".nodecard.node-deleted > .nodecard-content" - (
-    textDecoration := "line-through",
   )
 
   ".tags" - (
@@ -920,7 +898,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbantoplevelcolumn" - (
-    border(1 px, solid, white),
     display.flex,
     minHeight(0 px),
     minWidth(kanbanColumnWidth).important, // conflicts with minwidth of nodecard
@@ -930,7 +907,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbansubcolumn" - (
-    border(1 px, solid, white)
+    border(1 px, solid, c"#d0d0d0"),
   )
 
   ".kanbancolumntitle" - (
@@ -1034,7 +1011,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    color(c"#FEFEFE"),
+    backgroundColor(c"#f6f6f6"),
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
@@ -1142,7 +1119,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".singleButtonWithBg" - (
-    padding(0 px, 1 px),
+    padding(1 px, 2 px),
     borderRadius(3 px),
     color(c"rgba(255, 255, 255, 0.83)"),
     backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
@@ -1200,22 +1177,22 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // -- draggable node
-  val dragHighlightColor = c"rgba(55, 66, 74, 1)"
   ".draggable-container .node.draggable--over," +
   ".graphnode.draggable--over," +
   ".chat-expanded-thread.draggable--over," + // chatview
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div," + // chatview
   ".chat-history.draggable--over," +
   ".chat-row.draggable--over .nodecard" - (
-    backgroundColor(dragHighlightColor).important,
+    backgroundColor(Color(Colors.dragHighlight)).important,
     color.white.important,
     opacity(1).important,
     cursor.move.important
   )
 
   ".sidebar .node.draggable--over" - (
-    color(dragHighlightColor).important,
+    color(Color(Colors.dragHighlight)).important,
     backgroundColor.white.important,
+    boxShadow := s"inset 0px 0px 0px 2px ${Colors.dragHighlight}"
   )
 
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview
@@ -1282,12 +1259,8 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.text
   )
 
-  val topBarHeight = 45
   ".topbar" - (
     paddingRight(5 px),
-    height(topBarHeight px),
-    color.white,
-    background := sidebarBgColorCSS,
     Styles.flex,
     flexDirection.row,
     justifyContent.spaceBetween,
@@ -1295,7 +1268,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".topBannerContainer" - (
-    width(100 %%),
     Styles.flex,
     Styles.flexStatic,
     flexDirection.column,
@@ -1312,37 +1284,36 @@ object CommonStyles extends StyleSheet.Standalone {
     width(100 %%),
     height(40 px),
     color.white,
-//    backgroundColor(Woost.color),
-    // backgroundColor(c"#ff0266"), // pink
     backgroundColor.seagreen,
-    borderBottom(1 px, solid, black)
   )
 
-  val tabsPadding = 5.px
+  val tabsPadding = 7.px
   ".viewswitcher-item" - (
-    fontSize.larger,
+    fontSize(20 px),
     height(100 %%),
     padding(tabsPadding),
-//    marginLeft(2 px),
+    borderRadius(2 px, 2 px, 0 px, 0 px),
+    marginLeft(3 px),
     Styles.flex,
     alignItems.center,
     cursor.pointer,
+    color(c"rgba(0,0,0,0.87)"), // semantic ui text color
   )
   ".viewswitcher-item.active" - (
     // borderBottomColor set programatically to topic color
-    border(tabsOutlineWidth, solid, tabsOutlineColor),
-    marginBottom(-tabsOutlineWidth),
   )
   ".viewswitcher-item.active:hover" - (
     zIndex(1500)
   )
   ".viewswitcher-item.inactive" - (
-    margin(tabsOutlineWidth, tabsOutlineWidth, 0 px, tabsOutlineWidth),
-    color(rgba(0,0,0,0.7)),
+    backgroundColor(rgba(0,0,0, 0.1)),
+    color(rgba(255,255,255,0.75)),
   )
-  ".viewswitcher-item.inactive span" - (opacity(0.5))
-  ".viewswitcher-item.inactive .fa-fw" - (opacity(0.5))
-  val tabsBoxShadowColor = c"#000000"
+
+  ".viewswitcher-item .ui.dropdown" - (
+    fontSize(inherit) // overwrite semantic ui default font-size
+  )
+
   ".viewswitcher-item.double.right" - (
     marginLeft(0 px),
     borderLeft(0 px),

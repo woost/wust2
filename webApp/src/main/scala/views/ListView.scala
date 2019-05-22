@@ -25,6 +25,7 @@ object ListView {
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     fieldAndList(state, focusState, TraverseState(focusState.focusedId)).apply(
+      cls := "listview",
       overflow.auto,
       padding := "5px",
       flexGrow := 2,
@@ -53,7 +54,7 @@ object ListView {
       isDone = isDone,
       inOneLine = true
     ).apply(
-      margin := "3px 4px",
+      margin := "2px 4px",
     )
   }
 
@@ -142,14 +143,14 @@ object ListView {
     }
 
     VDomModifier(
-      paddingTop := "5px",
+      marginTop := "10px",
       div(
-        height := "1px",
-        backgroundColor := NodeColor.tagColor(nodeId).toHex,
-        margin := "15px 5px 3px 5px",
-      ),
-      div(
+        //TODO: onlick toggle expand
+        fontSize.larger,
+        paddingLeft := "5px",
+        opacity := 0.6,
         Styles.flex,
+        alignItems.center,
         renderExpandCollapseButton(state, nodeId, isExpanded, alwaysShow = true),
         Rx {
           renderNodeData(stage().data).apply(paddingLeft := "5px")
@@ -158,10 +159,9 @@ object ListView {
 
       Rx {
         VDomModifier.ifTrue(isExpanded())(
-          expandedNodeContentWithLeftTagColor(state, nodeId).apply(
+          (
             div(
               flexGrow := 2,
-              paddingLeft := "5px",
               Styles.flex,
               flexDirection.columnReverse,
 
@@ -188,7 +188,7 @@ object ListView {
 
     div(
       Rx {
-        inputRow(state, submitAction(state.userId()),
+        InputRow(state, submitAction(state.userId()),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeholder = Placeholder.newTask,

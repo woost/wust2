@@ -4,6 +4,7 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.sdk.Colors
 import wust.css.{ CommonStyles, Styles }
 import wust.ids.View
 import wust.ids.NodeRole
@@ -72,14 +73,14 @@ object WelcomeView {
       Rx {
         (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
           div(
-            backgroundColor := CommonStyles.sidebarBgColor,
+            backgroundColor := Colors.sidebarBg,
             color := "white",
             padding := "15px",
             div(
               Styles.flex,
               alignItems.center,
               justifyContent.spaceAround,
-              authStatus(state)
+              AuthControls.authStatus(state)
             )
           )
         )

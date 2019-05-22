@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import fontAwesome.{IconDefinition, freeRegular, freeSolid}
 import SharedViewElements._
@@ -154,7 +155,7 @@ object NotificationView {
       VDomModifier.ifTrue(haveUnreadNotifications())(
         button(
           cls := "ui compact button",
-          backgroundColor := Styles.unreadColor.value,
+          backgroundColor := Colors.unread,
           color := "white",
           Icons.notifications,
           onClick.stopPropagation(View.Notifications) --> sink,
@@ -336,7 +337,7 @@ object NotificationView {
                       color.gray,
                     )
                     else VDomModifier(
-                      color := Styles.unreadColor.value,
+                      color := Colors.unread,
                       freeSolid.faCircle,
                     ),
 

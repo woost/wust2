@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import fomanticui._
 import fontAwesome.IconLookup
 import jquery.JQuerySelection
@@ -114,7 +115,7 @@ object UI {
 
     def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
-        backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
+        backgroundColor := Colors.sidebarBg,
         div(
           Styles.flex,
           flexDirection.row,

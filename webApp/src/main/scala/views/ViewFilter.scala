@@ -48,7 +48,11 @@ object ViewFilter {
         Icons.filter,
         span(marginLeft := "5px", "Filter"),
         state.isFilterActive.map {
-          case true => backgroundColor := "green"
+          case true =>
+            Rx{VDomModifier(
+              backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+              color.white,
+            )}:VDomModifier
           case false => VDomModifier.empty
         }
       ),
@@ -57,12 +61,15 @@ object ViewFilter {
       initialWidth = 260,
       initialHeight = 250,
       resizable = false,
+      titleModifier = Ownable(implicit ctx =>
+        Rx{VDomModifier(
+          backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+          color.white,
+        )}
+      ),
       bodyModifier = Ownable { implicit ctx =>
         VDomModifier(
           padding := "5px",
-          Rx {
-            backgroundColor := state.pageStyle().bgLightColor,
-          },
 
           Components.verticalMenu(
             filterTransformations.map { transformation =>
@@ -136,13 +143,13 @@ object ViewFilter {
       Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
       cls := "ui search",
       div(
+        backgroundColor := "rgba(0,0,0,0.1)",
+        padding := "5px",
+        borderRadius := "3px",
         state.isFilterActive.map(VDomModifier.ifTrue(_)(
-          color := "green",
-          outline := "none",
-          borderColor := "green",
-          boxShadow := "0 0 10px 3px green",
+          border := "2px solid rgb(255,255,255)",
         )),
-        cls := "ui icon input",
+        cls := "ui small inverted transparent icon input",
         input(
           `type` := "text",
           placeholder := "Filter",
@@ -153,7 +160,7 @@ object ViewFilter {
             else baseTransform :+ GraphOperation.ContentContains(needle)
           } --> state.graphTransformations
         ),
-        i(cls :="search icon"),
+        i(cls :="search icon", marginRight := "5px"),
       )
     )
   }

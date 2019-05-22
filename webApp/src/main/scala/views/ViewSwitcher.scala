@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import cats.effect.IO
 import clipboard.ClipboardJS
 import fontAwesome._
@@ -94,7 +95,7 @@ object ViewSwitcher {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx => VDomModifier(
-      div(freeSolid.faEllipsisV, padding := "5px 10px 5px 10px"),
+      div(freeSolid.faEllipsisV, color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
       UI.dropdownMenu(VDomModifier(
         padding := "5px",
         div(cls := "item", display.none), //TODO ui dropdown needs at least one element
@@ -103,7 +104,7 @@ object ViewSwitcher {
       ), close = closeDropdown, dropdownModifier = cls := "top left")
     )})
 
-    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow).apply(padding := "0px")
+    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow)
 
     VDomModifier(
       marginLeft := "5px",

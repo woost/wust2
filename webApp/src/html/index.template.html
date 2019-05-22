@@ -54,6 +54,8 @@
     <!-- End Google Tag Manager (noscript) -->
     <% } %>
 
+    <!-- draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors -->
+    <div id="draggable-mirrors" style="position:absolute;"></div>
     <div id="modal-placeholder"></div>
     <div id="sidebar-placeholder"></div>
     <div id="container"></div>

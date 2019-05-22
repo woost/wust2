@@ -183,7 +183,7 @@ object AuthView {
         hotjar.pageView("/login/submit")
         Client.auth.login(userValue.email, Password(userValue.password)).map {
           case AuthResult.BadPassword => Some("Wrong password.")
-          case AuthResult.BadEmail    => Some("No account with this email address exists.")
+          case AuthResult.BadEmail    => Some("No account with this email address exists. Please check spelling and capitalization.")
           case AuthResult.Success     =>
             Analytics.sendEvent("auth", "login")
             None

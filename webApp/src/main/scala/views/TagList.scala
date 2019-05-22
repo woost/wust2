@@ -26,7 +26,6 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
-import wust.webApp.views.Topbar.{login, logout}
 
 import scala.collection.breakOut
 import scala.concurrent.Future
@@ -43,7 +42,11 @@ object TagList {
         Icons.tags,
         span(marginLeft := "5px", "Tags"),
         state.graphTransformations.map {
-          case list if list.exists(_.isInstanceOf[GraphOperation.OnlyTaggedWith]) => backgroundColor := "green"
+          case list if list.exists(_.isInstanceOf[GraphOperation.OnlyTaggedWith]) =>
+            Rx{VDomModifier(
+              backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+              color.white,
+            )}:VDomModifier
           case _ => VDomModifier.empty
         }
       ),
@@ -52,13 +55,18 @@ object TagList {
       initialWidth = 200,
       initialHeight = 300,
       resizable = true,
+      titleModifier = Ownable(implicit ctx =>
+        Rx{VDomModifier(
+          backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+          color.white,
+        )}
+      ),
       bodyModifier = Ownable(implicit ctx => VDomModifier(
         overflowY.auto,
         Rx {
           val page = state.page()
           val graph = state.graph()
           VDomModifier.ifTrue(state.view().isContent)(
-            backgroundColor := state.pageStyle().bgLightColor,
             page.parentId.map { pageParentId =>
               val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
               val workspaces = graph.workspacesForParent(pageParentIdx)
@@ -136,7 +144,7 @@ object TagList {
       keyed(parentId),
       Rx {
         if(newTagFieldActive())
-          inputRow(state,
+          InputRow(state,
             submitAction,
             autoFocus = true,
             blurAction = Some(blurAction),

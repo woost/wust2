@@ -11,16 +11,16 @@ import wust.util.collection._
 import colorado.HCL
 import covenant.core.DefaultLogHandler
 import covenant.core.util.StopWatch
-import monix.reactive.{Observable, Observer}
-import sloth.{ClientException, ClientFailure, LogHandler}
+import monix.reactive.{ Observable, Observer }
+import sloth.{ ClientException, ClientFailure, LogHandler }
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.{ ExecutionContext, Future }
 import org.scalajs.dom.console
-import wust.graph.{Graph, Page}
+import wust.graph.{ Graph, Page }
 
-import scala.scalajs.{LinkingInfo, js}
+import scala.scalajs.{ LinkingInfo, js }
 import scala.scalajs.js.JSConverters._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 import scala.collection.breakOut
 
 class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext) extends LogHandler[Future] {
@@ -33,9 +33,10 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
       .nextDouble() * Math.PI // green to pink without red/orange/yellow, to not look like errors/warnings
     val baseHue: Double = path match {
       case List("Api", "getGraph") =>
-        NodeColor
-          .mixHues(arguments.productIterator.toList.head.asInstanceOf[Page].parentId)
-          .getOrElse(randomHue)
+        arguments.productIterator.toList.head.asInstanceOf[Page].parentId.map{ parentId =>
+          NodeColor.hue(parentId)
+        }
+        .getOrElse(randomHue)
       case _ => randomHue
     }
     val boxBgColor = HCL(baseHue, 50, 63).toHex
@@ -78,7 +79,7 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
 
       result match {
 
-        case Success(response)        =>
+        case Success(response) =>
           response match {
             case graph: Graph => // graph is always grouped and logged as table
               logInGroup {
@@ -97,13 +98,13 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
               }
           }
 
-        case Failure(throwable)       => throwable match {
+        case Failure(throwable) => throwable match {
 
           case ClientException(error) => error match {
             case ClientFailure.DeserializerError(t) =>
               apiError.onNext(())
               logError(t, msg = "Cannot deserialize response from server")
-            case ClientFailure.TransportError(t)    =>
+            case ClientFailure.TransportError(t) =>
               logError(t, msg = "Error in client transport")
           }
 

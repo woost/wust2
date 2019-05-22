@@ -104,7 +104,7 @@ object KanbanView {
     traverseState: TraverseState,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
-    val columnColor = BaseColors.kanbanColumnBg.copy(h = hue(focusState.focusedId)).toHex
+    val columnColor = BaseColors.accent.copy(h = hue(focusState.focusedId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
     val children = Rx {
@@ -117,7 +117,6 @@ object KanbanView {
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
       keyed,
-      border := s"1px dashed $columnColor",
       p(
         cls := "kanban-uncategorized-title",
         Styles.flex,
@@ -142,7 +141,7 @@ object KanbanView {
           )
         }
       ),
-      addCardField(state, focusState.focusedId, scrollHandler, textColor = Some("rgba(0,0,0,0.62)"))
+      addCardField(state, focusState.focusedId, scrollHandler)
     )
   }
 
@@ -217,7 +216,8 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
-      backgroundColor := BaseColors.kanbanColumnBg.copy(h = hue(nodeId)).toHex,
+      borderTop := "3px solid",
+      borderTopColor := BaseColors.accent.copy(h = hue(nodeId)).toHex,
       Rx{
         VDomModifier.ifNot(editable())(dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
       },
@@ -273,7 +273,7 @@ object KanbanView {
         cls := "kanbancolumnfooter",
         Styles.flex,
         justifyContent.spaceBetween,
-        addCardField(state, nodeId, scrollHandler, None).apply(width := "100%"),
+        addCardField(state, nodeId, scrollHandler).apply(width := "100%"),
         // stageCommentZoom,
       )
     )
@@ -283,7 +283,6 @@ object KanbanView {
     state: GlobalState,
     parentId: NodeId,
     scrollHandler: ScrollBottomHandler,
-    textColor:Option[String] = None,
   )(implicit ctx: Ctx.Owner): VNode = {
     val active = Var[Boolean](false)
     active.foreach{ active =>
@@ -309,7 +308,7 @@ object KanbanView {
       keyed(parentId),
       Rx {
         if(active())
-          inputRow(state,
+          InputRow(state,
             submitAction(state.userId()),
             autoFocus = true,
             blurAction = Some(blurAction),
@@ -321,7 +320,7 @@ object KanbanView {
           div(
             cls := "kanbanaddnodefieldtext",
             "+ Add Card",
-            color :=? textColor,
+            color := "rgba(0,0,0,0.62)",
             onClick(true) --> active
           )
       }
@@ -353,7 +352,7 @@ object KanbanView {
       keyed,
       Rx {
         if(fieldActive()) {
-          inputRow(state,
+          InputRow(state,
             submitAction,
             autoFocus = true,
             blurAction = Some(blurAction),
@@ -367,7 +366,7 @@ object KanbanView {
           )
         } else button(
           onClick.stopPropagation(true) --> fieldActive,
-          cls := "ui massive button",
+          cls := "ui basic button",
           "+ Add Column",
         )
       },

@@ -137,13 +137,11 @@ object WoostNotification {
     if(!state.askedForNotifications() && permissionState == PermissionState.prompt) {
       def mobileText = div(
         marginLeft.auto,
-        s"Allow ${StringOps.trimToMaxLength(projectName.getOrElse("Woost"), 20)} to ",
-        span("send notifications.", textDecoration.underline),
+        s"Enable ", span("notifications", textDecoration.underline),
       )
       def desktopText = div(
-        marginLeft.auto,
-        s"${projectName.fold("Woost")(name => s"${StringOps.trimToMaxLength(name, 20)} (Woost)")} needs your permission to ",
-        span("enable notifications.", textDecoration.underline),
+      marginLeft.auto,
+        s"Click here to ", span("enable notifications.", textDecoration.underline),
       )
 
       div(

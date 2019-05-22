@@ -45,7 +45,7 @@ object NotesView {
         }
       },
 
-      SharedViewElements.inputRow(
+      InputRow(
         state,
         submitAction = { str =>
           val newNode = Node.MarkdownNote(str)

@@ -6,26 +6,16 @@ import wust.graph.{Graph, Page}
 import wust.ids._
 import collection.breakOut
 
-object BaseColors {
-  val pageBg = RGB("#F3EFCC").hcl
-  val pageBgLight = RGB("#e2f8f2").hcl
-  val pageBorder = RGB("#95CCDF").hcl
-
-  val sidebarBgHighlight = pageBgLight
-
-  val tag = RGB("#fa8088").hcl
-  val kanbanColumnBg = RGB("#E39B86").hcl
-  val eulerBg = kanbanColumnBg
-}
-
 object NodeColor {
   def genericHue(seed: Any): Double = {
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
     rnd.nextDouble() * Math.PI * 2
   }
+
   @inline def hue(id: NodeId): Double = genericHue(id)
-  def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
-  def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
+  @inline def hue(id: Option[NodeId]): Option[Double] = id map genericHue
+  @inline def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
+  @inline def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
 
   def mixHues(parentIds: Iterable[NodeId]): Option[Double] =
     NonEmptyList
@@ -49,7 +39,4 @@ object NodeColor {
     val colorCount = colors.size
     LAB(colorSum.l / colorCount, colorSum.a / colorCount, colorSum.b / colorCount)
   }
-
-  def mixedDirectParentColors(graph: Graph, nodeId: NodeId): Option[Color] =
-    NonEmptyList.fromList[HCL](graph.parents(nodeId).map(eulerBgColor)(breakOut)).map(mixColors)
 }

@@ -97,7 +97,7 @@ object GanttView {
       Styles.flex,
       flexDirection.column,
 
-      SharedViewElements.inputRow(
+      InputRow(
         state,
         submitAction = { str =>
           val newNode = Node.MarkdownTask(str)

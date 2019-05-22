@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import monix.reactive.Observable
@@ -47,7 +48,7 @@ object RightSidebar {
         b(name),
         Styles.flexStatic,
       ) -> VDomModifier(
-        margin := "4px",
+        margin := "5px",
         padding := "0px",
         body
       )
@@ -58,7 +59,6 @@ object RightSidebar {
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
       color.black,
-      backgroundColor := nodeStyle.bgLightColor,
       onClick.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       div(
@@ -92,7 +92,7 @@ object RightSidebar {
             flex := "1 1 20%"
           )),
           accordionEntry("Views", VDomModifier(
-            viewContent(state, focusPref, parentIdAction),
+            viewContent(state, focusPref, parentIdAction, nodeStyle),
             flex := "1 1 40%"
           )),
         ),
@@ -101,40 +101,42 @@ object RightSidebar {
         initialActive = Seq(0, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
       ).apply(
         height := "100%",
-        marginBottom := "5px",
         Styles.flex,
         flexDirection.column,
         justifyContent.flexStart,
-        backgroundColor := nodeStyle.bgLightColor, //explicitly overwrite bg color from accordion.
         boxShadow := "none", //explicitly overwrite boxshadow from accordion.
       )
     )
   }
-  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle)(implicit ctx: Ctx.Owner) = {
     val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
     val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
     def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
+    val zoomButton = div(
+      Icons.zoom,
+      color := Colors.pageHeaderControl,
+      marginLeft := "10px",
+      cursor.pointer,
+      onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
+    )
 
     VDomModifier(
       Styles.flex,
       flexDirection.column,
+      margin := "0px", // overwrite accordion entry margin
 
       div(
+        cls := "pageheader",
+        backgroundColor := nodeStyle.sidebarBgHighlightColor,
+        paddingTop := "10px", // to have some colored space above the tabs
         Styles.flexStatic,
         Styles.flex,
         alignItems.center,
+
         ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        cls := "viewswitcher-border",
         NotificationView.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
-        button(
-          cls := "ui compact button",
-          backgroundColor := "transparent",
-          marginLeft := "10px",
-          Icons.zoom,
-          cursor.pointer,
-          onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
-        ),
+        zoomButton,
       ),
 
       Rx {
@@ -144,6 +146,7 @@ object RightSidebar {
           flexGrow := 1,
         ).prepend(
           overflow.visible,
+          backgroundColor := Colors.contentBg,
         )
       }
     )

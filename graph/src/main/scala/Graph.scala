@@ -175,7 +175,7 @@ final class GraphLookup(
   val idToIdxHashMap: mutable.Map[NodeId, Int],
 ) {
   scribe.info(s"Creating new graph lookup (nodes = $n, edges = $m)")
-  assert(idToIdxHashMap.size == nodes.length, s"nodes are not distinct by id: ${graph.toDetailedString}")
+  assert(idToIdxHashMap.size == nodes.length, s"nodes are not distinct by id: ${graph.nodes.indices.map(graph.nodeStr).mkString("\n")}")
 
   @inline def nodes = graph.nodes
   @inline def edges = graph.edges

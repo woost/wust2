@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import wust.sdk.{BaseColors, NodeColor}
 import cats.effect.IO
 import emojijs.EmojiConvertor
@@ -537,8 +538,7 @@ object Components {
         cls := "nodecard",
         node.role match {
           case NodeRole.Project => VDomModifier(
-            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-            borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
+            backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
             cls := "project"
           )
           case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
@@ -994,7 +994,7 @@ object Components {
           Styles.flexStatic,
           cls := "ui circular icon button",
           fontSize := "1.1rem",
-          backgroundColor := "steelblue",
+          backgroundColor := "#545454",
           color := "white",
         ),
 
@@ -1137,7 +1137,7 @@ object Components {
 
   def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
-      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 1px 1px ${CommonStyles.selectedNodesBgColorCSS}")
+      VDomModifier.ifTrue(isFocused)(boxShadow := s"inset 0 0 0px 2px ${CommonStyles.selectedNodesBgColorCSS}")
     }
   )
   def sidebarNodeFocusVisualizeRightMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
@@ -1157,21 +1157,24 @@ object Components {
     onMouseOut(None) --> state.hoverNodeId,
   )
 
-  val betaSign = div(
-    "beta",
-    backgroundColor := "#F2711C",
-    color := "white",
-    borderRadius := "3px",
-    padding := "0px 5px",
-    fontWeight.bold,
-    styles.extra.transform := "rotate(-7deg)",
+  val betaSign = {
+    val col = "#d9e778"
+    val col2 = "#95a90b"
+    div(
+      "Beta",
+      border := s"1px solid $col",
+      color := col2,
+      borderRadius := "3px",
+      padding := "0px 5px",
+      fontWeight.bold,
+      // styles.extra.transform := "rotate(-7deg)",
 
-    marginRight := "5px",
-    Elements.onClickN(desiredClicks = 8).foreach {
-      dom.window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
-    }
-
-  )
+      marginRight := "5px",
+      Elements.onClickN(desiredClicks = 8).foreach {
+        dom.window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
+      }
+    )
+  }
 
   val experimentalSign = div(
     "experimental",
@@ -1216,7 +1219,7 @@ object Components {
       float.right,
       cls := "ui label",
       color := "white",
-      backgroundColor := Styles.unreadColor.value,
+      backgroundColor := Colors.unread,
       fontSize.xxSmall,
       marginLeft := "5px",
       marginRight := "5px",

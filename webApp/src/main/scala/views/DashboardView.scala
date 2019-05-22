@@ -47,7 +47,7 @@ object DashboardView {
     val detailWidgets = VDomModifier(
       Styles.flex,
       //TODO: renderSubprojects mit summary
-      UI.segment("Sub-Projects", VDomModifier(renderSubprojects(state, focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Subprojects", VDomModifier(renderSubprojects(state, focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
 
       UI.segment("Notifications", NotificationView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )
@@ -119,7 +119,6 @@ object DashboardView {
   /// Render the overview of a single (sub-) project
   private def renderSubproject(state: GlobalState, graph: Graph, focusState: FocusState, project: Node): VNode = {
     div(
-      border := "3px solid",
       borderRadius := "3px",
       margin := "0.5em",
       padding := "10px",
@@ -130,7 +129,7 @@ object DashboardView {
       Styles.flex,
       alignItems.flexStart,
 
-      nodeAvatar(project, size = 30)(marginRight := "5px", flexShrink := 0),
+      // nodeAvatar(project, size = 30)(marginRight := "5px", flexShrink := 0),
       h1(
         renderAsOneLineText(project),
         fontSize := "1.5em",
@@ -151,8 +150,8 @@ object DashboardView {
         )
       } else {
         VDomModifier(
-          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
-          borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(project.id)).toHex,
+          color := "white",
+          backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(project.id)).toHex,
           Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
         )
       },
@@ -179,7 +178,7 @@ object DashboardView {
       Rx {
         if(fieldActive()) {
           VDomModifier(
-            inputRow(state,
+            InputRow(state,
               submitAction,
               autoFocus = true,
               blurAction = Some(blurAction),
@@ -198,7 +197,7 @@ object DashboardView {
           onClick.stopPropagation(true) --> fieldActive,
           cursor.pointer,
           cls := "ui big button",
-          "+ Add Sub-Project",
+          "+ Add Subproject",
         )
       },
     )

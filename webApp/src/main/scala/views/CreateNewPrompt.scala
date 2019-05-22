@@ -148,7 +148,7 @@ object CreateNewPrompt {
         )
       ),
 
-      SharedViewElements.inputRow(state, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(width := "100%", padding := "10px"),
+      InputRow(state, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(width := "100%", padding := "10px"),
 
       div(
         width := "300px",

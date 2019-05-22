@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import fontAwesome.freeSolid
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -19,7 +20,7 @@ object MoveableElement {
   case class LeftPosition(left: Double, top: Double) extends Position
   case class RightPosition(right: Double, bottom: Double) extends Position
 
-  case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, bodyModifier: Ownable[VDomModifier])
+  case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, titleModifier: Ownable[VDomModifier], bodyModifier: Ownable[VDomModifier])
 
   def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val activeWindow = Var(0)
@@ -33,11 +34,18 @@ object MoveableElement {
             position.absolute,
             bottom := "100px",
             right := "0",
-            color.white,
             Styles.flex,
 
             windows.zipWithIndex.map { case (window, index) =>
               div(
+                cursor.pointer,
+                padding := "10px",
+                marginLeft := "3px", // space between toggles
+                boxShadow := "rgba(0, 0, 0, 0.3) 0px 0 3px 0px",
+                backgroundColor := Colors.sidebarBg,
+                borderBottomRightRadius := "3px",
+                borderBottomLeftRadius := "3px",
+
                 onClick.stopPropagation.foreach {
                   if (window.toggle.now) Var.set(
                     activeWindow -> index,
@@ -45,17 +53,11 @@ object MoveableElement {
                   ) else window.toggle() = !window.toggle.now
                 },
                 onClick(index) --> activeWindow,
-                cursor.pointer,
-                padding := "5px",
-                border := "0px 1px 1px 1px white solid",
-                backgroundColor := CommonStyles.sidebarBgColor,
                 window.toggle.map {
                   case true => VDomModifier.empty
-                  case false => opacity := 0.6
+                  case false => opacity := 0.7
                 },
-                borderBottomRightRadius := "5px",
-                borderBottomLeftRadius := "5px",
-                window.title,
+                window.title, // last because it can overwrite modifiers
               )
             }
           )
@@ -108,9 +110,10 @@ object MoveableElement {
             Styles.flex,
             justifyContent.spaceBetween,
             alignItems.center,
-            backgroundColor := CommonStyles.sidebarBgColor,
-            color := "white",
-            padding := "2px",
+            backgroundColor := Colors.sidebarBg,
+            padding := "5px",
+            borderTopLeftRadius := "3px",
+            borderTopRightRadius := "3px",
 
             title,
             div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> toggle),
@@ -128,6 +131,7 @@ object MoveableElement {
                 setPosition()
               }
             },
+            titleModifier,
           ),
 
           div(

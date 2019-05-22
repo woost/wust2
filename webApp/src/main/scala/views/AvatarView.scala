@@ -56,7 +56,6 @@ object AvatarView {
                   borderRadius := "2px",
                   marginBottom := "10px",
                   marginRight := "10px",
-                  backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
                   Avatar.twoMirror(i, res)
                 )
             }

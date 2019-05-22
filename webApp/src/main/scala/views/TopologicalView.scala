@@ -93,7 +93,7 @@ object TopologicalView {
             dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
             dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
           ).apply(
-              marginBottom := "2px",
+              marginBottom := "3px",
               VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),
             )
         }

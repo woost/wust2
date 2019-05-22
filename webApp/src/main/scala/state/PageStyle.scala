@@ -11,7 +11,7 @@ object PageStyle {
   private def create(doMix: Boolean, nodeId: Option[NodeId]) = {
 
     def applyPageHue(base: HCL): String = {
-      val pageHueOpt = NodeColor.mixHues(nodeId).filter(_ => doMix)
+      val pageHueOpt = NodeColor.hue(nodeId).filter(_ => doMix)
       pageHueOpt.fold[Color](LAB(base.l, 0, 0))(hue => base.copy(h = hue)).toHex
     }
 
@@ -19,7 +19,6 @@ object PageStyle {
       bgColor = applyPageHue(BaseColors.pageBg),
       bgLightColor = applyPageHue(BaseColors.pageBgLight),
       sidebarBgHighlightColor = applyPageHue(BaseColors.sidebarBgHighlight),
-      borderColor = applyPageHue(BaseColors.pageBorder),
     )
   }
 
@@ -32,5 +31,4 @@ case class PageStyle(
   bgColor: String,
   bgLightColor: String,
   sidebarBgHighlightColor: String,
-  borderColor: String,
 )

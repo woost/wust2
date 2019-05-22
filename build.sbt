@@ -351,6 +351,7 @@ lazy val graphJVM = graph.jvm
 lazy val css = crossProject(JSPlatform, JVMPlatform)
   .settings(commonSettings)
   .jsSettings(commonWebSettings)
+  .dependsOn(sdk)
   .settings(
     libraryDependencies ++=
       Deps.scalacss.value ::
@@ -444,7 +445,7 @@ lazy val core = project
         Deps.webPush.value ::
         Deps.awsSdk.s3.value ::
         Nil,
-    javaOptions in reStart += "-Xmx50m"
+    javaOptions in reStart += "-Xmx300m"
   )
 
 

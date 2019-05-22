@@ -33,9 +33,10 @@ object PageHeader {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
-        cls := "pageheader viewswitcher-border",
+        cls := "pageheader",
+        backgroundColor <-- state.pageStyle.map(_.sidebarBgHighlightColor),
 
-        state.page.map(_.parentId.map(pageRow(state, _)))
+        state.page.map(_.parentId.map(pageRow(state, _))),
       )
     })
   }
@@ -48,7 +49,7 @@ object PageHeader {
 
     val channelTitle = Rx {
       val node = pageNode()
-      val rendered = Components.nodeCardAsOneLineText(node).apply(
+      Components.nodeCardAsOneLineText(node).apply(
         cls := "pageheader-channeltitle",
         registerDragContainer(state, DragContainer.Chat),
         DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
@@ -56,14 +57,6 @@ object PageHeader {
         Components.showHoveredNode(state, node.id),
         Components.readObserver(state, node.id)
       )
-
-      node.role match {
-        case NodeRole.Project => rendered.prepend(
-          Styles.flex,
-          nodeAvatar(node, size = 25)(marginRight := "5px", alignSelf.center)
-        )
-        case _ => rendered
-      }
     }
 
     val channelNotification = NotificationView.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
@@ -88,40 +81,55 @@ object PageHeader {
       div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
 
-    div(
-      paddingTop := "5px",
-      paddingLeft := "5px",
-      paddingRight := "10px",
-
-      Styles.flex,
-      alignItems.flexEnd,
-      flexWrap := "wrap-reverse",
-
-      ViewSwitcher(state, pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
+    VDomModifier(
       div(
+        Styles.flexStatic,
+        marginLeft.auto,
         Styles.flex,
-        justifyContent.spaceBetween,
-        flexGrow := 1,
-        flexShrink := 2,
-        div(
-          Styles.flex,
-          alignItems.center,
-          flexShrink := 3,
+        alignItems.center,
 
-          channelTitle,
-
-          channelNotification
-        ),
-        div(
-          Styles.flex,
-          alignItems.center,
-          Components.automatedNodesOfNode(state, pageNodeId),
-          channelMembersList,
-          permissionIndicator,
-
-          menuItems(state, pageNodeId)
-        )
+        Rx{ VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(Styles.flexStatic, marginRight := "10px")) },
+        Rx {
+          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
+            ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
+            FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
+            AuthControls.authStatus(state).map(_(Styles.flexStatic))
+          )
+        },
       ),
+      div(
+        paddingTop := "5px",
+
+        Styles.flex,
+        alignItems.flexEnd,
+        flexWrap := "wrap-reverse",
+
+        ViewSwitcher(state, pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
+        div(
+          Styles.flex,
+          justifyContent.spaceBetween,
+          flexGrow := 1,
+          flexShrink := 2,
+          div(
+            Styles.flex,
+            alignItems.center,
+            flexShrink := 3,
+
+            permissionIndicator,
+            channelTitle,
+
+            channelNotification
+          ),
+          div(
+            Styles.flex,
+            alignItems.center,
+            Components.automatedNodesOfNode(state, pageNodeId),
+            channelMembersList,
+
+            menuItems(state, pageNodeId)
+          )
+        ),
+      )
     )
   }
 

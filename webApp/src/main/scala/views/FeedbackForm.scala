@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import wust.webApp.DevOnly
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -54,9 +55,7 @@ object FeedbackForm {
     }
 
     val feedbackForm = div(
-      width := "240px",
       fontSize.smaller,
-      color := "#666",
       cls := "enable-text-selection",
       div(
         cls := "ui form",
@@ -69,15 +68,17 @@ object FeedbackForm {
           placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
         )
       ),
-      div(textAlign.right, statusText),
-      div("Or send us an email: ", Components.woostTeamEmailLink, ".")
     )
 
     div(
-      button(
-        "Feedback ",
-        freeSolid.faCaretDown,
-        cls := "ui positive tiny compact button",
+      div(
+        "Feedback ", freeSolid.faCaretDown,
+        // like semantic-ui tiny button
+        fontSize := "0.85714286rem", 
+        fontWeight := 700,
+        padding := ".58928571em 1.125em .58928571em",
+        cursor.pointer,
+
         onClick.stopPropagation foreach {
           Analytics.sendEvent("feedback", if (show.now) "close" else "open")
           show.update(!_)
@@ -87,35 +88,45 @@ object FeedbackForm {
       ),
       div(
         activeDisplay,
-        position.fixed, top := s"${CommonStyles.topBarHeight}px", right <-- Rx{ if (state.screenSize() == ScreenSize.Small) "0px" else "100px" },
+        position.fixed, top := "35px", right <-- Rx{ if (state.screenSize() == ScreenSize.Small) "0px" else "100px" },
         zIndex := ZIndex.formOverlay,
-        padding := "10px", background := "#F8F8F8", border := "1px solid #888",
+        padding := "10px",
+        borderRadius := "5px",
+        cls := "shadow",
+        backgroundColor := Colors.sidebarBg,
+        color := "#333",
         feedbackForm,
         div(
-          marginTop := "20px",
+          marginTop := "5px",
+          marginBottom := "20px",
           Styles.flex,
-          justifyContent.flexEnd,
+          alignItems.center,
+          justifyContent.spaceBetween,
+
+          div(statusText, marginLeft.auto, marginRight.auto),
           button(
             Styles.flexStatic,
             tpe := "button",
-            cls := "ui tiny primary button",
+            cls := "ui tiny violet button",
             marginRight := "0",
             "Submit",
             onClick foreach { submit() },
             // onClick(false) --> show,
           ),
         ),
+        div("Or send us an email: ", Components.woostTeamEmailLink, "."),
 
-        hr(width := "50%", margin := "15px auto"),
-        div(voteForFeatures),
+        div(cls := "ui divider", marginTop := "30px"),
+        div(width := "200px", "You can also vote on features and suggest new ones:"),
+        div(voteOnFeatures),
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
     )
   }
 
-  def voteForFeatures = button(
-    "Vote on / suggest new features",
-    cls := "ui violet tiny fluid button",
+  def voteOnFeatures = button(
+    "Vote on features",
+    cls := "ui violet tiny button",
     marginTop := "5px",
     cls := "vote-button",
     snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch

@@ -17,6 +17,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import scala.collection.breakOut
+import fontAwesome.freeSolid
 
 object BreadCrumbs {
 
@@ -105,13 +106,8 @@ object BreadCrumbs {
                 case _                                => // usually NodeRole.Project
                   nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(
                     onClickFocus,
-                    backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-                    border := "1px solid",
-                    borderColor := BaseColors.pageBorder.copy(h = NodeColor.hue(node.id)).toHex,
-                    color.black,
-                  ).prepend(
-                    Styles.flex,
-                    nodeAvatar(node, size = 13)(marginRight := "5px", marginTop := "2px", flexShrink := 0),
+                    backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+                    border := "1px solid rgba(0,0,0,0.2)",
                   )
               }).apply(cls := "breadcrumb", VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"))
 
@@ -119,7 +115,7 @@ object BreadCrumbs {
           }
         }(breakOut)
 
-        intersperseWhile(elements, span("/", cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
+        intersperseWhile(elements, span(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
       },
       registerDragContainer(state),
       onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },

@@ -41,7 +41,6 @@ object GraphView {
 
       overflow.auto, // fits graph visualization perfectly into view
 
-      backgroundColor := nodeStyle.bgLightColor,
       Rx{
         VDomModifier.ifTrue(showControls())(
           div(

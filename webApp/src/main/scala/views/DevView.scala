@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
@@ -47,8 +48,7 @@ object DevView {
       padding := "5px",
       state.pageStyle.map { pageStyle =>
         Seq(
-          backgroundColor := pageStyle.bgColor,
-          border := s"1px solid ${pageStyle.borderColor}"
+          backgroundColor := Colors.sidebarBg,
         )
       },
       cls := "shadow"

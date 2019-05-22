@@ -1,9 +1,10 @@
 package wust.webApp.views.pageheader
 
+import wust.sdk.Colors
 import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.css.ZIndex
+import wust.css.{ZIndex, CommonStyles}
 import wust.ids.View
 import wust.util._
 import wust.webApp._
@@ -47,8 +48,8 @@ object components {
     /// @return A color modifier, setting the color matching the currently viewed topic
     def modTopicBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       VDomModifier.ifTrue(isActiveTab(currentView, tabInfo))(
-        backgroundColor := pageStyle.bgLightColor,
-        borderBottomColor := pageStyle.bgLightColor)
+        backgroundColor := Colors.contentBg,
+      )
     }
 
     /// @return A tooltip modifier

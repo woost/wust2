@@ -1,5 +1,11 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
+import concurrent.duration.DurationInt
+import fontAwesome._
+import org.scalajs.dom
+import scala.scalajs.js
+import org.scalajs.dom.window
 import colorado._
 import wust.webApp.dragdrop._
 import fontAwesome.freeSolid
@@ -7,13 +13,15 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import rx.async._
+import rx.async.Platform._
 import views.ChannelTreeData
-import wust.css.{CommonStyles, Styles}
+import wust.css.{ CommonStyles, Styles }
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
+import wust.sdk.{ BaseColors, NodeColor }
 import wust.util.RichBoolean
-import wust.webApp.{BrowserDetect, Icons, Ownable}
+import wust.webApp.{ BrowserDetect, Icons, Ownable }
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -28,7 +36,7 @@ object LeftSidebar {
 
   def apply(state: GlobalState): VNode = {
 
-    def authStatus(implicit ctx: Ctx.Owner) = SharedViewElements.authStatus(state).map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
+    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus(state, buttonStyle = "basic").map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
 
     GenericSidebar.left(
       state.leftSidebarOpen,
@@ -42,27 +50,23 @@ object LeftSidebar {
             drag(target = DragItem.Sidebar),
           ),
           openModifier = VDomModifier(
-            Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar(state).apply(Styles.flexStatic)) },
+            header(state).apply(Styles.flexStatic),
             channels(state, toplevelChannels, invites),
             newProjectButton(state).apply(
               cls := "newChannelButton-large " + buttonStyles,
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
             ),
+            appUpdatePrompt(state).apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
+            beforeInstallPrompt().apply(Styles.flexStatic, alignSelf.center, marginBottom := "10px"),
           ),
           overlayOpenModifier = VDomModifier(
-            Rx {
-              VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(authStatus)
-            },
+            authStatus,
             onClick(false) --> state.leftSidebarOpen
           ),
-          expandedOpenModifier = VDomModifier(
-            Rx {
-              VDomModifier.ifNot(state.topbarIsVisible())(authStatus)
-            },
-          ),
+          expandedOpenModifier = VDomModifier.empty,
           closedModifier = Some(VDomModifier(
-            minWidth := s"${ minWidthSidebar }px", // this is needed when the hamburger is not rendered inside the sidebar
-            Rx{ VDomModifier.ifNot(state.topbarIsVisible())(Topbar.hamburger(state)) },
+            minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
+            hamburger(state),
             channelIcons(state, toplevelChannels, minWidthSidebar),
             newProjectButton(state, "+").apply(
               cls := "newChannelButton-small " + buttonStyles,
@@ -75,7 +79,7 @@ object LeftSidebar {
     )
   }
 
-  private val buttonStyles = "tiny compact inverted grey"
+  private val buttonStyles = "tiny basic compact"
 
   private def toplevelChannelsRx(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
     val graph = state.rawGraph()
@@ -89,13 +93,147 @@ object LeftSidebar {
     ChannelTreeData.invites(graph, userId)
   }
 
-  private def expandToggleButton(state: GlobalState, nodeId :NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+  def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
+    Styles.flexStatic,
+    Styles.flex,
+    alignItems.center,
+    fontSize := "16px",
+    fontWeight.bold,
+    textDecoration := "none",
+    div(
+      Components.woostIcon,
+      fontSize := "28px",
+      color := Colors.woost,
+      marginRight := "3px",
+    ),
+    div("Woost", marginRight := "5px"),
+    onClick(UrlConfig.default) --> state.urlConfig,
+    onClick foreach {
+      Analytics.sendEvent("logo", "clicked")
+    },
+    cursor.pointer
+  )
+
+  def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      div(
+        Styles.flex,
+        alignItems.center,
+
+        hamburger(state),
+        banner(state),
+        Components.betaSign.apply(fontSize := "12px"),
+        syncStatus(state)(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
+      ),
+    )
+  }
+
+  def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    import state.leftSidebarOpen
+    div(
+      Styles.flexStatic,
+      padding := "10px",
+      fontSize := "20px",
+      width := "40px",
+      textAlign.center,
+      freeSolid.faBars,
+      cursor.pointer,
+      // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
+      onClick.stopPropagation foreach {
+        Analytics.sendEvent("hamburger", if (leftSidebarOpen.now) "close" else "open")
+        leftSidebarOpen() = !leftSidebarOpen.now
+      }
+    )
+  }
+
+  def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+    val syncingIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
+        styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
+      }),
+      fontawesome.icon(
+        freeSolid.faSync,
+        new Params {
+          transform = new Transform { size = 10.0 }
+          classes = scalajs.js.Array("fa-spin")
+          styles = scalajs.js.Dictionary[String]("color" -> "white")
+        }
+      )
+    )
+
+    val syncedIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
+        styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
+      }),
+      fontawesome.icon(freeSolid.faCheck, new Params {
+        transform = new Transform { size = 10.0 }
+        styles = scalajs.js.Dictionary[String]("color" -> "white")
+      })
+    )
+
+    val offlineIcon = fontawesome.layered(
+      fontawesome.icon(freeSolid.faCircle, new Params {
+        styles = scalajs.js.Dictionary[String]("color" -> "tomato")
+      }),
+      fontawesome.icon(freeSolid.faBolt, new Params {
+        transform = new Transform { size = 10.0 }
+        styles = scalajs.js.Dictionary[String]("color" -> "white")
+      })
+    )
+
+    val status = Rx {
+      (state.isOnline(), state.isSynced() && !state.isLoading())
+    }.toObservable.debounce(300 milliseconds) //TODO: scala.rx debounce is not working correctly
+
+    val syncStatusIcon = status.map { status =>
+      status match {
+        case (true, true)  => span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
+        case (true, false) => span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
+        case (false, _)    => span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
+      }
+    }
+
+    div(syncStatusIcon)
+  }
+
+  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
+    div(state.appUpdateIsAvailable.map { _ =>
+      button(cls := "tiny ui primary basic button", "Update App", onClick foreach {
+        window.location.reload(flag = false)
+      })
+    })
+
+  // TODO: https://github.com/OutWatch/outwatch/issues/227
+  val beforeInstallPromptEvents: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
+    observer: Var[Option[dom.Event]] =>
+      dom.window.addEventListener(
+        "beforeinstallprompt", { e: dom.Event =>
+          e.preventDefault(); // Prevents immediate prompt display
+          observer() = Some(e)
+        }
+      )
+  }
+
+  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
+    div(
+      Rx {
+        beforeInstallPromptEvents().map { e =>
+          button(cls := "tiny ui primary basic button", "Install as App", onClick foreach {
+            e.asInstanceOf[js.Dynamic].prompt();
+            ()
+          })
+        }
+      }
+    )
+  }
+
+  private def expandToggleButton(state: GlobalState, nodeId: NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
 
     div(
       padding := "3px",
       cursor.pointer,
       Rx {
-        (if(expanded()) Icons.collapse else Icons.expand) : VDomModifier
+        (if (expanded()) Icons.collapse else Icons.expand): VDomModifier
       },
       onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> state.eventProcessor.changes
     )
@@ -105,7 +243,7 @@ object LeftSidebar {
 
     def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
       val nodeId = traverseState.parentId
-      val selected = state.page.map(_.parentId contains nodeId)
+      val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
       val node = Rx {
         state.rawGraph().nodesByIdOrThrow(nodeId)
       }
@@ -121,16 +259,18 @@ object LeftSidebar {
           flexGrow := 1,
           cls := "channel-line",
           Rx {
-            VDomModifier.ifTrue(selected())(
-              color := CommonStyles.sidebarBgColor,
-              backgroundColor <-- state.pageStyle.map(_.sidebarBgHighlightColor)
+            VDomModifier(
+
+              if (selected()) VDomModifier(
+                color := Colors.sidebarBg,
+                backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex,
+                freeSolid.faFolderOpen,
+              ) else span(
+                freeRegular.faFolder,
+                color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex,
+              ),
+              renderAsOneLineText(node())(cls := "channel-name"),
             )
-          },
-
-          channelIcon(state, nodeId, selected, 30),
-
-          Rx {
-            renderAsOneLineText(node())(cls := "channel-name")
           },
 
           onChannelClick(state, nodeId),
@@ -157,7 +297,7 @@ object LeftSidebar {
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "10px",
-              fontSize := s"${ math.max(8, 14 - depth) }px",
+              fontSize := s"${math.max(8, 14 - depth)}px",
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
@@ -180,7 +320,7 @@ object LeftSidebar {
         val userId = state.userId()
 
         VDomModifier.ifTrue(invites().nonEmpty)(
-          UI.horizontalDivider("invitations")(cls := "inverted"),
+          UI.horizontalDivider("invitations"),
           invites().map(nodeId => channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false)).apply(
             div(
               cls := "ui icon buttons",
@@ -188,14 +328,14 @@ object LeftSidebar {
               marginRight := "4px",
               marginLeft := "auto",
               button(
-                cls := "ui mini compact inverted green button",
+                cls := "ui mini compact green button",
                 padding := "4px",
                 freeSolid.faCheck,
                 onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               ),
               button(
-                cls := "ui mini compact inverted button",
+                cls := "ui mini compact button",
                 padding := "4px",
                 freeSolid.faTimes,
                 onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
@@ -210,35 +350,29 @@ object LeftSidebar {
 
   private def channelIcons(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
-    val focusBorderWidth = 2
     val defaultPadding = CommonStyles.channelIconDefaultPadding
 
-    def channelLine(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+    def channelLine(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
       val nodeId = traverseState.parentId
-      val selected = state.page.map(_.parentId contains nodeId)
-      val nodeStr = Rx {
-        state.rawGraph().nodesByIdOrThrow(nodeId).str
+      val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
+      val node = Rx {
+        state.rawGraph().nodesByIdOrThrow(nodeId)
       }
 
-      channelIcon(state, nodeId, selected, size)(ctx)(
-        UI.popup("right center") <-- nodeStr,
-        onChannelClick(state, nodeId),
-        onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-        drag(target = DragItem.Channel(nodeId)),
-        cls := "node",
-
-        // for each indent, steal padding on left and right
-        // and reduce the width, so that the icon keeps its size
-        width := s"${ size-(depth*indentFactor) }px",
-
+      VDomModifier(
+        backgroundColor := "#E0E0E0", // color for indentation space
         Rx {
-          if(selected()) VDomModifier(
-            height := s"${ size-(2*focusBorderWidth) }px",
-            marginTop := "2px",
-            marginBottom := "2px",
-            padding := s"${defaultPadding - focusBorderWidth}px ${defaultPadding - (depth*indentFactor/2.0)}px",
-          ) else VDomModifier(
-            padding := s"${defaultPadding}px ${defaultPadding - (depth*indentFactor/2.0)}px",
+          channelIcon(state, node(), selected, size)(ctx)(
+            UI.popup("right center") <-- node.map(_.str),
+            onChannelClick(state, nodeId),
+            onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
+            drag(target = DragItem.Channel(nodeId)),
+            cls := "node",
+
+            // for each indent, steal padding on left and right
+            // and reduce the width, so that the icon keeps its size
+            width := s"${size - (depth * indentFactor)}px",
+            padding := s"${defaultPadding}px ${defaultPadding - (depth * indentFactor / 2.0)}px",
           )
         }
       )
@@ -261,7 +395,7 @@ object LeftSidebar {
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := s"${indentFactor}px",
-              fontSize := s"${ math.max(8, 14 - depth) }px",
+              fontSize := s"${math.max(8, 14 - depth)}px",
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
@@ -281,16 +415,26 @@ object LeftSidebar {
       },
     )
   })
+  private val emojiRegex = raw"(:\w+:)".r.unanchored
+  private def iconText(str:String):String = {
+    str match {
+      case emojiRegex(emoji) => emoji
+      case _ => str.trim.take(2)
+    }
+  }
 
-  private def channelIcon(state: GlobalState, nodeId: NodeId, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
+  private def channelIcon(state: GlobalState, node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     div(
       cls := "channelicon",
-      width := s"${ size }px",
-      height := s"${ size }px",
-      backgroundColor <-- Rx {
-        (if(isSelected()) BaseColors.pageBgLight else BaseColors.pageBg.copy(h = NodeColor.hue(nodeId))).toHex
+      width := s"${size}px",
+      height := s"${size}px",
+      Rx {
+        if (isSelected()) VDomModifier(
+          backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+          color := "white"
+        ) else color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
       },
-      Avatar.node(nodeId),
+      renderText(iconText(node.str))
     )
   }
 

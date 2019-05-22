@@ -175,7 +175,8 @@ object GraphChangesAutomationUI {
         val hasTemplates = graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
         if (hasTemplates) VDomModifier(
           UI.tooltip("bottom center") := "Automation: active",
-          color := CommonStyles.selectedNodesBgColorCSS,
+          color := "#616161",
+          backgroundColor := "transparent",
           activeMod
         ) else VDomModifier(
           UI.tooltip("bottom center") := "Automation: inactive",
