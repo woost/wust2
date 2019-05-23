@@ -181,9 +181,13 @@ object LeftSidebar {
       })
     )
 
-    val status = Rx {
-      (state.isOnline(), state.isSynced() && !state.isLoading())
-    }.toObservable.debounce(300 milliseconds) //TODO: scala.rx debounce is not working correctly
+    val status = {
+      val rx = Rx {
+        (state.isOnline(), state.isSynced() && !state.isLoading())
+      }
+      //TODO: scala.rx debounce is not working correctly
+      ValueObservable(rx.toTailObservable.debounce(300 milliseconds), rx.now)
+    }
 
     val syncStatusIcon = status.map { status =>
       status match {
