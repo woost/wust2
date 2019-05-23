@@ -196,7 +196,7 @@ object DashboardView {
           margin := "0.5em",
           onClick.stopPropagation(true) --> fieldActive,
           cursor.pointer,
-          cls := "ui big button",
+          cls := "ui basic button",
           "+ Add Subproject",
         )
       },
