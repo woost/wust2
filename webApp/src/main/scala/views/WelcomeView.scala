@@ -74,13 +74,12 @@ object WelcomeView {
         (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
           div(
             backgroundColor := Colors.sidebarBg,
-            color := "white",
             padding := "15px",
             div(
               Styles.flex,
               alignItems.center,
               justifyContent.spaceAround,
-              AuthControls.authStatus(state)
+              AuthControls.authStatus(state, buttonStyle = "primary")
             )
           )
         )
