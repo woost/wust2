@@ -364,7 +364,6 @@ object LeftSidebar {
       }
 
       VDomModifier(
-        backgroundColor := "#E0E0E0", // color for indentation space
         Rx {
           channelIcon(state, node(), selected, size)(ctx)(
             UI.popup("right center") <-- node.map(_.str),
@@ -394,7 +393,7 @@ object LeftSidebar {
         }
 
         VDomModifier(
-
+          backgroundColor := "#bbbbbb", // color for indentation space
           channelLine(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
