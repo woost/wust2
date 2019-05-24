@@ -33,7 +33,7 @@ object Permission {
   val public = PermissionDescription(
     access = NodeAccess.Level(AccessLevel.ReadWrite),
     value = "Public",
-    description = "Anyone can access this page via the URL",
+    description = "Anyone can access this page via URL",
     icon = Icons.permissionPublic,
   )
 
