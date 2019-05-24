@@ -237,7 +237,7 @@ object LeftSidebar {
       padding := "3px",
       cursor.pointer,
       Rx {
-        (if (expanded()) Icons.collapse else Icons.expand): VDomModifier
+        (if (expanded()) Icons.collapse else VDomModifier(Icons.expand, color := "#a9a9a9")): VDomModifier
       },
       onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> state.eventProcessor.changes
     )
