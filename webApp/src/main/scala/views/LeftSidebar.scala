@@ -243,6 +243,8 @@ object LeftSidebar {
     )
   }
 
+  private val emojiRegex = raw"(:\w+:)".r.unanchored
+
   private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], invites: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
@@ -250,6 +252,31 @@ object LeftSidebar {
       val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
       val node = Rx {
         state.rawGraph().nodesByIdOrThrow(nodeId)
+      }
+
+      val nodeWithoutFirstEmoji = {
+        Rx {
+          node() match {
+            case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
+              editable.updateStr(emojiRegex.replaceFirstIn(n.str, "")) match {
+                case Some(dataWithoutEmoji) =>
+                  n.copy(data = dataWithoutEmoji)
+                case None => n
+              }
+            case n => n
+          }
+        }
+      }
+
+      val iconModifier = Rx {
+        node().str match {
+          case emojiRegex(emoji) => replaceEmoji(emoji).apply(fontSize := "13px", marginBottom := "3px") // same size as fa-icons
+          case _ if selected() => freeSolid.faFolderOpen:VDomModifier
+          case _ if !selected() => span(
+            freeRegular.faFolder,
+            color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex
+          )
+        }
       }
 
       div(
@@ -265,15 +292,12 @@ object LeftSidebar {
           Rx {
             VDomModifier(
 
-              if (selected()) VDomModifier(
+              VDomModifier.ifTrue(selected())(
                 color := Colors.sidebarBg,
                 backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex,
-                freeSolid.faFolderOpen,
-              ) else span(
-                freeRegular.faFolder,
-                color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex,
               ),
-              renderAsOneLineText(node())(cls := "channel-name"),
+              iconModifier,
+              renderAsOneLineText(nodeWithoutFirstEmoji())(cls := "channel-name"),
             )
           },
 
@@ -356,7 +380,7 @@ object LeftSidebar {
     val indentFactor = 3
     val defaultPadding = CommonStyles.channelIconDefaultPadding
 
-    def channelLine(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+    def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
       val nodeId = traverseState.parentId
       val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
       val node = Rx {
@@ -394,7 +418,7 @@ object LeftSidebar {
 
         VDomModifier(
           backgroundColor := "#bbbbbb", // color for indentation space
-          channelLine(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
+          renderChannel(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := s"${indentFactor}px",
@@ -418,15 +442,14 @@ object LeftSidebar {
       },
     )
   })
-  private val emojiRegex = raw"(:\w+:)".r.unanchored
-  private def iconText(str:String):String = {
-    str match {
-      case emojiRegex(emoji) => emoji
-      case _ => str.trim.take(2)
-    }
-  }
-
   private def channelIcon(state: GlobalState, node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
+    def iconText(str:String):String = {
+      str match {
+        case emojiRegex(emoji) => emoji
+        case _ => str.trim.take(2)
+      }
+    }
+
     div(
       cls := "channelicon",
       width := s"${size}px",
@@ -437,7 +460,7 @@ object LeftSidebar {
           color := "white"
         ) else color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
       },
-      renderText(iconText(node.str))
+      replaceEmoji(iconText(node.str))
     )
   }
 

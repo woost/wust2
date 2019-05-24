@@ -86,6 +86,12 @@ object Components {
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
+  def replaceEmoji(str: String): VNode = {
+    span.thunkStatic(uniqueKey(str))(VDomModifier(
+      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
+    ))
+  }
+
   def renderText(str: String): VNode = {
     p.thunkStatic(uniqueKey(str))(VDomModifier(
       overflow.hidden,
@@ -94,6 +100,7 @@ object Components {
       Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
     ))
   }
+
   def renderText(node: Node): VNode = renderText(node.str)
 
   def renderAsOneLineText(node: Node): VNode = {
