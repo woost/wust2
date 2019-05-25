@@ -468,7 +468,7 @@ object SharedViewElements {
       if(isExpanded()) {
         div(
           cls := "expand-collapsebutton",
-          Icons.collapse,
+          freeSolid.faAngleDown,
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes,
           cursor.pointer,
         )
@@ -476,7 +476,7 @@ object SharedViewElements {
         div(
           cls := "expand-collapsebutton",
           VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
-          Icons.expand,
+          freeSolid.faAngleRight,
           onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes,
           cursor.pointer,
         )
