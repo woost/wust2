@@ -497,7 +497,7 @@ object SharedViewElements {
           autoFocus = true,
           placeholder = placeholder,
           allowEmptyString = true,
-          submitIcon = freeSolid.faPlus,
+          submitIcon = freeSolid.faArrowRight,
           showSubmitIcon = true,
         ),
 
