@@ -223,8 +223,8 @@ object RightSidebar {
         Styles.flex,
         alignItems.flexStart,
 
-        zoomButton,
         nodeCard,
+        zoomButton,
         deleteButton
       ),
 
