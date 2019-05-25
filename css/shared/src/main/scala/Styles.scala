@@ -472,6 +472,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".ui.button.newChannelButton-small" - (
     marginRight(0 px),
     marginTop(3 px),
+    marginBottom(3 px),
     paddingLeft(12 px),
     paddingRight(12 px),
     alignSelf.center,
