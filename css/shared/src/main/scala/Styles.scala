@@ -196,7 +196,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // -- breadcrumb --
   ".breadcrumbs" - (
-    padding(2 px, 0 px),
+    padding(2 px, 2 px), // some padding is needed to display the box-shadow
 
     Styles.flex,
     alignItems.flexStart,
