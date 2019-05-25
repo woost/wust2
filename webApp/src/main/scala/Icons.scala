@@ -88,8 +88,8 @@ object Icons {
   val notificationsEnabled: IconDefinition = freeSolid.faBell
   val notificationsDisabled: IconDefinition = freeRegular.faBellSlash
 
-  val expand: IconDefinition = freeSolid.faAngleRight
-  val collapse: IconDefinition = freeSolid.faAngleDown
+  val expand: IconDefinition = freeRegular.faPlusSquare
+  val collapse: IconDefinition = freeRegular.faMinusSquare
 
   val property: IconDefinition = freeSolid.faReceipt
   val propertyZoom: Layer = fontawesome.layered(
