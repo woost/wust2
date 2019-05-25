@@ -51,7 +51,6 @@ object PageHeader {
       val node = pageNode()
       Components.nodeCardAsOneLineText(node).apply(
         cls := "pageheader-channeltitle",
-        registerDragContainer(state, DragContainer.Chat),
         DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
         Components.showHoveredNode(state, node.id),
