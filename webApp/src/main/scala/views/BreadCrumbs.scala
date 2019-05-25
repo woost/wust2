@@ -100,23 +100,19 @@ object BreadCrumbs {
             // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
             // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
             case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-              (node.role match {
-                case NodeRole.Message | NodeRole.Task | NodeRole.Note =>
-                  nodeCardAsOneLineText(node)(onClickFocus)
-                case _                                => // usually NodeRole.Project
-                  nodeTag(state, node, dragOptions = nodeId => drag(DragItem.BreadCrumb(nodeId)))(
-                    onClickFocus,
-                    backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
-                    border := "1px solid rgba(0,0,0,0.2)",
-                  )
-              }).apply(cls := "breadcrumb", VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"))
+              Components.nodeCardAsOneLineText(node).apply(
+                cls := "breadcrumb",
+                VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
+                DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
+                onClickFocus,
+              )
 
             case _                                                  => VDomModifier.empty
           }
         }(breakOut)
 
         VDomModifier.ifTrue(!hideIfSingle || elements.length > 1)(
-          intersperseWhile(elements, span(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
+          intersperseWhile(elements, div(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
         )
       },
       registerDragContainer(state),

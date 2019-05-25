@@ -194,69 +194,6 @@ object CommonStyles extends StyleSheet.Standalone {
     animationFillMode.forwards,
   )
 
-  // -- breadcrumb --
-  ".breadcrumbs" - (
-    padding(2 px, 2 px), // some padding is needed to display the box-shadow
-
-    Styles.flex,
-    alignItems.flexStart,
-    flexWrap.wrap,
-    overflowX.auto,
-    Styles.flexStatic,
-
-    &(".cycle-indicator") - (
-      verticalAlign.middle,
-      margin(1.px),
-      width(0.8.em)
-    )
-  )
-
-  ".breadcrumbs .divider" - (
-    marginLeft(3 px),
-    marginRight(3 px),
-    color(c"rgba(0,0,0, 0.3)"),
-    fontSize(18 px),
-  )
-
-  ".breadcrumb" - (
-    margin(0 px).important,
-    height(1.5 em).important,
-  )
-
-  ".breadcrumb," +
-  ".breadcrumb *" - (
-    maxWidth(10 em),
-    overflow.hidden,
-    fontSize(13 px).important,
-    fontWeight.normal,
-  )
-
-  ".breadcrumb.nodecard," +
-  ".breadcrumb .nodecard-content" - (
-    padding(0.px, 3.px),
-    border.none
-  )
-
-  ".breadcrumb .markdown" - (
-    paddingTop(0 px),
-    paddingBottom(0 px),
-  )
-
-  ".breadcrumb .markdown *" - (
-    /* BOTH of the following are required for text-overflow */
-    whiteSpace.nowrap,
-    overflow.hidden,
-    textOverflow := "ellipsis",
-  )
-
-  // first/last breadcrumb should not have any margin.
-  // this way e.g. the cycle shape is closer to the cycle
-  ".breadcrumb:first-of-type" - (
-    marginLeft(0 px),
-    )
-  ".breadcrumb:last-of-type" - (
-    marginRight(0 px),
-    )
 
   ".ui.button.inverted" - (
     // reduce inverted box-shadow
@@ -726,7 +663,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   val nodeCardShadowOffset = "0px 0.7px 0px 1px"
-  val nodeCardShadow = boxShadow := s"$nodeCardShadowOffset rgba(158,158,158,0.35)"
+  val nodeCardShadow = boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.12)"
   val nodeCardBackgroundColor = c"#FEFEFE"
   ".nodecard" - (
     borderRadius(3 px),
@@ -761,6 +698,62 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(2 px),
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
+
+
+
+
+  // -- breadcrumb --
+  ".breadcrumbs" - (
+    padding(2 px, 2 px), // some padding is needed to display the box-shadow
+
+    Styles.flex,
+    alignItems.center,
+    flexWrap.wrap,
+    overflowX.auto,
+
+    &(".cycle-indicator") - (
+      verticalAlign.middle,
+      margin(1.px),
+      width(0.8.em)
+    ),
+
+    &(".divider") - (
+      marginLeft(3 px),
+      marginRight(3 px),
+      color(c"rgba(0,0,0, 0.3)"),
+      fontSize(18 px),
+    )
+  )
+
+  ".breadcrumb" - (
+    minHeight(2 em), // for empty nodes
+    (boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.2)").important // overwrite nodecard shadow
+  )
+
+  ".breadcrumb," +
+  ".breadcrumb *" - (
+    maxWidth(10 em),
+    fontSize(13 px),
+  )
+
+  ".breadcrumb .markdown *" - (
+    /* BOTH of the following are required for text-overflow */
+    whiteSpace.nowrap,
+    overflow.hidden,
+    textOverflow := "ellipsis",
+  )
+
+  // first/last breadcrumb should not have any margin.
+  // this way e.g. the cycle shape is closer to the cycle
+  ".breadcrumb:first-of-type" - (
+    marginLeft(0 px),
+    )
+  ".breadcrumb:last-of-type" - (
+    marginRight(0 px),
+    )
+
+
+
 
   ".listview .nodecard-content," +
   ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
