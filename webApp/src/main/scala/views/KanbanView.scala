@@ -229,7 +229,6 @@ object KanbanView {
 
         position.relative, // for buttonbar
         buttonBar(position.absolute, top := "0", right := "0"),
-        //        onDblClick.stopPropagation(state.viewConfig.now.copy(page = Page(node.id))) --> state.viewConfig,
       ),
       Rx {
         if(isExpanded()) VDomModifier(
