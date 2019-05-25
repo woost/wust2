@@ -132,6 +132,7 @@ object EditableContent {
         color := "#000",
         cursor.auto,
         minWidth := "20px", minHeight := "20px", // minimal edit area
+        lineHeight := "1.4285em", // like semantic UI <p>
         width := "100%",
 
         commonEditMods[T, dom.html.Element](current, config, EditStringParser.parseElement[T], _.fold[String](identity, identity))
