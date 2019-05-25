@@ -58,13 +58,13 @@ object BreadCrumbs {
    })
   }
 
-  def apply(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
+      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction, hideIfSingle)
     )
   }
 
-  private def modifier(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       cls := "breadcrumbs",
       parentId.map { (parentId: NodeId) =>
@@ -115,7 +115,9 @@ object BreadCrumbs {
           }
         }(breakOut)
 
-        intersperseWhile(elements, span(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
+        VDomModifier.ifTrue(!hideIfSingle || elements.length > 1)(
+          intersperseWhile(elements, span(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
+        )
       },
       registerDragContainer(state),
       onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },

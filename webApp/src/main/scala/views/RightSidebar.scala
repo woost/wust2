@@ -73,7 +73,7 @@ object RightSidebar {
         ),
         div(
           marginLeft := "5px",
-          nodeBreadcrumbs(state, focusPref, parentIdAction),
+          nodeBreadcrumbs(state, focusPref, parentIdAction, hideIfSingle = true),
         ),
       ),
       UI.accordion(
@@ -152,10 +152,18 @@ object RightSidebar {
     )
   }
 
-  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle:Boolean)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
-        BreadCrumbs(state, state.graph(), state.user(), state.page().parentId, Some(focusedNodeId.nodeId), nodeId => parentIdAction(Some(nodeId))).apply(paddingBottom := "3px")
+        BreadCrumbs(
+          state,
+          state.graph(),
+          state.user(),
+          state.page().parentId,
+          Some(focusedNodeId.nodeId),
+          nodeId => parentIdAction(Some(nodeId)),
+          hideIfSingle = hideIfSingle
+        ).apply(paddingBottom := "3px")
       }
     )
   }
