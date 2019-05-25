@@ -202,7 +202,9 @@ object RightSidebar {
         }
 
     val nodeCard = Rx {
-      Components.nodeCardEditable(state, node(), editMode).apply(
+      Components.nodeCardEditable(state, node(), editMode,
+        contentInject = width := "100%" // pushes cancel button to the right
+        ).apply(
         Styles.wordWrap,
         width := "100%",
         margin := "3px 3px 3px 3px",

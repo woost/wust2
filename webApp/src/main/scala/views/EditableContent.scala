@@ -205,6 +205,7 @@ object EditableContent {
             display.inlineFlex,
             alignItems.flexStart,
             marginLeft := "auto",
+            marginTop := "4px", // center on first line
             cancelButton(current)
           )
         }
