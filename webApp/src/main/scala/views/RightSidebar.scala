@@ -62,6 +62,8 @@ object RightSidebar {
       onClick.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       div(
+        Styles.flexStatic,
+
         Styles.flex,
         alignItems.center,
         div(
@@ -113,13 +115,6 @@ object RightSidebar {
     val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
     def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
-    val zoomButton = div(
-      Icons.zoom,
-      color := Colors.pageHeaderControl,
-      marginLeft := "10px",
-      cursor.pointer,
-      onClick.foreach { state.urlConfig.update(_.focus(Page(focusPref.nodeId), viewVar.now)) }
-    )
 
     VDomModifier(
       Styles.flex,
@@ -136,7 +131,6 @@ object RightSidebar {
 
         ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
         NotificationView.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
-        zoomButton,
       ),
 
       Rx {
@@ -179,36 +173,57 @@ object RightSidebar {
       state.graph().hasNotDeletedParents(focusPref.nodeId)
     }
 
+    val buttonMods = VDomModifier(
+      fontSize := "18px",
+      padding := "12px 8px",
+      cursor.pointer,
+    )
+
+    val zoomButton = div(
+      Icons.zoom,
+      buttonMods,
+      onClick.foreach {
+        state.urlConfig.update(_.focus(Page(focusPref.nodeId)))
+        state.rightSidebarNode() = None
+      }
+          )
+
+    val deleteButton = Rx {
+          VDomModifier.ifTrue(hasNotDeletedParents())(
+            div(
+              Icons.delete,
+          buttonMods,
+              onClick.stopPropagation.foreach { _ =>
+                state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
+                parentIdAction(None)
+              },
+            )
+          )
+        }
+
+    val nodeCard = Rx {
+      Components.nodeCardEditable(state, node(), editMode).apply(
+        Styles.wordWrap,
+        width := "100%",
+        margin := "3px 3px 3px 3px",
+        cls := "enable-text-selection",
+        fontSize := "20px",
+        onClick.stopPropagation(true) --> editMode,
+
+        Styles.flex,
+        justifyContent.spaceBetween,
+        Components.readObserver(state, node().id)
+      )
+    }
+
     div(
       div(
         Styles.flex,
         alignItems.flexStart,
 
-        Rx {
-          Components.nodeCardEditable(state, node(), editMode).apply(
-            Styles.wordWrap,
-            width := "100%",
-            margin := "3px 3px 3px 3px",
-            cls := "enable-text-selection",
-            onClick.stopPropagation(true) --> editMode,
-            Components.readObserver(state, node().id)
-          )
-        },
-
-        Rx {
-          VDomModifier.ifTrue(hasNotDeletedParents())(
-            div(
-              Icons.delete,
-              padding := "8px 5px",
-              cursor.pointer,
-              onClick.stopPropagation.foreach { _ =>
-                state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
-                parentIdAction(None)
-              },
-              cursor.pointer, UI.tooltip := "Archive"
-            )
-          )
-        }
+        zoomButton,
+        nodeCard,
+        deleteButton
       ),
 
       nodeAuthor(state, focusPref.nodeId),
@@ -236,7 +251,7 @@ object RightSidebar {
       alignItems.center,
       justifyContent.flexEnd,
       authorship.map { case (author, creationEpochMillis) =>
-        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar))
+        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
       },
     )
   }
