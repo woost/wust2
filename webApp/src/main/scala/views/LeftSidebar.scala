@@ -56,8 +56,11 @@ object LeftSidebar {
               cls := "newChannelButton-large " + buttonStyles,
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
             ),
-            appUpdatePrompt(state).apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
-            beforeInstallPrompt().apply(Styles.flexStatic, alignSelf.center, marginBottom := "10px"),
+            // appUpdatePrompt(state).apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
+            beforeInstallPrompt(buttonModifier = VDomModifier(
+              marginTop := "10px",
+              marginBottom := "10px"
+            )).apply(Styles.flexStatic, alignSelf.center),
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,
@@ -218,14 +221,17 @@ object LeftSidebar {
       )
   }
 
-  def beforeInstallPrompt()(implicit ctx: Ctx.Owner) = {
+  def beforeInstallPrompt(buttonModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner) = {
     div(
       Rx {
         beforeInstallPromptEvents().map { e =>
-          button(cls := "tiny ui primary basic button", "Install as App", onClick foreach {
-            e.asInstanceOf[js.Dynamic].prompt();
-            ()
-          })
+          button(
+            cls := "tiny ui primary basic button", "Install as App", onClick foreach {
+              e.asInstanceOf[js.Dynamic].prompt();
+              ()
+            },
+            buttonModifier
+          )
         }
       }
     )
