@@ -124,17 +124,17 @@ object Deps {
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
   }
 
-  val webpackVersion = "4.29.5"
-  val webpackDevServerVersion = "3.2.0"
+  val webpackVersion = "4.32.2"
+  val webpackDevServerVersion = "3.2.1"
 
   object npm {
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
-    val marked = "marked" -> "0.6.1"
+    val marked = "marked" -> "0.6.2"
     val markedSanitizer = "marked-sanitizer-github" -> "1.0.0"
-    val highlight = "highlight.js" -> "9.14.2"
+    val highlight = "highlight.js" -> "9.15.2"
     val dateFns = "date-fns" -> "v2.0.0-alpha.27"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
-    val fomanticUi = "fomantic-ui-css" -> "2.7.2"
+    val fomanticUi = "fomantic-ui-css" -> "2.7.5"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiData = "emoji-datasource" -> "4.1.0"
     val hammerjs = "hammerjs" -> "2.0.8"
