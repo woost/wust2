@@ -54,7 +54,8 @@ object LeftSidebar {
             channels(state, toplevelChannels, invites),
             newProjectButton(state).apply(
               cls := "newChannelButton-large " + buttonStyles,
-              onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") }
+              onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
+              marginBottom := "10px",
             ),
             // appUpdatePrompt(state).apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
             beforeInstallPrompt(buttonModifier = VDomModifier(
