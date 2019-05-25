@@ -327,7 +327,7 @@ object LeftSidebar {
           channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
-              paddingLeft := "10px",
+              paddingLeft := "14px",
               fontSize := s"${math.max(8, 14 - depth)}px",
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
