@@ -92,24 +92,19 @@ object Components {
     ))
   }
 
-  def renderText(str: String): VNode = {
-    p.thunkStatic(uniqueKey(str))(VDomModifier(
-      overflow.hidden,
-      textOverflow.ellipsis,
-      whiteSpace.nowrap,
-      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_colons(escapeHtml(str)))
-    ))
-  }
-
-  def renderText(node: Node): VNode = renderText(node.str)
-
   def renderAsOneLineText(node: Node): VNode = {
-    val textContent = {
+    // 1. extract first line of string
+    val firstLine = {
       val lines = node.str.lines
       if (lines.hasNext) lines.next else ""
     }
 
-    renderText(textContent)
+    // 2. render markdown
+    markdownVNode(firstLine)(
+      // 3. overwrite font styles via css
+      // 4. crop via overflow ellipsis
+      cls := "oneline" 
+    )
   }
 
   def nodeCardAsOneLineText(node: Node): VNode = {
@@ -516,7 +511,7 @@ object Components {
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
-      val contentString = renderNodeData(tag.data)
+      val contentString = renderAsOneLineText(tag)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
     }
 

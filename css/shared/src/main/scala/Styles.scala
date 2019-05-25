@@ -86,6 +86,13 @@ object Styles extends StyleSheet.Inline {
     minWidth(0 px),
   )
 
+  val cropEllipsis = style(
+    /* BOTH of the following are required for text-overflow */
+    whiteSpace.nowrap,
+    overflow.hidden,
+    textOverflow := "ellipsis",
+  )
+
   val gridOpts = style(
     display.grid,
     gridGap(0 px),
@@ -128,6 +135,13 @@ object CommonStyles extends StyleSheet.Standalone {
 
   "*, *:before, *:after" - (
     boxSizing.borderBox
+  )
+
+  // give empty paragraphs the default line-height
+  // https://stackoverflow.com/a/53193642/793909
+  "p:empty:before" - (
+    content := "\" \"",
+    whiteSpace.pre,
   )
 
   ":not(input):not(textarea):not([contenteditable=true])," +
@@ -217,7 +231,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pageheader-channeltitle" - (
     fontSize(20 px),
     minWidth(30 px), // min-width and height help to edit if channel name is empty
-    minHeight(1 em),
+    lineHeight(1.4285 em), // semantic ui default line height
     marginBottom(2 px), // remove margin when title is in <p> (rendered my markdown)
     Styles.flex, // for notification count
   )
@@ -726,7 +740,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".breadcrumb" - (
-    minHeight(2 em), // for empty nodes
     (boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.2)").important // overwrite nodecard shadow
   )
 
@@ -734,13 +747,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".breadcrumb *" - (
     maxWidth(10 em),
     fontSize(13 px),
-  )
-
-  ".breadcrumb .markdown *" - (
-    /* BOTH of the following are required for text-overflow */
-    whiteSpace.nowrap,
-    overflow.hidden,
-    textOverflow := "ellipsis",
   )
 
   // first/last breadcrumb should not have any margin.
@@ -792,6 +798,12 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(0.2 em, 0.4 em),
   )
 
+  ".oneline.markdown *:not(.emoji-sizer)" - (
+    Styles.cropEllipsis,
+    fontSize.inherit, // overwrite fontSizes set by e.g. markdown headlines
+    lineHeight.inherit,
+  )
+
   ".nodecard.node-deleted" - (
     fontSize.smaller,
     opacity(0.5),
@@ -822,13 +834,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".tag.colorful" - (
     color(c"#FEFEFE"),
-  )
-
-  ".tag .markdown *" - (
-    /* BOTH of the following are required for text-overflow */
-    whiteSpace.nowrap,
-    overflow.hidden,
-    textOverflow := "ellipsis",
   )
 
   ".tag.colorful a" - (

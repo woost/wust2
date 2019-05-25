@@ -366,8 +366,17 @@ object Elements {
   )
 
 
-  def markdownVNode(str: String) = div.thunkStatic(uniqueKey(str))(VDomModifier(cls := "markdown", div(innerHTML := UnsafeHTML(markdownString(str))))) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  def markdownString(str: String): String = EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
+  def markdownVNode(str: String) = {
+    div.thunkStatic(uniqueKey(str))(VDomModifier(
+      cls := "markdown",
+      div(innerHTML := UnsafeHTML(markdownString(str)))
+    )) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  }
+
+  def markdownString(str: String): String = {
+    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
+    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
+  }
 
   def escapeHtml(content: String): String = {
     // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.

@@ -100,7 +100,7 @@ object PageHeader {
         paddingTop := "5px",
 
         Styles.flex,
-        alignItems.flexEnd,
+        alignItems.center,
         flexWrap := "wrap-reverse",
 
         ViewSwitcher(state, pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
