@@ -92,6 +92,12 @@ object Components {
     ))
   }
 
+  def replaceEmojiUnified(str: String): VNode = {
+    span.thunkStatic(uniqueKey(str))(VDomModifier(
+      Elements.innerHTML := Elements.UnsafeHTML(EmojiConvertor.replace_unified(escapeHtml(str)))
+    ))
+  }
+
   def renderAsOneLineText(node: Node): VNode = {
     // 1. extract first line of string
     val firstLine = {

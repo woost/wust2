@@ -123,6 +123,11 @@ object Styles extends StyleSheet.Inline {
     (0 %%) -> style(opacity(0), visibility.visible),
     (100 %%) -> style(opacity(1), visibility.visible)
   )
+
+  val errorAnimationKf = keyframes(
+    (0 %%) -> style(transform := "translateX(-25%)"),
+    (100 %%) -> style(transform := "translateX(25%)")
+  )
 }
 
 //TODO: port over to Style as inline and reference class via Styles
@@ -1331,6 +1336,45 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   ".emoji-sizer" - (
     fontSize.larger,
+  )
+
+
+
+
+
+
+  // error page background animation
+  ".error-animation-bg" - (
+    animation := s"${Styles.errorAnimationKf.name.value} 3s ease-in-out infinite alternate",
+    backgroundImage := "linear-gradient(-60deg, #6c3 50%, #09f 50%)",
+    bottom(0 px),
+    left(-50 %%),
+    opacity(0.5),
+    position.fixed,
+    right(-50 %%),
+    top(0 px),
+    zIndex(-1),
+  )
+
+  ".error-animation-bg2" - (
+    animationDirection.alternateReverse,
+    animationDuration(4 seconds),
+  )
+
+  ".error-animation-bg3" - (
+    animationDuration(5 seconds),
+  )
+
+  ".error-animation-content" - (
+    minWidth(300 px),
+    backgroundColor(c"rgba(255,255,255,.8)"),
+    borderRadius(0.25 em),
+    boxShadow := "0 0 .25em rgba(0,0,0,.25)",
+    left(50%%),
+    padding(10 vmin),
+    position.fixed,
+    top(50%%),
+    transform := "translate(-50%, -50%)",
   )
 }
 

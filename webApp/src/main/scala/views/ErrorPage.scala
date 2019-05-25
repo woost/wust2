@@ -7,18 +7,22 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webApp.state.GlobalState
 import wust.webApp.outwatchHelpers._
+import wust.webApp.views.Components._
 
 object ErrorPage {
   def apply(errorMessage: Option[String] = None) = div(
-    padding := "50px",
-    margin := "5px",
-    cls := "ui negative message",
+
+    // background animation: https://codepen.io/chris22smith/pen/RZogMa
+    div(cls := "error-animation-bg"),
+    div(cls := "error-animation-bg error-animation-bg2"),
+    div(cls := "error-animation-bg error-animation-bg3"),
+
     div(
-      cls := "header",
-      h3("Oops, an error occurred!"),
+      cls := "error-animation-content",
+      h1(replaceEmojiUnified("🤕"), " Oops, an error occurred!"),
+      p(VDomModifier(errorMessage.getOrElse("Something went wrong."))),
+      button(cls := "ui button positive", margin := "10px 0px", freeSolid.faAmbulance, " Reload Page", onClick.foreach { dom.window.location.reload() }),
+      p("If the problem persists, please contact us at ", Components.woostTeamEmailLink)
     ),
-    p(VDomModifier(errorMessage.getOrElse("Something went wrong."))),
-    button(cls := "ui button positive", margin := "10px 0px", freeSolid.faAmbulance, " Reload Page", onClick.foreach { dom.window.location.reload() }),
-    p("If the problem persists, please contact us at ", Components.woostTeamEmailLink)
   )
 }
