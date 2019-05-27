@@ -350,7 +350,7 @@ object Components {
       alignItems.flexStart,
       b(
         Styles.flex,
-        EditableContent.inlineEditorOrRender[String](key, editKey, key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
+        EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> state.eventProcessor.changes,
         cursor.pointer,
@@ -799,7 +799,7 @@ object Components {
 
     def editableNode(state: GlobalState, node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes,
+        EditableContent.ofNodeOrRender(state, node, editMode, implicit ctx => node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes,
       )
     }
 
@@ -807,10 +807,10 @@ object Components {
       div(
         node.role match {
           case NodeRole.Neutral => VDomModifier(
-            EditableContent.ofNodeOrRender(state, node, editMode, node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+            EditableContent.ofNodeOrRender(state, node, editMode, implicit ctx => node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), handler => searchAndSelectNodeApplied(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
+            EditableContent.customOrRender[Node](node, editMode, implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), implicit ctx => handler => searchAndSelectNodeApplied(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
 
               GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
             } --> state.eventProcessor.changes,
