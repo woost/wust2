@@ -11,7 +11,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
-import wust.external.{trello, meistertask}
+import wust.external.{trello, wunderlist, meistertask}
 import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids._
 import wust.util.StringOps
@@ -70,6 +70,19 @@ object Importing {
         ),
         parser = str => IO {
           trello.Trello.decodeJson(str).map(trello.Trello.translate(_))
+        }
+      ),
+
+      Source(
+        icon = img(src := "/trello.svg"),
+        title = "Wunderlist",
+        description = "Wunderlist Export (JSON)",
+        inputs = List(
+          Input.FromText("Paste the exported JSON from Wunderlist here."),
+          Input.FromFile("Upload the exported JSON file from Wunderlist.", Some("application/json")),
+        ),
+        parser = str => IO {
+          wunderlist.Wunderlist.decodeJson(str).map(wunderlist.Wunderlist.translate(_))
         }
       ),
 
