@@ -16,7 +16,7 @@ case class Card(
   idLabels: List[String],
   idChecklists: List[String],
   idList: String,
-  due: Option[String],
+  due: Option[EpochMilli],
   dueComplete: Boolean
 )
 
@@ -154,12 +154,10 @@ object Trello {
       cardsById += card.id -> cardNode.id
 
       // attach due date
-      card.due.foreach { dateStr =>
-        EpochMilli.parse(dateStr).foreach { date =>
-          val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
-          addNodes += dateNode
-          addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
-        }
+      card.due.foreach { date =>
+        val dateNode = Node.Content(NodeId.fresh, NodeData.DateTime(DateTimeMilli(date)), NodeRole.Neutral, NodeMeta.default, None)
+        addNodes += dateNode
+        addEdges += Edge.LabeledProperty(cardNode.id, EdgeData.LabeledProperty.dueDate, PropertyId(dateNode.id))
       }
 
       // attach description as note
@@ -224,6 +222,7 @@ object Trello {
     import io.circe._
     import io.circe.generic.auto._
     import io.circe.parser._
+    import wust.external.Circe._
 
     decode[Board](json) match {
       case Right(board) => Right(board)
