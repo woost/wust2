@@ -254,10 +254,11 @@ object LeftSidebar {
   }
 
   private val emojiRegex = raw"(:\w+:)".r.unanchored
+  @inline def fontSizeByDepth(depth:Int) = s"${math.max(8, 14 - depth)}px"
 
   private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], invites: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
-    def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+    def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       val nodeId = traverseState.parentId
       val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
       val node = Rx {
@@ -280,7 +281,9 @@ object LeftSidebar {
 
       val iconModifier = Rx {
         node().str match {
-          case emojiRegex(emoji) => replaceEmoji(emoji).apply(fontSize := "13px", marginBottom := "3px") // same size as fa-icons
+          case emojiRegex(emoji) => replaceEmoji(emoji).apply(
+            alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
+          ) 
           case _ if selected() => freeSolid.faFolderOpen:VDomModifier
           case _ if !selected() => span(
             freeRegular.faFolder,
@@ -331,11 +334,11 @@ object LeftSidebar {
         }
 
         VDomModifier(
-          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren),
+          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
-              fontSize := s"${math.max(8, 14 - depth)}px",
+              fontSize := fontSizeByDepth(depth),
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
@@ -432,7 +435,7 @@ object LeftSidebar {
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := s"${indentFactor}px",
-              fontSize := s"${math.max(8, 14 - depth)}px",
+              fontSize := fontSizeByDepth(depth),
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
           }
