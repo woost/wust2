@@ -49,7 +49,7 @@ object Deps {
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
-  val vectory = dep("com.github.fdietze" % "vectory" % "0e8b35a")
+  val vectory = dep("com.github.fdietze" % "vectory" % "63430be")
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
@@ -83,7 +83,7 @@ object Deps {
     val core = dep("com.nrinaudo" %%% "kantan.csv" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.csv-generic" % version)
   }
-  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "962dbb6")
+  val flatland = dep("com.github.fdietze.flatland" %%% "flatland" % "2b169c4")
   val caseApp = dep("com.github.alexarchambault" %%% "case-app" % "2.0.0-M3")
 
   // graalvm
