@@ -340,7 +340,6 @@ object SharedViewElements {
   }
 
   def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
-    val nodeIdSet:List[NodeId] = selected.map(_.nodeId)(breakOut)
     val allSelectedNodesAreDeleted = Rx {
       val graph = state.graph()
       selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
