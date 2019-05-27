@@ -382,7 +382,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
   // firefox
   ".tiny-scrollbar" - (
-    Attr.real("scrollbar-width") := "tiny"
+    Attr.real("scrollbar-width") := "thin"
   )
 
   ".customChannelIcon" - (
