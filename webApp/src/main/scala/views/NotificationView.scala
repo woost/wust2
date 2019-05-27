@@ -105,6 +105,7 @@ object NotificationView {
           if (unreadNodes.isEmpty)
             h3(
             textAlign.center,
+            color.gray,
             "Nothing New.",
             padding := "10px"
           )
@@ -362,10 +363,11 @@ object NotificationView {
             }
           }
         )
-      )
+      ),
+      segmentClass = "basic", segmentsClass = "basic"
     ).apply(
-        width := "100%"
-      )
+      width := "100%"
+    )
   }
 
   private def renderRevisions(

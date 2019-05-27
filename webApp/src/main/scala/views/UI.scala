@@ -395,15 +395,15 @@ object UI {
   }
 
 
-  def segment(header: VDomModifier, description: VDomModifier) = div(
-    cls := "ui segments",
+  def segment(header: VDomModifier, description: VDomModifier, segmentClass: String = "", segmentsClass: String = "") = div(
+    cls := s"ui segments $segmentsClass",
     div(
-      cls :="ui secondary segment",
+      cls := s"ui secondary segment $segmentClass",
       padding := "0.5em 0.5em",
       header
     ),
     div(
-      cls := "ui segment",
+      cls := s"ui segment $segmentClass",
       padding := "0.5em 0.5em",
       description
     )
