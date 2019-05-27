@@ -1020,7 +1020,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    backgroundColor(c"#f6f6f6"),
+    backgroundColor(c"#e3e3e3"),
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
