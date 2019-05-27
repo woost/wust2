@@ -134,6 +134,10 @@ object Styles extends StyleSheet.Inline {
 object CommonStyles extends StyleSheet.Standalone {
   import dsl._
 
+  ".ui.secondary.segment" - (
+    backgroundColor(c"#fafafa") // lighter gray for ui segments
+  )
+
   ".toast-container" - (
     zIndex(ZIndex.toast).important // explicitly overwrite z-index of fomantic-ui toasts
   )
