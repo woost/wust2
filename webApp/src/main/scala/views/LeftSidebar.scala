@@ -344,7 +344,7 @@ object LeftSidebar {
     }
 
     VDomModifier(
-      cls := "channels",
+      cls := "channels tiny-scrollbar",
 
       Rx {
         val userId = state.userId()
@@ -441,7 +441,7 @@ object LeftSidebar {
     }
 
     VDomModifier(
-      cls := "channelIcons",
+      cls := "channelIcons tiny-scrollbar",
 
       Rx {
         val userId = state.userId()
