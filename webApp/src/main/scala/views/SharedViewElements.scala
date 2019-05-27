@@ -356,7 +356,7 @@ object SharedViewElements {
 
   def newProjectButton(state: GlobalState, label: String = "New Project"): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
-    val body = div(
+    def body(implicit ctx: Ctx.Owner) = div(
       color := "#333",
       ViewSwitcher.viewCheckboxes --> selectedViews,
     )
@@ -367,6 +367,7 @@ object SharedViewElements {
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
       state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName, views))
       state.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+      selectedViews() = Seq.empty
 
       Ack.Continue
     }
@@ -374,7 +375,7 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClickNewNamePrompt(state, header = "Create a new Project", body = body, placeholder = Placeholder("Name of the Project")).foreach(newProject(_)),
+      onClickNewNamePrompt(state, header = "Create a new Project", body = Ownable { implicit ctx => body }, placeholder = Placeholder("Name of the Project")).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
@@ -511,9 +512,9 @@ object SharedViewElements {
     )
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[String] { sink =>
+  def onClickNewNamePrompt(state: GlobalState, header: String, body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty), placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[String] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body, placeholder) }) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body(ctx), placeholder) }) --> state.uiModalConfig,
       cursor.pointer
     )
   }
