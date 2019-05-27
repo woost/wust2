@@ -11,7 +11,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
-import wust.external.trello
+import wust.external.{trello, meistertask}
 import wust.graph.{Edge, GraphChanges, Node, Page}
 import wust.ids._
 import wust.util.StringOps

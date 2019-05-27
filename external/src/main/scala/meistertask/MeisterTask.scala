@@ -1,4 +1,4 @@
-package meistertask
+package wust.external.meistertask
 
 import java.util.Date
 
@@ -178,11 +178,11 @@ object MeisterTask {
     implicit val dateMatch: GroupDecoder[EpochMilli] = GroupDecoder[String].emap(convertToEpochMilli(_).left.map(DecodeError.TypeError(_)))
 
     val commentRegex = Regex[(String, EpochMilli, String)](rx"([^(]*) \(([^)]*)\): (.*)").map(_.map { case (author, date, content) =>
-      meistertask.Comment(name = content, author = author, date = date)
+      Comment(name = content, author = author, date = date)
     })
 
     val checkItemRegex = Regex[(String, String)](rx"\[( |x)\] ([^\[]*)").map(_.map { case (check, content) =>
-      meistertask.CheckItem(checked = check == "x", name = content)
+      CheckItem(checked = check == "x", name = content)
     })
   }
 
@@ -192,13 +192,13 @@ object MeisterTask {
     import kantan.csv.generic._
     import RegexDecoders._
 
-    implicit val commentCodec: CellDecoder[meistertask.Comment] = CellDecoder.from { str =>
+    implicit val commentCodec: CellDecoder[Comment] = CellDecoder.from { str =>
       commentRegex.eval(str).toList.headOption.toRight(DecodeError.TypeError(s"Cannot extract comment section from '$str'")).flatMap {
         case Right(value) => Right(value)
         case Left(err) => Left(DecodeError.TypeError(err.getMessage))
       }
     }
-    implicit val checklistCodec: CellDecoder[Seq[meistertask.CheckItem]] = CellDecoder.from { str =>
+    implicit val checklistCodec: CellDecoder[Seq[CheckItem]] = CellDecoder.from { str =>
       eitherSeq(checkItemRegex.eval(str).toList.map {
         case Right(value) => Right(value)
         case Left(err) => Left(DecodeError.TypeError(err.getMessage))
@@ -210,7 +210,7 @@ object MeisterTask {
     }
     implicit val taskDecoder: HeaderDecoder[Task] = HeaderDecoder.decoder("id","token","name","notes","created_at","updated_at","status","due_date","status_updated_at","assignee","section","tags","custom_fields","checklists","comments")(Task.apply)
     val config = CsvConfiguration.rfc.copy(header = CsvConfiguration.Header.Implicit)
-    Try(eitherSeq(csv.asCsvReader[meistertask.Task](config).toList)) match { // TODO: try because kantan.csv can sometimes on invalid headers. report or fix...
+    Try(eitherSeq(csv.asCsvReader[Task](config).toList)) match { // TODO: try because kantan.csv can sometimes on invalid headers. report or fix...
       case Success(Right(tasks)) => Right(Project(projectName, tasks))
       case Success(Left(err)) => Left(s"MeisterTask CSV is invalid: $err")
       case Failure(t) => Left(s"MeisterTask CSV is invalid: unexpected content")
