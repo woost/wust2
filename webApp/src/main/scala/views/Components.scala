@@ -1197,6 +1197,17 @@ object Components {
   val betaSign = maturityLabel("beta")
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
+  val unreadLabelElement = div(
+    float.right,
+    cls := "ui label",
+    color := "white",
+    backgroundColor := Colors.unread,
+    fontSize.xxSmall,
+    marginLeft := "5px",
+    marginRight := "5px",
+    padding := "4px",
+  )
+
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     def nodeIsRead(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
       val node = graph.nodes(nodeIdx)
@@ -1225,16 +1236,9 @@ object Components {
       graph.descendantsIdxCount(nodeIdx())(idx => !nodeIsRead(graph, user.id, idx))
     }
 
-    val unreadLabel = div(
+
+    val unreadLabel = unreadLabelElement.apply(
       alignSelf.center,
-      float.right,
-      cls := "ui label",
-      color := "white",
-      backgroundColor := Colors.unread,
-      fontSize.xxSmall,
-      marginLeft := "5px",
-      marginRight := "5px",
-      padding := "4px",
       labelModifier,
     )
 
