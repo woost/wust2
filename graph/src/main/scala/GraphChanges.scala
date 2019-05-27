@@ -300,13 +300,13 @@ object GraphChanges {
 
   @inline def linkOrCopyInto(edge: Edge.LabeledProperty, nodeId: NodeId, graph:Graph): GraphChanges = {
     graph.nodesById(edge.propertyId) match {
-      case node: Node.Content if node.role == NodeRole.Neutral =>
+      case Some(node: Node.Content) if node.role == NodeRole.Neutral =>
         val copyNode = node.copy(id = NodeId.fresh)
         GraphChanges(
           addNodes = Array(copyNode),
           addEdges = Array(edge.copy(nodeId = nodeId, propertyId = PropertyId(copyNode.id)))
         )
-      case node =>
+      case _ =>
         GraphChanges(
           addEdges = Array(edge.copy(nodeId = nodeId))
         )
