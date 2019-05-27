@@ -169,11 +169,21 @@ object EditableContent {
     "Cancel",
     cls := "ui button compact mini",
     padding := "3px",
-    margin := "2px 0 0 2px",
+    margin := "1px",
     flexShrink := 0,
     fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(EditInteraction.Cancel) --> current
+  )
+  private def saveButton(current: Observer[Unit]) = dsl.span(
+    "Save",
+    cls := "ui button primary compact mini",
+    padding := "3px",
+    margin := "1px",
+    flexShrink := 0,
+    fontSize.xxSmall,
+    styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
+    onClick.stopPropagation(()) --> current
   )
 
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: Handler[EditInteraction[T]] => VDomModifier) = {
@@ -192,10 +202,12 @@ object EditableContent {
         config.submitMode match {
           case SubmitMode.Explicit => dsl.span(
             display.inlineFlex,
+            flexDirection.column,
+            justifyContent.spaceBetween,
             alignItems.flexStart,
-            marginLeft := "auto",
-            marginTop := "4px", // center on first line
-            cancelButton(handledCurrent)
+            marginLeft.auto,
+            cancelButton(handledCurrent),
+            saveButton(Observer.empty)
           )
           case _ => VDomModifier.empty
         }
