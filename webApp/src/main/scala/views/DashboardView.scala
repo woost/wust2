@@ -46,8 +46,12 @@ object DashboardView {
 
     val detailWidgets = VDomModifier(
       Styles.flex,
+      div(StatisticsView(state, focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
+
       //TODO: renderSubprojects mit summary
       UI.segment("Subprojects", VDomModifier(renderSubprojects(state, focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
+
+      UI.segment("Assignments", AssignedTasksView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
 
       UI.segment("Notifications", NotificationView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )

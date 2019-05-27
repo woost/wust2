@@ -7,10 +7,13 @@ import wust.util.collection._
 import wust.util.time.time
 import wust.util.macros.InlineList
 
-import scala.collection.{ breakOut, mutable }
+import scala.collection.{breakOut, mutable}
 import scala.collection.immutable
 import scala.collection
 import flatland._
+import wust.ids
+
+import scala.concurrent.Future
 
 object Graph {
   val empty = apply(Array.empty, Array.empty)
@@ -163,11 +166,19 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   def addNodes(newNodes: Iterable[Node]): Graph = Graph(nodes = nodes ++ newNodes, edges = edges)
 }
 
-final case class RoleStat(role: NodeRole, count: Int, unreadCount: Int)
+sealed trait SemanticNodeRole
+object SemanticNodeRole {
+  @inline def apply(role: NodeRole) = Role(role)
+  case class Role(role: NodeRole) extends SemanticNodeRole {
+    override def toString = role.toString
+  }
+  case object File extends SemanticNodeRole
+}
+final case class RoleStat(role: SemanticNodeRole, count: Int, unreadCount: Int)
 final case class RoleStats(roles: List[RoleStat]) {
-  lazy val mostCommonRole: NodeRole = roles.maxBy(_.count).role
-  lazy val active: List[RoleStat] = roles.filter(_.count > 0)
-  def contains(role: NodeRole): Boolean = active.exists(_.role == role)
+  def mostCommonRole: SemanticNodeRole = roles.maxBy(_.count).role
+  def active: List[RoleStat] = roles.filter(_.count > 0)
+  def contains(role: SemanticNodeRole): Boolean = active.exists(_.role == role)
 }
 
 final class GraphLookup(
@@ -553,30 +564,58 @@ final class GraphLookup(
     } else IndexedSeq.empty[(Node.User, EpochMilli)]
   }
 
-  def topLevelRoleStats(userId: UserId, parentIds: Iterable[NodeId]): RoleStats = {
+  def topLevelRoleStats(userId: UserId, parentId: NodeId): RoleStats = idToIdxFold(parentId)(RoleStats(Nil))(topLevelRoleStatsIdx(userId, _))
+
+  def topLevelRoleStatsIdx(userId: UserId, parentIdx: Int): RoleStats = {
     var messageCount = 0
     var taskCount = 0
+//    var projectCount = 0
+    var noteCount = 0
+    var fileCount = 0
     var messageUnreadCount = 0
     var taskUnreadCount = 0
+//    var projectUnreadCount = 0
+    var noteUnreadCount = 0
+    var fileUnreadCount = 0
 
     def isRead(childIdx: Int): Boolean = readEdgeIdx.exists(childIdx)(edgeIdx => graph.edges(edgeIdx).targetId == userId)
 
-    parentIds.foreach { nodeId =>
-      idToIdxForeach(nodeId) { nodeIdx =>
-        childrenIdx.foreachElement(nodeIdx) { childIdx =>
-          nodes(childIdx).role match {
-            case NodeRole.Message =>
-              messageCount += 1
-              if (!isRead(childIdx)) messageUnreadCount += 1
-            case NodeRole.Task =>
-              taskCount += 1
-              if (!isRead(childIdx)) taskUnreadCount += 1
-            case _ =>
-          }
-        }
+    childrenIdx.foreachElement(parentIdx) { childIdx =>
+      nodes(childIdx).role match {
+        case NodeRole.Message =>
+          messageCount += 1
+          if (!isRead(childIdx)) messageUnreadCount += 1
+        case NodeRole.Task =>
+          taskCount += 1
+          if (!isRead(childIdx)) taskUnreadCount += 1
+//        case NodeRole.Project =>
+//          projectCount += 1
+//          if (!isRead(childIdx)) projectUnreadCount += 1
+        case NodeRole.Note =>
+          noteCount += 1
+          if (!isRead(childIdx)) noteUnreadCount += 1
+        case _ =>
       }
     }
-    RoleStats(List(RoleStat(NodeRole.Message, messageCount, messageUnreadCount), RoleStat(NodeRole.Task, taskCount, taskUnreadCount)))
+
+
+    propertiesEdgeIdx.foreachElement(parentIdx) { edgeIdx =>
+      val propertyIdx = edgesIdx.b(edgeIdx)
+      nodes(propertyIdx).as[Node.Content].data match {
+        case data: ids.NodeData.File =>
+          fileCount += 1
+          if (!isRead(propertyIdx)) fileUnreadCount += 1
+        case _                       =>
+      }
+    }
+    RoleStats(
+//      RoleStat(SemanticNodeRole(NodeRole.Project), projectCount, projectUnreadCount) ::
+      RoleStat(SemanticNodeRole(NodeRole.Task), taskCount, taskUnreadCount) ::
+      RoleStat(SemanticNodeRole(NodeRole.Message), messageCount, messageUnreadCount) ::
+      RoleStat(SemanticNodeRole(NodeRole.Note), noteCount, noteUnreadCount) ::
+      RoleStat(SemanticNodeRole.File, noteCount, noteUnreadCount) ::
+      Nil
+    )
   }
 
   def filterIdx(p: Int => Boolean): Graph = {
