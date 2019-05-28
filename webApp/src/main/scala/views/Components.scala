@@ -1165,13 +1165,11 @@ object Components {
     onMouseOut(None) --> state.hoverNodeId,
   )
 
-  val betaSign = {
-    val col = "#d9e778"
-    val col2 = "#95a90b"
+  def maturityLabel(text: String, fgColor: String = "#95a90b", borderColor: String = "#d9e778") = {
     div(
-      "Beta",
-      border := s"1px solid $col",
-      color := col2,
+      text,
+      border := s"1px solid $borderColor",
+      color := fgColor,
       borderRadius := "3px",
       padding := "0px 5px",
       fontWeight.bold,
@@ -1184,15 +1182,8 @@ object Components {
     )
   }
 
-  val experimentalSign = div(
-    "experimental",
-    backgroundColor := "#F2711C",
-    color := "white",
-    borderRadius := "3px",
-    padding := "0px 5px",
-    fontWeight.bold,
-    styles.extra.transform := "rotate(-7deg)",
-  )
+  val betaSign = maturityLabel("beta")
+  def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
     def nodeIsRead(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {

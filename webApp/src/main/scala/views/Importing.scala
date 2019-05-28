@@ -195,6 +195,7 @@ object Importing {
       Styles.flex,
       flexDirection.column,
       justifyContent.spaceBetween,
+      alignItems.center,
 
       div(
         div(importer.title + ":"),
@@ -270,13 +271,14 @@ object Importing {
       flexDirection.column,
       alignItems.center,
 
-      div(padding := "4px", alignSelf.flexStart, freeSolid.faArrowLeft, cursor.pointer, onClick(None) --> sink),
+      div(padding := "10px", alignSelf.flexStart, freeSolid.faArrowLeft, cursor.pointer, onClick(None) --> sink),
 
       source.form,
 
       div(
         Styles.growFull,
         Styles.flex,
+        justifyContent.center,
         padding := "5px 0",
         height := "400px",
         overflow.auto,
@@ -331,11 +333,32 @@ object Importing {
     val header: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
         val header = selectedSource() match {
-          case Some(source) => VDomModifier(source.icon(height := "1em", marginRight := "10px"), span(s"Import from ${source.description}"))
-          case None => span("Import your data")
+          case Some(source) => VDomModifier(
+            span(
+              Styles.flex,
+              alignItems.center,
+              padding := "6px",
+              backgroundColor := "white",
+              source.icon(height := "1em", Styles.flexStatic),
+              marginRight := "10px"
+            ),
+            span(s"Import from ${source.description}", marginRight := "10px")
+          )
+          case None => span("Import your data", marginRight := "10px")
         }
 
-        UI.ModalConfig.defaultHeader(state, node, div(Styles.flex, alignItems.center, header, Components.experimentalSign.apply(fontSize.xSmall, marginLeft := "10px")), Icons.`import`)
+        UI.ModalConfig.defaultHeader(
+          state,
+          node,
+          modalHeader = div(
+            Styles.flex,
+            flexWrap.wrap,
+            alignItems.center,
+            header,
+            Components.experimentalSign(color = "white").apply(fontSize.xSmall)
+          ),
+          icon = Icons.`import`
+        )
       }
     }
 

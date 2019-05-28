@@ -109,13 +109,15 @@ object UI {
   object ModalConfig {
     import wust.graph.{Node, Page}
     import wust.sdk.BaseColors
+    import wust.sdk.NodeColor
     import wust.sdk.NodeColor._
     import wust.webApp.state.GlobalState
     import wust.webApp.views.Components.renderNodeData
 
     def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
-        backgroundColor := Colors.sidebarBg,
+        backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+        color.white,
         div(
           Styles.flex,
           flexDirection.row,
@@ -125,9 +127,6 @@ object UI {
             Styles.flex,
             flexDirection.column,
             div(
-              Styles.flex,
-              alignItems.center,
-              nodeAvatar(node, size = 20)(marginRight := "5px", Styles.flexStatic),
               renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             ),
