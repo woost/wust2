@@ -616,7 +616,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chat-row" - (
     alignItems.center,
-    padding(2 px, 20 px, 2 px, 0 px)
+    padding(2 px, 20 px, 2 px, 0 px),
+
+    &(".nodecard") - (
+      padding(3 px), // overwriting default
+    )
   )
 
   ".chat-row .nodeselection-checkbox.checkbox" - (
