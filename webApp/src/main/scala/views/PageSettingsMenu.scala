@@ -267,15 +267,10 @@ object PageSettingsMenu {
       case _ => VDomModifier.empty
     }
 
-    def header(implicit ctx: Ctx.Owner) = VDomModifier(
-      backgroundColor := BaseColors.pageBg.copy(h = hue(node.id)).toHex,
-      div(
-        Styles.flex,
-        alignItems.center,
-        nodeAvatar(node, size = 20),
-        renderNodeData(node.data)(fontWeight.normal),
-      ),
-      div(
+    def header(implicit ctx: Ctx.Owner) = UI.ModalConfig.defaultHeader(
+      state,
+      node,
+      modalHeader = div(
         cls := "ui search",
         div(
           cls := "ui input action",
@@ -293,12 +288,12 @@ object PageSettingsMenu {
             onClick.stopPropagation(searchInputProcess) --> searchLocal
           ),
         ),
-      )
+      ),
+      icon = Icons.`import`
     )
 
     def description(implicit ctx: Ctx.Owner) = VDomModifier(
       cls := "scrolling",
-      backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
       div(
         cls := "ui fluid search-result",
         searchResult,
@@ -307,7 +302,7 @@ object PageSettingsMenu {
 
     SharedViewElements.searchButtonWithIcon(onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description,
       modalModifier = cls := "form",
-      contentModifier = backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex,
+      contentModifier = VDomModifier.empty,
       ))) --> state.uiModalConfig
     )
 
@@ -482,9 +477,7 @@ object PageSettingsMenu {
         modalModifier = VDomModifier(
           cls := "mini form",
         ),
-        contentModifier = VDomModifier(
-          backgroundColor := BaseColors.pageBgLight.copy(h = hue(node.id)).toHex
-        )
+        contentModifier = VDomModifier.empty
       ))) --> state.uiModalConfig
     )
   }
