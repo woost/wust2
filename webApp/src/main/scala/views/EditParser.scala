@@ -14,6 +14,7 @@ import wust.webApp._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 
+import scala.reflect.ClassTag
 import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.util.Try
@@ -141,6 +142,15 @@ trait EditElementParser[T] { self =>
   import EditElementParser.Config
 
   def render(config: Config, initial: Task[Option[T]], handler: Handler[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier
+
+  def widen[R >: T](implicit tag: ClassTag[T]): EditElementParser[R] = new EditElementParser[R] {
+    override def render(config: Config, initial: Task[Option[R]], handler: Handler[EditInteraction[R]])(implicit ctx: Ctx.Owner): VDomModifier =
+      self.render(config, initial.map(_.collect { case t: T => t }), handler.collectHandler[EditInteraction[T]] { case t => t } {
+        case EditInteraction.Cancel => EditInteraction.Cancel
+        case edit: EditInteraction.Error => edit
+        case EditInteraction.Input(t: T) => EditInteraction.Input(t)
+      })
+  }
 
   @inline final def map[R](f: T => R)(g: R => T): EditElementParser[R] = flatMap[R](t => EditInteraction.Input(f(t)))(r => EditInteraction.Input(g(r)))
   @inline final def flatMap[R](f: T => EditInteraction[R])(g: R => EditInteraction[T]): EditElementParser[R] = new EditElementParser[R] {
@@ -292,17 +302,17 @@ object EditElementParser {
 
   //TODO: FIX! as instance of buillshit. one parser for node.
   def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditElementParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_, ValueStringifier.ValueNodeData)).orElse(tpe match {
-    case NodeData.Integer.tpe => Some(EditNodeDataInteger).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.Date.tpe => Some(EditNodeDataDate).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.DateTime.tpe => Some(EditNodeDataDateTime).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.Duration.tpe => Some(EditNodeDataDuration).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
-    case NodeData.File.tpe => Some(EditNodeDataFile).asInstanceOf[Option[EditElementParser[NodeData.Content]]]
+    case NodeData.Integer.tpe => Some(EditNodeDataInteger.widen[NodeData.Content])
+    case NodeData.Decimal.tpe => Some(EditNodeDataDecimal.widen[NodeData.Content])
+    case NodeData.Date.tpe => Some(EditNodeDataDate.widen[NodeData.Content])
+    case NodeData.DateTime.tpe => Some(EditNodeDataDateTime.widen[NodeData.Content])
+    case NodeData.RelativeDate.tpe => Some(EditNodeDataRelativeDate.widen[NodeData.Content])
+    case NodeData.Duration.tpe => Some(EditNodeDataDuration.widen[NodeData.Content])
+    case NodeData.File.tpe => Some(EditNodeDataFile.widen[NodeData.Content])
     case _ => None
   })
   def forNode(node: Node)(implicit context: EditContext): Option[EditElementParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_, ValueStringifier.ValueNode)).orElse(node match {
-    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data)).asInstanceOf[Option[EditElementParser[Node]]]
+    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data).widen[Node])
     case _ => None
   })
 }
