@@ -11,6 +11,7 @@ package object dfs {
 
   // mode selection helpers
   @inline def withStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet): Unit = {
+    visited += start
     stack.push(start)
   }
   @inline def afterStart(start: Int, foreachSuccessor: (Int, Int => Unit) => Unit, stack: ArrayStackInt, visited: ArraySet): Unit = {
