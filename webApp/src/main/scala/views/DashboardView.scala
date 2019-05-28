@@ -151,7 +151,7 @@ object DashboardView {
       } else {
         VDomModifier(
           color := "white",
-          backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(project.id)).toHex,
+          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
           Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
         )
       },

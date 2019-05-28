@@ -116,7 +116,7 @@ object UI {
 
     def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
-        backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+        backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
         color.white,
         div(
           Styles.flex,

@@ -50,7 +50,7 @@ object ViewFilter {
         state.isFilterActive.map {
           case true =>
             Rx{VDomModifier(
-              backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+              backgroundColor := state.pageStyle().pageBgColor,
               color.white,
             )}:VDomModifier
           case false => VDomModifier.empty
@@ -63,7 +63,7 @@ object ViewFilter {
       resizable = false,
       titleModifier = Ownable(implicit ctx =>
         Rx{VDomModifier(
-          backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+          backgroundColor := state.pageStyle().pageBgColor,
           color.white,
         )}
       ),

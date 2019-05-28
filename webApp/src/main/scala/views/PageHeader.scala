@@ -34,7 +34,7 @@ object PageHeader {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
-        backgroundColor <-- state.pageStyle.map(_.sidebarBgHighlightColor),
+        backgroundColor <-- state.pageStyle.map(_.pageBgColor),
 
         state.page.map(_.parentId.map(pageRow(state, _))),
       )

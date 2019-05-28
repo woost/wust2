@@ -44,7 +44,7 @@ object TagList {
         state.graphTransformations.map {
           case list if list.exists(_.isInstanceOf[GraphOperation.OnlyTaggedWith]) =>
             Rx{VDomModifier(
-              backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+              backgroundColor := state.pageStyle().pageBgColor,
               color.white,
             )}:VDomModifier
           case _ => VDomModifier.empty
@@ -57,7 +57,7 @@ object TagList {
       resizable = true,
       titleModifier = Ownable(implicit ctx =>
         Rx{VDomModifier(
-          backgroundColor := state.pageStyle().sidebarBgHighlightColor,
+          backgroundColor := state.pageStyle().pageBgColor,
           color.white,
         )}
       ),

@@ -546,7 +546,7 @@ object Components {
         cls := "nodecard",
         node.role match {
           case NodeRole.Project => VDomModifier(
-            backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
             cls := "project"
           )
           case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag

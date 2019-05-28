@@ -287,7 +287,7 @@ object LeftSidebar {
           case _ if selected() => freeSolid.faFolderOpen:VDomModifier
           case _ if !selected() => span(
             freeSolid.faFolder,
-            color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex
+            color := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
           )
         }
       }
@@ -307,7 +307,7 @@ object LeftSidebar {
 
               VDomModifier.ifTrue(selected())(
                 color := Colors.sidebarBg,
-                backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex,
+                backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
               ),
               iconModifier,
               renderAsOneLineText(nodeWithoutFirstEmoji())(cls := "channel-name"),
@@ -469,9 +469,9 @@ object LeftSidebar {
       height := s"${size}px",
       Rx {
         if (isSelected()) VDomModifier(
-          backgroundColor := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
           color := "white"
-        ) else color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(node.id)).toHex,
+        ) else color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
       },
       replaceEmoji(iconText(node.str))
     )

@@ -16,9 +16,8 @@ object PageStyle {
     }
 
     new PageStyle(
-      bgColor = applyPageHue(BaseColors.pageBg),
       bgLightColor = applyPageHue(BaseColors.pageBgLight),
-      sidebarBgHighlightColor = applyPageHue(BaseColors.sidebarBgHighlight),
+      pageBgColor = applyPageHue(BaseColors.pageBg),
     )
   }
 
@@ -28,7 +27,6 @@ object PageStyle {
 }
 
 case class PageStyle(
-  bgColor: String,
   bgLightColor: String,
-  sidebarBgHighlightColor: String,
+  pageBgColor: String,
 )

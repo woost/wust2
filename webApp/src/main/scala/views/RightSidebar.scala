@@ -123,7 +123,7 @@ object RightSidebar {
 
       div(
         cls := "pageheader",
-        backgroundColor := nodeStyle.sidebarBgHighlightColor,
+        backgroundColor := nodeStyle.pageBgColor,
         paddingTop := "10px", // to have some colored space above the tabs
         Styles.flexStatic,
         Styles.flex,

@@ -16,10 +16,11 @@ object NodeColor {
   @inline def hue(id: Option[NodeId]): Option[Double] = id map genericHue
   @inline def eulerBgColor(id: NodeId): HCL = BaseColors.eulerBg.copy(h = hue(id))
   @inline def tagColor(nodeId: NodeId): HCL =  BaseColors.tag.copy(h = hue(nodeId))
+  @inline def accentColor(nodeId: NodeId): HCL =  BaseColors.accent.copy(h = hue(nodeId))
 
   def mixHues(parentIds: Iterable[NodeId]): Option[Double] =
     NonEmptyList
-      .fromList(parentIds.map(id => BaseColors.pageBg.copy(h = hue(id)))(breakOut): List[Color])
+      .fromList(parentIds.map(id => BaseColors.pageBgLight.copy(h = hue(id)))(breakOut): List[Color])
       .map(parentColors => mixColors(parentColors).hcl.h)
 
   def mixColors(a: Color, b: Color): LAB = {

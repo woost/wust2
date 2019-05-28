@@ -447,7 +447,7 @@ object SharedViewElements {
         div(
           width := "3px",
           height := "100%",
-          backgroundColor := NodeColor.tagColor(nodeId).toHex,
+          backgroundColor := NodeColor.accentColor(nodeId).toHex,
         ),
         padding := "0px 8px",
         Styles.flexStatic,
