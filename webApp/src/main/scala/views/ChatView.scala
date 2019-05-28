@@ -328,8 +328,8 @@ object ChatView {
 
         isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
         selectByClickingOnRow,
-        checkbox,
         renderedMessage,
+        checkbox,
         messageTags(state, nodeId),
         controls,
       )
