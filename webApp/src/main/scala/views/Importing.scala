@@ -60,7 +60,7 @@ object Importing {
         title = "Trello",
         description = "Trello Board (JSON)",
         inputs = List(
-          Input.FromText("Paste the exported JSON from Trello here."),
+          // Input.FromText("Paste the exported JSON from Trello here."),
           Input.FromFile("Upload the exported JSON file from Trello.", Some("application/json")),
           Input.FromRemoteFile("Paste the url of a public Trello Board.", { url =>
             Try(new URL(url)).toOption.collect {
@@ -78,7 +78,7 @@ object Importing {
         title = "Wunderlist",
         description = "Wunderlist Export (JSON)",
         inputs = List(
-          Input.FromText("Paste the exported JSON from Wunderlist here."),
+          // Input.FromText("Paste the exported JSON from Wunderlist here."),
           Input.FromFile("Upload the exported JSON file from Wunderlist.", Some("application/json")),
         ),
         parser = str => IO {
@@ -91,7 +91,7 @@ object Importing {
         title = "MeisterTask",
         description = "MeisterTask Project (CSV)",
         inputs = List(
-          Input.FromText("Paste the exported CSV from MeisterTask here."),
+          // Input.FromText("Paste the exported CSV from MeisterTask here."),
           Input.FromFile("Upload the exported CSV file from MeisterTask.", Some("application/csv")),
         ),
         parser = _.map(_.map[String => Parser.Result] { projectName => str => IO {
