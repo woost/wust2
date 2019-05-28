@@ -23,7 +23,7 @@ object components {
 
   /// Parameters that make out a tab
   case class TabInfo(targetView : View,
-                     icon : IconDefinition,
+                     icon : VDomModifier,
                      wording : String,
                      numItems : Int)
 

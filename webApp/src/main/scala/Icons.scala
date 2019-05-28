@@ -50,7 +50,23 @@ object Icons {
 
   val conversation: IconDefinition = freeRegular.faComments
   val chat: IconDefinition = freeRegular.faComments
-  val thread: IconDefinition = freeRegular.faComments
+  val thread = fontawesome.layered(
+    fontawesome.icon(freeRegular.faComments, new Params {
+      transform = new Transform {
+        size = 14.0
+        x = -2.0
+        y = 2.0
+      }
+    }),
+    fontawesome.icon(freeSolid.faCodeBranch, new Params {
+      transform = new Transform {
+        flipY = true
+        x = 6.0
+        y = -6.0
+        size = 8.0
+      }
+    })
+  )
   val table: IconDefinition = freeSolid.faTable
   val tasks: IconDefinition = freeSolid.faTasks
   val kanban: IconDefinition = freeSolid.faColumns
