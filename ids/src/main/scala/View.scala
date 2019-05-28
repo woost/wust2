@@ -18,7 +18,7 @@ object View {
   case class Table(roles: List[NodeRole]) extends Visible {
     def viewKey = s"table${roles.map(_.toString.toLowerCase).mkString(":", ":", "")}"
     // override def toString = s"Table(${roles.mkString(",")})"
-    override def toString = "Table of Task details"
+    override def toString = "Table with Task Details"
   }
   case object Thread extends Visible {
     override def toString = "Chat with Threads"
