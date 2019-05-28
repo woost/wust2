@@ -14,7 +14,7 @@ object KanbanData {
   def inboxNodes(graph: Graph, traverseState: TraverseState): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
     val allStages: ArraySet = {
       val stages = ArraySet.create(graph.size)
-      dfs.withContinue(starts = graph.childrenIdx.foreachElement(parentIdx), dfs.withStart, graph.childrenIdx, { idx =>
+      dfs.withContinue(starts = _(parentIdx), dfs.withoutStart, graph.childrenIdx, { idx =>
         val isStage = graph.nodes(idx).role == NodeRole.Stage
         if(isStage) stages += idx
         isStage
