@@ -18,9 +18,10 @@ object View {
   case class Table(roles: List[NodeRole]) extends Visible {
     def viewKey = s"table${roles.map(_.toString.toLowerCase).mkString(":", ":", "")}"
     // override def toString = s"Table(${roles.mkString(",")})"
-    override def toString = "Table"
+    override def toString = "Table of Task details"
   }
   case object Thread extends Visible {
+    override def toString = "Chat with Threads"
     def viewKey = "thread"
   }
   case object Chat extends Visible {
@@ -38,6 +39,7 @@ object View {
     def viewKey = "list"
   }
   case object Graph extends Visible {
+    override def toString = "Tag Diagram for Tasks"
     def viewKey = "graph"
   }
   case object Dashboard extends Visible {

@@ -52,14 +52,14 @@ object ViewSwitcher {
     View.Dashboard,
     View.List,
     View.Kanban,
-    View.Chat,
-    View.Content,
     View.Table(NodeRole.Task :: Nil),
-    View.Thread,
-    View.Files,
     View.Graph,
+    View.Chat,
+    View.Thread,
+    View.Content,
+    View.Files,
     // View.Gantt,
-    View.Topological,
+    // View.Topological,
   )
 
   def viewCheckboxes = UI.multiCheckbox[View.Visible](
