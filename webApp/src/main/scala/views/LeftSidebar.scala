@@ -286,7 +286,7 @@ object LeftSidebar {
           ) 
           case _ if selected() => freeSolid.faFolderOpen:VDomModifier
           case _ if !selected() => span(
-            freeRegular.faFolder,
+            freeSolid.faFolder,
             color := BaseColors.sidebarBgHighlight.copy(h = NodeColor.hue(nodeId)).toHex
           )
         }
