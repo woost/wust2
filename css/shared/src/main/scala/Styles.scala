@@ -1297,7 +1297,7 @@ object CommonStyles extends StyleSheet.Standalone {
     width(100 %%),
     height(40 px),
     color.white,
-    backgroundColor.seagreen,
+    backgroundColor(c"#494653"),
   )
 
   val tabsPadding = 7.px
