@@ -1,7 +1,7 @@
 package wust.webApp
 
 import scala.scalajs.js
-import wust.ids.{DurationMilli, EpochMilli, TimeMilli}
+import wust.ids.{DateMilli, DateTimeMilli, DurationMilli, EpochMilli, TimeMilli}
 import juration._
 import wust.util.StringOps
 
@@ -19,6 +19,14 @@ object StringJsOps {
   }
   @inline def durationToString(duration: DurationMilli): String = {
     juration.Juration.stringify(duration / 1000)
+  }
+
+  @inline def dateToString(date: DateMilli): String = {
+    new js.Date(date).toLocaleDateString()
+  }
+
+  @inline def dateTimeToString(date: DateTimeMilli): String = {
+    new js.Date(date).toLocaleString()
   }
 
   @inline def timeToTimeString(t: TimeMilli): String = {

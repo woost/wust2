@@ -75,12 +75,16 @@ object Components {
 
   def displayDuration(data: NodeData.Duration) = span(StringJsOps.durationToString(data.content))
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
+  def displayDate(data: NodeData.Date) = span(StringJsOps.dateToString(data.content))
+  def displayDateTime(data: NodeData.DateTime) = span(StringJsOps.dateTimeToString(data.content))
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
+    case data: NodeData.Date         => div(displayDate(data))
+    case data: NodeData.DateTime     => div(displayDateTime(data))
     case data: NodeData.Duration     => div(displayDuration(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
@@ -91,6 +95,8 @@ object Components {
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile(state, nodeId,file)
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
+    case data: NodeData.Date         => div(displayDate(data))
+    case data: NodeData.DateTime     => div(displayDateTime(data))
     case data: NodeData.Duration     => div(displayDuration(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
