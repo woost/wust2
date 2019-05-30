@@ -294,79 +294,82 @@ object RightSidebar {
         padding := "3px 0px 3px 0px",
       ))
 
-    VDomModifier(
-      div(
-        cls := "ui mini form",
-        marginTop := "10px",
-        Rx {
-          VDomModifier(
-            propertySingle().properties.map { property =>
-              Components.removablePropertySection(state, property.key, property.values).apply(
-                marginBottom := "10px",
-              )
-            },
+    val addNewCustomFieldMode = Var(false)
 
-            VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
-              Styles.flex,
-              flexWrap.wrap,
-              fontSize.small,
-              span("Backlinks: ", color.gray),
-              propertySingle().info.reverseProperties.map { node =>
-                Components.nodeCard(node, maxLength = Some(50)).apply(
-                  margin := "3px",
-                  Components.sidebarNodeFocusMod(state.rightSidebarNode, focusPref.nodeId)
-                )
-              }
-            ))
-          )
-        }
-      ),
-      div(
-        Styles.flex,
-        justifyContent.flexEnd,
+    addNewCustomFieldMode.map {
+      case true => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId)).map(_ => false) --> addNewCustomFieldMode
+      case false => VDomModifier(
         div(
-          button(
-            cls := "ui compact button mini",
-            "+ Custom field"
-          ),
-          ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(focusPref.nodeId), dropdownModifier = cls := "top right"),
-        )
-      ),
-      renderSplit(
-        left = VDomModifier(
-          searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
-          }
-        ),
-        right = VDomModifier(
-          Styles.flex,
-          alignItems.center,
-          flexWrap.wrap,
+          cls := "ui mini form",
+          marginTop := "10px",
           Rx {
-            propertySingle().info.tags.map { tag =>
-              Components.removableNodeTag(state, tag, taggedNodeId = focusPref.nodeId)
-            },
-          }
-        ),
-      ).apply(marginTop := "10px"),
-      renderSplit(
-        left = VDomModifier(
-          searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-            state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
-          }
-        ),
-        right = VDomModifier(
-          Styles.flex,
-          alignItems.center,
-          flexWrap.wrap,
-          Rx {
-            propertySingle().info.assignedUsers.map { user =>
-              Components.removableAssignedUser(state, user, focusPref.nodeId)
-            },
-          }
-        )
-      ).apply(marginTop := "10px"),
+            VDomModifier(
+              propertySingle().properties.map { property =>
+                Components.removablePropertySection(state, property.key, property.values).apply(
+                  marginBottom := "10px",
+                )
+              },
 
-    )
+              VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
+                Styles.flex,
+                flexWrap.wrap,
+                fontSize.small,
+                span("Backlinks: ", color.gray),
+                propertySingle().info.reverseProperties.map { node =>
+                  Components.nodeCard(node, maxLength = Some(50)).apply(
+                    margin := "3px",
+                    Components.sidebarNodeFocusMod(state.rightSidebarNode, focusPref.nodeId)
+                  )
+                }
+              ))
+            )
+          }
+        ),
+        div(
+          Styles.flex,
+          justifyContent.center,
+          button(
+            cls := "ui compact basic button mini",
+            "+ Add Custom Field",
+            cursor.pointer,
+            onClick.stopPropagation(true) --> addNewCustomFieldMode
+          )
+        ),
+        renderSplit(
+          left = VDomModifier(
+            searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
+              state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
+            }
+          ),
+          right = VDomModifier(
+            Styles.flex,
+            alignItems.center,
+            flexWrap.wrap,
+            Rx {
+              propertySingle().info.tags.map { tag =>
+                Components.removableNodeTag(state, tag, taggedNodeId = focusPref.nodeId)
+              }
+            }
+          ),
+        ).apply(marginTop := "10px"),
+        renderSplit(
+          left = VDomModifier(
+            searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
+              state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
+            }
+          ),
+          right = VDomModifier(
+            Styles.flex,
+            alignItems.center,
+            flexWrap.wrap,
+            Rx {
+              propertySingle().info.assignedUsers.map { user =>
+                Components.removableAssignedUser(state, user, focusPref.nodeId)
+              }
+            }
+          )
+        ).apply(marginTop := "10px"),
+      )
+    }
   }
 }

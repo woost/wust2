@@ -347,7 +347,8 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
 
   implicit class RichEmitterBuilder(val factory: EmitterBuilder.type ) extends AnyVal {
-    def combine[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
+    @inline def combine[T](others: EmitterBuilder[T, VDomModifier]*): EmitterBuilder[T, VDomModifier] = combineSeq(others)
+    def combineSeq[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
       others.map(_ --> sink)
     }
   }

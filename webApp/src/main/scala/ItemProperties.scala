@@ -1,5 +1,6 @@
 package wust.webApp
 
+import fontAwesome.freeSolid
 import monix.eval.Task
 import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
@@ -17,7 +18,7 @@ import wust.util.StringOps._
 import wust.util.macros.InlineList
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, Elements, UI, EditableContent, EditElementParser, EditStringParser, ValueStringifier, EditInteraction, EditContext, EditImplicits}
+import wust.webApp.views.{Components, EditContext, EditElementParser, EditImplicits, EditInteraction, EditStringParser, EditableContent, Elements, UI, ValueStringifier}
 import wust.webApp.StringJsOps._
 
 import scala.scalajs.js
@@ -232,6 +233,29 @@ object ItemProperties {
         descriptionModifier
       )
     ), closeDropdown, dropdownModifier = dropdownModifier)
+  }
+
+  def managePropertiesInline(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
+    div(
+      padding := "10px",
+
+      div(
+        Styles.flex,
+        justifyContent.center,
+        marginBottom := "10px",
+        color.gray,
+        b("New Custom Field"),
+        div(marginLeft := "15px", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation(()) --> editMode)
+      ),
+      div(
+        Styles.flex,
+        flexDirection.column,
+        alignItems.center,
+        cls := "ui mini form",
+        managePropertiesContent(state, target, config) --> editMode,
+        descriptionModifier
+      )
+    )
   }
 }
 

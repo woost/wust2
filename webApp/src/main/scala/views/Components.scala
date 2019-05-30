@@ -810,10 +810,10 @@ object Components {
             EditableContent.ofNodeOrRender(state, node, editMode, implicit ctx => node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
           )
           case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode, implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier), implicit ctx => handler => searchAndSelectNodeApplied(state, handler.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config).editValue.collect { case newNode if newNode.id != edge.propertyId =>
-
-              GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id))))
-            } --> state.eventProcessor.changes,
+            EditableContent.customOrRender[Node](node, editMode,
+              implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
+              implicit ctx => handler => searchAndSelectNodeApplied(state, handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config
+            ).editValue.collect { case newNode if newNode.id != edge.propertyId => GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id)))) } --> state.eventProcessor.changes,
           )
         }
       )
@@ -973,7 +973,7 @@ object Components {
 
     def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
-      val iconAndPopup = selected.map {
+      val iconAndPopup = selected.prepend(None).map {
         case None =>
           (fontawesome.icon(Icons.fileUpload), None)
         case Some(file) =>

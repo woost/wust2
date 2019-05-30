@@ -85,12 +85,13 @@ object EditableContent {
     editorHandler[T](current.now, currentVar, config)
   }
   private def editorHandler[T: EditElementParser](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
-    commonEditStructure(initial, current, config, handle)(current => VDomModifier(
+    commonEditStructure(initial, current, config, handle)(handler => VDomModifier(
       EditElementParser[T].render(EditElementParser.Config(
         inputEmitter = inputEmitter(config),
-        inputModifier = inputModifiers(config, current),
-        modifier = basicModifiers(config, current),
-      ), Task.pure(initial), current)
+        inputModifier = inputModifiers(config, handler.edit),
+        emitter = emitter(handler.save),
+        modifier = basicModifiers(config, handler.edit),
+      ), Task.pure(initial), handler.edit)
     ))
   }
 
@@ -108,7 +109,7 @@ object EditableContent {
     inlineEditorHandler[T](current.now, currentVar, config)
   }
   private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
-    commonEditStructure(initial, current, config, handle)(current => dsl.span(
+    commonEditStructure(initial, current, config, handle)(handler => dsl.span(
       outline := "none", // hides contenteditable outline
       contentEditable := true,
       backgroundColor := "#FFF",
@@ -117,16 +118,16 @@ object EditableContent {
       minWidth := "20px", minHeight := "20px", // minimal edit area
       lineHeight := "1.4285em", // like semantic UI <p>
 
-      basicModifiers(config, current),
-      inputModifiers(config, current),
+      basicModifiers(config, handler.edit),
+      inputModifiers(config, handler.edit),
 
-      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), current, inputEmitter(config), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
+      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config)), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
     ))
   }
 
   @inline def editorOrRender[T: EditElementParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => editorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
   @inline def inlineEditorOrRender[T: EditStringParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => inlineEditorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
-  @inline def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, inputFn: Ctx.Owner => Handler[EditInteraction[T]] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => commonEditStructure(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode))(inputFn(ctx)))
+  @inline def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, inputFn: Ctx.Owner => CommonEditHandler[T] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => commonEditStructure(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode))(inputFn(ctx)))
 
   def ofNode(state: GlobalState, node: Node, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
     implicit val context = EditContext(state)
@@ -186,8 +187,10 @@ object EditableContent {
     onClick.stopPropagation(()) --> current
   )
 
-  private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: Handler[EditInteraction[T]] => VDomModifier) = {
-    val handledCurrent = current.mapObservable(handleEditInteraction[T](initial, config) andThen handle)
+  case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
+  private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
+    val handledCurrent = current.transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
+    val saveHandler = PublishSubject[Unit]
 
     dsl.span(
       display.inlineFlex,
@@ -198,7 +201,7 @@ object EditableContent {
         display.inlineFlex,
         alignItems.flexStart,
         width := "100%",
-        modifier(handledCurrent),
+        modifier(CommonEditHandler(handledCurrent, saveHandler)),
         config.submitMode match {
           case SubmitMode.Explicit => dsl.span(
             display.inlineFlex,
@@ -207,7 +210,7 @@ object EditableContent {
             alignItems.flexStart,
             marginLeft.auto,
             cancelButton(handledCurrent),
-            saveButton(Observer.empty)
+            saveButton(saveHandler)
           )
           case _ => VDomModifier.empty
         }
@@ -335,6 +338,6 @@ object EditableContent {
       case SubmitMode.Emitter(builders) => builders
     }
 
-    EmitterBuilder.combine(emitters)
+    EmitterBuilder.combineSeq(emitters)
   }
 }
