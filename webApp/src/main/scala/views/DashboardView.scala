@@ -93,8 +93,8 @@ object DashboardView {
 
     ul(
       Styles.flexStatic,
-
-      display.flex,
+      flexDirection.column,
+      Styles.flex,
       flexWrap.wrap,
       justifyContent.flexStart,
 
@@ -122,44 +122,27 @@ object DashboardView {
 
   /// Render the overview of a single (sub-) project
   private def renderSubproject(state: GlobalState, graph: Graph, focusState: FocusState, project: Node): VNode = {
+    val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
     div(
-      borderRadius := "3px",
-      margin := "0.5em",
-      padding := "10px",
+      marginLeft := "10px",
 
       drag(DragItem.Project(project.id)),
-      cls := "node", // for draghighlight
-
-      Styles.flex,
-      alignItems.flexStart,
-
-      // nodeAvatar(project, size = 30)(marginRight := "5px", flexShrink := 0),
-      h1(
+      renderNodeCardMod(project, project => VDomModifier(
         renderAsOneLineText(project),
-        fontSize := "1.5em",
-        margin := "0 0.5em",
-      ),
 
-      onClick foreach {
-        focusState.contextParentIdAction(project.id)
-      },
-      cursor.pointer,
+        cursor.pointer,
+        onClick foreach {
+          focusState.contextParentIdAction(project.id)
+        },
 
-      if(graph.isDeletedNow(project.id, focusState.focusedId)) {
-        VDomModifier(
-          backgroundColor := "darkgrey",
-          borderColor := "grey",
-          cls := "node-deleted",
+        if(isDeleted) {
           Components.unremovableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
-        )
-      } else {
-        VDomModifier(
-          color := "white",
-          backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(project.id)).toHex,
+        } else {
           Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
-        )
-      },
+        },
+      )),
 
+      VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
   }
 

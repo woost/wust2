@@ -26,7 +26,7 @@ import wust.webApp.views.Components.{ renderNodeData, _ }
 import scala.collection.breakOut
 import scala.scalajs.js
 import scala.util.{ Failure, Success }
-import pageheader.components.{ TabContextParms, TabInfo, customTab, doubleTab, singleTab }
+import PageHeaderParts.{ TabContextParms, TabInfo, customTab, doubleTab, singleTab }
 
 object PageHeader {
 
@@ -49,7 +49,8 @@ object PageHeader {
 
     val channelTitle = Rx {
       val node = pageNode()
-      Components.nodeCardAsOneLineText(node).apply(
+      div(
+        Components.renderNodeCardMod(node, Components.renderAsOneLineText, coloredProjectFolder = false),
         cls := "pageheader-channeltitle",
         DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),

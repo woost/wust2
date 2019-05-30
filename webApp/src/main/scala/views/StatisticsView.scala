@@ -7,7 +7,7 @@ import rx._
 import wust.css.Styles
 import wust.graph.SemanticNodeRole
 import wust.ids.{EpochMilli, NodeRole, View}
-import wust.webApp.Icons
+import wust.webApp.{BrowserDetect, Icons}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, TraverseState}
 import wust.webApp.views.AssignedTasksData.AssignedTask
@@ -45,6 +45,7 @@ object StatisticsView  {
             a(
               VDomModifier.ifTrue(stat.count == 0)(opacity := 0.5),
               cls := "item",
+              if (BrowserDetect.isPhone) fontSize.small else minWidth := "110px", // not much space on mobile, so try to stay as small as possible
               Styles.flex,
               flexDirection.column,
               alignItems.center,

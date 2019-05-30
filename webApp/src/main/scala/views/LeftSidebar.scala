@@ -253,7 +253,6 @@ object LeftSidebar {
     )
   }
 
-  private val emojiRegex = raw"(:\w+:)".r.unanchored
   @inline def fontSizeByDepth(depth:Int) = s"${math.max(8, 14 - depth)}px"
 
   private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], invites: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
@@ -263,33 +262,6 @@ object LeftSidebar {
       val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
       val node = Rx {
         state.rawGraph().nodesByIdOrThrow(nodeId)
-      }
-
-      val nodeWithoutFirstEmoji = {
-        Rx {
-          node() match {
-            case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
-              editable.updateStr(emojiRegex.replaceFirstIn(n.str, "")) match {
-                case Some(dataWithoutEmoji) =>
-                  n.copy(data = dataWithoutEmoji)
-                case None => n
-              }
-            case n => n
-          }
-        }
-      }
-
-      val iconModifier = Rx {
-        node().str match {
-          case emojiRegex(emoji) => replaceEmoji(emoji).apply(
-            alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
-          ) 
-          case _ if selected() => freeSolid.faFolderOpen:VDomModifier
-          case _ if !selected() => span(
-            freeSolid.faFolder,
-            color := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
-          )
-        }
       }
 
       div(
@@ -304,13 +276,11 @@ object LeftSidebar {
           cls := "channel-line",
           Rx {
             VDomModifier(
-
               VDomModifier.ifTrue(selected())(
                 color := Colors.sidebarBg,
                 backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
               ),
-              iconModifier,
-              renderAsOneLineText(nodeWithoutFirstEmoji())(cls := "channel-name"),
+              renderProjectWithIcon(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), openFolder = selected())
             )
           },
 
@@ -458,7 +428,7 @@ object LeftSidebar {
   private def channelIcon(state: GlobalState, node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     def iconText(str:String):String = {
       str match {
-        case emojiRegex(emoji) => emoji
+        case EmojiReplacer.emojiRegex(emoji) => emoji
         case _ => str.trim.take(2)
       }
     }

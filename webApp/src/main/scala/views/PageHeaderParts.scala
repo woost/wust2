@@ -1,19 +1,17 @@
-package wust.webApp.views.pageheader
+package wust.webApp.views
 
-import wust.sdk.Colors
-import fontAwesome._
+import outwatch.dom.VDomModifier
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.css.{ZIndex, CommonStyles}
+import wust.css.ZIndex
 import wust.ids.View
+import wust.sdk.Colors
 import wust.util._
-import wust.webApp._
+import wust.webApp.state.PageStyle
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state._
 import wust.webApp.views.UI
 
-
-object components {
+object PageHeaderParts {
   /// Required parameters from the outer context
   case class TabContextParms(
     currentView : View,
@@ -55,8 +53,7 @@ object components {
     /// @return A tooltip modifier
     def modTooltip(tabInfo : TabInfo) =
       UI.tooltip("bottom left") :=
-        s"${tabInfo.targetView.toString}${(tabInfo.numItems > 0).ifTrue[String](
-                                            s": ${tabInfo.numItems} ${tabInfo.wording}")}"
+        s"${tabInfo.targetView.toString}${if (tabInfo.numItems > 0) s": ${tabInfo.numItems} ${tabInfo.wording}" else ""}"
   }
 
   def isActiveTab(currentView: View, tabInfo: TabInfo) =
@@ -118,4 +115,3 @@ object components {
   }
 
 }
-

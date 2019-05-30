@@ -13,6 +13,8 @@ object EmojiTitleConverter {
 }
 
 object EmojiReplacer {
+  val emojiRegex = raw"(:\w+:)".r.unanchored
+
   val emojiTextConvertor = new EmojiConvertor()
   emojiTextConvertor.colons_mode = true
   emojiTextConvertor.text_mode = true

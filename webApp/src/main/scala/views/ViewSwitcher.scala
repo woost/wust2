@@ -29,7 +29,7 @@ import wust.webApp.views.Components.{renderNodeData, _}
 import scala.collection.breakOut
 import scala.scalajs.js
 import scala.util.{Failure, Success}
-import pageheader.components.{TabContextParms, TabInfo, customTab, doubleTab, singleTab}
+import PageHeaderParts.{TabContextParms, TabInfo, customTab, doubleTab, singleTab}
 
 
 object ViewSwitcher {
@@ -95,7 +95,7 @@ object ViewSwitcher {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx => VDomModifier(
-      div(freeSolid.faPlus, color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
+      div(freeSolid.faPlus, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
       UI.dropdownMenu(VDomModifier(
         padding := "5px",
         div(cls := "item", display.none), //TODO ui dropdown needs at least one element

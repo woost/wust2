@@ -249,7 +249,10 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingTop(0 px),
     paddingBottom(0 px),
   )
-
+  ".pageheader-channeltitle.nodecard.project" - (
+    backgroundColor.transparent,
+    color.white,
+  )
   ".pageheader-channeltitle.nodecard .nodecard-content" - (
     padding(2 px),
   )
@@ -700,15 +703,23 @@ object CommonStyles extends StyleSheet.Standalone {
     overflowX.auto,
   )
 
-  ".nodecard.project" - (
-    color.white,
-  )
-
   ".nodecard.node" - (
     backgroundColor(nodeCardBackgroundColor),
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
-
     nodeCardShadow,
+  )
+
+  ".nodecard.project" - (
+    backgroundColor(nodeCardBackgroundColor),
+    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
+  )
+
+  ".nodecard.project.node-deleted" - (
+  )
+
+  ".nodecard.node-deleted" - (
+    fontSize.smaller,
+    opacity(0.5),
   )
 
   ".nodecard > .checkbox" - (
@@ -756,6 +767,10 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pageheader .breadcrumb" - (
     // pageheader has a colored background. The shadow separates the colors of breadcrumbs and background.
     (boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.2)").important // overwrite nodecard shadow
+  )
+
+  ".pageheader .nodecard.project" - (
+    paddingLeft(0.5.em),
   )
 
   ".breadcrumb," +
@@ -817,11 +832,6 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.cropEllipsis,
     fontSize.inherit, // overwrite fontSizes set by e.g. markdown headlines
     lineHeight.inherit,
-  )
-
-  ".nodecard.node-deleted" - (
-    fontSize.smaller,
-    opacity(0.5),
   )
 
   ".tags" - (
@@ -1089,18 +1099,20 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
 
-
+  ".nodecard.project .actionbutton" - (
+    marginLeft(0 px),
+    color(c"#909090")
+  )
 
   ".actionbutton" - (
     cursor.pointer,
     padding(0 px, 5 px),
-    marginLeft(2 px),
     borderRadius(50 %%)
   )
 
   ".actionbutton:hover" - (
     backgroundColor(c"rgba(255,255,255,0.5)")
-    )
+  )
 
 
 

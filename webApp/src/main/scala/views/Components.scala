@@ -30,7 +30,7 @@ import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange, UploadingFile, FocusPreference}
+import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState, PageChange, UploadingFile}
 import wust.webApp.views.Elements._
 import wust.webApp.views.UI.ModalConfig
 
@@ -123,8 +123,7 @@ object Components {
   }
 
   def nodeCardAsOneLineText(node: Node): VNode = {
-    val textNode = renderAsOneLineText(node)
-    renderNodeCard(node, contentInject = textNode),
+    renderNodeCard(node, contentInject = renderAsOneLineText)
   }
 
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
@@ -532,44 +531,69 @@ object Components {
 
     def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
       removableNodeTagCustom(state, tag, () => {
-        // when removing last parent, fall one level lower into the still existing grandparents
-        //TODO: move to GraphChange factory
-        // val removingLastParent = graph.parents(taggedNodeId).size == 1
-        // val addedGrandParents: scala.collection.Set[Edge] =
-        //   if (removingLastParent)
-        //     graph.parents(tag.id).map(Edge.Parent(taggedNodeId, _))
-        //   else
-        //     Set.empty
         state.eventProcessor.changes.onNext(
-        GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
+          GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
       }, pageOnClick)
     }
 
-    def renderNodeCardMod(node: Node, contentInject: VDomModifier): VDomModifier = {
+    def renderProjectWithIcon(node: Node, renderNode: Node => VDomModifier, openFolder: Boolean = false, coloredFolder: Boolean = true) = {
+      val nodeWithoutFirstEmoji = node match {
+        case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
+          editable.updateStr(EmojiReplacer.emojiRegex.replaceFirstIn(n.str, "")) match {
+            case Some(dataWithoutEmoji) =>
+              n.copy(data = dataWithoutEmoji)
+            case None                   => n
+          }
+        case n                                                           => n
+      }
+
+      val iconModifier: VNode = node.str match {
+        case EmojiReplacer.emojiRegex(emoji) => replaceEmoji(emoji).apply(
+          alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
+        )
+        case _ if openFolder   => renderFontAwesomeIcon(freeSolid.faFolderOpen)
+        case _ => span(
+          freeSolid.faFolder,
+          VDomModifier.ifTrue(coloredFolder)(color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex)
+        )
+      }
+
+      VDomModifier(
+        Styles.flex,
+        alignItems.center,
+        iconModifier.apply(marginRight := "0.2em"),
+        renderNode(nodeWithoutFirstEmoji),
+      )
+    }
+
+    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, coloredProjectFolder: Boolean = true): VDomModifier = {
+      def contentNode(node: Node) = div(
+        cls := "nodecard-content",
+        contentInject(node)
+      )
+
       VDomModifier(
         cls := "nodecard",
         node.role match {
           case NodeRole.Project => VDomModifier(
-            backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
-            cls := "project"
+            cls := "project",
+            renderProjectWithIcon(node, contentNode, coloredFolder = coloredProjectFolder)
           )
           case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
             cls := "tag colorful",
             backgroundColor := tagColor(node.id).toHex,
+            contentNode(node),
           )
           case _ => VDomModifier(
-            cls := "node"
+            cls := "node",
+            contentNode(node)
           )
         },
-        div(
-          cls := "nodecard-content",
-          contentInject
-        ),
       )
     }
 
-    def renderNodeCard(node: Node, contentInject: VDomModifier): VNode = {
+    def renderNodeCard(node: Node, contentInject: Node => VDomModifier): VNode = {
       div(
         keyed(node.id),
         renderNodeCardMod(node, contentInject)
@@ -578,31 +602,31 @@ object Components {
     def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VDomModifier = {
       renderNodeCardMod(
         node,
-        contentInject = VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
     def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
     def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeDataWithFile(state, node.id, node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
     def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
+        contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
       )
     }
     def nodeCardEditable(state: GlobalState, node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = VDomModifier(
+        contentInject = node => VDomModifier(
           prependInject,
           editableNode(state, node, editMode, maxLength).apply(nodeInject),
           contentInject
@@ -616,7 +640,7 @@ object Components {
     val editMode = Var(false)
     renderNodeCard(
       node,
-      contentInject = VDomModifier(
+      contentInject = node => VDomModifier(
         prependInject,
         editableNodeOnClick(state, node, maxLength).apply(nodeInject),
         contentInject
