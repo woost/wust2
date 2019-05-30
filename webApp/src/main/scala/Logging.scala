@@ -13,12 +13,14 @@ object Logging {
       formatter"$levelPaddedRight $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
   }
 
+  def setup(): Unit = setup(DevOnly.isTrue, DevOnly.showDebugLogs)
+
   //TODO setup api-logging as logwriter
-  def setup(): Unit = {
-    if (DevOnly.isTrue)
+  def setup(enabled: Boolean, debugEnabled: Boolean = false): Unit = {
+    if (enabled)
       Logger.root
         .clearHandlers()
-        .withMinimumLevel(if (DevOnly.showDebugLogs) Level.Debug else Level.Info)
+        .withMinimumLevel(if (debugEnabled) Level.Debug else Level.Info)
         .withHandler(
           formatter = logFormatter,
           writer = ConsoleWriter

@@ -1177,7 +1177,8 @@ object Components {
 
       marginRight := "5px",
       Elements.onClickN(desiredClicks = 8).foreach {
-        dom.window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}")
+        Logging.setup(enabled = true)
+        dom.window.alert(s"Woost version: ${woostConfig.WoostConfig.value.versionString}\nLogging is now enabled")
       }
     )
   }
