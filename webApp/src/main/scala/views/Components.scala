@@ -67,12 +67,6 @@ object Components {
     case d                           => d.str
   }
 
-  def iconByNodeData(data: NodeData): Option[VNode] = Some(data) collect {
-    case _: NodeData.Integer | _: NodeData.Decimal   => Icons.propertyNumber
-    case _: NodeData.Date | _: NodeData.DateTime | _: NodeData.RelativeDate | _: NodeData.Duration => Icons.propertyDate
-    case _: NodeData.File                            => Icons.files
-  }
-
   def displayDuration(data: NodeData.Duration) = span(StringJsOps.durationToString(data.content))
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
   def displayDate(data: NodeData.Date) = span(StringJsOps.dateToString(data.content))
@@ -375,7 +369,6 @@ object Components {
             justifyContent.flexEnd,
             margin := "3px 0px",
 
-            Elements.icon(iconByNodeData(property.node.data))(marginRight := "5px"),
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
               nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
               maxLength = Some(100), config = EditableContent.Config.default,
@@ -408,8 +401,6 @@ object Components {
     pageOnClick: Boolean = false,
   )(implicit ctx: Ctx.Owner): VNode = {
 
-    val icon = iconByNodeData(property.data)
-
     span(
       cls := "node tag",
       backgroundColor := "#f0f0f0",
@@ -423,7 +414,6 @@ object Components {
         Styles.flex,
         alignItems.center,
         color.gray,
-        icon.map(_(marginRight := "4px")),
         s"${key.data.key}:", marginRight := "4px",
       ),
 
