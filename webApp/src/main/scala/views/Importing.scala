@@ -11,8 +11,8 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.css.Styles
-import wust.external.{trello, wunderlist, meistertask}
-import wust.graph.{Edge, GraphChanges, Node, Page}
+import wust.external.{meistertask, trello, wunderlist}
+import wust.graph.{Edge, Graph, GraphChanges, Node, Page}
 import wust.ids._
 import wust.util.StringOps
 import wust.util.collection._
@@ -276,7 +276,7 @@ object Importing {
     )
   }
 
-  private def renderSource(state: GlobalState, focusedId: NodeId, source: Source)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def renderSource(state: GlobalState, source: Source, importToChanges: (Graph, GraphChanges.Import) => GraphChanges)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val importers = Importer.fromSource(source)
     div(
       Styles.flex,
@@ -299,23 +299,7 @@ object Importing {
           val field = importerForm(importer).transform(_.flatMap { result =>
             Observable.fromIO(result).flatMap {
               case Right(importChanges) =>
-                val addToParentChanges =
-                  if (importChanges.topLevelNodeIds.isEmpty) GraphChanges.empty
-                  else if (importChanges.topLevelNodeIds.size == 1) GraphChanges.addToParent(importChanges.topLevelNodeIds.map(ChildId(_)), ParentId(focusedId))
-                  else {
-                    //TODO: fix ordering...
-                    val g = state.graph.now
-                    val focusedIdx = g.idToIdxOrThrow(focusedId)
-                    val children = state.graph.now.childEdgeIdx(focusedIdx)
-                    val minOrderingNum: BigDecimal = if (children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => g.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
-                    GraphChanges(
-                      addEdges = importChanges.topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
-                        Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
-                      }(breakOut)
-                    )
-                  }
-
-                val changes = importChanges.changes merge addToParentChanges
+                val changes: GraphChanges = importToChanges(state.graph.now, importChanges)
                 UI.toast("Successfully imported Project")
 
                 //TODO: do not sideeffect with state changes here...
@@ -337,28 +321,49 @@ object Importing {
     )
   }
 
+  private def importChangesToGraphChanges(graph: Graph, focusedId: NodeId, importChanges: GraphChanges.Import) = {
+    val addToParentChanges =
+      if(importChanges.topLevelNodeIds.isEmpty) GraphChanges.empty
+      else if(importChanges.topLevelNodeIds.size == 1) GraphChanges.addToParent(importChanges.topLevelNodeIds.map(ChildId(_)), ParentId(focusedId))
+      else {
+        //TODO: fix ordering...
+        val focusedIdx = graph.idToIdxOrThrow(focusedId)
+        val children = graph.childEdgeIdx(focusedIdx)
+        val minOrderingNum: BigDecimal = if(children.isEmpty) BigDecimal(EpochMilli.now) else children.minBy[BigDecimal](edgeIdx => graph.edges(edgeIdx).as[Edge.Child].data.ordering) - 1
+        GraphChanges(
+          addEdges = importChanges.topLevelNodeIds.mapWithIndex { (idx, nodeId) =>
+            Edge.Child(ParentId(focusedId), EdgeData.Child(ordering = minOrderingNum - idx), ChildId(nodeId))
+          }(breakOut)
+        )
+      }
+
+    val changes = importChanges.changes merge addToParentChanges
+    changes
+  }
   // returns the modal config for rendering a modal for making an import
   def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
-    val header: VDomModifier = Rx {
-      state.rawGraph().nodesById(focusedId).map { node =>
-        val header = selectedSource() match {
-          case Some(source) => VDomModifier(
-            span(
-              Styles.flex,
-              alignItems.center,
-              padding := "6px",
-              backgroundColor := "white",
-              source.icon(height := "1em", Styles.flexStatic),
-              marginRight := "10px"
-            ),
-            span(s"Import from ${source.description}", marginRight := "10px")
-          )
-          case None => span("Import your data", marginRight := "10px")
-        }
+    val headerText = Rx {
+      selectedSource() match {
+        case Some(source) => VDomModifier(
+          span(
+            Styles.flex,
+            alignItems.center,
+            padding := "6px",
+            backgroundColor := "white",
+            source.icon(height := "1em", Styles.flexStatic),
+            marginRight := "10px"
+          ),
+          span(s"Import from ${source.description}", marginRight := "10px")
+        )
+        case None => span("Import your data", marginRight := "10px")
+      }
+    }
 
+    val modalHeader: VDomModifier = Rx {
+      state.rawGraph().nodesById(focusedId).map { node =>
         UI.ModalConfig.defaultHeader(
           state,
           node,
@@ -366,7 +371,7 @@ object Importing {
             Styles.flex,
             flexWrap.wrap,
             alignItems.center,
-            header,
+            headerText,
             Components.experimentalSign(color = "white").apply(fontSize.xSmall)
           ),
           icon = Icons.`import`
@@ -374,14 +379,14 @@ object Importing {
       }
     }
 
-    val description: VDomModifier = div(
+    val modalDescription: VDomModifier = div(
       selectedSource.map {
-        case Some(source) => renderSource(state, focusedId, source) --> selectedSource
+        case Some(source) => renderSource(state, source, importChangesToGraphChanges(_, focusedId, _)) --> selectedSource
         case None => selectSource(allSources) --> selectedSource
       }
     )
 
-    UI.ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
+    UI.ModalConfig(header = modalHeader, description = modalDescription, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
   }
 
   // a settings button for importing that opens the modal on click.

@@ -114,9 +114,11 @@ object UI {
     import wust.webApp.state.GlobalState
     import wust.webApp.views.Components.renderNodeData
 
-    def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
+    @inline def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, Some(node), modalHeader, icon)
+    @inline def defaultHeader(state: GlobalState, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, None, modalHeader, icon)
+    def defaultHeader(state: GlobalState, node: Option[Node], modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
       VDomModifier(
-        backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex,
+        backgroundColor :=? node.map(node => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex),
         color.white,
         div(
           Styles.flex,
@@ -126,10 +128,12 @@ object UI {
           div(
             Styles.flex,
             flexDirection.column,
-            div(
-              renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-              paddingBottom := "5px",
-            ),
+            node.map { node =>
+              div(
+                renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+                paddingBottom := "5px",
+              )
+            },
             div(modalHeader),
           ),
           div(
