@@ -62,7 +62,7 @@ object ItemProperties {
     case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
   }
 
-  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofModifier[Unit] { sink =>
+  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
@@ -101,14 +101,14 @@ object ItemProperties {
         handleAddProperty(propertyKeyInput.now, propertyValueInput.now)
       }
 
-      VDomModifier(
-        form(
-          width := "200px",
-          onDomMount.asHtml.foreach { element = _ },
-          Styles.flex,
-          flexDirection.column,
-          alignItems.center,
-          VDomModifier.ifTrue(propertyKeyInput.now.isEmpty)( //do not select key if already specifided
+      form(
+        cls := "ui mini form",
+        onDomMount.asHtml.foreach { element = _ },
+
+        VDomModifier.ifTrue(propertyKeyInput.now.isEmpty)( //do not select key if already specifided
+          div(
+            cls := "field",
+            label("Name"),
             EditableContent.editorRx[NonEmptyString](propertyKeyInput, editableConfig.copy(
               modifier = VDomModifier(
                 width := "100%",
@@ -116,30 +116,30 @@ object ItemProperties {
                 placeholder := "Field Name"
               ),
             )).apply(editModifier)
-          ),
-          div(
-            marginTop := "4px",
-            width := "100%",
-            Styles.flex,
-            alignItems.center,
-            justifyContent.spaceBetween,
-            b("Field Type:", color.gray, margin := "0px 5px 0px 5px"),
-            isChildOfAutomationTemplate.map { isTemplate =>
-              EditableContent.select[TypeSelection](
-                "Select a field type",
-                propertyTypeSelection,
-                ("Text", TypeSelection.Data(NodeData.Markdown.tpe)) ::
-                ("Number", TypeSelection.Data(NodeData.Decimal.tpe)) ::
-                ("File", TypeSelection.Data(NodeData.File.tpe)) ::
-                ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
-                ("DateTime", TypeSelection.Data(NodeData.DateTime.tpe)) ::
-                ("Duration", TypeSelection.Data(NodeData.Duration.tpe)) ::
-                (if (isTemplate) ("Relative Date", TypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
-                ("Refer to...", TypeSelection.Ref) ::
-                Nil
-              ).apply(tabIndex := -1)
-            }
-          ),
+          )
+        ),
+        div(
+          cls := "field",
+          label("Type"),
+          isChildOfAutomationTemplate.map { isTemplate =>
+            EditableContent.select[TypeSelection](
+              "Select a field type",
+              propertyTypeSelection,
+              ("Text", TypeSelection.Data(NodeData.Markdown.tpe)) ::
+              ("Number", TypeSelection.Data(NodeData.Decimal.tpe)) ::
+              ("File", TypeSelection.Data(NodeData.File.tpe)) ::
+              ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
+              ("DateTime", TypeSelection.Data(NodeData.DateTime.tpe)) ::
+              ("Duration", TypeSelection.Data(NodeData.Duration.tpe)) ::
+              (if (isTemplate) ("Relative Date", TypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
+              ("Refer to...", TypeSelection.Ref) ::
+              Nil
+            ).apply(tabIndex := -1)
+          }
+        ),
+        div(
+          cls := "field",
+          label("Value"),
           propertyTypeSelection.map(_.flatMap {
             case TypeSelection.Data(propertyType) =>
               EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
@@ -158,16 +158,27 @@ object ItemProperties {
               )
             )
           }),
+        ),
+        div(
+          marginTop := "5px",
+          Styles.flex,
+          justifyContent.spaceBetween,
+
+          VDomModifier.ifTrue(enableCancelButton)(div(
+            cls := "ui button fluid approve",
+            "Cancel",
+            onClick.stopPropagation(()) --> sink
+          )),
+
           div(
-            marginTop := "5px",
-            cls := "ui primary button approve",
+            cls := "ui primary fluid button approve",
             Rx {
               VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty)(cls := "disabled")
             },
             "Add Custom Field",
             onClick.stopPropagation foreach(createProperty())
           ),
-        ),
+        )
       )
     }
 
@@ -228,8 +239,7 @@ object ItemProperties {
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
-        cls := "ui mini form",
-        managePropertiesContent(state, target, config) --> closeDropdown,
+        managePropertiesContent(state, target, config).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
       )
     ), closeDropdown, dropdownModifier = dropdownModifier)
@@ -238,23 +248,11 @@ object ItemProperties {
   def managePropertiesInline(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
     div(
       padding := "10px",
-
-      div(
-        Styles.flex,
-        justifyContent.center,
-        marginBottom := "10px",
-        color.gray,
-        b("New Custom Field"),
-        div(marginLeft := "15px", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation(()) --> editMode)
-      ),
-      div(
-        Styles.flex,
-        flexDirection.column,
-        alignItems.center,
-        cls := "ui mini form",
-        managePropertiesContent(state, target, config) --> editMode,
-        descriptionModifier
-      )
+      Styles.flex,
+      flexDirection.column,
+      alignItems.center,
+      managePropertiesContent(state, target, config, enableCancelButton = true) --> editMode,
+      descriptionModifier
     )
   }
 }
