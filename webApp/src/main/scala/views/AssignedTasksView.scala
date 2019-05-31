@@ -61,7 +61,7 @@ object AssignedTasksView  {
         val rendering = assignedTasksDue().mapWithIndex { (idx, dueTasks) =>
           VDomModifier.ifTrue(dueTasks.nonEmpty) {
             val bucketName = bucketNames(idx)
-            val coloringHeader = if (idx == 0) VDomModifier(cls := "red", color.red) else VDomModifier.empty
+            val coloringHeader = if (idx == 0) VDomModifier(cls := "red", color.red) else cls := "grey"
             foundSomething = true
             UI.segment(
               VDomModifier(coloringHeader, bucketName),
