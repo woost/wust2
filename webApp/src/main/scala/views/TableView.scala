@@ -190,7 +190,7 @@ object TableView {
                 alignItems.center,
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
-              ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(group.node.id), ItemProperties.Config(prefilledType = predictedType, prefilledKey = property.key)),
+              ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(group.node.id), ItemProperties.Config(prefilledType = predictedType, hidePrefilledType = true, prefilledKey = property.key)),
             )
           )
         }(breakOut)

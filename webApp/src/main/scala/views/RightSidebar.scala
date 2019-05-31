@@ -298,14 +298,23 @@ object RightSidebar {
     object AddProperty {
       case object None extends AddProperty
       case object Custom extends AddProperty
-      case class Key(key: String) extends AddProperty
+      case class Key(key: String, tpe: NodeData.Type) extends AddProperty
     }
 
     val addFieldMode = Var[AddProperty](AddProperty.None)
 
     addFieldMode.map {
-      case AddProperty.Custom => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId)).map(_ => AddProperty.None) --> addFieldMode
-      case AddProperty.Key(key) => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId), ItemProperties.Config(prefilledType = Some(ItemProperties.TypeSelection.Data(NodeData.DateTime.tpe)), prefilledKey = key)).map(_ => AddProperty.None) --> addFieldMode
+      case AddProperty.Custom =>
+        ItemProperties.managePropertiesInline(
+          state,
+          ItemProperties.Target.Node(focusPref.nodeId)
+        ).map(_ => AddProperty.None) --> addFieldMode
+      case AddProperty.Key(key, tpe) =>
+        ItemProperties.managePropertiesInline(
+          state,
+          ItemProperties.Target.Node(focusPref.nodeId),
+          ItemProperties.Config(prefilledType = Some(ItemProperties.TypeSelection.Data(tpe)), hidePrefilledType = true, prefilledKey = key)
+        ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.None => VDomModifier(
         div(
           cls := "ui mini form",
@@ -341,7 +350,7 @@ object RightSidebar {
             cls := "ui compact basic primary button mini",
             "+ Add Due Date",
             cursor.pointer,
-            onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key)) --> addFieldMode
+            onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
           ),
 
           button(

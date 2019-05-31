@@ -51,7 +51,7 @@ object ItemProperties {
     case class Ref(nodeId: NodeId) extends ValueSelection
   }
 
-  case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), prefilledKey: String = "")
+  case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, prefilledKey: String = "")
   object Config {
     def default = Config()
   }
@@ -118,7 +118,7 @@ object ItemProperties {
             )).apply(editModifier)
           )
         ),
-        VDomModifier.ifTrue(config.prefilledType.isEmpty)(div( // do not select type if already specifided
+        VDomModifier.ifTrue(!config.hidePrefilledType || config.prefilledType.isEmpty)(div( // do not select type if already specifided
           cls := "field",
           label("Type"),
           isChildOfAutomationTemplate.map { isTemplate =>
