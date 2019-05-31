@@ -6,7 +6,7 @@ object DevOnly {
     if (isTrue) Option(code) else None
   }
 
-  @inline def isTrue = false //LinkingInfo.developmentMode
+  @inline def isTrue = LinkingInfo.developmentMode
   @inline def showDebugLogs = false
 }
 
