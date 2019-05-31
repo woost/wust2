@@ -54,7 +54,7 @@ object AssignedTasksView  {
     }
 
     val assignedTasks = Rx {
-      AssignedTasksData.assignedTasks(state.graph(), selectedUserId(), buckets)
+      AssignedTasksData.assignedTasks(state.graph(), focusState.focusedId, selectedUserId(), buckets)
     }
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
