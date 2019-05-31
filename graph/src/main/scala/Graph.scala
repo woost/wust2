@@ -694,8 +694,7 @@ final class GraphLookup(
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => idToIdxFold(parentId)(false)(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx)))
   def isDeletedNow(nodeId: NodeId, parentIds: Iterable[NodeId]): Boolean = parentIds.nonEmpty && idToIdxFold(nodeId)(false)(nodeIdx => isDeletedNowIdx(nodeIdx, parentIds.flatMap(idToIdx)))
-  def isDeletedNowInAllParents(nodeId: NodeId): Boolean = {
-    val nodeIdx = idToIdxOrThrow(nodeId)
+  def isDeletedNowInAllParents(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false){ nodeIdx =>
     val parentIndices = parentsIdx(nodeIdx)
     isDeletedNowIdx(nodeIdx, parentIndices)
   }
