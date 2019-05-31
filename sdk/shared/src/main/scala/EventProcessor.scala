@@ -16,7 +16,7 @@ import monix.reactive.subjects.PublishSubject
 import monix.reactive.OverflowStrategy.Unbounded
 import monix.execution.Cancelable
 import monix.execution.Ack
-import monix.reactive.observers.{BufferedSubscriber, Subscriber}
+import monix.reactive.observers.BufferedSubscriber
 import wust.ids.EdgeData
 
 import scala.util.control.NonFatal
@@ -135,13 +135,13 @@ class EventProcessor private (
       }
     }
 
-    graphWithChanges unsafeSubscribeFn rawGraph
+    graphWithChanges subscribe rawGraph
 
     (localChanges.map(_._1), localChangesRemoteOnly.map(_._1), sharedRawGraph)
   }
 
   // whenever the user changes something himself, we want to open up event processing again
-  localChanges.map(_ => false).unsafeSubscribeFn(stopEventProcessing)
+  localChanges.map(_ => false).subscribe(stopEventProcessing)
 
   def applyChanges(changes: GraphChanges)(implicit scheduler: Scheduler): Future[Graph] = {
     //TODO: this function is not perfectly correct. A change could be written into rawGraph, before the current change is applied
@@ -171,23 +171,12 @@ class EventProcessor private (
     }.share
   }
 
-  @inline private def newSubscriber[T](next: T => Future[Ack], error: Throwable => Unit = _ => ()) = {
-    val s = scheduler
-    new Subscriber[T] {
-      override implicit def scheduler: Scheduler = s
-      override def onNext(elem: T): Future[Ack] = next(elem)
-      override def onError(ex: Throwable): Unit = error(ex)
-      override def onComplete(): Unit = ()
-    }
-  }
-
-  sendingChanges.subscribe
-  sendingChanges.unsafeSubscribeFn(newSubscriber[Long](
+  sendingChanges.subscribe(
     _ => Ack.Continue,
     err => scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
-  ))
+  )
 
-  graph.withLatestFrom(currentAuth)((_,_)).unsafeSubscribeFn(newSubscriber[(Graph, Authentication)](
+  graph.withLatestFrom(currentAuth)((_,_)).subscribe(
     {
       case (graph, auth@Authentication.Verified(user: AuthUser.Persisted, _, _)) =>
         graph.nodesById(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
@@ -196,8 +185,8 @@ class EventProcessor private (
           else Ack.Continue
         }
       case _ => Ack.Continue
-    }
-  ))
+    }: ((Graph, Authentication)) => Future[Ack]
+  )
 
   val changesInTransit: Observable[List[GraphChanges]] = localChangesIndexed
     .combineLatest[Long](sendingChanges.startWith(Seq(-1)))
