@@ -58,10 +58,13 @@ object TaskNodeCard {
     inOneLine: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
-  ): VNode = div.thunk(nodeId.toStringFast)(Ownable { implicit ctx =>
+  ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
 
     val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
     val parentIdx = state.graph.map(_.idToIdxOrThrow(traverseState.parentId))
+    val node = Rx {
+      state.graph().nodes(nodeIdx())
+    }
     val isDeletedNow = Rx {
       state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
@@ -262,11 +265,6 @@ object TaskNodeCard {
       },
     )
 
-    val node = Rx {
-      val graph = state.graph()
-      graph.nodesByIdOrThrow(nodeId)
-    }
-
     VDomModifier(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, nodeId),
       onDblClick.stopPropagation.foreach{ _ =>
@@ -297,8 +295,9 @@ object TaskNodeCard {
       Rx {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
-      VDomModifier.ifNot(isDone)(Components.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId))),
-      VDomModifier.ifTrue(isDone)(opacity := 0.6),
+
+      if (isDone) opacity := 0.6 else Components.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
+
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
 
