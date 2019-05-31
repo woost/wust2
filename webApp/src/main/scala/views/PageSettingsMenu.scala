@@ -367,26 +367,6 @@ object PageSettingsMenu {
       state.eventProcessor.changes.onNext(change)
     }
 
-    def userLine(user:Node.User)(implicit ctx: Ctx.Owner):VNode = {
-      div(
-        marginTop := "10px",
-        Styles.flex,
-        alignItems.center,
-        Avatar.user(user.id)(
-          cls := "avatar",
-          width := "22px",
-          height := "22px",
-          Styles.flexStatic,
-          marginRight := "5px",
-        ),
-        div(
-          Components.displayUserName(user.data),
-          fontSize := "15px",
-          Styles.wordWrap,
-        ),
-      )
-    }
-
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
       val showEmailInvite = Var(false)
@@ -449,7 +429,8 @@ object PageSettingsMenu {
               graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
                 val membership = graph.edges(membershipIdx).as[Edge.Member]
                 val user = graph.nodesByIdOrThrow(membership.userId).as[User]
-                userLine(user).apply(
+                Components.renderUser(user).apply(
+                  marginTop := "10px",
                   button(
                     cls := "ui tiny compact negative basic button",
                     marginLeft := "10px",

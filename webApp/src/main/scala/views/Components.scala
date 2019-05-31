@@ -438,7 +438,7 @@ object Components {
         width := "22px",
         height := "22px",
         cls := "avatar",
-        ),
+      ),
       keyed(userNode.id),
       UI.tooltip("top right") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
@@ -502,15 +502,21 @@ object Components {
     }
 
     def removableAssignedUser(state: GlobalState, user: Node.User, assignedNodeId: NodeId): VNode = {
+      renderUser(user).apply(
+        removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(assignedNodeId, user.id)))
+      )
+    }
+
+    def renderUser(user: Node.User): VNode = {
       div(
         padding := "2px",
         borderRadius := "3px",
         backgroundColor := "white",
         color.black,
         Styles.flex,
-        Avatar.user(user.id)(height := "20px"),
-        div(marginLeft := "5px", displayUserName(user.data)),
-        removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(assignedNodeId, user.id)))
+        alignItems.center,
+        div(Avatar.user(user.id)(height := "20px")),
+        div(marginLeft := "5px", displayUserName(user.data), Styles.wordWrap),
       )
     }
 
