@@ -58,7 +58,7 @@ object TaskNodeCard {
     inOneLine: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
-  ): VNode = div.thunk(nodeId.hashCode)(isDone)(Ownable { implicit ctx =>
+  ): VNode = div.thunk(nodeId.toStringFast)(Ownable { implicit ctx =>
 
     val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
     val parentIdx = state.graph.map(_.idToIdxOrThrow(traverseState.parentId))
