@@ -274,27 +274,30 @@ object NotificationView {
     }
 
     UI.segment(
-      div(
-        Styles.flex,
-        justifyContent.spaceBetween,
-        flexWrap.wrap,
+      VDomModifier(
+        cls := "grey",
+        div(
+          Styles.flex,
+          justifyContent.spaceBetween,
+          flexWrap.wrap,
 
-        breadCrumbs,
-        button(
-          cls := "ui tiny compact button",
-          "Mark all as read",
-          marginLeft := "auto",
+          breadCrumbs,
+          button(
+            cls := "ui tiny compact button",
+            "Mark all as read",
+            marginLeft := "auto",
 
-          cursor.pointer,
+            cursor.pointer,
 
-          onClick.stopPropagation.foreach {
-            val changes = GraphChanges(
-              addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
-            )
+            onClick.stopPropagation.foreach {
+              val changes = GraphChanges(
+                addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
+              )
 
-            state.eventProcessor.changes.onNext(changes)
-            ()
-          }
+              state.eventProcessor.changes.onNext(changes)
+              ()
+            }
+          )
         )
       ),
       VDomModifier(
