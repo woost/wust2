@@ -55,7 +55,7 @@ object MoveableElement {
                 onClick(index) --> activeWindow,
                 window.toggle.map {
                   case true => VDomModifier.empty
-                  case false => opacity := 0.7
+                  case false => opacity := 0.5
                 },
                 window.title, // last because it can overwrite modifiers
               )
