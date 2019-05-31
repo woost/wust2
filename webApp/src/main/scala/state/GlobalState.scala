@@ -184,7 +184,7 @@ class GlobalState(
     val graphTrans = graphTransformations()
     val currentGraph = rawGraph()
     val currentUserId = userId()
-    val currentPage = urlPage()
+    val currentPage = urlPage.now // use now because we do not want to trigger on page change but wait for the new raw graph, coming from each page change.
 
     currentPage.parentId.fold(currentGraph) { parentId =>
       if (currentGraph.contains(parentId) && graphTrans.nonEmpty) GraphOperation.filter(currentGraph, parentId, currentUserId, graphTrans)
