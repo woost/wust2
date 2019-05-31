@@ -294,11 +294,19 @@ object RightSidebar {
         padding := "3px 0px 3px 0px",
       ))
 
-    val addNewCustomFieldMode = Var(false)
+    sealed trait AddProperty
+    object AddProperty {
+      case object None extends AddProperty
+      case object Custom extends AddProperty
+      case class Key(key: String) extends AddProperty
+    }
 
-    addNewCustomFieldMode.map {
-      case true => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId)).map(_ => false) --> addNewCustomFieldMode
-      case false => VDomModifier(
+    val addFieldMode = Var[AddProperty](AddProperty.None)
+
+    addFieldMode.map {
+      case AddProperty.Custom => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId)).map(_ => AddProperty.None) --> addFieldMode
+      case AddProperty.Key(key) => ItemProperties.managePropertiesInline(state, ItemProperties.Target.Node(focusPref.nodeId), ItemProperties.Config(prefilledType = Some(ItemProperties.TypeSelection.Data(NodeData.DateTime.tpe)), prefilledKey = key)).map(_ => AddProperty.None) --> addFieldMode
+      case AddProperty.None => VDomModifier(
         div(
           cls := "ui mini form",
           marginTop := "10px",
@@ -328,11 +336,19 @@ object RightSidebar {
         div(
           Styles.flex,
           justifyContent.center,
+
+          button(
+            cls := "ui compact basic primary button mini",
+            "+ Add Due Date",
+            cursor.pointer,
+            onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key)) --> addFieldMode
+          ),
+
           button(
             cls := "ui compact basic button mini",
             "+ Add Custom Field",
             cursor.pointer,
-            onClick.stopPropagation(true) --> addNewCustomFieldMode
+            onClick.stopPropagation(AddProperty.Custom) --> addFieldMode
           )
         ),
         renderSplit(

@@ -118,7 +118,7 @@ object ItemProperties {
             )).apply(editModifier)
           )
         ),
-        div(
+        VDomModifier.ifTrue(config.prefilledType.isEmpty)(div( // do not select type if already specifided
           cls := "field",
           label("Type"),
           isChildOfAutomationTemplate.map { isTemplate =>
@@ -136,10 +136,10 @@ object ItemProperties {
               Nil
             ).apply(tabIndex := -1)
           }
-        ),
+        )),
         div(
           cls := "field",
-          label("Value"),
+          label(if (config.prefilledKey.isEmpty) "Value" else config.prefilledKey),
           propertyTypeSelection.map(_.flatMap {
             case TypeSelection.Data(propertyType) =>
               EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
