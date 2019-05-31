@@ -134,6 +134,7 @@ object AssignedTasksView  {
   ).apply(margin := "8px")
 
   private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[UserId])(implicit ctx: Ctx.Owner): VNode = {
+    val close = PublishSubject[Unit]
     div(
       Rx {
         Avatar.user(selectedUserId()).apply(height := "20px")
@@ -142,12 +143,21 @@ object AssignedTasksView  {
       UI.dropdownMenu(
         VDomModifier(
           padding := "10px",
-          div(cls := "item", display.none), //TODO ui dropdown needs at least one element
           users.map(_.map { user =>
-            Components.renderUser(user).apply(cursor.pointer, onClick.stopPropagation(user.id) --> selectedUserId)
+            div(
+              cls := "item",
+              Components.renderUser(user).apply(
+                backgroundColor := "transparent", // overwrite white background
+                cursor.pointer,
+                onClick.stopPropagation foreach {
+                  close.onNext(())
+                  selectedUserId() = user.id
+                }
+              )
+            )
           }),
         ),
-        close = selectedUserId.toTailObservable.map(_ => ()), dropdownModifier = cls := "top left"
+        close = close, dropdownModifier = cls := "top left"
       )
     )
   }
