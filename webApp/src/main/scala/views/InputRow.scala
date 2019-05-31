@@ -168,9 +168,6 @@ object InputRow {
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       Styles.flex,
 
-      // show textarea above of tags-button on right hand side
-      zIndex := ZIndex.overlayMiddle + 1,
-
       alignItems.center,
       fileUploadHandler.map(uploadField(state, _).apply(flex := "1")),
       div(
