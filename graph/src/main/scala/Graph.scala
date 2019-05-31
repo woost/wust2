@@ -662,17 +662,6 @@ final class GraphLookup(
   }
   @inline def members(nodeId: NodeId): Seq[Node.User] = idToIdxFold(nodeId)(Seq.empty[Node.User])(membersByIndex(_))
 
-  def usersInNode(id: NodeId): collection.Set[Node.User] = idToIdxFold(id)(collection.Set.empty[Node.User]) { nodeIdx =>
-    val builder = new mutable.LinkedHashSet[Node.User]
-    val members = membersByIndex(nodeIdx)
-    builder ++= members
-    dfs.withManualAppend(_(nodeIdx), dfs.withStart, childrenIdx, append = { idx =>
-      builder ++= authorsByIndex(idx)
-    })
-
-    builder.result()
-  }
-
   def latestDeletedAt(subjectIdx: Int): Option[EpochMilli] = {
     parentEdgeIdx(subjectIdx).foldLeft(Option.empty[EpochMilli]) { (result, currentEdgeIdx) =>
       val currentDeletedAt = edges(currentEdgeIdx).as[Edge.Child].data.deletedAt
