@@ -503,7 +503,8 @@ lazy val webApp = project
       Deps.npm.fomanticUi ::
       Deps.npm.highlight ::
       Deps.npm.emoji ::
-      Deps.npm.emojiData ::
+      Deps.npm.emojiDatasource ::
+      Deps.npm.emojiDatasourceTwitter ::
       Deps.npm.hammerjs ::
       Deps.npm.propagatingHammerjs ::
       Deps.npm.mobileDetect ::

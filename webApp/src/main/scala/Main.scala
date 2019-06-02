@@ -126,9 +126,9 @@ object Main {
 
   private def setupEmojis():Unit = {
     // setup emoji converter
-    EmojiConvertor.img_sets.apple.sheet = "/emoji-datasource/sheet_apple_32.png"
-    EmojiConvertor.img_sets.apple.sheet_size = 32
-    EmojiConvertor.img_set = "apple"
+    EmojiConvertor.img_sets.twitter.sheet = "/emoji-datasource/sheet_twitter_64.png"
+    EmojiConvertor.img_sets.twitter.sheet_size = 64
+    EmojiConvertor.img_set = "twitter"
     EmojiConvertor.use_sheet = true
     EmojiConvertor.init_env()
     EmojiConvertor.include_title = true
