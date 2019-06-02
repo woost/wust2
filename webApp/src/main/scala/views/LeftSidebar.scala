@@ -361,6 +361,7 @@ object LeftSidebar {
 
   private def channelIcons(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
+    val maxDepth = 6
     val defaultPadding = CommonStyles.channelIconDefaultPadding
 
     def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
@@ -369,6 +370,8 @@ object LeftSidebar {
       val node = Rx {
         state.rawGraph().nodesByIdOrThrow(nodeId)
       }
+
+      val sanitizedDepth = depth.min(maxDepth)
 
       VDomModifier(
         Rx {
@@ -381,8 +384,8 @@ object LeftSidebar {
 
             // for each indent, steal padding on left and right
             // and reduce the width, so that the icon keeps its size
-            width := s"${size - (depth * indentFactor)}px",
-            padding := s"${defaultPadding}px ${defaultPadding - (depth * indentFactor / 2.0)}px",
+            width := s"${size - (sanitizedDepth * indentFactor)}px",
+            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px",
           )
         }
       )
@@ -404,7 +407,7 @@ object LeftSidebar {
           renderChannel(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
-              paddingLeft := s"${indentFactor}px",
+              VDomModifier.ifTrue(depth < maxDepth)(paddingLeft := s"${indentFactor}px"),
               fontSize := fontSizeByDepth(depth),
               children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
             ))
