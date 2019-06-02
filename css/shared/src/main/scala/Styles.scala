@@ -826,15 +826,14 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingLeft(2 em),
   )
 
-  ".markdown code .hljs" - ( // code which is syntax-highlighted
+  val codeBgColor = c"hsla(210, 58%, 25%, 0.06)"
+  ".markdown code .hljs," + // code which is syntax-highlighted
+  ".markdown code:not([class])" - (// code which is not syntax-highlighted
+    backgroundColor(codeBgColor),
     borderRadius(3 px),
   )
 
-  ".markdown code:not([class])" - ( // code which is not syntax-highlighted
-    // like github
-    backgroundColor(c"rgba(27, 31, 35, 0.05)"),
-    borderRadius(3 px),
-    // fontSize(85 %%),
+  ".markdown code:not([class])" - ( 
     margin(0 px),
     padding(0.2 em, 0.4 em),
   )

@@ -33,8 +33,8 @@ const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 // copy static assets that we depend on
 const staticCopyAssets = [
 
-    { from: 'node_modules/highlight.js/styles/atom-one-dark.css', to: 'highlight/atom-one-light.css'},
     { from: 'node_modules/emoji-datasource-twitter/img/twitter/sheets/64.png', to: 'emoji-datasource/sheet_twitter_64.png'},
+    { from: 'node_modules/highlight.js/styles/github-gist.css', to: 'highlight/github-gist.css'},
     { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
     { from: 'node_modules/jquery-tablesort/jquery.tablesort.min.js', to: 'jquery.tablesort.min.js'},
     { from: 'node_modules/clipboard/dist/clipboard.min.js', to: 'clipboard.min.js'},
@@ -50,7 +50,7 @@ const staticIncludeAssets = [
     'emoji.min.js',
     'semantic/semantic.min.js' ,
     'semantic/semantic.min.css' ,
-    'highlight/atom-one-light.css',
+    'highlight/github-gist.css',
 ];
 
 const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
