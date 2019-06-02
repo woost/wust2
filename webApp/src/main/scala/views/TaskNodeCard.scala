@@ -140,8 +140,9 @@ object TaskNodeCard {
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
-      def toggle = Rx {
-        if (isExpanded()) collapse else expand
+      def toggleExpand = Rx {
+        @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px")
+        (if (isExpanded()) collapse else expand).apply(largerOnMobile)
       }
 
       div(
@@ -149,8 +150,7 @@ object TaskNodeCard {
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
         Components.drag(DragItem.DisableDrag),
         Styles.flex,
-        toggle,
-        toggleDelete
+        toggleExpand,
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(toggleDelete)
       )
     }
