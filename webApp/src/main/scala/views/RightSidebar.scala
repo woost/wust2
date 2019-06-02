@@ -96,6 +96,7 @@ object RightSidebar {
             Styles.flexStatic,
           ), active = false),
           accordionEntry("Views", VDomModifier(
+            height := "100%",
             viewContent(state, focusPref, parentIdAction, nodeStyle),
           ), active = true),
         ),
