@@ -204,7 +204,7 @@ object TaskNodeCard {
 
           propertySingle().properties.map { property =>
             property.values.map { value =>
-              Components.removablePropertyTag(state, value.edge, value.node)
+              Components.removableNodeCardProperty(state, value.edge, value.node)
             }
           },
 
@@ -472,7 +472,7 @@ object TaskNodeCard {
 
           propertySingle.properties.map { property =>
             property.values.map { value =>
-              Components.removablePropertyTag(state, value.edge, value.node)
+              Components.removableNodeCardProperty(state, value.edge, value.node)
             }
           },
 

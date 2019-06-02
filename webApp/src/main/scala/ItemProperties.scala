@@ -227,7 +227,7 @@ object ItemProperties {
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
       Styles.flex,
       alignItems.center,
-      Components.removablePropertyTag(state, propertyKey, propertyValue),
+      Components.removableNodeCardProperty(state, propertyKey, propertyValue),
     )
 
     description

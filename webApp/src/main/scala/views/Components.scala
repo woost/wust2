@@ -393,7 +393,7 @@ object Components {
   }
 
 
-  def propertyTag(
+  def nodeCardProperty(
     state: GlobalState,
     key: Edge.LabeledProperty,
     property: Node,
@@ -401,8 +401,7 @@ object Components {
   )(implicit ctx: Ctx.Owner): VNode = {
 
     span(
-      cls := "node tag",
-      backgroundColor := "#f0f0f0",
+      cls := "property",
       Styles.flex,
       alignItems.center,
 
@@ -410,22 +409,24 @@ object Components {
 
       div(
         alignSelf.flexStart,
-        Styles.flex,
-        alignItems.center,
-        color.gray,
-        s"${key.data.key}:", marginRight := "4px",
+        s"${key.data.key}:",
+        marginRight := "4px",
       ),
 
       property.role match {
-        case NodeRole.Neutral => renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
-        case _ => VDomModifier(
-          writeHoveredNode(state, property.id),
-          nodeCardWithFile(state, property, maxLength = Some(50)).apply(
-            margin := "3px 0",
-            sidebarNodeFocusMod(state.rightSidebarNode, property.id),
-            cursor.pointer
-          ),
-        )
+        case NodeRole.Neutral =>
+          renderNodeDataWithFile(state, property.id, property.data, maxLength = Some(50))
+            .apply(cls := "property-value")
+        case _ =>
+          VDomModifier(
+            writeHoveredNode(state, property.id),
+            nodeCardWithFile(state, property, maxLength = Some(50)).apply(
+              cls := "property-value",
+              margin := "3px 0",
+              sidebarNodeFocusMod(state.rightSidebarNode, property.id),
+              cursor.pointer
+            ),
+          )
       }
     )
   }
@@ -447,12 +448,12 @@ object Components {
     )
   }
 
-  def removablePropertyTagCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    propertyTag(state, key, propertyNode, pageOnClick).apply(removableTagMod(action))
+  def removableNodeCardPropertyCustom(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, action: () => Unit, pageOnClick: Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+    nodeCardProperty(state, key, propertyNode, pageOnClick).apply(removableTagMod(action))
   }
 
-  def removablePropertyTag(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
-    removablePropertyTagCustom(state, key, propertyNode, () => {
+  def removableNodeCardProperty(state: GlobalState, key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+    removableNodeCardPropertyCustom(state, key, propertyNode, () => {
       state.eventProcessor.changes.onNext(
         GraphChanges(delEdges = Array(key))
       )

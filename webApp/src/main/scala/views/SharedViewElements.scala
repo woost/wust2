@@ -174,7 +174,7 @@ object SharedViewElements {
                 propertyData.map { propertySingle =>
                   propertySingle.properties.map { property =>
                     property.values.map { value =>
-                      Components.propertyTag(state, value.edge, value.node)
+                      Components.nodeCardProperty(state, value.edge, value.node)
                     }
                   },
                 }

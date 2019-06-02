@@ -839,6 +839,18 @@ object CommonStyles extends StyleSheet.Standalone {
     lineHeight.inherit,
   )
 
+  ".property" - (
+    color.gray,
+    fontSize.small,
+    padding(0 px, 3 px),
+    marginRight(3 px),
+    display.inlineBlock,
+
+    &(".property-value") - (
+      color(c"rgba(0,0,0,0.87)"), // semantic ui text color
+    )
+  )
+
   ".tags" - (
     padding( 0 px, 3 px, 0 px, 5 px ),
     Styles.flex,
