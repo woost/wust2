@@ -122,8 +122,8 @@ object Components {
     )
   }
 
-  def nodeCardAsOneLineText(node: Node): VNode = {
-    renderNodeCard(node, contentInject = renderAsOneLineText)
+  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = false): VNode = {
+    renderNodeCard(node, contentInject = renderAsOneLineText, projectWithIcon = projectWithIcon)
   }
 
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
@@ -544,7 +544,7 @@ object Components {
       }, pageOnClick)
     }
 
-    def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = true, openFolder: Boolean = false) = {
+    def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {
       if(withIcon) {
         val nodeWithoutFirstEmoji = node match {
           case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
@@ -578,7 +578,7 @@ object Components {
       }
     }
 
-    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
+    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = false): VDomModifier = {
       def contentNode(node: Node) = div(
         cls := "nodecard-content",
         contentInject(node)
@@ -604,10 +604,10 @@ object Components {
       )
     }
 
-    def renderNodeCard(node: Node, contentInject: Node => VDomModifier): VNode = {
+    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = false): VNode = {
       div(
         keyed(node.id),
-        renderNodeCardMod(node, contentInject)
+        renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
       )
     }
     def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VDomModifier = {

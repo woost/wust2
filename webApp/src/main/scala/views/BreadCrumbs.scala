@@ -100,7 +100,7 @@ object BreadCrumbs {
             // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
             // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
             case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-              Components.nodeCardAsOneLineText(node).apply(
+              Components.nodeCardAsOneLineText(node, projectWithIcon = true).apply(
                 cls := "breadcrumb",
                 VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
                 DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
