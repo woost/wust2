@@ -50,7 +50,7 @@ object PageHeader {
     val channelTitle = Rx {
       val node = pageNode()
       div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText, coloredProjectFolder = false),
+        Components.renderNodeCardMod(node, Components.renderAsOneLineText, projectWithIcon = false),
         cls := "pageheader-channeltitle",
         DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),

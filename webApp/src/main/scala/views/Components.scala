@@ -543,37 +543,41 @@ object Components {
       }, pageOnClick)
     }
 
-    def renderProjectWithIcon(node: Node, renderNode: Node => VDomModifier, openFolder: Boolean = false, coloredFolder: Boolean = true) = {
-      val nodeWithoutFirstEmoji = node match {
-        case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
-          editable.updateStr(EmojiReplacer.emojiRegex.replaceFirstIn(n.str, "")) match {
-            case Some(dataWithoutEmoji) =>
-              n.copy(data = dataWithoutEmoji)
-            case None                   => n
-          }
-        case n                                                           => n
-      }
+    def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = true, openFolder: Boolean = false) = {
+      if(withIcon) {
+        val nodeWithoutFirstEmoji = node match {
+          case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
+            editable.updateStr(EmojiReplacer.emojiRegex.replaceFirstIn(n.str, "")) match {
+              case Some(dataWithoutEmoji) =>
+                n.copy(data = dataWithoutEmoji)
+              case None                   => n
+            }
+          case n                                                           => n
+        }
 
-      val iconModifier: VNode = node.str match {
-        case EmojiReplacer.emojiRegex(emoji) => replaceEmoji(emoji).apply(
-          alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
-        )
-        case _ if openFolder   => renderFontAwesomeIcon(freeSolid.faFolderOpen)
-        case _ => span(
-          freeSolid.faFolder,
-          VDomModifier.ifTrue(coloredFolder)(color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex)
-        )
-      }
+        val iconModifier: VNode = node.str match {
+          case EmojiReplacer.emojiRegex(emoji) => replaceEmoji(emoji).apply(
+            alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
+          )
+          case _ if openFolder   => renderFontAwesomeIcon(freeSolid.faFolderOpen)
+          case _ => span(
+            freeSolid.faFolder,
+            color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
+          )
+        }
 
-      VDomModifier(
-        Styles.flex,
-        alignItems.center,
-        iconModifier.apply(marginRight := "0.2em"),
-        renderNode(nodeWithoutFirstEmoji),
-      )
+        VDomModifier(
+          Styles.flex,
+          alignItems.center,
+          iconModifier.apply(marginRight := "0.2em"),
+          renderNode(nodeWithoutFirstEmoji),
+        )
+      } else {
+        renderNode(node),
+      }
     }
 
-    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, coloredProjectFolder: Boolean = true): VDomModifier = {
+    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
       def contentNode(node: Node) = div(
         cls := "nodecard-content",
         contentInject(node)
@@ -584,7 +588,7 @@ object Components {
         node.role match {
           case NodeRole.Project => VDomModifier(
             cls := "project",
-            renderProjectWithIcon(node, contentNode, coloredFolder = coloredProjectFolder)
+            renderProject(node, contentNode, withIcon = projectWithIcon)
           )
           case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
             cls := "tag colorful",

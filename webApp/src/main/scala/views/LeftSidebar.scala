@@ -280,7 +280,7 @@ object LeftSidebar {
                 color := Colors.sidebarBg,
                 backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
               ),
-              renderProjectWithIcon(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), openFolder = selected())
+              renderProject(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
             )
           },
 

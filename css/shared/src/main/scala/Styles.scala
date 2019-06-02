@@ -769,7 +769,7 @@ object CommonStyles extends StyleSheet.Standalone {
     (boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.2)").important // overwrite nodecard shadow
   )
 
-  ".pageheader .nodecard.project" - (
+  ".pageheader .breadcrumb.nodecard.project" - (
     paddingLeft(0.5.em),
   )
 
