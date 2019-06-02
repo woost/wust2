@@ -321,14 +321,12 @@ object RightSidebar {
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.None => VDomModifier(
         div(
-          cls := "ui mini form",
+          cls := "ui form",
           marginTop := "10px",
           Rx {
             VDomModifier(
               propertySingle().properties.map { property =>
-                Components.removablePropertySection(state, property.key, property.values).apply(
-                  marginBottom := "10px",
-                )
+                Components.removablePropertySection(state, property.key, property.values)
               },
 
               VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
