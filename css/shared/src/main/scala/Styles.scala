@@ -765,8 +765,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".pageheader .breadcrumb" - (
-    // pageheader has a colored background. The shadow separates the colors of breadcrumbs and background.
-    (boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.2)").important // overwrite nodecard shadow
+    // pageheader has a colored background. No shadow needed.
+    (boxShadow := s"none").important // overwrite nodecard shadow
   )
 
   ".pageheader .breadcrumb.nodecard.project" - (
