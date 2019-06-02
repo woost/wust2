@@ -796,9 +796,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
 
+  val tagMarginPx = 2
+  val tagMargin = tagMarginPx.px
   ".listview .nodecard-content," +
   ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
-    padding(8 px),
+    padding(8 px, 8 px, (8 - tagMarginPx).px, 8 px),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
   )
 
   ".listview .nodecard > .checkbox" - (
@@ -813,6 +815,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content a" - (
     cursor.pointer.important
+  )
+
+  ".nodecard-content > .markdown" - (
+    marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
   )
 
   ".markdown ul, .markdown ol" - (
@@ -865,13 +871,9 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize.small,
     borderRadius(tagBorderRadius),
     padding(0 px, 3 px),
-    marginRight(2 px),
-    marginTop(1 px),
-    marginBottom(1 px),
-    whiteSpace.nowrap,
+    marginRight(tagMargin),
+    marginBottom(tagMargin),
     display.inlineBlock,
-    overflow.hidden, // required for textOverflow
-    maxWidth(100 %%), // required for textOverflow
   )
 
   ".tag.colorful" - (
