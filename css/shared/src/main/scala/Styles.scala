@@ -764,7 +764,7 @@ object CommonStyles extends StyleSheet.Standalone {
     &(".divider") - (
       marginLeft(3 px),
       marginRight(3 px),
-      color(c"rgba(0,0,0, 0.3)"),
+      color(c"rgba(255, 255, 255, 0.78)"),
       fontSize(18 px),
     )
   )
