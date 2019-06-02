@@ -221,13 +221,13 @@ object TaskNodeCard {
       }
     )
 
-    val cardFooter = div(
-      cls := "childstats",
-      Styles.flex,
-      alignItems.center,
-      justifyContent.flexEnd,
-      Rx{
-        VDomModifier(
+    val cardFooter = Rx {
+      VDomModifier.ifTrue(taskStats().nonEmpty)(
+        div(
+          cls := "childstats",
+          Styles.flex,
+          alignItems.center,
+          justifyContent.flexEnd,
           VDomModifier.ifTrue(taskStats().taskChildrenCount > 0)(
             div(
               flexGrow := 1,
@@ -263,8 +263,8 @@ object TaskNodeCard {
             ),
           ),
         )
-      },
-    )
+      )
+    }
 
     VDomModifier(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, nodeId),
