@@ -753,11 +753,13 @@ object Components {
       payload: => DragPayload = DragItem.DisableDrag,
       target: DragTarget = DragItem.DisableDrag,
     ): VDomModifier = {
+      @inline def disableDrag = payload.isInstanceOf[DragItem.DisableDrag.type]
       VDomModifier(
         //TODO: draggable bug: draggable sets display:none, then does not restore the old value https://github.com/Shopify/draggable/issues/318
         cls := "draggable", // makes this element discoverable for the Draggable library
         cls := "drag-feedback", // visual feedback for drag-start
-        VDomModifier.ifTrue(payload.isInstanceOf[DragItem.DisableDrag.type])(cursor.auto), // overwrites cursor set by .draggable class
+        onMouseDown.stopPropagation --> Observer.empty, // don't trigger global onMouseDown (e.g. closing right sidebar) when dragging
+        VDomModifier.ifTrue(disableDrag)(cursor.auto), // overwrites cursor set by .draggable class
         prop(DragItem.payloadPropName) := (() => payload),
         prop(DragItem.targetPropName) := (() => target),
       )
