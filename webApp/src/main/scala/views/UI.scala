@@ -281,28 +281,28 @@ object UI {
     )
   )
   def accordion(title: VDomModifier, content: VDomModifier): VNode =
-    accordion(Seq((title, content)))
+    accordion(Seq(AccordionEntry(title, content)))
 
-  def accordion(content: Seq[(VDomModifier, VDomModifier)],
+  case class AccordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = true)
+  def accordion(content: Seq[AccordionEntry],
                 styles: String = "styled fluid",
                 collapsible : Boolean = true,
                 exclusive : Boolean = true,
                 duration : Int = 250,
-                initialActive : Seq[Int] = Seq.empty): VNode = div(
+                ): VNode = div(
     cls := s"ui ${ styles } accordion",
-    content.mapWithIndex { (index, titleAndContent) =>
-      val (title, content) = titleAndContent
+    content.map { entry =>
       VDomModifier(
         div(
           padding := "0px",
-          cls := "title" + (if (initialActive.contains(index)) " active" else ""),
+          cls := "title" + (if (entry.active) " active" else ""),
           i(cls := "dropdown icon"),
-          title,
+          entry.title,
           ),
         div(
-          cls := "content" + (if (initialActive.contains(index)) " active" else ""),
+          cls := "content" + (if (entry.active) " active" else ""),
           padding := "0px",
-          content
+          entry.content
         )
       )
     },

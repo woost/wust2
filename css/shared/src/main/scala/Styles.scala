@@ -714,6 +714,11 @@ object CommonStyles extends StyleSheet.Standalone {
     color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
   )
 
+  ".right-sidebar-node.nodecard" - (
+    boxShadow := "none", // less clutter in right sidebar
+    paddingLeft(10 px),
+  )
+
   ".nodecard.project.node-deleted" - (
   )
 

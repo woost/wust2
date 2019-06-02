@@ -66,29 +66,32 @@ object UserSettingsView {
           header(state, user).apply(marginBottom := "50px"),
           UI.accordion(
             Seq(
-              accordionEntry("Account Settings", accountSettings(state, user)),
+              accordionEntry("Account Settings", accountSettings(state, user), active = true),
               accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
               accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings(state, user)),
               accordionEntry( b("§ Legal Information" ), LegalNotice.information),
             ),
             styles = "fluid",
             exclusive = false,
-            initialActive = Seq(0),
           )
         )
       }
     )
   }
 
-  def accordionEntry(name: VDomModifier, body: VDomModifier): (VDomModifier, VDomModifier) = {
-    VDomModifier(
-      Styles.flexStatic,
-      marginTop := "4px",
-      name,
-    ) -> VDomModifier(
-      margin := "4px 4px 12px 20px",
-      padding := "0px",
-      body
+  def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = false): UI.AccordionEntry = {
+    UI.AccordionEntry(
+      title = VDomModifier(
+        Styles.flexStatic,
+        marginTop := "4px",
+        title,
+        ),
+      content = VDomModifier(
+        margin := "4px 4px 12px 20px",
+        padding := "0px",
+        content
+      ),
+      active = active
     )
   }
 

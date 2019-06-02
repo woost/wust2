@@ -42,17 +42,42 @@ object RightSidebar {
   def content(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
-    def accordionEntry(name: VDomModifier, body: VDomModifier): (VDomModifier, VDomModifier) = {
-      VDomModifier(
-        marginTop := "5px",
-        b(name),
-        Styles.flexStatic,
-      ) -> VDomModifier(
-        margin := "5px",
-        padding := "0px",
-        body
+    val sidebarHeader = div(
+      opacity := 0.5,
+
+      Styles.flex,
+      alignItems.center,
+      div(
+        freeSolid.faAngleDoubleRight,
+        color := "gray",
+        cls := "fa-fw", 
+        fontSize.xLarge,
+        cursor.pointer,
+        onClick(None).foreach(parentIdAction),
+        onGlobalMouseDown(None).foreach(parentIdAction), // mousedown instead of click, else a drag from sidebar to outside would close sidebar
+      ),
+      div(
+        marginLeft := "5px",
+        nodeBreadcrumbs(state, focusPref, parentIdAction, hideIfSingle = true),
+      ),
+    )
+
+    def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean): UI.AccordionEntry = {
+      UI.AccordionEntry(
+        title = VDomModifier(
+          b(title),
+          marginTop := "5px",
+          Styles.flexStatic,
+          ), 
+        content = VDomModifier(
+          margin := "5px",
+          padding := "0px",
+          content
+        ),
+        active = active
       )
     }
+
 
     div(
       height := "100%",
@@ -61,46 +86,21 @@ object RightSidebar {
       color.black,
       onMouseDown.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
-      div(
-        Styles.flexStatic,
+      sidebarHeader.apply(Styles.flexStatic),
+      nodeContent(state, focusPref, parentIdAction).apply(Styles.flexStatic),
 
-        Styles.flex,
-        alignItems.center,
-        div(
-          fontSize.xLarge,
-          cls := "fa-fw", freeSolid.faAngleDoubleRight,
-          cursor.pointer,
-          onClick(None).foreach(parentIdAction),
-        onGlobalMouseDown(None).foreach(parentIdAction), // mousedown instead of click, else a drag from sidebar to outside would close sidebar
-        ),
-        div(
-          marginLeft := "5px",
-          nodeBreadcrumbs(state, focusPref, parentIdAction, hideIfSingle = true),
-        ),
-      ),
       UI.accordion(
-        Seq(
-          accordionEntry(VDomModifier(Rx {
-            val graph = state.rawGraph()
-            graph.nodesById(focusPref.nodeId).fold("")(_.role.toString)
-          }), VDomModifier(
-            nodeContent(state, focusPref, parentIdAction),
-            overflowY.auto,
-            maxHeight := "40%"
-          )),
+        content = Seq(
           accordionEntry("Properties & Custom Fields", VDomModifier(
             nodeProperties(state, focusPref),
-            overflowY.auto,
-            flex := "1 1 20%"
-          )),
+            Styles.flexStatic,
+          ), active = false),
           accordionEntry("Views", VDomModifier(
             viewContent(state, focusPref, parentIdAction, nodeStyle),
-            flex := "1 1 40%"
-          )),
+          ), active = true),
         ),
         styles = "styled fluid",
         exclusive = false, //BrowserDetect.isMobile,
-        initialActive = Seq(0, 2), //if (BrowserDetect.isMobile) Seq(0) else Seq(0, 1, 2),
       ).apply(
         height := "100%",
         Styles.flex,
@@ -174,6 +174,7 @@ object RightSidebar {
     }
 
     val buttonMods = VDomModifier(
+      color := "gray",
       fontSize := "18px",
       padding := "12px 8px",
       cursor.pointer,
@@ -186,34 +187,37 @@ object RightSidebar {
         state.urlConfig.update(_.focus(Page(focusPref.nodeId)))
         state.rightSidebarNode() = None
       }
-          )
+    )
 
     val deleteButton = Rx {
-          VDomModifier.ifTrue(hasNotDeletedParents())(
-            div(
-              Icons.delete,
+      VDomModifier.ifTrue(hasNotDeletedParents())(
+        div(
+          Icons.delete,
           buttonMods,
-              onClick.stopPropagation.foreach { _ =>
-                state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
-                parentIdAction(None)
-              },
-            )
-          )
-        }
+          onClick.stopPropagation.foreach { _ =>
+            state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
+            parentIdAction(None)
+          },
+        )
+      )
+    }
 
     val nodeCard = Rx {
       Components.nodeCardEditable(state, node(), editMode,
         contentInject = width := "100%" // pushes cancel button to the right
-        ).apply(
-        Styles.wordWrap,
-        width := "100%",
-        margin := "3px 3px 3px 3px",
-        cls := "enable-text-selection",
-        fontSize := "20px",
-        onClick.stopPropagation(true) --> editMode,
+      ).apply(
+        cls := "right-sidebar-node",
 
         Styles.flex,
         justifyContent.spaceBetween,
+
+        fontSize := "20px",
+        width := "100%",
+        margin := "3px 3px 3px 3px",
+        Styles.wordWrap,
+        cls := "enable-text-selection",
+        onClick.stopPropagation(true) --> editMode,
+
         Components.readObserver(state, node().id)
       )
     }
@@ -250,8 +254,8 @@ object RightSidebar {
 
     div(
       Styles.flex,
-      alignItems.center,
       justifyContent.flexEnd,
+
       authorship.map { case (author, creationEpochMillis) =>
         chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
       },
