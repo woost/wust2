@@ -801,7 +801,13 @@ object Components {
       )
     }
 
-    def editableNodeOnClick(state: GlobalState, node: Node, maxLength: Option[Int] = None, editMode: Var[Boolean] = Var(false), config: EditableContent.Config = EditableContent.Config.cancelOnError)(
+    def editableNodeOnClick(
+      state: GlobalState,
+      node: Node,
+      maxLength: Option[Int] = None,
+      editMode: Var[Boolean] = Var(false),
+      config: EditableContent.Config = EditableContent.Config.cancelOnError
+    )(
       implicit ctx: Ctx.Owner
     ): VNode = {
       editableNode(state, node, editMode, maxLength, config)(ctx)(

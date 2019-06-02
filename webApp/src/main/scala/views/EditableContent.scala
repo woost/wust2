@@ -55,6 +55,7 @@ object EditableContent {
   case class Config(
     modifier: VDomModifier = VDomModifier.empty,
     submitMode: SubmitMode = SubmitMode.Explicit,
+    submitOnEnter: Boolean = !BrowserDetect.isMobile,
     errorMode: ErrorMode = ErrorMode.ShowInline,
     selectTextOnFocus: Boolean = true,
   )
@@ -334,7 +335,7 @@ object EditableContent {
       case SubmitMode.Explicit => Seq(
         // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
         onBlur.transform(_.delayOnNext(200 millis))
-      ) ++ (if (BrowserDetect.isMobile) Seq.empty else Seq(onEnter))
+      ) ++ (if (config.submitOnEnter) Seq(onEnter) else Seq(onCtrlEnter))
       case SubmitMode.Emitter(builders) => builders
     }
 

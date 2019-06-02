@@ -24,7 +24,7 @@ object Placeholder {
 
   def newMessage = Placeholder(short = "Write a Message", "Write a Message and press Enter to submit.")
   def newTask = Placeholder(short = "Add a Task", "Press Enter to add a Task.")
-  def newNote = Placeholder(short = "Add a Note", "Press Enter to add a Note.")
+  def newNote = Placeholder(short = "Add a Note", "Write your note here.")
   def newStage = Placeholder(short = "Add a Column", long = "Press Enter to add a Column.")
   def newProject = Placeholder(short = "Add a Project", long = "Add a Project.")
 }

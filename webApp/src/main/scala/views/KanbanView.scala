@@ -312,7 +312,8 @@ object KanbanView {
             autoFocus = true,
             blurAction = Some(blurAction),
             placeholder = Placeholder.newTask,
-            submitIcon = freeSolid.faPlus,
+            submitOnEnter = true,
+            showSubmitIcon = false,
             showMarkdownHelp = false
           )
         else

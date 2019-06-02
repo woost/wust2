@@ -52,6 +52,9 @@ object NotesView {
           val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId))
           state.eventProcessor.changes.onNext(changes)
         },
+        submitOnEnter = false,
+        showSubmitIcon = true,
+        submitIcon = freeSolid.faPlus,
         placeholder = Placeholder.newNote,
         showMarkdownHelp = true
       )
@@ -69,7 +72,7 @@ object NotesView {
       justifyContent.spaceBetween,
       alignItems.flexStart,
 
-      editableNodeOnClick(state, node).apply(width := "100%"),
+      editableNodeOnClick(state, node, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
 
       div(
         Styles.flex,

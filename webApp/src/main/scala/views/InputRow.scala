@@ -44,6 +44,7 @@ object InputRow {
     autoFocus:Boolean = false,
     placeholder: Placeholder = Placeholder.empty,
     preFillByShareApi:Boolean = false,
+    submitOnEnter: Boolean = !BrowserDetect.isMobile,
     submitIcon:VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers:VDomModifier = VDomModifier.empty,
@@ -93,10 +94,10 @@ object InputRow {
     }
 
     val initialValueAndSubmitOptions = {
-      if (BrowserDetect.isMobile) {
-        value <-- initialValue
-      } else {
+      if (submitOnEnter) {
         valueWithEnterWithInitial(initialValue) foreach handleInput _
+      } else {
+        valueWithCtrlEnterWithInitial(initialValue) foreach handleInput _
       }
     }
 

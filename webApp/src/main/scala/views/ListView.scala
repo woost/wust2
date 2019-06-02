@@ -192,7 +192,8 @@ object ListView {
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeholder = Placeholder.newTask,
-          submitIcon = freeSolid.faPlus
+          submitOnEnter = true,
+          showSubmitIcon = false,
         ).apply(Styles.flexStatic)
       }
     )

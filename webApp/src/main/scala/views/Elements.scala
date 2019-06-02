@@ -77,6 +77,11 @@ object Elements {
       .filter(e => e.keyCode == KeyCode.Enter && !e.shiftKey)
       .preventDefault
 
+  val onCtrlEnter: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
+    onKeyDown
+      .filter(e => e.keyCode == KeyCode.Enter && e.ctrlKey && !e.shiftKey)
+      .preventDefault
+
   val onEscape: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
     onKeyDown
       .filter(_.keyCode == KeyCode.Escape)
@@ -235,7 +240,7 @@ object Elements {
     clear
   }
 
-  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true) {
+  final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] = onEnter) {
     private var elem:HTMLInputElement = _
 
     private val userInput = Handler.unsafe[String]
@@ -256,7 +261,7 @@ object Elements {
           elem = textAreaElem.asInstanceOf[HTMLInputElement]
         },
         value <-- writeValue,
-        onEnter.stopPropagation.value foreach { trigger() },
+        eventHandler.stopPropagation foreach { trigger() },
         emitter(userInput) --> sink
       )
     }
@@ -335,8 +340,24 @@ object Elements {
   )
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
-  def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue)).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = new ValueWithEnter(overrideValue = overrideValue, clearValue = clearValue).emitterBuilder
+  def valueWithCtrlEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithCtrlEnter(true)
+  def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter)).emitterBuilder
+  def valueWithCtrlEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter)).emitterBuilder
+  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = {
+    new ValueWithEnter(
+      overrideValue = overrideValue,
+      clearValue = clearValue,
+      eventHandler = onEnter
+    ).emitterBuilder 
+  }
+
+  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = {
+    new ValueWithEnter(
+      overrideValue = overrideValue,
+      clearValue = clearValue,
+      eventHandler = onCtrlEnter
+    ).emitterBuilder
+  }
 
   final class TextAreaAutoResizer {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
