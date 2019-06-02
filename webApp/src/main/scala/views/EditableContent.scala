@@ -245,11 +245,19 @@ object EditableContent {
   private def handleEditInteraction[T](initial: Option[T], config: Config): EditInteraction[T] => EditInteraction[T] = {
     var lastValue = initial
 
-    {
-      case EditInteraction.Input(value) if config.submitMode == SubmitMode.Explicit && lastValue.contains(value) => EditInteraction.Cancel
-      case _: EditInteraction.Error if config.errorMode == ErrorMode.Cancel => EditInteraction.Cancel
+    (({
+      case EditInteraction.Input(value) if config.submitMode == SubmitMode.Explicit && lastValue.contains(value) =>
+        EditInteraction.Cancel
+      case _: EditInteraction.Error if config.errorMode == ErrorMode.Cancel =>
+        EditInteraction.Cancel
       case e@EditInteraction.Input(value) =>
         lastValue = Some(value)
+        e
+      case e => e
+    }):(EditInteraction[T] => EditInteraction[T])) andThen {
+      case e@EditInteraction.Cancel =>
+        // if the transformation resulted in `Cancel`, clear all text selections
+        dom.window.getSelection().removeAllRanges()
         e
       case e => e
     }
