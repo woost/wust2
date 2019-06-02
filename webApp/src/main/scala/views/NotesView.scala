@@ -44,6 +44,7 @@ object NotesView {
           VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(state, node, parentId = focusState.focusedId))
         }
       },
+      registerDragContainer(state),
 
       InputRow(
         state,
@@ -66,13 +67,22 @@ object NotesView {
       state.graph().isDeletedNow(node.id, parentId = parentId)
     }
 
+    val editMode = Var(false)
+
     div(
       cls := "ui segment",
       Styles.flex,
       justifyContent.spaceBetween,
       alignItems.flexStart,
 
-      editableNodeOnClick(state, node, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
+      Rx {
+        VDomModifier.ifNot(editMode())(
+          drag(DragItem.Note(node.id)),
+          cursor.auto, // overwrite drag cursor
+        )
+      },
+
+      editableNodeOnClick(state, node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
 
       div(
         Styles.flex,

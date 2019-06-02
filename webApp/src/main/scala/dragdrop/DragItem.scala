@@ -12,6 +12,7 @@ object DragItem {
   sealed trait ContentNode extends DragPayloadAndTarget { def nodeId: NodeId }
   case class Message(nodeId: NodeId) extends ContentNode { override def toString = s"Message(${nodeId.shortHumanReadable})" }
   case class Task(nodeId: NodeId) extends ContentNode { override def toString = s"Task(${nodeId.shortHumanReadable})" }
+  case class Note(nodeId: NodeId) extends ContentNode { override def toString = s"Note(${nodeId.shortHumanReadable})" }
   case class Project(nodeId: NodeId) extends ContentNode { override def toString = s"Project(${nodeId.shortHumanReadable})" }
 
   sealed trait ContentNodeConnect extends ContentNode {
@@ -36,8 +37,9 @@ object DragItem {
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload { override def toString = s"SelectedNodes(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
 
   def fromNodeRole(nodeId: NodeId, role: NodeRole): Option[DragPayloadAndTarget] = Some(role) collect {
-    case NodeRole.Task    => DragItem.Task(nodeId)
     case NodeRole.Message => DragItem.Message(nodeId)
+    case NodeRole.Task    => DragItem.Task(nodeId)
+    case NodeRole.Note    => DragItem.Note(nodeId)
     case NodeRole.Project => DragItem.Project(nodeId)
     case NodeRole.Tag     => DragItem.Tag(nodeId)
     case NodeRole.Stage   => DragItem.Stage(nodeId)
