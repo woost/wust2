@@ -358,7 +358,8 @@ object Elements {
         lastScrollHeight = elem.scrollHeight
         elem.style.height = s"${lastScrollHeight + 4}px" // 4 avoids a scrollbar
       },
-      onInput.debounce(300 milliseconds).foreach { trigger() }
+      onInput.debounce(300 milliseconds).foreach { trigger() },
+      onKeyDown.filter(e => e.keyCode == KeyCode.Enter).foreach{ trigger() },
     )
   }
 
