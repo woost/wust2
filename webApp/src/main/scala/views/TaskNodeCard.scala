@@ -151,6 +151,7 @@ object TaskNodeCard {
         Styles.flex,
         toggle,
         toggleDelete
+        VDomModifier.ifTrue(!BrowserDetect.isMobile)(toggleDelete)
       )
     }
 
