@@ -613,7 +613,7 @@ final class GraphLookup(
       RoleStat(SemanticNodeRole(NodeRole.Task), taskCount, taskUnreadCount) ::
       RoleStat(SemanticNodeRole(NodeRole.Message), messageCount, messageUnreadCount) ::
       RoleStat(SemanticNodeRole(NodeRole.Note), noteCount, noteUnreadCount) ::
-      RoleStat(SemanticNodeRole.File, noteCount, noteUnreadCount) ::
+      RoleStat(SemanticNodeRole.File, fileCount, fileUnreadCount) ::
       Nil
     )
   }
