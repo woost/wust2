@@ -39,11 +39,6 @@ import scala.scalajs.js
 
 // This file contains woost-related UI helpers.
 
-object Placeholders {
-  val newNode: Attr = placeholder := "Create new item. Press Enter to submit."
-  val newTag: Attr = placeholder := "Create new tag. Press Enter to submit."
-}
-
 object Components {
   val implicitUserName = "Unregistered User"
 

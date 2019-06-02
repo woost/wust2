@@ -9,9 +9,8 @@ import vectory._
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Elements._
-import wust.webApp.views.Placeholders
 
 object PostCreationMenu {
   def apply(state: GlobalState, focusState: FocusState, pos: Vec2, transformRx: Rx[d3.Transform])(
@@ -63,7 +62,7 @@ object PostCreationMenu {
         textArea(
           cls := "fluid field",
           valueWithEnter --> inputHandler,
-          Placeholders.newNode,
+          placeholder := Placeholder.newTask.long,
           onDomMount.asHtml foreach(_.focus()),
           resize := "none",
           margin := "0px",
