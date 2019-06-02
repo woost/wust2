@@ -93,6 +93,9 @@ object Elements {
   val onGlobalClick: EmitterBuilder[MouseEvent, VDomModifier] =
     EmitterBuilder.fromObservable(events.document.onClick)
 
+  val onGlobalMouseDown: EmitterBuilder[MouseEvent, VDomModifier] =
+    EmitterBuilder.fromObservable(events.document.onMouseDown)
+
   val onClickOrLongPress: CustomEmitterBuilder[Boolean, VDomModifier] =
     EmitterBuilder.ofModifier[Boolean] { sink => IO {
       // https://stackoverflow.com/a/27413909
