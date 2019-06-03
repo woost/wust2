@@ -140,7 +140,6 @@ object UI {
             Styles.flex,
             Styles.flexStatic,
             icon,
-            cursor.pointer,
             fontSize.xxLarge,
           ),
         ),

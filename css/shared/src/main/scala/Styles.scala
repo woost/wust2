@@ -296,6 +296,11 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(5.px),
     zIndex(ZIndex.tooltip),
   )
+
+  ".ui.modal > .close" - (
+    color(c"#fff"), // would be black otherwise by semantic ui on small screens
+  )
+
   "[data-tooltip]:before,[data-tooltip]:after" - (
     padding(5.px),
     zIndex(ZIndex.tooltip),
