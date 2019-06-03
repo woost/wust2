@@ -110,6 +110,7 @@ object Components {
   def renderAsOneLineText(node: Node): VNode = {
     // 1. extract first line of string
     val firstLine = {
+      //TODO: skip markdown syntax which does not display any text, like "```scala"
       val lines = node.str.lines
       if (lines.hasNext) lines.next else ""
     }
@@ -564,9 +565,9 @@ object Components {
             span(freeSolid.faFolderOpen)
           case _ => 
             span(
-            freeSolid.faFolder,
-            color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
-          )
+              freeSolid.faFolder,
+              color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
+            )
         }
 
         VDomModifier(
