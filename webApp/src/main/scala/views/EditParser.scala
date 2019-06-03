@@ -236,9 +236,14 @@ object EditElementParser {
       timeDate.setFullYear(1970)
       (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong)))
     }
+    private def defaultDateTime(): DateTimeMilli = {
+      val d = new Date(EpochMilli.now + EpochMilli.hour * 24)
+      d.setHours(12, 0, 0)
+      DateTimeMilli(EpochMilli(d.getTime.toLong))
+    }
 
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
-      var lastDateTime: DateTimeMilli = DateTimeMilli(EpochMilli(EpochMilli.now + EpochMilli.hour * 24)) // default tomorrow
+      var lastDateTime: DateTimeMilli = defaultDateTime()
       val dateHandler = handler.mapHandler[EditInteraction[DateMilli]](_.map { date =>
         val (_, time) = splitDateTimeLocal(lastDateTime)
         DateTimeMilli(EpochMilli(date + time))
