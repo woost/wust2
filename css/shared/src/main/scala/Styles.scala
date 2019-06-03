@@ -790,6 +790,10 @@ object CommonStyles extends StyleSheet.Standalone {
     paddingLeft(0.5.em),
   )
 
+  ".ui.segment .breadcrumbs .divider" - (
+    color(c"rgba(165, 165, 165, 0.78)") // ui.segment has light background
+  )
+
   ".breadcrumb," +
   ".breadcrumb *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
     maxWidth(10 em),
