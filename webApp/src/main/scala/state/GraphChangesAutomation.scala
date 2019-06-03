@@ -222,8 +222,8 @@ object GraphChangesAutomation {
     automatedNodes.foreach { childNode =>
       UI.toast(
         StringOps.trimToMaxLength(childNode.str, 50),
-        title = s"New ${ childNode.role } is automated",
-        click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id))))
+        title = s"${ childNode.role } was automated:",
+        // click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id))))
       )
     }
 
