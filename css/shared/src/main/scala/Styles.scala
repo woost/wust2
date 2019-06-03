@@ -694,8 +694,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
     Styles.flex,
     alignItems.center,
-    flexWrap.wrap,
-    overflowX.auto,
+    overflow.hidden,
 
     &(".cycle-indicator") - (
       verticalAlign.middle,
@@ -729,6 +728,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".ui.segment .breadcrumbs .divider" - (
     color(c"rgba(165, 165, 165, 0.78)") // ui.segment has light background
+  )
+
+  ".breadcrumb" - (
+    minWidth(2 em).important, // to leave at least the icon when shrinking, important to overwrite min-width:0 of Styles-flex
   )
 
   ".breadcrumb," +

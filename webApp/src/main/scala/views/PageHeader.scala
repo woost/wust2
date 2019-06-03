@@ -92,7 +92,7 @@ object PageHeader {
         Styles.flex,
         alignItems.center,
 
-        Rx{ VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(Styles.flexStatic, marginRight := "10px")) },
+        Rx{ VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(flexShrink := 1, marginRight := "10px")) },
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
             ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
