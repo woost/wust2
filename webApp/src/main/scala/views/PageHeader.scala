@@ -26,7 +26,7 @@ import wust.webApp.views.Components.{ renderNodeData, _ }
 import scala.collection.breakOut
 import scala.scalajs.js
 import scala.util.{ Failure, Success }
-import PageHeaderParts.{ TabContextParms, TabInfo, customTab, doubleTab, singleTab }
+import PageHeaderParts.{ TabContextParms, TabInfo, customTab, singleTab }
 
 object PageHeader {
 

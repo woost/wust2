@@ -9,7 +9,6 @@ import wust.sdk.Colors
 import wust.util._
 import wust.webApp.state.PageStyle
 import wust.webApp.outwatchHelpers._
-import wust.webApp.views.UI
 
 object PageHeaderParts {
   /// Required parameters from the outer context
@@ -95,23 +94,4 @@ object PageHeaderParts {
       // VDomModifier.ifTrue(tabInfo.numItems > 0)(span(tabInfo.numItems, paddingLeft := "7px")),
     )
   }
-
-  /// @return like singleTab, but two iconized tabs grouped together visually to switch the current view
-  def doubleTab(parms : TabContextParms, leftTabInfo : TabInfo, rightTabInfo : TabInfo) = {
-    val numItems = scala.math.max(leftTabInfo.numItems, rightTabInfo.numItems)
-    VDomModifier (
-      tabSkeleton(parms, leftTabInfo)(
-        cls := "double left",
-        /// tooltip sets zIndex to 1500. We need to increase it, since the right tab would otherwise hide
-        /// this tabs shadow when it is active
-        zIndex := ZIndex.tooltip + 10,
-      ),
-      tabSkeleton(parms, rightTabInfo)(
-        cls := "double right",
-        VDomModifier.ifTrue(numItems > 0)(
-          span(leftTabInfo.numItems, paddingLeft := "7px")),
-        ),
-      )
-  }
-
 }

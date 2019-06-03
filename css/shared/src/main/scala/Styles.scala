@@ -49,11 +49,6 @@ object overflowBehavior extends TypedAttrBase {
 object Styles extends StyleSheet.Inline {
   import dsl._
 
-  val slim = style(
-    margin(0 px),
-    padding(0 px)
-  )
-
   /** width & height 100% */
   val growFull = style(
     width(100 %%),
@@ -189,7 +184,8 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   "html, body" - (
-    Styles.slim,
+    margin(0 px),
+    padding(0 px),
     width(100 %%),
     height(100 %%),
   )
@@ -203,12 +199,6 @@ object CommonStyles extends StyleSheet.Standalone {
     boxShadow := "0px 7px 21px -6px rgba(0,0,0,0.75)"
   )
 
-  ".taglist" - (
-    width(180.px),
-    paddingLeft(10.px),
-    paddingRight(10.px),
-    paddingBottom(10.px),
-  )
   ".pagenotfound" - (
     opacity(0),
     animationName(Styles.fadeInKf),
@@ -393,24 +383,6 @@ object CommonStyles extends StyleSheet.Standalone {
     Attr.real("scrollbar-width") := "thin"
   )
 
-  ".customChannelIcon" - (
-    Styles.flex,
-    alignItems.center,
-    justifyContent.center,
-    color(c"#333"),
-    backgroundColor(c"#e2e2e2"),
-  )
-
-  ".channels .customChannelIcon" - (
-    width(30 px),
-    height(30 px),
-  )
-
-  ".channelIcons .customChannelIcon" - (
-    width(40 px),
-    height(40 px),
-  )
-
   ".channels" - (
     padding(0 px, 3 px),
     minWidth(200 px),
@@ -423,19 +395,6 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important, // overwrites cursor from .draggable
     borderRadius(2 px),
     paddingLeft(5 px),
-  )
-
-  ".channel-line > .channelicon" - (
-    marginRight(5 px),
-    borderRadius(2 px),
-  )
-
-  ".channel-line-hover-show" - (
-    visibility.hidden
-  )
-
-  ".channel-line:hover .channel-line-hover-show" - (
-    visibility.visible
   )
 
   ".channel-name"  - (
@@ -497,56 +456,25 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".viewgridAuto" - (
-    Styles.slim,
     Styles.gridOpts,
+    margin(0 px),
+    padding(0 px),
     media.only.screen.minWidth(992 px) - (
       gridTemplateColumns := "repeat(2, 50%)"
-    )
+    ),
   )
 
   ".viewgridRow" - (
-    Styles.slim,
-    Styles.flex
+    Styles.flex,
+    margin(0 px),
+    padding(0 px)
   )
 
   /* TODO: too many columns overlaps the content because it autofits the screen height */
   ".viewgridColumn" - (
-    Styles.slim,
     Styles.gridOpts,
-  )
-
-  /* inspired by https://github.com/markdowncss/air/blob/master/index.css */
-  ".article" - (
-    color(c"#444"),
-    fontFamily :=! "'Open Sans', Helvetica, sans-serif",
-    fontWeight :=! "300",
-    margin(6 rem, auto, 1 rem),
-    maxWidth(100 ch)
-  )
-
-  ".article p" - (
-    color(c"#777")
-  )
-
-  ".article h1" - (
-    paddingBottom(0.3 em),
-    borderBottom(1 px, solid, c"#eaecef")
-  )
-
-  ".article.focuslink" - (
-    float.left,
-    marginLeft(2 em),
-    width(2 em),
-    textAlign.right,
-    paddingRight(10 px),
-    display.inlineBlock,
-    color(c"#BBB"),
-    fontWeight.normal,
-    cursor.pointer
-  )
-
-  ".article.focuslink > *" - (
-    visibility.hidden
+    margin(0 px),
+    padding(0 px)
   )
 
   ".graphnode," +
@@ -564,12 +492,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".graphnode-tag" - (
     fontWeight.bold,
     color(c"#FEFEFE"),
-  )
-
-  // FIXME: also generate -moz-selection?
-  ".splitpost".selection - (
-    color(red),
-    background := "blue", // why no background(...) possible?
   )
 
   // -- chatview --
@@ -636,11 +558,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   val chatmsgIndent = marginLeft(3 px)
-  ".chat-row > .tag" - (
-    chatmsgIndent, // when a tag is displayed at message position
-    whiteSpace.normal, // displaying tags as content should behave like normal nodes
-  )
-
   ".chat-row > .nodecard" - (
     chatmsgIndent,
   )
@@ -1002,10 +919,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".nodecard .childstats" - (
     color.gray,
   )
-  ".kanbancolumnfooter .childstats" - (
-      fontWeight.normal,
-      color(c"rgba(255, 255, 255, 0.81)"),
-    )
 
   ".nodecard .childstat:hover" - (
     color(c"rgb(71, 71, 71)")
@@ -1021,10 +934,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanban-uncategorized-title .buttonbar" - (
     padding(kanbanColumnPadding),
     fontSize.medium // same as in kanban card
-  )
-
-  ".kanbancolumnheader > p" - (
-    marginBottom(0 em) // default was 1 em
   )
 
   ".nodecard:hover > .buttonbar," +
@@ -1231,10 +1140,6 @@ object CommonStyles extends StyleSheet.Standalone {
     animationDuration(500 milliseconds)
   )
 
-  ".dropzone" - (
-    backgroundColor(c"rgba(184,65,255,0.5)")
-  )
-
   // -- draggable node
   ".draggable-container .node.draggable--over," +
   ".graphnode.draggable--over," +
@@ -1283,11 +1188,6 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(nodeCardBackgroundColor).important,
     nodeCardShadow.important,
     color.inherit.important
-  )
-
-  // -- draggable chanelicon
-  ".channelicon.draggable-mirror" - (
-    border(2 px, solid, c"#383838").important
   )
 
   // -- sortable
@@ -1366,12 +1266,6 @@ object CommonStyles extends StyleSheet.Standalone {
   ".viewswitcher-item .ui.dropdown" - (
     fontSize(inherit) // overwrite semantic ui default font-size
   )
-
-  ".viewswitcher-item.double.right" - (
-    marginLeft(0 px),
-    borderLeft(0 px),
-  )
-
 
   // error page background animation
   ".error-animation-bg" - (
