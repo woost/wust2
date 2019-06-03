@@ -33,6 +33,21 @@ import scala.util.{Failure, Success}
 
 object PageSettingsMenu {
 
+  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      Icons.menu,
+      cursor.pointer,
+      onClick.stopPropagation.foreach { toggleSidebar(state, channelId) }
+    )
+  }
+
+  def toggleSidebar(state: GlobalState, channelId: NodeId): Unit = {
+    //TODO better way to check whether sidebar is currently active for toggling.
+    if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
+    else state.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig(state, channelId)))
+    ()
+  }
+
   def nodeIsBookmarked(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
     val g = state.graph()
     val channelIdx = g.idToIdxOrThrow(channelId)
@@ -130,21 +145,6 @@ object PageSettingsMenu {
     UI.SidebarConfig(header :: sidebarItems)
   }
 
-  def toggleSidebar(state: GlobalState, channelId: NodeId): Unit = {
-    //TODO better way to check whether sidebar is currently active for toggling.
-    if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
-    else state.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig(state, channelId)))
-    ()
-  }
-
-  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    div(
-      Icons.menu,
-      cursor.pointer,
-      onClick.stopPropagation.foreach { toggleSidebar(state, channelId) }
-    )
-  }
-
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     import scala.concurrent.duration._
 
@@ -201,265 +201,19 @@ object PageSettingsMenu {
   }
 
   private def searchModalButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
-    sealed trait SearchInput
-    object SearchInput {
-      case class Global(query: String) extends SearchInput
-      case class Local(query: String) extends SearchInput
-
-    }
-
-    val searchLocal = PublishSubject[String]
-    val searchGlobal = PublishSubject[String]
-    val searchInputProcess = PublishSubject[String]
-
-    def renderSearchResult(needle: String, haystack: List[Node], globalSearchScope: Boolean) = {
-      val searchRes = Search.byString(needle, haystack, Some(100), 0.75).map( nodeRes =>
-        div(
-          cls := "ui approve item",
-          fontWeight.normal,
-          cursor.pointer,
-          padding := "3px",
-          Components.nodeCard(nodeRes._1),
-          onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeRes._1.id))) --> state.urlConfig,
-          onClick.stopPropagation(()) --> state.uiModalClose
-        ),
-      )
-
-      div(
-        s"Found ${searchRes.length} result(s) in ${if(globalSearchScope) "all channels" else "the current workspace"} ",
-        padding := "5px 0",
-        fontWeight.bold,
-        height := s"${dom.window.innerHeight/2}px",
-        div(
-          height := "100%",
-          overflow.auto,
-          searchRes,
-        ),
-        //TODO: Implement backend search
-        //        button(
-        //          cls := "ui button",
-        //          marginTop := "10px",
-        //          display := (if(globalSearchScope) "none" else "block"),
-        //          "Search in all channels",
-        //          onClick(needle) --> searchGlobal
-        //        )
-      )
-    }
-
-    val searches = Observable(searchLocal.map(SearchInput.Local), searchGlobal.map(SearchInput.Global))
-      .merge
-      .distinctUntilChanged(cats.Eq.fromUniversalEquals)
-
-    val searchResult: Observable[VDomModifier] = searches.map {
-      case SearchInput.Local(query) if query.nonEmpty =>
-        val graph = state.graph.now
-        val nodes = graph.nodes.toList
-        val nodeIdx = graph.idToIdxOrThrow(node.id)
-        val descendants = ArraySet.create(graph.nodes.length)
-        graph.descendantsIdxForeach(nodeIdx)(descendants += _)
-
-        val channelDescendants = nodes.filter(n => graph.idToIdxFold(n.id)(false)(descendants(_)))
-        renderSearchResult(query, channelDescendants, false)
-      case SearchInput.Global(query) if query.nonEmpty =>
-        Observable.fromFuture(Client.api.getGraph(Page.empty)).map { graph => //TODO? get whole graph? does that make sense?
-          renderSearchResult(query, graph.nodes.toList, true)
-        }
-      case _ => VDomModifier.empty
-    }
-
-    def header(implicit ctx: Ctx.Owner) = UI.ModalConfig.defaultHeader(
-      state,
-      node,
-      modalHeader = div(
-        cls := "ui search",
-        div(
-          cls := "ui input action",
-          input(
-            cls := "prompt",
-            placeholder := "Enter search text",
-            Elements.valueWithEnter --> searchLocal,
-            onChange.value --> searchInputProcess
-          ),
-          div(
-            cursor.pointer,
-            cls := "ui primary icon button approve",
-            Elements.icon(Icons.search),
-            span(cls := "text", "Search", marginLeft := "5px"),
-            onClick.stopPropagation(searchInputProcess) --> searchLocal
-          ),
-        ),
-      ),
-      icon = Icons.`import`
+    SharedViewElements.searchButtonWithIcon(
+      onClick.stopPropagation(Ownable(implicit ctx => SearchModal.config(state, node))) --> state.uiModalConfig
     )
-
-    def description(implicit ctx: Ctx.Owner) = VDomModifier(
-      cls := "scrolling",
-      div(
-        cls := "ui fluid search-result",
-        searchResult,
-      )
-    )
-
-    SharedViewElements.searchButtonWithIcon(onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description,
-      modalModifier = cls := "form",
-      contentModifier = VDomModifier.empty,
-      ))) --> state.uiModalConfig
-    )
-
   }
 
   private def manageMembers(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
-
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    val userNameInputProcess = PublishSubject[String]
-    val statusMessageHandler = PublishSubject[Option[(String, String, VDomModifier)]]
-
-    def addUserMember(userId: UserId): Unit = {
-      val change:GraphChanges = GraphChanges(addEdges = Array(
-        Edge.Invite(node.id, userId),
-        Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
-      ))
-      state.eventProcessor.changes.onNext(change)
-      clear.onNext(())
-    }
-    def handleAddMember(email: String)(implicit ctx: Ctx.Owner): Unit = {
-      val graphUser = Client.api.getUserByEMail(email)
-      graphUser.onComplete {
-        case Success(Some(u)) if state.graph.now.members(node.id).exists(_.id == u.id) => // user exists and is already member
-          statusMessageHandler.onNext(None)
-          clear.onNext(())
-          ()
-        case Success(Some(u)) => // user exists with this email
-          addUserMember(u.id)
-        case Success(None)       => // user does not exist with this email
-          Client.auth.getUserDetail(state.user.now.id).onComplete {
-            case Success(Some(userDetail)) if userDetail.verified =>
-              Client.auth.invitePerMail(address = email, node.id).onComplete {
-                case Success(()) =>
-                  statusMessageHandler.onNext(Some(("positive", "New member was invited", s"Invitation mail has been sent to '$email'.")))
-                  clear.onNext(())
-                case Failure(ex) =>
-                  statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
-                  scribe.warn("Could not add member to channel because invite failed", ex)
-              }
-            case Success(_) =>
-              statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Please verify your own email address to send out invitation emails.")))
-              scribe.warn("Could not add member to channel because user email is not verified")
-            case Failure(ex) =>
-              statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
-              scribe.warn("Could not add member to channel", ex)
-          }
-        case Failure(ex)       =>
-          statusMessageHandler.onNext(Some(("negative", "Adding Member failed", "Unexpected error")))
-          scribe.warn("Could not add member to channel because get userdetails failed", ex)
-      }
-    }
-
-    def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
-      if(membership.userId == state.user.now.id) {
-        if(dom.window.confirm("Do you really want to remove yourself from this workspace?")) {
-          state.urlConfig.update(_.focus(Page.empty))
-          state.uiModalClose.onNext(())
-        } else return
-      }
-
-      val change:GraphChanges = GraphChanges(delEdges = Array(membership))
-      state.eventProcessor.changes.onNext(change)
-    }
-
-    def description(implicit ctx: Ctx.Owner) = {
-      var element: dom.html.Element = null
-      val showEmailInvite = Var(false)
-      val inputSizeMods = VDomModifier(width := "250px", height := "30px")
-      VDomModifier(
-        form(
-          onDomMount.asHtml.foreach { element = _ },
-
-          input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
-
-          showEmailInvite.map {
-            case true => VDomModifier(
-              div(
-                cls := "ui fluid action input",
-                inputSizeMods,
-                input(
-                  tpe := "email",
-                  placeholder := "Invite by email address",
-                  value <-- clear,
-                  Elements.valueWithEnter(clearValue = false) foreach { str =>
-                    if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                      handleAddMember(str)
-                    }
-                  },
-                  onChange.value --> userNameInputProcess
-                ),
-                div(
-                  cls := "ui primary button approve",
-                  "Add",
-                  onClick.stopPropagation(userNameInputProcess) foreach { str =>
-                    if(element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
-                      handleAddMember(str)
-                    }
-                  }
-                ),
-              ),
-              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(false) --> showEmailInvite, "Invite user by username")
-            )
-            case false => VDomModifier(
-              searchInGraph(state.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), inputModifiers = inputSizeMods).foreach { userId =>
-                addUserMember(UserId(userId))
-              },
-              a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(true) --> showEmailInvite, "Invite user by email address")
-            )
-          },
-          statusMessageHandler.map {
-            case Some((statusCls, title, errorMessage)) => div(
-              cls := s"ui $statusCls message",
-              div(cls := "header", title),
-              p(errorMessage)
-            )
-            case None => VDomModifier.empty
-          },
-        ),
-        div(
-          marginLeft := "10px",
-          Rx {
-            val graph = state.graph()
-            graph.idToIdx(node.id).map { nodeIdx =>
-              graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
-                val membership = graph.edges(membershipIdx).as[Edge.Member]
-                val user = graph.nodesByIdOrThrow(membership.userId).as[User]
-                Components.renderUser(user).apply(
-                  marginTop := "10px",
-                  button(
-                    cls := "ui tiny compact negative basic button",
-                    marginLeft := "10px",
-                    "Remove",
-                    onClick.stopPropagation(membership).foreach(handleRemoveMember(_))
-                  )
-                )
-              }:VDomModifier
-            }
-          },
-          if(true) VDomModifier.empty else List(div)
-        )
-      )
-    }
-
     div(
       cls := "item",
       cursor.pointer,
       Elements.icon(Icons.users),
       span("Members"),
 
-      onClick.stopPropagation(Ownable(implicit ctx => UI.ModalConfig(
-        header = UI.ModalConfig.defaultHeader(state, node, "Members", Icons.users),
-        description = description,
-        modalModifier = VDomModifier(
-          cls := "mini form",
-        ),
-        contentModifier = VDomModifier.empty
-      ))) --> state.uiModalConfig
+      onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config(state, node))) --> state.uiModalConfig
     )
   }
 
