@@ -309,6 +309,10 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".ui.modal > .close" - (
     color(c"#fff"), // would be black otherwise by semantic ui on small screens
+
+    // always position close-button inside modal
+    right(0 px),
+    top(0 px),
   )
 
   "[data-tooltip]:before,[data-tooltip]:after" - (
