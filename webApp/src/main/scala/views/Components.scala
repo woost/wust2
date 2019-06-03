@@ -557,11 +557,12 @@ object Components {
         }
 
         val iconModifier: VNode = node.str match {
-          case EmojiReplacer.emojiRegex(emoji) => replaceEmoji(emoji).apply(
-            alignSelf.flexStart, // vertical align emoji, because it gets confused and sad by flexbox
-          )
-          case _ if openFolder   => renderFontAwesomeIcon(freeSolid.faFolderOpen)
-          case _ => span(
+          case EmojiReplacer.emojiRegex(emoji) =>
+            replaceEmoji(emoji)
+          case _ if openFolder   =>
+            span(freeSolid.faFolderOpen)
+          case _ => 
+            span(
             freeSolid.faFolder,
             color := BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex
           )
@@ -569,8 +570,8 @@ object Components {
 
         VDomModifier(
           Styles.flex,
-          alignItems.center,
-          iconModifier.apply(marginRight := "0.2em"),
+          alignItems.baseline,
+          iconModifier.apply(marginRight := "0.1em"),
           renderNode(nodeWithoutFirstEmoji),
         )
       } else {

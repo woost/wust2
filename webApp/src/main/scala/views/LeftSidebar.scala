@@ -241,7 +241,7 @@ object LeftSidebar {
   private def expandToggleButton(state: GlobalState, nodeId: NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
 
     div(
-      padding := "3px",
+      padding := "1px 3px",
       cursor.pointer,
       Rx {
         if (expanded())
@@ -266,6 +266,7 @@ object LeftSidebar {
 
       div(
         Styles.flex,
+        alignItems.center,
         expandToggleButton(state, nodeId, userId, expanded).apply(
           Rx {
             VDomModifier.ifNot(hasChildren())(visibility.hidden)

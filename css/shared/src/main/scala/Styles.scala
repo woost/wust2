@@ -241,7 +241,7 @@ object CommonStyles extends StyleSheet.Standalone {
     fontSize(20 px),
     minWidth(30 px), // min-width and height help to edit if channel name is empty
     lineHeight(1.4285 em), // semantic ui default line height
-    marginBottom(2 px), // remove margin when title is in <p> (rendered my markdown)
+    marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     Styles.flex, // for notification count
   )
 
@@ -779,7 +779,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".breadcrumb," +
-  ".breadcrumb *" - (
+  ".breadcrumb *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
     maxWidth(10 em),
     fontSize(13 px),
   )
@@ -817,7 +817,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important
   )
 
-  ".nodecard-content > .markdown" - (
+  ".listview .nodecard-content > .markdown" - (
     marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
   )
 
@@ -838,7 +838,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(0.2 em, 0.4 em),
   )
 
-  ".oneline.markdown *:not(.emoji-sizer)" - (
+  ".oneline.markdown *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
     Styles.cropEllipsis,
     fontSize.inherit, // overwrite fontSizes set by e.g. markdown headlines
     lineHeight.inherit,
@@ -1361,25 +1361,6 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(0 px),
     borderLeft(0 px),
   )
-
-  ".emoji-outer" - (
-    width(1 em),
-    height(1 em),
-    display.inlineBlock,
-  )
-  ".emoji-inner" - (
-    display.inlineBlock,
-    width(100 %%),
-    height(100 %%),
-    verticalAlign.bottom,
-  )
-  ".emoji-sizer" - (
-    fontSize.larger,
-  )
-
-
-
-
 
 
   // error page background animation

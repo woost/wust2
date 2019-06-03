@@ -140,7 +140,9 @@ object DashboardView {
         } else {
           Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
         },
-      )),
+      ),
+      projectWithIcon = true
+      ),
 
       VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
