@@ -147,12 +147,12 @@ object UI {
     }
   }
 
-  case class SidebarConfig(items: VDomModifier)
+  case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
   def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
     val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
 
     div(
-      cls := "ui sidebar right icon labeled vertical menu mini",
+      cls := "ui sidebar right icon labeled inverted borderless vertical menu mini",
 //      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
       width := "160px",
       zIndex := ZIndex.uiSidebar,
@@ -177,7 +177,8 @@ object UI {
 
               Cancelable(() => e.sidebar("destroy"))
             },
-            config.items
+            config.items,
+            config.sidebarModifier
           )
         })
       }

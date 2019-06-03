@@ -58,7 +58,7 @@ object Permission {
   }
 
   def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
-    div(
+    a(
       cls := "item",
 //      Elements.icon(Icons.userPermission),
       span("Permissions"),

@@ -18,7 +18,7 @@ case class ConvertSelection(
 object ConvertSelection {
 
   def menuItem(state: GlobalState, node: Node.Content): VNode = {
-    div(
+    a(
       cls := "item",
       Elements.icon(Icons.convertItem),
       span("Convert"),

@@ -394,7 +394,7 @@ object SharedViewElements {
     )
   }
 
-  def searchButtonWithIcon(onClickAction: VDomModifier)(implicit ctx: Ctx.Owner) = div(
+  def searchButtonWithIcon(onClickAction: VDomModifier)(implicit ctx: Ctx.Owner) = a(
     cls := "item",
     cursor.pointer,
     Elements.icon(Icons.search),

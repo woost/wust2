@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.{ BaseColors, NodeColor }
 import flatland.ArraySet
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -76,7 +77,7 @@ object PageSettingsMenu {
       }
 
       val leaveItem:VDomModifier = Rx {
-        (channelIsContent()).ifTrue[VDomModifier](div(
+        (channelIsContent()).ifTrue[VDomModifier](a(
           cls := "item",
           cursor.pointer,
           if (isBookmarked()) VDomModifier(
@@ -93,7 +94,7 @@ object PageSettingsMenu {
 
       val deleteItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          div(
+          a(
             cursor.pointer,
             cls := "item",
             Elements.icon(Icons.delete),
@@ -133,16 +134,12 @@ object PageSettingsMenu {
       List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
-    def header: VDomModifier = div(
-      padding := "5px 5px 5px 15px",
-      color.gray,
-      Styles.flex,
-      justifyContent.spaceBetween,
-      b(cursor.default, "Settings"),
-      i(cursor.pointer, cls := "close icon", onClick(()) --> state.uiSidebarClose)
+    UI.SidebarConfig(
+      sidebarItems,
+      sidebarModifier = VDomModifier(
+        backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(channelId)).toHex
+      )
     )
-
-    UI.SidebarConfig(header :: sidebarItems)
   }
 
   private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
@@ -165,7 +162,7 @@ object PageSettingsMenu {
       }
     }
 
-    div(
+    a(
       cursor.pointer,
       cls := "item",
       Elements.icon(Icons.share),
@@ -207,7 +204,7 @@ object PageSettingsMenu {
   }
 
   private def manageMembers(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
-    div(
+    a(
       cls := "item",
       cursor.pointer,
       Elements.icon(Icons.users),

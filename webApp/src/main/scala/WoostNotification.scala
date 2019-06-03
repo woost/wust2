@@ -127,7 +127,7 @@ object WoostNotification {
 
     val text = if(permissionGranted && hasNotifyEdge) "Mute" else "Unmute"
 
-    div(
+    a(
       cls := "item",
       decorateNotificationIcon(state, notifyControl(graph, user, permissionState, channel), text),
     )

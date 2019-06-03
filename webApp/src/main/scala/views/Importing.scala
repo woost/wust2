@@ -391,7 +391,7 @@ object Importing {
 
   // a settings button for importing that opens the modal on click.
   def settingsItem(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    div(
+    a(
       cls := "item",
       Elements.icon(Icons.`import`),
       span("Import"),
