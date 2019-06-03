@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.css.{Styles, ZIndex}
 import googleAnalytics.Analytics
 import monix.reactive.Observer
 import outwatch.dom._
@@ -52,92 +53,95 @@ object AuthView {
     }
 
     div(
-      onSubmit.foreach(_.preventDefault()),
-      padding := "10px",
-      maxWidth := "400px",
-      maxHeight := "400px",
-      margin := "auto",
-      form(
-        onDomMount foreach { e => element = e.asInstanceOf[dom.html.Form] },
-        onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
+      Styles.flex,
+      justifyContent.center,
+      alignItems.center,
+      div(
+        onSubmit.foreach(_.preventDefault()),
+        padding := "10px",
+        maxWidth := "400px",
+        form(
+          onDomMount foreach { e => element = e.asInstanceOf[dom.html.Form] },
+          onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
 
-        h2(header),
-        needUserName.ifTrue[VDomModifier](div(
-          cls := "ui fluid input",
-          keyed,
-          input(
-            placeholder := "Username",
-            value <-- userValue.map(_.username),
-            tpe := "text",
-            required := true,
-            attr("autocomplete") := "username",
-            display.block,
-            margin := "auto",
-            onInput.value foreach { str => userValue.update(_.copy(username = str.trim)) },
-            onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
-          )
-        )),
-        div(
-          cls := "ui fluid input",
-          keyed,
-          input(
-            placeholder := "Email",
-            value <-- userValue.map(_.email),
-            tpe := "email",
-            required := true,
-            display.block,
-            margin := "auto",
-            onInput.value foreach { str => userValue.update(_.copy(email = str)) },
-            onDomMount.asHtml --> inNextAnimationFrame { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
-          )
-        ),
-        div(
-          cls := "ui fluid input",
-          keyed,
-          input(
-            placeholder := "Password",
-            value <-- userValue.map(_.password),
-            tpe := "password",
-            required := true,
-            attr("autocomplete") := autoCompletePassword,
-            display.block,
-            margin := "auto",
-            onInput.value foreach { str => userValue.update(_.copy(password = str)) },
-            onEnter foreach actionSink(),
-            onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
-          )
-        ),
-        discardContentMessage(state),
-        button(
-          cls := "ui fluid primary button",
-          submitText,
-          display.block,
-          margin := "auto",
-          marginTop := "5px",
-          onClick foreach actionSink()
-        ),
-        errorMessageHandler.map { errorMessage =>
+          h2(header),
+          needUserName.ifTrue[VDomModifier](div(
+            cls := "ui fluid input",
+            keyed,
+            input(
+              placeholder := "Username",
+              value <-- userValue.map(_.username),
+              tpe := "text",
+              required := true,
+              attr("autocomplete") := "username",
+              display.block,
+              margin := "auto",
+              onInput.value foreach { str => userValue.update(_.copy(username = str.trim)) },
+              onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
+            )
+          )),
           div(
-            cls := "ui negative message",
-            div(cls := "header", s"$submitText failed"),
-            p(errorMessage)
-          )
-        },
-        div(cls := "ui divider"),
-        h3(alternativeHeader, textAlign := "center"),
-        state.urlConfig.map { cfg =>
+            cls := "ui fluid input",
+            keyed,
+            input(
+              placeholder := "Email",
+              value <-- userValue.map(_.email),
+              tpe := "email",
+              required := true,
+              display.block,
+              margin := "auto",
+              onInput.value foreach { str => userValue.update(_.copy(email = str)) },
+              onDomMount.asHtml --> inNextAnimationFrame { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
+            )
+          ),
           div(
-            onClick(cfg.focus(alternativeView)) --> state.urlConfig,
-            cls := "ui fluid button",
-            alternativeText,
+            cls := "ui fluid input",
+            keyed,
+            input(
+              placeholder := "Password",
+              value <-- userValue.map(_.password),
+              tpe := "password",
+              required := true,
+              attr("autocomplete") := autoCompletePassword,
+              display.block,
+              margin := "auto",
+              onInput.value foreach { str => userValue.update(_.copy(password = str)) },
+              onEnter foreach actionSink(),
+              onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
+            )
+          ),
+          discardContentMessage(state),
+          button(
+            cls := "ui fluid primary button",
+            submitText,
             display.block,
             margin := "auto",
-            cursor.pointer
-          )
-        },
-        h4("Having Problems with Login or Signup?", textAlign := "center", marginTop := "40px"),
-        div("Please contact ", woostTeamEmailLink, textAlign := "center"),
-        marginBottom := "20px",
+            marginTop := "5px",
+            onClick foreach actionSink()
+          ),
+          errorMessageHandler.map { errorMessage =>
+            div(
+              cls := "ui negative message",
+              div(cls := "header", s"$submitText failed"),
+              p(errorMessage)
+            )
+          },
+          div(cls := "ui divider"),
+          h3(alternativeHeader, textAlign := "center"),
+          state.urlConfig.map { cfg =>
+            div(
+              onClick(cfg.focus(alternativeView)) --> state.urlConfig,
+              cls := "ui fluid button",
+              alternativeText,
+              display.block,
+              margin := "auto",
+              cursor.pointer
+            )
+          },
+          h4("Having Problems with Login or Signup?", textAlign := "center", marginTop := "40px"),
+          div("Please contact ", woostTeamEmailLink, textAlign := "center"),
+          marginBottom := "20px",
+        )
       )
     )
   }
