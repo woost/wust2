@@ -51,7 +51,7 @@ object DashboardView {
       //TODO: renderSubprojects mit summary
       UI.segment("Subprojects", VDomModifier(renderSubprojects(state, focusState), overflowX.auto)).apply(Styles.flexStatic, segmentMod),
 
-      UI.segment("Assignments", AssignedTasksView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Tasks", AssignedTasksView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
