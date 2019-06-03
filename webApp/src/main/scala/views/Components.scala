@@ -463,19 +463,6 @@ object Components {
   }
 
 
-    def nodeTagDot(state: GlobalState, tag: Node, pageOnClick:Boolean = false): VNode = {
-      span(
-        cls := "node tagdot",
-        backgroundColor := tagColor(tag.id).toHex,
-        UI.tooltip := tag.data.str,
-        if(pageOnClick) onClick foreach { e =>
-          state.urlConfig.update(_.focus(Page(tag.id)))
-          e.stopPropagation()
-        } else cursor.default,
-        drag(DragItem.Tag(tag.id), target = DragItem.DisableDrag),
-      )
-    }
-
     def checkboxNodeTag(
       state: GlobalState,
       tagNode: Node,

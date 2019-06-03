@@ -842,19 +842,6 @@ object CommonStyles extends StyleSheet.Standalone {
     overflow.hidden, // required for textOverflow
   )
 
-  ".tagdot" - (
-    width(1 em),
-    height(1 em),
-    borderRadius(50%%),
-    padding(0 px, 3 px),
-    marginRight(2 px),
-    marginTop(1 px),
-    marginBottom(1 px),
-    cursor.pointer,
-    display.inlineBlock
-  )
-
-
   val kanbanColumnPaddingPx = 7
   val kanbanColumnPadding = (kanbanColumnPaddingPx px)
   val kanbanRowSpacing = (8 px)

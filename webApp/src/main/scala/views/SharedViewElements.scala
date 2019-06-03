@@ -318,22 +318,12 @@ object SharedViewElements {
       graph.idToIdx(nodeId).map{ nodeIdx =>
         val directNodeTags = graph.directNodeTags(nodeIdx)
         VDomModifier.ifTrue(directNodeTags.nonEmpty)(
-          state.screenSize.now match {
-            case ScreenSize.Small =>
-              div(
-                cls := "tags",
-                directNodeTags.map { tag =>
-                  nodeTagDot(state, tag, pageOnClick = true)(Styles.flexStatic)
-                },
-              )
-            case _                =>
-              div(
-                cls := "tags",
-                directNodeTags.map { tag =>
-                  removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
-                },
-              )
-          }
+          div(
+            cls := "tags",
+            directNodeTags.map { tag =>
+              removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
+            },
+          )
         )
       }
     }
