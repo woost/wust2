@@ -144,25 +144,22 @@ object InputRow {
       }
     ))
 
-    val submitButton = VDomModifier.ifTrue(showSubmitIcon)(
-      div( // clickable box around circular button
-        padding := "3px",
-        button(
-          margin := "0px",
-          Styles.flexStatic,
-          cls := "ui circular icon button",
-          submitIcon,
-          fontSize := "1.1rem",
-          backgroundColor := "#545454",
-          color := "white",
-        ),
-        onClick.stopPropagation foreach {
-          val str = currentTextArea.value
-          handleInput(str)
-          currentTextArea.value = ""
-          autoResizer.trigger()
-        },
-      )
+    def submitButton = div( // clickable box around circular button
+      padding := "3px",
+      button(
+        margin := "0px",
+        cls := "ui circular icon button",
+        submitIcon,
+        fontSize := "1.1rem",
+        backgroundColor := "#545454",
+        color := "white",
+      ),
+      onClick.stopPropagation foreach {
+        val str = currentTextArea.value
+        handleInput(str)
+        currentTextArea.value = ""
+        autoResizer.trigger()
+      },
     )
 
     div(
@@ -170,7 +167,6 @@ object InputRow {
       Styles.flex,
 
       alignItems.center,
-      fileUploadHandler.map(uploadField(state, _).apply(flex := "1")),
       div(
         margin := "3px",
         BrowserDetect.isMobile.ifTrue[VDomModifier](marginRight := "0"),
@@ -207,7 +203,8 @@ object InputRow {
 
         )
       ),
-      submitButton
+      fileUploadHandler.map(uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
+      VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic))
     )
   }
 }

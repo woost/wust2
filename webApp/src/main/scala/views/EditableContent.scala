@@ -323,7 +323,7 @@ object EditableContent {
 
   private def basicModifiers[T](config: Config, handler: Handler[EditInteraction[T]]) = VDomModifier(
     width := "100%",
-    cls := "enable-text-selection", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
+    style("user-select") := "text", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
     whiteSpace.preWrap, // preserve white space in Markdown code
     config.modifier,
     showErrorsInside(handler)

@@ -83,7 +83,7 @@ object Icons {
 
   val task: IconDefinition = freeRegular.faCheckSquare
 
-  val fileUpload: IconDefinition = freeSolid.faFileUpload
+  val fileUpload: IconDefinition = freeSolid.faPaperclip
   val userPermission: IconDefinition = freeSolid.faUserLock
   val permissionInherit: IconDefinition = freeSolid.faArrowUp
   val permissionPrivate: IconDefinition = freeSolid.faLock

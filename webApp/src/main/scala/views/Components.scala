@@ -997,9 +997,9 @@ object Components {
 
     def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
 
-      val iconAndPopup = selected.prepend(None).map {
+      val iconAndPopup:Observable[(VNode, Option[VNode])] = selected.prepend(None).map {
         case None =>
-          (fontawesome.icon(Icons.fileUpload), None)
+          (span(Icons.fileUpload), None)
         case Some(file) =>
           val popupNode = file.`type` match {
             case t if t.startsWith("image/") =>
@@ -1007,18 +1007,12 @@ object Components {
               img(src := dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
             case _ => div(file.name)
           }
-          val icon = fontawesome.layered(
-            fontawesome.icon(Icons.fileUpload),
-            fontawesome.icon(
-              freeSolid.faPaperclip,
-              new Params {
-                transform = new Transform {size = 20.0; x = 7.0; y = 7.0; }
-                styles = scalajs.js.Dictionary[String]("color" -> "orange")
-              }
-            )
+          val icon = VDomModifier(
+            Icons.fileUpload,
+            color := "orange",
           )
 
-          (icon, Some(popupNode))
+          (span(icon), Some(popupNode))
       }
 
       val onDragOverModifier = Handler.unsafe[VDomModifier]
@@ -1030,15 +1024,11 @@ object Components {
           iconAndPopup.map { case (icon, popup) =>
             VDomModifier(
               popup.map(UI.popupHtml(tooltipDirection) := _),
-              icon
+              div(icon, cls := "icon")
             )
           },
-          margin := "0px",
-          Styles.flexStatic,
-          cls := "ui circular icon button",
-          fontSize := "1.1rem",
-          backgroundColor := "#545454",
-          color := "white",
+          cls := "ui circular basic icon button",
+          fontSize := "1.1em", // same size as submit-button in Chat/InputRow
         ),
 
         onDragOverModifier,

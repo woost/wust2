@@ -141,7 +141,18 @@ object ChatView {
           scrollHandler.scrollToBottomInAnimationFrame()
         }
 
-        InputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage)(ctx)(
+        InputRow(
+          state,
+          submitAction,
+          fileUploadHandler = Some(fileUploadHandler),
+          scrollHandler = Some(scrollHandler),
+          preFillByShareApi = true,
+          autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
+          triggerFocus = inputFieldFocusTrigger,
+          showMarkdownHelp = true,
+          enforceUserName = true,
+          placeholder = Placeholder.newMessage
+        )(ctx)(
           Styles.flexStatic,
           Rx{ backgroundColor :=? bgColor()}
         )
