@@ -220,23 +220,34 @@ object EditElementParser {
   }
 
   implicit object EditDateTimeMilli extends EditElementParser[DateTimeMilli] {
+    private def splitDateTimeLocal(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
+      val d = new Date(dateTime)
+      val dateDate = new Date(d.toLocaleDateString)
+      val timeDate = new Date(d.toLocaleString)
+      timeDate.setMonth(0, 1)
+      timeDate.setFullYear(1970)
+      (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong + timeDate.getTimezoneOffset * EpochMilli.minute)))
+    }
     private def splitDateTime(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
       val d = new Date(dateTime)
-      val time = d.getUTCHours() * EpochMilli.hour + d.getUTCMinutes() * EpochMilli.minute
-      (DateMilli(EpochMilli(dateTime - time + d.getTimezoneOffset() * EpochMilli.minute)), TimeMilli(EpochMilli(time)))
+      val dateDate = new Date(d.toLocaleDateString)
+      val timeDate = new Date(d.toLocaleString)
+      timeDate.setMonth(0, 1)
+      timeDate.setFullYear(1970)
+      (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong)))
     }
 
     def render(config: Config, initial: Task[Option[DateTimeMilli]], handler: Handler[EditInteraction[DateTimeMilli]])(implicit ctx: Ctx.Owner) = {
-      var lastDateTime: DateTimeMilli = DateTimeMilli(EpochMilli(0L))
+      var lastDateTime: DateTimeMilli = DateTimeMilli(EpochMilli(EpochMilli.now + EpochMilli.hour * 24)) // default tomorrow
       val dateHandler = handler.mapHandler[EditInteraction[DateMilli]](_.map { date =>
-        val (_, time) = splitDateTime(lastDateTime)
+        val (_, time) = splitDateTimeLocal(lastDateTime)
         DateTimeMilli(EpochMilli(date + time))
       })(_.map { dateTime =>
         val (date, _) = splitDateTime(dateTime)
         date
       })
       val timeHandler = handler.mapHandler[EditInteraction[TimeMilli]](_.map { time =>
-        val (date, _) = splitDateTime(lastDateTime)
+        val (date, _) = splitDateTimeLocal(lastDateTime)
         DateTimeMilli(EpochMilli(date + time))
       }) (_.map { dateTime =>
         val (_, time) = splitDateTime(dateTime)
@@ -252,7 +263,6 @@ object EditElementParser {
         Styles.flex,
         alignItems.center,
         flexWrap.wrap,
-        config.modifier,
 
         EditDateMilli.render(config, initialDateAndTime.map(_.map(_._1)), dateHandler),
         EditTimeMilli.render(config, initialDateAndTime.map(_.map(_._2)), timeHandler),
