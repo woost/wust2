@@ -27,56 +27,44 @@ object AssignedTasksData {
   // result contains
   def assignedTasks(graph: Graph, focusedId: NodeId, userId: UserId, buckets: IndexedSeq[EpochMilli]): AssignedTasks = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
+    val userIdx = graph.idToIdxOrThrow(userId)
     val dueTasks = Array.fill(buckets.size)(new mutable.ArrayBuffer[AssignedTask.Due])
     val tasks = new mutable.ArrayBuffer[AssignedTask]
 
-    // instead of doing a descendants run on the focused id, we walk up for each assigned node.
-    // we just lazily cached valid descendantsm so we do not do iterations twice.
-    val validDescendants = ArraySet.create(graph.length)
+    graph.descendantsIdxForeach(focusedIdx) { nodeIdx =>
+      val node = graph.nodes(nodeIdx)
+      val noUserAssigned = graph.assignedUsersIdx.sliceIsEmpty(nodeIdx)
+      val thisUserAssigned = graph.assignedUsersIdx.contains(nodeIdx)(userIdx)
+      if(node.role == NodeRole.Task && (noUserAssigned || thisUserAssigned)) graph.parentEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+        val parentIdx = graph.edgesIdx.a(edgeIdx)
+        val parentNode = graph.nodes(parentIdx)
 
-    val userIdx = graph.idToIdxOrThrow(userId)
-    graph.assignedNodesIdx.foreachElement(userIdx) { nodeIdx =>
+        @inline def isDone = graph.isDoneInAllWorkspaces(nodeIdx, Array(parentIdx))
 
-      // check if it is a descendant
-      val isDescendant = graph.ancestorsIdxExists(nodeIdx) { parentIdx =>
-        parentIdx == focusedIdx || validDescendants.contains(parentIdx)
-      }
+        @inline def isWorkspace = !InlineList.contains(NodeRole.Stage, NodeRole.Tag)(parentNode.role)
 
-      if(isDescendant) {
-        validDescendants += nodeIdx
-        val node = graph.nodes(nodeIdx)
-        if(node.role == NodeRole.Task) graph.parentEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-          val parentIdx = graph.edgesIdx.a(edgeIdx)
-          val parentNode = graph.nodes(parentIdx)
+        if(isWorkspace && !isDone) {
+          var dueDate: Option[DateTimeMilli] = None
+          graph.propertiesEdgeIdx.whileElement(nodeIdx) { edgeIdx =>
+            val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+            if(edge.data.key == EdgeData.LabeledProperty.dueDate.key) {
+              val propertyIdx = graph.edgesIdx.b(edgeIdx)
+              graph.nodes(propertyIdx) match {
+                case Node.Content(_, NodeData.DateTime(dateTime), NodeRole.Neutral, _, _) =>
+                  dueDate = Some(dateTime)
+                  false
+                case _                                                                    => true
+              }
+            } else true
+          }
 
-          @inline def isDone = graph.isDoneInAllWorkspaces(nodeIdx, Array(parentIdx))
-
-          @inline def isWorkspace = !InlineList.contains(NodeRole.Stage, NodeRole.Task)(parentNode.role)
-
-          if(isWorkspace && !isDone) {
-            var dueDate: Option[DateTimeMilli] = None
-            graph.propertiesEdgeIdx.whileElement(nodeIdx) { edgeIdx =>
-              val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
-              if(edge.data.key == EdgeData.LabeledProperty.dueDate.key) {
-                val propertyIdx = graph.edgesIdx.b(edgeIdx)
-                graph.nodes(propertyIdx) match {
-                  case Node.Content(_, NodeData.DateTime(dateTime), NodeRole.Neutral, _, _) =>
-                    dueDate = Some(dateTime)
-                    false
-                  case _                                                                    => true
-                }
-              } else true
-            }
-
-            dueDate match {
-              case Some(dueDate) =>
-                val dueTask = AssignedTask.Due(node.id, parentNode.id, dueDate)
-                val dueIndex = buckets.indexWhere(dueDate < _)
-                if(dueIndex == -1) tasks += dueTask
-                else dueTasks(dueIndex) += dueTask
-              case None          => tasks += AssignedTask.Plain(node.id, parentNode.id)
-
-            }
+          dueDate match {
+            case Some(dueDate) =>
+              val dueTask = AssignedTask.Due(node.id, parentNode.id, dueDate)
+              val dueIndex = buckets.indexWhere(dueDate < _)
+              if(dueIndex == -1) tasks += dueTask
+              else dueTasks(dueIndex) += dueTask
+            case None => if (thisUserAssigned) tasks += AssignedTask.Plain(node.id, parentNode.id)
           }
         }
       }
