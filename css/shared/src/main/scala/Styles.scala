@@ -766,7 +766,14 @@ object CommonStyles extends StyleSheet.Standalone {
       marginRight(3 px),
       color(c"rgba(255, 255, 255, 0.78)"),
       fontSize(18 px),
+    ),
+
+    &(".nodecard") - (
+      padding(1 px, 3 px),
+      &(".nodecard-content") - (
+        padding(0 px, 2 px)
     )
+  )
   )
 
   ".pageheader .breadcrumb" - (
