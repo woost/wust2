@@ -149,12 +149,15 @@ object ListView {
         fontSize.larger,
         paddingLeft := "5px",
         opacity := 0.6,
-        Styles.flex,
-        alignItems.center,
-        renderExpandCollapseButton(state, nodeId, isExpanded, alwaysShow = true),
-        Rx {
-          renderNodeData(stage().data).apply(paddingLeft := "5px")
-        }
+        renderExpandCollapseButton(state, nodeId, isExpanded, alwaysShow = true).map(_.apply(
+            Styles.flex,
+            alignItems.center,
+            Rx{
+              renderNodeData(stage().data).apply(paddingLeft := "5px")
+            },
+
+          )
+        ),
       ),
 
       Rx {
