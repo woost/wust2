@@ -264,7 +264,15 @@ object ThreadView {
       window.setTimeout(() => showReplyField() = false, 150)
     }
 
-    InputRow(state, submitAction = handleInput, blurAction = Some(blurAction), autoFocus = true, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage).apply(
+    InputRow(
+      state,
+      submitAction = handleInput,
+      blurAction = Some(blurAction),
+      autoFocus = true,
+      showMarkdownHelp = !BrowserDetect.isMobile,
+      enforceUserName = true,
+      placeholder = Placeholder.newMessage
+    ).apply(
       closeButton(
         padding := "15px",
         onClick.stopPropagation foreach { showReplyField() = false },

@@ -149,7 +149,7 @@ object ChatView {
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
           triggerFocus = inputFieldFocusTrigger,
-          showMarkdownHelp = true,
+          showMarkdownHelp = !BrowserDetect.isMobile,
           enforceUserName = true,
           placeholder = Placeholder.newMessage
         )(ctx)(
