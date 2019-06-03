@@ -1170,7 +1170,7 @@ object Components {
       items.map { item =>
         div(
           Ownable(implicit ctx => Rx {
-            if(item.active()) VDomModifier(color.white, fontWeight.bold) else color := "rgba(255, 255, 255, 0.75)"
+            if(item.active()) VDomModifier(fontWeight.bold) else opacity := 0.4
           }),
           div(item.title),
           div(item.description),

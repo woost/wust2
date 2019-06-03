@@ -152,7 +152,7 @@ object UI {
     val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
 
     div(
-      cls := "ui sidebar right icon labeled inverted borderless vertical menu mini",
+      cls := "ui sidebar right icon labeled borderless vertical menu mini",
 //      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
       width := "160px",
       zIndex := ZIndex.uiSidebar,

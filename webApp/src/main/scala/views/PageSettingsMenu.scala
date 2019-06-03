@@ -136,9 +136,9 @@ object PageSettingsMenu {
 
     UI.SidebarConfig(
       sidebarItems,
-      sidebarModifier = VDomModifier(
-        backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(channelId)).toHex
-      )
+      // sidebarModifier = VDomModifier(
+      //   backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(channelId)).toHex
+      // )
     )
   }
 
