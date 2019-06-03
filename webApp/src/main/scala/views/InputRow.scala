@@ -176,9 +176,10 @@ object InputRow {
         VDomModifier.ifTrue(showMarkdownHelp)(
           position.relative,
           a(
+            color := "gray",
             position.absolute,
-            right := "4px",
-            top := "4px",
+            right := "8px",
+            top := "8px",
             float.right,
             freeSolid.faQuestion,
             Elements.safeTargetBlank,
