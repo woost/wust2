@@ -155,9 +155,7 @@ object NotificationView {
     val channelNotification = Rx {
       VDomModifier.ifTrue(haveUnreadNotifications())(
         button(
-          cls := "ui compact button",
-          backgroundColor := Colors.unread,
-          color := "white",
+          cls := "ui compact inverted button",
           Icons.notifications,
           onClick.stopPropagation(View.Notifications) --> sink,
           modifiers,

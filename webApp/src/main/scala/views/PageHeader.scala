@@ -61,7 +61,6 @@ object PageHeader {
 
     val channelNotification = NotificationView.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
       marginLeft := "5px",
-      marginBottom := "2px",
     )).foreach(view => state.urlConfig.update(_.focus(view)))
 
     val hasBigScreen = Rx {
@@ -118,7 +117,8 @@ object PageHeader {
             permissionIndicator,
             channelTitle,
 
-            channelNotification
+            channelNotification,
+            marginBottom := "2px", // else nodecards in title overlap
           ),
           div(
             Styles.flex,
