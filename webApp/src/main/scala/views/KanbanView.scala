@@ -29,7 +29,7 @@ import scala.scalajs.js
 object KanbanView {
   import SharedViewElements._
 
-  val sortableAreaMinHeight = "10px"
+  val sortableAreaMinHeight = "20px"
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
