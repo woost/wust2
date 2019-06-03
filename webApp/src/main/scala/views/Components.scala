@@ -1218,10 +1218,9 @@ object Components {
     color := "white",
     backgroundColor := Colors.unread,
     border := s"1px solid ${Colors.unreadBorder}",
-    fontSize.xxSmall,
+    fontSize.xSmall,
     marginLeft := "5px",
     marginRight := "5px",
-    padding := "4px",
   )
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {

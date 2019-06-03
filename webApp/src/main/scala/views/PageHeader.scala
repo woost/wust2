@@ -55,7 +55,12 @@ object PageHeader {
         DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
         Components.showHoveredNode(state, node.id),
-        Components.readObserver(state, node.id)
+        div(
+          Components.readObserver(state, node.id),
+          onClick.stopPropagation(View.Notifications).foreach(view => state.urlConfig.update(_.focus(view))),
+          float.right,
+          alignSelf.center,
+        )
       )
     }
 
@@ -117,7 +122,7 @@ object PageHeader {
             permissionIndicator,
             channelTitle,
 
-            channelNotification,
+            // channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
           div(
