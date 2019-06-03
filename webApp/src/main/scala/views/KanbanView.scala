@@ -104,7 +104,6 @@ object KanbanView {
     traverseState: TraverseState,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
-    val columnColor = BaseColors.accent.copy(h = hue(focusState.focusedId)).toHex
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
 
     val children = Rx {
@@ -211,13 +210,13 @@ object KanbanView {
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
+    val accentColor = BaseColors.accent.copy(h = hue(nodeId)).toHex
 
     VDomModifier(
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
-      borderTop := "3px solid",
-      borderTopColor := BaseColors.accent.copy(h = hue(nodeId)).toHex,
+      border := s"2px solid ${accentColor}",
       Rx{
         VDomModifier.ifNot(editable())(dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
       },

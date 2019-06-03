@@ -862,7 +862,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanCardWidthPx = 250
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
-  val kanbanColumnBorderRadius = (3 px)
+  val kanbanColumnBorderRadius = (5 px)
 
   ".kanbanview" - (
     padding(kanbanPageSpacing),
@@ -997,7 +997,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    backgroundColor(c"#e3e3e3"),
+    backgroundColor(c"#f5f5f5"),
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,

@@ -1,5 +1,7 @@
 package wust.webApp.views
 
+import wust.sdk.BaseColors
+import wust.sdk.NodeColor._
 import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -171,6 +173,7 @@ object GraphChangesAutomationUI {
 
   // a settings button for automation that opens the modal on click.
   def settingsButton(state: GlobalState, focusedId: NodeId, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     div(
       i(cls := "fa-fw", Icons.automate),
 
@@ -179,7 +182,7 @@ object GraphChangesAutomationUI {
         val hasTemplates = graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
         if (hasTemplates) VDomModifier(
           UI.tooltip("bottom center") := "Automation: active",
-          color := "#616161",
+          color := accentColor,
           backgroundColor := "transparent",
           activeMod
         ) else VDomModifier(
