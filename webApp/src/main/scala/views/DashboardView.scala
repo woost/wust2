@@ -89,32 +89,32 @@ object DashboardView {
   /// Render all subprojects as a list
   private def renderSubprojects(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    ul(
-      Styles.flexStatic,
-      flexDirection.column,
+    div(
       Styles.flex,
-      flexWrap.wrap,
-      justifyContent.flexStart,
-
-      padding := "0px", // remove ul default padding
-
-      Rx {
-        val projectNodes = getProjectList(state.graph(), focusState.focusedId)
-        projectNodes map { projectInfo =>
-          li(
-            Styles.flexStatic,
-            listStyle := "none",
-            renderSubproject(state, state.graph(), focusState, projectInfo)
-          )
-        }
-      },
-      li(
-        listStyle := "none",
+      justifyContent.spaceBetween,
+      alignItems.flexEnd,
+      ul(
         Styles.flexStatic,
+        flexDirection.column,
+        Styles.flex,
+        flexWrap.wrap,
+        justifyContent.flexStart,
 
-        newSubProjectButton(state, focusState.focusedId)
+        padding := "0px", // remove ul default padding
+
+        Rx {
+          val projectNodes = getProjectList(state.graph(), focusState.focusedId)
+          projectNodes map { projectInfo =>
+            li(
+              Styles.flexStatic,
+              listStyle := "none",
+              renderSubproject(state, state.graph(), focusState, projectInfo)
+            )
+          }
+        },
+        registerDragContainer(state)
       ),
-      registerDragContainer(state)
+      newSubProjectButton(state, focusState.focusedId)
     )
   }
 
@@ -180,7 +180,7 @@ object DashboardView {
           margin := "0.5em",
           onClick.stopPropagation(true) --> fieldActive,
           cursor.pointer,
-          cls := "ui basic button",
+          cls := "ui mini basic button",
           "+ Add Subproject",
         )
       },
