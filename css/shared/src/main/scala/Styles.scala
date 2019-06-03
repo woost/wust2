@@ -772,8 +772,8 @@ object CommonStyles extends StyleSheet.Standalone {
       padding(1 px, 3 px),
       &(".nodecard-content") - (
         padding(0 px, 2 px)
+      )
     )
-  )
   )
 
   ".pageheader .breadcrumb" - (
@@ -1237,12 +1237,6 @@ object CommonStyles extends StyleSheet.Standalone {
     color.white.important,
     opacity(1).important,
     cursor.move.important
-  )
-
-  ".sidebar .node.draggable--over" - (
-    color(Color(Colors.dragHighlight)).important,
-    backgroundColor.white.important,
-    boxShadow := s"inset 0px 0px 0px 2px ${Colors.dragHighlight}"
   )
 
   ".chat-expanded-thread.draggable--over .chat-common-parents > div > div" - (// chatview

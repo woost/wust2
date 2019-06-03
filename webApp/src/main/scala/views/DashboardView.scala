@@ -125,24 +125,21 @@ object DashboardView {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
     div(
       marginLeft := "10px",
+      cls := "node channel-line",
 
       drag(DragItem.Project(project.id)),
-      renderNodeCardMod(project, project => VDomModifier(
-        renderAsOneLineText(project),
+      renderProject(project, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true),
 
-        cursor.pointer,
-        onClick foreach {
-          focusState.contextParentIdAction(project.id)
-        },
+      cursor.pointer,
+      onClick foreach {
+        focusState.contextParentIdAction(project.id)
+      },
 
-        if(isDeleted) {
-          Components.unremovableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
-        } else {
-          Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
-        },
-      ),
-      projectWithIcon = true
-      ),
+      if(isDeleted) {
+        Components.unremovableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
+      } else {
+        Components.removableTagMod(() => state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
+      },
 
       VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
