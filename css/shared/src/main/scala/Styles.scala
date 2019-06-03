@@ -133,6 +133,26 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(c"#fafafa") // lighter gray for ui segments
   )
 
+  ".ui.message.warning" - (
+    backgroundColor(c"#ffefd8"),
+    boxShadow := "0 0 0 1px #f0a200 inset, 0 0 0 0 transparent",
+  )
+
+  ".ui.message.info" - (
+    backgroundColor(c"#e5ffff"),
+    boxShadow := "0 0 0 1px #00b0d4 inset, 0 0 0 0 transparent",
+  )
+
+  ".ui.message.error" - (
+    backgroundColor(c"#ffe4e4"),
+    boxShadow := "0 0 0 1px #e03636 inset, 0 0 0 0 transparent",
+  )
+
+  ".ui.message.success" - (
+    backgroundColor(c"#f3ffd8"),
+    boxShadow := "0 0 0 1px #60c12d inset, 0 0 0 0 transparent",
+  )
+
   ".toast-container" - (
     zIndex(ZIndex.toast).important // explicitly overwrite z-index of fomantic-ui toasts
   )
