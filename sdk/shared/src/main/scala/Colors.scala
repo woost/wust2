@@ -6,6 +6,7 @@ object Colors {
   @inline final def woost = "#6636b7"
 
   @inline final def unread = "#1F81F3"
+  @inline final def unreadBorder = "#66c0ff"
   @inline final def contentBg = "#EDEDED"
 
   @inline final def sidebarBg = "#fff"

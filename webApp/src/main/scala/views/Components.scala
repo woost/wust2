@@ -1217,6 +1217,7 @@ object Components {
     cls := "ui label",
     color := "white",
     backgroundColor := Colors.unread,
+    border := s"1px solid ${Colors.unreadBorder}",
     fontSize.xxSmall,
     marginLeft := "5px",
     marginRight := "5px",
