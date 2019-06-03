@@ -121,7 +121,7 @@ object SearchModal {
           ),
         ),
       ),
-      icon = Icons.`import`
+      icon = Icons.search
     )
 
     def description(implicit ctx: Ctx.Owner) = VDomModifier(
