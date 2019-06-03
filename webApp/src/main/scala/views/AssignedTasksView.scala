@@ -35,8 +35,8 @@ object AssignedTasksView  {
       "Overdue",
       "Today",
       "Tomorrow",
-      "Next Week",
-      "Next Month",
+      "In a Week",
+      "In a Month",
     )
     val buckets = Array[EpochMilli](
       renderTime,
