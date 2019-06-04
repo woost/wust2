@@ -730,17 +730,33 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
-  ".pageheader .breadcrumb" - (
-    // pageheader has a colored background. No shadow needed.
-    (boxShadow := s"none").important // overwrite nodecard shadow
+  ".pageheader" - (
+    &(".breadcrumb") - (
+      // pageheader has a colored background. No shadow needed.
+      (boxShadow := s"none").important // overwrite nodecard shadow
+    ),
+
+    &(".breadcrumb.nodecard.project") - (
+      paddingLeft(0.5.em),
+    )
   )
 
-  ".pageheader .breadcrumb.nodecard.project" - (
-    paddingLeft(0.5.em),
-  )
+  ".notifications-header" - (
+    marginTop(40 px),
+    Styles.flex,
+    justifyContent.spaceBetween,
+    flexWrap.wrapReverse,
+    alignItems.center,
 
-  ".ui.segment .breadcrumbs .divider" - (
-    color(c"rgba(165, 165, 165, 0.78)") // ui.segment has light background
+    &(".breadcrumbs") - (
+      margin(5 px, 0 px),
+    ),
+    &(".breadcrumbs .divider") - (
+      color(c"rgba(165, 165, 165, 0.78)")
+    ),
+    &(".breadcrumb") - (
+      nodeCardShadow
+    )
   )
 
   ".breadcrumb" - (

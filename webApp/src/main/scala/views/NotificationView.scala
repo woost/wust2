@@ -271,35 +271,32 @@ object NotificationView {
       BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
     }
 
-    UI.segment(
-      VDomModifier(
-        cls := "grey",
-        div(
-          Styles.flex,
-          justifyContent.spaceBetween,
-          flexWrap.wrap,
+    VDomModifier(
+      div(
+        cls := "notifications-header",
 
-          breadCrumbs,
-          button(
-            cls := "ui tiny compact button",
-            "Mark all as read",
-            marginLeft := "auto",
+        breadCrumbs,
+        button(
+          cls := "ui tiny compact button",
+          "Mark all as read",
+          marginLeft := "auto",
+          marginRight := "0px", // remove semantic ui button margin
 
-            cursor.pointer,
+          cursor.pointer,
 
-            onClick.stopPropagation.foreach {
-              val changes = GraphChanges(
-                addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
-              )
+          onClick.stopPropagation.foreach {
+            val changes = GraphChanges(
+              addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
+            )
 
-              state.eventProcessor.changes.onNext(changes)
-              ()
-            }
-          )
+            state.eventProcessor.changes.onNext(changes)
+            ()
+          }
         )
       ),
-      VDomModifier(
-        padding := "0px",
+      div(
+        cls := "ui segment",
+        marginTop := "0px", // remove semantic ui marginTop
         table(
           cls := "ui fixed table",
           border := "none",
@@ -327,11 +324,13 @@ object NotificationView {
 
                   td(
                     cls := "top aligned",
-                    width := "40px",
-                    padding := "1px 3px",
+                    width := "20px",
 
                     //TODO: hack for having a better layout on mobile with this table
-                    VDomModifier.ifTrue(BrowserDetect.isMobile)(marginTop := "-6px"),
+                    if(BrowserDetect.isMobile)
+                      marginTop := "-6px"
+                    else
+                      padding := "5px",
 
                     textAlign.right,
                     if (allSeen) VDomModifier(
@@ -364,10 +363,7 @@ object NotificationView {
             }
           }
         )
-      ),
-      segmentClass = "basic", segmentsClass = "basic"
-    ).apply(
-      width := "100%"
+      )
     )
   }
 
@@ -446,8 +442,8 @@ object NotificationView {
 
           VDomModifier.ifTrue(isSeen)(opacity := 0.5),
 
-          div(descriptionModifiers(doIcon, doDescription)),
           div(authorModifiers(doAuthor)),
+          div(descriptionModifiers(doIcon, doDescription)),
           div(timestampModifiers(revision.timestamp))
         )
       }
@@ -461,8 +457,8 @@ object NotificationView {
         tr(
           VDomModifier.ifTrue(isSeen)(opacity := 0.5),
 
-          td(descriptionModifiers(doIcon, doDescription)),
           td(authorModifiers(doAuthor)),
+          td(descriptionModifiers(doIcon, doDescription)),
           td(timestampModifiers(revision.timestamp))
         )
       }
