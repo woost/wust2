@@ -129,10 +129,6 @@ object Styles extends StyleSheet.Inline {
 object CommonStyles extends StyleSheet.Standalone {
   import dsl._
 
-  ".ui.secondary.segment" - (
-    backgroundColor(c"#fafafa") // lighter gray for ui segments
-  )
-
   ".ui.message.warning" - (
     backgroundColor(c"#ffefd8"),
     boxShadow := "0 0 0 1px #f0a200 inset, 0 0 0 0 transparent",
