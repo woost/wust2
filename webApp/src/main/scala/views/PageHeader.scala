@@ -127,7 +127,7 @@ object PageHeader {
             permissionIndicator,
             channelTitle,
 
-            // channelNotification,
+            channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
           div(
