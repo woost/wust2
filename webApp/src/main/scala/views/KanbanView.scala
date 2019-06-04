@@ -356,7 +356,8 @@ object KanbanView {
             autoFocus = true,
             blurAction = Some(blurAction),
             placeholder = Placeholder.newStage,
-            submitIcon = freeSolid.faPlus,
+            showSubmitIcon = false,
+            submitOnEnter = true,
             textAreaModifiers = VDomModifier(
               fontSize.larger,
               fontWeight.bold,
