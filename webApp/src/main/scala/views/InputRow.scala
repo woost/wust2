@@ -169,7 +169,7 @@ object InputRow {
       alignItems.center,
       div(
         margin := "3px",
-        BrowserDetect.isMobile.ifTrue[VDomModifier](marginRight := "0"),
+        VDomModifier.ifTrue(showSubmitIcon || fileUploadHandler.isDefined)(marginRight := "0"), // icons itself have marginLeft
         width := "100%",
         cls := "ui form",
 
