@@ -168,6 +168,14 @@ object CommonStyles extends StyleSheet.Standalone {
     whiteSpace.pre,
   )
 
+  // firefox and chrome interpret placeholder color differently.
+  // https://github.com/necolas/normalize.css/issues/277
+  ".ui.inverted.input input::placeholder" - (
+    opacity(0.8).important,
+    color.white.important,
+  )
+
+
   ":not(input):not(textarea):not([contenteditable=true])," +
   ":not(input):not(textarea):not([contenteditable=true])::after," +
   ":not(input):not(textarea):not([contenteditable=true])::before" - (

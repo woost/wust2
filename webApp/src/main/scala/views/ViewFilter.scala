@@ -143,7 +143,7 @@ object ViewFilter {
       Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
       cls := "ui search",
       div(
-        backgroundColor := "rgba(0,0,0,0.1)",
+        backgroundColor := "rgba(0,0,0,0.15)",
         padding := "5px",
         borderRadius := "3px",
         state.isFilterActive.map(VDomModifier.ifTrue(_)(
