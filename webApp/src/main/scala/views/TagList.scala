@@ -65,7 +65,7 @@ object TagList {
         overflowY.auto,
         Rx {
           val page = state.page()
-          val graph = state.graph()
+          val graph = state.rawGraph()
           VDomModifier.ifTrue(state.view().isContent)(
             page.parentId.map { pageParentId =>
               val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
@@ -93,7 +93,7 @@ object TagList {
   )(implicit ctx:Ctx.Owner) = {
 
     val tags:Rx[Seq[Tree]] = Rx {
-      val graph = state.graph()
+      val graph = state.rawGraph()
       val workspaceIdx = graph.idToIdxOrThrow(workspaceId)
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
