@@ -268,6 +268,7 @@ object EditElementParser {
         Styles.flex,
         alignItems.center,
         flexWrap.wrap,
+        config.modifier,
 
         EditDateMilli.render(config, initialDateAndTime.map(_.map(_._1)), dateHandler),
         EditTimeMilli.render(config, initialDateAndTime.map(_.map(_._2)), timeHandler),
