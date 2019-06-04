@@ -132,6 +132,7 @@ object KanbanView {
       ),
       div(
         cls := "kanbancolumnchildren",
+        cls := "tiny-scrollbar",
         scrollHandler.modifier,
         children.map { children =>
           VDomModifier(
@@ -233,6 +234,7 @@ object KanbanView {
         if(isExpanded()) VDomModifier(
           div(
             cls := "kanbancolumnchildren",
+            cls := "tiny-scrollbar",
             Rx {
               VDomModifier(
                 registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
