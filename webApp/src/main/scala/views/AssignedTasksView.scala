@@ -90,6 +90,8 @@ object AssignedTasksView  {
           state,
           addNewTask,
           placeholder = Placeholder("Add Task"),
+          showSubmitIcon = false,
+          submitOnEnter = true,
         ).apply(flexGrow := 1),
       ),
 
