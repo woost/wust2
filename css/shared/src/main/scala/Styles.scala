@@ -766,7 +766,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".listview .nodecard > .checkbox" - (
     marginTop(9 px),
-    marginTop(9 px),
     marginLeft(9 px),
   )
 
@@ -1030,7 +1029,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".kanbancolumnchildren > .nodecard," +
   ".kanbancolumnchildren > .kanbantoplevelcolumn," + // when dragging top-level column into column
   ".kanbancolumnchildren > .kanbancolumn" - (
-    marginTop(0 px),
+    marginTop(1 px), // space for nodecard-shadow
     marginRight(kanbanColumnPadding),
     marginLeft(kanbanColumnPadding),
     marginBottom(kanbanColumnPadding)

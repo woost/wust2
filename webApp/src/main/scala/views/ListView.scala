@@ -92,6 +92,7 @@ object ListView {
 
       Styles.flex,
       flexDirection.columnReverse,
+      paddingTop := "1px", // space for nodecard shadow
 
       Rx {
         VDomModifier(
