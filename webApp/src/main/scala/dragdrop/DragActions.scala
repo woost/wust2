@@ -128,10 +128,10 @@ object DragActions {
       case (payload: SelectedNodes, target: Workspace, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds.map(ChildId(_)), ParentId(target.nodeId), graph, ctrl)
       case (payload: SelectedNodes, target: Channel, ctrl, false) => (graph, userId) => linkOrMoveInto(payload.nodeIds.map(ChildId(_)), ParentId(target.nodeId), graph, ctrl)
 
-      case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
+      case (payload: Channel, target: Channel, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), payload.parentId.map(ParentId(_)), Some(ParentId(target.nodeId)), graph, userId)
       case (payload: Channel, target: Channel, true, false) => (graph, userId) => linkOrMoveInto(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, true)
-      case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), None, graph, userId)
-      case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), Some(ParentId(target.nodeId)), graph, userId)
+      case (payload: Channel, target: Sidebar.type, false, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), payload.parentId.map(ParentId(_)), None, graph, userId)
+      case (payload: Channel, target: ContentNode, ctrl, false) => (graph, userId) => movePinnedChannel(ChildId(payload.nodeId), payload.parentId.map(ParentId(_)), Some(ParentId(target.nodeId)), graph, userId)
 
       case (payload: Property, target: ContentNode, false, false) => (graph, userId) => linkOrCopyInto(payload.edge, target.nodeId, graph)
 

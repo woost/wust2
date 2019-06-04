@@ -820,18 +820,14 @@ final class GraphLookup(
   def ancestorsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, parentsIdx)
   def ancestors(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => ancestorsIdx(nodeIdx).viewMap(nodeIds))
 
-  def anyAncestorIsPinned(nodeIds: Iterable[NodeId], userId: NodeId): Boolean = idToIdxFold(userId)(false) { userIdx =>
-    def starts(f: Int => Unit): Unit = nodeIds.foreach { nodeId =>
-      idToIdxForeach(nodeId)(f)
-    }
+  def anyAncestorOrSelfIsPinned(nodeIdxs: Iterable[Int], userId: NodeId): Boolean = idToIdxFold(userId)(false) { userIdx =>
+    pinnedNodeIdx.exists(userIdx)(pinnedIdx => nodeIdxs.exists(_ == pinnedIdx)) || anyAncestorIsPinned(nodeIdxs, userIdx)
+  }
 
-    val isPinnedSet = {
-      val set = ArraySet.create(n)
-      pinnedNodeIdx.foreachElement(userIdx)(set.add)
-      set
-    }
-
-    dfs.exists(starts, dfs.withStart, parentsIdx, isFound = isPinnedSet.contains)
+  def anyAncestorIsPinned(nodeIdxs: Iterable[Int], userId: NodeId): Boolean = idToIdxFold(userId)(false)(anyAncestorIsPinned(nodeIdxs, _))
+  def anyAncestorIsPinned(nodeIdxs: Iterable[Int], userIdx: Int): Boolean = {
+    val isPinnedSet = pinnedNodeIdx.toArraySet(userIdx)
+    dfs.exists(nodeIdxs.foreach, dfs.afterStart, parentsIdx, isFound = isPinnedSet.contains)
   }
 
   // IMPORTANT:

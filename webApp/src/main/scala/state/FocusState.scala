@@ -6,10 +6,10 @@ import wust.ids.{NodeId, View}
 // when travsering a tree in the dom, we always have a current parent and a chain of ancestors. Needed to check cycles or operate on the parents in the views.
 case class TraverseState(
   parentId: NodeId,
-  parentIdChain: List[NodeId] = Nil
+  tail: List[NodeId] = Nil
 ) {
-  def contains(nodeId: NodeId): Boolean = parentId == nodeId || parentIdChain.contains(nodeId)
-  def step(nodeId: NodeId): TraverseState = TraverseState(nodeId, parentId :: parentIdChain)
+  def contains(nodeId: NodeId): Boolean = parentId == nodeId || tail.contains(nodeId)
+  def step(nodeId: NodeId): TraverseState = TraverseState(nodeId, parentId :: tail)
 }
 
 // a class for representing a preference to focus something in a certain view. e.g. used for configuring the right sidebar

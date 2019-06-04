@@ -26,7 +26,7 @@ object DragItem {
   case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Stage(${nodeId.shortHumanReadable})" }
 
   case object Sidebar extends DragTarget
-  case class Channel(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable})" }
+  case class Channel(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable}, parentId: ${parentId.map(_.shortHumanReadable)})" }
   case class BreadCrumb(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"BreadCrumb(${nodeId.shortHumanReadable})" }
   case class Workspace(nodeId: NodeId) extends DragTarget { override def toString = s"Workspace(${nodeId.shortHumanReadable})" }
   case class TagBar(nodeId: NodeId) extends DragTarget { override def toString = s"TagBar(${nodeId.shortHumanReadable})" }

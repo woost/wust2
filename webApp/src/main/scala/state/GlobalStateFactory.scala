@@ -120,7 +120,7 @@ object GlobalStateFactory {
       page.parentId.fold(graph) { parentId =>
         val userIdx = graph.idToIdx(user.id)
         graph.idToIdxFold(parentId)(graph) { pageIdx =>
-          def anyPageParentIsPinned = graph.anyAncestorIsPinned(List(parentId), user.id)
+          def anyPageParentIsPinned = graph.anyAncestorOrSelfIsPinned(Array(pageIdx), user.id)
           def pageIsInvited = userIdx.fold(false)(userIdx => graph.inviteNodeIdx.contains(userIdx)(pageIdx))
           def userIsMemberOfPage: Boolean = userIdx.fold(false)(userIdx => graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx))
 
