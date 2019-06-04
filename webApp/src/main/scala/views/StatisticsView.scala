@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.state._
 import fontAwesome.IconDefinition
 import outwatch.dom.{VNode, _}
 import outwatch.dom.dsl._
@@ -45,13 +46,16 @@ object StatisticsView  {
             a(
               VDomModifier.ifTrue(stat.count == 0)(opacity := 0.5),
               cls := "item",
-              if (BrowserDetect.isPhone) fontSize.small else minWidth := "110px", // not much space on mobile, so try to stay as small as possible
+              if (state.screenSize() == ScreenSize.Small) fontSize := "10px" else minWidth := "110px", // not much space on mobile, so try to stay as small as possible
               Styles.flex,
               flexDirection.column,
               alignItems.center,
 
               div(Elements.icon(icon), stat.role.toString),
-              h2(stat.count),
+              h2(
+                stat.count,
+                VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible
+              ),
 
               onClick.stopPropagation(view).foreach(focusState.viewAction),
               position.relative,
