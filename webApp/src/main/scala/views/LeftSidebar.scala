@@ -51,7 +51,8 @@ object LeftSidebar {
           ),
           openModifier = VDomModifier(
             header(state).apply(Styles.flexStatic),
-            channels(state, toplevelChannels, invites),
+            channels(state, toplevelChannels),
+            invitations(state, invites).apply(Styles.flexStatic),
             newProjectButton(state).apply(
               cls := "newChannelButton-large " + buttonStyles,
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
@@ -255,43 +256,45 @@ object LeftSidebar {
 
   @inline def fontSizeByDepth(depth:Int) = s"${math.max(8, 14 - depth)}px"
 
-  private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], invites: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-
-    def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      val nodeId = traverseState.parentId
-      val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
-      val node = Rx {
-        state.rawGraph().nodesByIdOrThrow(nodeId)
-      }
-
-      div(
-        Styles.flex,
-        alignItems.center,
-        expandToggleButton(state, nodeId, userId, expanded).apply(
-          Rx {
-            VDomModifier.ifNot(hasChildren())(visibility.hidden)
-          }
-        ),
-        div(
-          flexGrow := 1,
-          cls := "channel-line",
-          Rx {
-            VDomModifier(
-              VDomModifier.ifTrue(selected())(
-                color := Colors.sidebarBg,
-                backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
-              ),
-              renderProject(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
-            )
-          },
-
-          onChannelClick(state, nodeId),
-          onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
-          cls := "node",
-          drag(DragItem.Channel(nodeId))
-        )
-      )
+  def channelLine(state: GlobalState, traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+    val nodeId = traverseState.parentId
+    val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
+    val node = Rx {
+      state.rawGraph().nodesByIdOrThrow(nodeId)
     }
+
+    div(
+      Styles.flex,
+      alignItems.center,
+      expandToggleButton(state, nodeId, userId, expanded).apply(
+        Rx {
+          VDomModifier.ifNot(hasChildren())(visibility.hidden)
+        }
+      ),
+      div(
+        flexGrow := 1,
+        flexShrink := 0,
+        cls := "channel-line",
+        Rx {
+          VDomModifier(
+            VDomModifier.ifTrue(selected())(
+              color := Colors.sidebarBg,
+              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
+            ),
+            renderProject(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
+          )
+        },
+
+        onChannelClick(state, nodeId),
+        onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
+        cls := "node",
+        drag(DragItem.Channel(nodeId)),
+        channelModifier
+      )
+    )
+  }
+
+  private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
@@ -305,7 +308,7 @@ object LeftSidebar {
         }
 
         VDomModifier(
-          channelLine(traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
+          channelLine(state, traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
@@ -328,37 +331,43 @@ object LeftSidebar {
         )
       },
 
+    )
+  })
+
+  private def invitations(state: GlobalState, invites: Rx[Seq[NodeId]])(implicit ctx: Ctx.Owner) = {
+    div(
       Rx {
         val userId = state.userId()
 
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
-          invites().map(nodeId => channelLine(TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false)).apply(
+          invites().map(nodeId => channelLine(state, TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), channelModifier = VDomModifier(
             div(
               cls := "ui icon buttons",
-              height := "22px",
-              marginRight := "4px",
-              marginLeft := "auto",
+              margin := "2px 3px 2px auto",
               button(
-                cls := "ui mini compact green button",
-                padding := "4px",
-                freeSolid.faCheck,
+                cls := "mini compact green ui button",
+                padding := "0.5em",
+                i(cls := "icon fa-fw", freeSolid.faCheck),
                 onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
-                onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
+                onClick foreach { Analytics.sendEvent("pageheader", "accept-invite") }
               ),
               button(
-                cls := "ui mini compact button",
-                padding := "4px",
-                freeSolid.faTimes,
+                cls := "mini compact ui button",
+                padding := "0.5em",
+                i(cls := "icon fa-fw", freeSolid.faTimes),
                 onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               )
             )
+          )).apply(
+            paddingBottom := "1px",
+            paddingTop := "1px",
           ))
         )
-      },
+      }
     )
-  })
+  }
 
   private def channelIcons(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
