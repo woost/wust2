@@ -413,7 +413,7 @@ object LeftSidebar {
         }
 
         VDomModifier(
-          backgroundColor := "#bbbbbb", // color for indentation space
+          backgroundColor := "#666", // color for indentation space
           renderChannel(traverseState, userId, depth, expanded = expanded, hasChildren = hasChildren),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
