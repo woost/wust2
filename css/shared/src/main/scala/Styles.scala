@@ -258,6 +258,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pageheader-channeltitle.nodecard" - (
     paddingTop(0 px),
     paddingBottom(0 px),
+    (boxShadow := "none").important,
   )
   ".pageheader-channeltitle.nodecard.project" - (
     backgroundColor.transparent,
