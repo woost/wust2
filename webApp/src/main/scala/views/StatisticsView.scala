@@ -31,10 +31,10 @@ object StatisticsView  {
       Styles.flex,
       flexWrap.wrap,
       padding := "20px",
-      overflow.auto,
 
       div(
         margin.auto,
+        overflow.auto,
         cls := "ui compact menu",
         Rx {
           val graph = state.graph()
