@@ -9,6 +9,7 @@ import org.scalajs.dom.console
 import monix.eval.Task
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
+import org.scalajs.dom
 import org.scalajs.dom.window
 import rx._
 import wust.api.ApiEvent.{ NewGraphChanges, ReplaceGraph }
@@ -293,9 +294,9 @@ object GlobalStateFactory {
     }
 
     // we send client errors from javascript to the backend
-    jsErrors.foreach { msg =>
-      Client.api.log(s"Javascript Error: $msg.")
-    }
+    dom.window.addEventListener("onerror", { (e: dom.ErrorEvent) =>
+      Client.api.log(s"Javascript Error: ${e.message}.")
+    })
 
     DevOnly {
       rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)

@@ -157,8 +157,6 @@ class GlobalState(
     PageStyle(view(), page())
   }
 
-  val jsErrors: Observable[String] = events.window.onError.map(_.message)
-
   val topbarIsVisible:Rx[Boolean] = Rx{ screenSize() != ScreenSize.Small }
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
   @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large

@@ -35,9 +35,6 @@ object GraphView {
     div(
       keyed,
       position.relative, // for absolute positioned menu overlays
-      emitter(state.jsErrors).foreach { _ =>
-        forceSimulation.stop()
-      },
 
       overflow.auto, // fits graph visualization perfectly into view
 
