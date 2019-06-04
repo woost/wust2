@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import monix.reactive.Observer
 import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
 import wust.ids._
@@ -141,7 +142,7 @@ object TaskNodeCard {
         "Collapse", "Collapse", Icons.collapse,
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
       def toggleExpand = Rx {
-        @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px")
+        @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
         (if (isExpanded()) collapse else expand).apply(largerOnMobile)
       }
 

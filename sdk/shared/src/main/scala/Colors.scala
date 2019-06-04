@@ -13,6 +13,8 @@ object Colors {
   @inline final def pageHeaderControl = "rgba(255, 255, 255, 0.75)"
 
   @inline final def dragHighlight = "rgba(55, 66, 74, 1)"
+
+  @inline final def nodecardBg = "#FEFEFE"
 }
 
 object BaseColors {

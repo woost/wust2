@@ -650,7 +650,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val nodeCardShadowOffset = "0px 0.7px 0px 1px"
   val nodeCardShadow = boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.12)"
-  val nodeCardBackgroundColor = c"#FEFEFE"
+  val nodeCardBackgroundColor = Color(Colors.nodecardBg)
   ".nodecard" - (
     borderRadius(3 px),
     padding(2 px),
