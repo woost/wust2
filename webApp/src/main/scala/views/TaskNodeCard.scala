@@ -75,7 +75,7 @@ object TaskNodeCard {
 
     case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
-      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 //&& propertiesCount == 0
+      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 && noteChildrenCount == 0 //&& propertiesCount == 0
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
