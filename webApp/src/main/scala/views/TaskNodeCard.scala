@@ -309,7 +309,7 @@ object TaskNodeCard {
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId)).apply(
+          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine).apply(
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),
@@ -568,7 +568,7 @@ object TaskNodeCard {
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id)).apply( // TODO: proper traverstate
+          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine).apply( // TODO: proper traverstate
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),
