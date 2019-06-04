@@ -806,6 +806,7 @@ final class GraphLookup(
   }
   @inline def descendantsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, childrenIdx, isFound = f) // inline to inline f
   @inline def descendantsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.withManualAppend(_(nodeIdx), dfs.afterStart, childrenIdx, f)
+  @inline def descendantsIdxWithContinue(nodeIdx: Int)(f: Int => Boolean) = dfs.withContinue(_(nodeIdx), dfs.afterStart, childrenIdx, f)
   def descendantsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
   def descendants(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => descendantsIdx(nodeIdx).viewMap(nodeIds))
 

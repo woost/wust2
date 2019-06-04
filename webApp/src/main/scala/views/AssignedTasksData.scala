@@ -31,11 +31,14 @@ object AssignedTasksData {
     val dueTasks = Array.fill(buckets.size)(new mutable.ArrayBuffer[AssignedTask.Due])
     val tasks = new mutable.ArrayBuffer[AssignedTask]
 
-    graph.descendantsIdxForeach(focusedIdx) { nodeIdx =>
+    graph.descendantsIdxWithContinue(focusedIdx) { nodeIdx =>
       val node = graph.nodes(nodeIdx)
       val noUserAssigned = graph.assignedUsersIdx.sliceIsEmpty(nodeIdx)
       val thisUserAssigned = graph.assignedUsersIdx.contains(nodeIdx)(userIdx)
-      if(node.role == NodeRole.Task && (noUserAssigned || thisUserAssigned)) graph.parentEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+
+      // parents.exists is not really correct here, because in case of multiple parents we just include the first
+      // parent we find and therefore clicking done on a task there will only check it in this one parent.
+      if(node.role == NodeRole.Task && (noUserAssigned || thisUserAssigned)) graph.parentEdgeIdx.exists(nodeIdx) { edgeIdx =>
         val parentIdx = graph.edgesIdx.a(edgeIdx)
         val parentNode = graph.nodes(parentIdx)
 
@@ -66,8 +69,10 @@ object AssignedTasksData {
               else dueTasks(dueIndex) += dueTask
             case None => if (thisUserAssigned) tasks += AssignedTask.Plain(node.id, parentNode.id)
           }
-        }
-      }
+
+          true
+        } else false
+      } else false
     }
 
     AssignedTasks(dueTasks, tasks)
