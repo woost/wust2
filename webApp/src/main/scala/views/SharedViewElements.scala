@@ -229,7 +229,7 @@ object SharedViewElements {
     },
   )
 
-  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, parentId: Option[NodeId], selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
       graph.idToIdx(nodeId).map { nodeIdx =>
@@ -238,17 +238,17 @@ object SharedViewElements {
         // payload is call by name, so it's always the current selectedNodeIds
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
-          nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
+          nodeDragOptions(nodeId, parentId, node.role, withHandle = false, payloadOverride = payloadOverride),
           onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
         )
       }
     },
   )
 
-  def nodeDragOptions(nodeId:NodeId, role:NodeRole, withHandle:Boolean = false, payloadOverride:Option[() => DragPayload] = None): VDomModifier = {
+  def nodeDragOptions(nodeId:NodeId, parentId: Option[NodeId], role:NodeRole, withHandle:Boolean = false, payloadOverride:Option[() => DragPayload] = None): VDomModifier = {
     val dragItem = role match {
-      case NodeRole.Message => DragItem.Message(nodeId)
-      case NodeRole.Task => DragItem.Task(nodeId)
+      case NodeRole.Message => DragItem.Message(nodeId, parentId)
+      case NodeRole.Task => DragItem.Task(nodeId, parentId)
       case _ => DragItem.DisableDrag
     }
     val payload:() => DragPayload = payloadOverride.getOrElse(() => dragItem)

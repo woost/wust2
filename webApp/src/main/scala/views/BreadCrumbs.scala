@@ -103,7 +103,7 @@ object BreadCrumbs {
               Components.nodeCardAsOneLineText(node, projectWithIcon = true).apply(
                 cls := "breadcrumb",
                 VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
-                DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
+                DragItem.fromNodeRole(node.id, Some(parentId), node.role).map(drag(_)),
                 onClickFocus,
               )
 

@@ -90,8 +90,8 @@ object TopologicalView {
             parentId = focusState.focusedId,
             focusState = focusState,
             inOneLine = true,
-            dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
-            dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, propertyName()),
+            dragPayload = nodeId => DragItem.TaskConnect(nodeInfo.node.id, Some(focusState.focusedId), propertyName()),
+            dragTarget = nodeId => DragItem.TaskConnect(nodeInfo.node.id, Some(focusState.focusedId), propertyName()),
           ).apply(
               marginBottom := "3px",
               VDomModifier.ifTrue(isNewGroup)(marginTop := "40px"),

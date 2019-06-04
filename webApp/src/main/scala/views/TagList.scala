@@ -98,7 +98,7 @@ object TagList {
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 
-    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
+    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, Some(workspaceId), tagModifier = removableTagMod(() =>
       state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
     ), dragOptions = id => drag(DragItem.Tag(id)), withAutomation = true)
 

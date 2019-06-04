@@ -295,7 +295,7 @@ object ThreadView {
         color := "#666",
         boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
       ),
-      messageDragOptions(state, nodeId, selectedNodes),
+      messageDragOptions(state, nodeId, directParentIds.headOption, selectedNodes),
     ))
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = showReplyField() = !showReplyField.now)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(showReplyField), isSelected = isSelected)

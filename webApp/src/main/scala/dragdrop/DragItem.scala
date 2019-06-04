@@ -9,21 +9,21 @@ sealed trait DragPayloadAndTarget extends DragPayload with DragTarget
 object DragItem {
   case object DisableDrag extends DragPayloadAndTarget
 
-  sealed trait ContentNode extends DragPayloadAndTarget { def nodeId: NodeId }
-  case class Message(nodeId: NodeId) extends ContentNode { override def toString = s"Message(${nodeId.shortHumanReadable})" }
-  case class Task(nodeId: NodeId) extends ContentNode { override def toString = s"Task(${nodeId.shortHumanReadable})" }
-  case class Note(nodeId: NodeId) extends ContentNode { override def toString = s"Note(${nodeId.shortHumanReadable})" }
-  case class Project(nodeId: NodeId) extends ContentNode { override def toString = s"Project(${nodeId.shortHumanReadable})" }
+  sealed trait ContentNode extends DragPayloadAndTarget { def nodeId: NodeId; def parentId: Option[NodeId] }
+  case class Message(nodeId: NodeId, parentId: Option[NodeId]) extends ContentNode { override def toString = s"Message(${nodeId.shortHumanReadable}, parent = ${parentId.map(_.shortHumanReadable)})" }
+  case class Task(nodeId: NodeId, parentId: Option[NodeId]) extends ContentNode { override def toString = s"Task(${nodeId.shortHumanReadable}, parent = ${parentId.map(_.shortHumanReadable)})" }
+  case class Note(nodeId: NodeId, parentId: Option[NodeId]) extends ContentNode { override def toString = s"Note(${nodeId.shortHumanReadable}, parent = ${parentId.map(_.shortHumanReadable)})" }
+  case class Project(nodeId: NodeId, parentId: Option[NodeId]) extends ContentNode { override def toString = s"Project(${nodeId.shortHumanReadable}, parent = ${parentId.map(_.shortHumanReadable)})" }
 
   sealed trait ContentNodeConnect extends ContentNode {
     def propertyName: String
   }
-  case class TaskConnect(nodeId: NodeId, propertyName: String) extends ContentNodeConnect { override def toString = s"TaskConnect(${nodeId.shortHumanReadable}, $propertyName)" }
-  case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Tag(${nodeId.shortHumanReadable})" }
+  case class TaskConnect(nodeId: NodeId, parentId: Option[NodeId], propertyName: String) extends ContentNodeConnect { override def toString = s"TaskConnect(${nodeId.shortHumanReadable}, parent = ${parentId.map(_.shortHumanReadable)}, $propertyName)" }
+  case class Tag(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { override def toString = s"Tag(${nodeId.shortHumanReadable})" }
   case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { override def toString = s"Property($edge)" }
 
   case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
-  case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Stage(${nodeId.shortHumanReadable})" }
+  case class Stage(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { override def toString = s"Stage(${nodeId.shortHumanReadable})" }
 
   case object Sidebar extends DragTarget
   case class Channel(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable}, parentId: ${parentId.map(_.shortHumanReadable)})" }
@@ -36,13 +36,13 @@ object DragItem {
   case class SelectedNode(nodeId: NodeId) extends DragPayload { override def toString = s"SelectedNode(${nodeId.shortHumanReadable})" }
   case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload { override def toString = s"SelectedNodes(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
 
-  def fromNodeRole(nodeId: NodeId, role: NodeRole): Option[DragPayloadAndTarget] = Some(role) collect {
-    case NodeRole.Message => DragItem.Message(nodeId)
-    case NodeRole.Task    => DragItem.Task(nodeId)
-    case NodeRole.Note    => DragItem.Note(nodeId)
-    case NodeRole.Project => DragItem.Project(nodeId)
-    case NodeRole.Tag     => DragItem.Tag(nodeId)
-    case NodeRole.Stage   => DragItem.Stage(nodeId)
+  def fromNodeRole(nodeId: NodeId, parentId: Option[NodeId], role: NodeRole): Option[DragPayloadAndTarget] = Some(role) collect {
+    case NodeRole.Message => DragItem.Message(nodeId, parentId)
+    case NodeRole.Task    => DragItem.Task(nodeId, parentId)
+    case NodeRole.Note    => DragItem.Note(nodeId, parentId)
+    case NodeRole.Project => DragItem.Project(nodeId, parentId)
+    case NodeRole.Tag     => DragItem.Tag(nodeId, parentId)
+    case NodeRole.Stage   => DragItem.Stage(nodeId, parentId)
   }
 
   val payloadPropName = "_wust_dragpayload"

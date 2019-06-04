@@ -461,9 +461,10 @@ object Components {
     def checkboxNodeTag(
       state: GlobalState,
       tagNode: Node,
+      parentId: Option[NodeId],
       tagModifier: VDomModifier = VDomModifier.empty,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+      dragOptions: (NodeId, Option[NodeId]) => VDomModifier = (nodeId, parentId) => drag(DragItem.Tag(nodeId, parentId), target = DragItem.DisableDrag),
       withAutomation: Boolean = false,
     )(implicit ctx: Ctx.Owner): VNode = {
 
@@ -481,7 +482,7 @@ object Components {
           ),
           label(), // needed for fomanticui
         ),
-        nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
+        nodeTag(state, tagNode, parentId, pageOnClick, dragOptions).apply(tagModifier),
         VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible).apply(cls := "singleButtonWithBg", marginLeft.auto)),
       )
     }
@@ -509,19 +510,20 @@ object Components {
     def nodeTag(
       state: GlobalState,
       tag: Node,
+      parentId: Option[NodeId],
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+      dragOptions: (NodeId, Option[NodeId]) => VDomModifier = (nodeId, parentId) => drag(DragItem.Tag(nodeId, parentId), target = DragItem.DisableDrag),
     ): VNode = {
       val contentString = renderAsOneLineText(tag)
-      renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
+      renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id, parentId)), pageOnClick)
     }
 
-    def removableNodeTagCustom(state: GlobalState, tag: Node, action: () => Unit, pageOnClick:Boolean = false): VNode = {
-      nodeTag(state, tag, pageOnClick)(removableTagMod(action))
+    def removableNodeTagCustom(state: GlobalState, tag: Node, parentId: Option[NodeId], action: () => Unit, pageOnClick:Boolean = false): VNode = {
+      nodeTag(state, tag, parentId, pageOnClick)(removableTagMod(action))
     }
 
-    def removableNodeTag(state: GlobalState, tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
-      removableNodeTagCustom(state, tag, () => {
+    def removableNodeTag(state: GlobalState, tag: Node, parentId: Option[NodeId], taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
+      removableNodeTagCustom(state, tag, parentId, () => {
         state.eventProcessor.changes.onNext(
           GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
@@ -1076,7 +1078,7 @@ object Components {
     )
   }
 
-  def automatedNodesOfNode(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def automatedNodesOfNode(state: GlobalState, nodeId: NodeId, parentId: Option[NodeId])(implicit ctx: Ctx.Owner): VDomModifier = {
     val automatedNodes: Rx[Seq[Node]] = Rx {
       val graph = state.rawGraph()
       graph.idToIdxFold(nodeId)(Seq.empty[Node])(graph.automatedNodes)
@@ -1089,7 +1091,7 @@ object Components {
           div(
             div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
             UI.tooltip("bottom center") := "This node is an active automation template")
-            Components.nodeTag(state, node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
+            Components.nodeTag(state, node, parentId, pageOnClick = false, dragOptions = (_, _) => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
           )
         }
       )

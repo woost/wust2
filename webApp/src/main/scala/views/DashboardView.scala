@@ -125,7 +125,7 @@ object DashboardView {
       marginLeft := "10px",
       cls := "node channel-line",
 
-      drag(DragItem.Project(project.id)),
+      drag(DragItem.Project(project.id, Some(focusState.focusedId))),
       renderProject(project, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,
