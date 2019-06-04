@@ -1212,15 +1212,24 @@ object Components {
   val betaSign = maturityLabel("beta")
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
-  val unreadLabelElement = div(
+  val unreadStyle = VDomModifier(
     float.right,
-    cls := "ui label",
-    color := "white",
-    backgroundColor := Colors.unread,
-    border := s"1px solid ${Colors.unreadBorder}",
-    fontSize.xSmall,
     marginLeft := "5px",
     marginRight := "5px",
+  )
+
+  val unreadLabelElement = div(
+    cls := "ui label",
+    color := "white",
+    fontSize.xSmall,
+    unreadStyle,
+    backgroundColor := Colors.unread,
+  )
+
+  val unreadDot = span(
+    freeSolid.faCircle,
+    color := Colors.unread,
+    unreadStyle
   )
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -1261,7 +1270,7 @@ object Components {
       isUnread() match {
         case true => VDomModifier(
           unreadChildren() match {
-            case 0 => unreadLabel
+            case 0 => unreadDot
             case count => unreadLabel(count)
           },
 

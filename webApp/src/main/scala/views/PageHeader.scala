@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.sdk.Colors
 import clipboard.ClipboardJS
 import fontAwesome._
 import googleAnalytics.Analytics
@@ -56,7 +57,11 @@ object PageHeader {
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
         Components.showHoveredNode(state, node.id),
         div(
-          Components.readObserver(state, node.id),
+          Components.readObserver(
+            state,
+            node.id,
+            labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
+          ), 
           onClick.stopPropagation(View.Notifications).foreach(view => state.urlConfig.update(_.focus(view))),
           float.right,
           alignSelf.center,
