@@ -288,7 +288,7 @@ object LeftSidebar {
         onChannelClick(state, nodeId),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node",
-        drag(DragItem.Channel(nodeId)),
+        drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         channelModifier
       )
     )
@@ -389,7 +389,7 @@ object LeftSidebar {
             UI.popup("right center") <-- node.map(_.str),
             onChannelClick(state, nodeId),
             onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
-            drag(target = DragItem.Channel(nodeId)),
+            drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
             cls := "node",
 
             // for each indent, steal padding on left and right

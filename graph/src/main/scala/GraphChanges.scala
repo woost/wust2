@@ -286,19 +286,18 @@ object GraphChanges {
   @inline def moveInto(nodeIds: Iterable[ChildId], newParentIds: Iterable[ParentId], graph:Graph): GraphChanges = {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
   }
-  def movePinnedChannel(channelId: ChildId, targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = graph.idToIdxFold(channelId)(GraphChanges.empty) { channelIdx =>
-    val directParentsInChannelTree = graph.parentsIdx(channelIdx).collect {
-      case parentIdx if graph.anyAncestorIsPinned(graph.nodeIds(parentIdx) :: Nil, userId) => ParentId(graph.nodeIds(parentIdx))
-    }
 
-    val disconnect: GraphChanges = GraphChanges.disconnect(Edge.Child)(directParentsInChannelTree, channelId)
-    val connect: GraphChanges = targetChannelId.fold(GraphChanges.empty) {
-      targetChannelId => GraphChanges.connect(Edge.Child)(targetChannelId, channelId)
+  def movePinnedChannel(channelId: ChildId, sourceChannelId: Option[ParentId], targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = graph.idToIdxFold(channelId)(GraphChanges.empty) { channelIdx =>
+    // target == None means that channel becomes top-level
+
+    val disconnect: GraphChanges = GraphChanges.disconnect(Edge.Child)(sourceChannelId, channelId)
+    val connect: GraphChanges = targetChannelId.fold(GraphChanges.empty) { targetChannelId =>
+      GraphChanges.connect(Edge.Child)(targetChannelId, channelId)
     }
     disconnect merge connect
   }
 
-  @inline def linkOrCopyInto(edge: Edge.LabeledProperty, nodeId: NodeId, graph:Graph): GraphChanges = {
+  def linkOrCopyInto(edge: Edge.LabeledProperty, nodeId: NodeId, graph:Graph): GraphChanges = {
     graph.nodesById(edge.propertyId) match {
       case Some(node: Node.Content) if node.role == NodeRole.Neutral =>
         val copyNode = node.copy(id = NodeId.fresh)
