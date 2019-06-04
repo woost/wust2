@@ -35,8 +35,8 @@ object AssignedTasksView  {
       "Overdue",
       "Today",
       "Tomorrow",
-      "In a Week",
-      "In a Month",
+      "Within a Week",
+      "Within a Month",
     )
     val buckets = Array[EpochMilli](
       renderTime,
@@ -102,10 +102,9 @@ object AssignedTasksView  {
             val bucketName = bucketNames(idx)
             val coloringHeader = if (idx == 0) VDomModifier(cls := "red", color.red) else cls := "grey"
             foundSomething = true
-            UI.segment(
-              VDomModifier(coloringHeader, bucketName),
-              dueTasks.map(renderTask(state, focusState, _)),
-              segmentClass = "basic", segmentsClass = "basic"
+            VDomModifier(
+              h3(coloringHeader, bucketName, cls := "tasklist-header"),
+              div(cls := "tasklist",dueTasks.map(renderTask(state, focusState, _))),
             )
           }
         }
@@ -115,11 +114,10 @@ object AssignedTasksView  {
 
       Rx {
         val tasks = assignedTasksOther()
-        VDomModifier.ifTrue(tasks.nonEmpty)(UI.segment(
-          VDomModifier("Todo", cls := "grey"),
-          assignedTasksOther().map(renderTask(state, focusState, _)),
-          segmentClass = "basic", segmentsClass = "basic"
-        ))
+        VDomModifier.ifTrue(tasks.nonEmpty)(
+          h3("Todo", cls := "tasklist-header"),
+          div(cls := "tasklist", assignedTasksOther().map(renderTask(state, focusState, _))),
+        )
       },
 
       div(height := "20px") // padding bottom workaround in flexbox
@@ -133,7 +131,7 @@ object AssignedTasksView  {
     task.nodeId,
     showCheckbox = true,
     inOneLine = true
-  ).apply(margin := "8px")
+  )
 
   private def chooseUser(users: Rx[Seq[Node.User]], selectedUserId: Var[UserId])(implicit ctx: Ctx.Owner): VNode = {
     val close = PublishSubject[Unit]

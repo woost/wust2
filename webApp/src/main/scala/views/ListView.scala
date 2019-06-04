@@ -25,7 +25,6 @@ object ListView {
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     fieldAndList(state, focusState, TraverseState(focusState.focusedId)).apply(
-      cls := "listview",
       overflow.auto,
       padding := "5px",
       flexGrow := 2,
@@ -37,9 +36,7 @@ object ListView {
       keyed,
 
       addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
-
       renderInboxColumn(state, focusState, traverseState),
-
       renderToplevelColumns(state, focusState, traverseState),
     )
   }
@@ -53,8 +50,6 @@ object ListView {
       showCheckbox = true,
       isDone = isDone,
       inOneLine = true
-    ).apply(
-      margin := "2px 4px",
     )
   }
 
@@ -88,11 +83,11 @@ object ListView {
 
     //      registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
     div(
+      cls := "tasklist",
       minHeight := KanbanView.sortableAreaMinHeight,
 
       Styles.flex,
       flexDirection.columnReverse,
-      paddingTop := "1px", // space for nodecard shadow
 
       Rx {
         VDomModifier(
@@ -146,7 +141,6 @@ object ListView {
     VDomModifier(
       marginTop := "10px",
       div(
-        //TODO: onlick toggle expand
         fontSize.larger,
         paddingLeft := "5px",
         opacity := 0.6,
@@ -165,6 +159,7 @@ object ListView {
         VDomModifier.ifTrue(isExpanded())(
           (
             div(
+              cls := "tasklist",
               flexGrow := 2,
               Styles.flex,
               flexDirection.columnReverse,

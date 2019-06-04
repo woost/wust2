@@ -779,14 +779,35 @@ object CommonStyles extends StyleSheet.Standalone {
 
   val tagMarginPx = 2
   val tagMargin = tagMarginPx.px
-  ".listview .nodecard-content," +
+  val listViewLeftMargin = 4.px
+  ".tasklist .nodecard-content," +
   ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
     padding(8 px, 8 px, (8 - tagMarginPx).px, 8 px),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
   )
 
-  ".listview .nodecard > .checkbox" - (
-    marginTop(9 px),
-    marginLeft(9 px),
+  ".tasklist" - (
+    paddingTop(1 px), // space for nodecard shadow
+    Styles.flex,
+    flexDirection.column,
+
+    &(".nodecard") - (
+      margin(2 px, listViewLeftMargin)
+    ),
+
+    &(".nodecard > .checkbox") - (
+      marginTop(9 px),
+      marginLeft(9 px),
+    ),
+
+    &(".nodecard-content > .markdown") - (
+      marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
+    )
+  )
+
+  ".tasklist-header" - (
+    fontSize(15 px),
+    marginBottom(0 px),
+    marginLeft(listViewLeftMargin),
   )
 
   ".nodecard-content pre" - (
@@ -795,10 +816,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard-content a" - (
     cursor.pointer.important
-  )
-
-  ".listview .nodecard-content > .markdown" - (
-    marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
   )
 
   ".markdown ul, .markdown ol" - (

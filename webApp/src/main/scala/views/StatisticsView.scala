@@ -65,13 +65,4 @@ object StatisticsView  {
       )
     )
   }
-
-  private def renderTask(state: GlobalState, focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(
-    state,
-    focusState,
-    TraverseState(task.parentId),
-    task.nodeId,
-    showCheckbox = true,
-    inOneLine = true
-  ).apply(margin := "8px")
 }
