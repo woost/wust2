@@ -324,7 +324,6 @@ object EditableContent {
   private def basicModifiers[T](config: Config, handler: Handler[EditInteraction[T]]) = VDomModifier(
     width := "100%",
     style("user-select") := "text", // fix for macos safari (contenteditable should already be selectable, but safari seems to have troube with interpreting `:not(input):not(textarea):not([contenteditable=true])`)
-    whiteSpace.preWrap, // preserve white space in Markdown code
     config.modifier,
     showErrorsInside(handler)
   )
@@ -333,6 +332,7 @@ object EditableContent {
     VDomModifier.ifTrue(config.selectTextOnFocus)(
       onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
     ),
+    whiteSpace.preWrap, // preserve white space in Markdown code
     onClick.stopPropagation --> Observer.empty, // prevent e.g. selecting node, but only when editing
     onDomMount.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
     onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
