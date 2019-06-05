@@ -114,14 +114,17 @@ object KanbanView {
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
       keyed,
-      p(
-        cls := "kanban-uncategorized-title",
-        Styles.flex,
-        justifyContent.spaceBetween,
-        alignItems.center,
-        "Inbox / Todo",
+      div(
+        cls := "kanbancolumnheader",
         div(
+          cls := "kanbancolumntitle kanban-uncategorized-title",
+          div(cls := "markdown", p("Inbox / Todo")), // to be consistent with other column headers
+        ),
+        position.relative, // for buttonbar
+        div(
+          position.absolute,
           cls := "buttonbar",
+          position.absolute, top := "0", right := "0",
           VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
           drag(DragItem.DisableDrag),
           Styles.flex,

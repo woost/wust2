@@ -913,7 +913,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanban-uncategorized-title" - (
-    padding(5 px),
     color(c"rgba(0, 0, 0, 0.62)"),
   )
 
