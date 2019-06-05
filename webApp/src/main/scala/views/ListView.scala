@@ -88,8 +88,6 @@ object ListView {
     div(
       cls := "tasklist",
       VDomModifier.ifTrue(isCompact)(cls := "compact"),
-
-      Styles.flex,
       flexDirection.columnReverse,
 
       Rx {
@@ -164,7 +162,7 @@ object ListView {
           (
             div(
               cls := "tasklist",
-              flexGrow := 2,
+              VDomModifier.ifTrue(isCompact)(cls := "compact"),
               flexDirection.columnReverse,
 
               Rx {
