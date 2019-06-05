@@ -780,9 +780,13 @@ object CommonStyles extends StyleSheet.Standalone {
   val tagMarginPx = 2
   val tagMargin = tagMarginPx.px
   val listViewLeftMargin = 4.px
-  ".tasklist .nodecard-content," +
+  val taskPaddingPx = 8
+  val taskPadding = taskPaddingPx.px
+  val taskPaddingCompactPx = 4
+  val taskPaddingCompact = taskPaddingCompactPx.px
+
   ".kanbancolumnchildren > .nodecard > .nodecard-content" - (
-    padding(8 px, 8 px, (8 - tagMarginPx).px, 8 px),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
+    padding(taskPadding),
   )
 
   ".tasklist" - (
@@ -794,17 +798,34 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
     &(".nodecard") - (
-      margin(2 px, listViewLeftMargin)
+      margin(2 px, listViewLeftMargin),
+
+      &(".nodecard-content") - (
+        padding(taskPadding, taskPadding, (taskPaddingPx - tagMarginPx).px, taskPadding),// we substract tagMargin to achieve a consistent height of node-cards with and without tags in the same line
+      ),
+
+      &(".nodecard-content > .markdown") - (
+        marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
+      )
     ),
 
     &(".nodecard > .checkbox") - (
-      marginTop(9 px),
-      marginLeft(9 px),
+      marginTop((taskPaddingPx + 1) px),
+      marginLeft((taskPaddingPx + 1) px),
+    ),
+  )
+
+  ".tasklist.compact" - (
+    &(".nodecard") - (
+      &(".nodecard-content") - (
+        padding(taskPaddingCompact, taskPaddingCompact, (taskPaddingCompactPx - tagMarginPx).px, taskPaddingCompact),// we substract tagMargin to achieve a consistent height of node-cards with and without tags
+      ),
     ),
 
-    &(".nodecard-content > .markdown") - (
-      marginBottom(tagMargin), // to achieve a consistent height of node-cards with and without tags
-    )
+    &(".nodecard > .checkbox") - (
+      marginTop((taskPaddingCompactPx + 1) px),
+      marginLeft((taskPaddingCompactPx + 1) px),
+    ),
   )
 
   ".tasklist-header" - (

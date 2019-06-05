@@ -61,7 +61,7 @@ object KanbanView {
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     nodeRole match {
-      case NodeRole.Task => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds)
+      case NodeRole.Task => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
       case NodeRole.Stage => renderColumn(state, focusState, traverseState, nodeId, selectedNodeIds, isTopLevel = isTopLevel)
       case _ => VDomModifier.empty
     }
@@ -138,7 +138,7 @@ object KanbanView {
         children.map { children =>
           VDomModifier(
             registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children)),
-            children.map(nodeId => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds))
+            children.map(nodeId => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true))
           )
         }
       ),

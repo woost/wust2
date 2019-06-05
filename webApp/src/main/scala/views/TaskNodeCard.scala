@@ -9,7 +9,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp.outwatchHelpers._
 import rx._
-import wust.css.Styles
+import wust.css.{CommonStyles, Styles, ZIndex}
 import wust.util.collection._
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
@@ -57,6 +57,8 @@ object TaskNodeCard {
     showCheckbox:Boolean = false,
     isDone:Boolean = false, //TODO decide here reactively based on parent and focusState...
     inOneLine: Boolean = false,
+    isCompact: Boolean = false,
+    compactChildren: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
@@ -185,7 +187,7 @@ object TaskNodeCard {
       propertySingle().isEmpty // optimize for empty property because properties are array and are therefore never equal
     }
 
-    val cardDescription = VDomModifier(
+    val tagsPropertiesAssignments = VDomModifier(
       Styles.flex,
       flexWrap.wrap,
 
@@ -285,7 +287,7 @@ object TaskNodeCard {
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
             VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
-            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px"), // marginRight to not interfere with button bar...
+            VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, tagsPropertiesAssignments, marginRight := "40px"), // marginRight to not interfere with button bar...
             VDomModifier.ifNot(showCheckbox)(
               marginLeft := "2px"
             )
@@ -303,13 +305,17 @@ object TaskNodeCard {
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
 
-      VDomModifier.ifNot(inOneLine)(div(margin := "0 3px", alignItems.center, cardDescription)),
+      VDomModifier.ifNot(inOneLine)(div(
+        margin := "0 3px",
+        marginLeft := s"${if(isCompact) CommonStyles.taskPaddingCompactPx else CommonStyles.taskPaddingPx}px",
+        alignItems.center, tagsPropertiesAssignments
+      )),
       cardFooter,
 
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine).apply(
+          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),
@@ -324,6 +330,7 @@ object TaskNodeCard {
   })
 
   //TODO: this is a less performant duplicate of renderThunk. rewrite all usages to renderThunk.
+  @deprecated("Use the new thunk version instead", "")
   def render(
     state: GlobalState,
     node: Node,
@@ -333,6 +340,8 @@ object TaskNodeCard {
     showCheckbox:Boolean = false,
     isDone:Boolean = false,
     inOneLine: Boolean = false,
+    isCompact: Boolean = false,
+    compactChildren: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
@@ -541,9 +550,6 @@ object TaskNodeCard {
       contentInject = VDomModifier(
         VDomModifier.ifTrue(isDone)(textDecoration.lineThrough),
         VDomModifier.ifTrue(inOneLine)(alignItems.flexStart, cardDescription, marginRight := "40px"), // marginRight to not interfere with button bar...
-        VDomModifier.ifNot(showCheckbox)(
-          marginLeft := "2px"
-        )
       ),
       nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
     ).prepend(
@@ -568,7 +574,7 @@ object TaskNodeCard {
       Rx {
         val graph = state.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine).apply( // TODO: proper traverstate
+          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply( // TODO: proper traverstate
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             Components.drag(DragItem.DisableDrag),
