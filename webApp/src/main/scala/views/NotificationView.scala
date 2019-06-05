@@ -116,6 +116,7 @@ object NotificationView {
               button(
                 alignSelf.center,
                 marginLeft.auto,
+                marginRight := "0px",
                 cls := "ui tiny compact button",
                 "Mark everything as read",
 
