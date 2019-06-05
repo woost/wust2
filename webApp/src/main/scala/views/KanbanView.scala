@@ -113,6 +113,7 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
+      border := "2px solid #b3b3b3",
       keyed,
       div(
         cls := "kanbancolumnheader",
