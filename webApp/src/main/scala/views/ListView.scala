@@ -24,24 +24,52 @@ object ListView {
   import SharedViewElements._
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    fieldAndList(state, focusState, TraverseState(focusState.focusedId), inOneLine = true, isCompact = false).apply(
+    val marginBottomHack = VDomModifier(
+      position.relative,
+      div(position.absolute, top := "100%", width := "1px", height := "10px") // https://www.brunildo.org/test/overscrollback.html
+    )
+
+    fieldAndList(
+      state,
+      focusState,
+      TraverseState(focusState.focusedId),
+      inOneLine = true,
+      isCompact = false,
+      lastElementModifier = marginBottomHack,
+    ).apply(
       overflow.auto,
       padding := "5px",
       flexGrow := 2,
     )
   }
 
-  def fieldAndList(state: GlobalState, focusState: FocusState, traverseState: TraverseState, inOneLine: Boolean, isCompact:Boolean)(implicit ctx: Ctx.Owner) = {
+  def fieldAndList(
+    state: GlobalState,
+    focusState: FocusState,
+    traverseState: TraverseState,
+    inOneLine: Boolean,
+    isCompact:Boolean,
+    lastElementModifier: VDomModifier = VDomModifier.empty,
+  )(implicit ctx: Ctx.Owner):VNode = {
     div(
       keyed,
 
       addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
       renderInboxColumn(state, focusState, traverseState, inOneLine, isCompact),
-      renderToplevelColumns(state, focusState, traverseState, inOneLine, isCompact),
+      renderToplevelColumns(state, focusState, traverseState, inOneLine, isCompact)
+        .apply(lastElementModifier),
     )
   }
 
-  private def renderNodeCard(state: GlobalState, focusState: FocusState, traverseState: TraverseState, nodeId: NodeId, inOneLine:Boolean, isCompact: Boolean, isDone: Boolean): VNode = {
+  private def renderNodeCard(
+    state: GlobalState,
+    focusState: FocusState,
+    traverseState: TraverseState,
+    nodeId: NodeId,
+    inOneLine:Boolean,
+    isCompact: Boolean,
+    isDone: Boolean
+  ): VNode = {
     TaskNodeCard.renderThunk(
       state = state,
       focusState = focusState,
@@ -60,7 +88,7 @@ object ListView {
     traverseState: TraverseState,
     inOneLine: Boolean,
     isCompact:Boolean,
-  )(implicit ctx: Ctx.Owner): VDomModifier = {
+  )(implicit ctx: Ctx.Owner): VNode = {
     val columns = Rx {
       val graph = state.graph()
       KanbanData.columns(graph, traverseState)
@@ -78,7 +106,13 @@ object ListView {
     )
   }
 
-  private def renderInboxColumn(state: GlobalState, focusState: FocusState, traverseState: TraverseState, inOneLine:Boolean, isCompact:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderInboxColumn(
+    state: GlobalState,
+    focusState: FocusState,
+    traverseState: TraverseState,
+    inOneLine:Boolean,
+    isCompact:Boolean
+  )(implicit ctx: Ctx.Owner): VNode = {
     val children = Rx {
       val graph = state.graph()
       KanbanData.inboxNodes(graph, traverseState)
@@ -113,13 +147,37 @@ object ListView {
     parentIsDone: Boolean,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     nodeRole match {
-      case NodeRole.Task => renderNodeCard(state, focusState, traverseState, nodeId = nodeId, inOneLine = inOneLine, isCompact = isCompact, isDone = parentIsDone)
-      case NodeRole.Stage => renderColumn(state, focusState, traverseState, nodeId = nodeId, inOneLine = inOneLine, isCompact = isCompact)
+      case NodeRole.Task =>
+        renderNodeCard(
+          state,
+          focusState,
+          traverseState,
+          nodeId = nodeId,
+          inOneLine = inOneLine,
+          isCompact = isCompact,
+          isDone = parentIsDone
+        )
+      case NodeRole.Stage => 
+        renderColumn(
+          state,
+          focusState,
+          traverseState,
+          nodeId = nodeId,
+          inOneLine = inOneLine,
+          isCompact = isCompact
+        )
       case _ => VDomModifier.empty
     }
   }
 
-  private def renderColumn(state: GlobalState, focusState: FocusState, traverseState: TraverseState, nodeId: NodeId, inOneLine:Boolean, isCompact: Boolean): VNode = {
+  private def renderColumn(
+    state: GlobalState,
+    focusState: FocusState,
+    traverseState: TraverseState,
+    nodeId: NodeId,
+    inOneLine:Boolean,
+    isCompact: Boolean
+  ): VNode = {
     div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
       val isExpanded = Rx {
         val graph = state.graph()
@@ -168,7 +226,19 @@ object ListView {
               Rx {
                 VDomModifier(
                   registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                  children().map { case (id, role) => renderTaskOrStage(state, focusState, nextTraverseState, nodeId = id, nodeRole = role, parentIsDone = isDone(), inOneLine = inOneLine, isCompact = isCompact) }
+                  children().map {
+                    case (id, role) =>
+                      renderTaskOrStage(
+                        state,
+                        focusState,
+                        nextTraverseState,
+                        nodeId = id,
+                        nodeRole = role,
+                        parentIsDone = isDone(),
+                        inOneLine = inOneLine,
+                        isCompact = isCompact
+                      )
+                  }
                 )
               }
             )
