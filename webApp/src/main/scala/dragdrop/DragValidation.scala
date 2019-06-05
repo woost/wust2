@@ -98,7 +98,7 @@ object DragValidation {
     (payloadOpt, targetOpt) match {
      case (JSDefined(payload), JSDefined(target)) =>
        val successful = dragAction.runWith { calculateChange =>
-         state.eventProcessor.changes.onNext(calculateChange(state.graph.now, state.user.now.id))
+         state.eventProcessor.changes.onNext(calculateChange(state.rawGraph.now, state.user.now.id))
        }((payload, target, ctrl, shift))
 
        if(successful) {
