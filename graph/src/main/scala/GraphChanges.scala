@@ -7,6 +7,7 @@ import wust.util.macros.InlineList
 import scala.collection.{breakOut, mutable}
 import scala.reflect.ClassTag
 import wust.util.collection.HashSetFromArray
+import wust.util.algorithm.dfs
 
 case class GraphChanges(
   addNodes: Array[Node] = Array.empty,
@@ -287,10 +288,26 @@ object GraphChanges {
     GraphChanges.moveInto(graph, nodeIds, newParentIds)
   }
 
-  def movePinnedChannel(channelId: ChildId, sourceChannelId: Option[ParentId], targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = graph.idToIdxFold(channelId)(GraphChanges.empty) { channelIdx =>
+  def movePinnedChannel(channelId: ChildId, visibleSourceChannelId: Option[ParentId], targetChannelId: Option[ParentId], graph: Graph, userId: UserId): GraphChanges = graph.idToIdxFold(channelId)(GraphChanges.empty) { channelIdx =>
     // target == None means that channel becomes top-level
 
-    val disconnect: GraphChanges = GraphChanges.disconnect(Edge.Child)(sourceChannelId, channelId)
+    // the visibleSourceChannelId is the visual parent of the channelId. The visualize parent might have some nodes in between
+    // itself and the channelId. Therefore we search all parents of channelId that lie between channelId and visibleSourceChannelId.
+    val disconnect: GraphChanges = visibleSourceChannelId.fold(GraphChanges.empty) { visibleSourceChannelId =>
+      graph.idToIdxFold(visibleSourceChannelId)(GraphChanges.empty) { visibleSourceChannelIdx =>
+        val delEdges = Array.newBuilder[Edge]
+        graph.parentsIdx.foreachElement(channelIdx) { parentIdx =>
+          val canReachVisibleSourceChannel = dfs.exists(_(parentIdx), dfs.withStart, graph.parentsIdx, isFound = { parentIdx =>
+            parentIdx == visibleSourceChannelIdx
+          })
+
+          if (canReachVisibleSourceChannel) delEdges += Edge.Child(ParentId(graph.nodeIds(parentIdx)), channelId)
+        }
+
+        GraphChanges(delEdges = delEdges.result)
+      }
+    }
+
     val connect: GraphChanges = targetChannelId.fold(GraphChanges.empty) { targetChannelId =>
       GraphChanges.connect(Edge.Child)(targetChannelId, channelId)
     }
