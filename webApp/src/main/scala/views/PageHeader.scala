@@ -172,7 +172,7 @@ object PageHeader {
       Styles.flex,
       cls := "tiny-scrollbar",
       overflowX.auto, // make scrollable for long member lists
-      overflowY.visible, // auto and hidden behave differently in firefox/chrome ?!
+      overflowY.hidden, // wtf firefox and chrome...
       registerDragContainer(state),
       Rx {
         val graph = state.graph()
