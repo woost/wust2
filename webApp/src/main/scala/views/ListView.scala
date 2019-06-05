@@ -85,7 +85,6 @@ object ListView {
     //      registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
     div(
       cls := "tasklist",
-      minHeight := KanbanView.sortableAreaMinHeight,
 
       Styles.flex,
       flexDirection.columnReverse,
@@ -162,7 +161,6 @@ object ListView {
             div(
               cls := "tasklist",
               flexGrow := 2,
-              Styles.flex,
               flexDirection.columnReverse,
 
               Rx {

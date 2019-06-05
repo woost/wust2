@@ -787,8 +787,11 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".tasklist" - (
     paddingTop(1 px), // space for nodecard shadow
+    minHeight(20 px).important, // enough vertical space to drop tasks, important overwrites Styles.flex minheight
+
     Styles.flex,
-    flexDirection.column,
+    flexDirection.column, // make task margin work correctly
+
 
     &(".nodecard") - (
       margin(2 px, listViewLeftMargin)
