@@ -72,7 +72,7 @@ object Deps {
   val monix = dep("io.monix" %%% "monix" % "3.0.0-RC2-840c090")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
-  val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.5")
+  val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
   val kantanRegex = new {
     private val version = "0.4.0"
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
