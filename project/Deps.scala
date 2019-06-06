@@ -36,7 +36,7 @@ object Deps {
   // val boopickle = dep("com.github.suzaku-io.boopickle" %%% "boopickle-shapeless" % "680e03c")
   val boopickle = dep("io.suzaku" %%% "boopickle" % "1.3.1")
   val circe = new {
-    private val version = "0.10.0"
+    private val version = "0.11.1"
     val core = dep("io.circe" %%% "circe-core" % version)
     val generic = dep("io.circe" %%% "circe-generic" % version)
     val genericExtras = dep("io.circe" %%% "circe-generic-extras" % version)
