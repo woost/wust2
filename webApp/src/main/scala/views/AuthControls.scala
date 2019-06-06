@@ -23,10 +23,10 @@ import scala.scalajs.js
 
 object AuthControls {
 
-  def authStatus(state: GlobalState, buttonStyle: String = "inverted")(implicit ctx: Ctx.Owner): Rx[VNode] =
+  def authStatus(state: GlobalState, buttonStyleLoggedIn: String, buttonStyleLoggedOut: String)(implicit ctx: Ctx.Owner): Rx[VNode] =
     state.user.map {
-      case user: AuthUser.Assumed  => loginSignupButtons(state, buttonStyle).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => loginSignupButtons(state, buttonStyle).apply(Styles.flexStatic)
+      case user: AuthUser.Assumed  => loginSignupButtons(state, buttonStyleLoggedOut).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => loginSignupButtons(state, buttonStyleLoggedOut).apply(Styles.flexStatic)
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
@@ -45,7 +45,7 @@ object AuthControls {
             Analytics.sendEvent("authstatus", "avatar")
           },
         ),
-        logoutButton(state, buttonStyle)
+        logoutButton(state, buttonStyleLoggedIn)
       )
     }
 

@@ -102,7 +102,7 @@ object PageHeader {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
             ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
             FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
-            AuthControls.authStatus(state).map(_(Styles.flexStatic))
+            AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
         },
       ),

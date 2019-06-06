@@ -30,7 +30,7 @@ object Topbar {
         // wust.webApp.DevOnly(SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic)),
 
         FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
-        AuthControls.authStatus(state, buttonStyle = "primary")
+        AuthControls.authStatus(state, buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
       )
     })
   }
