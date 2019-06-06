@@ -87,7 +87,7 @@ object RightSidebar {
       onMouseDown.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       sidebarHeader.apply(Styles.flexStatic),
-      nodeContent(state, focusPref, parentIdAction).apply(Styles.flexStatic),
+      nodeContent(state, focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
 
       UI.accordion(
         content = Seq(
