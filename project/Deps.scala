@@ -20,7 +20,7 @@ object Deps {
   }
   val akka = new {
     private val version = "2.5.17"
-    private val httpVersion = "10.1.5"
+    private val httpVersion = "10.1.8"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.22.0")
