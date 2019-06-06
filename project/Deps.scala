@@ -4,6 +4,8 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 object Deps {
   import Def.{ setting => dep }
 
+  val silencerVersion = "1.4.1"
+
   val acyclicDef = "com.lihaoyi" %% "acyclic" % "0.1.9"
   val acyclic = dep(acyclicDef % "provided")
 

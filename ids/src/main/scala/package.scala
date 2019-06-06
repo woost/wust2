@@ -1,6 +1,6 @@
 package wust
 
-
+import com.github.ghik.silencer.silent
 import java.util.Date
 
 import supertagged._
@@ -67,6 +67,7 @@ package object ids {
     @inline def day: Long = 24L * hour
     @inline def week: Long = 7L * day
 
+    @silent("deprecated") 
     def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
 
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
@@ -78,6 +79,8 @@ package object ids {
       @inline def isAfter(that: EpochMilli): Boolean = t > that
       @inline def newest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) max (that:Long))
       @inline def oldest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) min (that:Long))
+
+      @silent("deprecated") 
       def humanReadable: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -91,6 +94,8 @@ package object ids {
         val second = d.getSeconds
         f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d:$second%02d"
       }
+
+      @silent("deprecated") 
       def isoDate: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -101,6 +106,8 @@ package object ids {
         val day = d.getDate
         f"$year%04d-$month%02d-$day%02d"
       }
+
+      @silent("deprecated") 
       def isoDateAndTime: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
