@@ -308,6 +308,7 @@ lazy val sdk = crossProject(JSPlatform, JVMPlatform)
         Deps.monix.value ::
         Deps.colorado.value ::
         Deps.oAuthClient.value ::
+        Deps.akka.testkit.value ::
         Deps.akka.httpTestkit.value ::
         Nil
   )
