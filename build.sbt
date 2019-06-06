@@ -23,8 +23,8 @@ lazy val commonSettings = Seq(
       ("jitpack" at "https://jitpack.io") ::
       Resolver.sonatypeRepo("releases") ::
       Nil,
-  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.8"),
   addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.2.4"),
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
   libraryDependencies ++=
     Deps.scribe.core.value ::
       Deps.scribe.perfolation.value ::
