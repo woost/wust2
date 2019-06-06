@@ -204,7 +204,7 @@ object InputRow {
 
         )
       ),
-      fileUploadHandler.map(uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
+      fileUploadHandler.map(UploadComponents.uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
       VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic))
     )
   }

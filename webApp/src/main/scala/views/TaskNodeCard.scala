@@ -151,7 +151,7 @@ object TaskNodeCard {
       div(
         cls := "buttonbar",
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
-        Components.drag(DragItem.DisableDrag),
+        DragComponents.drag(DragItem.DisableDrag),
         Styles.flex,
         toggleExpand,
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(toggleDelete)
@@ -300,7 +300,7 @@ object TaskNodeCard {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
 
-      if (isDone) opacity := 0.6 else Components.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
+      if (isDone) opacity := 0.6 else DragComponents.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
 
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
@@ -318,7 +318,7 @@ object TaskNodeCard {
           ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
-            Components.drag(DragItem.DisableDrag),
+            DragComponents.drag(DragItem.DisableDrag),
           ),
           paddingBottom := "0px",
         )
@@ -430,7 +430,7 @@ object TaskNodeCard {
       div(
         cls := "buttonbar",
         VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
-        Components.drag(DragItem.DisableDrag),
+        DragComponents.drag(DragItem.DisableDrag),
         Styles.flex,
         toggle,
         toggleDelete
@@ -563,7 +563,7 @@ object TaskNodeCard {
       Rx {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
-      VDomModifier.ifNot(isDone)(Components.drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
+      VDomModifier.ifNot(isDone)(DragComponents.drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
       keyed(node.id.toStringFast),
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
@@ -577,7 +577,7 @@ object TaskNodeCard {
           ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply( // TODO: proper traverstate
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
-            Components.drag(DragItem.DisableDrag),
+            DragComponents.drag(DragItem.DisableDrag),
           ),
           paddingBottom := "0px",
         )

@@ -29,9 +29,3 @@ case class FocusState(
   viewAction: View => Unit, // change the view
   contextParentIdAction: NodeId => Unit // change the contextParentId
 )
-
-object FocusState {
-  def fromGlobal(state: GlobalState, viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
-    FocusState(viewConfig.view, parentId, parentId, isNested = false, view => state.urlConfig.update(_.focus(view)), nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
-  }
-}

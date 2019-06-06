@@ -87,7 +87,7 @@ object GraphChangesAutomationUI {
                 PageHeader.channelMembers(state, state.page.now.parentId.get),
               ),
 
-              Components.registerDragContainer(state),
+              DragComponents.registerDragContainer(state),
 
               div(
                 Styles.flex,
@@ -146,7 +146,7 @@ object GraphChangesAutomationUI {
                         state.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
                       ),
 
-                      DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => Components.drag(target = dragItem)),
+                      DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
                       Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
                     ).prepend(
                       b(color.gray, templateNode.role.toString)

@@ -19,9 +19,10 @@ import wust.sdk.NodeColor._
 import wust.util.time.time
 import wust.util.macros.InlineList
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, FocusState, FocusPreference}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState}
 import wust.webApp.views.Components._
 import flatland._
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.concurrent.Promise
 import scala.scalajs.js

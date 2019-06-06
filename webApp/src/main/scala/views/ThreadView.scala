@@ -24,8 +24,9 @@ import monix.reactive.Observable
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, ScreenSize, Placeholder}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder, ScreenSize}
 import wust.webApp.views.Components._
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.Elements._
 
 import scala.collection.breakOut

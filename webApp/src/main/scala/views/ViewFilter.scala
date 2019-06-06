@@ -153,7 +153,7 @@ object ViewFilter {
         input(
           `type` := "text",
           placeholder := "Filter",
-          value <-- Elements.clearOnPageSwitch(state),
+          value <-- clearOnPageSwitch(state),
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if(needle.length < 2) baseTransform
@@ -164,7 +164,11 @@ object ViewFilter {
       )
     )
   }
-
+  def clearOnPageSwitch(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
+    state.page.foreach(_ => clear.onNext(()))
+    clear
+  }
 }
 
 

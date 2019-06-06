@@ -9,14 +9,15 @@ import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.css.{CommonStyles, Styles}
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
-import wust.webApp.{ItemProperties, Icons}
+import wust.webApp.{Icons, ItemProperties}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import Components._
-import scala.collection.mutable
+import wust.webApp.views.DragComponents.registerDragContainer
 
+import scala.collection.mutable
 import scala.collection.breakOut
 
 object TableView {
@@ -128,7 +129,7 @@ object TableView {
             ),
             rowModifier = VDomModifier(
               Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id),
-              DragItem.fromNodeRole(property.node.id, property.node.role).map(item => Components.drag(target = item))
+              DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
             )
           )
         }(breakOut)

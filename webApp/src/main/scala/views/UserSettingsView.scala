@@ -134,7 +134,7 @@ object UserSettingsView {
                 flexDirection.row,
                 justifyContent.spaceBetween,
                 alignItems.center,
-                Components.renderUploadedFile(state, nodeId, file),
+                UploadComponents.renderUploadedFile(state, nodeId, file),
                 div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
                 button(cls := "ui negative button", "Delete file", onClick.foreach {
                   val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
@@ -377,7 +377,7 @@ object UserSettingsView {
           Styles.flex,
           justifyContent.center,
           fontSize := "25px",
-          woostIcon(marginRight := "10px"),
+          WoostLogoComponents.woostIcon(marginRight := "10px"),
           (Icons.sync: VNode) (marginRight := "10px"),
           (icon: VNode),
           marginBottom := "5px",

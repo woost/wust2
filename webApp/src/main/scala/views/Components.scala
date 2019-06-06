@@ -1,38 +1,32 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import wust.sdk.{BaseColors, NodeColor}
 import cats.effect.IO
 import emojijs.EmojiConvertor
-import fomanticui.{SearchOptions, SearchSourceEntry, ToastOptions}
+import fomanticui.{SearchOptions, SearchSourceEntry}
 import fontAwesome._
-import googleAnalytics.Analytics
+import jquery.JQuerySelection
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.document
-import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import jquery.JQuerySelection
-import wust.api.UploadedFile
-import wust.css.{CommonStyles, Styles, ZIndex}
+import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor._
-import wust.util.macros.InlineList
+import wust.sdk.{BaseColors, Colors, NodeColor}
 import wust.util.StringOps._
 import wust.util._
+import wust.util.macros.InlineList
 import wust.webApp._
 import wust.webApp.dragdrop._
-import wust.webApp.jsdom.{FileReaderOps, IntersectionObserver, IntersectionObserverOptions}
+import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState, PageChange, UploadingFile}
+import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState}
 import wust.webApp.views.Elements._
-import wust.webApp.views.UI.ModalConfig
+import wust.webApp.views.UploadComponents._
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -122,109 +116,6 @@ object Components {
     renderNodeCard(node, contentInject = renderAsOneLineText, projectWithIcon = projectWithIcon)
   }
 
-  def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
-    import file._
-
-    val maxImageHeight = "250px"
-
-    def downloadUrl(attr: AttributeBuilder[String, VDomModifier]): VDomModifier = state.fileDownloadBaseUrl.map(_.map(baseUrl => attr := baseUrl + "/" + key))
-    def preview(dataUrl: String): VDomModifier = {
-      file.contentType match {
-        case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
-        case _                           => VDomModifier(height := "150px", width := "300px")
-      }
-    }
-    def centerStyle = VDomModifier(
-      Styles.flex,
-      Styles.flexStatic,
-      alignItems.center,
-      flexDirection.column,
-      justifyContent.spaceEvenly
-    )
-    def overlay = VDomModifier(
-      background := "rgba(255, 255, 255, 0.8)",
-      position.absolute,
-      Styles.growFull
-    )
-
-    def downloadLink = a(downloadUrl(href), s"Download ${file.fileName}", onClick.stopPropagation --> Observer.empty)
-
-    div(
-      if (file.key.isEmpty) { // this only happens for currently-uploading files
-        VDomModifier(
-          file.fileName,
-          Rx {
-            val uploadingFiles = state.uploadingFiles()
-            uploadingFiles.get(nodeId) match {
-              case Some(UploadingFile.Error(dataUrl, retry)) => div(
-                preview(dataUrl),
-                position.relative,
-                centerStyle,
-                div(
-                  overlay,
-                  centerStyle,
-                  div(freeSolid.faExclamationTriangle, " Error Uploading File"),
-                  button(cls := "ui button", "Retry upload", onClick.stopPropagation.foreach { retry.runAsyncAndForget }, cursor.pointer)
-                )
-              )
-              case Some(UploadingFile.Waiting(dataUrl)) => div(
-                preview(dataUrl),
-                position.relative,
-                centerStyle,
-                woostLoadingAnimation.apply(overlay, centerStyle)
-              )
-              case None => VDomModifier.empty
-            }
-          }
-        )
-      } else VDomModifier(
-        p(downloadLink),
-        contentType match {
-          case t if t.startsWith("image/") =>
-            val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
-            image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              state.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
-              ()
-            })
-            //TODO pdf preview does not work with "content-disposition: attachment"-header
-//          case "application/pdf"           =>
-//            val embeddedPdf = htmlTag("object")(downloadUrl(data), dsl.tpe := "application/pdf")
-//            embeddedPdf(maxHeight := maxImageHeight, width := "100%")
-          case _                           => VDomModifier.empty
-        }
-      )
-    )
-  }
-
-  private val woostPathCurve = "m51.843 221.96c81.204 0-6.6913-63.86 18.402 13.37 25.093 77.23 58.666-26.098-7.029 21.633-65.695 47.73 42.949 47.73-22.746 0-65.695-47.731-32.122 55.597-7.029-21.633 25.093-77.23-62.802-13.37 18.402-13.37z"
-  val woostIcon = {
-    import svg._
-    svg.thunkStatic(uniqueKey)(VDomModifier(
-      cls := "svg-inline--fa fa-w-14",
-      viewBox := "0 0 10 10",
-      g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
-        path(d := woostPathCurve, fill := "currentColor")
-      )
-    ))
-  }
-
-
-  val woostLoadingAnimation: VNode = {
-    val lineColor = Colors.woost
-    div(
-      {
-        import svg._
-        svg(
-          width := "100px", height := "100px", viewBox := "0 0 10 10",
-          g(transform := "matrix(.096584 0 0 .096584 -.0071925 -18.66)",
-            path(cls := "woost-loading-animation-logo", d := woostPathCurve, fill := "none", stroke := lineColor, strokeLineCap := "round", strokeWidth := "3.5865", pathLength := "100")
-            )
-          )
-      },
-      p("LOADING", marginTop := "16px", dsl.color := "rgba(31, 42, 51, 0.6)", textAlign.center, letterSpacing := "0.05em", fontWeight := 700, fontSize := "15px")
-    )
-  }
-
   // FIXME: Ensure unique DM node that may be renamed.
   def onClickDirectMessage(state: GlobalState, dmUser: Node.User): VDomModifier = {
     val user = state.user.now
@@ -262,32 +153,6 @@ object Components {
         UI.tooltip := s"Start Conversation with ${displayUserName(dmUser.data)}"
       )
     })
-  }
-
-  def woostLoadingAnimationWithFadeIn = woostLoadingAnimation(cls := "animated-fadein")
-
-  def spaceFillingLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
-    div(
-      Styles.flex,
-      alignItems.center,
-      justifyContent.center,
-      flexDirection.column,
-      Styles.growFull,
-
-      woostLoadingAnimationWithFadeIn,
-
-      div(
-        cls := "animated-late-fadein",
-        Styles.flex,
-        alignItems.center,
-
-        fontSize.xSmall,
-        marginTop := "20px",
-
-        span("Loading forever?", marginRight := "10px"),
-        button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
-      )
-    )
   }
 
   private def renderNodeTag(state: GlobalState, tag: Node, injected: VDomModifier, pageOnClick: Boolean): VNode = {
@@ -402,7 +267,7 @@ object Components {
       Styles.flex,
       alignItems.center,
 
-      drag(DragItem.Property(key), target = DragItem.DisableDrag),
+      DragComponents.drag(DragItem.Property(key), target = DragItem.DisableDrag),
 
       div(
         alignSelf.flexStart,
@@ -441,7 +306,7 @@ object Components {
       UI.tooltip("top right") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
       onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> state.eventProcessor.changes,
-      drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
+      DragComponents.drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
     )
   }
 
@@ -457,34 +322,6 @@ object Components {
     }, pageOnClick)
   }
 
-
-    def checkboxNodeTag(
-      state: GlobalState,
-      tagNode: Node,
-      tagModifier: VDomModifier = VDomModifier.empty,
-      pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
-      withAutomation: Boolean = false,
-    )(implicit ctx: Ctx.Owner): VNode = {
-
-      div( // checkbox and nodetag are both inline elements because of fomanticui
-        cls := "tagWithCheckbox",
-        Styles.flex,
-        alignItems.center,
-        div(
-          Styles.flexStatic,
-          cls := "ui checkbox",
-          ViewFilter.addFilterCheckbox(
-            state,
-            tagNode.str, // TODO: renderNodeData
-            GraphOperation.OnlyTaggedWith(tagNode.id)
-          ),
-          label(), // needed for fomanticui
-        ),
-        nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
-        VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible).apply(cls := "singleButtonWithBg", marginLeft.auto)),
-      )
-    }
 
     def removableAssignedUser(state: GlobalState, user: Node.User, assignedNodeId: NodeId): VNode = {
       renderUser(user).apply(
@@ -510,7 +347,7 @@ object Components {
       state: GlobalState,
       tag: Node,
       pageOnClick: Boolean = false,
-      dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+      dragOptions: NodeId => VDomModifier = nodeId => DragComponents.drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
       val contentString = renderAsOneLineText(tag)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
@@ -713,76 +550,7 @@ object Components {
       )
     }
 
-    def readDragTarget(elem: dom.html.Element): js.UndefOr[DragTarget] = {
-      readPropertyFromElement[DragTarget](elem, DragItem.targetPropName)
-    }
-
-    def readDragPayload(elem: dom.html.Element): js.UndefOr[DragPayload] = {
-      readPropertyFromElement[DragPayload](elem, DragItem.payloadPropName)
-    }
-
-    def writeDragPayload(elem: dom.html.Element, dragPayload: => DragPayload): Unit = {
-      writePropertyIntoElement(elem, DragItem.payloadPropName, dragPayload)
-    }
-
-    def readDragContainer(elem: dom.html.Element): js.UndefOr[DragContainer] = {
-      readPropertyFromElement[DragContainer](elem, DragContainer.propName)
-    }
-
-    def readDraggableDraggedAction(elem: dom.html.Element): js.UndefOr[() => Unit] = {
-      readPropertyFromElement[() => Unit](elem, DragItem.draggedActionPropName)
-    }
-
-    def dragWithHandle(item: DragPayloadAndTarget):VDomModifier = dragWithHandle(item,item)
-    def dragWithHandle(
-      payload: => DragPayload = DragItem.DisableDrag,
-      target: DragTarget = DragItem.DisableDrag,
-    ): VDomModifier = {
-      @inline def disableDrag = payload.isInstanceOf[DragItem.DisableDrag.type]
-      VDomModifier(
-        //TODO: draggable bug: draggable sets display:none, then does not restore the old value https://github.com/Shopify/draggable/issues/318
-        cls := "draggable", // makes this element discoverable for the Draggable library
-        cls := "drag-feedback", // visual feedback for drag-start
-        onMouseDown.stopPropagation --> Observer.empty, // don't trigger global onMouseDown (e.g. closing right sidebar) when dragging
-        VDomModifier.ifTrue(disableDrag)(cursor.auto), // overwrites cursor set by .draggable class
-        prop(DragItem.payloadPropName) := (() => payload),
-        prop(DragItem.targetPropName) := (() => target),
-      )
-    }
-    def drag(item: DragPayloadAndTarget):VDomModifier = drag(item,item)
-    def drag(
-      payload: => DragPayload = DragItem.DisableDrag,
-      target: DragTarget = DragItem.DisableDrag,
-    ): VDomModifier = {
-      VDomModifier(dragWithHandle(payload, target), cls := "draghandle")
-    }
-
-    def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
-      VDomModifier(
-        //          border := "2px solid violet",
-        outline := "none", // hides focus outline
-        container match {
-          case _:SortableContainer => cls := "sortable-container"
-          case _ => cls := "draggable-container"
-        },
-        snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
-
-        prop(DragContainer.propName) := (() => container),
-        managedElement.asHtml { elem =>
-          state.sortable.addContainer(elem)
-          Cancelable { () => state.sortable.removeContainer(elem) }
-        }
-      )
-    }
-
-    def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
-      EmitterBuilder.ofModifier[Unit] { sink =>
-        IO {
-          prop(DragItem.draggedActionPropName) := (() => () => sink.onNext(Unit))
-        }
-      }
-
-    def nodeAvatar(node: Node, size: Int): VNode = {
+  def nodeAvatar(node: Node, size: Int): VNode = {
       Avatar(node)(
         width := s"${ size }px",
         height := s"${ size }px"
@@ -982,75 +750,6 @@ object Components {
         }
       )
     })
-
-    def defaultFileUploadHandler(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
-      val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
-
-      fileUploadHandler.foreach(_.foreach { uploadFile =>
-        AWS.uploadFileAndCreateNode(state, uploadFile, nodeId => GraphChanges.addToParent(ChildId(nodeId), ParentId(focusedId)) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
-          fileUploadHandler() = None
-        }
-      })
-
-      fileUploadHandler
-    }
-
-    def uploadFieldModifier(selected: Observable[Option[dom.File]], fileInputId: String, tooltipDirection: String = "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
-
-      val iconAndPopup:Observable[(VNode, Option[VNode])] = selected.prepend(None).map {
-        case None =>
-          (span(Icons.fileUpload), None)
-        case Some(file) =>
-          val popupNode = file.`type` match {
-            case t if t.startsWith("image/") =>
-              val dataUrl = dom.URL.createObjectURL(file)
-              img(src := dataUrl, height := "100px", maxWidth := "400px") //TODO: proper scaling and size restriction
-            case _ => div(file.name)
-          }
-          val icon = VDomModifier(
-            Icons.fileUpload,
-            color := "orange",
-          )
-
-          (span(icon), Some(popupNode))
-      }
-
-      val onDragOverModifier = Handler.unsafe[VDomModifier]
-
-      VDomModifier(
-        label(
-          forId := fileInputId, // label for input will trigger input element on click.
-
-          iconAndPopup.map { case (icon, popup) =>
-            VDomModifier(
-              popup.map(UI.popupHtml(tooltipDirection) := _),
-              div(icon, cls := "icon")
-            )
-          },
-          cls := "ui circular basic icon button",
-          fontSize := "1.1em", // same size as submit-button in Chat/InputRow
-        ),
-
-        onDragOverModifier,
-        onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
-        onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
-        onDragOver.preventDefault --> Observer.empty,
-
-        onDrop.preventDefault.foreach { ev =>
-          val elem = document.getElementById(fileInputId).asInstanceOf[dom.html.Input]
-          elem.files = ev.dataTransfer.files
-        },
-      )
-    }
-
-    def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
-      implicit val context = EditContext(state)
-
-      EditableContent.editorRx[AWS.UploadableFile](selected, config = EditableContent.Config(
-        errorMode = EditableContent.ErrorMode.ShowToast,
-        submitMode = EditableContent.SubmitMode.Off
-      )).apply(marginLeft := "3px")
-    }
 
   def removeableList[T](elements: Seq[T], removeSink: Observer[T], tooltip: Option[String] = None)(renderElement: T => VDomModifier): VNode = {
     div(

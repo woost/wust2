@@ -15,7 +15,8 @@ import wust.webApp.{ Client, DevOnly, Ownable, WoostNotification, BrowserDetect 
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{ FocusState, GlobalState, PageStyle, ScreenSize }
 import wust.webApp.views.Components._
-import scala.concurrent.duration._
+import fontAwesome.freeSolid
+import org.scalajs.dom
 
 import scala.concurrent.Future
 import scala.util.Success
@@ -100,7 +101,7 @@ object MainView {
       //TODO: combine with second rx! but it does not work because it would not overlay everthing as it does now.
       Rx {
         VDomModifier.ifTrue(viewIsContent()) (
-          if (state.isLoading()) Components.spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
+          if (state.isLoading()) spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
           else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
           else VDomModifier.empty
         )
@@ -122,7 +123,7 @@ object MainView {
           Rx {
             val viewConfig = state.viewConfig()
 
-            ViewRender(state, FocusState.fromGlobal(state, viewConfig), viewConfig.view).apply(
+            ViewRender(state, state.toFocusState(viewConfig), viewConfig.view).apply(
               Styles.growFull,
               flexGrow := 1
             ).prepend(
@@ -145,4 +146,29 @@ object MainView {
       ),
     )
   }
+
+  def spaceFillingLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
+    div(
+      Styles.flex,
+      alignItems.center,
+      justifyContent.center,
+      flexDirection.column,
+      Styles.growFull,
+
+      WoostLogoComponents.woostLoadingAnimationWithFadeIn,
+
+      div(
+        cls := "animated-late-fadein",
+        Styles.flex,
+        alignItems.center,
+
+        fontSize.xSmall,
+        marginTop := "20px",
+
+        span("Loading forever?", marginRight := "10px"),
+        button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+      )
+    )
+  }
+
 }

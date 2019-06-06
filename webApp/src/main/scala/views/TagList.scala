@@ -25,6 +25,7 @@ import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
@@ -100,7 +101,7 @@ object TagList {
 
     def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
       state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
-    ), dragOptions = id => drag(DragItem.Tag(id)), withAutomation = true)
+    ), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
     def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
       case Tree.Leaf(node) =>
@@ -121,6 +122,35 @@ object TagList {
       addTagField(state, parentId = workspaceId, workspaceId = workspaceId, newTagFieldActive = newTagFieldActive).apply(marginTop := "10px"),
     )
   }
+
+  def checkboxNodeTag(
+    state: GlobalState,
+    tagNode: Node,
+    tagModifier: VDomModifier = VDomModifier.empty,
+    pageOnClick: Boolean = false,
+    dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
+    withAutomation: Boolean = false,
+  )(implicit ctx: Ctx.Owner): VNode = {
+
+    div( // checkbox and nodetag are both inline elements because of fomanticui
+      cls := "tagWithCheckbox",
+      Styles.flex,
+      alignItems.center,
+      div(
+        Styles.flexStatic,
+        cls := "ui checkbox",
+        ViewFilter.addFilterCheckbox(
+          state,
+          tagNode.str, // TODO: renderNodeData
+          GraphOperation.OnlyTaggedWith(tagNode.id)
+        ),
+        label(), // needed for fomanticui
+      ),
+      nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
+      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible).apply(cls := "singleButtonWithBg", marginLeft.auto)),
+    )
+  }
+
 
   private def addTagField(
     state: GlobalState,

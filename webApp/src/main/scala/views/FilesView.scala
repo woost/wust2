@@ -26,7 +26,7 @@ object FilesView {
       keyed,
       padding := "20px",
       overflow.auto,
-      Components.uploadField(state, Components.defaultFileUploadHandler(state, focusState.focusedId)),
+      UploadComponents.uploadField(state, UploadComponents.defaultFileUploadHandler(state, focusState.focusedId)),
       UI.horizontalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
@@ -35,7 +35,7 @@ object FilesView {
           flexDirection.row,
           flexWrap.wrap,
           files.map { case (id, file, date) =>
-            Components.renderUploadedFile(state, id, file).apply(
+            UploadComponents.renderUploadedFile(state, id, file).apply(
               cls := "ui bordered medium",
               padding := "10px",
               margin := "10px",

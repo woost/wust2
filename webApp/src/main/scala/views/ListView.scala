@@ -15,10 +15,11 @@ import flatland._
 import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, TraverseState, Placeholder}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import wust.util.collection._
+import wust.webApp.views.DragComponents.registerDragContainer
 
 object ListView {
   import SharedViewElements._

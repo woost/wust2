@@ -305,7 +305,7 @@ object EditElementParser {
             case _ => VDomModifier.empty
           }
         ),
-        Components.uploadFieldModifier(handler.map(_.toOption), randomId)
+        UploadComponents.uploadFieldModifier(handler.map(_.toOption), randomId)
       )
     }
   }

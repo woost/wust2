@@ -21,6 +21,7 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import scala.scalajs.js.|
 import DragActions._
+import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction}
 
 
 object DragValidation {

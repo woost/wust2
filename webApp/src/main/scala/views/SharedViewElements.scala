@@ -25,6 +25,7 @@ import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
+import wust.webApp.views.DragComponents.{drag, dragWithHandle}
 import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
@@ -235,7 +236,7 @@ object SharedViewElements {
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
           nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
-          onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
+          DragComponents.onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
         )
       }
     },

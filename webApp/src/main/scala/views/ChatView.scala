@@ -4,7 +4,7 @@ import wust.webApp.dragdrop._
 import cats.effect.IO
 import fontAwesome.freeSolid
 import monix.reactive.Observable
-import monix.reactive.subjects.{ BehaviorSubject, PublishSubject }
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -14,10 +14,10 @@ import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor
 import wust.sdk.NodeColor._
-import wust.sdk.{ BaseColors, NodeColor }
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import wust.webApp.{ BrowserDetect, Client, Icons, Ownable }
+import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
@@ -32,13 +32,14 @@ import wust.util.macros.InlineList
 import wust.webApp
 import wust.webApp.views.UI.ToastLevel.Success
 import algorithm.dfs
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.collection.immutable
-import scala.collection.{ breakOut, mutable }
+import scala.collection.{breakOut, mutable}
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.control.NonFatal
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object ChatView {
   import SharedViewElements._

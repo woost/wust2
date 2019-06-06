@@ -13,6 +13,7 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
@@ -66,7 +67,7 @@ object SelectedNodes {
     div(
       cls := "nodelist",
       drag(payload = DragItem.SelectedNodes(selectedNodeIds)),
-      onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] },
+      DragComponents.onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] },
 
       Styles.flex,
 //      alignItems.center,

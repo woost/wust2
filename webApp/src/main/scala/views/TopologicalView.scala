@@ -5,28 +5,29 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import org.scalajs.dom
 import monix.execution.Cancelable
-import wust.webApp.dragdrop.{ DragContainer, DragItem }
+import wust.webApp.dragdrop.{DragContainer, DragItem}
 import fontAwesome.freeSolid
 import SharedViewElements._
-import wust.webApp.{ BrowserDetect, Icons, ItemProperties }
+import wust.webApp.{BrowserDetect, Icons, ItemProperties}
 import wust.webApp.Icons
 import outwatch.dom._
-import wust.sdk.{ BaseColors, NodeColor }
+import wust.sdk.{BaseColors, NodeColor}
 import outwatch.dom.dsl._
-import styles.extra.{ transform, transformOrigin }
+import styles.extra.{transform, transformOrigin}
 import outwatch.dom.helpers.EmitterBuilder
 import wust.webApp.views.Elements._
-import monix.reactive.subjects.{ BehaviorSubject, PublishSubject }
+import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import rx._
-import wust.css.{ Styles, ZIndex }
+import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ FocusState, GlobalState }
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
 import wust.util._
 import d3v4._
 import org.scalajs.dom.console
+import wust.webApp.views.DragComponents.registerDragContainer
 
 // Topologically sorted items by property relations
 object TopologicalView {

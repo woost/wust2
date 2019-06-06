@@ -17,9 +17,10 @@ import wust.graph._
 import wust.ids._
 import wust.util.collection._
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, ScreenSize, Placeholder}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder, ScreenSize}
 import wust.webApp.views.Components._
 import wust.util._
+import wust.webApp.views.DragComponents.registerDragContainer
 
 // Shows overview over a project:
 // - subprojects
@@ -124,7 +125,7 @@ object DashboardView {
       marginLeft := "10px",
       cls := "node channel-line",
 
-      drag(DragItem.Project(project.id)),
+      DragComponents.drag(DragItem.Project(project.id)),
       renderProject(project, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,

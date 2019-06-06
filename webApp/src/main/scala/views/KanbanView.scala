@@ -18,11 +18,12 @@ import wust.util.macros.InlineList
 import wust.webApp.{BrowserDetect, Icons, ItemProperties, Ownable}
 import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
 import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, TraverseState, Placeholder}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, Placeholder, TraverseState}
 import wust.webApp.views.Components._
 import wust.webApp.views.Elements._
 import algorithm.dfs
 import wust.util.collection._
+import wust.webApp.views.DragComponents.registerDragContainer
 
 import scala.scalajs.js
 
@@ -127,7 +128,7 @@ object KanbanView {
           cls := "buttonbar",
           position.absolute, top := "0", right := "0",
           VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
-          drag(DragItem.DisableDrag),
+          DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
           GraphChangesAutomationUI.settingsButton(state, focusState.focusedId, activeMod = visibility.visible),
         ),
@@ -182,7 +183,7 @@ object KanbanView {
       cls := "buttonbar",
       VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
       Styles.flex,
-      drag(DragItem.DisableDrag),
+      DragComponents.drag(DragItem.DisableDrag),
       Rx {
         VDomModifier.ifNot(editable())(
           div(
@@ -221,7 +222,7 @@ object KanbanView {
       if(isTopLevel) cls := "kanbantoplevelcolumn" else cls := "kanbansubcolumn",
       border := s"2px solid ${accentColor}",
       Rx{
-        VDomModifier.ifNot(editable())(dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
+        VDomModifier.ifNot(editable())(DragComponents.dragWithHandle(DragItem.Stage(nodeId))) // prevents dragging when selecting text
       },
       div(
         cls := "kanbancolumnheader",

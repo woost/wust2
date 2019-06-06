@@ -6,7 +6,8 @@ import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import wust.webApp.{ BrowserDetect, DevOnly }
+import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, writeDragPayload}
+import wust.webApp.{BrowserDetect, DevOnly}
 
 import scala.scalajs.js
 

@@ -19,6 +19,7 @@ import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
 import wust.util._
+import wust.webApp.views.DragComponents.registerDragContainer
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.
@@ -77,7 +78,7 @@ object NotesView {
 
       Rx {
         VDomModifier.ifNot(editMode())(
-          drag(DragItem.Note(node.id)),
+          DragComponents.drag(DragItem.Note(node.id)),
           cursor.auto, // overwrite drag cursor
         )
       },

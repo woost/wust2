@@ -9,15 +9,17 @@ import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
 import wust.api.AuthUser
-import wust.graph.{Node, Page, Graph}
+import wust.graph.{Graph, Node, Page}
 import wust.ids._
 import wust.util._
 import wust.webApp.Ownable
 import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
+
 import scala.collection.breakOut
 import fontAwesome.freeSolid
+import wust.webApp.views.DragComponents.registerDragContainer
 
 object BreadCrumbs {
 
@@ -103,7 +105,7 @@ object BreadCrumbs {
               Components.nodeCardAsOneLineText(node, projectWithIcon = true).apply(
                 cls := "breadcrumb",
                 VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
-                DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
+                DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
                 onClickFocus,
               )
 

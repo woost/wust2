@@ -2,8 +2,6 @@ package wust.webApp.views
 
 import cats.effect.IO
 import dateFns.DateFns
-
-import concurrent.duration._
 import emojijs.EmojiConvertor
 import fontAwesome._
 import marked.Marked
@@ -18,15 +16,14 @@ import outwatch.ProHandler
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder}
-import wust.util._
+import rx._
 import wust.css.Styles
+import wust.ids.EpochMilli
+import wust.util._
 import wust.webApp.BrowserDetect
 import wust.webApp.outwatchHelpers._
-import rx._
-import wust.graph.Node
-import wust.ids.EpochMilli
-import wust.webApp.state.GlobalState
 
+import scala.concurrent.duration._
 import scala.scalajs.js
 
 // This file contains utilities that are not woost-related.
@@ -235,12 +232,6 @@ object Elements {
       .foreach { orig =>
         elem.asInstanceOf[js.Dynamic].updateDynamic("addEventListener")(orig)
     }
-  }
-
-  def clearOnPageSwitch(state: GlobalState)(implicit ctx: Ctx.Owner) = {
-    val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    state.page.foreach(_ => clear.onNext(()))
-    clear
   }
 
   final class ValueWithEnter(overrideValue: Observable[String] = Observable.empty, clearValue: Boolean = true, eventHandler: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] = onEnter) {

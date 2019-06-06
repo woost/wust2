@@ -64,7 +64,7 @@ object InfiniteScroll {
                   sink.onNext(numSteps)
                   ()
                 }),
-                Components.woostLoadingAnimationWithFadeIn
+                WoostLogoComponents.woostLoadingAnimationWithFadeIn
               ),
               onIntersectionWithViewport.foreach { isIntersecting =>
                 if (isIntersecting) {

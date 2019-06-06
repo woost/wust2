@@ -10,24 +10,25 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{ CommonStyles, Styles, ZIndex }
-import wust.graph.{ Node, Edge, GraphChanges }
+import wust.css.{CommonStyles, Styles, ZIndex}
+import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.{ DragItem, DragContainer }
-import wust.webApp.jsdom.{ Navigator, ShareData }
+import wust.webApp.dragdrop.{DragContainer, DragItem}
+import wust.webApp.jsdom.{Navigator, ShareData}
 import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components.{ renderNodeData, _ }
+import wust.webApp.views.Components.{renderNodeData, _}
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import scala.util.{ Failure, Success }
-import PageHeaderParts.{ TabContextParms, TabInfo, customTab, singleTab }
+import scala.util.{Failure, Success}
+import PageHeaderParts.{TabContextParms, TabInfo, customTab, singleTab}
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 object PageHeader {
 
@@ -53,7 +54,7 @@ object PageHeader {
       div(
         Components.renderNodeCardMod(node, Components.renderAsOneLineText, projectWithIcon = false),
         cls := "pageheader-channeltitle",
-        DragItem.fromNodeRole(node.id, node.role).map(drag(_)),
+        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
         Components.showHoveredNode(state, node.id),
         div(
