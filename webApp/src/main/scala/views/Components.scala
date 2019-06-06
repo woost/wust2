@@ -1229,6 +1229,8 @@ object Components {
   val unreadDot = span(
     freeSolid.faCircle,
     color := Colors.unread,
+    transition := "color 10s",
+    transitionDelay := "5s",
     unreadStyle
   )
 
@@ -1266,11 +1268,13 @@ object Components {
       labelModifier,
     )
 
+    var observed = Var(false)
+
     Rx {
       isUnread() match {
         case true => VDomModifier(
           unreadChildren() match {
-            case 0 => unreadDot
+            case 0 => unreadDot(Rx{VDomModifier.ifTrue(observed())(color := Colors.nodecardBg)})
             case count => unreadLabel(count)
           },
 
@@ -1279,7 +1283,7 @@ object Components {
               { (entry, observer) =>
                 val isIntersecting = entry.head.isIntersecting
                 if (isIntersecting && isUnread.now) {
-                  val changes = GraphChanges(
+                  val markAsReadChanges = GraphChanges(
                     addEdges = Array(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), state.user.now.id))
                   )
 
@@ -1287,7 +1291,9 @@ object Components {
                   observer.unobserve(elem)
                   observer.disconnect()
 
-                  state.eventProcessor.changesRemoteOnly.onNext(changes)
+                  observed() = true // makes the dot fade out
+
+                  state.eventProcessor.changesRemoteOnly.onNext(markAsReadChanges)
                 }
               },
               new IntersectionObserverOptions {
