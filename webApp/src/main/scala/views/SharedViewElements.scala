@@ -80,6 +80,28 @@ object SharedViewElements {
       cursor.pointer,
     )
 
+  def chatMessageHeader(state:GlobalState, author: Option[Node.User]): VNode = div(
+    cls := "chatmsg-header",
+    author.map(author => VDomModifier(smallAuthorAvatar(author), authorName(state, author))),
+  )
+
+  //  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, modificationData: IndexedSeq[(Node.User, EpochMilli)], avatar: VDomModifier) = div(
+  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, nodeId: NodeId, avatar: VDomModifier)(implicit ctx: Ctx.Owner): VNode = div(
+    cls := "chatmsg-header",
+    avatar,
+    author.map { author =>
+      VDomModifier(
+        authorName(state, author),
+        creationDate(creationEpochMillis),
+        state.graph.map { graph =>
+          graph.idToIdx(nodeId).map { nodeIdx =>
+            modificationDetails(author, graph.nodeModifier(nodeIdx))
+          }
+        },
+      )
+    },
+  )
+
 
   def authorAvatar(author: Node.User, avatarSize: Int, avatarPadding: Int): VNode = {
     div(Avatar(author)(cls := "avatar",width := s"${avatarSize}px", padding := s"${avatarPadding}px"), marginRight := "5px")
@@ -96,13 +118,12 @@ object SharedViewElements {
   def authorName(state: GlobalState, author: Node.User): VNode = {
     div(
       cls := "chatmsg-author",
-      Styles.flexStatic,
       Components.displayUserName(author.data),
       onClickDirectMessage(state, author),
     )
   }
 
-  def modifications(author: Node.User, modificationData: IndexedSeq[(Node.User, EpochMilli)]): VDomModifier = {
+  def modificationDetails(author: Node.User, modificationData: IndexedSeq[(Node.User, EpochMilli)]): VDomModifier = {
 
     @inline def modificationItem(user: Node.User, time: EpochMilli)  = li(s"${user.name} at ${dateString(time)}")
 
@@ -203,31 +224,6 @@ object SharedViewElements {
       }
     }
   }
-
-  def chatMessageHeader(state:GlobalState, author: Option[Node.User], avatar: VDomModifier) = div(
-    cls := "chatmsg-header",
-    Styles.flex,
-    avatar,
-    author.map(author => VDomModifier(authorName(state, author))),
-  )
-
-//  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, modificationData: IndexedSeq[(Node.User, EpochMilli)], avatar: VDomModifier) = div(
-  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, nodeId: NodeId, avatar: VDomModifier)(implicit ctx: Ctx.Owner) = div(
-    cls := "chatmsg-header",
-    Styles.flex,
-    avatar,
-    author.map { author =>
-      VDomModifier(
-        authorName(state, author),
-        creationDate(creationEpochMillis),
-        state.graph.map { graph =>
-          graph.idToIdx(nodeId).map { nodeIdx =>
-            modifications(author, graph.nodeModifier(nodeIdx))
-          }
-        },
-      )
-    },
-  )
 
   def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {

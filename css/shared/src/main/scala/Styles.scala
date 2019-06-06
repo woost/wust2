@@ -564,7 +564,8 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".chatmsg-author" - (
     fontWeight.bold,
-    color(c"#50575f")
+    color(c"#50575f"),
+    Styles.flexStatic,
   )
 
   ".chatmsg-date" - (
