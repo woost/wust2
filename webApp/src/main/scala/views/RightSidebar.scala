@@ -222,8 +222,8 @@ object RightSidebar {
         alignItems.flexStart,
 
         nodeCard,
-        zoomButton,
-        deleteButton
+        Rx{ VDomModifier.ifTrue(!editMode())(zoomButton) },
+        Rx{ VDomModifier.ifTrue(!editMode())(deleteButton) }
       ),
 
       nodeAuthor(state, focusPref.nodeId),

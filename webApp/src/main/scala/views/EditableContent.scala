@@ -164,21 +164,17 @@ object EditableContent {
 
   private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
     "Cancel",
-    cls := "ui button compact mini",
+    cls := "ui button",
     padding := "3px",
-    margin := "1px",
     flexShrink := 0,
-    fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(EditInteraction.Cancel) --> current
   )
   private def saveButton(current: Observer[Unit]) = dsl.span(
     "Save",
-    cls := "ui button primary compact mini",
+    cls := "ui button primary",
     padding := "3px",
-    margin := "1px",
     flexShrink := 0,
-    fontSize.xxSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(()) --> current
   )

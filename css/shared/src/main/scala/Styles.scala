@@ -357,7 +357,6 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-
   ".sidebar" - (
     backgroundColor(Color(Colors.sidebarBg)),
     Styles.flexStatic,
@@ -677,6 +676,18 @@ object CommonStyles extends StyleSheet.Standalone {
   ".right-sidebar-node.nodecard" - (
     boxShadow := "none", // less clutter in right sidebar
     paddingLeft(10 px),
+  )
+
+  ".nodecard-content .button" - (
+    media.only.screen.minWidth(640 px) - (
+      margin := "1px",
+      fontSize.xxSmall
+    ),
+    media.only.screen.maxWidth(640 px) - (
+      margin := "1px",
+      fontSize.medium,
+      marginBottom := "10px",
+    )
   )
 
   ".nodecard.project.node-deleted" - (
