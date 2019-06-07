@@ -14,6 +14,8 @@
           <option value="wust.api.serialize.Boopickle._" />
           <option value="wust.api.serialize.Circe._" />
           <option value="wust.external.Circe._" />
+          <option value="wust.ids.serialize.Circe._" />
+          <option value="wust.util.Config._" />
         </array>
       </option>
       <option name="PLACE_SELF_TYPE_ON_NEW_LINE" value="false" />
