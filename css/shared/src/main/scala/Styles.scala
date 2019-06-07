@@ -349,6 +349,14 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.wordWrap
   )
 
+  // fix "search" button going outside screen area on mobile
+  ".modal-header .ui.search .prompt" - (
+    media.only.screen.maxWidth(640 px) - (
+      flexShrink(1),
+      )
+  )
+
+
 
   ".sidebar" - (
     backgroundColor(Color(Colors.sidebarBg)),
