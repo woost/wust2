@@ -1,22 +1,20 @@
 package wust.backend
 
-import wust.api._
-import wust.graph._
-import wust.db.{Data, Db}
-import wust.ids._
-
-import scala.collection.JavaConverters._
 import covenant.ws.api.EventDistributor
 import mycelium.server.NotifiableClient
 import wust.api.ApiEvent.NewGraphChanges
-
-import scala.collection.{breakOut, mutable}
-import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.parallel.ExecutionContextTaskSupport
+import wust.api._
 import wust.backend.config.PushNotificationConfig
 import wust.db.Data.RawPushData
+import wust.db.{Data, Db}
+import wust.graph._
+import wust.ids._
 
+import scala.collection.JavaConverters._
+import scala.collection.parallel.ExecutionContextTaskSupport
 import scala.collection.parallel.immutable.ParSeq
+import scala.collection.{breakOut, mutable}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs

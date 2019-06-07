@@ -1,7 +1,8 @@
 package wust.util
 
-import scala.collection.{ IterableLike, breakOut, mutable }
 import flatland._
+
+import scala.collection.{breakOut, mutable}
 
 package object algorithm {
 

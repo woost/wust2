@@ -2,14 +2,11 @@ package wust.sdk
 
 import java.util.UUID
 
-import org.scalatest._
 import akka.http.scaladsl.testkit.ScalatestRouteTest
-import akka.http.scaladsl.server._
-import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
-import monix.reactive.subjects.{ConcurrentSubject, PublishSubject}
-import shapeless.PolyDefns.~>
+import monix.reactive.subjects.PublishSubject
+import org.scalatest._
 import wust.api.{AuthUser, Authentication}
-import wust.ids.{NodeId, UserId}
+import wust.ids.UserId
 
 class OAuthClientBasicSpec extends FreeSpec with EitherValues with Matchers {
 

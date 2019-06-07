@@ -1,5 +1,6 @@
 package wust.webApp
 
+import wust.webApp.views.Components._
 import java.nio.ByteBuffer
 
 import boopickle.Default._
@@ -8,11 +9,12 @@ import covenant.http._
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.window
 import rx._
+import webUtil.outwatchHelpers._
 import wust.api._
 import wust.api.serialize.Boopickle._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.outwatchHelpers._
+import webUtil.outwatchHelpers._
 
 import scala.concurrent.Future
 import scala.scalajs.LinkingInfo

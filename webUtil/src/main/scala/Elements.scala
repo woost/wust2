@@ -1,4 +1,4 @@
-package wust.webApp.views
+package webUtil
 
 import cats.effect.IO
 import dateFns.DateFns
@@ -17,11 +17,9 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder}
 import rx._
-import wust.css.Styles
+import webUtil.outwatchHelpers._
 import wust.ids.EpochMilli
 import wust.util._
-import wust.webApp.BrowserDetect
-import wust.webApp.outwatchHelpers._
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -193,7 +191,7 @@ object Elements {
   }
 
   val copiableToClipboard: VDomModifier = {
-    import clipboard.ClipboardJS
+    import clipboardjs.ClipboardJS
 
     VDomModifier(
       managedElement.asHtml { elem =>
@@ -311,27 +309,12 @@ object Elements {
     (created != EpochMilli.min).ifTrue[VDomModifier](
       div(
         cls := "chatmsg-date",
-        Styles.flexStatic,
+        flexGrow := 0.0,
+        flexShrink := 0.0,
         dateString(created),
       )
     )
   }
-
-  def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
-    fontawesome.icon(icon),
-    fontawesome.icon(
-      indicator,
-      new Params {
-        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
-        styles = scalajs.js.Dictionary[String]("color" -> color)
-      }
-    )
-  )
-
-  def icon(icon: VDomModifier) = i(
-    cls := "icon fa-fw",
-    icon
-  )
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
   def valueWithCtrlEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithCtrlEnter(true)
@@ -378,25 +361,6 @@ object Elements {
     )
   }
 
-  def closeButton: VNode = div(
-    div(cls := "fa-fw", freeSolid.faTimes),
-    padding := "10px",
-    Styles.flexStatic,
-    cursor.pointer,
-  )
-
-
-  def markdownVNode(str: String) = {
-    div.thunkStatic(uniqueKey(str))(VDomModifier(
-      cls := "markdown",
-      div(innerHTML := UnsafeHTML(markdownString(str)))
-    )) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
-  }
-
-  def markdownString(str: String): String = {
-    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
-    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
-  }
 
   def escapeHtml(content: String): String = {
     // assure html in text is escaped by creating a text node, appending it to an element and reading the escaped innerHTML.

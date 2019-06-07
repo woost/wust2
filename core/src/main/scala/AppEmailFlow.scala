@@ -1,22 +1,17 @@
 package wust.backend
 
-import monix.eval.Task
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.PublishSubject
-import wust.backend.config.{EmailConfig, ServerConfig}
-import wust.backend.mail.{MailMessage, MailRecipient, MailService}
-import wust.api.{AuthUser, Authentication, ClientInfo, UserDetail}
+import wust.api.{Authentication, ClientInfo}
 import wust.backend.auth.JWT
+import wust.backend.config.ServerConfig
+import wust.backend.mail.{MailMessage, MailRecipient, MailService}
 import wust.graph.Node
 import wust.ids.{NodeId, UserId}
-import wust.serviceUtil.MonixUtils
-import com.google.common.html.HtmlEscapers
-
-import scala.util.control.NonFatal
 import wust.util.StringOps
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import scala.util.control.NonFatal
 
 class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailService) {
   private val emailSubject = PublishSubject[MailMessage]

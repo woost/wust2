@@ -1,17 +1,14 @@
 package wust.cli
 
-import sloth._
-import covenant.core.DefaultLogHandler
 import akka.actor.ActorSystem
-import akka.util.ByteStringBuilder
-import akka.http.scaladsl.marshalling._
-import akka.http.scaladsl.unmarshalling._
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.marshalling._
 import akka.http.scaladsl.model.HttpHeader.ParsingResult
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.unmarshalling._
 import akka.stream.ActorMaterializer
-import cats.data.EitherT
 import cats.implicits._
+import sloth._
 
 import scala.concurrent.Future
 

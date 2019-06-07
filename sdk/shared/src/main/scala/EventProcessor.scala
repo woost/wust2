@@ -1,27 +1,18 @@
 package wust.sdk
 
-import monix.execution.Scheduler
-import monix.reactive.{Observable, OverflowStrategy}
+import monix.execution.{Ack, Scheduler}
+import monix.reactive.Observable
+import monix.reactive.OverflowStrategy.Unbounded
 import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
 import wust.api.ApiEvent._
 import wust.api._
-import wust.ids.{NodeId, UserId}
 import wust.graph._
+import wust.ids.UserId
 
+import scala.collection.mutable
 import scala.concurrent.Future
-import scala.util.{Failure, Success}
-import concurrent.Promise
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.PublishSubject
-import monix.reactive.OverflowStrategy.Unbounded
-import monix.execution.Cancelable
-import monix.execution.Ack
-import monix.reactive.observers.BufferedSubscriber
-import wust.ids.EdgeData
-
-import scala.util.control.NonFatal
 import scala.concurrent.duration._
-import scala.collection.{breakOut, mutable}
+import scala.util.{Failure, Success}
 
 sealed trait SyncStatus
 object SyncStatus {

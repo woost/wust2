@@ -1,19 +1,17 @@
 package wust.backend.auth
 
+import java.time.Instant
+
+import io.circe._
+import io.circe.syntax._
 import pdi.jwt.{JwtAlgorithm, JwtCirce, JwtClaim}
 import wust.api._
 import wust.api.serialize.Circe._
-import wust.backend.config.Config
-import wust.ids._
-
-import java.time.Instant
-
-import scala.concurrent.duration._
-import io.circe._
-import io.circe.syntax._
-import io.circe.parser._
 import wust.backend.auth
 import wust.backend.auth.JWT.CustomClaim
+import wust.ids._
+
+import scala.concurrent.duration._
 
 class JWT(secret: String, tokenLifetime: Duration) {
 
@@ -123,7 +121,8 @@ object JWT {
     case class Invitation(user: AuthUser.Implicit) extends CustomClaim
     case class EmailVerify(userId: UserId, email: String) extends CustomClaim
 
-    import io.circe._, io.circe.generic.extras.semiauto._
+    import io.circe._
+    import io.circe.generic.extras.semiauto._
     implicit val decoder: Decoder[CustomClaim] = deriveDecoder[CustomClaim]
     implicit val encoder: Encoder[CustomClaim] = deriveEncoder[CustomClaim]
   }

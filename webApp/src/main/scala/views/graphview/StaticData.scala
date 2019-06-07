@@ -1,9 +1,7 @@
 package views.graphview
 
-import java.lang.Math._
-
-import flatland._
 import d3v4._
+import flatland._
 import org.scalajs.dom.html
 import vectory.Vec2
 import views.graphview.ForceSimulationConstants._

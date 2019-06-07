@@ -1,25 +1,11 @@
 package wust.webApp.views
 
-import cats.effect.IO
-import fontAwesome._
-import googleAnalytics.Analytics
-import org.scalajs.dom
-import org.scalajs.dom.window
 import outwatch.dom._
-import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom.dsl._
-import outwatch.dom.dsl.styles.extra._
-import rx._
-import wust.api.AuthUser
+import webUtil.Ownable
+import webUtil.outwatchHelpers._
 import wust.css.Styles
-import wust.graph._
-import wust.ids.View
-import wust.util.RichBoolean
-import wust.webApp.{Client, Ownable, DevOnly}
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-
-import scala.scalajs.js
 
 object Topbar {
 

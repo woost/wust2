@@ -1,18 +1,11 @@
 package wust.slack
 
 import akka.actor.ActorSystem
-import cats.data.OptionT
-import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
-import wust.api.Authentication
-import wust.ids.{NodeAccess, NodeData, NodeId, UserId}
 import com.typesafe.config.{Config => TConfig}
-import slack.api.SlackApiClient
-import wust.graph.{GraphChanges, Node, NodeMeta}
-import wust.sdk.WustClient
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import wust.ids.{NodeId, UserId}
 import wust.slack.Data._
+
+import scala.concurrent.Future
 
 trait PersistenceAdapter {
   // Store

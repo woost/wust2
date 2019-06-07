@@ -2,7 +2,6 @@ package wust.util
 
 import scala.collection.generic.CanBuildFrom
 import scala.collection.{GenTraversableOnce, IterableLike, mutable}
-import scala.reflect.ClassTag
 
 package object collection {
 

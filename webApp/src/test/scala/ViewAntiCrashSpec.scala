@@ -12,7 +12,7 @@
 // import wust.sdk.EventProcessor
 // import wust.webApp.{DevOnly, LocalStorageMock, RequestAnimationFrameMock}
 // import wust.webApp.state.{GlobalState, View, ViewConfig}
-// import wust.webApp.outwatchHelpers._
+// import webUtil.outwatchHelpers._
 
 // import scala.collection.immutable._
 // import scala.concurrent.Future

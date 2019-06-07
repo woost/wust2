@@ -3,10 +3,10 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import webUtil.UI
+import webUtil.outwatchHelpers._
+import wust.css.Styles
 import wust.ids._
-import wust.graph.GraphChanges
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState}
 
 object FilesView {

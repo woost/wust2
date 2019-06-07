@@ -4,8 +4,8 @@ import cats.data.NonEmptyList
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.outwatchHelpers._
 import wust.ids.ViewOperator
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, ScreenSize}
 
 object TiledView {

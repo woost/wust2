@@ -1,10 +1,10 @@
 package wust.api.serialize
 
-import wust.api._
-import wust.ids._
-import wust.graph._
 import io.circe._
 import io.circe.generic.extras.semiauto._
+import wust.api._
+import wust.graph._
+import wust.ids._
 
 object Circe extends wust.ids.serialize.Circe {
 

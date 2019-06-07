@@ -1,33 +1,21 @@
 package wust.webApp.views
 
-import java.util.concurrent.TimeUnit
-
-import cats.effect.IO
+import googleAnalytics.Analytics
 import monix.eval.Task
-import monix.execution.Ack
-import monix.reactive.Observable
-import monix.reactive.subjects.ReplaySubject
 import org.scalajs.dom
 import org.scalajs.dom.FormData
 import org.scalajs.dom.raw.XMLHttpRequest
-import outwatch.dom.VNode
-import wust.webApp.state.{GlobalState, UploadingFile}
-import outwatch.dom._
-import outwatch.dom.dsl._
-import rx._
 import sha256.Sha256
-import sun.swing.FilePane.FileChooserUIAccessor
-import wust.api.{AuthUser, FileUploadConfiguration, ApiEvent}
+import webUtil.UI
+import webUtil.outwatchHelpers._
+import wust.api.{ApiEvent, AuthUser, FileUploadConfiguration}
 import wust.graph._
 import wust.ids._
 import wust.webApp.Client
 import wust.webApp.jsdom.FileReaderOps
-import wust.webApp.outwatchHelpers._
-import googleAnalytics.Analytics
+import wust.webApp.state.{GlobalState, UploadingFile}
 
 import scala.concurrent.{Future, Promise}
-import scala.concurrent.duration.FiniteDuration
-import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object AWS {

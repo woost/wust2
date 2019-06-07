@@ -2,8 +2,8 @@ package wust.webApp.views
 
 import outwatch.dom._
 import outwatch.dom.dsl._
+import webUtil.outwatchHelpers._
 import wust.sdk.Colors
-import wust.webApp.outwatchHelpers._
 
 object WoostLogoComponents {
   private val woostPathCurve = "m51.843 221.96c81.204 0-6.6913-63.86 18.402 13.37 25.093 77.23 58.666-26.098-7.029 21.633-65.695 47.73 42.949 47.73-22.746 0-65.695-47.731-32.122 55.597-7.029-21.633 25.093-77.23-62.802-13.37 18.402-13.37z"

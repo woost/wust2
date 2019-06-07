@@ -4,13 +4,13 @@ import akka.actor.ActorSystem
 import cats.data.OptionT
 import slack.api.SlackApiClient
 import slack.models.MessageSubtypes.ChannelNameMessage
+import slack.models._
 import wust.api.Authentication
 import wust.graph.{GraphChanges, Node, NodeMeta}
 import wust.ids._
 import wust.sdk.EventToGraphChangeMapper
 import wust.sdk.EventToGraphChangeMapper.CreationResult
 import wust.slack.Data._
-import slack.models._
 
 import scala.concurrent.Future
 import scala.util.{Failure, Success}

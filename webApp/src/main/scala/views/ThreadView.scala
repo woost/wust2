@@ -1,35 +1,30 @@
 package wust.webApp.views
 
+import flatland._
 import fontAwesome._
-
-import scala.collection.{breakOut, mutable}
 import monix.execution.Ack
 import monix.execution.Ack.Continue
+import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
-import org.scalajs.dom.raw.HTMLElement
 import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.util.collection._
-import flatland._
-import monix.reactive.Observable
-import wust.webApp.{BrowserDetect, Icons, Ownable}
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, Placeholder, ScreenSize}
+import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webApp.views.Elements._
 
-import scala.collection.breakOut
+import scala.collection.mutable
 import scala.concurrent.Future
 import scala.scalajs.js
 

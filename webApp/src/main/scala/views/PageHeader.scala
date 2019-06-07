@@ -1,34 +1,22 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import clipboard.ClipboardJS
-import fontAwesome._
-import googleAnalytics.Analytics
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
+import wust.webApp.views.Components._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.{Edge, GraphChanges, Node}
+import webUtil.outwatchHelpers._
+import webUtil.{Ownable, UI}
+import wust.css.Styles
 import wust.ids._
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor.hue
+import wust.sdk.Colors
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.{DragContainer, DragItem}
-import wust.webApp.jsdom.{Navigator, ShareData}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.search.Search
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
-import wust.webApp.views.Components.{renderNodeData, _}
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.collection.breakOut
 import scala.scalajs.js
-import scala.util.{Failure, Success}
-import PageHeaderParts.{TabContextParms, TabInfo, customTab, singleTab}
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 object PageHeader {
 

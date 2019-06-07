@@ -4,16 +4,13 @@ import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.sdk.Colors
-import wust.css.{ CommonStyles, Styles }
+import webUtil.outwatchHelpers._
+import wust.css.Styles
 import wust.ids.View
-import wust.ids.NodeRole
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ GlobalState, ScreenSize }
-import wust.webApp.views.SharedViewElements._
 import wust.util._
+import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
-import scala.scalajs.js
+import wust.webApp.views.SharedViewElements._
 
 object WelcomeView {
 

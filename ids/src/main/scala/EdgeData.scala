@@ -1,7 +1,5 @@
 package wust.ids
 
-import java.math.MathContext
-
 import supertagged._
 
 sealed trait EdgeData {

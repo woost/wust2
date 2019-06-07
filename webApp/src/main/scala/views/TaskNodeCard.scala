@@ -1,18 +1,20 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
+import wust.webApp.views.Components._
 import monix.reactive.Observer
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
-import wust.ids._
-import wust.graph._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp.outwatchHelpers._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable, UI}
+import wust.css.{CommonStyles, Styles}
+import wust.graph._
+import wust.ids._
+import wust.sdk.Colors
 import wust.util.collection._
-import wust.webApp.{BrowserDetect, Icons, Ownable}
+import wust.webApp.Icons
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
 
 object TaskNodeCard {
 

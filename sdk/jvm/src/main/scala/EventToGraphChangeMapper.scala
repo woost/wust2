@@ -2,6 +2,7 @@ package wust.sdk
 
 import wust.graph._
 import wust.ids._
+
 import scala.collection.breakOut
 
 object EventToGraphChangeMapper {

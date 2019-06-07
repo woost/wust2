@@ -1,10 +1,7 @@
 package wust.webApp.views
 
 import wust.graph.{Edge, Graph, Node}
-import wust.ids.NodeId
 import wust.util.collection.BasicMap
-
-import scala.collection.breakOut
 
 //TODO: We should not use Array here, because scala.rx cannot do equality on them (when streaming property data)
 //TODO: separate calculations into separate rx: rx for tags, stages, users, properties

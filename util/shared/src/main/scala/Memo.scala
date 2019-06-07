@@ -1,8 +1,7 @@
 package wust.util
 
-import scala.collection.mutable
-import scala.collection.immutable
-import reflect.ClassTag
+import scala.collection.{immutable, mutable}
+import scala.reflect.ClassTag
 
 //copied from scalaz:
 // - https://github.com/scalaz/scalaz/blob/series/7.3.x/core/src/main/scala/scalaz/Memo.scala

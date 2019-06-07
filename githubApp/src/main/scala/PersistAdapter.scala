@@ -1,6 +1,5 @@
 package wust.github
 import com.redis._
-
 import wust.ids.UserId
 
 object DBConstants {

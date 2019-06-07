@@ -1,11 +1,5 @@
 package wust.css
 
-import scalacss.DevDefaults._
-import scalacss.internal.{Attr, CanIUse, Literal, Transform}
-import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
-
-import scala.concurrent.duration._
-
 object ZIndex {
   val controls = 10
   val draggable = 100

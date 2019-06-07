@@ -1,7 +1,7 @@
 package wust.webUtil
 
-import rx._
 import cats.Monad
+import rx._
 
 trait RxInstances {
   implicit def monad(implicit ctx: Ctx.Owner): Monad[Rx] = new Monad[Rx] {

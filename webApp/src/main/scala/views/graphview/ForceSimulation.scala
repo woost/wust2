@@ -1,11 +1,10 @@
 package views.graphview
 
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
+import d3v4._
+import flatland._
 import monix.execution.Cancelable
 import monix.execution.cancelables.CompositeCancelable
 import monix.reactive.Observable
-import d3v4._
-import wust.webApp.BrowserDetect
 import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.{CanvasRenderingContext2D, html}
@@ -13,18 +12,17 @@ import outwatch.dom._
 import outwatch.dom.dsl.events
 import rx._
 import vectory._
+import webUtil.BrowserDetect
+import webUtil.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
-import wust.util.time.time
 import wust.util.macros.InlineList
-import wust.webApp.outwatchHelpers._
+import wust.util.time.time
+import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.state.{FocusPreference, FocusState, GlobalState}
 import wust.webApp.views.Components._
-import flatland._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
-import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 

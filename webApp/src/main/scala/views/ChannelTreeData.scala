@@ -1,14 +1,12 @@
 package views
 
-import flatland.ArraySet
-import wust.graph.{Graph, TaskOrdering, Node}
+import flatland.{ArraySet, _}
+import wust.graph.Graph
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm.dfs
 import wust.webApp.state.TraverseState
-import flatland._
 
-import scala.collection.mutable
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 
 object ChannelTreeData {
 

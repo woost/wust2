@@ -1,25 +1,18 @@
 package wust.webApp.views
 
-import wust.webApp.dragdrop.{DragContainer, DragItem}
 import fontAwesome.freeSolid
-import SharedViewElements._
-import wust.webApp.{BrowserDetect, Icons, ItemProperties}
-import wust.webApp.Icons
 import outwatch.dom._
-import wust.sdk.{BaseColors, NodeColor}
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
-import wust.webApp.views.Elements._
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import rx._
-import wust.css.{Styles, ZIndex}
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, UI}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, Placeholder, ScreenSize}
+import wust.webApp.dragdrop.DragItem
+import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
-import wust.util._
 import wust.webApp.views.DragComponents.registerDragContainer
 
 // Shows overview over a project:

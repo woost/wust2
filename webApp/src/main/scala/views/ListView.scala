@@ -1,24 +1,16 @@
 package wust.webApp.views
 
-import fontAwesome.{freeRegular, freeSolid}
-import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
-import wust.sdk.NodeColor._
-import wust.util._
-import flatland._
-import wust.webApp.{BrowserDetect, Icons, Ownable}
-import wust.webApp.dragdrop.{DragContainer, DragItem}
-import wust.webApp.outwatchHelpers._
+import wust.webApp.dragdrop.DragContainer
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
-import wust.util.collection._
 import wust.webApp.views.DragComponents.registerDragContainer
 
 object ListView {

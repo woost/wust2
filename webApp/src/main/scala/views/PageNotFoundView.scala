@@ -1,13 +1,12 @@
 package wust.webApp.views
 
-import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
-import wust.api.{AuthUser, Authentication}
+import webUtil.outwatchHelpers._
+import wust.api.AuthUser
 import wust.css.Styles
 import wust.ids.View
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 
 object PageNotFoundView {

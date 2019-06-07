@@ -1,32 +1,23 @@
 package wust.webApp.state
 
-import wust.webApp.BrowserDetect
 import draggable._
 import googleAnalytics.Analytics
-import monix.eval.Task
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
-import monocle.macros.GenLens
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.HTMLElement
-import outwatch.dom.dsl._
 import rx._
+import webUtil.Ownable
+import webUtil.outwatchHelpers._
 import wust.api._
 import wust.graph._
 import wust.ids._
 import wust.sdk._
 import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.Notifications
-import wust.webApp.outwatchHelpers._
 import wust.webApp.views._
-import wust.css.Styles
-import wust.util.algorithm
-import wust.webApp.Ownable
 
-import scala.collection.breakOut
-import scala.collection.mutable
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 
 class GlobalState(
@@ -56,9 +47,9 @@ class GlobalState(
 
   val uploadingFiles: Var[Map[NodeId, UploadingFile]] = Var(Map.empty)
 
-  val uiSidebarConfig: PublishSubject[Ownable[UI.SidebarConfig]] = PublishSubject()
+  val uiSidebarConfig: PublishSubject[Ownable[GenericSidebar.SidebarConfig]] = PublishSubject()
   val uiSidebarClose: PublishSubject[Unit] = PublishSubject()
-  val uiModalConfig: PublishSubject[Ownable[UI.ModalConfig]] = PublishSubject()
+  val uiModalConfig: PublishSubject[Ownable[ModalConfig]] = PublishSubject()
   val uiModalClose: PublishSubject[Unit] = PublishSubject()
 
   val rawGraph: Rx[Graph] = {

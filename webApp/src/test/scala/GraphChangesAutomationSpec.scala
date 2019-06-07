@@ -1,11 +1,8 @@
 package wust.webApp.views
 
 import org.scalatest._
-import org.scalatest.prop._
-import rx.Ctx.Owner.Unsafe._
-import rx._
-import wust.ids._
 import wust.graph._
+import wust.ids._
 import wust.webApp.state.GraphChangesAutomation
 
 

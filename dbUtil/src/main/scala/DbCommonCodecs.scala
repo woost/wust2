@@ -1,13 +1,12 @@
 package wust.dbUtil
 
-import io.getquill._
+import java.util.{Date, UUID}
+
 import io.circe.parser._
 import io.circe.syntax._
-import supertagged._
+import io.getquill._
 import wust.ids._
 import wust.ids.serialize.Circe._
-import wust.util._
-import java.util.{Date, UUID}
 
 abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._

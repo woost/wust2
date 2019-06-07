@@ -1,10 +1,10 @@
 package wust.backend.auth
 
-import org.scalatest._
-import wust.ids._
 import java.time.Instant
 
+import org.scalatest._
 import wust.api.{AuthUser, Authentication}
+import wust.ids._
 
 import scala.concurrent.duration._
 

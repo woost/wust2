@@ -1,15 +1,15 @@
 package wust.sdk
 
-import wust.api._, wust.api.serialize.Boopickle._
-import boopickle.Default._
-import covenant.ws._
-import sloth._
-import mycelium.client._
-import chameleon.ext.boopickle._
-import cats.implicits._
-
 import java.nio.ByteBuffer
-import scala.concurrent.Future
+
+import boopickle.Default._
+import chameleon.ext.boopickle._
+import covenant.ws._
+import mycelium.client._
+import sloth._
+import wust.api._
+import wust.api.serialize.Boopickle._
+
 import scala.concurrent.duration._
 
 class WustClient[F[_]](client: Client[ByteBuffer, F, ClientException]) {

@@ -1,10 +1,9 @@
 package wust.ids
 
 import java.util.UUID
-import java.nio.ByteBuffer
 
-import wust.util.collection._
 import org.sazabi.base58.Base58
+import wust.util.collection._
 
 @inline final case class Cuid(left: Long, right: Long) {
   import wust.ids.Cuid._

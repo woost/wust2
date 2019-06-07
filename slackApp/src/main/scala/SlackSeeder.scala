@@ -2,8 +2,7 @@ package wust.slack
 
 import akka.actor.ActorSystem
 import slack.api.{HistoryChunk, SlackApiClient}
-import slack.models.{Channel, ChannelCreated, HistoryMessage, Message, SubRefMessage}
-import wust.api.ApiEvent.NewGraphChanges
+import slack.models.{Channel, ChannelCreated, HistoryMessage, Message}
 import wust.graph.GraphChanges
 import wust.slack.Data._
 

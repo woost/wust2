@@ -7,11 +7,12 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.webApp._
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 
 import scala.reflect.ClassTag
@@ -365,6 +366,16 @@ object EditInteraction {
   def fromOption[T](option: Option[T]): EditInteraction[T] = option match {
     case Some(value) => EditInteraction.Input(value)
     case None => EditInteraction.Cancel
+  }
+
+  implicit class RichEmitterBuilderEditInteraction[T,R](val builder: EmitterBuilder[EditInteraction[T],R]) extends AnyVal {
+    def editValue: EmitterBuilder[T, R] = builder.collect {
+      case EditInteraction.Input(value) => value
+    }
+    def editValueOption: EmitterBuilder[Option[T], R] = builder.collect {
+      case EditInteraction.Input(value) => Some(value)
+      case EditInteraction.Error(_) => None
+    }
   }
 }
 

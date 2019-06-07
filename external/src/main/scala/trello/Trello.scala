@@ -1,11 +1,9 @@
 package wust.external.trello
 
 import cats.Eval
-import wust.ids._
 import wust.graph._
+import wust.ids._
 import wust.util.collection._
-
-import scala.collection.mutable
 
 case class Card(
   id: String,

@@ -1,26 +1,22 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import wust.webApp.DevOnly
+import wust.webApp.views.Components._
 import fontAwesome._
 import googleAnalytics.Analytics
-import org.scalajs.dom.window.{ clearTimeout, setTimeout, navigator }
+import org.scalajs.dom.window.{clearTimeout, navigator, setTimeout}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
 import wust.api.ClientInfo
-import wust.css.{ CommonStyles, Styles, ZIndex }
-import wust.graph._
-import wust.ids
-import wust.ids._
-import wust.webApp.{ BrowserDetect, Client, Icons }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ GlobalState, PageChange, ScreenSize, NodePermission }
-import wust.webApp.views.Elements._
-import wust.util._
-import scala.scalajs.LinkingInfo
+import wust.css.{Styles, ZIndex}
+import wust.sdk.Colors
+import wust.webApp.Client
+import wust.webApp.state.{GlobalState, ScreenSize}
 
-import scala.util.{ Success, Failure }
+import scala.scalajs.LinkingInfo
+import scala.util.{Failure, Success}
 
 object FeedbackForm {
 

@@ -1,8 +1,5 @@
 package wust.util
 
-import java.text.DateFormat
-import java.util.Date
-
 import scala.util.control.NonFatal
 
 object StringOps {

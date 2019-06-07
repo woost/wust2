@@ -1,21 +1,20 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
+import wust.webApp.views.Components._
 import fontAwesome.freeSolid
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.webApp.Ownable
-import wust.webApp.outwatchHelpers._
+import webUtil.Ownable
+import webUtil.outwatchHelpers._
+import wust.css.{Styles, ZIndex}
+import wust.sdk.Colors
+
 import scala.concurrent.duration._
 
-import scala.scalajs.js
-
-object MoveableElement {
+object MovableElement {
   sealed trait Position
   case class LeftPosition(left: Double, top: Double) extends Position
   case class RightPosition(right: Double, bottom: Double) extends Position

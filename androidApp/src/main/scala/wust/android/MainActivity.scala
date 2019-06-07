@@ -1,52 +1,6 @@
 package space.woost
 
-import android.support.constraint.ConstraintLayout
-import android.support.constraint.ConstraintSet
-import android.support.v7.widget.LinearLayoutManager
-import macroid.Contexts
-import android.widget.{FrameLayout, LinearLayout}
-import android.view.View
-import android.support.v4.widget.SwipeRefreshLayout
-import android.support.v4.widget.SwipeRefreshLayout.OnRefreshListener
-import android.support.v4.app.Fragment
-import android.app.Activity
-import android.os.Bundle
-import android.widget.{Button, EditText, LinearLayout, ScrollView, TextView}
-import android.support.v7.widget.RecyclerView
-import android.view.ViewGroup
-import macroid._
-import macroid.contrib._
-import macroid.contrib.Layouts._
-import macroid.extras.FragmentExtras._
-import macroid.extras.ToolbarTweaks._
-import macroid.FullDsl._
-import covenant.ws._
-import wust.api._
-import mycelium.client.OkHttpWebsocketConnection
 import java.nio.ByteBuffer
-
-import macroid._
-import wust.sdk._
-
-import concurrent.Future
-import wust.api.serialize.Boopickle._
-import boopickle.Default._
-import chameleon.ext.boopickle._
-import macroid.extras.LinearLayoutTweaks._
-import macroid.extras.RecyclerViewTweaks.{W, _}
-import macroid.extras.ViewTweaks._
-import android.view.LayoutInflater
-import com.google.firebase.iid.FirebaseInstanceId
-import macroid.IdGenerator
-import wust.graph._
-import wust.ids._
-import cool.graph.cuid.Cuid
-
-import concurrent.duration._
-import mycelium.client._
-import monix.execution.Scheduler.Implicits.global
-import wust.sdk.EventProcessor
-import monix.reactive.{Observable, Observer}
 
 object Id extends IdGenerator(start = 1000)
 

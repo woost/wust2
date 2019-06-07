@@ -1,12 +1,6 @@
 package wust.graph
 
 import wust.ids._
-import wust.util.Memo
-import wust.util.algorithm._
-import wust.util.collection._
-
-import collection.mutable
-import collection.breakOut
 
 case class NodeMeta(accessLevel: NodeAccess)
 object NodeMeta {

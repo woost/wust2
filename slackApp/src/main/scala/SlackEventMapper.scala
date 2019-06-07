@@ -1,14 +1,11 @@
 package wust.slack
 
 import akka.actor.ActorSystem
-import cats.data.{EitherT, OptionT}
+import cats.data.EitherT
 import slack.api.SlackApiClient
 import slack.models.MessageSubtypes._
 import slack.models._
 import wust.graph.GraphChanges
-import wust.ids.{EpochMilli, NodeData, NodeId}
-import wust.sdk.EventToGraphChangeMapper
-import wust.sdk.EventToGraphChangeMapper.CreationResult
 import wust.slack.Data._
 
 import scala.concurrent.{ExecutionContext, Future}

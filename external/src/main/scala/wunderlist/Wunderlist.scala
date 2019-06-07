@@ -1,7 +1,7 @@
 package wust.external.wunderlist
 
 import cats.Eval
-import wust.graph.{Edge, Graph, GraphChanges, Node, NodeMeta}
+import wust.graph._
 import wust.ids._
 import wust.util.collection._
 

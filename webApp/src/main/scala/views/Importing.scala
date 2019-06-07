@@ -1,27 +1,28 @@
 package wust.webApp.views
 
+import Components._
 import cats.effect.IO
 import fontAwesome.freeSolid
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.experimental._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
+import webUtil.outwatchHelpers._
+import webUtil.{Elements, Ownable, UI}
 import wust.css.Styles
 import wust.external.{meistertask, trello, wunderlist}
-import wust.graph.{Edge, Graph, GraphChanges, Node, Page}
+import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.util.collection._
+import wust.webApp.Icons
 import wust.webApp.jsdom.FileReaderOps
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.{Icons, Ownable}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.breakOut
 import scala.scalajs.js.JSON
 import scala.util.Try
 import scala.util.control.NonFatal
@@ -341,7 +342,7 @@ object Importing {
     changes
   }
   // returns the modal config for rendering a modal for making an import
-  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
+  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
@@ -364,7 +365,7 @@ object Importing {
 
     val modalHeader: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
-        UI.ModalConfig.defaultHeader(
+        ModalConfig.defaultHeader(
           state,
           node,
           modalHeader = div(
@@ -386,14 +387,14 @@ object Importing {
       }
     )
 
-    UI.ModalConfig(header = modalHeader, description = modalDescription, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
+    ModalConfig(header = modalHeader, description = modalDescription, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
   }
 
   // a settings button for importing that opens the modal on click.
   def settingsItem(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     a(
       cls := "item",
-      Elements.icon(Icons.`import`),
+      Components.icon(Icons.`import`),
       span("Import"),
 
       dsl.cursor.pointer,

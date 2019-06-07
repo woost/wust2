@@ -1,27 +1,20 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
+import Components._
 import fontAwesome.freeSolid
-import googleAnalytics.Analytics
-import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles}
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{Ownable, UI}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
-import wust.util.RichBoolean
-import wust.webApp.dragdrop.{DragItem, _}
-import wust.webApp.outwatchHelpers._
+import wust.sdk.Colors
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
 import wust.webApp.views.SharedViewElements._
-import wust.webApp.BrowserDetect
-import wust.webApp.{Icons, ItemProperties, Ownable}
-
-import scala.collection.breakOut
+import wust.webApp.{Icons, ItemProperties}
 
 object RightSidebar {
 

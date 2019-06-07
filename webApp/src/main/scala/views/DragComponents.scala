@@ -7,10 +7,10 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
 import wust.webApp.dragdrop._
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Elements._
 
 import scala.scalajs.js
 

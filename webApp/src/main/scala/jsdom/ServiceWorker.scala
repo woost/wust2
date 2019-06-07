@@ -7,7 +7,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.experimental.serviceworkers.{ ServiceWorker => OriginalServiceWorker }
 import org.scalajs.dom.{ window, _ }
 import wust.api.Authentication
-import wust.webApp.outwatchHelpers._
+import webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 import scala.util.{ Failure, Success, Try }

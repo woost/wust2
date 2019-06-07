@@ -2,10 +2,8 @@ package wust.slack
 
 import akka.actor.ActorSystem
 import org.scalatest._
-import slack.api.SlackApiClient
 import wust.graph._
 import wust.ids._
-import wust.sdk.WustClient
 import wust.slack.Data._
 
 import scala.concurrent.Future
@@ -13,7 +11,6 @@ import scala.concurrent.Future
 case object MockAdapter extends PersistenceAdapter {
 
   implicit val system: ActorSystem = ActorSystem("slack-mock-adapter")
-  import monix.execution.Scheduler.Implicits.global
 
   // Store
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = ???

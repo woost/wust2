@@ -1,12 +1,11 @@
 package wust.webApp.views
 
-import wust.sdk.{BaseColors, NodeColor}
-import wust.css.{Styles, ZIndex}
-import wust.webApp.outwatchHelpers._
-import wust.ids.{Cuid, NodeId}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
+import webUtil.outwatchHelpers._
+import wust.css.Styles
+import wust.ids.{Cuid, NodeId}
 import wust.webApp.state.GlobalState
 
 object AvatarView {

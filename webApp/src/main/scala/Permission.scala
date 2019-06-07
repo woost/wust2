@@ -1,17 +1,17 @@
 package wust.webApp
 
+import wust.webApp.views.Components._
 import fontAwesome._
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.Styles
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.util._
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, Elements, UI}
+import wust.webApp.views.Components
 
 case class PermissionDescription(
   access: NodeAccess,
@@ -60,12 +60,12 @@ object Permission {
   def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
     a(
       cls := "item",
-//      Elements.icon(Icons.userPermission),
+//      Components.icon(Icons.userPermission),
       span("Permissions"),
       Components.horizontalMenu(
         Permission.all.map { item =>
           Components.MenuItem(
-            title = Elements.icon(item.icon),
+            title = Components.icon(item.icon),
             description = Rx {
               item.inherited match {
                 case None => item.value

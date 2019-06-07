@@ -1,9 +1,9 @@
 package wust.webApp.state
 
-import wust.ids._
-import wust.graph.{Graph, Node}
 import rx._
 import wust.api.AuthUser
+import wust.graph.{Graph, Node}
+import wust.ids._
 
 object NodePermission {
   // TODO: proper permission check in frontend over member/permissions

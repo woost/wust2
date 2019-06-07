@@ -1,26 +1,18 @@
-package wust.webApp.views
+package webUtil
 
-import wust.sdk.Colors
 import fomanticui._
-import fontAwesome.IconLookup
 import jquery.JQuerySelection
 import monix.execution.Cancelable
-import monix.reactive.{Observable, subjects}
-import monix.reactive.subjects.{PublishSubject, ReplaySubject}
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
-import outwatch.dom.dsl._
+import outwatch.dom.dsl.{data, _}
 import outwatch.dom.helpers._
 import rx._
-import wust.css.{Styles, ZIndex}
-import wust.ids.View
+import webUtil.outwatchHelpers._
 import wust.util.collection._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.{BrowserDetect, Ownable}
-import wust.webApp.views.Components._
-import flatland._
 
-import scala.reflect.ClassTag
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -53,137 +45,6 @@ object UI {
       ),
       label(labelText)
     )
-
-  case class ModalConfig(header: VDomModifier, description: VDomModifier, onClose: () => Boolean = () => true, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
-  def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit]): VNode = div(
-    cls := "ui modal",
-    config.map[VDomModifier] { configRx =>
-      configRx.flatMap(config => Ownable { implicit ctx =>
-        VDomModifier(
-          key := scala.util.Random.nextInt, // force new elem on every render. fixes slowly rendering modal in firefox
-          config.modalModifier,
-
-          emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
-            e.modal("hide")
-              // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[modalconfig]]]
-              // workaround: kill the ctx owner, so we stop updating this node when it is closed.
-            ctx.contextualRx.kill()
-          },
-          managedElement.asJquery { e =>
-            e
-              .modal(new ModalOptions {
-                onHide = config.onClose: js.Function0[Boolean]
-              })
-              .modal("show")
-            Cancelable(() => e.modal("destroy"))
-          },
-
-          i(cls := "close icon"),
-          div(
-            cls := "header modal-header",
-            config.header
-          ),
-          div(
-            cls := "content modal-content",
-            config.contentModifier,
-            div(
-              cls := "ui medium modal-inner-content",
-              div(
-                cls := "description modal-description",
-                config.description
-              ),
-            ),
-            config.actions.map { actions =>
-              div(
-                marginLeft := "auto",
-                cls := "actions",
-                actions
-              )
-            }
-          )
-        )
-      })
-    }
-  )
-
-  object ModalConfig {
-    import wust.graph.{Node, Page}
-    import wust.sdk.BaseColors
-    import wust.sdk.NodeColor
-    import wust.sdk.NodeColor._
-    import wust.webApp.state.GlobalState
-    import wust.webApp.views.Components.renderNodeData
-
-    @inline def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, Some(node), modalHeader, icon)
-    @inline def defaultHeader(state: GlobalState, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, None, modalHeader, icon)
-    def defaultHeader(state: GlobalState, node: Option[Node], modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
-      VDomModifier(
-        backgroundColor :=? node.map(node => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex),
-        color.white,
-        div(
-          Styles.flex,
-          flexDirection.row,
-          justifyContent.spaceBetween,
-          alignItems.center,
-          div(
-            Styles.flex,
-            flexDirection.column,
-            node.map { node =>
-              div(
-                renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
-                paddingBottom := "5px",
-              )
-            },
-            div(modalHeader),
-          ),
-          div(
-            Styles.flex,
-            Styles.flexStatic,
-            icon,
-            fontSize.xxLarge,
-          ),
-        ),
-      )
-    }
-  }
-
-  case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
-  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
-    val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
-
-    div(
-      cls := "ui sidebar right icon labeled borderless vertical menu mini",
-//      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
-      width := "160px",
-      zIndex := ZIndex.uiSidebar,
-
-      config.map[VDomModifier] { config =>
-        config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
-          VDomModifier(
-            emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
-              e.sidebar("hide")
-              // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[sidebarconfig]]]
-              // workaround: kill the ctx owner, so we stop updating this node when it is closed.
-              ctx.contextualRx.kill()
-            },
-            managedElement.asJquery { e =>
-              elemHandler.onNext(e)
-              e.sidebar(new SidebarOptions {
-                transition = "overlay"
-                mobileTransition = "overlay"
-                exclusive = true
-                context = targetSelector.orUndefined
-              }).sidebar("show")
-
-              Cancelable(() => e.sidebar("destroy"))
-            },
-            config.items,
-            config.sidebarModifier
-          )
-        })
-      }
-    )
-  }
 
   val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.variation := "mini basic")
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.position := position, data.variation := "mini basic")
@@ -412,37 +273,5 @@ object UI {
       description
     )
   )
-
-  def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
-    var checkedState = Array.fill(checkboxes.length)(false)
-    val changed = PublishSubject[Unit]
-
-    div(
-      Styles.flex,
-      flexDirection.column,
-      fontSize.larger,
-      checkboxes.mapWithIndex { (idx, value) =>
-        div(
-          marginLeft := "10px",
-          marginBottom := "10px",
-          label(
-            Styles.flex,
-              alignItems.center,
-            input(
-              tpe := "checkbox",
-              onInput.checked.foreach { checked =>
-                checkedState(idx) = checked
-                changed.onNext(())
-              },
-              dsl.checked <-- changed.map(_ => checkedState(idx))
-            ),
-            description(value),
-            cursor.pointer,
-          )
-        )
-      },
-      emitter(changed).map(_ => checkedState.flatMapWithIndex { (idx, checked) => if (checked) Array(checkboxes(idx)) else Array.empty } : Seq[T]) --> sink,
-    )
-  }
 
 }

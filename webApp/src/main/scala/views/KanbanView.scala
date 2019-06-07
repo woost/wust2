@@ -1,34 +1,24 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
-import monix.reactive.Observer
-
-import collection.breakOut
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable, UI}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
-import wust.util._
-import flatland._
-import wust.util.macros.InlineList
-import wust.webApp.{BrowserDetect, Icons, ItemProperties, Ownable}
-import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusPreference, FocusState, GlobalState, NodePermission, Placeholder, TraverseState}
-import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
-import algorithm.dfs
 import wust.util.collection._
+import wust.webApp.Icons
+import wust.webApp.dragdrop.{DragContainer, DragItem}
+import wust.webApp.state._
+import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
-import scala.scalajs.js
-
 object KanbanView {
-  import SharedViewElements._
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 

@@ -4,9 +4,7 @@ import fontAwesome.freeSolid
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx._
-import wust.webApp.state.GlobalState
-import wust.webApp.outwatchHelpers._
+import webUtil.outwatchHelpers._
 import wust.webApp.views.Components._
 
 object ErrorPage {

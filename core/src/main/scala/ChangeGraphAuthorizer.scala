@@ -6,9 +6,9 @@ import wust.graph._
 import wust.ids.NodeId
 import wust.util.collection._
 
+import scala.collection.{breakOut, mutable}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
-import scala.collection.{breakOut, mutable}
 
 sealed trait ChangeGraphAuthorization
 object ChangeGraphAuthorization {

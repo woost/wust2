@@ -2,7 +2,6 @@ package wust.util.collection
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
-import scala.scalajs.js.{JSON, |}
 
 @js.native
 @JSGlobal("Set")

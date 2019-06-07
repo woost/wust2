@@ -1,12 +1,18 @@
 package wust.webApp.views
 
+import fomanticui.{JQuerySelectionWithFomanticUI, SidebarOptions}
+import monix.execution.Cancelable
+import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webApp.state.{GlobalState, ScreenSize}
-import wust.webApp.outwatchHelpers._
-import Elements._
-import wust.webApp.{BrowserDetect, Ownable}
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable}
+import wust.css.ZIndex
+
+import scala.scalajs.js.JSConverters._
 
 object GenericSidebar {
 
@@ -81,6 +87,44 @@ object GenericSidebar {
         config.mainModifier
       )
     }))
+  }
+
+  case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
+  def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
+    val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
+
+    div(
+      cls := "ui sidebar right icon labeled borderless vertical menu mini",
+      //      width := (if (BrowserDetect.isMobile) "90%" else "400px"),
+      width := "160px",
+      zIndex := ZIndex.uiSidebar,
+
+      config.map[VDomModifier] { config =>
+        config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
+          VDomModifier(
+            emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
+              e.sidebar("hide")
+              // TODO: remove this node from the dom whenever it is hidden (make this thing an observable[option[ownable[sidebarconfig]]]
+              // workaround: kill the ctx owner, so we stop updating this node when it is closed.
+              ctx.contextualRx.kill()
+            },
+            managedElement.asJquery { e =>
+              elemHandler.onNext(e)
+              e.sidebar(new SidebarOptions {
+                transition = "overlay"
+                mobileTransition = "overlay"
+                exclusive = true
+                context = targetSelector.orUndefined
+              }).sidebar("show")
+
+              Cancelable(() => e.sidebar("destroy"))
+            },
+            config.items,
+            config.sidebarModifier
+          )
+        })
+      }
+    )
   }
 
 }

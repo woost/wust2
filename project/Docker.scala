@@ -2,12 +2,11 @@ import java.io.File
 
 import com.typesafe.sbt.SbtGit.git
 import sbt.{Def, Keys}
-import sbtassembly.AssemblyKeys
 import sbtdocker.ImageName
 import sbtdocker.mutable.Dockerfile
-import scala.util.Try
 
 import scala.concurrent.duration._
+import scala.util.Try
 
 object Docker {
   def java(artifact: File, healthCheckUrl: Option[String] = None): Dockerfile = {

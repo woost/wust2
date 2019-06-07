@@ -2,16 +2,10 @@ package wust.db
 
 import com.typesafe.config.Config
 import io.getquill._
-import io.circe.parser._
-import io.circe.syntax._
 import io.getquill.context.async.TransactionalExecutionContext
-import supertagged._
 import wust.ids._
-import wust.ids.serialize.Circe._
-import wust.util._
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.control.NonFatal
 
 object Db {
   def apply(config: Config): Db = {

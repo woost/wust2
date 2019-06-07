@@ -1,12 +1,12 @@
 package wust.backend
 
+import akka.http.scaladsl.model._
+import covenant.core.api._
+import covenant.http.api._
+import covenant.ws.api._
+import sloth._
 import wust.api._
 import wust.backend.auth.JWT
-import sloth._
-import covenant.core.api._
-import covenant.ws.api._
-import covenant.http.api._
-import akka.http.scaladsl.model._
 
 import scala.concurrent.{ExecutionContext, Future}
 

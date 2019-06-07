@@ -2,8 +2,7 @@ package wust
 
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 package object util {
 

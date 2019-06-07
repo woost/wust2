@@ -1,9 +1,9 @@
 package wust.bench
 
 import bench.{Benchmark, Comparison}
+import flatland._
 import wust.ids.Cuid
 import wust.util.collection.BasicMap
-import flatland._
 
 import scala.collection.mutable
 

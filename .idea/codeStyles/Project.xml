@@ -4,6 +4,16 @@
       <option name="alwaysUsedImports">
         <array>
           <option value="acyclic.file" />
+          <option value="boopickle.Default._" />
+          <option value="chameleon.ext.boopickle._" />
+          <option value="chameleon.ext.circe._" />
+          <option value="covenant.core.util.LogHelper._" />
+          <option value="io.circe._" />
+          <option value="io.circe.generic.extras.auto._" />
+          <option value="io.circe.syntax._" />
+          <option value="wust.api.serialize.Boopickle._" />
+          <option value="wust.api.serialize.Circe._" />
+          <option value="wust.external.Circe._" />
         </array>
       </option>
       <option name="PLACE_SELF_TYPE_ON_NEW_LINE" value="false" />

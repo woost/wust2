@@ -5,6 +5,7 @@ import monix.execution.cancelables.CompositeCancelable
 import monix.execution.{Ack, Scheduler}
 import monix.reactive._
 import monix.reactive.observers.Subscriber
+
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 

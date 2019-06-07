@@ -1,45 +1,32 @@
 package wust.webApp.views
 
-import wust.webApp.dragdrop._
-import cats.effect.IO
+import flatland._
 import fontAwesome.freeSolid
 import monix.reactive.Observable
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
-import org.scalajs.dom.raw.HTMLElement
+import monix.reactive.subjects.PublishSubject
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor
 import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
+import wust.util.algorithm.dfs
 import wust.util.collection._
-import wust.webApp.{BrowserDetect, Client, Icons, Ownable}
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.outwatchHelpers._
+import wust.util.macros.InlineList
+import wust.webApp.Icons
+import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.Elements._
-import flatland._
-import monix.eval.Task
-import monix.execution.Ack
-import org.scalajs.dom
-import wust.api.ApiEvent
-import wust.util.macros.InlineList
-import wust.webApp
-import wust.webApp.views.UI.ToastLevel.Success
-import algorithm.dfs
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
-import scala.collection.immutable
 import scala.collection.{breakOut, mutable}
-import scala.concurrent.Future
 import scala.scalajs.js
-import scala.util.control.NonFatal
-import scala.util.{Failure, Success}
 
 object ChatView {
   import SharedViewElements._

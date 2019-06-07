@@ -1,7 +1,7 @@
 package wust.webApp.dragdrop
 
-import wust.ids.{ NodeRole, NodeId, UserId }
 import wust.graph.Edge
+import wust.ids.{NodeId, NodeRole, UserId}
 
 sealed trait DragPayload extends Product with Serializable
 sealed trait DragTarget extends Product with Serializable

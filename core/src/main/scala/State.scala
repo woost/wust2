@@ -1,7 +1,6 @@
 package wust.backend
 
 import wust.api._
-import wust.graph._
 
 case class State(auth: Option[Authentication]) {
   override def toString = s"State($auth)"

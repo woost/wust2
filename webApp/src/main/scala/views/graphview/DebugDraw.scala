@@ -1,27 +1,10 @@
 package views.graphview
 
-import monix.execution.Cancelable
-import monix.execution.cancelables.CompositeCancelable
 import d3v4._
-import wust.webApp.BrowserDetect
-import org.scalajs.dom
-import org.scalajs.dom.ext.KeyCode
-import org.scalajs.dom.{ CanvasRenderingContext2D, html }
-import outwatch.dom._
-import outwatch.dom.dsl.events
-import rx._
-import vectory._
-import views.graphview.VisualizationType.{ Containment, Edge }
-import wust.graph._
-import wust.ids._
-import wust.sdk.NodeColor._
-import wust.util.time.time
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
 import flatland._
+import org.scalajs.dom.CanvasRenderingContext2D
+import vectory._
 
-import scala.concurrent.Promise
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -34,8 +17,6 @@ object DebugDraw {
     canvasContext: CanvasRenderingContext2D,
     planeDimension: PlaneDimension
   ): Unit = {
-    import staticData._
-    import simData._
 
     val polyLine = d3.line().curve(d3.curveLinearClosed).context(canvasContext)
 

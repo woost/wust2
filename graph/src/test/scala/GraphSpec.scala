@@ -2,7 +2,6 @@ package wust.graph
 
 import org.scalatest._
 import wust.ids._
-import wust.util.collection._
 
 class GraphSpec extends FreeSpec with MustMatchers {
   implicit def intToNodeId(id: Int): NodeId = NodeId(Cuid(id, 0))
@@ -145,8 +144,8 @@ class GraphSpec extends FreeSpec with MustMatchers {
       // IMPORTANT:
       // exactly the same test cases as for stored procedure `can_access_node()`
       // when changing things, make sure to change them for the stored procedure as well.
-      import wust.ids.NodeAccess.{Level, Inherited}
       import wust.ids.AccessLevel._
+      import wust.ids.NodeAccess.{Inherited, Level}
       def node(id:Cuid, nodeAccess: NodeAccess) = Node.Content(NodeId(id), NodeData.PlainText(id.toString), NodeRole.default, NodeMeta(nodeAccess))
       def member(user:Cuid, level:AccessLevel, node:Cuid) = Edge.Member(NodeId(node), EdgeData.Member(level), UserId(NodeId(user)))
       def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))

@@ -1,10 +1,9 @@
 package wust.webApp.views
 
-import outwatch.dom.{ VNode, dsl }
+import outwatch.dom.{VNode, dsl}
 import rx._
-import wust.webApp.state.FocusState
-import wust.ids.{ NodeId, View }
-import wust.webApp.state.GlobalState
+import wust.ids.View
+import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.graphview.GraphView
 
 object ViewRender {

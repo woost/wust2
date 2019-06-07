@@ -1,34 +1,22 @@
 package wust.webApp.views
 
-import wust.sdk.{ BaseColors, NodeColor }
-import flatland.ArraySet
-import fontAwesome._
+import wust.webApp.views.Components._
 import googleAnalytics.Analytics
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.FileReader
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.Node.User
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Elements, Ownable, UI}
 import wust.graph._
 import wust.ids._
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor.hue
+import wust.sdk.{BaseColors, NodeColor}
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.DragItem
 import wust.webApp.jsdom.{Navigator, ShareData}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components.{renderNodeData, _}
-import wust.external.trello
 
 import scala.collection.breakOut
-import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 
@@ -81,11 +69,11 @@ object PageSettingsMenu {
           cls := "item",
           cursor.pointer,
           if (isBookmarked()) VDomModifier(
-            Elements.icon(Icons.signOut),
+            Components.icon(Icons.signOut),
             span("Unpin from sidebar"),
             onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id)) --> state.eventProcessor.changes
           ) else VDomModifier(
-            Elements.icon(Icons.pin),
+            Components.icon(Icons.pin),
             span("Pin to sidebar"),
             onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
           )
@@ -97,7 +85,7 @@ object PageSettingsMenu {
           a(
             cursor.pointer,
             cls := "item",
-            Elements.icon(Icons.delete),
+            Components.icon(Icons.delete),
             span("Archive at all places"),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
@@ -134,7 +122,7 @@ object PageSettingsMenu {
       List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, leaveItem, deleteItem)
     }
 
-    UI.SidebarConfig(
+    GenericSidebar.SidebarConfig(
       sidebarItems,
       sidebarModifier = VDomModifier(
         borderWidth := "0px 0px 0px 5px",
@@ -167,7 +155,7 @@ object PageSettingsMenu {
     a(
       cursor.pointer,
       cls := "item",
-      Elements.icon(Icons.share),
+      Components.icon(Icons.share),
       dsl.span("Share Link"),
       onClick.transform(_.delayOnNext(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
         assurePublic()
@@ -209,7 +197,7 @@ object PageSettingsMenu {
     a(
       cls := "item",
       cursor.pointer,
-      Elements.icon(Icons.users),
+      Components.icon(Icons.users),
       span("Members"),
 
       onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config(state, node))) --> state.uiModalConfig

@@ -1,8 +1,8 @@
 package wust.ids
 
 import cats.data.NonEmptyList
-import wust.util.macros.SubObjects
 import wust.util.collection.BasicMap
+import wust.util.macros.SubObjects
 
 import scala.collection.breakOut
 

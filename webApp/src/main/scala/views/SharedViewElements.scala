@@ -1,35 +1,30 @@
 package wust.webApp.views
 
-import wust.webApp._
-import dateFns.DateFns
 import fontAwesome._
-import googleAnalytics.Analytics
-import monix.eval.Task
 import monix.execution.Ack
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.{PublishSubject, ReplaySubject}
+import monix.reactive.Observer
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.api.{ApiEvent, AuthUser}
-import wust.css.{CommonStyles, Styles, ZIndex}
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Elements, Ownable, UI}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.sdk.NodeColor
 import wust.util._
+import wust.webApp._
 import wust.webApp.dragdrop.DragItem.DisableDrag
 import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, dragWithHandle}
-import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
-import scala.concurrent.Future
 import scala.scalajs.js
 
 object SharedViewElements {
@@ -384,7 +379,7 @@ object SharedViewElements {
   def searchButtonWithIcon(onClickAction: VDomModifier)(implicit ctx: Ctx.Owner) = a(
     cls := "item",
     cursor.pointer,
-    Elements.icon(Icons.search),
+    Components.icon(Icons.search),
     span("Search"),
     onClickAction,
   )
@@ -472,7 +467,7 @@ object SharedViewElements {
   }
 
   def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
-    UI.ModalConfig(
+    ModalConfig(
       header = header,
       description = VDomModifier(
         InputRow(

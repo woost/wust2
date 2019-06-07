@@ -1,25 +1,17 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import googleAnalytics.Analytics
-import monix.reactive.Observable
-import outwatch.dom._
-import outwatch.dom.dsl._
-import rx._
-import wust.api.AuthUser
-import wust.css.{ CommonStyles, Styles, ZIndex }
-import wust.graph.Page
-import wust.sdk.NodeColor
-import wust.util._
-import wust.webApp.{ Client, DevOnly, Ownable, WoostNotification, BrowserDetect }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ FocusState, GlobalState, PageStyle, ScreenSize }
 import wust.webApp.views.Components._
 import fontAwesome.freeSolid
 import org.scalajs.dom
-
-import scala.concurrent.Future
-import scala.util.Success
+import outwatch.dom._
+import outwatch.dom.dsl._
+import rx._
+import webUtil.BrowserDetect
+import webUtil.outwatchHelpers._
+import wust.css.{Styles, ZIndex}
+import wust.sdk.Colors
+import wust.webApp.WoostNotification
+import wust.webApp.state.{GlobalState, ScreenSize}
 
 object MainView {
 
@@ -135,9 +127,9 @@ object MainView {
 
         VDomModifier.ifNot(BrowserDetect.isMobile)(
           position.relative, // needed for taglist window
-          MoveableElement.withToggleSwitch(
-            ViewFilter.moveableWindow(state, MoveableElement.RightPosition(100, 500)) ::
-              TagList.moveableWindow(state, MoveableElement.RightPosition(100, 400)) ::
+          MovableElement.withToggleSwitch(
+            ViewFilter.moveableWindow(state, MovableElement.RightPosition(100, 500)) ::
+              TagList.moveableWindow(state, MovableElement.RightPosition(100, 400)) ::
               Nil,
             enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
             resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),

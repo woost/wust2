@@ -85,9 +85,8 @@ class PushService private(service: webpush.PushService) {
   }
 
   def send(sub: Data.WebPushSubscription, payload: PushData): Future[HttpResponse] = {
-    import io.circe.parser._
-    import io.circe.syntax._
     import io.circe.generic.auto._
+    import io.circe.syntax._
 
     val notification = new webpush.Notification(
       sub.endpointUrl,

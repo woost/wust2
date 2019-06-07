@@ -1,16 +1,16 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
+import webUtil.outwatchHelpers._
 import wust.api._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
+import wust.sdk.Colors
 import wust.util.time.StopWatch
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
 
 import scala.collection.mutable

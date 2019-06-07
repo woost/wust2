@@ -4,13 +4,12 @@ import java.lang.Math._
 
 import colorado.HCL
 import outwatch.dom.{VNode, _}
+import webUtil.outwatchHelpers._
 import wust.graph.Node
 import wust.ids._
 import wust.sdk.NodeColor.genericHue
 import wust.util.Memo
-import wust.webApp.outwatchHelpers._
 
-import scala.collection.mutable
 import scala.scalajs.js
 
 object Avatar {

@@ -1,16 +1,16 @@
 package wust.webApp.views.graphview
 
+import d3v4.d3
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
-import d3v4.d3
 import vectory._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
 import wust.graph._
 import wust.ids._
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
-import wust.webApp.views.Elements._
 
 object PostCreationMenu {
   def apply(state: GlobalState, focusState: FocusState, pos: Vec2, transformRx: Rx[d3.Transform])(

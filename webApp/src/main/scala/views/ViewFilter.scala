@@ -1,30 +1,19 @@
 package wust.webApp.views
 
+import wust.webApp.views.Components._
 import flatland.ArraySet
-import fomanticui.SidebarOptions
 import googleAnalytics.Analytics
-import jquery.JQuerySelection
-import monix.reactive.Observable
-import monix.reactive.subjects.BehaviorSubject
-import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx.Var.Assignment
-import rx.{Ctx, Rx, Var}
-import supertagged.TaggedType
-import wust.css.ZIndex
-import wust.graph.{Edge, Graph, Node}
+import rx.{Ctx, Rx}
+import webUtil.outwatchHelpers._
+import webUtil.{Elements, Ownable}
+import wust.graph.{Edge, Graph, GraphChanges}
 import wust.ids._
-import wust.graph.GraphChanges
-import wust.util.algorithm
-import wust.util.macros.{InlineList, SubObjects}
-import wust.webApp.Ownable
+import wust.util.macros.InlineList
 import wust.webApp.Icons
-import wust.webApp.state.{GlobalState, ScreenSize}
-import wust.webApp.outwatchHelpers._
 import wust.webApp.search.Search
-
-import scala.collection.breakOut
+import wust.webApp.state.{GlobalState, ScreenSize}
 
 object ViewFilter {
 
@@ -39,11 +28,11 @@ object ViewFilter {
     //    Identity(state),
   )
 
-  def moveableWindow(state: GlobalState, position: MoveableElement.Position)(implicit ctx: Ctx.Owner): MoveableElement.Window = {
+  def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
     val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
 
-    MoveableElement.Window(
+    MovableElement.Window(
       VDomModifier(
         Icons.filter,
         span(marginLeft := "5px", "Filter"),
@@ -89,7 +78,7 @@ object ViewFilter {
           ),
           div(
             cursor.pointer,
-            Elements.icon(Icons.noFilter),
+            Components.icon(Icons.noFilter),
             span("Reset ALL filters"),
             onClick(state.defaultTransformations) --> state.graphTransformations,
             onClick foreach { Analytics.sendEvent("filter", "reset") },

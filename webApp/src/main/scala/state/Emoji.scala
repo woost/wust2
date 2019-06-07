@@ -4,8 +4,6 @@ import emojijs.EmojiConvertor
 import wust.graph.{GraphChanges, Node}
 import wust.ids.NodeData
 
-import scala.collection.breakOut
-
 object EmojiTitleConverter {
   val emojiTitleConvertor = new EmojiConvertor()
   emojiTitleConvertor.replace_mode = "unified"

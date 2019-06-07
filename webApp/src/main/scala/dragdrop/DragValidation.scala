@@ -1,27 +1,15 @@
 package wust.webApp.dragdrop
 
 import draggable._
-import monix.reactive.Observable
 import googleAnalytics.Analytics
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.ext.KeyCode
+import webUtil.JSDefined
 import wust.util._
-import org.scalajs.dom.raw.HTMLElement
-import wust.api.AuthUser
-import wust.graph.{Edge, GraphChanges, Tree, _}
-import wust.ids.{EdgeData, NodeId, NodeRole, UserId}
-import wust.webApp.{BrowserDetect, DevOnly}
-import wust.webApp.outwatchHelpers._
+import wust.webApp.dragdrop.DragActions._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import scala.scalajs.js.|
-import DragActions._
 import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction}
+
+import scala.scalajs.js
 
 
 object DragValidation {

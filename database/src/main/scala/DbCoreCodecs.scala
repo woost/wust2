@@ -1,14 +1,6 @@
 package wust.db
 
 import io.getquill._
-import io.circe.parser._
-import io.circe.syntax._
-import supertagged._
-import wust.ids._
-import wust.ids.serialize.Circe._
-import wust.util._
-import java.util.{Date, UUID}
-
 import wust.dbUtil.DbCommonCodecs
 
 // Converters between scala classes and database entities

@@ -2,10 +2,8 @@ package hammerjs
 
 import org.scalajs.dom
 import org.scalajs.dom.html
-import org.scalajs.dom.raw.NodeList
 
 import scala.scalajs.js
-import scala.scalajs.js.`|`
 import scala.scalajs.js.annotation._
 
 // https://hammerjs.github.io/getting-started/

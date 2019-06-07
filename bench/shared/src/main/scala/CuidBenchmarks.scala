@@ -2,7 +2,6 @@ package wust.bench
 
 import bench._
 import flatland._
-import wust.util.algorithm
 
 
 object CuidBenchmarks {

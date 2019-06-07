@@ -1,14 +1,10 @@
 package wust.webApp.views
 
-import flatland.{ArraySet, _}
-import wust.graph.Edge.LabeledProperty
 import wust.graph.{Edge, Graph, Node}
-import wust.ids.{DateMilli, DateTimeMilli, DurationMilli, EdgeData, EpochMilli, NodeData, NodeId, NodeRole, ParentId, UserId}
-import wust.util.algorithm.dfs
+import wust.ids._
 import wust.util.macros.InlineList
-import wust.webApp.state.TraverseState
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 
 object AssignedTasksData {
 

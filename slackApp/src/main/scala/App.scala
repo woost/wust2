@@ -1,40 +1,37 @@
 package wust.slack
 
-import covenant.http._
-import ByteBufferImplicits._
-import sloth._
 import java.nio.ByteBuffer
 
-import boopickle.Default._
-import chameleon.ext.boopickle._
-import wust.sdk._
-import wust.api._
-import wust.ids._
-import wust.graph._
-import wust.serviceUtil.Logging
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
-import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
-import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import akka.http.scaladsl.server.Route
 import akka.stream.ActorMaterializer
 import akka.util.ByteStringBuilder
-import cats.data.{EitherT, OptionT}
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
+import cats.data.EitherT
+import cats.implicits._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import covenant.http.ByteBufferImplicits._
+import covenant.http._
 import monix.execution.Scheduler
 import monix.reactive.Observable
-import cats.implicits._
 import monix.reactive.subjects.ConcurrentSubject
-
-import scala.util.{Failure, Success, Try}
+import mycelium.client.SendType
 import slack.api.SlackApiClient
+import sloth._
 import wust.api.ApiEvent.NewGraphChanges
+import wust.api._
+import wust.graph._
+import wust.ids._
+import wust.sdk._
+import wust.serviceUtil.Logging
 import wust.slack.Data._
+
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success}
 
 object Constants {
   //TODO
@@ -114,9 +111,9 @@ class SlackApiImpl(client: WustClient[Future], oAuthClient: OAuthClient, persist
 }
 
 object AppServer {
-  import akka.http.scaladsl.server.RouteResult._
-  import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
+  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.server.RouteResult._
   //  import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
 
   //  implicit val genericConfiguration: Configuration = Configuration(transformMemberNames = identity, transformConstructorNames = _.toLowerCase, useDefaults = true, discriminator = Some("event"))
@@ -130,7 +127,6 @@ object AppServer {
     implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
-    import wust.api.serialize.Boopickle._
 
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new SlackApiImpl(wustReceiver.client, oAuthClient, persistenceAdapter))

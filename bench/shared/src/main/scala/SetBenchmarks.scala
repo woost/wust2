@@ -1,11 +1,8 @@
 package wust.bench
 
 import bench.{Benchmark, Comparison}
-import wust.ids.Cuid
-import wust.util.collection.BasicSet
 import flatland._
-
-import scala.collection.mutable
+import wust.ids.Cuid
 
 object SetBenchmarks {
 

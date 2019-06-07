@@ -463,15 +463,16 @@ lazy val webUtil = project
   .settings(
     libraryDependencies ++=
       Deps.scalaJsDom.value ::
-        Deps.scalarx.value ::
-        Deps.outwatch.value ::
-        Deps.monocle.value ::
-        Deps.vectory.value ::
-        Deps.d3v4.value ::
-        Deps.kantanRegex.core.value ::
-        Deps.kantanRegex.generic.value ::
-        Deps.fontawesome.value ::
-        Nil
+      Deps.scalacss.value ::
+      Deps.scalarx.value ::
+      Deps.outwatch.value ::
+      Deps.monocle.value ::
+      Deps.vectory.value ::
+      Deps.d3v4.value ::
+      Deps.kantanRegex.core.value ::
+      Deps.kantanRegex.generic.value ::
+      Deps.fontawesome.value ::
+      Nil
   )
 
 lazy val external = crossProject(JSPlatform, JVMPlatform)

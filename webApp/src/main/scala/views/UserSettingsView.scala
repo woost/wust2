@@ -3,24 +3,23 @@ package wust.webApp.views
 import fontAwesome.IconDefinition
 import googleAnalytics.Analytics
 import monix.reactive.Observable
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{Elements, UI}
 import wust.api._
 import wust.css.Styles
 import wust.ids._
 import wust.webApp._
-import wust.webApp.outwatchHelpers._
-import Elements._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
-import cats.effect.IO
-import org.scalajs.dom
-import wust.graph.{GraphChanges, Node}
 
-import scala.util.control.NonFatal
 import scala.concurrent.Future
 import scala.scalajs.js
+import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
 
 object UserSettingsView {

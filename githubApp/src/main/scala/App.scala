@@ -1,43 +1,38 @@
 package wust.github
 
-import covenant.http._
-import ByteBufferImplicits._
-import sloth._
 import java.nio.ByteBuffer
 
-import boopickle.Default._
-import chameleon.ext.boopickle._
-import wust.sdk._
-import wust.api._
-import wust.ids._
-import wust.graph._
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
-import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
-import mycelium.client.SendType
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import akka.stream.ActorMaterializer
 import cats.data.EitherT
-
-import scala.concurrent.{ExecutionContext, Future}
-import scala.concurrent.duration._
-import scala.util.control.NonFatal
-import scala.collection.mutable
+import cats.implicits._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import covenant.http.ByteBufferImplicits._
+import covenant.http._
 import github4s.Github
 import github4s.Github._
 import github4s.GithubResponses.GHResult
 import github4s.free.domain.{Comment, Issue}
 import monix.execution.Scheduler
 import monix.reactive.Observable
-import cats.implicits._
-import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
 import monix.reactive.subjects.ConcurrentSubject
-
-import scala.util.{Failure, Success, Try}
+import mycelium.client.SendType
 import scalaj.http.HttpResponse
+import sloth._
 import wust.api.Authentication.Token
-import wust.serviceUtil.StringJvmOps
+import wust.api._
+import wust.graph._
+import wust.ids._
+import wust.sdk._
+
+import scala.collection.mutable
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.control.NonFatal
+import scala.util.{Failure, Success, Try}
 
 object Constants {
   //TODO
@@ -86,9 +81,9 @@ class GithubApiImpl(client: WustClient[Future], oAuthClient: OAuthClient)(
 }
 
 object AppServer {
-  import akka.http.scaladsl.server.RouteResult._
-  import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
+  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.server.RouteResult._
   import de.heikoseeberger.akkahttpcirce.FailFastCirceSupport._
 
   implicit def StringToEpochMilli(s: String): EpochMilli = EpochMilli.parse(s).get //TODO: really?
@@ -138,9 +133,8 @@ object AppServer {
   ): Unit = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
 
-    import wust.api.serialize.Boopickle._
-    import io.circe.generic.auto._ // TODO: extras does not seem to work with heiko seeberger
     import cats.implicits._
+    import io.circe.generic.auto._
 
     val apiRouter = Router[ByteBuffer, Future]
       .route[PluginApi](new GithubApiImpl(wustReceiver.client, oAuthClient))

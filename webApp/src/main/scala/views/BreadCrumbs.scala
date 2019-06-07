@@ -1,25 +1,23 @@
 package wust.webApp.views
 
-import wust.sdk.{BaseColors, NodeColor}
-import wust.css.Styles
-import wust.webApp.dragdrop._
+import fontAwesome.freeSolid
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.dsl.styles.extra._
 import rx._
+import webUtil.Ownable
+import webUtil.outwatchHelpers._
 import wust.api.AuthUser
-import wust.graph.{Graph, Node, Page}
+import wust.graph.{Graph, Page}
 import wust.ids._
 import wust.util._
-import wust.webApp.Ownable
-import wust.webApp.outwatchHelpers._
+import wust.webApp.dragdrop._
 import wust.webApp.state.GlobalState
+import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.views.Components._
 
 import scala.collection.breakOut
-import fontAwesome.freeSolid
-import wust.webApp.views.DragComponents.registerDragContainer
 
 object BreadCrumbs {
 

@@ -1,14 +1,12 @@
 package wust.webApp.views
 
-import outwatch.dom.VDomModifier
-import outwatch.dom._
+import outwatch.dom.{VDomModifier, _}
 import outwatch.dom.dsl._
-import wust.css.ZIndex
+import webUtil.UI
+import webUtil.outwatchHelpers._
 import wust.ids.View
 import wust.sdk.Colors
-import wust.util._
 import wust.webApp.state.PageStyle
-import wust.webApp.outwatchHelpers._
 
 object PageHeaderParts {
   /// Required parameters from the outer context

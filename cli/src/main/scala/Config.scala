@@ -1,7 +1,7 @@
 package wust.cli
 
 import java.io.File
-import java.nio.file.{Path, Paths}
+import java.nio.file.Paths
 
 import com.typesafe.config.ConfigRenderOptions
 import pureconfig.error.ConfigReaderFailures

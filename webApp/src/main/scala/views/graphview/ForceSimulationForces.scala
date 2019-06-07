@@ -1,25 +1,19 @@
 package views.graphview
 
-import d3v4.{ d3, d3polygon, _ }
-import vectory.Algorithms.LineIntersection
+import d3v4.d3
+import flatland._
 import vectory._
 import views.graphview.ForceSimulationConstants._
 
-import scala.collection.breakOut
-import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import wust.util.collection._
-import flatland._
 
 object ForceSimulationForces {
-  import Math._
-
   import wust.webApp.views.graphview.ForceUtil._
 
   @inline private def sq(x: Double): Double = x * x
 
   def nanToPhyllotaxis(data: SimulationData, spacing: Double): Unit = {
-    import data.{ vx, vy, x, y }
+    import data.{vx, vy, x, y}
     val theta = Math.PI * (3 - Math.sqrt(5))
 
     var i = 0
@@ -256,7 +250,7 @@ object ForceSimulationForces {
     planeDimension: PlaneDimension,
     strength: Double
   ): Unit = {
-    import planeDimension.{ simHeight => planeHeight, simWidth => planeWidth, _ }
+    import planeDimension.{simHeight => planeHeight, simWidth => planeWidth, _}
     import simData._
     import staticData._
 

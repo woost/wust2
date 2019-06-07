@@ -1,4 +1,4 @@
-package wust.webApp
+package webUtil
 
 import cats.Functor
 import fontAwesome._
@@ -20,39 +20,9 @@ import wust.webUtil.macros.KeyHash
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
-import scala.util.{Failure, Success}
 import scala.util.control.NonFatal
-import wust.webApp.views.EditInteraction
+import scala.util.{Failure, Success}
 
-package outwatchHelpers {
-
-  object JSDefined {
-    // https://gitter.im/scala-js/scala-js?at=5c3e221135350772cf375515
-    def apply[A](a: A): js.UndefOr[A] = a
-    def unapply[A](a: js.UndefOr[A]): UnapplyResult[A] = new UnapplyResult(a)
-
-    final class UnapplyResult[+A](val self: js.UndefOr[A])
-    extends AnyVal {
-      @inline def isEmpty: Boolean = self eq js.undefined
-      /** Calling `get` when `isEmpty` is true is undefined behavior. */
-      @inline def get: A = self.asInstanceOf[A]
-    }
-  }
-
-  @inline class ModifierBooleanOps(condition: Boolean) {
-    @inline def apply(m: => VDomModifier):VDomModifier = if(condition) VDomModifier(m) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier, m6: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6) else VDomModifier.empty
-    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier, m6: => VDomModifier, m7: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6,m7) else VDomModifier.empty
-  }
-}
-
-// TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
-//TODO: outwatch: onInput.target foreach { elem => ... }
-//TODO: outwatch: Emitterbuilder.timeOut or delay
 package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO: it is not so great to have a monix scheduler and execution context everywhere, move to main.scala and pass through
   implicit val monixScheduler: Scheduler =
@@ -287,30 +257,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
    outwatch.dom.dsl.events.document.onKeyUp.collect { case e if e.keyCode == keyCode   => false },
  ).merge.startWith(false :: Nil)
 
-  // fontawesome uses svg for icons and span for layered icons.
-  // we need to handle layers as an html tag instead of svg.
-  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
-  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
-    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
-    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
-  )
-  private def abstractTreeToVNode(tree: AbstractElement): VNode = {
-    val tag = stringToTag(tree.tag)
-    tag(treeToModifiers(tree))
-  }
-  private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
-    val tag = stringToTag(tree.tag)
-    tag.thunkStatic(uniqueKey(key))(treeToModifiers(tree))
-  }
-
-  implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
-    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
-  }
-
-  @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
-    abstractTreeToVNode(icon.`abstract`(0))
-  }
-
   @inline def multiObserver[T](observers: Observer[T]*): Observer[T] = new CombinedObserver[T](observers)
 
   import scalacss.defaults.Exports.StyleA
@@ -356,18 +302,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
   }
-  implicit class RichEmitterBuilderEditInteraction[T,R](val builder: EmitterBuilder[EditInteraction[T],R]) extends AnyVal {
-    def editValue: EmitterBuilder[T, R] = builder.collect {
-      case EditInteraction.Input(value) => value
-    }
-    def editValueOption: EmitterBuilder[Option[T], R] = builder.collect {
-      case EditInteraction.Input(value) => Some(value)
-      case EditInteraction.Error(_) => None
-    }
-  }
 }
 
-@inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
+  @inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
   @inline override def onNext(elem: T): Ack = {
     rx() = elem
     Ack.Continue
@@ -376,6 +313,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   @inline override def onComplete(): Unit = ()
 }
 
+// TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
+//TODO: outwatch: onInput.target foreach { elem => ... }
+//TODO: outwatch: Emitterbuilder.timeOut or delay
 trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
   @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
@@ -389,6 +329,7 @@ trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
     @inline def -->(observer: Observer[O]): S = f(self --> observer)
   }
 }
+
 class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[E] => Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
   import outwatchHelpers._
   @inline override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable[T](tr(rx.toObservable(transformer)))
@@ -401,6 +342,7 @@ class RxTransformingEmitterBuilder[E,O](rx: Rx[E], transformer: Ctx.Owner => Rx[
     }
   }
 }
+
 class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifier] {
   import outwatchHelpers._
   @inline override def transform[T](tr: Observable[O] => Observable[T]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.fromObservable(tr(rx.toObservable))
@@ -413,7 +355,6 @@ class RxEmitterBuilder[O](rx: Rx[O]) extends RxEmitterBuilderBase[O, VDomModifie
     }
   }
 }
-
 class CombinedObserver[T](observers: Seq[Observer[T]])(implicit ec: ExecutionContext) extends Observer[T] {
   def onError(ex: Throwable): Unit = observers.foreach(_.onError(ex))
   def onComplete(): Unit = observers.foreach(_.onComplete())
@@ -424,3 +365,25 @@ class CombinedObserver[T](observers: Seq[Observer[T]])(implicit ec: ExecutionCon
     }
   }
 }
+object JSDefined {
+    // https://gitter.im/scala-js/scala-js?at=5c3e221135350772cf375515
+    def apply[A](a: A): js.UndefOr[A] = a
+    def unapply[A](a: js.UndefOr[A]): UnapplyResult[A] = new UnapplyResult(a)
+
+    final class UnapplyResult[+A](val self: js.UndefOr[A])
+    extends AnyVal {
+      @inline def isEmpty: Boolean = self eq js.undefined
+      /** Calling `get` when `isEmpty` is true is undefined behavior. */
+      @inline def get: A = self.asInstanceOf[A]
+    }
+  }
+
+@inline class ModifierBooleanOps(condition: Boolean) {
+    @inline def apply(m: => VDomModifier):VDomModifier = if(condition) VDomModifier(m) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier, m6: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6) else VDomModifier.empty
+    @inline def apply(m: => VDomModifier, m2: => VDomModifier, m3: => VDomModifier, m4: => VDomModifier, m5: => VDomModifier, m6: => VDomModifier, m7: => VDomModifier):VDomModifier = if(condition) VDomModifier(m,m2,m3,m4,m5,m6,m7) else VDomModifier.empty
+  }

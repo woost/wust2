@@ -1,32 +1,22 @@
 package wust.webApp.views
 
-import scala.scalajs.js
-import scala.scalajs.js.JSConverters._
-import org.scalajs.dom
+import d3v4._
 import monix.execution.Cancelable
-import wust.webApp.dragdrop.{ DragContainer, DragItem }
-import fontAwesome.freeSolid
-import SharedViewElements._
-import wust.webApp.{ BrowserDetect, Icons, ItemProperties }
-import wust.webApp.Icons
+import org.scalajs.dom
 import outwatch.dom._
-import wust.sdk.{ BaseColors, NodeColor }
 import outwatch.dom.dsl._
-import styles.extra.{ transform, transformOrigin }
-import outwatch.dom.helpers.EmitterBuilder
-import wust.webApp.views.Elements._
-import monix.reactive.subjects.{ BehaviorSubject, PublishSubject }
+import outwatch.dom.dsl.styles.extra.transform
 import rx._
-import wust.css.{ Styles, ZIndex }
+import webUtil.outwatchHelpers._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection.BasicMap
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder }
+import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
-import wust.util._
-import d3v4._
-import org.scalajs.dom.console
+
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 // Timeline which uses properties for start and enddate
 object GanttView {

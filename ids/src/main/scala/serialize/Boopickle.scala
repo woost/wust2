@@ -1,8 +1,8 @@
 package wust.ids.serialize
 
-import wust.ids._
 import boopickle.Default._
 import supertagged._
+import wust.ids._
 
 trait Boopickle {
 

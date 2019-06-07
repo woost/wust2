@@ -2,9 +2,9 @@ package wust.sdk
 
 import cats.data.NonEmptyList
 import colorado._
-import wust.graph.{Graph, Page}
 import wust.ids._
-import collection.breakOut
+
+import scala.collection.breakOut
 
 object NodeColor {
   def genericHue(seed: Any): Double = {

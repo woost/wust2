@@ -1,14 +1,16 @@
 package wust.webApp.views
 
+import wust.webApp.views.Components._
 import fontAwesome.IconLookup
 import googleAnalytics.Analytics
 import outwatch.dom._
 import outwatch.dom.dsl._
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.graph.{GraphChanges, Node}
 import wust.ids.NodeRole
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
-import wust.webApp.outwatchHelpers._
 
 case class ConvertSelection(
   role: NodeRole,
@@ -20,13 +22,13 @@ object ConvertSelection {
   def menuItem(state: GlobalState, node: Node.Content): VNode = {
     a(
       cls := "item",
-      Elements.icon(Icons.convertItem),
+      Components.icon(Icons.convertItem),
       span("Convert"),
 
       Components.horizontalMenu(
         ConvertSelection.all.map { convert =>
           Components.MenuItem(
-            title = Elements.icon(convert.icon),
+            title = Components.icon(convert.icon),
             description = VDomModifier(
               fontSize.xSmall,
               convert.role.toString,

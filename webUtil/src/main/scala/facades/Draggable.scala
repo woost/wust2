@@ -1,8 +1,8 @@
 package draggable
 
 import org.scalajs.dom
-import org.scalajs.dom.{MouseEvent, html}
 import org.scalajs.dom.raw.NodeList
+import org.scalajs.dom.{MouseEvent, html}
 
 import scala.scalajs.js
 import scala.scalajs.js.`|`

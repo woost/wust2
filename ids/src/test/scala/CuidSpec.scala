@@ -1,8 +1,8 @@
 package wust.ids
 
-import org.scalatest._
-
 import java.util.UUID
+
+import org.scalatest._
 
 class CuidSpec extends FreeSpec with MustMatchers {
   "uuid" in {

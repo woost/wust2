@@ -1,8 +1,8 @@
-import sbt._
 import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
+import sbt._
 
 object Deps {
-  import Def.{ setting => dep }
+  import Def.{setting => dep}
 
   val silencerVersion = "1.4.1"
 

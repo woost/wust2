@@ -1,15 +1,14 @@
 package wust.slack
 
-import wust.graph.Node._
+import akka.actor.ActorSystem
+import cats.data.OptionT
+import cats.implicits._
+import monix.execution.Scheduler
+import slack.api.ApiError
+import slack.models._
 import wust.graph._
 import wust.ids._
 import wust.slack.Data._
-import cats.data.OptionT
-import cats.implicits._
-import slack.api.{ApiError, SlackApiClient}
-import slack.models._
-import akka.actor.ActorSystem
-import monix.execution.Scheduler
 
 import scala.collection.Set
 import scala.concurrent.{ExecutionContext, Future}

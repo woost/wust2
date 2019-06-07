@@ -7,8 +7,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 object GitterImporter {
-  import scala.collection.JavaConverters._
   import com.amatkivskiy.gitter.sdk.sync.client.SyncGitterApiClient
+
+  import scala.collection.JavaConverters._
 
   private val gitterAccessToken = sys.env.getOrElse("WUST_GITTER_TOKEN", "")
 

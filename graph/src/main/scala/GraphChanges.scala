@@ -1,13 +1,12 @@
 package wust.graph
 
 import wust.ids._
-import wust.util.collection.RichCollection
+import wust.util.algorithm.dfs
+import wust.util.collection.{HashSetFromArray, RichCollection}
 import wust.util.macros.InlineList
 
 import scala.collection.{breakOut, mutable}
 import scala.reflect.ClassTag
-import wust.util.collection.HashSetFromArray
-import wust.util.algorithm.dfs
 
 case class GraphChanges(
   addNodes: Array[Node] = Array.empty,

@@ -1,31 +1,26 @@
 package wust.serviceUtil
 
-import java.nio.charset.StandardCharsets
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.coding.Gzip
-import akka.http.scaladsl.model.HttpHeader.ParsingResult
-import akka.http.scaladsl.model.headers._
-import akka.http.scaladsl.model._
 import akka.http.scaladsl.marshalling._
+import akka.http.scaladsl.model.HttpHeader.ParsingResult
+import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers._
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
 import io.circe.Json
+import io.circe.generic.auto._
+import io.circe.syntax._
 import monix.eval.Task
 import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.ConcurrentSubject
-import scribe.{LogRecord, MDC}
-import scribe.writer.Writer
-import io.circe._
-import io.circe.syntax._
-import io.circe.parser._
-import io.circe.generic.auto._
 import perfolation._
+import scribe.writer.Writer
+import scribe.{LogRecord, MDC}
 
 import scala.collection.breakOut
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
 
 case class LogstashRecord(message: String,
   service: String,

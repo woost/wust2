@@ -1,14 +1,13 @@
 package wust.webApp.parsers
 
 import cats.data.NonEmptyList
-import wust.graph.Page
-import wust.ids.{Cuid, NodeId, View, ViewOperator}
-import wust.webApp.state._
 import kantan.regex._
 import kantan.regex.implicits._
-import kantan.regex.generic._
 import wust.api.Authentication
+import wust.graph.Page
+import wust.ids.{Cuid, NodeId, View, ViewOperator}
 import wust.util.collection.BasicMap
+import wust.webApp.state._
 
 import scala.scalajs.js
 
@@ -26,7 +25,7 @@ private object ParsingHelpers {
     else Left(DecodeError.TypeError("Multiple results, but only one expected: " + results.mkString(",")))
   }
 }
-import ParsingHelpers._
+import wust.webApp.parsers.ParsingHelpers._
 
 private sealed trait UrlOption {
   def update(config: UrlConfig, text: String): DecodeResult[UrlConfig]

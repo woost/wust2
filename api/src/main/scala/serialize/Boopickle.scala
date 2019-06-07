@@ -1,8 +1,8 @@
 package wust.api.serialize
 
-import wust.graph._
-import wust.api._
 import boopickle.Default._
+import wust.api._
+import wust.graph._
 
 object Boopickle extends wust.ids.serialize.Boopickle {
 

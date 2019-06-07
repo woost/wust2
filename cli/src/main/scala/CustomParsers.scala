@@ -5,8 +5,6 @@ import caseapp.core.argparser.{ArgParser, SimpleArgParser}
 import supertagged.{Tagged, TaggedType}
 import wust.ids._
 
-import scala.util.Try
-
 object CustomParsers {
   implicit def taggedParser[T, U](implicit f: ArgParser[T]): ArgParser[Tagged[T, U]] = f.asInstanceOf[ArgParser[Tagged[T, U]]]
   implicit def overTaggedParser[R, T <: TaggedType[R], U](implicit f: ArgParser[T#Type]): ArgParser[Tagged[T#Type, U]] = f.asInstanceOf[ArgParser[Tagged[T#Type, U]]]

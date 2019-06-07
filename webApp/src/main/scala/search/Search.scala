@@ -1,6 +1,6 @@
 package wust.webApp.search
 
-import wust.graph.{Graph, Node}
+import wust.graph.Node
 
 
 object Search {

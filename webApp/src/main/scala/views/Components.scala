@@ -1,10 +1,12 @@
 package wust.webApp.views
 
+import scala.scalajs.js.JSConverters._
 import cats.effect.IO
 import emojijs.EmojiConvertor
 import fomanticui.{SearchOptions, SearchSourceEntry}
 import fontAwesome._
 import jquery.JQuerySelection
+import marked.Marked
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
@@ -12,6 +14,9 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Elements, Ownable, UI}
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
@@ -23,9 +28,7 @@ import wust.util.macros.InlineList
 import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState}
-import wust.webApp.views.Elements._
 import wust.webApp.views.UploadComponents._
 
 import scala.collection.breakOut
@@ -115,6 +118,78 @@ object Components {
   def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = false): VNode = {
     renderNodeCard(node, contentInject = renderAsOneLineText, projectWithIcon = projectWithIcon)
   }
+
+  def markdownVNode(str: String) = {
+    div.thunkStatic(uniqueKey(str))(VDomModifier(
+      cls := "markdown",
+      div(innerHTML := UnsafeHTML(markdownString(str)))
+    )) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
+  }
+
+  //TODO: move to webUtil
+  def markdownString(str: String): String = {
+    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
+    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
+  }
+
+  //TODO: move to webUtil
+  private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag.thunkStatic(uniqueKey(key))(treeToModifiers(tree))
+  }
+
+  //TODO: move to webUtil
+  implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
+    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
+  }
+
+  // fontawesome uses svg for icons and span for layered icons.
+  // we need to handle layers as an html tag instead of svg.
+  //TODO: move to webUtil
+  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
+  //TODO: move to webUtil
+  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
+    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
+    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
+  )
+  //TODO: move to webUtil
+  private def abstractTreeToVNode(tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag(treeToModifiers(tree))
+  }
+
+  //TODO: move to webUtil
+  @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
+    abstractTreeToVNode(icon.`abstract`(0))
+  }
+
+  //TODO: move to webUitl.Elements
+  def closeButton: VNode = div(
+    div(cls := "fa-fw", freeSolid.faTimes),
+    padding := "10px",
+    flexGrow := 0.0,
+    flexShrink := 0.0,
+    cursor.pointer,
+  )
+
+  //TODO: move to webUitl.Elements
+  def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
+    fontawesome.icon(icon),
+    fontawesome.icon(
+      indicator,
+      new Params {
+        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
+        styles = scalajs.js.Dictionary[String]("color" -> color)
+      }
+    )
+  )
+
+  //TODO: move to webUitl.Elements
+  def icon(icon: VDomModifier) = i(
+    cls := "icon fa-fw",
+    icon
+  )
+
 
   // FIXME: Ensure unique DM node that may be renamed.
   def onClickDirectMessage(state: GlobalState, dmUser: Node.User): VDomModifier = {

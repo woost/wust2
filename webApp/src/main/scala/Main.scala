@@ -1,21 +1,21 @@
 package wust.webApp
 
-import org.scalajs.dom.console
 import colorado.HCL
 import emojijs.EmojiConvertor
 import highlight.Highlight
 import marked.{Marked, MarkedOptions}
 import monix.reactive.Observable
-import org.scalajs.dom.document
+import org.scalajs.dom.{console, document}
 import outwatch.dom._
 import rx._
-import wust.ids._
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.api.ApiEvent
-import wust.graph.{Node, GraphChanges}
+import wust.graph.Node
+import wust.ids._
 import wust.webApp.jsdom.ServiceWorker
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.{MainView, UI, Elements}
+import wust.webApp.views.{GenericSidebar, MainView, ModalConfig}
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
@@ -38,13 +38,14 @@ object Main {
     // render main content
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
     // render single modal instance for the whole page that can be configured via state.uiModalConfig
-    OutWatch.renderReplace("#modal-placeholder", UI.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
+    OutWatch.renderReplace("#modal-placeholder", ModalConfig.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
     // render single sidebar instance for the whole page that can be configured via state.uiSidebarConfig
-    OutWatch.renderReplace("#sidebar-placeholder", UI.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
+    OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }
 
   private def setupFomanticUISearch(): Unit = {
-    import dsl._, wust.css.Styles
+    import dsl._
+    import wust.css.Styles
 
     jquery.JQuery.asInstanceOf[js.Dynamic].`$`.fn.search.settings.templates.node = { results =>
       div(

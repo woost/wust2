@@ -1,25 +1,23 @@
 package wust.webApp.views
 
+import cats.effect.IO
+import colorado.{Color, RGB}
+import fomanticui.DropdownEntry
 import fontAwesome.{IconLookup, freeRegular, freeSolid}
-import jquery.JQuerySelection
+import monix.execution.Ack
+import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.ids._
-import wust.webApp.state.{GlobalState, PageChange}
-import Components._
-import cats.effect.IO
-import colorado.{Color, RGB}
-import fomanticui.{DropdownEntry, ModalOptions}
-import monix.execution.Ack
-import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
+import webUtil.outwatchHelpers._
+import webUtil.{Ownable, UI}
 import wust.css.Styles
 import wust.graph._
-import wust.sdk.{BaseColors, NodeColor}
-import wust.webApp.outwatchHelpers._
+import wust.ids._
+import wust.sdk.NodeColor
 import wust.util._
-import wust.webApp.{Ownable, views}
+import wust.webApp.state.GlobalState
+import wust.webApp.views.Components._
 
 import scala.concurrent.Future
 
@@ -184,7 +182,7 @@ object CreateNewPrompt {
             childNodes -> ChildId(state.selectedNodes.now)
           )
 
-          state.uiModalConfig.onNext(Ownable(implicit ctx => UI.ModalConfig(header = header, description = description, modalModifier = VDomModifier(
+          state.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "basic",
             backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
           ))))

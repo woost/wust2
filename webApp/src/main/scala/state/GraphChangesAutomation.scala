@@ -1,18 +1,13 @@
 package wust.webApp.state
 
-import java.util
-
-import flatland.{ArraySet, ArrayStackInt, InterleavedArrayInt}
-import monix.reactive.Observable
 import rx.Var
+import webUtil.UI
 import wust.graph._
 import wust.ids._
-import wust.util.macros.InlineList
-import wust.util.{StringOps, algorithm}
+import wust.util.StringOps
 import wust.util.algorithm.dfs
-import wust.webApp.views.UI
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.mutable
 
 // This file is about automation. We want to automate changes to the graph and emit additional changes
 // whenever an automation is triggered. Currently an automation can only be triggered by adding a

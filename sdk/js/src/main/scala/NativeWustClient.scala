@@ -1,27 +1,22 @@
 package wust.sdk
 
-import wust.api._
-import wust.api.serialize.Boopickle._
-import covenant.ws._
-import chameleon.ext.boopickle._
-import boopickle.Default._
 import java.nio.ByteBuffer
 
-import wust.util.collection._
+import boopickle.Default._
+import chameleon.ext.boopickle._
 import colorado.HCL
-import covenant.core.DefaultLogHandler
 import covenant.core.util.StopWatch
-import monix.reactive.{ Observable, Observer }
-import sloth.{ ClientException, ClientFailure, LogHandler }
-
-import scala.concurrent.{ ExecutionContext, Future }
+import covenant.ws._
+import monix.reactive.Observer
 import org.scalajs.dom.console
-import wust.graph.{ Graph, Page }
+import sloth.{ClientException, ClientFailure, LogHandler}
+import wust.api._
+import wust.api.serialize.Boopickle._
+import wust.graph.{Graph, Page}
 
-import scala.scalajs.{ LinkingInfo, js }
-import scala.scalajs.js.JSConverters._
-import scala.util.{ Failure, Success }
-import scala.collection.breakOut
+import scala.concurrent.{ExecutionContext, Future}
+import scala.scalajs.js
+import scala.util.{Failure, Success}
 
 class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext) extends LogHandler[Future] {
   import covenant.core.util.LogHelper._

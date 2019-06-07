@@ -1,15 +1,13 @@
 package wust.webApp.views.graphview
 
-import wust.webApp.dragdrop.{DragItem, DragTarget, DragPayload, DragActions, DragPayloadAndTarget}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import views.graphview.ForceSimulation
+import webUtil.outwatchHelpers._
 import wust.css.ZIndex
-import wust.graph._
 import wust.ids._
-import wust.util._
-import wust.webApp.outwatchHelpers._
+import wust.webApp.dragdrop.{DragActions, DragItem, DragPayload, DragTarget}
 import wust.webApp.state.{FocusState, GlobalState, PageStyle}
 
 import scala.scalajs.LinkingInfo

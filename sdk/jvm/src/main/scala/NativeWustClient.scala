@@ -1,23 +1,23 @@
 package wust.sdk
 
-import sloth._
-import covenant.core.DefaultLogHandler
-import mycelium.client._
-import mycelium.core._
-import mycelium.core.message._
-import chameleon._
-import cats.data.EitherT
-import wust.api._, wust.api.serialize.Boopickle._
-import covenant.ws._
-import chameleon.ext.boopickle._
-import boopickle.Default._
+import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import java.nio.ByteBuffer
-import scala.concurrent.duration._
-import scala.concurrent.{Future, ExecutionContext}
+import boopickle.Default._
+import chameleon._
+import chameleon.ext.boopickle._
+import covenant.ws._
 import monix.eval.Task
+import mycelium.client._
+import mycelium.core._
+import mycelium.core.message._
+import sloth._
+import wust.api._
+import wust.api.serialize.Boopickle._
+
+import scala.concurrent.Future
+import scala.concurrent.duration._
 
 private[sdk] trait NativeWustClient {
   def withTask(location: String)(implicit system: ActorSystem, materializer: ActorMaterializer): WustClientFactory[Task] = {

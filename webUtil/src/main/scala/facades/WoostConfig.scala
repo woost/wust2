@@ -1,7 +1,8 @@
 package woostConfig
 
-import scala.scalajs.js
 import org.scalajs.dom.window
+
+import scala.scalajs.js
 
 @js.native
 trait WoostConfig extends js.Object {

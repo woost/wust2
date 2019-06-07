@@ -1,4 +1,4 @@
-package wust.webApp
+package webUtil
 
 import org.scalajs.dom
 

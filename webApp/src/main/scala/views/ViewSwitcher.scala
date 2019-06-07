@@ -1,35 +1,26 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import cats.effect.IO
-import clipboard.ClipboardJS
+import Components._
+import flatland._
 import fontAwesome._
 import googleAnalytics.Analytics
-import monix.reactive.{Observable, Observer}
+import monix.reactive.Observer
 import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.css.{CommonStyles, Styles, ZIndex}
-import wust.graph.{Edge, GraphChanges, Node}
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Elements, Ownable, UI}
+import wust.css.{Styles, ZIndex}
+import wust.graph.{GraphChanges, Node}
 import wust.ids._
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor.hue
-import wust.util._
+import wust.sdk.Colors
 import wust.webApp._
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.jsdom.{Navigator, ShareData}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components.{renderNodeData, _}
+import wust.webApp.views.PageHeaderParts.{TabContextParms, TabInfo, customTab, singleTab}
 
-import scala.collection.breakOut
-import scala.scalajs.js
-import scala.util.{Failure, Success}
-import PageHeaderParts.{TabContextParms, TabInfo, customTab, singleTab}
+import scala.reflect.ClassTag
 
 
 object ViewSwitcher {
@@ -62,7 +53,7 @@ object ViewSwitcher {
     // View.Topological,
   )
 
-  def viewCheckboxes = UI.multiCheckbox[View.Visible](
+  def viewCheckboxes = multiCheckbox[View.Visible](
     viewDefs,
     view => span(
       marginLeft := "4px",
@@ -76,6 +67,38 @@ object ViewSwitcher {
       h2("Select views:"),
       modifier,
       div(width := "100%", fontSize.smaller, textAlign.right, color.gray, "(can be changed later)"),
+    )
+  }
+
+  def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    var checkedState = Array.fill(checkboxes.length)(false)
+    val changed = PublishSubject[Unit]
+
+    div(
+      Styles.flex,
+      flexDirection.column,
+      fontSize.larger,
+      checkboxes.mapWithIndex { (idx, value) =>
+        div(
+          marginLeft := "10px",
+          marginBottom := "10px",
+          label(
+            Styles.flex,
+            alignItems.center,
+            input(
+              tpe := "checkbox",
+              onInput.checked.foreach { checked =>
+                checkedState(idx) = checked
+                changed.onNext(())
+              },
+              dsl.checked <-- changed.map(_ => checkedState(idx))
+            ),
+            description(value),
+            cursor.pointer,
+          )
+        )
+      },
+      emitter(changed).map(_ => checkedState.flatMapWithIndex { (idx, checked) => if (checked) Array(checkboxes(idx)) else Array.empty } : Seq[T]) --> sink,
     )
   }
 
@@ -247,7 +270,7 @@ object ViewSwitcher {
             div(
               marginTop := "8px",
               cls := "ui button compact mini",
-              Elements.icon(info.icon),
+              Components.icon(info.icon),
               view.toString,
               onClick.stopPropagation.foreach(addNewView(view)),
               cursor.pointer
@@ -280,7 +303,7 @@ object ViewSwitcher {
                 cls := "ui button primary compact mini",
                 Styles.flex,
                 alignItems.center,
-                Elements.icon(info.icon),
+                Components.icon(info.icon),
                 view.toString,
                 onClick.stopPropagation.foreach { viewAction(view) },
                 cursor.pointer,

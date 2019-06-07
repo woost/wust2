@@ -1,8 +1,8 @@
 package wust
 
-import com.github.ghik.silencer.silent
 import java.util.Date
 
+import com.github.ghik.silencer.silent
 import supertagged._
 
 import scala.util.Try

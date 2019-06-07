@@ -1,7 +1,6 @@
 package wust.webApp.state
 
 import colorado.{Color, HCL, LAB}
-import rx.Ctx
 import wust.graph.Page
 import wust.ids.{NodeId, View}
 import wust.sdk.{BaseColors, NodeColor}

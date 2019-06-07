@@ -1,12 +1,11 @@
 package wust.serviceUtil
 
-import java.net.InetAddress
 import java.nio.file.Paths
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import monix.execution.Scheduler
-import scribe.{writer, _}
+import scribe._
 import scribe.format._
 import scribe.writer._
 import scribe.writer.file.LogPath

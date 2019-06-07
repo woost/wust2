@@ -4,17 +4,16 @@ import io.getquill.context.async.TransactionalExecutionContext
 import monix.eval.Task
 import monix.execution.Scheduler
 import scribe.writer.file.LogPath
+import wust.api
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
-import wust.core.{ChangeGraphAuthorization, ChangeGraphAuthorizer}
 import wust.core.aws.S3FileUploader
-import wust.db.{Data, Db, SuccessResult}
+import wust.core.{ChangeGraphAuthorization, ChangeGraphAuthorizer}
+import wust.db.{Db, SuccessResult}
 import wust.graph._
 import wust.ids._
-import wust.api
 
-import scala.collection.mutable
 import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal

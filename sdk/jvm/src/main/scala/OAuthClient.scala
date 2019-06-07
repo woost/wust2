@@ -8,12 +8,11 @@ import akka.http.scaladsl.model.{StatusCodes, Uri}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.{ActorMaterializer, Materializer}
-import com.github.dakatsuka.akka.http.oauth2.client.{GrantType, AccessToken => OAuthToken, Client => AuthClient, Config => AuthConfig}
 import com.github.dakatsuka.akka.http.oauth2.client.Error.UnauthorizedException
 import com.github.dakatsuka.akka.http.oauth2.client.strategy._
+import com.github.dakatsuka.akka.http.oauth2.client.{GrantType, AccessToken => OAuthToken, Client => AuthClient, Config => AuthConfig}
 import monix.reactive.Observer
 import wust.api.Authentication
-import wust.ids.UserId
 
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ExecutionContext, Future}

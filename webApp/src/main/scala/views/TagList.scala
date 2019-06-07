@@ -1,44 +1,26 @@
 package wust.webApp.views
 
-import wust.webApp._
-import dateFns.DateFns
 import fontAwesome._
-import googleAnalytics.Analytics
-import monix.eval.Task
-import monix.execution.Ack
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
-import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.api.{ApiEvent, AuthUser}
-import wust.css.{CommonStyles, Styles, ZIndex}
+import webUtil.Ownable
+import webUtil.outwatchHelpers._
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor
-import wust.util._
-import wust.webApp.dragdrop.DragItem.DisableDrag
-import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
-import wust.webApp.outwatchHelpers._
+import wust.webApp._
+import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webApp.views.Elements._
-
-import scala.collection.breakOut
-import scala.concurrent.Future
-import scala.scalajs.js
 
 object TagList {
-  import SharedViewElements._
 
-  def moveableWindow(state: GlobalState, position: MoveableElement.Position)(implicit ctx: Ctx.Owner): MoveableElement.Window = {
+  def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
     val newTagFieldActive: Var[Boolean] = Var(false)
 
-    MoveableElement.Window(
+    MovableElement.Window(
       VDomModifier(
         Icons.tags,
         span(marginLeft := "5px", "Tags"),

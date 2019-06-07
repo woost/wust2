@@ -1,22 +1,22 @@
 package wust.webApp.views
 
-import wust.css.{Styles, ZIndex}
 import googleAnalytics.Analytics
 import monix.reactive.Observer
+import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.UI
+import webUtil.outwatchHelpers._
 import wust.api.{AuthResult, AuthUser, Password}
-import wust.webApp._
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{GlobalState, PageChange}
-import wust.webApp.views.Elements._
-import cats.effect.IO
-import org.scalajs.dom
-import wust.ids.View
+import wust.css.Styles
 import wust.graph.Page
+import wust.ids.View
 import wust.util._
-import Components._
+import wust.webApp._
+import wust.webApp.state.{GlobalState, PageChange}
+import wust.webApp.views.Components._
 
 import scala.concurrent.Future
 import scala.scalajs.js

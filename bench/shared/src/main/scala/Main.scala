@@ -1,9 +1,9 @@
 package wust.bench
 
-import scala.concurrent.duration._
-import bench._
 import bench.util._
 import scribe.Logger
+
+import scala.concurrent.duration._
 
 object Main {
   def main(args: Array[String]): Unit = {

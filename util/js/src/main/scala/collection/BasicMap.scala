@@ -2,7 +2,7 @@ package wust.util.collection
 
 import scala.scalajs.js
 import scala.scalajs.js.annotation.JSGlobal
-import scala.scalajs.js.{JSON, |}
+import scala.scalajs.js.|
 
 @js.native
 @JSGlobal("Map")

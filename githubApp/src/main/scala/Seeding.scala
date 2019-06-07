@@ -1,18 +1,17 @@
 package wust.github
 
-import wust.graph._
-import wust.ids._
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scalaj.http.HttpResponse
+import com.redis._
 import github4s.Github
 import github4s.Github._
 import github4s.GithubResponses.GHResult
 import github4s.free.domain.{Comment, Issue, User => GHUser}
 import github4s.jvm.Implicits._
-import com.redis._
-import wust.serviceUtil.StringJvmOps
+import scalaj.http.HttpResponse
+import wust.graph._
+import wust.ids._
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 object GitHubImporter {
 

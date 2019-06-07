@@ -1,8 +1,8 @@
-package wust.webApp
+package webUtil
 
-import rx._
 import cats.Monad
 import outwatch.AsVDomModifier
+import rx._
 
 class Ownable[T](get: Ctx.Owner => T) extends (Ctx.Owner => T) {
   @inline final def apply(ctx: Ctx.Owner): T = get(ctx)

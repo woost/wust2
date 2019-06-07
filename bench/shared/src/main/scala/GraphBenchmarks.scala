@@ -1,16 +1,13 @@
 package wust.bench
 
-import scala.concurrent.duration._
 import bench._
 import bench.util._
-import wust.util.algorithm
 import flatland.NestedArrayInt
+import wust.util.algorithm
 
 object GraphBenchmarks {
 
   val topologicalSort = Comparison("Topological Sort", {
-    import wust.graph._
-    import wust.ids._
     def grid(size: Int): NestedArrayInt = {
       val n = Math.sqrt(size).floor.toInt
       NestedArrayInt(Array.tabulate(size){ i =>

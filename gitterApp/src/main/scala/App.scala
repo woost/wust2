@@ -1,30 +1,28 @@
 package wust.gitter
 
-import com.amatkivskiy.gitter.sdk.async.faye.client.{AsyncGitterFayeClient => GitterFayeClient}
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
+import cats.data.EitherT
+import cats.implicits._
 import com.amatkivskiy.gitter.sdk.async.client.{AsyncGitterApiClient => GitterAsyncClient}
-import com.amatkivskiy.gitter.sdk.async.faye.client.AsyncGitterFayeClientBuilder
-import com.amatkivskiy.gitter.sdk.async.faye.interfaces.ConnectionListener
-import com.amatkivskiy.gitter.sdk.async.faye.interfaces.DisconnectionListener
+import com.amatkivskiy.gitter.sdk.async.faye.client.{AsyncGitterFayeClientBuilder, AsyncGitterFayeClient => GitterFayeClient}
+import com.amatkivskiy.gitter.sdk.async.faye.interfaces.{ConnectionListener, DisconnectionListener}
 import com.amatkivskiy.gitter.sdk.async.faye.listeners.RoomMessagesChannel
 import com.amatkivskiy.gitter.sdk.async.faye.model.MessageEvent
 import com.amatkivskiy.gitter.sdk.model.response.message.MessageResponse
-import wust.sdk._
-import wust.api._
-import wust.ids._
-import wust.graph._
-import mycelium.client.SendType
-import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
-import okhttp3.OkHttpClient
-import retrofit.{Callback, RetrofitError}
-import retrofit.client.Response
-import cats.data.EitherT
-import cats.implicits._
 import monix.execution.Scheduler
 import monix.reactive.Observable
+import mycelium.client.SendType
+import okhttp3.OkHttpClient
+import retrofit.client.Response
+import retrofit.{Callback, RetrofitError}
+import wust.api._
+import wust.graph._
+import wust.ids._
+import wust.sdk._
 
-import scala.concurrent.{ExecutionContext, Future}
 import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
 
 object Constants {
   //TODO

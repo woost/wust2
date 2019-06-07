@@ -1,7 +1,8 @@
 package wust.util.algorithm
 
-import scala.collection.{ IterableLike, breakOut, mutable }
 import flatland._
+
+import scala.collection.mutable
 
 package object dfs {
   // Variations: (only needed combinations are implemented)

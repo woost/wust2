@@ -1,16 +1,11 @@
 package wust.cli
 
 import akka.actor.ActorSystem
-import akka.stream.{ActorMaterializer, Materializer}
+import akka.stream.ActorMaterializer
 import caseapp._
-import sloth.{Client, ClientException, LogHandler}
-import wust.api.{Api, AuthApi}
-import io.circe.parser._
-import io.circe.syntax._
-import io.circe.generic.auto._
-import wust.api.serialize.Circe._
-import chameleon.ext.circe._
 import covenant.core.DefaultLogHandler
+import sloth.{Client, ClientException}
+import wust.api.{Api, AuthApi}
 
 import scala.concurrent.Future
 
@@ -27,8 +22,6 @@ object WustHttpClient {
   }
 }
 
-import CustomParsers._
-
 object Main extends CaseAndCommandApp[AppOptions, AppCommand] {
   def run(opts: AppOptions, cmd: Option[AppCommand], args: RemainingArgs): Unit = {
 
@@ -44,9 +37,9 @@ object Main extends CaseAndCommandApp[AppOptions, AppCommand] {
   }
 
   private def setupLogging(debug: Boolean): Unit = {
-    import scribe.{Logger, Level}
-    import scribe.writer.ConsoleWriter
     import scribe.format._
+    import scribe.writer.ConsoleWriter
+    import scribe.{Level, Logger}
 
     Logger.root
       .clearHandlers()

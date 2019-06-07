@@ -1,19 +1,17 @@
 package wust.webApp.views
 
-import wust.webApp.state._
+import wust.webApp.views.Components._
 import fontAwesome.IconDefinition
-import outwatch.dom.{VNode, _}
 import outwatch.dom.dsl._
+import outwatch.dom.{VNode, _}
 import rx._
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph.SemanticNodeRole
-import wust.ids.{EpochMilli, NodeRole, View}
-import wust.webApp.{BrowserDetect, Icons}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{FocusState, GlobalState, TraverseState}
-import wust.webApp.views.AssignedTasksData.AssignedTask
-
-import scala.scalajs.js
+import wust.ids.{NodeRole, View}
+import wust.webApp.Icons
+import wust.webApp.state.{FocusState, GlobalState, _}
 
 object StatisticsView  {
 
@@ -51,7 +49,7 @@ object StatisticsView  {
               flexDirection.column,
               alignItems.center,
 
-              div(Elements.icon(icon), stat.role.toString),
+              div(Components.icon(icon), stat.role.toString),
               h2(
                 stat.count,
                 VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible

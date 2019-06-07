@@ -1,24 +1,23 @@
 package wust.webApp.views
 
+import wust.webApp.views.Components._
+import fontAwesome.freeSolid
 import org.scalajs.dom
-import fontAwesome.{freeRegular, freeSolid}
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webApp.dragdrop.{DragContainer, DragItem, DragPayload, DragTarget}
-import wust.css.{CommonStyles, Styles}
+import webUtil.UI
+import webUtil.outwatchHelpers._
+import wust.css.Styles
 import wust.graph.{Edge, Graph, GraphChanges, Node}
 import wust.ids._
-import wust.webApp.{Icons, ItemProperties}
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.outwatchHelpers._
+import wust.webApp.dragdrop.{DragContainer, DragItem}
 import wust.webApp.state.{FocusState, GlobalState, GraphChangesAutomation, Placeholder}
-import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
-import Components._
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
+import wust.webApp.{Icons, ItemProperties}
 
-import scala.collection.mutable
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 
 object TableView {
   def apply(state: GlobalState, focusState: FocusState, roles: List[NodeRole])(implicit ctx: Ctx.Owner): VNode = {

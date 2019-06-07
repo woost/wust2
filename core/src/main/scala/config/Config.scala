@@ -1,8 +1,9 @@
 package wust.backend.config
 
 import com.typesafe.config.{Config => TConfig}
-import scala.concurrent.duration.Duration
 import wust.serviceUtil.Logging
+
+import scala.concurrent.duration.Duration
 
 case class AuthConfig(tokenLifetime: Duration, secret: String) {
   override def toString: String = s"AuthConfig($tokenLifetime, ***)"

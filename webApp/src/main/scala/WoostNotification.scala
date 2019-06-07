@@ -1,16 +1,18 @@
 package wust.webApp
 
+import wust.webApp.views.Components._
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.{Ctx, Rx, Var}
+import webUtil.Elements
 import wust.css
 import wust.graph.Node.User
 import wust.graph._
 import wust.util._
 import wust.webApp.jsdom.Notifications
-import wust.webApp.outwatchHelpers._
+import webUtil.outwatchHelpers._
 import wust.webApp.state._
 import wust.webApp.views._
 
@@ -59,12 +61,12 @@ object WoostNotification {
     VDomModifier(
       notification.permissionState match {
         case PermissionState.granted            => VDomModifier(
-          Elements.icon(notification.icon),
+          Components.icon(notification.icon),
           title := notification.description,
           onClick(notification.changes) --> state.eventProcessor.changes
         )
         case PermissionState.prompt | `default` => VDomModifier(
-          Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
+          Components.icon(Components.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
           title := "Notifications are currently disabled. Click to enable.",
           onClick foreach {
             Notifications.requestPermissionsAndSubscribe {
@@ -73,7 +75,7 @@ object WoostNotification {
           },
         )
         case PermissionState.denied             => VDomModifier(
-          Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
+          Components.icon(Components.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
           title := s"${notification.description} (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
           onClick(notification.changes) --> state.eventProcessor.changes
         )

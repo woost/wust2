@@ -1,18 +1,19 @@
 package wust.webApp.views
 
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor._
-import monix.reactive.subjects.PublishSubject
+import wust.webApp.views.Components._
 import outwatch.dom._
 import outwatch.dom.dsl._
-import wust.webApp.outwatchHelpers._
 import rx.{Ctx, Rx, Var}
-import wust.css.{CommonStyles, Styles}
-import wust.graph.{Edge, GraphChanges, Node, Page}
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Ownable, UI}
+import wust.css.Styles
+import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
+import wust.sdk.BaseColors
+import wust.sdk.NodeColor._
+import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.{Icons, Ownable, BrowserDetect}
-import wust.webApp.state.{GlobalState, FocusPreference}
+import wust.webApp.state.{FocusPreference, GlobalState}
 
 import scala.collection.breakOut
 
@@ -21,10 +22,10 @@ import scala.collection.breakOut
 object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
+  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
-        UI.ModalConfig.defaultHeader(state, node, "Automation", Icons.automate)
+        ModalConfig.defaultHeader(state, node, "Automation", Icons.automate)
       }
     }
 
@@ -168,7 +169,7 @@ object GraphChangesAutomationUI {
       RightSidebar(state, Rx { selectedTemplate().filter(pref => templatesRx().exists(_.id == pref.nodeId)) }, nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)), openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))) // overwrite left-margin of overlay sidebar in mobile
     )
 
-    UI.ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
+    ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
   }
 
   // a settings button for automation that opens the modal on click.

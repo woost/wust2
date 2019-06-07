@@ -1,17 +1,13 @@
 package wust.slack
 
-import com.github.dakatsuka.akka.http.oauth2.client.AccessToken
 import com.typesafe.config.{Config => TConfig}
-import wust.ids._
-import java.util.UUID
-
-import scala.concurrent.{ExecutionContext, Future}
 import io.getquill._
-import wust.api.Authentication
 import wust.dbUtil.DbCommonCodecs
 import wust.graph.Node.User
-import wust.ids.NodeId
+import wust.ids.{NodeId, _}
 import wust.util._
+
+import scala.concurrent.{ExecutionContext, Future}
 
 object Db {
   def apply(config: TConfig) = {
@@ -43,8 +39,8 @@ class DbSlackCodecs(override val ctx: PostgresAsyncContext[LowerCase]) extends D
 }
 
 class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbSlackCodecs(ctx) {
-  import ctx._
   import Data._
+  import ctx._
 
   // schema meta: we can define how a type corresponds to a db table
   private implicit val userSchema = schemaMeta[User]("node") // User type is stored in node table with same properties.

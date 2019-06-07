@@ -1,14 +1,15 @@
 package wust.webApp
 
-import fontAwesome.freeSolid
-import monix.eval.Task
-import monix.reactive.{Observable, Observer}
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
+import wust.webApp.views.Components._
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import outwatch.dom._
+import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom.dsl._
 import rx._
+import webUtil.outwatchHelpers._
+import webUtil.{Elements, UI}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -16,9 +17,9 @@ import wust.sdk.BaseColors
 import wust.sdk.NodeColor.hue
 import wust.util.StringOps._
 import wust.util.macros.InlineList
-import wust.webApp.outwatchHelpers._
+import webUtil.outwatchHelpers._
 import wust.webApp.state._
-import wust.webApp.views.{Components, EditContext, EditElementParser, EditImplicits, EditInteraction, EditStringParser, EditableContent, Elements, UI, ValueStringifier}
+import wust.webApp.views.{Components, EditContext, EditElementParser, EditImplicits, EditInteraction, EditStringParser, EditableContent, ValueStringifier}
 import wust.webApp.StringJsOps._
 
 import scala.scalajs.js

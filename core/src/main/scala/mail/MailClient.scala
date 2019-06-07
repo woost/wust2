@@ -1,6 +1,5 @@
 package wust.backend.mail
 
-import java.io.OutputStream
 import java.util.{Date, Properties}
 
 import javax.mail._

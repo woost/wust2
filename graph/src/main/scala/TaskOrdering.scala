@@ -2,7 +2,6 @@ package wust.graph
 
 import wust.ids._
 
-import scala.collection.breakOut
 import scala.reflect.ClassTag
 
 /**

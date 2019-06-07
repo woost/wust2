@@ -2,9 +2,7 @@ package wust.webApp.jsdom
 
 import org.scalajs.dom
 
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Future, Promise}
-import scala.scalajs.js
 
 object FileReaderOps {
 

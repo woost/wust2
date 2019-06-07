@@ -6,9 +6,9 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx}
+import webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.outwatchHelpers._
 
 object InfiniteScroll {
 

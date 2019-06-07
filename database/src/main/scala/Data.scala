@@ -1,11 +1,7 @@
 package wust.db
 
-import java.time.{Instant, LocalDateTime, ZoneOffset}
-
-import wust.ids._
-
 import io.circe.parser._
-import io.circe.syntax._
+import wust.ids._
 import wust.ids.serialize.Circe._
 
 import scala.collection.mutable

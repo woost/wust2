@@ -1,20 +1,16 @@
 package wust.bench
 
-import scala.concurrent.duration._
 import bench._
-import bench.util._
 import flatland._
-import collection.mutable
-import scala.reflect.ClassTag
 import wust.util.algorithm.dfs
 import wust.util.collection._
+
+import scala.collection.mutable
 
 object DepthFirstSearch {
 
 
   val comparison = Comparison("Depth First search (Grid Graph)", {
-    import wust.graph._
-    import wust.ids._
     def generateLatticeGraph(size: Int): NestedArrayInt = {
       val n = Math.sqrt(size).floor.toInt
       NestedArrayInt(Array.tabulate(size){ i =>

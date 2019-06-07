@@ -1,20 +1,18 @@
 package wust.webApp.views
 
-import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
 import wust.css.{Styles, ZIndex}
 import wust.graph._
 import wust.ids._
 import wust.util._
-import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.{GlobalState, NodePermission, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webApp.views.Elements._
 
 import scala.collection.breakOut
 

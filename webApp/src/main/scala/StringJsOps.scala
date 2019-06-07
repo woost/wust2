@@ -1,10 +1,10 @@
 package wust.webApp
 
-import scala.scalajs.js
-import wust.ids.{DateMilli, DateTimeMilli, DurationMilli, EpochMilli, TimeMilli}
 import juration._
+import wust.ids._
 import wust.util.StringOps
 
+import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.util.control.NonFatal
 

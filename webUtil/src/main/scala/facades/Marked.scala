@@ -1,7 +1,5 @@
 package marked
 
-import highlight._
-
 import scala.scalajs.js
 import scala.scalajs.js.annotation._
 

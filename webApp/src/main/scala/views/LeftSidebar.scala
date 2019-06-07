@@ -1,38 +1,27 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-
-import concurrent.duration.DurationInt
-import fontAwesome._
-import org.scalajs.dom
-
-import scala.scalajs.js
-import org.scalajs.dom.window
-import colorado._
-import wust.webApp.dragdrop._
-import fontAwesome.freeSolid
+import fontAwesome.{freeSolid, _}
 import googleAnalytics.Analytics
+import org.scalajs.dom
+import org.scalajs.dom.window
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import rx.async._
-import rx.async.Platform._
 import views.ChannelTreeData
+import webUtil.outwatchHelpers._
+import webUtil.{Ownable, UI}
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
-import wust.sdk.{BaseColors, NodeColor}
-import wust.util.RichBoolean
-import wust.webApp.{BrowserDetect, Icons, Ownable}
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.outwatchHelpers._
+import wust.sdk.{BaseColors, Colors, NodeColor}
+import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
-import wust.webApp.views.Elements._
 import wust.webApp.views.SharedViewElements._
 
-import scala.collection.breakOut
+import scala.concurrent.duration.DurationInt
+import scala.scalajs.js
 
 object LeftSidebar {
   val minWidthSidebar = 40

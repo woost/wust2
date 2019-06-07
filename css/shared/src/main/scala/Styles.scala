@@ -1,8 +1,8 @@
 package wust.css
 
 import scalacss.DevDefaults._
-import scalacss.internal.{Attr, CanIUse, Literal, Transform}
 import scalacss.internal.ValueT.{Len, TypedAttrBase, TypedAttrT1, ZeroLit}
+import scalacss.internal.{Attr, CanIUse, Transform}
 import wust.sdk.Colors
 
 import scala.concurrent.duration._

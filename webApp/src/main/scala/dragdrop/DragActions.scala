@@ -1,26 +1,8 @@
 package wust.webApp.dragdrop
 
 import draggable._
-import monix.reactive.Observable
-import googleAnalytics.Analytics
-import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.ext.KeyCode
-import wust.util._
-import org.scalajs.dom.raw.HTMLElement
-import wust.api.AuthUser
-import wust.graph.{ Edge, GraphChanges, Tree, _ }
-import wust.ids.{ EdgeData, NodeId, NodeRole, UserId }
-import wust.webApp.{ BrowserDetect, DevOnly }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
-import wust.ids._
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import scala.scalajs.js.|
+import wust.graph.{Edge, GraphChanges, _}
+import wust.ids.{UserId, _}
 
 object DragActions {
 
@@ -110,7 +92,7 @@ object DragActions {
 
   val dragAction: PartialFunction[(DragPayload, DragTarget, Boolean, Boolean), (Graph, UserId) => GraphChanges] = {
     import DragItem._
-    import wust.graph.GraphChanges.{ linkOrCopyInto, linkOrMoveInto, linkInto, movePinnedChannel, assign, connectWithProperty, pin }
+    import wust.graph.GraphChanges._
     {
       case (payload: ContentNodeConnect, target: ContentNodeConnect, ctrl, false) => (graph, userId) => connectWithProperty(sourceId = payload.nodeId, payload.propertyName, targetId = target.nodeId)
 

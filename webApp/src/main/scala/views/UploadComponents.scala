@@ -1,42 +1,23 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import wust.sdk.{ BaseColors, NodeColor }
-import cats.effect.IO
-import emojijs.EmojiConvertor
-import fomanticui.{ SearchOptions, SearchSourceEntry, ToastOptions }
+import Components._
 import fontAwesome._
-import googleAnalytics.Analytics
-import monix.execution.Cancelable
-import monix.reactive.{ Observable, Observer }
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
 import org.scalajs.dom.document
-import org.scalajs.dom.raw.HTMLElement
 import outwatch.dom._
 import outwatch.dom.dsl._
-import outwatch.dom.helpers.{ AttributeBuilder, EmitterBuilder }
+import outwatch.dom.helpers.AttributeBuilder
 import rx._
-import jquery.JQuerySelection
-import wust.api.UploadedFile
-import wust.css.{ CommonStyles, Styles, ZIndex }
+import webUtil.outwatchHelpers._
+import webUtil.{Ownable, UI}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.sdk.NodeColor._
-import wust.util.macros.InlineList
-import wust.util.StringOps._
 import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop._
-import wust.webApp.jsdom.{ FileReaderOps, IntersectionObserver, IntersectionObserverOptions }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.{ EmojiReplacer, FocusPreference, GlobalState, PageChange, UploadingFile }
-import wust.webApp.views.Elements._
-import wust.webApp.views.UI.ModalConfig
-
-import scala.collection.breakOut
-import scala.scalajs.js
-import WoostLogoComponents._
+import wust.webApp.state.{GlobalState, UploadingFile}
+import wust.webApp.views.WoostLogoComponents._
 
 object UploadComponents {
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {

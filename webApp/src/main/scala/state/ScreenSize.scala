@@ -1,6 +1,7 @@
 package wust.webApp.state
 
 import org.scalajs.dom
+
 import scala.scalajs.js
 
 sealed trait ScreenSize {

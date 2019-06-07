@@ -77,8 +77,6 @@ trait Browser extends mutable.After {
   import org.openqa.selenium.logging.LogType
   import org.openqa.selenium.phantomjs.PhantomJSDriver
 
-  import scala.collection.JavaConverters._
-
   val browser = new PhantomJSDriver {
     def errors: List[String] = {
       val logs = manage.logs.get(LogType.BROWSER)

@@ -1,8 +1,9 @@
 package wust.util
 
+import flatland._
 import org.scalatest._
 import wust.util.algorithm._
-import flatland._
+
 import scala.collection.mutable
 
 class DepthFirstSearchSpec extends FreeSpec with MustMatchers {

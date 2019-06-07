@@ -1,25 +1,11 @@
 package wust.webApp.dragdrop
 
 import draggable._
-import monix.reactive.Observable
-import googleAnalytics.Analytics
-import monix.reactive.subjects.PublishSubject
-import org.scalajs.dom
-import org.scalajs.dom.console
-import org.scalajs.dom.ext.KeyCode
-import wust.util._
 import org.scalajs.dom.raw.HTMLElement
-import wust.api.AuthUser
-import wust.graph.{Edge, GraphChanges, Tree, _}
-import wust.ids.{ChildId, CuidOrdering, EdgeData, EpochMilli, NodeId, NodeRole, ParentId, UserId}
-import wust.webApp.{BrowserDetect, DevOnly}
-import wust.webApp.outwatchHelpers._
-import wust.webApp.state.GlobalState
-import wust.webApp.views.Components._
+import wust.graph.{Edge, GraphChanges, _}
+import wust.ids._
 
-import scala.collection.breakOut
 import scala.scalajs.js
-import scala.scalajs.js.|
 
 
 object Sorting {
@@ -54,8 +40,6 @@ object Sorting {
   // - A container corresponds to a parent node
   // - The index in a container correspond to the index in the topological sorted node list of the corresponding parent node
   def sortingChanges(graph: Graph, userId: UserId, e: SortableStopEvent, sortNode: NodeId, from: SortableContainer, into: SortableContainer): GraphChanges = {
-
-    import DragContainer._
     scribe.debug("Computing sorting change")
     //TODO: Is a SortEvent triggered when a new card is created?
     parseDomPositions(e) match {

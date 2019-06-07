@@ -1,29 +1,23 @@
 package wust.webApp.views
 
-import wust.sdk.Colors
-import wust.webApp.dragdrop.{DragContainer, DragItem}
-import fontAwesome.{IconDefinition, freeRegular, freeSolid}
-import SharedViewElements._
 import dateFns.DateFns
-import wust.webApp.{BrowserDetect, Icons, ItemProperties}
-import wust.webApp.Icons
+import flatland._
+import fontAwesome.{IconDefinition, freeRegular, freeSolid}
 import outwatch.dom._
-import wust.sdk.{BaseColors, NodeColor}
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
-import wust.webApp.views.Elements._
-import monix.reactive.subjects.{BehaviorSubject, PublishSubject}
 import rx._
+import webUtil.BrowserDetect
+import webUtil.outwatchHelpers._
 import wust.api.AuthUser
-import wust.css.{Styles, ZIndex}
+import wust.css.Styles
 import wust.graph._
 import wust.ids._
-import wust.webApp.outwatchHelpers._
+import wust.sdk.Colors
+import wust.util.macros.InlineList
+import wust.webApp.Icons
 import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.Components._
-import wust.util._
-import wust.util.macros.InlineList
-import flatland._
 
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js.Date

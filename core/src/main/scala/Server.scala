@@ -4,44 +4,39 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.marshalling.{Marshaller, ToResponseMarshaller}
+import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, HttpResponse, StatusCodes}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
+import boopickle.Default._
+import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
+import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
+import chameleon.ext.boopickle._
+import chameleon.ext.circe._
+import covenant.http._
+import covenant.ws._
+import io.circe._
+import io.circe.generic.extras.auto._
+import io.circe.syntax._
+import monix.execution.Scheduler
+import mycelium.server._
+import sloth._
 import wust.api._
 import wust.api.serialize.Boopickle._
 import wust.api.serialize.Circe._
 import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.backend.config.Config
-import ch.megard.akka.http.cors.scaladsl.CorsDirectives._
-import ch.megard.akka.http.cors.scaladsl.settings.CorsSettings
-import akka.http.scaladsl.model.headers.{HttpOrigin, HttpOriginRange}
-import akka.http.scaladsl.server.Route
-import wust.db.{Db, SuccessResult}
-import covenant.ws._
-import covenant.http._
-import sloth._
-import mycelium.server._
-import chameleon.ext.boopickle._
-import boopickle.Default._
-import chameleon.ext.circe._
-import io.circe._
-import io.circe.syntax._
-import io.circe.generic.extras.auto._
-import wust.util.RichFuture
-import cats.implicits._
-import monix.execution.Scheduler
 import wust.backend.mail.MailService
-import wust.core.EmailVerificationEndpoint
-import wust.core.DbChangeGraphAuthorizer
+import wust.core.{DbChangeGraphAuthorizer, EmailVerificationEndpoint}
 import wust.core.aws.S3FileUploader
+import wust.db.Db
 
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object Server {
-  import akka.http.scaladsl.server.RouteResult._
-  import akka.http.scaladsl.server.Directives._
   import akka.http.scaladsl.Http
+  import akka.http.scaladsl.server.Directives._
+  import akka.http.scaladsl.server.RouteResult._
 
   object paths {
     val health = "health"
@@ -66,7 +61,6 @@ object Server {
   }
 
   private def createRoute(config: Config)(implicit system: ActorSystem, materializer: ActorMaterializer, scheduler: Scheduler) = {
-    import DbConversions._
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val guardDsl = new GuardDsl(jwt, db)

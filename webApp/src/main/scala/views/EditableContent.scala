@@ -1,23 +1,18 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
 import monix.eval.Task
-import monix.reactive.{Observable, Observer}
 import monix.reactive.subjects.PublishSubject
+import monix.reactive.{Observable, Observer}
 import org.scalajs.dom
-import outwatch.Sink
-import outwatch.dom.helpers.{AttributeBuilder, EmitterBuilder}
 import outwatch.dom._
 import outwatch.dom.dsl._
+import outwatch.dom.helpers.EmitterBuilder
 import rx._
+import webUtil.Elements._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, Elements, UI}
 import wust.graph._
-import wust.ids._
-import wust.util._
-import wust.webApp._
-import wust.css.Styles
-import wust.webApp.outwatchHelpers._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.Elements._
 
 import scala.concurrent.duration._
 import scala.scalajs.js

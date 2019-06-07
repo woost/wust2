@@ -3,33 +3,25 @@ package wust.webApp.state
 import java.util.concurrent.TimeUnit
 
 import googleAnalytics.Analytics
-import colorado.HCL
-import emojijs.EmojiConvertor
-import org.scalajs.dom.console
 import monix.eval.Task
 import monix.reactive.Observable
-import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.window
+import outwatch.dom.helpers.OutwatchTracing
 import rx._
-import wust.api.ApiEvent.{ NewGraphChanges, ReplaceGraph }
-import wust.api._
+import webUtil.outwatchHelpers._
+import webUtil.{BrowserDetect, UI}
+import wust.api.ApiEvent.ReplaceGraph
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.jsdom.{ IndexedDbOps, Navigator, Notifications, ServiceWorker }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.{ BrowserDetect, Client, DevOnly }
-import outwatch.dom.helpers.OutwatchTracing
-import wust.ids.NodeData.EditableText
 import wust.util.StringOps
-import wust.util.algorithm
-import wust.webApp.views.{ UI, EditableContent }
+import wust.webApp.jsdom.{Navigator, ServiceWorker}
+import wust.webApp.views.EditableContent
+import wust.webApp.{Client, DevOnly}
 
-import scala.collection.breakOut
 import scala.concurrent.duration._
-import scala.scalajs.js
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {

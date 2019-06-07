@@ -1,18 +1,17 @@
 package wust.backend
 
+import cats.syntax.functor._
 import com.roundeights.hasher.Hasher
-import wust.api.ApiEvent.{ NewGraphChanges, ReplaceNode }
+import wust.api.ApiEvent.{NewGraphChanges, ReplaceNode}
 import wust.api._
 import wust.backend.DbConversions._
 import wust.backend.Dsl._
 import wust.backend.auth._
-import wust.db.{ Data, Db, SuccessResult }
-import wust.graph.{ Edge, GraphChanges, Node }
+import wust.db.{Data, Db, SuccessResult}
+import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
 
-import cats.syntax.functor._
-
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {

@@ -1,13 +1,9 @@
 package wust.api
 
 import sloth.PathName
-import wust.graph._
-import wust.ids.{EdgeData, _}
-import cats.data.NonEmptyList
-import com.sun.xml.internal.messaging.saaj.packaging.mime.internet.ContentDisposition
 import wust.graph.Node.User
-
-import scala.collection.mutable
+import wust.graph._
+import wust.ids._
 
 trait Api[Result[_]] {
   def changeGraph(changes: List[GraphChanges]): Result[Boolean]

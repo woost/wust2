@@ -1,37 +1,24 @@
 package wust.webApp.views
 
-import flatland.ArraySet
-import fontAwesome._
-import googleAnalytics.Analytics
-import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
-import org.scalajs.dom.FileReader
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{ CommonStyles, Styles, ZIndex }
+import webUtil.Elements
+import webUtil.outwatchHelpers._
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
-import wust.sdk.BaseColors
-import wust.sdk.NodeColor.hue
-import wust.util._
 import wust.webApp._
-import wust.webApp.dragdrop.DragItem
-import wust.webApp.jsdom.{ Navigator, ShareData }
-import wust.webApp.outwatchHelpers._
-import wust.webApp.search.Search
 import wust.webApp.state._
-import wust.webApp.views.Components.{ renderNodeData, _ }
-import wust.external.trello
+import wust.webApp.views.Components._
 
-import scala.collection.breakOut
 import scala.scalajs.js
-import scala.util.{ Failure, Success }
+import scala.util.{Failure, Success}
 
 object MembersModal {
-  def config(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): UI.ModalConfig = {
+  def config(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): ModalConfig = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
     val userNameInputProcess = PublishSubject[String]
@@ -169,8 +156,8 @@ object MembersModal {
       )
     }
 
-    UI.ModalConfig(
-      header = UI.ModalConfig.defaultHeader(state, node, "Members", Icons.users),
+    ModalConfig(
+      header = ModalConfig.defaultHeader(state, node, "Members", Icons.users),
       description = description,
       modalModifier = VDomModifier(
         cls := "mini form",

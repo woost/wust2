@@ -1,19 +1,13 @@
 package wust.graph
 
-import wust.ids._
-import wust.util._
-import wust.util.algorithm._
-import wust.util.collection._
-import wust.util.time.time
-import wust.util.macros.InlineList
-
-import scala.collection.{breakOut, mutable}
-import scala.collection.immutable
-import scala.collection
 import flatland._
 import wust.ids
+import wust.ids._
+import wust.util.algorithm._
+import wust.util.collection._
+import wust.util.macros.InlineList
 
-import scala.concurrent.Future
+import scala.collection.{breakOut, immutable, mutable}
 
 object Graph {
   val empty = apply(Array.empty, Array.empty)

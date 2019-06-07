@@ -1,14 +1,11 @@
 package wust.external.meistertask
 
-import java.util.Date
-
 import cats.Eval
 import wust.graph._
 import wust.ids._
-import wust.util.StringOps
 import wust.util.collection.{BasicMap, eitherSeq}
 
-import scala.collection.{breakOut, mutable}
+import scala.collection.breakOut
 import scala.util.{Failure, Success, Try}
 
 case class Task(
@@ -165,7 +162,6 @@ object MeisterTask {
 
   object RegexDecoders {
     import kantan.regex._
-    import kantan.regex.ops._
     import kantan.regex.implicits._
 
     implicit val dateMatch: GroupDecoder[EpochMilli] = GroupDecoder[String].emap(str => EpochMilli.parse(str).toRight(DecodeError.TypeError("Is not a Date")))
@@ -180,10 +176,9 @@ object MeisterTask {
   }
 
   def decodeCSV(projectName: String, csv: String): Either[String, Project] = {
+    import RegexDecoders._
     import kantan.csv._
     import kantan.csv.ops._
-    import kantan.csv.generic._
-    import RegexDecoders._
 
     implicit val commentCodec: CellDecoder[Comment] = CellDecoder.from { str =>
       commentRegex.eval(str).toList.headOption.toRight(DecodeError.TypeError(s"Cannot extract comment section from '$str'")).flatMap {

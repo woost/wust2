@@ -1,11 +1,11 @@
 package wust.webApp.views
 
 import flatland._
-import wust.graph.{Graph, Node, TaskOrdering, Tree}
+import wust.graph.{Graph, TaskOrdering}
 import wust.ids._
 import wust.util.algorithm.dfs
-import wust.util.macros.InlineList
 import wust.util.collection._
+import wust.util.macros.InlineList
 import wust.webApp.state.TraverseState
 
 import scala.collection.mutable
