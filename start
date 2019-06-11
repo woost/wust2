@@ -76,7 +76,7 @@ env_wust_version="WUST_VERSION=$VERSION"
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust WUST_PUSH_SUBJECT=push.dev@woost.space WUST_PUSH_PUBLIC_KEY=BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0 WUST_PUSH_PRIVATE_KEY=or76yI5iDE+S9gWkVU2g0JuHyq4OD/AtwHTHefkoo3k"
 env_wust_local="WUST_HOSTNAME=localhost DOCKER_RESTART_POLICY=no"
 env_postgres_secret="POSTGRES_PASSWORD=test"
-env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT_CORE=5432"
+env_postgres_local="POSTGRES_HOSTNAME=localhost POSTGRES_USER=wust POSTGRES_DB=wust POSTGRES_PORT=5432"
 
 env_github_redis="REDIS_HOSTNAME=localhost REDIS_PORT_GITHUB=6379"
 env_github_app="WUST_GITHUB_PORT=${WUST_GITHUB_PORT:-8902} "
@@ -96,7 +96,7 @@ function self() {
     case "$1" in
     psql)
         export $env_postgres_secret $env_postgres_local
-        PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT_CORE ${@:2}
+        PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT ${@:2}
         # postgres_core_command psql -h localhost -U $POSTGRES_USER ${@:2}
         ;;
     pgcli)
@@ -104,7 +104,7 @@ function self() {
 
         case "$2" in
         core)
-            PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT_CORE } ${@:3}
+            PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT } ${@:3}
             ;;
         githubApp)
             ;;
@@ -115,7 +115,7 @@ function self() {
             PGPASSWORD=$SLACK_POSTGRES_PASSWORD pgcli -h $SLACK_POSTGRES_HOSTNAME -U $SLACK_POSTGRES_USER -p $SLACK_POSTGRES_PORT ${@:3}
             ;;
         *)
-            PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT_CORE } ${@:3}
+            PGPASSWORD=$POSTGRES_PASSWORD pgcli -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p ${2:-$POSTGRES_PORT } ${@:3}
             ;;
         esac
         ;;

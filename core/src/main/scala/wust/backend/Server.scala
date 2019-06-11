@@ -27,7 +27,7 @@ import wust.backend.Dsl._
 import wust.backend.auth._
 import wust.backend.config.Config
 import wust.backend.mail.MailService
-import wust.core.aws.S3FileUploader
+import wust.core.aws.{S3FileUploader, SESMailClient}
 import wust.core.{DbChangeGraphAuthorizer, EmailVerificationEndpoint}
 import wust.db.Db
 
@@ -64,8 +64,12 @@ object Server {
     val db = Db(config.db)
     val jwt = new JWT(config.auth.secret, config.auth.tokenLifetime)
     val guardDsl = new GuardDsl(jwt, db)
-    val mailService = MailService(config.email)
+
+    val mailService = config.aws.flatMap(_.ses).fold(MailService(config.email)) { sesConfig =>
+      MailService(sesConfig.fromAddress, new SESMailClient(AppEmailFlow.teamEmailAddress, sesConfig))
+    }
     val fileUploader = config.aws.map(new S3FileUploader(_, config.server)) //TODO local file uploader stub for dev?
+
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
     val emailVerificationEndpoint = new EmailVerificationEndpoint(db, jwt, config.server)
@@ -91,9 +95,11 @@ object Server {
       overflowStrategy = OverflowStrategy.fail
     )
 
-    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(
-      HttpOriginRange(config.server.allowedOrigins.map(HttpOrigin(_)): _*)
-    )
+    val websiteOrigin = {
+      val protocol = if (config.server.host == "localhost") "http://" else "https://"
+      s"${protocol}${config.server.host}"
+    }
+    val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginRange(websiteOrigin))
 
     path("ws") {
       AkkaWsRoute.fromApiRouter(binaryRouter, serverConfig, apiConfig)

@@ -68,9 +68,9 @@ object AWS {
           formData.append("content-type", file.`type`)
           formData.append("content-disposition", config.contentDisposition)
           formData.append("acl", config.acl)
-          // formData.append("success_action_redirect", dom.window.location.toString)
           formData.append("policy", config.policyBase64)
           formData.append("x-amz-signature", config.signature)
+          config.sessionToken.foreach(sessionToken => formData.append("x-amz-security-token", sessionToken))
           formData.append("x-amz-date", config.date)
           formData.append("file", file)
 

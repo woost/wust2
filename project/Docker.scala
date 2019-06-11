@@ -51,7 +51,7 @@ object Docker {
 
     tags.map { v =>
       val version = if (versionPostfix.isEmpty) v else s"$v-$versionPostfix"
-      ImageName(namespace = Some("docker.woost.space/woost"), repository = name: String, tag = Some(version))
+      ImageName(namespace = Some("woost"), repository = name, tag = Some(version))
     }
   }
 }

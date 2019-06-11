@@ -2,7 +2,7 @@ version: '3'
 
 services:
   test-postgres:
-    image: docker.woost.space/woost/db-migration-tests:${WUST_VERSION-latest}-core
+    image: woost/db-migration-tests:${WUST_VERSION-latest}-core
     command: -h postgres -u 'wust' -d 'wust'
     depends_on:
       - postgres
