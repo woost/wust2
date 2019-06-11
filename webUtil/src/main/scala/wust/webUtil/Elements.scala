@@ -169,7 +169,6 @@ object Elements {
   }
 
   def onHammer(events: String):CustomEmitterBuilder[Event, VDomModifier] = {
-    import hammerjs._
     EmitterBuilder.ofModifier[Event] { sink =>
       managedElement.asHtml { elem =>
         elem.asInstanceOf[js.Dynamic].hammer = js.undefined
