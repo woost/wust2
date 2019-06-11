@@ -10,6 +10,7 @@ import wust.ids.{NodeRole, View}
 import wust.webApp.Icons
 import wust.webApp.state.{FocusState, GlobalState, _}
 import wust.webApp.views.Components._
+import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
 object StatisticsView  {
@@ -48,7 +49,7 @@ object StatisticsView  {
               flexDirection.column,
               alignItems.center,
 
-              div(Components.icon(icon), stat.role.toString),
+              div(Elements.icon(icon), stat.role.toString),
               h2(
                 stat.count,
                 VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible

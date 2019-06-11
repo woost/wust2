@@ -10,7 +10,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{Elements, Ownable, UI}
 import wust.css.Styles
 import wust.external.{meistertask, trello, wunderlist}
 import wust.graph._
@@ -394,7 +394,7 @@ object Importing {
   def settingsItem(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     a(
       cls := "item",
-      Components.icon(Icons.`import`),
+      Elements.icon(Icons.`import`),
       span("Import"),
 
       dsl.cursor.pointer,

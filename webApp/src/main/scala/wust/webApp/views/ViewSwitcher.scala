@@ -18,7 +18,7 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.PageHeaderParts.{TabContextParms, TabInfo, customTab, singleTab}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI}
+import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 import scala.reflect.ClassTag
 
@@ -270,7 +270,7 @@ object ViewSwitcher {
             div(
               marginTop := "8px",
               cls := "ui button compact mini",
-              Components.icon(info.icon),
+              Elements.icon(info.icon),
               view.toString,
               onClick.stopPropagation.foreach(addNewView(view)),
               cursor.pointer
@@ -303,7 +303,7 @@ object ViewSwitcher {
                 cls := "ui button primary compact mini",
                 Styles.flex,
                 alignItems.center,
-                Components.icon(info.icon),
+                Elements.icon(info.icon),
                 view.toString,
                 onClick.stopPropagation.foreach { viewAction(view) },
                 cursor.pointer,

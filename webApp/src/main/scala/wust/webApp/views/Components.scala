@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.outwatchHelpers._
 import cats.effect.IO
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
@@ -54,7 +55,7 @@ object Components {
   }
 
   val htmlNodeData: NodeData => String = {
-    case NodeData.Markdown(content)  => markdownString(content)
+    case NodeData.Markdown(content)  => Elements.markdownString(content)
     case NodeData.PlainText(content) => escapeHtml(content)
     case user: NodeData.User         => s"User: ${ escapeHtml(displayUserName(user)) }"
     case d                           => d.str
@@ -123,73 +124,9 @@ object Components {
   def markdownVNode(str: String) = {
     div.thunkStatic(uniqueKey(str))(VDomModifier(
       cls := "markdown",
-      div(innerHTML := UnsafeHTML(markdownString(str)))
+      div(innerHTML := UnsafeHTML(Elements.markdownString(str)))
     )) // intentionally double wrapped. Because innerHtml does not compose with other modifiers
   }
-
-  //TODO: move to webUtil
-  def markdownString(str: String): String = {
-    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
-    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
-  }
-
-  //TODO: move to webUtil
-  private def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
-    val tag = stringToTag(tree.tag)
-    tag.thunkStatic(uniqueKey(key))(treeToModifiers(tree))
-  }
-
-  //TODO: move to webUtil
-  implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
-    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
-  }
-
-  // fontawesome uses svg for icons and span for layered icons.
-  // we need to handle layers as an html tag instead of svg.
-  //TODO: move to webUtil
-  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
-  //TODO: move to webUtil
-  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
-    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
-    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
-  )
-  //TODO: move to webUtil
-  private def abstractTreeToVNode(tree: AbstractElement): VNode = {
-    val tag = stringToTag(tree.tag)
-    tag(treeToModifiers(tree))
-  }
-
-  //TODO: move to webUtil
-  @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
-    abstractTreeToVNode(icon.`abstract`(0))
-  }
-
-  //TODO: move to webUitl.Elements
-  def closeButton: VNode = div(
-    div(cls := "fa-fw", freeSolid.faTimes),
-    padding := "10px",
-    flexGrow := 0.0,
-    flexShrink := 0.0,
-    cursor.pointer,
-  )
-
-  //TODO: move to webUitl.Elements
-  def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
-    fontawesome.icon(icon),
-    fontawesome.icon(
-      indicator,
-      new Params {
-        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
-        styles = scalajs.js.Dictionary[String]("color" -> color)
-      }
-    )
-  )
-
-  //TODO: move to webUitl.Elements
-  def icon(icon: VDomModifier) = i(
-    cls := "icon fa-fw",
-    icon
-  )
 
 
   // FIXME: Ensure unique DM node that may be renamed.

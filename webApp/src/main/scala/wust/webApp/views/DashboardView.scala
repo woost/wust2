@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.{BrowserDetect, Elements, UI}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -50,7 +50,7 @@ object DashboardView {
     val forceEditMode = Rx { settings.ForceEditModeOnEmptySubprojects && projectNodes().length == 0 }
     val editMode = Rx { editModeState() || forceEditMode() }
     val editModeSwitcher = Rx {
-      Components.icon(wust.webApp.Icons.edit)(
+      Elements.icon(wust.webApp.Icons.edit)(
         VDomModifier.ifTrue(forceEditMode())(cls := "disabled"),
         onClick.stopPropagation foreach {
           editModeState() = !editModeState()

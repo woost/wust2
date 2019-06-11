@@ -12,7 +12,7 @@ import wust.webApp.Icons
 import wust.webApp.search.Search
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
-import wust.webUtil.Ownable
+import wust.webUtil.{Elements, Ownable}
 import wust.webUtil.outwatchHelpers._
 
 object ViewFilter {
@@ -78,7 +78,7 @@ object ViewFilter {
           ),
           div(
             cursor.pointer,
-            Components.icon(Icons.noFilter),
+            Elements.icon(Icons.noFilter),
             span("Reset ALL filters"),
             onClick(state.defaultTransformations) --> state.graphTransformations,
             onClick foreach { Analytics.sendEvent("filter", "reset") },

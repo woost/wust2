@@ -456,9 +456,21 @@ lazy val core = project
   )
 
 
-lazy val webUtil = project
+lazy val webUtilMacro = project
   .enablePlugins(ScalaJSPlugin)
   .dependsOn(idsJS)
+  .settings(commonSettings, commonWebSettings)
+  .settings(
+    libraryDependencies ++=
+      Deps.scalaJsDom.value ::
+      Deps.scalarx.value ::
+      Deps.outwatch.value ::
+      Nil
+  )
+
+lazy val webUtil = project
+  .enablePlugins(ScalaJSPlugin)
+  .dependsOn(idsJS, webUtilMacro)
   .settings(commonSettings, commonWebSettings)
   .settings(
     libraryDependencies ++=

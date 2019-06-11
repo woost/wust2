@@ -100,7 +100,7 @@ object SearchModal {
           div(
             cursor.pointer,
             cls := "ui primary icon button approve",
-            Components.icon(Icons.search),
+            Elements.icon(Icons.search),
             span(cls := "text", "Search", marginLeft := "5px"),
             onClick.stopPropagation(searchInputProcess) --> searchLocal
           ),

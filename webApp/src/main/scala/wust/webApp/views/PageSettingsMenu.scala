@@ -69,11 +69,11 @@ object PageSettingsMenu {
           cls := "item",
           cursor.pointer,
           if (isBookmarked()) VDomModifier(
-            Components.icon(Icons.signOut),
+            Elements.icon(Icons.signOut),
             span("Unpin from sidebar"),
             onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id)) --> state.eventProcessor.changes
           ) else VDomModifier(
-            Components.icon(Icons.pin),
+            Elements.icon(Icons.pin),
             span("Pin to sidebar"),
             onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
           )
@@ -85,7 +85,7 @@ object PageSettingsMenu {
           a(
             cursor.pointer,
             cls := "item",
-            Components.icon(Icons.delete),
+            Elements.icon(Icons.delete),
             span("Archive at all places"),
             onClick.stopPropagation foreach {
               state.eventProcessor.changes.onNext(
@@ -155,7 +155,7 @@ object PageSettingsMenu {
     a(
       cursor.pointer,
       cls := "item",
-      Components.icon(Icons.share),
+      Elements.icon(Icons.share),
       dsl.span("Share Link"),
       onClick.transform(_.delayOnNext(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
         assurePublic()
@@ -197,7 +197,7 @@ object PageSettingsMenu {
     a(
       cls := "item",
       cursor.pointer,
-      Components.icon(Icons.users),
+      Elements.icon(Icons.users),
       span("Members"),
 
       onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config(state, node))) --> state.uiModalConfig

@@ -59,12 +59,12 @@ object WoostNotification {
     VDomModifier(
       notification.permissionState match {
         case PermissionState.granted            => VDomModifier(
-          Components.icon(notification.icon),
+          Elements.icon(notification.icon),
           title := notification.description,
           onClick(notification.changes) --> state.eventProcessor.changes
         )
         case PermissionState.prompt | `default` => VDomModifier(
-          Components.icon(Components.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
+          Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
           title := "Notifications are currently disabled. Click to enable.",
           onClick foreach {
             Notifications.requestPermissionsAndSubscribe {
@@ -73,7 +73,7 @@ object WoostNotification {
           },
         )
         case PermissionState.denied             => VDomModifier(
-          Components.icon(Components.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
+          Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
           title := s"${notification.description} (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
           onClick(notification.changes) --> state.eventProcessor.changes
         )

@@ -5,6 +5,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import wust.webApp.views.Components._
+import wust.webUtil.outwatchHelpers._
 
 object ErrorPage {
   def apply(errorMessage: Option[String] = None) = div(

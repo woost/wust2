@@ -10,6 +10,7 @@ import wust.ids._
 import wust.webApp.state._
 import wust.webApp.views.Components
 import wust.webApp.views.Components._
+import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
 case class PermissionDescription(
@@ -64,7 +65,7 @@ object Permission {
       Components.horizontalMenu(
         Permission.all.map { item =>
           Components.MenuItem(
-            title = Components.icon(item.icon),
+            title = Elements.icon(item.icon),
             description = Rx {
               item.inherited match {
                 case None => item.value

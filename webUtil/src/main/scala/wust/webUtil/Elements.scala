@@ -1,6 +1,7 @@
 package wust.webUtil
 
 import cats.effect.IO
+import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs.{CssProps, Event, Hammer, Options, propagating}
 import wust.facades.immediate.immediate
@@ -16,6 +17,8 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder}
 import rx._
+import wust.facades.emojijs.EmojiConvertor
+import wust.facades.marked.Marked
 import wust.webUtil.outwatchHelpers._
 import wust.ids.EpochMilli
 import wust.util._
@@ -393,5 +396,34 @@ object Elements {
   val safeTargetBlank = VDomModifier(
     rel := safeRelForTargetBlank,
     target := "_blank"
+  )
+
+  def markdownString(str: String): String = {
+    if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
+    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
+  }
+  //TODO: move to webUitl.Elements
+  def closeButton: VNode = div(
+    div(cls := "fa-fw", freeSolid.faTimes),
+    padding := "10px",
+    flexGrow := 0.0,
+    flexShrink := 0.0,
+    cursor.pointer,
+  )
+  //TODO: move to webUitl.Elements
+  def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
+    fontawesome.icon(icon),
+    fontawesome.icon(
+      indicator,
+      new Params {
+        transform = new Transform {size = 13.0; x = 7.0; y = -7.0; }
+        styles = scalajs.js.Dictionary[String]("color" -> color)
+      }
+    )
+  )
+  //TODO: move to webUitl.Elements
+  def icon(icon: VDomModifier) = i(
+    cls := "icon fa-fw",
+    icon
   )
 }

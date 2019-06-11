@@ -1,6 +1,9 @@
 package wust.webUtil
 
+import scala.scalajs.js.JSConverters._
 import cats.Functor
+import fontAwesome.{AbstractElement, FontawesomeObject, IconLookup, fontawesome}
+import wust.webUtil.macros.KeyHash
 import monix.eval.Task
 import monix.execution.{Ack, Cancelable, CancelableFuture, Scheduler}
 import monix.reactive.OverflowStrategy.Unbounded
@@ -13,7 +16,6 @@ import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.facades.jquery.JQuerySelection
 import wust.util.Empty
-import wust.webUtil.macros.KeyHash
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.scalajs.js
@@ -299,9 +301,36 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
   }
+
+  def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag.thunkStatic(uniqueKey(key))(treeToModifiers(tree))
+  }
+
+  implicit def renderFontAwesomeIcon(icon: IconLookup): VNode = {
+    abstractTreeToVNodeRoot(key = s"${icon.prefix}${icon.iconName}", fontawesome.icon(icon).`abstract`(0))
+  }
+
+  // fontawesome uses svg for icons and span for layered icons.
+  // we need to handle layers as an html tag instead of svg.
+  @inline private def stringToTag(tag: String): BasicVNode = if (tag == "span") dsl.htmlTag(tag) else dsl.svgTag(tag)
+
+  @inline private def treeToModifiers(tree: AbstractElement): VDomModifier = VDomModifier(
+    tree.attributes.map { case (name, value) => dsl.attr(name) := value }.toJSArray,
+    tree.children.fold(js.Array[VNode]()) { _.map(abstractTreeToVNode) }
+  )
+
+  private def abstractTreeToVNode(tree: AbstractElement): VNode = {
+    val tag = stringToTag(tree.tag)
+    tag(treeToModifiers(tree))
+  }
+
+  @inline implicit def renderFontAwesomeObject(icon: FontawesomeObject): VNode = {
+    abstractTreeToVNode(icon.`abstract`(0))
+  }
 }
 
-  @inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
+@inline class VarObserver[T](rx: Var[T]) extends Observer.Sync[T] {
   @inline override def onNext(elem: T): Ack = {
     rx() = elem
     Ack.Continue

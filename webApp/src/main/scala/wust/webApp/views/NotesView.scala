@@ -4,7 +4,6 @@ import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -13,6 +12,7 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
+import wust.webUtil.outwatchHelpers._
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.

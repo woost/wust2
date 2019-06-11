@@ -22,7 +22,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, dragWithHandle}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI}
+import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -379,7 +379,7 @@ object SharedViewElements {
   def searchButtonWithIcon(onClickAction: VDomModifier)(implicit ctx: Ctx.Owner) = a(
     cls := "item",
     cursor.pointer,
-    Components.icon(Icons.search),
+    Elements.icon(Icons.search),
     span("Search"),
     onClickAction,
   )
