@@ -5,9 +5,9 @@ import java.time.format.DateTimeFormatter
 import java.time.{ZoneOffset, ZonedDateTime}
 import java.util.Base64
 
-import com.amazonaws.auth.BasicAWSCredentials
-import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.auth.{AWSSessionCredentials, DefaultAWSCredentialsProviderChain}
 import com.amazonaws.services.s3.model._
+import com.amazonaws.services.s3.{AmazonS3, AmazonS3Client}
 import monix.eval.Task
 import wust.api.{FileUploadConfiguration, StaticFileUrl}
 import wust.backend.config.{AwsConfig, ServerConfig}
@@ -18,19 +18,16 @@ import scala.collection.mutable
 class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   import FileUploadConfiguration._
 
-  private val awsCredentials = new BasicAWSCredentials(awsConfig.accessKey, awsConfig.secretKey)
-  private val s3Client: AmazonS3Client = new AmazonS3Client(awsCredentials)
+  private val s3Client: AmazonS3 = AmazonS3Client.builder().withRegion(awsConfig.region).build()
 
-  private def s3GetUrl(bucketName: String) = s"https://s3.${awsConfig.region}.amazonaws.com/$bucketName"
+  private def cdnGetUrl = s"https://files.${serverConfig.host}"
   private def s3PostUrl(bucketName: String) = s"https://$bucketName.s3-${awsConfig.region}.amazonaws.com/"
 
   private def requireSaneKey(key: String): Unit = {
     require(key.matches("^[A-Fa-f0-9]+$"), "invalid file key") // our clients send the sha-256 of the content in hex. will be prefixed by hash of user-id
   }
 
-  def getFileDownloadBaseUrl: Task[StaticFileUrl] = Task.pure {
-    StaticFileUrl(s3GetUrl(awsConfig.uploadBucketName))
-  }
+  def getFileDownloadBaseUrl: Task[StaticFileUrl] = Task.pure(StaticFileUrl(cdnGetUrl))
 
   def getAllObjectSummariesForUser(userId: UserId): Task[Seq[S3ObjectSummary]] = {
     val keyPrefix = getKeyPrefixForUser(userId)
@@ -93,11 +90,17 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-UsingHTTPPOST.html
   // https://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
   private def getPostConfiguration(key: String, fileSize: Int, fileContentType: String, fileContentDisposition: String, validSeconds: Int): FileUploadConfiguration = {
+    val credentials = DefaultAWSCredentialsProviderChain.getInstance().getCredentials
+    val sessionToken = credentials match {
+      case credentials: AWSSessionCredentials => Some(credentials.getSessionToken)
+      case _ => None
+    }
+
     val now = ZonedDateTime.now(ZoneOffset.UTC)
     val expiryTime = now.plusSeconds(validSeconds)
     val amzDateString = DateTimeFormatter.ofPattern("yyyyMMdd").format(now)
     val amzDateTimeString = DateTimeFormatter.ofPattern("yyyyMMdd'T'000000'Z'").format(now)
-    val amzCredential = s"${awsConfig.accessKey}/$amzDateString/${awsConfig.region}/s3/aws4_request"
+    val amzCredential = s"${credentials.getAWSAccessKeyId}/$amzDateString/${awsConfig.region}/s3/aws4_request"
     val amzAlgorithm = "AWS4-HMAC-SHA256"
     val fileCacheControl = s"max-age=$cacheMaxAgeSeconds"
 
@@ -107,6 +110,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     // we enforce a content-type, browser know how to display it -- will be stored by s3 as a response header when getting that object from s3
     // we enforce a content-disposition, browsers should download the file as filename -- will be stored by s3 as a response header when getting that object from s3
     // we only allow an upload for the specified file size (+-1) -- aws checks size
+    val sessionTokenPolicyLine = sessionToken.fold("")(sessionToken => s"""{"x-amz-security-token": "$sessionToken"},""")
     val acl = "private"
     val policy_document =
       s"""
@@ -119,6 +123,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
          |    {"x-amz-date": "$amzDateTimeString"},
          |    {"x-amz-algorithm": "$amzAlgorithm"},
          |    {"x-amz-credential": "$amzCredential"},
+         |    $sessionTokenPolicyLine
          |    {"cache-control": "$fileCacheControl"},
          |    {"content-type": "$fileContentType"},
          |    {"content-disposition": '$fileContentDisposition' },
@@ -129,12 +134,11 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
 
     val policy = Base64.getEncoder.encodeToString(policy_document.getBytes("UTF-8"))
 
-
-    val signingKey = AwsSignature.getSignatureKey(key = awsConfig.secretKey, dateStamp = amzDateString, regionName = awsConfig.region, serviceName = "s3")
+    val signingKey = AwsSignature.getSignatureKey(key = credentials.getAWSSecretKey, dateStamp = amzDateString, regionName = awsConfig.region, serviceName = "s3")
     val signedPolicy = AwsSignature.HmacSHA256(data = policy, key = signingKey)
     val signature = javax.xml.bind.DatatypeConverter.printHexBinary(signedPolicy).toLowerCase
 
-    FileUploadConfiguration.UploadToken(baseUrl = s3PostUrl(awsConfig.uploadBucketName), credential = amzCredential, policyBase64 = policy, signature = signature, validSeconds = validSeconds, acl = acl, key = key, algorithm = amzAlgorithm, date = amzDateTimeString, contentDisposition = fileContentDisposition, cacheControl = fileCacheControl)
+    FileUploadConfiguration.UploadToken(baseUrl = s3PostUrl(awsConfig.uploadBucketName), credential = amzCredential, sessionToken = sessionToken, policyBase64 = policy, signature = signature, validSeconds = validSeconds, acl = acl, key = key, algorithm = amzAlgorithm, date = amzDateTimeString, contentDisposition = fileContentDisposition, cacheControl = fileCacheControl)
   }
 
   private def getAllObjectSummaries(keyPrefix: String): Task[Seq[S3ObjectSummary]] = Task {
@@ -296,26 +300,3 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
 //    LimitedFileUrl(result.getUri.toString, validSeconds = validSeconds)
 //  }
 //}
-
-// https://docs.aws.amazon.com/general/latest/gr/signature-v4-examples.html
-object AwsSignature {
-
-  import javax.crypto.Mac
-  import javax.crypto.spec.SecretKeySpec
-
-  def HmacSHA256(data: String, key: Array[Byte]): Array[Byte] = {
-    val algorithm = "HmacSHA256"
-    val mac = Mac.getInstance(algorithm)
-    mac.init(new SecretKeySpec(key, algorithm))
-    mac.doFinal(data.getBytes("UTF8"))
-  }
-
-  def getSignatureKey(key: String, dateStamp: String, regionName: String, serviceName: String): Array[Byte] = {
-    val kSecret = ("AWS4" + key).getBytes("UTF8")
-    val kDate = HmacSHA256(dateStamp, kSecret)
-    val kRegion = HmacSHA256(regionName, kDate)
-    val kService = HmacSHA256(serviceName, kRegion)
-    val kSigning = HmacSHA256("aws4_request", kService)
-    kSigning
-  }
-}

@@ -122,8 +122,9 @@ object Deps {
   val webPush = dep("nl.martijndwars" % "web-push" % "3.1.1")
   val awsSdk = new {
     //dep("software.amazon.awssdk" % "aws-sdk-java" % "2.1.3") // TODO: Does not work because of newer netty dependency than postgres-async => runtime error.
-    private val version = "1.11.461"
+    private val version = "1.11.568"
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
+    val ses = dep("com.amazonaws" % "aws-java-sdk-ses" % version)
   }
 
   val webpackVersion = "4.34.0"

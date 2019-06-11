@@ -17,6 +17,8 @@ services:
 
 
     environment: &pg_env
+      POSTGRES_HOSTNAME: "postgres"
+      POSTGRES_PORT: 5432
       POSTGRES_USER: 'wust'
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: 'wust'
@@ -25,7 +27,7 @@ services:
 
   db-migration:
     restart: on-failure
-    image: docker.woost.space/woost/db-migration:${WUST_VERSION-latest}-core
+    image: woost/db-migration:${WUST_VERSION-latest}-core
     environment:
       <<: *pg_env
     depends_on:
@@ -33,7 +35,7 @@ services:
 
   core:
     restart: on-failure
-    image: docker.woost.space/woost/core:${WUST_VERSION-latest}
+    image: woost/core:${WUST_VERSION-latest}
     environment:
       <<: *pg_env
       POSTGRES_HOSTNAME: "postgres"

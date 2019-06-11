@@ -13,7 +13,13 @@ import wust.util.StringOps
 import scala.concurrent.ExecutionContext
 import scala.util.control.NonFatal
 
+object AppEmailFlow {
+  val teamEmailAddress = "team@woost.space" //TODO config...
+}
+
 class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailService) {
+  import AppEmailFlow._
+
   private val emailSubject = PublishSubject[MailMessage]
 
   private def generateRandomVerificationLink(userId: UserId, email: String): String = {
@@ -74,7 +80,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   }
 
   private def feedbackMailMessage(userId: UserId, userName: String, userEmail: Option[String], clientInfo: ClientInfo, msg: String): MailMessage = {
-    val recipient = MailRecipient(to = "team@woost.space" :: Nil)
+    val recipient = MailRecipient(to = teamEmailAddress :: Nil)
     val subject = s"Feedback on ${serverConfig.host}"
     val body =
       s"""

@@ -453,6 +453,7 @@ lazy val core = project
         Deps.monix.value ::
         Deps.webPush.value ::
         Deps.awsSdk.s3.value ::
+        Deps.awsSdk.ses.value ::
         Nil,
     javaOptions in reStart += "-Xmx300m"
   )

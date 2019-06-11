@@ -21,11 +21,11 @@ final case class SmtpConfig(endpoint: String, username: String, password: String
 }
 final case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
 
-final case class AwsConfig(uploadBucketName: String, region: String, accessKey: String, secretKey: String) {
-  override def toString: String = s"AwsConfig($uploadBucketName, $region, $accessKey, ***)"
-}
+final case class SESConfig(fromAddress: String, region: String)
 
-final case class ServerConfig(host: String, port: Int, clientBufferSize: Int, allowedOrigins: List[String])
+final case class AwsConfig(uploadBucketName: String, region: String, ses: Option[SESConfig])
+
+final case class ServerConfig(host: String, port: Int, clientBufferSize: Int)
 
 final case class Config(
     server: ServerConfig,

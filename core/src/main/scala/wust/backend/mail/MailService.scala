@@ -28,9 +28,10 @@ class SendingMailService(fromAddress: String, client: MailClient) extends MailSe
 }
 
 object MailService {
-  def apply(config: Option[EmailConfig]) =
-    config.fold[MailService](LoggingMailService) { config =>
-      import config._
-      new SendingMailService(fromAddress, new JavaMailClient(smtp))
-    }
+  def empty: MailService = LoggingMailService
+  def apply(fromAddress: String, client: MailClient): MailService = new SendingMailService(fromAddress, client)
+
+  def apply(config: Option[EmailConfig]): MailService = config.fold[MailService](empty) { config =>
+    apply(config.fromAddress, new JavaMailClient(config.smtp))
+  }
 }

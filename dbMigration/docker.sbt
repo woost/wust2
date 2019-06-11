@@ -1,6 +1,5 @@
 def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
   dockerfile in docker := {
-    val postgresHost = "postgres"
     new Dockerfile {
       from(Deps.docker.flyway)
       run("adduser", "user", "-D", "-u", "1000")
@@ -11,7 +10,7 @@ def dockerDbMigration(name: String): Seq[Setting[_]] = Seq(
         baseDirectory(_ / "../flyway-await-postgres.sh").value,
         s"/flyway/flyway-await-postgres.sh"
       )
-      entryPoint("/flyway/flyway-await-postgres.sh", postgresHost)
+      entryPoint("/flyway/flyway-await-postgres.sh")
     }
   },
   imageNames in docker := Docker.imageNames("db-migration", versionPostfix = name).value

@@ -29,10 +29,11 @@ const htmlFolder = Path.join(dirs.project, 'src/html');
 const jsFolder = Path.join(dirs.project, 'src/js');
 const cssFiles = glob.sync(Path.join(cssFolder, '*.css'));
 const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
+const htmlErrorFiles = glob.sync(Path.join(cssFolder, '*.css'));
 
 // copy static assets that we depend on
 const staticCopyAssets = [
-
+    { from: Path.join(htmlFolder, 'error-*.html'), context: htmlFolder, to: ''},
     { from: 'node_modules/emoji-datasource-twitter/img/twitter/sheets/64.png', to: 'emoji-datasource/sheet_twitter_64.png'},
     { from: 'node_modules/highlight.js/styles/github-gist.css', to: 'highlight/github-gist.css'},
     { from: 'node_modules/jquery/dist/jquery.min.js', to: 'jquery.min.js'},
