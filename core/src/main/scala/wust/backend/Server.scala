@@ -66,7 +66,7 @@ object Server {
     val guardDsl = new GuardDsl(jwt, db)
 
     val mailService = config.aws.flatMap(_.ses).fold(MailService(config.email)) { sesConfig =>
-      MailService(sesConfig.fromAddress, new SESMailClient(AppEmailFlow.teamEmailAddress, sesConfig))
+      MailService(sesConfig.settings, new SESMailClient(AppEmailFlow.teamEmailAddress, sesConfig))
     }
     val fileUploader = config.aws.map(new S3FileUploader(_, config.server)) //TODO local file uploader stub for dev?
 
