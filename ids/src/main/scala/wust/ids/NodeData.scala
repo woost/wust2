@@ -63,11 +63,11 @@ object NodeData {
     def str = content.toString
   }
   object Duration extends Named
+  //TODO: should be renamed to datetime, because now+duration does not only give a date.
   case class RelativeDate(content: DurationMilli) extends Named with Content {
     def str = content.toString
   }
   object RelativeDate extends Named
-
 
   case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
