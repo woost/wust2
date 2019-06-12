@@ -6,7 +6,7 @@ import rx.{Ctx, Rx}
 import wust.facades.googleanalytics.Analytics
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
-import wust.webApp.views.ViewFilter.allTransformations
+import wust.webApp.views.ViewGraphTransformation.allTransformations
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable}
 
@@ -14,7 +14,7 @@ import wust.webUtil.{Elements, Ownable}
 object FilterWindows {
   def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
-    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
+    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations
 
     MovableElement.Window(
       VDomModifier(
