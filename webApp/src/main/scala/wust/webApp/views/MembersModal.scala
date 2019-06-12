@@ -5,7 +5,7 @@ import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.webUtil.Elements
+import wust.webUtil.{Elements, ModalConfig}
 import wust.webUtil.outwatchHelpers._
 import wust.graph.Node.User
 import wust.graph._
@@ -157,7 +157,7 @@ object MembersModal {
     }
 
     ModalConfig(
-      header = ModalConfig.defaultHeader(state, node, "Members", Icons.users),
+      header = Modal.defaultHeader(state, node, "Members", Icons.users),
       description = description,
       modalModifier = VDomModifier(
         cls := "mini form",

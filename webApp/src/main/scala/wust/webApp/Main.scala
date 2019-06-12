@@ -19,7 +19,7 @@ import wust.graph.Node
 import wust.ids._
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
-import wust.webApp.views.{GenericSidebar, MainView, ModalConfig}
+import wust.webApp.views.{GenericSidebar, MainView, Modal}
 
 import scala.scalajs.js.JSON
 import scala.scalajs.{LinkingInfo, js}
@@ -42,7 +42,7 @@ object Main {
     // render main content
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
     // render single modal instance for the whole page that can be configured via state.uiModalConfig
-    OutWatch.renderReplace("#modal-placeholder", ModalConfig.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
+    OutWatch.renderReplace("#modal-placeholder", Modal.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
     // render single sidebar instance for the whole page that can be configured via state.uiSidebarConfig
     OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }

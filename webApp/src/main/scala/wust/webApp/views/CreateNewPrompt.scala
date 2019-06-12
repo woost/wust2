@@ -10,7 +10,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{ModalConfig, Ownable, UI}
 import wust.css.Styles
 import wust.graph._
 import wust.ids._

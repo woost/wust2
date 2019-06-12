@@ -11,7 +11,6 @@ import wust.util.macros.InlineList
 import wust.webApp.Icons
 import wust.webApp.search.Search
 import wust.webApp.state.{GlobalState, ScreenSize}
-import wust.webApp.views.Components._
 import wust.webUtil.{Elements, Ownable}
 import wust.webUtil.outwatchHelpers._
 

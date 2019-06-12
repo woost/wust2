@@ -1,20 +1,20 @@
 package wust.webApp.views
 
-import wust.facades.fomanticui.ModalOptions
 import monix.execution.Cancelable
 import monix.reactive.Observable
 import outwatch.dom.dsl._
 import outwatch.dom.{VDomModifier, _}
 import rx._
-import wust.webUtil.Ownable
-import wust.webUtil.outwatchHelpers._
 import wust.css.Styles
+import wust.facades.fomanticui.ModalOptions
 import wust.webApp.views.Components._
+import wust.webUtil.{ModalConfig, Ownable}
+import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
 
-case class ModalConfig(header: VDomModifier, description: VDomModifier, onClose: () => Boolean = () => true, actions: Option[VDomModifier] = None, modalModifier: VDomModifier = VDomModifier.empty, contentModifier: VDomModifier = VDomModifier.empty)
-object ModalConfig {
+
+object Modal {
   import wust.graph.Node
   import wust.sdk.{BaseColors, NodeColor}
   import wust.webApp.state.GlobalState
@@ -102,5 +102,4 @@ object ModalConfig {
   )
 
 }
-
 

@@ -12,7 +12,7 @@ import wust.webApp._
 import wust.webApp.search.Search
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webUtil.Elements
+import wust.webUtil.{Elements, ModalConfig}
 import wust.webUtil.outwatchHelpers._
 
 object SearchModal {
@@ -84,7 +84,7 @@ object SearchModal {
       case _ => VDomModifier.empty
     }
 
-    def header(implicit ctx: Ctx.Owner) = ModalConfig.defaultHeader(
+    def header(implicit ctx: Ctx.Owner) = Modal.defaultHeader(
       state,
       node,
       modalHeader = div(

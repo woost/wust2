@@ -4,7 +4,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI}
+import wust.webUtil.{BrowserDetect, ModalConfig, Ownable, UI}
 import wust.css.Styles
 import wust.graph.{Edge, GraphChanges, Node}
 import wust.ids._
@@ -25,7 +25,7 @@ object GraphChangesAutomationUI {
   def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
-        ModalConfig.defaultHeader(state, node, "Automation", Icons.automate)
+        Modal.defaultHeader(state, node, "Automation", Icons.automate)
       }
     }
 

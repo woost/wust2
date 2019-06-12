@@ -7,7 +7,7 @@ import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.experimental.permissions.PermissionState
 import org.scalajs.dom.raw.HTMLElement
 import rx._
-import wust.webUtil.Ownable
+import wust.webUtil.{ModalConfig, Ownable}
 import wust.webUtil.outwatchHelpers._
 import wust.api._
 import wust.graph._

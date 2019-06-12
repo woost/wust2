@@ -10,7 +10,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx.{Ctx, Rx, Var}
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, Ownable, UI}
+import wust.webUtil.{Elements, ModalConfig, Ownable, UI}
 import wust.css.Styles
 import wust.external.{meistertask, trello, wunderlist}
 import wust.graph._
@@ -365,7 +365,7 @@ object Importing {
 
     val modalHeader: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
-        ModalConfig.defaultHeader(
+        Modal.defaultHeader(
           state,
           node,
           modalHeader = div(

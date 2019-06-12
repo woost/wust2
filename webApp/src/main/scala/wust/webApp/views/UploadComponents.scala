@@ -14,10 +14,9 @@ import wust.ids._
 import wust.util._
 import wust.webApp._
 import wust.webApp.state.{GlobalState, UploadingFile}
-import wust.webApp.views.Components._
 import wust.webApp.views.WoostLogoComponents._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{ModalConfig, Ownable, UI}
 
 object UploadComponents {
   def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
