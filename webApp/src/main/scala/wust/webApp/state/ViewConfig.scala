@@ -1,9 +1,8 @@
 package wust.webApp.state
 
-import wust.api.Authentication
+import acyclic.file
 import wust.graph._
 import wust.ids.View
-import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 
 // ViewConfig and UrlConfig are the configurations driving our application ui.
 // For example, it contains the page and view that should be displayed.
@@ -17,29 +16,5 @@ import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 
 case class ShareOptions(title: String, text: String, url: String)
 case class PageChange(page: Page, needsGet: Boolean = true)
-
-case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
-  private val canRedirectTo: View => Boolean = {
-    case View.Login | View.Signup => false
-    case _ => true
-  }
-
-  def focusWithRedirect(newView: View): UrlConfig = copy(view = Some(newView), redirectTo = view.filter(canRedirectTo) orElse redirectTo)
-
-  def redirect: UrlConfig = copy(view = redirectTo, redirectTo = None)
-
-  @inline def focus(view: Option[View]): UrlConfig = copy(view = view, redirectTo = None)
-  @inline def focus(view: View): UrlConfig = copy(view = Some(view), redirectTo = None)
-  @inline def focus(page: Page, view: View): UrlConfig = focus(page, Some(view))
-  @inline def focus(page: Page, view: View, needsGet: Boolean): UrlConfig = focus(page, Some(view), needsGet)
-  def focus(page: Page, view: Option[View] = None, needsGet: Boolean = true): UrlConfig = copy(pageChange = PageChange(page, needsGet = needsGet), view = view, redirectTo = None)
-}
-object UrlConfig {
-  val default = UrlConfig(view = None, PageChange(Page.empty), None, None, None)
-
-  def fromUrlRoute(route: UrlRoute): UrlConfig = UrlConfigParser.parse(route)
-
-  def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
-}
 
 case class ViewConfig(view: View.Visible, page: Page)

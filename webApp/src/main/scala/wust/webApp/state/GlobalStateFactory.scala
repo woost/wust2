@@ -18,6 +18,7 @@ import wust.ids._
 import wust.sdk._
 import wust.util.StringOps
 import wust.webApp.jsdom.{Navigator, ServiceWorker}
+import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
 import wust.webApp.views.EditableContent
 import wust.webApp.{Client, DevOnly}
 
@@ -27,7 +28,7 @@ import scala.util.{Failure, Success}
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
     val sidebarOpen = Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
-    val urlConfig = UrlRouter.variable.imap(UrlConfig.fromUrlRoute)(UrlConfig.toUrlRoute)
+    val urlConfig = UrlRouter.variable.imap(UrlConfigParser.fromUrlRoute)(UrlConfigWriter.toUrlRoute)
 
     val eventProcessor = EventProcessor(
       Client.observable.event,

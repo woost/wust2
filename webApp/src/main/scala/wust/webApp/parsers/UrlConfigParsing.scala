@@ -1,5 +1,6 @@
 package wust.webApp.parsers
 
+import acyclic.file
 import cats.data.NonEmptyList
 import kantan.regex._
 import kantan.regex.implicits._
@@ -161,6 +162,7 @@ object UrlConfigParser {
         UrlConfig.default
     }
   }
+  def fromUrlRoute(route: UrlRoute): UrlConfig = UrlConfigParser.parse(route)
 }
 
 object UrlConfigWriter {
@@ -174,4 +176,5 @@ object UrlConfigWriter {
     val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
     UrlRoute(search = None, hash = Some(hash))
   }
+  def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
 }

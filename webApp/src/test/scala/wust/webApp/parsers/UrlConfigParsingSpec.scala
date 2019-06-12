@@ -10,7 +10,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
   def createUrlConfig(view: Option[View], page: Page, prevView: Option[View]) = UrlConfig(view, PageChange(page), prevView, None, None)
 
   def toUrlRouteAndBack(viewConfig: UrlConfig): UrlConfig =
-    UrlConfig.fromUrlRoute(UrlConfig.toUrlRoute(viewConfig))
+    UrlConfigParser.fromUrlRoute(UrlConfigWriter.toUrlRoute(viewConfig))
 
   def freshNodeId(i:Int) = NodeId(Cuid(i, i))
 
@@ -18,7 +18,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     pending
     val cuid1 = freshNodeId(1)
     val str = s"view=graph|chat&page=${cuid1.toCuidString}"
-    val cfg = UrlConfig.fromUrlRoute(UrlRoute(None, Some(str)))
+    val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Row, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
@@ -30,7 +30,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     pending
     val cuid1 = freshNodeId(1)
     val str = s"view=graph/chat&page=${cuid1.toCuidString}"
-    val cfg = UrlConfig.fromUrlRoute(UrlRoute(None, Some(str)))
+    val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Column, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
@@ -42,7 +42,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     pending
     val cuid1 = freshNodeId(1)
     val str = s"view=graph,chat&page=${cuid1.toCuidString}"
-    val cfg = UrlConfig.fromUrlRoute(UrlRoute(None, Some(str)))
+    val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Auto, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
@@ -54,7 +54,7 @@ class UrlConfigParsingSpec extends FreeSpec with MustMatchers {
     pending
     val cuid1 = freshNodeId(1)
     val str = s"view=graph?chat&page=${cuid1.toCuidString}"
-    val cfg = UrlConfig.fromUrlRoute(UrlRoute(None, Some(str)))
+    val cfg = UrlConfigParser.fromUrlRoute(UrlRoute(None, Some(str)))
     val expected = createUrlConfig(
       Some(View.Tiled(ViewOperator.Optional, NonEmptyList[View.Visible](View.Graph, View.Thread :: Nil))),
       Page(NodeId(cuid1)), None)
