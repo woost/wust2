@@ -3,6 +3,7 @@
     <ScalaCodeStyleSettings>
       <option name="alwaysUsedImports">
         <array>
+          <option value="Def.{setting =&gt; dep}" />
           <option value="acyclic.file" />
           <option value="boopickle.Default._" />
           <option value="chameleon.ext.boopickle._" />
@@ -11,6 +12,7 @@
           <option value="io.circe._" />
           <option value="io.circe.generic.extras.auto._" />
           <option value="io.circe.syntax._" />
+          <option value="sbtcrossproject.CrossPlugin.autoImport.{crossProject, CrossType}" />
           <option value="wust.api.serialize.Boopickle._" />
           <option value="wust.api.serialize.Circe._" />
           <option value="wust.external.Circe._" />
