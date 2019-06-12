@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.file
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -20,7 +21,7 @@ import wust.webApp.views.DragComponents.registerDragContainer
 
 object KanbanView {
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, focusState: FocusState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodeIds:Var[Set[NodeId]] = Var(Set.empty[NodeId])
 
@@ -34,9 +35,9 @@ object KanbanView {
       Styles.flex,
       alignItems.flexStart,
 
-      renderInboxColumn(state, focusState, traverseState, selectedNodeIds),
+      renderInboxColumn(state, focusState, traverseState, viewRender, selectedNodeIds),
 
-      renderToplevelColumns(state, focusState, traverseState, selectedNodeIds),
+      renderToplevelColumns(state, focusState, traverseState, viewRender, selectedNodeIds),
 
       newColumnArea(state, focusState.focusedId).apply(Styles.flexStatic),
     )
@@ -48,12 +49,13 @@ object KanbanView {
     traverseState: TraverseState,
     nodeId: NodeId,
     nodeRole: NodeRole,
+    viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     nodeRole match {
       case NodeRole.Task => TaskNodeCard.renderThunk(state, focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true)
-      case NodeRole.Stage => renderColumn(state, focusState, traverseState, nodeId, selectedNodeIds, isTopLevel = isTopLevel)
+      case NodeRole.Stage => renderColumn(state, focusState, traverseState, nodeId, viewRender = viewRender, selectedNodeIds, isTopLevel = isTopLevel)
       case _ => VDomModifier.empty
     }
   }
@@ -62,6 +64,7 @@ object KanbanView {
     state: GlobalState,
     focusState: FocusState,
     traverseState: TraverseState,
+    viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val columns = Rx {
@@ -78,7 +81,7 @@ object KanbanView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn(state, focusState, traverseState, columnId, selectedNodeIds, isTopLevel = true)
+            renderColumn(state, focusState, traverseState, columnId, viewRender, selectedNodeIds, isTopLevel = true)
           },
           registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
@@ -91,6 +94,7 @@ object KanbanView {
     state: GlobalState,
     focusState: FocusState,
     traverseState: TraverseState,
+    viewRender: ViewRenderLike,
     selectedNodeIds: Var[Set[NodeId]],
   )(implicit ctx: Ctx.Owner): VNode = {
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -120,7 +124,7 @@ object KanbanView {
           VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
           DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
-          GraphChangesAutomationUI.settingsButton(state, focusState.focusedId, activeMod = visibility.visible),
+          GraphChangesAutomationUI.settingsButton(state, focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
         ),
       ),
       div(
@@ -143,6 +147,7 @@ object KanbanView {
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
+    viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
   ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
@@ -200,7 +205,7 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton(state, nodeId, activeMod = visibility.visible),
+      GraphChangesAutomationUI.settingsButton(state, nodeId, activeMod = visibility.visible, viewRender = viewRender),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)
@@ -231,7 +236,7 @@ object KanbanView {
             Rx {
               VDomModifier(
                 registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
-                children().map { case (id, role) => renderTaskOrStage(state, focusState, nextTraverseState, nodeId = id, nodeRole = role, selectedNodeIds) },
+                children().map { case (id, role) => renderTaskOrStage(state, focusState, nextTraverseState, nodeId = id, nodeRole = role, viewRender, selectedNodeIds) },
               )
             },
             scrollHandler.modifier,

@@ -22,7 +22,7 @@ import scala.collection.breakOut
 object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(state: GlobalState, focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
       state.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader(state, node, "Automation", Icons.automate)
@@ -166,14 +166,20 @@ object GraphChangesAutomationUI {
       },
 
       position.relative, // needed for right sidebar
-      RightSidebar(state, Rx { selectedTemplate().filter(pref => templatesRx().exists(_.id == pref.nodeId)) }, nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)), openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))) // overwrite left-margin of overlay sidebar in mobile
+      RightSidebar(
+        state,
+        Rx { selectedTemplate().filter(pref => templatesRx().exists(_.id == pref.nodeId)) },
+        nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)),
+        viewRender,
+        openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))
+      ) // overwrite left-margin of overlay sidebar in mobile
     )
 
     ModalConfig(header = header, description = description, contentModifier = VDomModifier(styleAttr := "padding : 0px !important")) // overwrite padding of modal
   }
 
   // a settings button for automation that opens the modal on click.
-  def settingsButton(state: GlobalState, focusedId: NodeId, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsButton(state: GlobalState, focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     div(
       i(cls := "fa-fw", Icons.automate),
@@ -192,7 +198,7 @@ object GraphChangesAutomationUI {
         )
       },
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig(state, focusedId))) --> state.uiModalConfig
+      onClick(Ownable(implicit ctx => modalConfig(state, focusedId, viewRender))) --> state.uiModalConfig
     )
   }
 }

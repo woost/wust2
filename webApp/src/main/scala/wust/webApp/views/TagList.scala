@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.file
 import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -129,7 +130,7 @@ object TagList {
         label(), // needed for fomanticui
       ),
       nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
-      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible).apply(cls := "singleButtonWithBg", marginLeft.auto)),
+      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible, viewRender = ViewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
     )
   }
 

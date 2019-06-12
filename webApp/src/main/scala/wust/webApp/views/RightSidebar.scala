@@ -18,8 +18,8 @@ import wust.webUtil.{Ownable, UI}
 
 object RightSidebar {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, nodeId => state.rightSidebarNode() = nodeId.map(FocusPreference(_)))
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  @inline def apply(state: GlobalState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, nodeId => state.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
+  def apply(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = Var(focusedNodeId.now.isDefined)
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
     toggleVar.triggerLater(show => if (!show) parentIdAction(None))
@@ -27,12 +27,12 @@ object RightSidebar {
     GenericSidebar.right(
       toggleVar,
       config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = VDomModifier(focusedNodeId.map(_.map(content(state, _, parentIdAction))), openModifier)
+        openModifier = VDomModifier(focusedNodeId.map(_.map(content(state, _, parentIdAction, viewRender))), openModifier)
       )}
     )
   }
 
-  def content(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  def content(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
     val sidebarHeader = div(
@@ -90,7 +90,7 @@ object RightSidebar {
           ), active = false),
           accordionEntry("Views", VDomModifier(
             height := "100%",
-            viewContent(state, focusPref, parentIdAction, nodeStyle),
+            viewContent(state, focusPref, parentIdAction, nodeStyle, viewRender),
           ), active = true),
         ),
         styles = "styled fluid",
@@ -104,7 +104,7 @@ object RightSidebar {
       )
     )
   }
-  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
     val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
@@ -129,7 +129,7 @@ object RightSidebar {
 
       Rx {
         val view = viewVar()
-        ViewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+        viewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(

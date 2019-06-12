@@ -44,7 +44,7 @@ object MainView {
           content(state),
         ),
 
-        RightSidebar(state),
+        RightSidebar(state, ViewRender),
       )
     )
   }

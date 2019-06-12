@@ -1,13 +1,13 @@
 package wust.webApp.views
 
+import acyclic.file
 import outwatch.dom.{VNode, dsl}
 import rx._
 import wust.ids.View
 import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.graphview.GraphView
 
-object ViewRender {
-
+object ViewRender extends ViewRenderLike {
   def apply(state: GlobalState, focusState: FocusState, view: View.Visible)(implicit ctx: Ctx.Owner): VNode = apply(state, Some(focusState), view)
   def apply(state: GlobalState, focusState: Option[FocusState], view: View.Visible)(implicit ctx: Ctx.Owner): VNode = {
     @inline def emptyView = dsl.div
@@ -25,7 +25,7 @@ object ViewRender {
       case View.Thread        => ThreadView(state, focusState)
       case View.Table(roles)  => TableView(state, focusState, roles)
       case View.List          => ListView(state, focusState)
-      case View.Kanban        => KanbanView(state, focusState)
+      case View.Kanban        => KanbanView(state, focusState, ViewRender)
       case View.Graph         => GraphView(state, focusState)
       case View.Dashboard     => DashboardView(state, focusState)
       case View.Files         => FilesView(state, focusState)
