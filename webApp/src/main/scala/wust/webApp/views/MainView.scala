@@ -128,7 +128,7 @@ object MainView {
         VDomModifier.ifNot(BrowserDetect.isMobile)(
           position.relative, // needed for taglist window
           MovableElement.withToggleSwitch(
-            ViewFilter.moveableWindow(state, MovableElement.RightPosition(100, 500)) ::
+            FilterWindows.moveableWindow(state, MovableElement.RightPosition(100, 500)) ::
               TagList.moveableWindow(state, MovableElement.RightPosition(100, 400)) ::
               Nil,
             enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),

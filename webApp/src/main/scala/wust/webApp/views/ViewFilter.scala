@@ -11,12 +11,11 @@ import wust.util.macros.InlineList
 import wust.webApp.Icons
 import wust.webApp.search.Search
 import wust.webApp.state.{GlobalState, ScreenSize}
-import wust.webUtil.{Elements, Ownable}
 import wust.webUtil.outwatchHelpers._
 
 object ViewFilter {
 
-  private def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
+  def allTransformations(state: GlobalState)(implicit ctx: Ctx.Owner): List[ViewGraphTransformation] = List(
 //    ViewGraphTransformation.Deleted.inGracePeriod(state),
     ViewGraphTransformation.Deleted.onlyDeleted(state),
     ViewGraphTransformation.Deleted.excludeDeleted(state),
@@ -26,66 +25,6 @@ object ViewFilter {
     ViewGraphTransformation.Automated.hideTemplates(state),
     //    Identity(state),
   )
-
-  def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
-
-    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations(state)
-
-    MovableElement.Window(
-      VDomModifier(
-        Icons.filter,
-        span(marginLeft := "5px", "Filter"),
-        state.isFilterActive.map {
-          case true =>
-            Rx{VDomModifier(
-              backgroundColor := state.pageStyle().pageBgColor,
-              color.white,
-            )}:VDomModifier
-          case false => VDomModifier.empty
-        }
-      ),
-      toggle = state.showFilterList,
-      initialPosition = position,
-      initialWidth = 260,
-      initialHeight = 250,
-      resizable = false,
-      titleModifier = Ownable(implicit ctx =>
-        Rx{VDomModifier(
-          backgroundColor := state.pageStyle().pageBgColor,
-          color.white,
-        )}
-      ),
-      bodyModifier = Ownable { implicit ctx =>
-        VDomModifier(
-          padding := "5px",
-
-          Components.verticalMenu(
-            filterTransformations.map { transformation =>
-              Components.MenuItem(
-                title = transformation.icon,
-                description = transformation.description,
-                active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
-                clickAction = { () =>
-                  state.graphTransformations.update { transformations =>
-                    if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
-                    else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
-                  }
-                  Analytics.sendEvent("filter", transformation.toString)
-                }
-              )
-            }
-          ),
-          div(
-            cursor.pointer,
-            Elements.icon(Icons.noFilter),
-            span("Reset ALL filters"),
-            onClick(state.defaultTransformations) --> state.graphTransformations,
-            onClick foreach { Analytics.sendEvent("filter", "reset") },
-          )
-        )
-      }
-    )
-  }
 
   def addLabeledFilterCheckbox(state: GlobalState, filterName: String, header: VDomModifier, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
     val checkbox = addFilterCheckbox(state, filterName, transform)
