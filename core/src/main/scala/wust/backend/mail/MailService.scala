@@ -3,35 +3,55 @@ package wust.backend.mail
 import monix.eval.Task
 import wust.backend.config._
 
+<<<<<<< HEAD
 final case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
 final case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
+||||||| merged common ancestors
+case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
+case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
+=======
+case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty) {
+  def exists(f: String => Boolean) = to.exists(f) || cc.exists(f) || bcc.exists(f)
+}
+case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
+>>>>>>> support blocking certain recipient email domains
 
 trait MailService {
-  def sendMail(message: MailMessage): Task[Unit]
+  def sendMail(message: MailMessage): Task[MailService.Result]
 }
 
 object LoggingMailService extends MailService {
-  override def sendMail(message: MailMessage): Task[Unit] = Task {
+  override def sendMail(message: MailMessage): Task[MailService.Result] = Task {
     scribe.info(s"MailService not activated, just logging the mail:\n\t $message")
-    ()
+    MailService.Success
   }
 }
 
-class SendingMailService(fromAddress: String, client: MailClient) extends MailService {
-  override def sendMail(message: MailMessage): Task[Unit] = {
-    client.sendMessage(fromAddress, message)
-      .doOnFinish {
-        case None => Task(scribe.info(s"Successfully sent out email: $message"))
-        case Some(err) => Task(scribe.error(s"Failed to send out email: $message", err))
-      }
+class SendingMailService(settings: EmailSettings, client: MailClient) extends MailService {
+  private def isRecipientBlocked(recipient: MailRecipient): Boolean = {
+    recipient.exists(address => settings.blockedEmailDomainsList.exists(domain => address.endsWith("@" + domain)))
+  }
+
+  override def sendMail(message: MailMessage): Task[MailService.Result] = {
+    val task = if (isRecipientBlocked(message.recipient)) Task.pure(MailService.Blocked(s"Recipient address is blocked by us: $message"))
+    else client.sendMessage(settings.fromAddress, message).map(_ => MailService.Success)
+    task.doOnFinish {
+      case None => Task(scribe.info(s"Successfully sent out email: $message"))
+      case Some(err) => Task(scribe.error(s"Failed to send out email: $message", err))
+    }
   }
 }
 
 object MailService {
+  sealed trait Result
+  case object Success extends Result
+  case class Blocked(reason: String) extends Result
+
   def empty: MailService = LoggingMailService
-  def apply(fromAddress: String, client: MailClient): MailService = new SendingMailService(fromAddress, client)
+  def apply(settings: EmailSettings, client: MailClient): MailService = new SendingMailService(settings, client)
 
   def apply(config: Option[EmailConfig]): MailService = config.fold[MailService](empty) { config =>
-    apply(config.fromAddress, new JavaMailClient(config.smtp))
+    apply(config.settings, new JavaMailClient(config.smtp))
   }
 }
+

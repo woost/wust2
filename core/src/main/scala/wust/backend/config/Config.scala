@@ -19,9 +19,12 @@ final case class PushNotificationConfig(subject: String, keys: VapidKeys)
 final case class SmtpConfig(endpoint: String, username: String, password: String) {
   override def toString: String = s"SmtpConfig($endpoint, $username, ***)"
 }
-final case class EmailConfig(fromAddress: String, smtp: SmtpConfig)
+final case class EmailSettings(fromAddress: String, blockedEmailDomains: Option[String]) {
+  def blockedEmailDomainsList = blockedEmailDomains.fold(Array.empty[String])(_.split(" "))
+}
+final case class EmailConfig(settings: EmailSettings, smtp: SmtpConfig)
 
-final case class SESConfig(fromAddress: String, region: String)
+final case class SESConfig(settings: EmailSettings, region: String)
 
 final case class AwsConfig(uploadBucketName: String, region: String, ses: Option[SESConfig])
 
