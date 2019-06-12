@@ -78,11 +78,11 @@ object ItemProperties {
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
 
-      val isChildOfAutomationTemplate = target match {
+      val selfOrParentIsAutomationNode = target match {
         case Target.Node(nodeId) => Rx {
-          val graph = state.graph()
+          val graph = state.rawGraph()
           val nodeIdx = graph.idToIdxOrThrow(nodeId)
-          graph.automatedEdgeReverseIdx.sliceNonEmpty(nodeIdx) || graph.ancestorsIdxExists(nodeIdx)(parentIdx => graph.automatedEdgeReverseIdx.sliceNonEmpty(parentIdx))
+          graph.selfOrParentIsAutomationTemplate(nodeIdx)
         }
         case Target.Custom(_, isAutomation) => isAutomation
       }
@@ -111,7 +111,7 @@ object ItemProperties {
         VDomModifier.ifTrue(!config.hidePrefilledType || config.prefilledType.isEmpty)(div( // do not select type if already specifided
           cls := "field",
           label("Type"),
-          isChildOfAutomationTemplate.map { isTemplate =>
+          selfOrParentIsAutomationNode.map { isTemplate =>
             EditableContent.select[TypeSelection](
               "Select a field type",
               propertyTypeSelection,

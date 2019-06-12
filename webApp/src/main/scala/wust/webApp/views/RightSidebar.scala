@@ -301,6 +301,12 @@ object RightSidebar {
 
     val addFieldMode = Var[AddProperty](AddProperty.None)
 
+    val selfOrParentIsAutomationTemplate = Rx {
+      val graph = state.rawGraph()
+      val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
+      graph.selfOrParentIsAutomationTemplate(nodeIdx)
+    }
+
     addFieldMode.map {
       case AddProperty.Custom =>
         ItemProperties.managePropertiesInline(
@@ -348,6 +354,16 @@ object RightSidebar {
             cursor.pointer,
             onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
           ),
+
+          selfOrParentIsAutomationTemplate.map {
+            case false => VDomModifier.empty
+            case true => button(
+              cls := "ui compact basic primary button mini",
+              "+ Add Relative Due Date",
+              cursor.pointer,
+              onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key, NodeData.RelativeDate.tpe)) --> addFieldMode
+            )
+          },
 
           button(
             cls := "ui compact basic button mini",

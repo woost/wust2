@@ -517,6 +517,10 @@ final class GraphLookup(
     }
   }
 
+  def selfOrParentIsAutomationTemplate(idx: Int): Boolean = {
+    automatedEdgeReverseIdx.sliceNonEmpty(idx) || ancestorsIdxExists(idx)(parentIdx => automatedEdgeReverseIdx.sliceNonEmpty(parentIdx))
+  }
+
   val sortedAuthorshipEdgeIdx: NestedArrayInt = NestedArrayInt(authorshipEdgeIdx.map(slice => slice.sortBy(author => edges(author).as[Edge.Author].data.timestamp).toArray)(breakOut) : Array[Array[Int]])
 
   // not lazy because it often used for sorting. and we do not want to compute a lazy val in a for loop.
