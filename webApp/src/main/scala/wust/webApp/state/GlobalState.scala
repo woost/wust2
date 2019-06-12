@@ -1,24 +1,21 @@
 package wust.webApp.state
 
-import wust.facades.draggable.{MirrorOptions, Options, Sortable}
-import wust.facades.googleanalytics.Analytics
+import acyclic.file
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom.experimental.permissions.PermissionState
-import org.scalajs.dom.raw.HTMLElement
 import rx._
-import wust.webUtil.{ModalConfig, Ownable}
-import wust.webUtil.outwatchHelpers._
 import wust.api._
+import wust.facades.googleanalytics.Analytics
 import wust.graph._
 import wust.ids._
 import wust.sdk._
-import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.Notifications
 import wust.webApp.views._
+import wust.webUtil.outwatchHelpers._
+import wust.webUtil.{ModalConfig, Ownable}
 
 import scala.collection.{breakOut, mutable}
-import scala.scalajs.js
 
 class GlobalState(
   val appUpdateIsAvailable: Observable[Unit],
@@ -152,16 +149,6 @@ class GlobalState(
   @inline def smallScreen: Boolean = screenSize.now == ScreenSize.Small
   @inline def largeScreen: Boolean = screenSize.now == ScreenSize.Large
 
-  val sortable = new Sortable(js.Array[HTMLElement](), new Options {
-    draggable = ".draggable"
-    handle = ".draghandle"
-    delay = 200.0 // prevents drag when touch scrolling is intended
-    mirror = new MirrorOptions {
-      constrainDimensions = true
-      appendTo = "#draggable-mirrors"
-    }
-  })
-  val sortableEvents = new SortableEvents(this, sortable)
 
 
   val defaultTransformations: Seq[UserViewGraphTransformation] = Seq(GraphOperation.ExcludeDeletedChildren, GraphOperation.AutomatedHideTemplates)

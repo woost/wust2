@@ -1,6 +1,7 @@
 package wust.webApp.dragdrop
 
 import org.scalajs.dom.ext.KeyCode
+import org.scalajs.dom.raw.HTMLElement
 import wust.facades.draggable._
 import wust.webApp.DevOnly
 import wust.webApp.dragdrop.DragValidation._
@@ -16,6 +17,22 @@ import scala.scalajs.js
 // Valitiy is checked using the partial functions DragActions.sortAction and DragActions.dragAction.
 // If e.g. a sort-action is not valid, the sortable:sort is canceled, so that elements don't move out of the way. (https://github.com/Shopify/draggable/tree/master/src/Sortable#events)
 // If it is valid, perform the respective action in DragActions.
+
+object SortableEvents {
+  val sortable = new Sortable(js.Array[HTMLElement](), new Options {
+    draggable = ".draggable"
+    handle = ".draghandle"
+    delay = 200.0 // prevents drag when touch scrolling is intended
+    mirror = new MirrorOptions {
+      constrainDimensions = true
+      appendTo = "#draggable-mirrors"
+    }
+  })
+
+  def init(state: GlobalState):Unit = {
+    new SortableEvents(state, sortable)
+  }
+}
 
 class SortableEvents(state: GlobalState, draggable: Draggable) {
 

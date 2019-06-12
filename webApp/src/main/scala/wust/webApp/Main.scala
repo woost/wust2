@@ -17,6 +17,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.api.ApiEvent
 import wust.graph.Node
 import wust.ids._
+import wust.webApp.dragdrop.SortableEvents
 import wust.webApp.jsdom.ServiceWorker
 import wust.webApp.state.{GlobalState, GlobalStateFactory}
 import wust.webApp.views.{GenericSidebar, MainView, Modal}
@@ -38,6 +39,7 @@ object Main {
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
     DevOnly { enableEventLogging(state) }
+    SortableEvents.init(state)
 
     // render main content
     OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()

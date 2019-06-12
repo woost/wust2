@@ -33,8 +33,8 @@ object DragComponents {
 
       prop(DragContainer.propName) := (() => container),
       managedElement.asHtml { elem =>
-        state.sortable.addContainer(elem)
-        Cancelable { () => state.sortable.removeContainer(elem) }
+        SortableEvents.sortable.addContainer(elem)
+        Cancelable { () => SortableEvents.sortable.removeContainer(elem) }
       }
     )
   }

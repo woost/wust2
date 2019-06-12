@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.file
 import wust.webUtil.outwatchHelpers._
 import cats.effect.IO
 import wust.facades.emojijs.EmojiConvertor
