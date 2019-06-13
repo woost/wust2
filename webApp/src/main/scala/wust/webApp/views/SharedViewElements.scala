@@ -23,6 +23,7 @@ import wust.webApp.views.DragComponents.{drag, dragWithHandle}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, ModalConfig, Ownable, UI}
+import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -509,4 +510,35 @@ object SharedViewElements {
       cursor.pointer
     )
   }
+
+  def channelMembers(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+    div(
+      Styles.flex,
+      cls := "tiny-scrollbar",
+      overflowX.auto, // make scrollable for long member lists
+      overflowY.hidden, // wtf firefox and chrome...
+      registerDragContainer(state),
+      Rx {
+        val graph = state.graph()
+        val nodeIdx = graph.idToIdxOrThrow(channelId)
+        val members = graph.membersByIndex(nodeIdx)
+
+        members.map(user => div(
+          Avatar.user(user.id)(
+            marginLeft := "2px",
+            width := "22px",
+            height := "22px",
+            cls := "avatar",
+            marginBottom := "2px",
+          ),
+          Styles.flexStatic,
+          cursor.grab,
+          UI.popup("bottom center") := Components.displayUserName(user.data)
+        )(
+            drag(payload = DragItem.User(user.id)),
+          ))(breakOut): js.Array[VNode]
+      }
+    )
+  }
+
 }

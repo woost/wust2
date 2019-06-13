@@ -16,10 +16,20 @@ import scala.concurrent.duration._
 
 object MovableElement {
   sealed trait Position
-  final case class LeftPosition(left: Double, top: Double) extends Position
-  final case class RightPosition(right: Double, bottom: Double) extends Position
+  @inline final case class LeftPosition(left: Double, top: Double) extends Position
+  @inline final case class RightPosition(right: Double, bottom: Double) extends Position
 
-  final case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, titleModifier: Ownable[VDomModifier], bodyModifier: Ownable[VDomModifier])
+  final case class Window(
+    title: VDomModifier,
+    toggleLabel:VDomModifier,
+    isVisible: Var[Boolean],
+    initialPosition: Position,
+    initialHeight: Int,
+    initialWidth: Int,
+    resizable: Boolean,
+    titleModifier: Ownable[VDomModifier],
+    bodyModifier: Ownable[VDomModifier]
+  )
 
   def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val activeWindow = Var(0)
@@ -27,36 +37,26 @@ object MovableElement {
       enabled.map {
         case true =>
           div(
-            zIndex := ZIndex.overlayMiddle,
-            styles.extra.transform := "rotate(90deg)",
-            styles.extra.transformOrigin := "top right",
-            position.absolute,
-            bottom := "100px",
-            right := "0",
             Styles.flex,
 
             windows.zipWithIndex.map { case (window, index) =>
               div(
+                Styles.flexStatic,
                 cursor.pointer,
-                padding := "10px",
-                marginLeft := "3px", // space between toggles
-                boxShadow := "rgba(0, 0, 0, 0.3) 0px 0 3px 0px",
-                backgroundColor := Colors.sidebarBg,
-                borderBottomRightRadius := "3px",
-                borderBottomLeftRadius := "3px",
+                marginLeft := "8px", // space between toggles
 
                 onClick.stopPropagation.foreach {
-                  if (window.toggle.now) Var.set(
+                  if (window.isVisible.now) Var.set(
                     activeWindow -> index,
-                    window.toggle -> !window.toggle.now
-                  ) else window.toggle() = !window.toggle.now
+                    window.isVisible -> !window.isVisible.now
+                  ) else window.isVisible() = !window.isVisible.now
                 },
                 onClick(index) --> activeWindow,
-                window.toggle.map {
+                window.isVisible.map {
                   case true => VDomModifier.empty
                   case false => opacity := 0.5
                 },
-                window.title, // last because it can overwrite modifiers
+                window.toggleLabel, // last because it can overwrite modifiers
               )
             }
           )
@@ -77,21 +77,22 @@ object MovableElement {
     var currentHeight: Option[Double] = None
     var currentPosition: LeftPosition = null
     var domElem: dom.html.Element = null
+    var refElem : dom.Element= dom.document.getElementById("main-viewrender") // domElem.offsetParent
     var domElemBody: dom.html.Element = null
 
-    val show = Rx { toggle() && enabled() }
+    val show = Rx { isVisible() && enabled() }
 
     def setPosition(): Unit = if (currentPosition != null && domElem != null) {
-      val left = Math.max(0, Math.min(domElem.offsetParent.clientWidth - domElem.offsetWidth, currentPosition.left))
-      val top = Math.max(0, Math.min(domElem.offsetParent.clientHeight - domElem.offsetHeight, currentPosition.top))
+      val left = Math.max(0, Math.min(refElem.clientWidth - domElem.offsetWidth, currentPosition.left))
+      val top = Math.max(0, Math.min(refElem.clientHeight - domElem.offsetHeight, currentPosition.top))
       domElem.style.left = left + "px"
       domElem.style.top = top + "px"
     }
 
     show.map {
       case true =>
-        div.thunkStatic(toggle.hashCode)(VDomModifier(
-          cls := "moveable-window",
+        div.thunkStatic(isVisible.hashCode)(VDomModifier(
+          cls := "movable-window",
 
           Styles.flex,
           flexDirection.column,
@@ -106,16 +107,9 @@ object MovableElement {
           onMouseDown(index) --> activeWindow,
 
           div(
-            Styles.flex,
-            justifyContent.spaceBetween,
-            alignItems.center,
-            backgroundColor := Colors.sidebarBg,
-            padding := "5px",
-            borderTopLeftRadius := "3px",
-            borderTopRightRadius := "3px",
-
+            cls := "movable-window-title",
             title,
-            div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> toggle),
+            div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> isVisible),
 
             onMouseDown.foreach { ev =>
               mouseDownOffset = Some(LeftPosition(left = domElem.offsetLeft - ev.clientX, top = domElem.offsetTop - ev.clientY))
@@ -134,6 +128,7 @@ object MovableElement {
           ),
 
           div(
+            onMouseDown.stopPropagation(index) --> activeWindow, // in case other mouseDown events are stopped
             Styles.growFull,
             bodyModifier,
             onDomMount.asHtml.foreach(domElemBody = _),
@@ -149,8 +144,8 @@ object MovableElement {
               currentPosition = initialPosition match {
                 case p: LeftPosition => p
                 case p: RightPosition =>
-                  val left = domElem.offsetParent.clientWidth - p.right - domElem.offsetWidth
-                  val top = domElem.offsetParent.clientHeight - p.bottom - domElem.offsetHeight
+                  val left = refElem.clientWidth - p.right - domElem.offsetWidth
+                  val top = refElem.clientHeight - p.bottom - domElem.offsetHeight
                   LeftPosition(left = left, top = top)
               }
             }

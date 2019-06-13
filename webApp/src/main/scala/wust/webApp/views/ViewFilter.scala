@@ -55,6 +55,10 @@ object ViewFilter {
   def filterBySearchInputWithIcon(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     import scala.concurrent.duration._
 
+    val isActive = Rx {
+      state.graphTransformations().exists(_.isInstanceOf[GraphOperation.ContentContains])
+    }
+
     div(
       Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
       cls := "ui search",
@@ -62,7 +66,8 @@ object ViewFilter {
         backgroundColor := "rgba(0,0,0,0.15)",
         padding := "5px",
         borderRadius := "3px",
-        state.isFilterActive.map(VDomModifier.ifTrue(_)(
+        border := "2px solid transparent",
+        isActive.map(VDomModifier.ifTrue(_)(
           border := "2px solid rgb(255,255,255)",
         )),
         cls := "ui small inverted transparent icon input",
@@ -72,7 +77,7 @@ object ViewFilter {
           value <-- clearOnPageSwitch(state),
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
-            if(needle.length < 2) baseTransform
+            if(needle.length < 1) baseTransform
             else baseTransform :+ GraphOperation.ContentContains(needle)
           } --> state.graphTransformations
         ),

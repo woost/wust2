@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.BrowserDetect
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -20,18 +21,18 @@ import scala.scalajs.js
 
 object PageHeader {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(state: GlobalState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
         backgroundColor <-- state.pageStyle.map(_.pageBgColor),
 
-        state.page.map(_.parentId.map(pageRow(state, _))),
+        state.page.map(_.parentId.map(pageRow(state, _, viewRender))),
       )
     })
   }
 
-  private def pageRow(state: GlobalState, pageNodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def pageRow(state: GlobalState, pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val pageNode = Rx {
       state.graph().nodesByIdOrThrow(pageNodeId)
@@ -67,7 +68,7 @@ object PageHeader {
     }
 
     val channelMembersList = Rx {
-      VDomModifier.ifTrue(hasBigScreen())(channelMembers(state, pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
+      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers(state, pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
     }
 
     val permissionLevel = Rx {
@@ -78,6 +79,18 @@ object PageHeader {
       val level = permissionLevel()
       div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
+
+    val filterWindowButtons = VDomModifier(
+      ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
+      MovableElement.withToggleSwitch(
+        Seq(
+          FilterWindow.movableWindow(state, MovableElement.RightPosition(100, 200)),
+          TagList.movableWindow(state, viewRender, MovableElement.RightPosition(100, 400)),
+        ),
+        enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
+        resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
+      )
+    )
 
     VDomModifier(
       div(
@@ -90,6 +103,8 @@ object PageHeader {
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
             ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
+            filterWindowButtons,
+
             FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
             AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
@@ -153,36 +168,6 @@ object PageHeader {
     VDomModifier(
       pinButton,
       PageSettingsMenu(state, channelId).apply(buttonStyle, fontSize := "20px"),
-    )
-  }
-
-  def channelMembers(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
-    div(
-      Styles.flex,
-      cls := "tiny-scrollbar",
-      overflowX.auto, // make scrollable for long member lists
-      overflowY.hidden, // wtf firefox and chrome...
-      registerDragContainer(state),
-      Rx {
-        val graph = state.graph()
-        val nodeIdx = graph.idToIdxOrThrow(channelId)
-        val members = graph.membersByIndex(nodeIdx)
-
-        members.map(user => div(
-          Avatar.user(user.id)(
-            marginLeft := "2px",
-            width := "22px",
-            height := "22px",
-            cls := "avatar",
-            marginBottom := "2px",
-          ),
-          Styles.flexStatic,
-          cursor.grab,
-          UI.popup("bottom center") := Components.displayUserName(user.data)
-        )(
-            drag(payload = DragItem.User(user.id)),
-          ))(breakOut): js.Array[VNode]
-      }
     )
   }
 

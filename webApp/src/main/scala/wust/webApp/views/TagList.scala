@@ -18,23 +18,30 @@ import wust.webUtil.Ownable
 
 object TagList {
 
-  def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
+  def movableWindow(state: GlobalState, viewRender: ViewRenderLike, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
     val newTagFieldActive: Var[Boolean] = Var(false)
 
     MovableElement.Window(
-      VDomModifier(
+      title = VDomModifier(
         Icons.tags,
         span(marginLeft := "5px", "Tags"),
+      ),
+      toggleLabel = VDomModifier(
+        Icons.tags,
+        span(marginLeft := "5px", "Tags"),
+        border := "2px solid transparent",
+        borderRadius := "3px",
+        padding := "2px",
         state.graphTransformations.map {
           case list if list.exists(_.isInstanceOf[GraphOperation.OnlyTaggedWith]) =>
             Rx{VDomModifier(
-              backgroundColor := state.pageStyle().pageBgColor,
+              border := "2px solid rgb(255,255,255)",
               color.white,
             )}:VDomModifier
           case _ => VDomModifier.empty
         }
       ),
-      toggle = state.showTagsList,
+      isVisible = state.showTagsList,
       initialPosition = position,
       initialWidth = 200,
       initialHeight = 300,
@@ -57,7 +64,7 @@ object TagList {
               val firstWorkspaceIdx = workspaces.head
               val firstWorkspaceId = graph.nodeIds(firstWorkspaceIdx)
               VDomModifier(
-                plainList(state, firstWorkspaceId, newTagFieldActive).prepend(
+                plainList(state, firstWorkspaceId, viewRender, newTagFieldActive).prepend(
                   padding := "5px",
                 ),
                 drag(target = DragItem.TagBar(firstWorkspaceId)),
@@ -73,6 +80,7 @@ object TagList {
   def plainList(
     state: GlobalState,
     workspaceId: NodeId,
+    viewRender: ViewRenderLike,
     newTagFieldActive: Var[Boolean] = Var(false)
   )(implicit ctx:Ctx.Owner) = {
 
@@ -82,7 +90,7 @@ object TagList {
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 
-    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, tagModifier = removableTagMod(() =>
+    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(state, tag, viewRender, tagModifier = removableTagMod(() =>
       state.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
     ), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
@@ -109,6 +117,7 @@ object TagList {
   def checkboxNodeTag(
     state: GlobalState,
     tagNode: Node,
+    viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
     pageOnClick: Boolean = false,
     dragOptions: NodeId => VDomModifier = nodeId => drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
@@ -130,7 +139,7 @@ object TagList {
         label(), // needed for fomanticui
       ),
       nodeTag(state, tagNode, pageOnClick, dragOptions).apply(tagModifier),
-      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible, viewRender = ViewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
+      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(state, tagNode.id, activeMod = visibility.visible, viewRender = viewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
     )
   }
 

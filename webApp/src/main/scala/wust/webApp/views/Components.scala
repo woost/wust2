@@ -826,8 +826,8 @@ object Components {
       width := "100%",
       flexGrow := 0,
       Styles.flex,
+      justifyContent.flexStart,
       alignItems.center,
-      justifyContent.spaceBetween,
       paddingBottom := "10px"
     )
   )

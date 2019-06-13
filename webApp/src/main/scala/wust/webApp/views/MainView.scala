@@ -82,7 +82,7 @@ object MainView {
 
       Rx {
         if(viewIsContent())
-          PageHeader(state).apply(Styles.flexStatic, viewWidthMod)
+          PageHeader(state, ViewRender).apply(Styles.flexStatic, viewWidthMod)
         else {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
             Topbar(state).apply(Styles.flexStatic, viewWidthMod)
@@ -103,6 +103,7 @@ object MainView {
       // This avoids rerendering the whole view when only the screen-size changed
       div(
         cls := "main-viewrender",
+        id := "main-viewrender",
         viewWidthMod,
 
         Styles.flex,
@@ -124,17 +125,6 @@ object MainView {
             // we can now assume, that every page parentId is contained in the graph
           },
         ),
-
-        VDomModifier.ifNot(BrowserDetect.isMobile)(
-          position.relative, // needed for taglist window
-          MovableElement.withToggleSwitch(
-            FilterWindows.moveableWindow(state, MovableElement.RightPosition(100, 500)) ::
-              TagList.moveableWindow(state, MovableElement.RightPosition(100, 400)) ::
-              Nil,
-            enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
-            resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
-          )
-        )
       ),
     )
   }

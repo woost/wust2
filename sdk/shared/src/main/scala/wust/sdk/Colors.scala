@@ -10,6 +10,7 @@ object Colors {
   @inline final def contentBg = "#EDEDED"
 
   @inline final def sidebarBg = "#fff"
+  @inline final def fgColor = "rgba(0, 0, 0, 0.87)"
   @inline final def pageHeaderControl = "rgba(255, 255, 255, 0.75)"
 
   @inline final def dragHighlight = "rgba(55, 66, 74, 1)"

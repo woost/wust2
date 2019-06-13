@@ -6,30 +6,34 @@ import rx.{Ctx, Rx}
 import wust.facades.googleanalytics.Analytics
 import wust.webApp.Icons
 import wust.webApp.state.GlobalState
-import wust.webApp.views.ViewGraphTransformation.allTransformations
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable}
 
 
-object FilterWindows {
-  def moveableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
-
-    val filterTransformations: Seq[ViewGraphTransformation] = allTransformations
+object FilterWindow {
+  def movableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
     MovableElement.Window(
-      VDomModifier(
+      title = VDomModifier(
         Icons.filter,
         span(marginLeft := "5px", "Filter"),
-        state.isFilterActive.map {
+      ),
+      toggleLabel = VDomModifier(
+        Icons.filter,
+        span(marginLeft := "5px", "Filter"),
+        border := "2px solid transparent",
+        borderRadius := "3px",
+        padding := "2px",
+        state.isAnyFilterActive.map {
           case true =>
             Rx{VDomModifier(
-              backgroundColor := state.pageStyle().pageBgColor,
+              border := "2px solid rgb(255,255,255)",
               color.white,
             )}:VDomModifier
           case false => VDomModifier.empty
         }
       ),
-      toggle = state.showFilterList,
+      isVisible = state.showFilterList,
       initialPosition = position,
       initialWidth = 260,
       initialHeight = 250,
@@ -40,14 +44,15 @@ object FilterWindows {
           color.white,
         )}
       ),
+
       bodyModifier = Ownable { implicit ctx =>
         VDomModifier(
           padding := "5px",
 
           Components.verticalMenu(
-            filterTransformations.map { transformation =>
+            ViewGraphTransformation.allTransformations.map { transformation =>
               Components.MenuItem(
-                title = transformation.icon,
+                title = VDomModifier(transformation.icon, marginLeft := "5px", marginRight := "5px"),
                 description = transformation.description,
                 active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
                 clickAction = { () =>

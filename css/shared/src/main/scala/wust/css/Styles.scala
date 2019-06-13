@@ -239,11 +239,22 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
 
-  ".moveable-window" - (
+  ".movable-window" - (
     backgroundColor(Color(Colors.sidebarBg)),
+    color(Color(Colors.fgColor)),
     position.absolute,
     borderRadius(4 px),
-    boxShadow := "0px 10px 18px -6px rgba(0,0,0,0.75)"
+    boxShadow := "0px 10px 18px -6px rgba(0,0,0,0.75)",
+
+    &(".movable-window-title") - (
+      Styles.flex,
+      justifyContent.spaceBetween,
+      alignItems.center,
+      backgroundColor(Color(Colors.sidebarBg)),
+      padding(5 px),
+      borderTopLeftRadius(3 px),
+      borderTopRightRadius(3 px),
+  )
   )
 
   ".pageheader" - (
@@ -665,13 +676,13 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".nodecard.node" - (
     backgroundColor(nodeCardBackgroundColor),
-    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
+    color(Color(Colors.fgColor)),
     nodeCardShadow,
   )
 
   ".nodecard.project" - (
     backgroundColor(nodeCardBackgroundColor),
-    color(c"#212121"), // same as rgba(0, 0, 0, 0.87) from semantic ui
+    color(Color(Colors.fgColor))
   )
 
   ".right-sidebar-node.nodecard" - (
@@ -882,7 +893,7 @@ object CommonStyles extends StyleSheet.Standalone {
     display.inlineBlock,
 
     &(".property-value") - (
-      color(c"rgba(0,0,0,0.87)"), // semantic ui text color
+      color(Color(Colors.fgColor)),
     )
   )
 
@@ -1333,7 +1344,7 @@ object CommonStyles extends StyleSheet.Standalone {
     Styles.flex,
     alignItems.center,
     cursor.pointer,
-    color(c"rgba(0,0,0,0.87)"), // semantic ui text color
+    color(Color(Colors.fgColor)),
   )
   ".viewswitcher-item.active" - (
     // borderBottomColor set programatically to topic color

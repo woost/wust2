@@ -85,7 +85,7 @@ object GraphChangesAutomationUI {
                 Styles.flex,
                 alignItems.center,
                 b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
-                PageHeader.channelMembers(state, state.page.now.parentId.get),
+                SharedViewElements.channelMembers(state, state.page.now.parentId.get),
               ),
 
               DragComponents.registerDragContainer(state),

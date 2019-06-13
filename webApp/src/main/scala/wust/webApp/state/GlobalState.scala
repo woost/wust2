@@ -167,7 +167,7 @@ class GlobalState(
       else currentGraph
     }
   }
-  val isFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
+  val isAnyFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
   
   def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
