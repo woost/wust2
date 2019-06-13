@@ -55,15 +55,19 @@ object ChatView {
 
       selectedNodesBar(state, selectedNodes, currentReply, inputFieldFocusTrigger),
 
-      chatHistory(
-        state,
-        focusState,
-        currentReply,
-        selectedNodes,
-        scrollHandler,
-        inputFieldFocusTrigger,
-        pageCounter,
-        shouldLoadInfinite,
+      div(
+        // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
+        InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
+        chatHistory(
+          state,
+          focusState,
+          currentReply,
+          selectedNodes,
+          scrollHandler,
+          inputFieldFocusTrigger,
+          pageCounter,
+          shouldLoadInfinite,
+        ),
       ),
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
       renderCurrentReply(state, focusState, selectedNodes, inputFieldFocusTrigger, currentReply, pinReply),
@@ -207,9 +211,8 @@ object ChatView {
       registerDragContainer(state, DragContainer.Chat),
     )
 
-    div(
+    VDomModifier(
       cls := "chat-history",
-      InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
 
       Rx {
         val graph = state.graph()
