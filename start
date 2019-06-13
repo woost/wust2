@@ -2,7 +2,7 @@
 set -e
 set -o pipefail
 
-if [ "$name" != "Woost" -a "$1" != "nsbt" ]; then 
+if [ "$name" != "Woost" -a "$1" != "nsbt" -a "$1" != "graal" ]; then 
   echo -e "\e[33m######### YOU HAVE NOT STARTED NIX-SHELL #########\e[0m"
 fi;
 
@@ -182,6 +182,9 @@ function self() {
     nsbt)
         nix-shell production.nix --run "./start sbt ${@:2}"
         ;;
+    graal)
+        nix-shell -p graalvm8 --run "export JAVA_HOME=\"\$(dirname \$(dirname \$(which java)))\"; echo JAVA_HOME=\$JAVA_HOME; java -version; $SHELL"
+        ;;
     sbt)
         env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
         echo -e "\e[1m\e[32m$env\e[0m"
@@ -213,7 +216,12 @@ function self() {
         esac
 
         set +e # after sbt crash or termination, still shut down docker containers
-        sbt $SBT_ARGS
+        java -version
+        if [[ -n $JAVA_HOME ]]; then
+            sbt -java-home $JAVA_HOME $SBT_ARGS
+        else
+            sbt $SBT_ARGS
+        fi
         docker_compose core dev down
         ;;
     apps)
