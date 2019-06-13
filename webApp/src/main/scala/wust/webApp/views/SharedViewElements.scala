@@ -44,6 +44,16 @@ object SharedViewElements {
     }
   }
 
+  @inline def sortByDeepCreated(nodes: js.Array[Int], graph: Graph): Unit = {
+    nodes.sort { (a, b) =>
+      val createdA = graph.nodeDeepCreated(a)
+      val createdB = graph.nodeDeepCreated(b)
+      val result = createdA.compare(createdB)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      else result
+    }
+  }
+
   val dragHandle:VNode = div(
     Styles.flex,
     alignItems.center,

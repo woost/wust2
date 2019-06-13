@@ -126,23 +126,34 @@ object ThreadView {
 
   def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
     // most nodes don't have any children, so we skip the expensive accumulation
-    if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
-
-    val nodeSet = ArraySet.create(graph.nodes.length)
-    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
-    parentIds.foreach { parentId =>
-      graph.idToIdxForeach(parentId) { parentIdx =>
-        graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
-          val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || (childNode.role.isInstanceOf[NodeRole.ContentRole] && graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role))))
-            nodeSet.add(childIdx)
+    if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) js.Array[Int]()
+    else {
+      val nodeSet = ArraySet.create(graph.nodes.length)
+      //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
+      parentIds.foreach { parentId =>
+        graph.idToIdxForeach(parentId) { parentIdx =>
+          graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
+            val childNode = graph.nodes(childIdx)
+            if(
+              childNode.isInstanceOf[Node.Content] &&
+              (childNode.role == NodeRole.Message ||
+                (childNode.role.isInstanceOf[NodeRole.ContentRole] &&
+                  graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role)
+                )
+              )
+            ) {
+              nodeSet.add(childIdx)
+            }
+          }
         }
       }
+
+      val nodes = js.Array[Int]()
+      nodeSet.foreach(nodes += _)
+
+      sortByDeepCreated(nodes, graph)
+      nodes
     }
-    val nodes = js.Array[Int]()
-    nodeSet.foreach(nodes += _)
-    sortByCreated(nodes, graph)
-    nodes
   }
 
   def calculateThreadMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
