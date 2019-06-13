@@ -176,7 +176,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ":not(input):not(textarea):not([contenteditable=true])::after," +
   ":not(input):not(textarea):not([contenteditable=true])::before" - (
 //    backgroundColor.blue.important,
-    userSelect := none,
+    userSelect :=! none,
   )
 
   ".ui.table.no-inner-table-borders tr td" - (
@@ -187,7 +187,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
 
   ".enable-text-selection, .enable-text-selection *" - (
-    (userSelect := "text").important,
+    (userSelect :=! "text").important,
     cursor.auto.important
   )
 
@@ -202,7 +202,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   // Prevent the text contents of draggable elements from being selectable.
   "[draggable=true]" - (
-    userSelect := none,
+    userSelect :=! none,
     // FIXME: support -khtml-user-drag
     userDrag.element
   )
