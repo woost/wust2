@@ -45,8 +45,7 @@ package object dfs {
   }
 
   // @inline inlines lambda parameters
-  // stops whole traversal if append returns false
-  @inline def withManualAppend(
+  @inline def foreach(
     starts: (Int => Unit) => Unit,
     startMode: StartMode,
     successors: NestedArrayInt,
@@ -60,7 +59,7 @@ package object dfs {
 
   // @inline inlines lambda parameters
   // stops only traversing local branch
-  @inline def withContinue(
+  @inline def foreachStopLocally(
     starts: (Int => Unit) => Unit,
     startMode: StartMode,
     successors: NestedArrayInt,
@@ -74,7 +73,7 @@ package object dfs {
   }
 
   // @inline inlines lambda parameters
-  @inline def withManualAppendStopIfAppendFalse(
+  @inline def foreachStopGlobally(
     start: Int,
     successors: NestedArrayInt,
     continue: Int => Boolean
@@ -86,19 +85,6 @@ package object dfs {
         if (!continue(elem)) running = false
       },
       loopConditionGuard = condition => running && condition()
-    )
-  }
-
-  // @inline inlines lambda parameters
-  @inline def withManualAppendSkipIfAppendFalse(
-    start: Int,
-    successors: NestedArrayInt,
-    continue: Int => Boolean
-  ): Unit = {
-    successors.depthFirstSearchGeneric[Boolean](
-      init = (stack, _) => stack.push(start),
-      processVertex = continue,
-      advanceGuard = (aggResult, advance) => if (aggResult) advance()
     )
   }
 

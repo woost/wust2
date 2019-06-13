@@ -48,7 +48,7 @@ object ChannelTreeData {
 
   @inline private def nextLayer(graph: Graph, traverseState: TraverseState, next: NestedArrayInt, shouldCollect: (Graph, Int) => Boolean): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
     val channels = mutable.ArrayBuffer[NodeId]()
-    dfs.withContinue(_(parentIdx), dfs.withoutStart, next, { idx =>
+    dfs.foreachStopLocally(_(parentIdx), dfs.withoutStart, next, { idx =>
       val nodeId = graph.nodeIds(idx)
       if (traverseState.contains(nodeId)) false
       else {

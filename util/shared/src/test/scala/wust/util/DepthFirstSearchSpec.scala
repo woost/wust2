@@ -233,7 +233,7 @@ class DepthFirstSearchSpec extends FreeSpec with MustMatchers {
     "two vertices" in {
       val edges = NestedArrayInt(Array(Array[Int](1), Array[Int]()))
       val result = new mutable.ArrayBuilder.ofInt
-      dfs.withManualAppend(_(0), dfs.withStart, edges, elem => result += elem)
+      dfs.foreach(_(0), dfs.withStart, edges, elem => result += elem)
       val traversal = result.result().toList
       assert(traversal == List(0, 1))
     }
@@ -241,9 +241,14 @@ class DepthFirstSearchSpec extends FreeSpec with MustMatchers {
 
   "depth-first-search manual append stop if false" - {
     "four vertices" in {
-      val edges = NestedArrayInt(Array(Array[Int](1), Array[Int](2), Array[Int](3), Array[Int]()))
+      val edges = NestedArrayInt(Array(
+        /* 0 */ Array[Int](1),
+        /* 1 */ Array[Int](2),
+        /* 2 */ Array[Int](3),
+        /* 3 */ Array[Int]()
+      ))
       val result = new mutable.ArrayBuilder.ofInt
-      dfs.withManualAppendStopIfAppendFalse(0, edges, { elem =>
+      dfs.foreachStopGlobally(0, edges, { elem =>
         result += elem
         elem < 2
       })
@@ -265,7 +270,7 @@ class DepthFirstSearchSpec extends FreeSpec with MustMatchers {
         /* 4 */ Array[Int](),
       ))
       val result = new mutable.ArrayBuilder.ofInt
-      dfs.withManualAppendSkipIfAppendFalse(0, edges, { elem =>
+      dfs.foreachStopLocally(_(0), dfs.withStart, edges, { elem =>
         result += elem
         elem % 2 == 0
       })

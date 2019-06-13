@@ -162,7 +162,7 @@ object ChatView {
       val nodeSet = ArraySet.create(graph.nodes.length)
       var nodeCount = 0
 
-      dfs.withContinue(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
+      dfs.foreachStopLocally(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         node.role match {
           case NodeRole.Message =>

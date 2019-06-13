@@ -163,7 +163,7 @@ object GraphChangesAutomation {
             val targetIdxs: Array[(Int, Set[NodeId])] = if (parentNode.role == NodeRole.Stage) {
               val targetIdxs = Array.newBuilder[(Int, Set[NodeId])]
               targetIdxs += parentIdx -> Set.empty
-              dfs.withContinue(_(parentIdx), dfs.afterStart, graph.parentsIdx, { idx =>
+              dfs.foreachStopLocally(_(parentIdx), dfs.afterStart, graph.parentsIdx, { idx =>
                 val node = graph.nodes(idx)
                 if (node.role == NodeRole.Stage) {
                   targetIdxs += idx -> Set(node.id)

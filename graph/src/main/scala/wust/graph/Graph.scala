@@ -776,7 +776,7 @@ final class GraphLookup(
 
   def pageFilesIdx(pageIdx: Int): Seq[Int] = {
     val pageFiles = mutable.ArrayBuffer[Int]()
-    dfs.withManualAppend(_(pageIdx), dfs.withStart, childrenIdx, { idx =>
+    dfs.foreach(_(pageIdx), dfs.withStart, childrenIdx, { idx =>
       propertiesEdgeIdx.foreachElement(idx) { edgeIdx =>
         val targetIdx = graph.edgesIdx.b(edgeIdx)
         val targetNode = graph.nodes(targetIdx)
@@ -799,22 +799,22 @@ final class GraphLookup(
 
   @inline def descendantsIdxCount(nodeIdx: Int)(f: Int => Boolean): Int = { // inline to inline f
     var count = 0
-    dfs.withManualAppend(_(nodeIdx), dfs.afterStart, childrenIdx, append = idx => if (f(idx)) count += 1)
+    dfs.foreach(_(nodeIdx), dfs.afterStart, childrenIdx, append = idx => if (f(idx)) count += 1)
     count
   }
   @inline def descendantsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, childrenIdx, isFound = f) // inline to inline f
-  @inline def descendantsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.withManualAppend(_(nodeIdx), dfs.afterStart, childrenIdx, f)
-  @inline def descendantsIdxWithContinue(nodeIdx: Int)(f: Int => Boolean) = dfs.withContinue(_(nodeIdx), dfs.afterStart, childrenIdx, f)
+  @inline def descendantsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.foreach(_(nodeIdx), dfs.afterStart, childrenIdx, f)
+  @inline def descendantsIdxWithContinue(nodeIdx: Int)(f: Int => Boolean) = dfs.foreachStopLocally(_(nodeIdx), dfs.afterStart, childrenIdx, f)
   def descendantsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, childrenIdx)
   def descendants(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => descendantsIdx(nodeIdx).viewMap(nodeIds))
 
   @inline def ancestorsIdxCount(nodeIdx: Int)(f: Int => Boolean): Int = { // inline to inline f
     var count = 0
-    dfs.withManualAppend(_(nodeIdx), dfs.afterStart, parentsIdx, append = idx => if (f(idx)) count += 1)
+    dfs.foreach(_(nodeIdx), dfs.afterStart, parentsIdx, append = idx => if (f(idx)) count += 1)
     count
   }
   @inline def ancestorsIdxExists(nodeIdx: Int)(f: Int => Boolean) = dfs.exists(_(nodeIdx), dfs.afterStart, parentsIdx, isFound = f) // inline to inline f
-  @inline def ancestorsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.withManualAppend(_(nodeIdx), dfs.afterStart, parentsIdx, f)
+  @inline def ancestorsIdxForeach(nodeIdx: Int)(f: Int => Unit) = dfs.foreach(_(nodeIdx), dfs.afterStart, parentsIdx, f)
   def ancestorsIdx(nodeIdx: Int) = dfs.toArray(_(nodeIdx), dfs.afterStart, parentsIdx)
   def ancestors(nodeId: NodeId) = idToIdxFold(nodeId)(Seq.empty[NodeId])(nodeIdx => ancestorsIdx(nodeIdx).viewMap(nodeIds))
 
@@ -906,7 +906,7 @@ final class GraphLookup(
       case NodeRole.Stage =>
         val workspacesBuilder = new mutable.ArrayBuilder.ofInt
         // search for first transitive parents which are not stages
-        dfs.withContinue(_(parentIdx), dfs.afterStart, parentsIdx, { idx =>
+        dfs.foreachStopLocally(_(parentIdx), dfs.afterStart, parentsIdx, { idx =>
           nodes(idx).role match {
             case NodeRole.Stage => true
             case _ =>
