@@ -80,7 +80,7 @@ object PageHeader {
       div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
     }
 
-    val filterWindowButtons = VDomModifier(
+    val filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
       MovableElement.withToggleSwitch(
         Seq(
@@ -92,19 +92,22 @@ object PageHeader {
       )
     )
 
+    val breadCrumbs = Rx{ 
+      VDomModifier.ifTrue(state.pageHasNotDeletedParents())(
+        BreadCrumbs(state)(flexShrink := 1, marginRight := "10px")
+      ) 
+    }
+
     VDomModifier(
       div(
         Styles.flexStatic,
-        marginLeft.auto,
+
         Styles.flex,
         alignItems.center,
 
-        Rx{ VDomModifier.ifTrue(state.pageHasNotDeletedParents())(BreadCrumbs(state)(flexShrink := 1, marginRight := "10px")) },
+        breadCrumbs,
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
-            filterWindowButtons,
-
             FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
             AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
@@ -130,10 +133,12 @@ object PageHeader {
 
             permissionIndicator,
             channelTitle,
-
             channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
+          Rx{ VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
+            filterControls
+          )},
           div(
             Styles.flex,
             alignItems.center,
