@@ -39,61 +39,52 @@ object ThreadView {
     val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
     val scrollHandler = new ScrollBottomHandler
+    val inputFieldFocusTrigger = PublishSubject[Unit]
 
-    val outerDragOptions = VDomModifier(
-      registerDragContainer(state),
-      drag(target = DragItem.Workspace(focusState.focusedId))
-    )
 
     val pageCounter = PublishSubject[Int]()
     val shouldLoadInfinite = Var[Boolean](false)
-    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
     div(
       keyed,
       Styles.flex,
       flexDirection.column,
-      position.relative, // for absolute positioning of selectednodes
-      SelectedNodes[SelectedNode](
-        state,
-        selectedNodes,
-        selectedNodeActions(state, selectedNodes),
-        (_, _) => Nil
-      ).apply(
-        position.absolute,
-        width := "100%"
-      ),
+
+      selectedNodesBar(state, selectedNodes, inputFieldFocusTrigger),
       div(
-        cls := "chat-history",
+        // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        chatHistory(state, focusState, selectedNodes, pageCounter, shouldLoadInfinite),
-        outerDragOptions,
-
-        // clicking on background deselects
-        onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
-        scrollHandler.modifier,
+        chatHistory(state, focusState, selectedNodes, pageCounter, shouldLoadInfinite, scrollHandler),
       ),
-      {
-        def submitAction(str:String) = {
-          scrollHandler.scrollToBottomInAnimationFrame()
-          val basicNode = Node.MarkdownMessage(str)
-          val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId))
-          fileUploadHandler.now match {
-            case None => state.eventProcessor.changes.onNext(basicGraphChanges)
-            case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
-          }
-
-          fileUploadHandler() = None
-        }
-
-        val inputFieldFocusTrigger = PublishSubject[Unit]
-
-        InputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage)(ctx)(Styles.flexStatic)
-      }
+      chatInput(state, focusState, scrollHandler, inputFieldFocusTrigger)
     )
   }
 
-  private def chatHistory(state: GlobalState, focusState: FocusState, selectedNodes: Var[Set[SelectedNode]], externalPageCounter: Observable[Int], shouldLoadInfinite: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def selectedNodesBar(
+    state: GlobalState,
+    selectedNodes: Var[Set[SelectedNode]],
+    inputFieldFocusTrigger: PublishSubject[Unit],
+  )(implicit ctx: Ctx.Owner) = VDomModifier (
+    position.relative, // for absolute positioning of selectednodes
+    SelectedNodes[SelectedNode](
+      state,
+      selectedNodes,
+      selectedNodeActions(state, selectedNodes),
+      (_, _) => Nil
+    ).apply(
+      position.absolute,
+      width := "100%"
+    ),
+  )
+
+  private def chatHistory(
+    state: GlobalState,
+    focusState: FocusState,
+    selectedNodes: Var[Set[SelectedNode]],
+    externalPageCounter: Observable[Int],
+    shouldLoadInfinite: Var[Boolean],
+    scrollHandler: ScrollBottomHandler,
+  )(implicit ctx: Ctx.Owner): VDomModifier = {
     val initialPageCounter = 30
     val pageCounter = Var(initialPageCounter)
 
@@ -114,6 +105,7 @@ object ThreadView {
     }
 
     VDomModifier(
+      cls := "chat-history",
       Rx {
         state.screenSize() // on screensize change, rerender whole chat history
         val pageCount = pageCounter()
@@ -122,8 +114,58 @@ object ThreadView {
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
-    )
+      registerDragContainer(state),
+      drag(target = DragItem.Workspace(focusState.focusedId)),
+
+
+      // clicking on background deselects
+      onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+      scrollHandler.modifier,
+    ),
   }
+
+  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
+    // most nodes don't have any children, so we skip the expensive accumulation
+    if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
+
+    val nodeSet = ArraySet.create(graph.nodes.length)
+    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
+    parentIds.foreach { parentId =>
+      graph.idToIdxForeach(parentId) { parentIdx =>
+        graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
+          val childNode = graph.nodes(childIdx)
+          if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || (childNode.role.isInstanceOf[NodeRole.ContentRole] && graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role))))
+            nodeSet.add(childIdx)
+        }
+      }
+    }
+    val nodes = js.Array[Int]()
+    nodeSet.foreach(nodes += _)
+    sortByCreated(nodes, graph)
+    nodes
+  }
+
+  def calculateThreadMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
+    if(messages.isEmpty) return Array[Array[Int]]()
+
+    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
+    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
+    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
+    messages.foreach { message =>
+      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
+
+      if(author != lastAuthor && lastAuthor != -2) {
+        groupsBuilder += currentGroupBuilder.result()
+        currentGroupBuilder.clear()
+      }
+
+      currentGroupBuilder += message
+      lastAuthor = author
+    }
+    groupsBuilder += currentGroupBuilder.result()
+    groupsBuilder.result()
+  }
+
 
   private def renderThreadGroups(state: GlobalState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = state.graph()
@@ -325,45 +367,27 @@ object ThreadView {
     )
   }
 
-  def calculateThreadMessages(parentIds: Iterable[NodeId], graph: Graph): js.Array[Int] = {
-    // most nodes don't have any children, so we skip the expensive accumulation
-    if(parentIds.size == 1 && !graph.hasChildren(parentIds.head)) return js.Array[Int]()
+  private def chatInput(
+    state: GlobalState,
+    focusState: FocusState,
+    scrollHandler: ScrollBottomHandler,
+    inputFieldFocusTrigger: PublishSubject[Unit],
+  )(implicit ctx: Ctx.Owner) = {
+    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
-    val nodeSet = ArraySet.create(graph.nodes.length)
-    //TODO: performance: depthFirstSearchMultiStartForeach which starts at multiple start points and accepts a function
-    parentIds.foreach { parentId =>
-      graph.idToIdxForeach(parentId) { parentIdx =>
-        graph.childrenIdx.foreachElement(parentIdx) { childIdx =>
-          val childNode = graph.nodes(childIdx)
-          if(childNode.isInstanceOf[Node.Content] && (childNode.role == NodeRole.Message || (childNode.role.isInstanceOf[NodeRole.ContentRole] && graph.childrenIdx(childIdx).exists(idx => NodeRole.Message == graph.nodes(idx).role))))
-            nodeSet.add(childIdx)
-        }
-      }
-    }
-    val nodes = js.Array[Int]()
-    nodeSet.foreach(nodes += _)
-    sortByCreated(nodes, graph)
-    nodes
-  }
-
-  def calculateThreadMessageGrouping(messages: js.Array[Int], graph: Graph): Array[Array[Int]] = {
-    if(messages.isEmpty) return Array[Array[Int]]()
-
-    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
-    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
-    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
-    messages.foreach { message =>
-      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-
-      if(author != lastAuthor && lastAuthor != -2) {
-        groupsBuilder += currentGroupBuilder.result()
-        currentGroupBuilder.clear()
+    def submitAction(str:String) = {
+      scrollHandler.scrollToBottomInAnimationFrame()
+      val basicNode = Node.MarkdownMessage(str)
+      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId))
+      fileUploadHandler.now match {
+        case None => state.eventProcessor.changes.onNext(basicGraphChanges)
+        case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
       }
 
-      currentGroupBuilder += message
-      lastAuthor = author
+      fileUploadHandler() = None
     }
-    groupsBuilder += currentGroupBuilder.result()
-    groupsBuilder.result()
+
+    InputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage)(ctx)(Styles.flexStatic)
   }
+
 }
