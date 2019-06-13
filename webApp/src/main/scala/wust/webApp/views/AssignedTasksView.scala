@@ -12,6 +12,7 @@ import wust.ids.{ChildId, EpochMilli, ParentId, UserId}
 import wust.util.collection._
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.AssignedTasksData.AssignedTask
+import wust.webApp.views.DragComponents.registerDragContainer
 
 import scala.scalajs.js
 
@@ -76,6 +77,8 @@ object AssignedTasksView  {
       flexDirection.column,
       padding := "20px",
       overflow.auto,
+
+      registerDragContainer(state),
 
       div(
         Styles.flex,
