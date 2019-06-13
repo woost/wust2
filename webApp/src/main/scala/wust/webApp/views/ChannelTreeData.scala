@@ -31,16 +31,16 @@ object ChannelTreeData {
 
   def childrenChannels(graph: Graph, traverseState: TraverseState, userId: UserId): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
-    nextLayer(graph, traverseState, graph.childrenIdx, isChannel(_, _, userIdx))
+    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, isChannel(_, _, userIdx))
   }
 
   def parentProjects(graph: Graph, traverseState: TraverseState): Seq[NodeId] = {
-    val parents = nextLayer(graph, traverseState, graph.parentsIdx, isProject)
+    val parents = nextLayer(graph, traverseState, graph.notDeletedParentsIdx, isProject)
     if (parents.isEmpty) Seq(traverseState.parentId) else parents
   }
 
   def childrenProjects(graph: Graph, traverseState: TraverseState): Seq[NodeId] = {
-    nextLayer(graph, traverseState, graph.childrenIdx, isProject)
+    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, isProject)
   }
 
   @inline private def isProject(graph: Graph, idx: Int) = graph.nodes(idx).role == NodeRole.Project
