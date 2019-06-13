@@ -118,7 +118,7 @@ object EditableContent {
       basicModifiers(config, handler.edit),
       inputModifiers(config, handler.edit),
 
-      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config)), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
+      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config), blurEmitter(config)), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
     ))
   }
 
