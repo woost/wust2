@@ -3,7 +3,7 @@ package wust.webApp.views
 import flatland.ArraySet
 import outwatch.dom._
 import outwatch.dom.dsl._
-import rx.{Ctx, Rx}
+import rx._
 import wust.facades.googleanalytics.Analytics
 import wust.graph.{Edge, Graph, GraphChanges}
 import wust.ids._
@@ -58,6 +58,7 @@ object ViewFilter {
     val isActive = Rx {
       state.graphTransformations().exists(_.isInstanceOf[GraphOperation.ContentContains])
     }
+    val focused = Var(false)
 
     div(
       Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
@@ -67,6 +68,10 @@ object ViewFilter {
         padding := "5px",
         borderRadius := "3px",
         border := "2px solid transparent",
+        Rx{
+          if(focused()) width := "150px"
+          else width := "75px"
+        },
         isActive.map(VDomModifier.ifTrue(_)(
           border := "2px solid rgb(255,255,255)",
         )),
@@ -75,6 +80,8 @@ object ViewFilter {
           `type` := "text",
           placeholder := "Filter",
           value <-- clearOnPageSwitch(state),
+          onFocus(true) --> focused,
+          onBlur(false) --> focused,
           onInput.value.debounce(500 milliseconds).map{ needle =>
             val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if(needle.length < 1) baseTransform
