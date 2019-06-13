@@ -3,7 +3,7 @@ package wust.webApp.state
 import wust.ids.{NodeId, View}
 
 // when travsering a tree in the dom, we always have a current parent and a chain of ancestors. Needed to check cycles or operate on the parents in the views.
-case class TraverseState(
+final case class TraverseState(
   parentId: NodeId,
   tail: List[NodeId] = Nil
 ) {
@@ -12,7 +12,7 @@ case class TraverseState(
 }
 
 // a class for representing a preference to focus something in a certain view. e.g. used for configuring the right sidebar
-case class FocusPreference(
+final case class FocusPreference(
   nodeId: NodeId,
   view: Option[View] = None
 )
@@ -20,7 +20,7 @@ case class FocusPreference(
 // a class representing the currently focused configuration of a view. a view can be shown in different contexts: in the main view, or in the right sidebar, or within a node card (e.g. listview)
 //TODO reprensent context as ADT FocusContext: Global, Sidebar, Nodecard with contextparentid, isnested and the actions derived from it
 // or make focusstate an ADT because most properties are dervied from the context
-case class FocusState(
+final case class FocusState(
   view: View.Visible, // how to render the current focus
   contextParentId: NodeId, // the parent of the current context: in the main view it is page (== focusedId), in the right sidebar it is rightSidebarNode (== focusedId), within a card it is either page or rightsidebarNode depending where the card is shown (!= focusedId).
   focusedId: NodeId, // the currently focused id that is the node the view should render

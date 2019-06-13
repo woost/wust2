@@ -22,17 +22,17 @@ object Data {
   type SlackTimestamp = String
   type SlackUserId = String
 
-  //  case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
-  //  case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
-  case class WustUserData(wustUserId: UserId, wustUserToken: String)
-  case class SlackUserData(slackUserId: SlackUserId, slackUserToken: Option[String])
+  //  final case class WustUserData(wustUserId: UserId, wustUserToken: Authentication.Token)
+  //  final case class SlackUserData(slackUserId: String, slackUserToken: AccessToken)
+  final case class WustUserData(wustUserId: UserId, wustUserToken: String)
+  final case class SlackUserData(slackUserId: SlackUserId, slackUserToken: Option[String])
 
-  //  case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: Option[AccessToken], wust_token: Authentication.Verified)
-  case class User_Mapping(slack_user_id: SlackUserId, wust_id: UserId, slack_token: Option[String], wust_token: String)
+  //  final case class User_Mapping(slack_user_id: String, wust_id: NodeId, slack_token: Option[AccessToken], wust_token: Authentication.Verified)
+  final case class User_Mapping(slack_user_id: SlackUserId, wust_id: UserId, slack_token: Option[String], wust_token: String)
 
-  case class Team_Mapping(slack_team_id: Option[SlackTeamId], slack_team_name: String, wust_id: NodeId)
-  case class Channel_Mapping(slack_channel_id: Option[SlackChannelId], slack_channel_name: String, slack_deleted_flag: Boolean, wust_id: NodeId, team_wust_id: NodeId)
-  case class Message_Mapping(slack_channel_id: Option[SlackChannelId], slack_message_ts: Option[SlackTimestamp], slack_thread_ts: Option[SlackTimestamp], slack_deleted_flag: Boolean, slack_message_text: String, wust_id: NodeId, channel_wust_id: NodeId)
+  final case class Team_Mapping(slack_team_id: Option[SlackTeamId], slack_team_name: String, wust_id: NodeId)
+  final case class Channel_Mapping(slack_channel_id: Option[SlackChannelId], slack_channel_name: String, slack_deleted_flag: Boolean, wust_id: NodeId, team_wust_id: NodeId)
+  final case class Message_Mapping(slack_channel_id: Option[SlackChannelId], slack_message_ts: Option[SlackTimestamp], slack_thread_ts: Option[SlackTimestamp], slack_deleted_flag: Boolean, slack_message_text: String, wust_id: NodeId, channel_wust_id: NodeId)
 }
 
 class DbSlackCodecs(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCommonCodecs(ctx) {

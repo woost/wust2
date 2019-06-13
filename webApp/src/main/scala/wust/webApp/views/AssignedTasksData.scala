@@ -13,11 +13,11 @@ object AssignedTasksData {
     def parentId: NodeId
   }
   object AssignedTask {
-    case class Plain(nodeId: NodeId, parentId: NodeId) extends AssignedTask
-    case class Due(nodeId: NodeId, parentId: NodeId, dueDate: DateTimeMilli) extends AssignedTask
+    final case class Plain(nodeId: NodeId, parentId: NodeId) extends AssignedTask
+    final case class Due(nodeId: NodeId, parentId: NodeId, dueDate: DateTimeMilli) extends AssignedTask
   }
 
-  case class AssignedTasks(dueTasks: IndexedSeq[IndexedSeq[AssignedTask.Due]], tasks: IndexedSeq[AssignedTask])
+  final case class AssignedTasks(dueTasks: IndexedSeq[IndexedSeq[AssignedTask.Due]], tasks: IndexedSeq[AssignedTask])
 
   // bucket.size == result.size -1
   // result contains

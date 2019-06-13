@@ -350,7 +350,7 @@ lazy val graph = crossProject(JSPlatform, JVMPlatform)
   .settings(
     libraryDependencies ++=
       Deps.monocleCore.value ::
-      Nil
+      Nil,
   )
 lazy val graphJS = graph.js
 lazy val graphJVM = graph.jvm
@@ -532,7 +532,33 @@ lazy val webApp = project
       Deps.npm.clipboardjs ::
       Deps.npm.jqueryTablesort ::
       Deps.npm.juration ::
-      Nil
+      Nil,
+
+      wartremoverWarnings ++= Warts.allBut(
+        // enable soon (one by one)
+        Wart.ExplicitImplicitTypes,
+        Wart.TraversableOps,
+        Wart.ToString,
+        Wart.StringPlusAny,
+        Wart.ArrayEquals,
+        Wart.Equals,
+        Wart.OptionPartial,
+        Wart.Any,
+        Wart.Product, Wart.Serializable,
+        Wart.Nothing,
+        Wart.AsInstanceOf,
+        Wart.IsInstanceOf,
+        Wart.Return,
+        Wart.PublicInference,
+
+        // Don't know
+        Wart.Option2Iterable,
+
+        // Nope
+        Wart.Var, Wart.While, Wart.Overloading, Wart.Null,
+        Wart.MutableDataStructures, Wart.DefaultArguments,
+        Wart.Recursion, Wart.NonUnitStatements, Wart.ImplicitParameter,
+      ),
   )
 
 // lazy val androidApp = project

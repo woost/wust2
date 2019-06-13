@@ -21,7 +21,7 @@ import wust.webApp.views.DragComponents.registerDragContainer
 // - activity
 object DashboardView {
 
-  case class Settings(
+  final case class Settings(
     val AlwaysShowNewSubprojectButton : Boolean = false,
     val ForceEditModeOnEmptySubprojects : Boolean = true
   )

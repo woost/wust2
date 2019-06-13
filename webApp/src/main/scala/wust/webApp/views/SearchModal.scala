@@ -21,8 +21,8 @@ object SearchModal {
 
     sealed trait SearchInput
     object SearchInput {
-      case class Global(query: String) extends SearchInput
-      case class Local(query: String) extends SearchInput
+      final case class Global(query: String) extends SearchInput
+      final case class Local(query: String) extends SearchInput
     }
 
     val searchLocal = PublishSubject[String]

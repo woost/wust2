@@ -29,7 +29,7 @@ object NodeAccess {
     val str = "inherited"
   }
 
-  case class Level(level: AccessLevel) extends NodeAccess {
+  final case class Level(level: AccessLevel) extends NodeAccess {
     def str: String = level.str
   }
 

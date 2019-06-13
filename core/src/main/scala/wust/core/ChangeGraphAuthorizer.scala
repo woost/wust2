@@ -13,7 +13,7 @@ import scala.util.control.NonFatal
 sealed trait ChangeGraphAuthorization
 object ChangeGraphAuthorization {
   case object Allow extends ChangeGraphAuthorization
-  case class Deny(reason: String) extends ChangeGraphAuthorization
+  final case class Deny(reason: String) extends ChangeGraphAuthorization
 
   @inline def cond(allow: Boolean, denyReason: => String): ChangeGraphAuthorization = if (allow) Allow else Deny(denyReason)
 

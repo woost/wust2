@@ -8,12 +8,12 @@ import wust.util.collection.BasicMap
 //TODO: use ids instead of nodes and listen to node changes in each rendered node
 object PropertyData {
 
-  case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
-  case class PropertyGroupValue(node: Node, values: List[PropertyValue])
-  case class SingleProperty(key: String, values: List[PropertyValue])
-  case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
+  final case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
+  final case class PropertyGroupValue(node: Node, values: List[PropertyValue])
+  final case class SingleProperty(key: String, values: List[PropertyValue])
+  final case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
 
-  case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Array[Node]) {
+  final case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Array[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
@@ -41,7 +41,7 @@ object PropertyData {
     }
   }
 
-  case class Single(info: BasicInfo, properties: Array[SingleProperty]) {
+  final case class Single(info: BasicInfo, properties: Array[SingleProperty]) {
     def isEmpty = info.isEmpty && properties.isEmpty
   }
   object Single {
@@ -61,7 +61,7 @@ object PropertyData {
     }
   }
 
-  case class Group(infos: Array[BasicInfo], properties: Array[GroupProperty])
+  final case class Group(infos: Array[BasicInfo], properties: Array[GroupProperty])
   object Group {
     def apply(graph: Graph, childrenIdxs: Array[Int]): Group = {
       val infos = childrenIdxs.map(BasicInfo(graph, _))

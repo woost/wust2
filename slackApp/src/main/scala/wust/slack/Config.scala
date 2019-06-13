@@ -4,11 +4,11 @@ import com.typesafe.config.{Config => TConfig}
 import wust.sdk.{OAuthConfig, ServerConfig, WustConfig}
 import wust.serviceUtil.Logging
 
-case class SlackClientConfig(token: String, botId: String, signingSecret: String) {
+final case class SlackClientConfig(token: String, botId: String, signingSecret: String) {
   override def toString = "SlackClientConfig(***, ***, ***)"
 }
 
-case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, postgres: TConfig, slack: SlackClientConfig, logstash: Option[Logging.LogstashConfig])
+final case class Config(wustServer: WustConfig, appServer: ServerConfig, oAuth: OAuthConfig, postgres: TConfig, slack: SlackClientConfig, logstash: Option[Logging.LogstashConfig])
 
 object Config {
   import pureconfig._

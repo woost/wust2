@@ -33,7 +33,7 @@ object VisiblePushData {
   val maxTotalLength = 2048
 }
 
-case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, parentId: Option[String], parentContent: Option[String], epoch: String) {
+final case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, parentId: Option[String], parentContent: Option[String], epoch: String) {
   import wust.util.StringOps._
   def trimToSize: PushData = this.copy(
     username = trimToMaxLength(username, VisiblePushData.maxTitleLength),

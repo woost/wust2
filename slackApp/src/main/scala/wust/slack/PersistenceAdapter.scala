@@ -74,7 +74,7 @@ object PostgresAdapter {
   def apply(config: TConfig)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem) = new PostgresAdapter( Db(config) )
 }
 
-case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem) extends PersistenceAdapter {
+final case class PostgresAdapter(db: Db)(implicit ec: scala.concurrent.ExecutionContext, system: ActorSystem) extends PersistenceAdapter {
 
   // Store
   def storeOrUpdateUserAuthData(userMapping: User_Mapping): Future[Boolean] = {

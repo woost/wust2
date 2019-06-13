@@ -16,10 +16,10 @@ import scala.concurrent.duration._
 
 object MovableElement {
   sealed trait Position
-  case class LeftPosition(left: Double, top: Double) extends Position
-  case class RightPosition(right: Double, bottom: Double) extends Position
+  final case class LeftPosition(left: Double, top: Double) extends Position
+  final case class RightPosition(right: Double, bottom: Double) extends Position
 
-  case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, titleModifier: Ownable[VDomModifier], bodyModifier: Ownable[VDomModifier])
+  final case class Window(title: VDomModifier, toggle: Var[Boolean], initialPosition: Position, initialHeight: Int, initialWidth: Int, resizable: Boolean, titleModifier: Ownable[VDomModifier], bodyModifier: Ownable[VDomModifier])
 
   def withToggleSwitch(windows: Seq[Window], enabled: Rx[Boolean], resizeEvent: Observable[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
     val activeWindow = Var(0)

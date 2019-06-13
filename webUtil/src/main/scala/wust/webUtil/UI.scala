@@ -145,7 +145,7 @@ object UI {
   def accordion(title: VDomModifier, content: VDomModifier): VNode =
     accordion(Seq(AccordionEntry(title, content)))
 
-  case class AccordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = true)
+  final case class AccordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = true)
   def accordion(content: Seq[AccordionEntry],
                 styles: String = "styled fluid",
                 collapsible : Boolean = true,
@@ -188,12 +188,12 @@ object UI {
     )
   }
 
-  case class ColumnEntry(sortValue: Any, value: VDomModifier, rowModifier: VDomModifier = VDomModifier.empty)
+  final case class ColumnEntry(sortValue: Any, value: VDomModifier, rowModifier: VDomModifier = VDomModifier.empty)
   object ColumnEntry {
     def apply(value: String): ColumnEntry = ColumnEntry(value, value)
   }
-  case class Column(name: VDomModifier, entries: List[ColumnEntry], sortable: Boolean = true)
-  case class ColumnSort(index: Int, direction: String)
+  final case class Column(name: VDomModifier, entries: List[ColumnEntry], sortable: Boolean = true)
+  final case class ColumnSort(index: Int, direction: String)
   def sortableTable(columns: Seq[Column], sort: Var[Option[ColumnSort]])(implicit ctx: Ctx.Owner): VNode = {
     val rows = columns.map(_.entries).transpose
 

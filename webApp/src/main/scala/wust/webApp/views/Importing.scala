@@ -34,9 +34,9 @@ object Importing {
 
   sealed trait Input
   object Input {
-    case class FromFile(description: VDomModifier, acceptType: Option[String]) extends Input
-    case class FromRemoteFile(description: VDomModifier, url: String => Option[String]) extends Input
-    case class FromText(description: VDomModifier) extends Input
+    final case class FromFile(description: VDomModifier, acceptType: Option[String]) extends Input
+    final case class FromRemoteFile(description: VDomModifier, url: String => Option[String]) extends Input
+    final case class FromText(description: VDomModifier) extends Input
   }
 
   object Parser {
@@ -45,7 +45,7 @@ object Importing {
     type Provider = Rx[Option[Function]]
   }
 
-  case class Source(icon: VNode, title: String, description: String, inputs: List[Input], parser: Parser.Provider, form: VDomModifier)
+  final case class Source(icon: VNode, title: String, description: String, inputs: List[Input], parser: Parser.Provider, form: VDomModifier)
   object Source {
     def apply(icon: VNode, title: String, description: String, inputs: List[Input], parser: Parser.Function): Source = Source(icon, title, description, inputs, Var(Some(parser)), VDomModifier.empty)
 
@@ -135,7 +135,7 @@ object Importing {
     )
   }
 
-  case class Importer(title: String, description: VDomModifier, result: Rx[Option[Parser.Result]], edit: VDomModifier)
+  final case class Importer(title: String, description: VDomModifier, result: Rx[Option[Parser.Result]], edit: VDomModifier)
   object Importer {
 
     private def combineParser(current: Rx[Option[IO[Either[String, String]]]], parser: Parser.Provider)(implicit ctx: Ctx.Owner): Rx[Option[Parser.Result]] = Rx {

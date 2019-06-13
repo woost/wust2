@@ -16,7 +16,7 @@ import scala.scalajs.js.JSConverters._
 
 object GenericSidebar {
 
-  case class Config(mainModifier: VDomModifier = VDomModifier.empty, openModifier: VDomModifier = VDomModifier.empty, overlayOpenModifier: VDomModifier = VDomModifier.empty, expandedOpenModifier: VDomModifier = VDomModifier.empty, closedModifier: Option[VDomModifier] = None)
+  final case class Config(mainModifier: VDomModifier = VDomModifier.empty, openModifier: VDomModifier = VDomModifier.empty, overlayOpenModifier: VDomModifier = VDomModifier.empty, expandedOpenModifier: VDomModifier = VDomModifier.empty, closedModifier: Option[VDomModifier] = None)
 
   def left(sidebarOpen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = false, sidebarOpen = sidebarOpen, config = config)
   def right(sidebarOpen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = true, sidebarOpen = sidebarOpen, config = config)
@@ -89,7 +89,7 @@ object GenericSidebar {
     }))
   }
 
-  case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
+  final case class SidebarConfig(items: VDomModifier, sidebarModifier: VDomModifier = VDomModifier.empty)
   def sidebar(config: Observable[Ownable[SidebarConfig]], globalClose: Observable[Unit], targetSelector: Option[String]): VNode = {
     val elemHandler = PublishSubject[JQuerySelectionWithFomanticUI]
 

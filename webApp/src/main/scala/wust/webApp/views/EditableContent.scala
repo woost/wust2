@@ -34,7 +34,7 @@ object EditableContent {
     // emitter submit mode has no magic and just emits a new value (input or error) whenever the mentioned emitters trigger.
     // should be used in forms where you have an action like enter or a specific submit button.
     // then you set your desired emitter, and in the end use the current value in your submit logic
-    case class Emitter(builder: List[EmitterBuilder[dom.Event, VDomModifier]]) extends SubmitMode
+    final case class Emitter(builder: List[EmitterBuilder[dom.Event, VDomModifier]]) extends SubmitMode
     def OnChange = Emitter(dsl.onChange :: Nil)
     def OnInput = Emitter(dsl.onInput :: Nil)
     def OnEnter = Emitter(Elements.onEnter :: Nil)
@@ -47,7 +47,7 @@ object EditableContent {
     case object Explicit extends SubmitMode
   }
 
-  case class Config(
+  final case class Config(
     modifier: VDomModifier = VDomModifier.empty,
     submitMode: SubmitMode = SubmitMode.Explicit,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
@@ -184,7 +184,7 @@ object EditableContent {
     onClick.stopPropagation(()) --> current
   )
 
-  case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
+  final case class CommonEditHandler[T](edit: Handler[EditInteraction[T]], save: Observable[Unit])
   private def commonEditStructure[T](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T])(modifier: CommonEditHandler[T] => VDomModifier) = {
     val handledCurrent = current.transformObserverWith(_.redirectMap(handleEditInteraction[T](initial, config) andThen handle))
     val saveHandler = PublishSubject[Unit]

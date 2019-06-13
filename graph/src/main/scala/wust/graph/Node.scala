@@ -2,7 +2,7 @@ package wust.graph
 
 import wust.ids._
 
-case class NodeMeta(accessLevel: NodeAccess)
+final case class NodeMeta(accessLevel: NodeAccess)
 object NodeMeta {
   //TODO a user should NOT have NodeMeta. We cannot delete users like normal
   //posts and what does join and accesslevel actually mean in the context of a
@@ -26,12 +26,12 @@ sealed trait Node {
 
 object Node {
   // TODO: we cannot set the nodemeta here, but there is changeable data in the db class
-  case class User(id: UserId, data: NodeData.User, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node {
+  final case class User(id: UserId, data: NodeData.User, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node {
     @inline def name: String = data.name
     def role: NodeRole = NodeRole.default
     override def toString = s"""User([${id.shortHumanReadable}]"$name"${if (data.isImplicit) ":implicit" else ""}${if (meta.accessLevel != NodeAccess.Restricted) s":$meta" else ""}  ${id.toBase58}  ${id.toUuid})"""
   }
-  case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node
+  final case class Content(id: NodeId, data: NodeData.Content, role: NodeRole, meta: NodeMeta, views: Option[List[View.Visible]] = None) extends Node
   object Content {
     @inline def apply(data: NodeData.Content, role: NodeRole, meta: NodeMeta): Content = {
       new Content(NodeId.fresh, data, role, meta)

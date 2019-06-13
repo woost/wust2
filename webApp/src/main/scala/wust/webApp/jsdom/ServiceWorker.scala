@@ -67,9 +67,9 @@ object ServiceWorker {
   }
 
   sealed trait WorkerMessage
-  case class AuthMessage(token: Authentication.Token) extends WorkerMessage {
+  final case class AuthMessage(token: Authentication.Token) extends WorkerMessage {
   }
-  case class Message(message: String) extends WorkerMessage
+  final case class Message(message: String) extends WorkerMessage
 
   def sendAuth(auth: Authentication): Unit = {
     import io.circe.generic.extras.semiauto._

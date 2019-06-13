@@ -5,7 +5,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.collection._
 
-case class Card(
+final case class Card(
   id: String,
   name: String,
   desc: String,
@@ -18,62 +18,62 @@ case class Card(
   dueComplete: Boolean
 )
 
-case class Membership(
+final case class Membership(
   id: String,
   idMember: String
 )
 
-case class Prefs(
+final case class Prefs(
   permissionLevel: String,
   voting: String
 )
 
-case class CheckItem(
+final case class CheckItem(
   id: String,
   name: String,
   pos: Double,
   state: String
 )
 
-case class CheckList(
+final case class CheckList(
   id: String,
   name: String,
   pos: Double,
   checkItems: List[CheckItem]
 )
 
-case class Column(
+final case class Column(
   id: String,
   name: String,
   closed: Boolean,
   pos: Double
 )
 
-case class IdRef(
+final case class IdRef(
   id: String
 )
 
-case class ActionData(
+final case class ActionData(
   card: Option[IdRef],
   board: Option[IdRef],
   list: Option[IdRef],
   text: Option[String]
 )
 
-case class Action(
+final case class Action(
   id: String,
   `type`: String,
   date: String,
   data: ActionData
 )
 
-case class Label(
+final case class Label(
   id: String,
   name: String,
   color: String,
 )
 
-case class Board(
+final case class Board(
   id: String,
   name: String,
   closed: Boolean,

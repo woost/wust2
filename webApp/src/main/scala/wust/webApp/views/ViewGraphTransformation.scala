@@ -5,7 +5,7 @@ import wust.webApp.Icons
 import wust.webUtil.outwatchHelpers._
 
 
-case class ViewGraphTransformation(
+final case class ViewGraphTransformation(
   transform: UserViewGraphTransformation,
   icon: VDomModifier,
   description: String,

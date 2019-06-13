@@ -82,7 +82,7 @@ object ValueStringifier {
   implicit val ValueNode: ValueStringifier[Node] = ValueNodeData.map(_.data)
 }
 
-case class EditContext(state: GlobalState) extends AnyVal
+final case class EditContext(state: GlobalState) extends AnyVal
 
 trait EditStringParser[+T] { self =>
   def parse(elem: String): Task[EditInteraction[T]]
@@ -171,7 +171,7 @@ object EditElementParser {
 
   @inline def apply[T](implicit parser: EditElementParser[T]): EditElementParser[T] = parser
 
-  case class Config(
+  final case class Config(
     inputEmitter: EmitterBuilder[Any, VDomModifier], // emitter to be applied to an input element. but can be overwritten by element parser if not applicable. e.g. for file input only onChange/onInput makes sense.
     inputModifier: VDomModifier, // modifiers to be applied to an input element. but can be overwritten by element parser if not applicable. e.g.  for file input additional modifiers make no sense>
     blurEmitter: EmitterBuilder[Any, VDomModifier], // emitter for blur event, if enabled, it may be used by the edit element
@@ -353,8 +353,8 @@ object EditInteraction {
     @inline def toOption = None
   }
   case object Cancel extends WithoutValue
-  case class Error(msg: String) extends WithoutValue
-  case class Input[T](value: T) extends EditInteraction[T] {
+  final case class Error(msg: String) extends WithoutValue
+  final case class Input[T](value: T) extends EditInteraction[T] {
     @inline def flatMap[R](f: T => EditInteraction[R]) = f(value)
     @inline def toEither = Right(value)
     @inline def toOption = Some(value)

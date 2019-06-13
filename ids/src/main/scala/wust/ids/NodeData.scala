@@ -22,54 +22,55 @@ object NodeData {
 
   sealed trait Content extends NodeData
 
-  case class File(key: String, fileName: String, contentType: String) extends Named with Content {
+  final case class File(key: String, fileName: String, contentType: String) extends Named with Content {
     def str = fileName
   }
   object File extends Named
 
-  case class Markdown(content: String) extends Named with EditableText {
+  final case class Markdown(content: String) extends Named with EditableText {
     def str = content
     override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object Markdown extends Named
 
-  case class PlainText(content: String) extends Named with EditableText {
+  final case class PlainText(content: String) extends Named with EditableText {
     def str = content
     override def updateStr(str: String) = if (content != str) Some(copy(content = str)) else None
   }
   object PlainText extends Named
 
-  case class Integer(content: Int) extends Named with Content {
+  final case class Integer(content: Int) extends Named with Content {
     def str = content.toString
   }
   object Integer extends Named
 
-  case class Decimal(content: Double) extends Named with Content {
+  final case class Decimal(content: Double) extends Named with Content {
     def str = content.toString
   }
   object Decimal extends Named
 
-  case class DateTime(content: DateTimeMilli) extends Named with Content {
+  final case class DateTime(content: DateTimeMilli) extends Named with Content {
     def plainStr = content.toString
     def str = content.isoDateAndTime
   }
   object DateTime extends Named
-  case class Date(content: DateMilli) extends Named with Content {
+  final case class Date(content: DateMilli) extends Named with Content {
     def plainStr = content.toString
     def str = content.isoDate
   }
   object Date extends Named
-  case class Duration(content: DurationMilli) extends Named with Content {
+  final case class Duration(content: DurationMilli) extends Named with Content {
     def str = content.toString
   }
   object Duration extends Named
   //TODO: should be renamed to datetime, because now+duration does not only give a date.
-  case class RelativeDate(content: DurationMilli) extends Named with Content {
+  final case class RelativeDate(content: DurationMilli) extends Named with Content {
     def str = content.toString
   }
   object RelativeDate extends Named
 
-  case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
+
+  final case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
     def updateName(newName: String) = if (name != newName) Some(copy(name = newName.trim)) else None
   }

@@ -17,7 +17,7 @@ import wust.api.Authentication
 import scala.collection.concurrent.TrieMap
 import scala.concurrent.{ExecutionContext, Future}
 
-case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
+final case class AuthenticationData(wustAuthData: Authentication.Verified, platformAuthToken: OAuthToken)
 
 // Instantiate for each App
 class OAuthClient(val oAuthConfig: OAuthConfig, appServerConfig: ServerConfig, wustServerConfig: WustConfig)(implicit val system: ActorSystem, implicit val ec: ExecutionContext, implicit val mat: Materializer) {

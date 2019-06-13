@@ -18,7 +18,7 @@ import scala.concurrent.duration._
 object TopologicalView {
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
-    case class NodeInfo(node: Node, depth: Int)
+    final case class NodeInfo(node: Node, depth: Int)
 
     val propertyName = Var("depends on")
     val nodeDepth: Rx[Array[Int]] = Rx {

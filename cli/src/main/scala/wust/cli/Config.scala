@@ -8,7 +8,7 @@ import pureconfig.error.ConfigReaderFailures
 
 import scala.util.Try
 
-case class Config(username: String, password: String, url: String)
+final case class Config(username: String, password: String, url: String)
 
 object Config {
    import pureconfig._

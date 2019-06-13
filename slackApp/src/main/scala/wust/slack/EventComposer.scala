@@ -15,8 +15,8 @@ import wust.slack.Data._
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
-case class ComposingResult(nodeId: NodeId, gc: GraphChanges, user: WustUserData, parentId: NodeId)
-case class GCResult(gc: GraphChanges, user: WustUserData)
+final case class ComposingResult(nodeId: NodeId, gc: GraphChanges, user: WustUserData, parentId: NodeId)
+final case class GCResult(gc: GraphChanges, user: WustUserData)
 
 object EventComposer {
 

@@ -296,7 +296,7 @@ object RightSidebar {
     object AddProperty {
       case object None extends AddProperty
       case object Custom extends AddProperty
-      case class Key(key: String, tpe: NodeData.Type) extends AddProperty
+      final case class Key(key: String, tpe: NodeData.Type) extends AddProperty
     }
 
     val addFieldMode = Var[AddProperty](AddProperty.None)

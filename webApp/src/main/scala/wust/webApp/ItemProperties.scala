@@ -24,7 +24,7 @@ object ItemProperties {
 
   sealed trait TypeSelection
   object TypeSelection {
-    case class Data(data: NodeData.Type) extends TypeSelection
+    final case class Data(data: NodeData.Type) extends TypeSelection
     case object Ref extends TypeSelection
 
     import io.circe._
@@ -37,19 +37,19 @@ object ItemProperties {
 
   sealed trait ValueSelection
   object ValueSelection {
-    case class Data(nodeData: NodeData.Content) extends ValueSelection
-    case class Ref(nodeId: NodeId) extends ValueSelection
+    final case class Data(nodeData: NodeData.Content) extends ValueSelection
+    final case class Ref(nodeId: NodeId) extends ValueSelection
   }
 
-  case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, prefilledKey: String = "")
+  final case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, prefilledKey: String = "")
   object Config {
     def default = Config()
   }
 
   sealed trait Target
   object Target {
-    case class Node(id: NodeId) extends Target
-    case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
+    final case class Node(id: NodeId) extends Target
+    final case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
   }
 
   def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
@@ -73,7 +73,7 @@ object ItemProperties {
       submitMode = EditableContent.SubmitMode.OnInput,
       selectTextOnFocus = false
     )
-    implicit val context = EditContext(state)
+    implicit val context:EditContext = EditContext(state)
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null

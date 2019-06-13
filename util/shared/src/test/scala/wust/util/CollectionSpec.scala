@@ -11,7 +11,7 @@ class CollectionSpec extends FreeSpec with MustMatchers {
     }
 
     "distinctBy" in {
-      case class A(x: Int, y: Int)
+      final case class A(x: Int, y: Int)
       Seq(A(1, 2), A(1, 3), A(2, 3)).distinctBy(_.x) mustEqual Seq(A(1, 2), A(2, 3))
       Seq(A(1, 2), A(1, 3), A(2, 3)).distinctBy(_.y) mustEqual Seq(A(1, 2), A(1, 3))
       Seq(A(1, 2), A(1, 3), A(2, 3)).distinctBy(identity) mustEqual Seq(A(1, 2), A(1, 3), A(2, 3)).distinct

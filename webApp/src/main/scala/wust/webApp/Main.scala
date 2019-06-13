@@ -49,6 +49,7 @@ object Main {
     OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   private def setupFomanticUISearch(): Unit = {
     import dsl._
     import wust.css.Styles

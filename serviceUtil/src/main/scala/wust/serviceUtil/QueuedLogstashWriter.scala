@@ -22,7 +22,7 @@ import scribe.{LogRecord, MDC}
 import scala.collection.breakOut
 import scala.concurrent.duration._
 
-case class LogstashRecord(message: String,
+final case class LogstashRecord(message: String,
   service: String,
   level: String,
   value: Double,
@@ -35,7 +35,7 @@ case class LogstashRecord(message: String,
   `@timestamp`: String,
   mdc: Map[String, String])
 
-case class HttpRequestException(statusCode: Int, reason: String) extends Exception(s"Got unexpected http response: $statusCode - $reason")
+final case class HttpRequestException(statusCode: Int, reason: String) extends Exception(s"Got unexpected http response: $statusCode - $reason")
 
 class QueuedLogstashWriter(
   url: String,

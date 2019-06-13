@@ -35,7 +35,7 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   def copyOnlyNodes(nodes: Array[Node]) = Graph(nodes, edges)
   def copyOnlyEdges(edges: Array[Edge]) = Graph(nodes, edges, graph => GraphLookup.withNodeKnowledge(graph, lookup.idToIdxHashMap))
 
-  // because it is a case class, we overwrite equals and hashcode, because we do not want comparisons here.
+  // because it is a final case class, we overwrite equals and hashcode, because we do not want comparisons here.
   override def hashCode(): Int = super.hashCode()
   override def equals(that: Any): Boolean = super.equals(that)
 
@@ -163,7 +163,7 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
 sealed trait SemanticNodeRole
 object SemanticNodeRole {
   @inline def apply(role: NodeRole) = Role(role)
-  case class Role(role: NodeRole) extends SemanticNodeRole {
+  final case class Role(role: NodeRole) extends SemanticNodeRole {
     override def toString = role.toString
   }
   case object File extends SemanticNodeRole
@@ -1026,12 +1026,12 @@ sealed trait Tree {
   def flattenWithDepth(depth: Int = 0): List[(Node, Int)]
 }
 object Tree {
-  case class Parent(node: Node, children: List[Tree]) extends Tree {
+  final case class Parent(node: Node, children: List[Tree]) extends Tree {
     override def hasChildren = children.nonEmpty
     override def flatten: List[Node] = node :: (children.flatMap(_.flatten)(breakOut): List[Node])
     override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: (children.flatMap(_.flattenWithDepth(depth + 1))(breakOut): List[(Node, Int)])
   }
-  case class Leaf(node: Node) extends Tree {
+  final case class Leaf(node: Node) extends Tree {
     override def hasChildren = false
     override def flatten: List[Node] = node :: Nil
     override def flattenWithDepth(depth: Int = 0): List[(Node, Int)] = (node, depth) :: Nil

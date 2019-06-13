@@ -15,7 +15,7 @@ sealed trait View {
 }
 object View {
   sealed trait Visible extends View
-  case class Table(roles: List[NodeRole]) extends Visible {
+  final case class Table(roles: List[NodeRole]) extends Visible {
     def viewKey = s"table${roles.map(_.toString.toLowerCase).mkString(":", ":", "")}"
     // override def toString = s"Table(${roles.mkString(",")})"
     override def toString = "Table with Task Details"
@@ -89,7 +89,7 @@ object View {
     def viewKey = "empty"
     override def isContent = true
   }
-  case class Tiled(operator: ViewOperator, views: NonEmptyList[Visible]) extends Visible {
+  final case class Tiled(operator: ViewOperator, views: NonEmptyList[Visible]) extends Visible {
     def viewKey = views.map(_.viewKey).toList.mkString(operator.separator)
     override def isContent = views.exists(_.isContent)
   }

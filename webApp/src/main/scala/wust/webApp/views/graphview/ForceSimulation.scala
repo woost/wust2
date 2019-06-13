@@ -26,7 +26,7 @@ import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
-case class PlaneDimension(
+final case class PlaneDimension(
     xOffset: Double = 50,
     yOffset: Double = 50,
     simWidth: Double = 300,
@@ -236,16 +236,17 @@ class ForceSimulation(
     }
 
     def hit(dragging: Int, minRadius: Double): Option[Int] = {
-      if (simData.n <= 1) return None
+      if (simData.n <= 1) None
+      else {
+        val x = d3.event.x / transform.now.k
+        val y = d3.event.y / transform.now.k
 
-      val x = d3.event.x / transform.now.k
-      val y = d3.event.y / transform.now.k
-
-      val target = simData.quadtree.find(x, y) // ,staticData.maxRadius
-      def distance = Vec2.length(x - simData.x(target), y - simData.y(target))
-      if (target != dragging && (distance <= minRadius || distance <= staticData.radius(target))) {
-        Some(target)
-      } else None
+        val target = simData.quadtree.find(x, y) // ,staticData.maxRadius
+        def distance = Vec2.length(x - simData.x(target), y - simData.y(target))
+        if (target != dragging && (distance <= minRadius || distance <= staticData.radius(target))) {
+          Some(target)
+        } else None
+      }
     }
 
     def dragging(n: html.Element, d: Node, dragging: Int): Unit = {
@@ -462,10 +463,11 @@ class ForceSimulation(
 
   def animationStep(timestamp: Double): Unit = {
     if (!simStep()) { // nothing happened, alpha surpassed threshold
-      return // so no need to draw. stop animation
+      () // so no need to draw. stop animation
+    } else {
+      draw()
+      dom.window.requestAnimationFrame(animationStep)
     }
-    draw()
-    dom.window.requestAnimationFrame(animationStep)
   }
 
   private def simStep(): Boolean = {
@@ -560,6 +562,7 @@ object ForceSimulation {
     }
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Nothing"))
   def registerDragHandlers(
       nodeSelection: d3.Selection[Node],
       dragSubject: (Node, Index) => Coordinates,
@@ -612,10 +615,12 @@ object ForceSimulation {
 
   def alphaStep(simData: SimulationData): Boolean = {
     import simData._
-    if (alpha < alphaMin) return false
-    alpha += (alphaTarget - alpha) * alphaDecay
-    //    scribe.info(log("step: " + alpha))
-    true
+    if (alpha < alphaMin) false
+    else {
+      alpha += (alphaTarget - alpha) * alphaDecay
+      //    scribe.info(log("step: " + alpha))
+      true
+    }
   }
 
   def simulationStep(
@@ -629,13 +634,14 @@ object ForceSimulation {
     {
       val stepped = alphaStep(simData)
       if (!stepped) {
-        return stepped
-      }
+        stepped
+      } else {
 
-      // assert(!simData.isNaN, s"before calculateVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
-      calculateVelocities(simData, staticData, planeDimension)
-      // assert(!simData.isNaN, s"before applyVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
-      applyVelocities(simData)
+        // assert(!simData.isNaN, s"before calculateVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
+        calculateVelocities(simData, staticData, planeDimension)
+        // assert(!simData.isNaN, s"before applyVelocities x:${simData.x(0)} vx:${simData.vx(0)}")
+        applyVelocities(simData)
+      }
     }
 
     true

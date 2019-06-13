@@ -11,7 +11,7 @@ import wust.slack.Data._
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit ec: ExecutionContext, system: ActorSystem) {
+final case class SlackEventMapper(persistenceAdapter: PersistenceAdapter, wustReceiver: WustReceiver, slackClient: SlackApiClient)(implicit ec: ExecutionContext, system: ActorSystem) {
   import cats.implicits._
   implicit val persistor = persistenceAdapter
   implicit val receiver = wustReceiver

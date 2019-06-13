@@ -312,7 +312,7 @@ object WustReceiver {
     def empty: GraphTransition =
       new GraphTransition(Graph.empty, Seq.empty[GraphChanges], Graph.empty)
   }
-  case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
+  final case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
   def run(config: WustConfig, slackClient: SlackClient, persistenceAdapter: PersistenceAdapter, slackAppToken: String)(implicit system: ActorSystem): WustReceiver = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -382,7 +382,7 @@ object SlackClient {
 
 class SlackClient(val apiClient: SlackApiClient, val isUser: Boolean)(implicit ec: ExecutionContext) {
 
-  case class Error(desc: String)
+  final case class Error(desc: String)
 
   def run(receiver: MessageReceiver): Unit = {
     // TODO: Get events from slack
@@ -392,7 +392,7 @@ class SlackClient(val apiClient: SlackApiClient, val isUser: Boolean)(implicit e
   }
 }
 
-case class SlackRequestVerifier(key: String) {
+final case class SlackRequestVerifier(key: String) {
   import javax.crypto.Mac
   import javax.crypto.spec.SecretKeySpec
 

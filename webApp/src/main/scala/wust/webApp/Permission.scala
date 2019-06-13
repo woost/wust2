@@ -13,7 +13,7 @@ import wust.webApp.views.Components._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
-case class PermissionDescription(
+final case class PermissionDescription(
   access: NodeAccess,
   value: String,
   description: String,

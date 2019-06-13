@@ -26,7 +26,7 @@ import scala.util.{Failure, Success}
 
 // an html view for the authentication. That is login and signup.
 object AuthView {
-  private case class UserValue(username: String = "", email: String = "", password: String = "")
+  private final case class UserValue(username: String = "", email: String = "", password: String = "")
   private val userValue = Var(UserValue())
 
   def apply(state: GlobalState)(

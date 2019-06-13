@@ -25,7 +25,7 @@ object PageStyle {
   @inline def ofNode(nodeId: NodeId): PageStyle = ofNode(Some(nodeId))
 }
 
-case class PageStyle(
+final case class PageStyle(
   bgLightColor: String,
   pageBgColor: String,
 )

@@ -21,7 +21,7 @@ import scala.scalajs.js.JSConverters._
 // Timeline which uses properties for start and enddate
 object GanttView {
 
-  case class Bar(node: Node, yPos: Int, startDate: Option[EpochMilli], endDate: Option[EpochMilli])
+  final case class Bar(node: Node, yPos: Int, startDate: Option[EpochMilli], endDate: Option[EpochMilli])
 
   def getFirstDate(propertyMap: BasicMap[String, List[PropertyData.PropertyValue]], search: String): Option[EpochMilli] = {
     propertyMap

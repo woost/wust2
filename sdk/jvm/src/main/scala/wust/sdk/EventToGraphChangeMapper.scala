@@ -7,7 +7,7 @@ import scala.collection.breakOut
 
 object EventToGraphChangeMapper {
 
-  case class CreationResult(nodeId: NodeId, graphChanges: GraphChanges)
+  final case class CreationResult(nodeId: NodeId, graphChanges: GraphChanges)
 
   def createNodeInWust(nodeContent: Node.Content, wustAuthorUserId: UserId, timestamp: EpochMilli, parents: Set[NodeId], additionalMembers: Set[(UserId, AccessLevel)]): GraphChanges = {
 

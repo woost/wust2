@@ -6,8 +6,8 @@ addSbtPlugin("com.typesafe.sbt" % "sbt-native-packager" % "1.3.19")
 
 // workflow
 addSbtPlugin("io.spray" % "sbt-revolver" % "0.9.1")
-// addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.0.0")
-// addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.0.0")
+addSbtPlugin("org.wartremover" % "sbt-wartremover" % "2.4.2")
+addSbtPlugin("org.wartremover" % "sbt-wartremover-contrib" % "1.3.1")
 
 // deployment
 addSbtPlugin("com.typesafe.sbt" % "sbt-git" % "1.0.0")

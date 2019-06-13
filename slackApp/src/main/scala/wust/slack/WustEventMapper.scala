@@ -15,7 +15,7 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
 sealed trait GraphChangeEvent
-case class WustEventMapper(slackAppToken: String, persistenceAdapter: PersistenceAdapter)(
+final case class WustEventMapper(slackAppToken: String, persistenceAdapter: PersistenceAdapter)(
     implicit system: ActorSystem, scheduler: Scheduler, ec: ExecutionContext
   ) {
 
@@ -141,8 +141,8 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /* Delete channel or message */
     /*****************************/
 
-    case class SlackDeleteMessage(channelId: SlackChannelId, ts: SlackTimestamp, asUser: Option[Boolean] = None) extends GraphChangeEvent
-    case class SlackDeleteChannel(channelId: SlackChannelId) extends GraphChangeEvent
+    final case class SlackDeleteMessage(channelId: SlackChannelId, ts: SlackTimestamp, asUser: Option[Boolean] = None) extends GraphChangeEvent
+    final case class SlackDeleteChannel(channelId: SlackChannelId) extends GraphChangeEvent
 
     def generateSlackDeleteChannel(persistenceAdapter: PersistenceAdapter, nodeId: NodeId) = {
       for {
@@ -214,7 +214,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /* Undelete channel */
     /********************/
 
-    case class SlackUnarchiveChannel(channelId: SlackChannelId) extends GraphChangeEvent
+    final case class SlackUnarchiveChannel(channelId: SlackChannelId) extends GraphChangeEvent
 
     def generateSlackUnarchiveChannel(persistenceAdapter: PersistenceAdapter, nodeId: NodeId) = {
       for {
@@ -257,7 +257,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /***************/
     /* Add channel */
     /***************/
-    case class SlackCreateChannel(channelName: String, teamNode: NodeId) extends GraphChangeEvent
+    final case class SlackCreateChannel(channelName: String, teamNode: NodeId) extends GraphChangeEvent
 
     def generateSlackCreateChannel(persistenceAdapter: PersistenceAdapter, node: Node, edge: Edge) = {
       val channelMapping = Channel_Mapping(None, node.str, slack_deleted_flag = false, node.id, edge.sourceId)
@@ -301,7 +301,7 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /***************/
     /* Add message */
     /***************/
-    case class SlackCreateMessage(channelId: SlackChannelId, text: String, username: Option[String] = None, asUser: Option[Boolean] = None,
+    final case class SlackCreateMessage(channelId: SlackChannelId, text: String, username: Option[String] = None, asUser: Option[Boolean] = None,
       parse: Option[String] = None, linkNames: Option[String] = None, attachments: Option[Seq[Attachment]] = None,
       unfurlLinks: Option[Boolean] = None, unfurlMedia: Option[Boolean] = None, iconUrl: Option[String] = None,
       iconEmoji: Option[String] = None, replaceOriginal: Option[Boolean] = None,
@@ -362,8 +362,8 @@ case class WustEventMapper(slackAppToken: String, persistenceAdapter: Persistenc
     /* Update channel or message */
     /*****************************/
 
-    case class SlackRenameChannel(channelId: SlackChannelId, channelName: String) extends GraphChangeEvent
-    case class SlackUpdateMessage(channelId: SlackChannelId, ts: SlackTimestamp, text: String, asUser: Option[Boolean] = None) extends GraphChangeEvent
+    final case class SlackRenameChannel(channelId: SlackChannelId, channelName: String) extends GraphChangeEvent
+    final case class SlackUpdateMessage(channelId: SlackChannelId, ts: SlackTimestamp, text: String, asUser: Option[Boolean] = None) extends GraphChangeEvent
 
     def generateSlackRenameChannel(persistenceAdapter: PersistenceAdapter, channelNode: Node) = {
       for {

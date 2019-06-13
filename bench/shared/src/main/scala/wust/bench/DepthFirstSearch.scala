@@ -21,9 +21,9 @@ object DepthFirstSearch {
       })
     }
 
-    case class Vertex(id: String, name: String)
-    case class Edge(source: String, target: String)
-    case class Graph(vertices: Array[Vertex], edges: Array[Edge])
+    final case class Vertex(id: String, name: String)
+    final case class Edge(source: String, target: String)
+    final case class Graph(vertices: Array[Vertex], edges: Array[Edge])
     def generateLatticeGraphMap(size: Int): mutable.HashMap[String, Array[Vertex]] = {
       val flat = generateLatticeGraph(size)
       val vertices: Array[Vertex] = Array.tabulate(flat.size)(i => Vertex(i.toString, s"$i name"))

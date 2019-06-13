@@ -114,6 +114,8 @@ object ForceSimulationForces {
       .flatMap {
         case Array(c1, c2) =>
           // assumed: if c1 and c2 are part of the convex hull, they have by definition a tangent.
+
+          @SuppressWarnings(Array("org.wartremover.warts.OptionPartial"))
           val tangent = c1.outerTangentCCW(c2).get //TODO: can be none (c1 and c)
           // assert(!tangent.start.x.isNaN && !tangent.start.y.isNaN, s"tangent.start $tangent ($c1, $c2)")
           // assert(!tangent.end.x.isNaN && !tangent.end.y.isNaN, "tangent.end")
@@ -122,8 +124,8 @@ object ForceSimulationForces {
       .toArray): _*)
 
     val collisionPolygon: Vec2Array = {
-      if (convexHull.size == 0) throw new Exception("collision cluster without any convex hull")
-      else if (convexHull.size == 1) convexHull.head.sampleCircumference(4)
+      require(convexHull.size > 0, "collision cluster without any convex hull")
+      if (convexHull.size == 1) convexHull.head.sampleCircumference(4)
       else Vec2Array(((tangents ++ tangents.take(2))
         .sliding(4, 2).zip(convexHull.iterator.drop(1) ++ Iterator(convexHull.head))
         .flatMap {

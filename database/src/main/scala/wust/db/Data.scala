@@ -9,7 +9,7 @@ import scala.collection.mutable
 object Data {
   val DEFAULT = 0L
 
-  case class Node(
+  final case class Node(
     id: NodeId,
     data: NodeData,
     role: NodeRole,
@@ -18,7 +18,7 @@ object Data {
   )
 
   //TODO: needed because we cannot parse views properly...
-  case class NodeRaw(
+  final case class NodeRaw(
     id: NodeId,
     data: NodeData,
     role: NodeRole,
@@ -45,26 +45,26 @@ object Data {
     }
   }
 
-  case class User(
+  final case class User(
       id: UserId,
       data: NodeData.User,
       accessLevel: NodeAccess
   )
 
-  case class UserDetail(
+  final case class UserDetail(
       userId: UserId,
       email: Option[String],
       verified: Boolean
   )
 
-  case class SimpleUser(id: UserId, data: NodeData.User)
+  final case class SimpleUser(id: UserId, data: NodeData.User)
 
-  case class Edge(sourceId: NodeId, data: EdgeData, targetId: NodeId)
+  final case class Edge(sourceId: NodeId, data: EdgeData, targetId: NodeId)
 
-  case class MemberEdge(sourceId: NodeId, data: EdgeData.Member, targetId: UserId)
+  final case class MemberEdge(sourceId: NodeId, data: EdgeData.Member, targetId: UserId)
 
-  case class Password(userId: UserId, digest: Array[Byte])
-  case class WebPushSubscription(
+  final case class Password(userId: UserId, digest: Array[Byte])
+  final case class WebPushSubscription(
       id: Long,
       userId: UserId,
       endpointUrl: String,
@@ -84,9 +84,9 @@ object Data {
   }
 
   // Result of notifiedUsersByNodes
-  case class RawPushData(subscription: Data.WebPushSubscription, notifiedNodes: List[NodeId], subscribedNode: NodeId, subscribedNodeContent: String)
-  case class NotifyRow(userId: UserId, nodeIds: List[NodeId], subscribedNode: NodeId)
-  case class WebPushNotifications(
+  final case class RawPushData(subscription: Data.WebPushSubscription, notifiedNodes: List[NodeId], subscribedNode: NodeId, subscribedNodeContent: String)
+  final case class NotifyRow(userId: UserId, nodeIds: List[NodeId], subscribedNode: NodeId)
+  final case class WebPushNotifications(
     id: Long,
     userId: UserId,
     endpointUrl: String,
@@ -98,7 +98,7 @@ object Data {
   )
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
-  case class GraphRow(
+  final case class GraphRow(
     nodeId: NodeId,
     data: NodeData,
     role: NodeRole,
@@ -109,7 +109,7 @@ object Data {
   ) {
     require(targetIds.length == edgeData.length, "targetIds and connectionData need to have same arity")
   }
-  case class Graph(nodes: Array[Node], edges: Array[Edge])
+  final case class Graph(nodes: Array[Node], edges: Array[Edge])
   object Graph {
     def from(rows: Seq[GraphRow]): Graph = {
       val nodes = mutable.ArrayBuilder.make[Node]

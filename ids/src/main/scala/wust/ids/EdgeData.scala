@@ -16,15 +16,15 @@ object EdgeData {
   }
 
   // system convention
-  case class Author(timestamp: EpochMilli) extends Named with EdgeData {
+  final case class Author(timestamp: EpochMilli) extends Named with EdgeData {
     override def toString = s"Author(${timestamp.humanReadable})"
   }
   object Author extends Named
 
-  case class Member(level: AccessLevel) extends Named with EdgeData
+  final case class Member(level: AccessLevel) extends Named with EdgeData
   object Member extends Named
 
-  case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
+  final case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
     override def toString: String = s"Child(${deletedAt.map(_.humanReadable)}, $ordering)"
   }
   object Child extends Named {
@@ -33,7 +33,7 @@ object EdgeData {
   }
 
   case object Automated extends Named with EdgeData
-  case class DerivedFromTemplate(timestamp: EpochMilli) extends Named with EdgeData
+  final case class DerivedFromTemplate(timestamp: EpochMilli) extends Named with EdgeData
   object DerivedFromTemplate extends Named
 
   sealed trait PropertyKey
@@ -47,11 +47,11 @@ object EdgeData {
     def dueDate = LabeledProperty("Due Date")
   }
 
-  case class Read(timestamp: EpochMilli) extends Named with EdgeData
+  final case class Read(timestamp: EpochMilli) extends Named with EdgeData
 
   case object Notify extends Named with EdgeData
   case object Pinned extends Named with EdgeData
   case object Invite extends Named with EdgeData
 
-  case class Expanded(isExpanded: Boolean) extends Named with EdgeData
+  final case class Expanded(isExpanded: Boolean) extends Named with EdgeData
 }

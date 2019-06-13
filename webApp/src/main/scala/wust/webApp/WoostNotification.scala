@@ -14,7 +14,7 @@ import wust.webApp.views._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
-case class NotificationState(
+final case class NotificationState(
   permissionState: PermissionState,
   icon: IconLookup,
   description: String,
@@ -29,21 +29,21 @@ case class NotificationState(
 //  val changes: GraphChanges
 //  val changesOnSuccessPrompt: Boolean
 //}
-//case class Prompt(
+//final case class Prompt(
 //  permissionState: PermissionState,
 //  icon: IconLookup,
 //  description: String,
 //  changes: GraphChanges,
 //  changesOnSuccessPrompt: Boolean,
 //) extends NotificationState
-//case class Granted(
+//final case class Granted(
 //  permissionState: PermissionState,
 //  icon: IconLookup,
 //  description: String,
 //  changes: GraphChanges,
 //  changesOnSuccessPrompt: Boolean,
 //) extends NotificationState
-//case class Denied(
+//final case class Denied(
 //  permissionState: PermissionState,
 //  icon: IconLookup,
 //  description: String,
@@ -54,6 +54,7 @@ case class NotificationState(
 object WoostNotification {
 
   private def decorateNotificationIcon(state: GlobalState, notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {
+    @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     val default = "default".asInstanceOf[PermissionState]
 
     VDomModifier(

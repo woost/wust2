@@ -10,13 +10,13 @@ import scala.collection.{breakOut, mutable}
 object Wunderlist {
   type Id = Long
 
-  case class Account(
+  final case class Account(
     user: Id,
     exported: EpochMilli,
     data: Data
   )
 
-  case class Data(
+  final case class Data(
     lists: List[ListItem],
     tasks: List[TaskItem],
     reminders: List[ReminderItem],
@@ -26,7 +26,7 @@ object Wunderlist {
     subtask_positions: List[TaskPosition]
   )
 
-  case class ListItem(
+  final case class ListItem(
     id: Id,
     title: String,
     owner_type: String,
@@ -37,7 +37,7 @@ object Wunderlist {
     created_at: EpochMilli
   )
 
-  case class TaskItem(
+  final case class TaskItem(
     id: Id,
     created_at: EpochMilli,
     created_by_id: Id,
@@ -52,7 +52,7 @@ object Wunderlist {
     title: String,
   )
 
-  case class SubTaskItem(
+  final case class SubTaskItem(
     id: Id,
     task_id: Id,
     completed: Boolean,
@@ -65,13 +65,13 @@ object Wunderlist {
     title: String
   )
 
-  case class TaskPosition(
+  final case class TaskPosition(
     id: Id,
     revision: Int,
     values: List[Id]
   )
 
-  case class NoteItem(
+  final case class NoteItem(
     id: Id,
     revision: Int,
     content: String,
@@ -80,10 +80,10 @@ object Wunderlist {
   )
 
   //TODO
-  case class ReminderItem()
+  final case class ReminderItem()
 
   def translate(account: Account, currentTime: EpochMilli = EpochMilli.now): GraphChanges.Import = {
-    case class NodeInfo(nodeId: NodeId, doneStageId: Eval[NodeId])
+    final case class NodeInfo(nodeId: NodeId, doneStageId: Eval[NodeId])
 
     val addNodes = Array.newBuilder[Node]
     val addEdges = Array.newBuilder[Edge]

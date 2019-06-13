@@ -8,7 +8,7 @@ import wust.util.macros.InlineList
 import scala.collection.{breakOut, mutable}
 import scala.reflect.ClassTag
 
-case class GraphChanges(
+final case class GraphChanges(
   addNodes: Array[Node] = Array.empty,
   addEdges: Array[Edge] = Array.empty,
   // we do not really need a connection for deleting (ConnectionId instead), but we want to revert it again.
@@ -127,7 +127,7 @@ case class GraphChanges(
 }
 object GraphChanges {
 
-  case class Import(changes: GraphChanges, topLevelNodeIds: Seq[NodeId], focusNodeId: Option[NodeId])
+  final case class Import(changes: GraphChanges, topLevelNodeIds: Seq[NodeId], focusNodeId: Option[NodeId])
 
   val empty = new GraphChanges()
 

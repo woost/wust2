@@ -10,14 +10,14 @@ import wust.webApp.state.PageStyle
 
 object PageHeaderParts {
   /// Required parameters from the outer context
-  case class TabContextParms(
+  final case class TabContextParms(
     currentView : View,
     pageStyle : PageStyle,
     switchViewFn : (View) => Unit
   )
 
   /// Parameters that make out a tab
-  case class TabInfo(targetView : View,
+  final case class TabInfo(targetView : View,
                      icon : VDomModifier,
                      wording : String,
                      numItems : Int)

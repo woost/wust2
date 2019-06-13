@@ -165,6 +165,7 @@ object StaticData {
 
         // we set the style here, because the border can affect the size of the element
         // and we want to capture that in the post size
+        @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
         val elemSelection = d3.select(elem)
           .asInstanceOf[js.Dynamic]
           .classed("tag nodecard", false)
@@ -332,7 +333,8 @@ object StaticData {
     }
   }
 
-  private case class PartitionedConnections(
+  @SuppressWarnings(Array("org.wartremover.warts.ArrayEquals"))
+  private final case class PartitionedConnections(
       edges: Array[Edge],
       containments: Array[Edge],
       tags: Array[Edge]

@@ -27,7 +27,7 @@ object GraphOperation {
     }
   }
 
-  case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
+  final case class OnlyTaggedWith(tagId: NodeId) extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       pageIdx.flatMap { _ =>
         graph.idToIdx(tagId).map { tagIdx =>
@@ -125,7 +125,7 @@ object GraphOperation {
     }
   }
 
-  case class ContentContains(needle: String) extends UserViewGraphTransformation {
+  final case class ContentContains(needle: String) extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
       //TODO better without descendants? one dfs?
 

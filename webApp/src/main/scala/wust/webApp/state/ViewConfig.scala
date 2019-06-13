@@ -14,7 +14,7 @@ import wust.ids.View
 //TODO: get rid of pagechange, currently needed to know whether we should get a new graph on page change or not.
 // we only know whether we need this when changing the page. But it feels like mixing data and commands.
 
-case class ShareOptions(title: String, text: String, url: String)
-case class PageChange(page: Page, needsGet: Boolean = true)
+final case class ShareOptions(title: String, text: String, url: String)
+final case class PageChange(page: Page, needsGet: Boolean = true)
 
-case class ViewConfig(view: View.Visible, page: Page)
+final case class ViewConfig(view: View.Visible, page: Page)

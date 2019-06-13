@@ -6,7 +6,7 @@ import org.scalajs.dom.window
 import outwatch.dom.dsl._
 import rx._
 
-case class UrlRoute(search: Option[String], hash: Option[String])
+final case class UrlRoute(search: Option[String], hash: Option[String])
 
 object UrlRouter {
   private def locationRoute = {

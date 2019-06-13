@@ -56,7 +56,7 @@ object Logging {
 
   }
 
-  case class LogstashConfig(url: String) {
+  final case class LogstashConfig(url: String) {
     override def toString = s"LogstashConfig(${url.split("/").head})"
   }
 }

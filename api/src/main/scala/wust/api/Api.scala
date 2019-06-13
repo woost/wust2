@@ -67,13 +67,13 @@ trait AuthApi[Result[_]] {
   def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
 }
 
-case class Password(string: String) extends AnyVal {
+final case class Password(string: String) extends AnyVal {
   override def toString = "Password(***)"
 }
 
-case class ClientInfo(userAgent: String)
+final case class ClientInfo(userAgent: String)
 
-case class UserDetail(
+final case class UserDetail(
   userId: UserId,
   email: Option[String],
   verified: Boolean
@@ -95,17 +95,17 @@ object AuthUser {
   sealed trait Persisted extends AuthUser {
     def updateName(name: String): AuthUser.Persisted
   }
-  case class Real(id: UserId, name: String, revision: Int) extends Persisted {
+  final case class Real(id: UserId, name: String, revision: Int) extends Persisted {
     def toNode = Node.User(id, NodeData.User(name, isImplicit = false, revision), NodeMeta.User)
     override def toString = s"Real(${id.toBase58} ${id.toUuid}, $name, $revision)"
     def updateName(name: String) = copy(name = name)
   }
-  case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
+  final case class Implicit(id: UserId, name: String, revision: Int) extends Persisted {
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision), NodeMeta.User)
     override def toString = s"Implicit(${id.toBase58} ${id.toUuid}, $name, $revision)"
     def updateName(name: String) = copy(name = name)
   }
-  case class Assumed(id: UserId) extends AuthUser {
+  final case class Assumed(id: UserId) extends AuthUser {
     def name = ""
     def toNode = Node.User(id, NodeData.User(name, isImplicit = true, revision = 0), NodeMeta.User)
     override def toString = s"Assumed(${id.toBase58} ${id.toUuid})"
@@ -120,15 +120,15 @@ sealed trait Authentication {
   def dbUserOpt: Option[AuthUser.Persisted] = Some(user) collect { case u: AuthUser.Persisted => u }
 }
 object Authentication {
-  case class Token(string: String) extends AnyVal {
+  final case class Token(string: String) extends AnyVal {
     override def toString = "Token(***)"
   }
 
-  case class Assumed(user: AuthUser.Assumed) extends Authentication
+  final case class Assumed(user: AuthUser.Assumed) extends Authentication
   object Assumed {
     def fresh = Assumed(AuthUser.Assumed(UserId.fresh))
   }
-  case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication
+  final case class Verified(user: AuthUser.Persisted, expires: Long, token: Token) extends Authentication
 }
 
 sealed trait ApiError
@@ -155,7 +155,7 @@ object ApiEvent {
     def scope = Scope.Private
   }
 
-  case class NewGraphChanges(user: User, changes: GraphChanges, scope: ApiEvent.Scope) extends GraphContent
+  final case class NewGraphChanges(user: User, changes: GraphChanges, scope: ApiEvent.Scope) extends GraphContent
   object NewGraphChanges {
     def unapply(event: ApiEvent): Option[(User, GraphChanges)] = event match {
       case gc: NewGraphChanges => Some(gc.user -> gc.changes)
@@ -167,17 +167,17 @@ object ApiEvent {
     def forAll(user: User, changes: GraphChanges) = new NewGraphChanges(user, changes, Scope.All)
   }
 
-  case class ReplaceGraph(graph: Graph) extends GraphContent {
+  final case class ReplaceGraph(graph: Graph) extends GraphContent {
     def scope = Scope.Private
     override def toString = s"ReplaceGraph(#nodes: ${graph.nodes.size})"
   }
 
-  case class ReplaceNode(oldNodeId: NodeId, newNode: Node) extends GraphContent {
+  final case class ReplaceNode(oldNodeId: NodeId, newNode: Node) extends GraphContent {
     def scope = Scope.Public
   }
 
-  case class LoggedIn(auth: Authentication.Verified) extends AuthContent
-  case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent
+  final case class LoggedIn(auth: Authentication.Verified) extends AuthContent
+  final case class AssumeLoggedIn(auth: Authentication.Assumed) extends AuthContent
 
   def separateToPrivateAndPublicEvents(events: Seq[ApiEvent]): (List[ApiEvent], List[ApiEvent]) = {
     val privs = List.newBuilder[ApiEvent]
@@ -211,8 +211,8 @@ object ApiEvent {
 
 sealed trait FileUploadConfiguration
 object FileUploadConfiguration {
-  case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String, contentDisposition: String, cacheControl: String) extends FileUploadConfiguration
-  case class KeyExists(key: String) extends FileUploadConfiguration
+  final case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String, contentDisposition: String, cacheControl: String) extends FileUploadConfiguration
+  final case class KeyExists(key: String) extends FileUploadConfiguration
   case object QuotaExceeded extends FileUploadConfiguration
   case object ServiceUnavailable extends FileUploadConfiguration
 
@@ -220,14 +220,14 @@ object FileUploadConfiguration {
   val maxUploadBytesPerUser = 500 * 1024 * 1024 // 500 mb
   val cacheMaxAgeSeconds = 365 * 24 * 60 * 60 // 1 year
 }
-case class StaticFileUrl(url: String)
-case class UploadedFile(nodeId: NodeId, size: Long, file: NodeData.File)
+final case class StaticFileUrl(url: String)
+final case class UploadedFile(nodeId: NodeId, size: Long, file: NodeData.File)
 
-case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
+final case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
 
 object Heuristic {
-  case class PostResult(measure: Option[Double], nodes: List[Node.Content])
-  case class IdResult(measure: Option[Double], nodeIds: List[NodeId])
+  final case class PostResult(measure: Option[Double], nodes: List[Node.Content])
+  final case class IdResult(measure: Option[Double], nodeIds: List[NodeId])
 
   type Result = PostResult
   type ApiResult = IdResult
@@ -235,4 +235,4 @@ object Heuristic {
 
 
 // Simple Api
-case class SimpleNode(id:NodeId, content: String, role: NodeRole)
+final case class SimpleNode(id:NodeId, content: String, role: NodeRole)

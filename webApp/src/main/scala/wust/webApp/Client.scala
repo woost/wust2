@@ -18,6 +18,7 @@ import scala.concurrent.Future
 import scala.scalajs.LinkingInfo
 import scala.util.{Failure, Success}
 
+@SuppressWarnings(Array("org.wartremover.warts.FinalCaseClass")) //TODO
 object Client {
   import window.location
   // in firefox or chrome: location.port is always set

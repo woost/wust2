@@ -5,7 +5,7 @@ import wust.api.Authentication
 import wust.graph.Page
 import wust.ids.View
 
-case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
+final case class UrlConfig(view: Option[View], pageChange: PageChange, redirectTo: Option[View], shareOptions: Option[ShareOptions], invitation: Option[Authentication.Token]) {
   private val canRedirectTo: View => Boolean = {
     case View.Login | View.Signup => false
     case _ => true

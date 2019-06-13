@@ -809,7 +809,7 @@ object Components {
     }
   }
 
-  case class MenuItem(title: VDomModifier, description: VDomModifier, active: Rx[Boolean], clickAction: () => Unit)
+  final case class MenuItem(title: VDomModifier, description: VDomModifier, active: Rx[Boolean], clickAction: () => Unit)
   object MenuItem {
     def apply(title: VDomModifier, description: VDomModifier, active: Boolean, clickAction: () => Unit): MenuItem =
       new MenuItem(title, description, Var(active), clickAction)

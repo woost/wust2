@@ -6,7 +6,7 @@ import wust.ids.{NodeId, NodeRole}
 @AppName("Woost")
 @AppVersion("0.1.0")
 @ProgName("woost-cli")
-case class AppOptions(
+final case class AppOptions(
   @HelpMessage("Profile to load")
   @ValueDescription("profile-name")
   @ExtraName("p")
@@ -19,7 +19,7 @@ sealed trait AppCommand
 object AppCommand {
   sealed trait Runnable extends AppCommand
 
-  case class NodeConfig(
+  final case class NodeConfig(
     @HelpMessage("Specify NodeRole (default: Task): Task, Message, Project")
     @ValueDescription("node-role")
     @ExtraName("r")
@@ -30,12 +30,12 @@ object AppCommand {
     parentId: Option[NodeId],
   )
 
-  case class List(
+  final case class List(
     @Recurse
     nodeConfig: NodeConfig,
   ) extends Runnable
 
-  case class Add(
+  final case class Add(
     @Recurse
     nodeConfig: NodeConfig,
     @HelpMessage("Pin Node")
@@ -46,7 +46,7 @@ object AppCommand {
     message: String
   ) extends Runnable
 
-  case class Configure(
+  final case class Configure(
     username: Option[String],
     password: Option[String],
     url: Option[String]

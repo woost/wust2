@@ -33,51 +33,51 @@ object Edge {
   sealed trait Content extends Edge
 
   // User-Edges
-  case class Assigned(nodeId: NodeId, userId: UserId) extends Edge.User {
+  final case class Assigned(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Assigned
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Author(nodeId: NodeId, data: EdgeData.Author, userId: UserId) extends Edge.User {
+  final case class Author(nodeId: NodeId, data: EdgeData.Author, userId: UserId) extends Edge.User {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Expanded(nodeId: NodeId, data: EdgeData.Expanded, userId: UserId) extends Edge.User {
+  final case class Expanded(nodeId: NodeId, data: EdgeData.Expanded, userId: UserId) extends Edge.User {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Invite(nodeId: NodeId, userId: UserId) extends Edge.User {
+  final case class Invite(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Invite
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Member(nodeId: NodeId, data: EdgeData.Member, userId: UserId) extends Edge.User {
+  final case class Member(nodeId: NodeId, data: EdgeData.Member, userId: UserId) extends Edge.User {
     def level = data.level
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
-  case class Notify(nodeId: NodeId, userId: UserId) extends Edge.User {
+  final case class Notify(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Notify
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Pinned(nodeId: NodeId, userId: UserId) extends Edge.User {
+  final case class Pinned(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Pinned
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
-  case class Read(nodeId: NodeId, data: EdgeData.Read, userId: UserId) extends Edge.User {
+  final case class Read(nodeId: NodeId, data: EdgeData.Read, userId: UserId) extends Edge.User {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
   // Content-Edges
-  case class Automated(nodeId: NodeId, templateNodeId: TemplateId) extends Edge.Content {
+  final case class Automated(nodeId: NodeId, templateNodeId: TemplateId) extends Edge.Content {
     def sourceId = nodeId
     def targetId = templateNodeId
     def data = EdgeData.Automated
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, templateNodeId = TemplateId(targetId))
   }
 
-  case class Child(parentId: ParentId, data: EdgeData.Child, childId: ChildId) extends Edge.Content {
+  final case class Child(parentId: ParentId, data: EdgeData.Child, childId: ChildId) extends Edge.Content {
     def sourceId: NodeId = parentId
     def targetId: NodeId = childId
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(parentId = ParentId(sourceId), childId = ChildId(targetId))
@@ -89,13 +89,13 @@ object Edge {
     @inline def apply(parentId: ParentId, deletedAt: Option[EpochMilli], childId: ChildId): Child = Child(parentId, EdgeData.Child(deletedAt, ordering = CuidOrdering.calculate(childId)), childId)
   }
 
-  case class DerivedFromTemplate(nodeId: NodeId, data: EdgeData.DerivedFromTemplate, referenceNodeId: TemplateId) extends Edge.Content {
+  final case class DerivedFromTemplate(nodeId: NodeId, data: EdgeData.DerivedFromTemplate, referenceNodeId: TemplateId) extends Edge.Content {
     def sourceId = nodeId
     def targetId = referenceNodeId
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, referenceNodeId = TemplateId(targetId))
   }
 
-  case class LabeledProperty(nodeId: NodeId, data: EdgeData.LabeledProperty, propertyId: PropertyId) extends Edge.Content {
+  final case class LabeledProperty(nodeId: NodeId, data: EdgeData.LabeledProperty, propertyId: PropertyId) extends Edge.Content {
     def sourceId = nodeId
     def targetId = propertyId
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, propertyId = PropertyId(targetId))
@@ -123,7 +123,7 @@ object EdgeEquality {
   case object Never extends EdgeEquality {
     def eq(other: EdgeEquality): Boolean = false
   }
-  case class Unique(sourceId: NodeId, tpe: EdgeData.Type, key: String, targetId: NodeId) extends EdgeEquality {
+  final case class Unique(sourceId: NodeId, tpe: EdgeData.Type, key: String, targetId: NodeId) extends EdgeEquality {
     def eq(other: EdgeEquality): Boolean = equals(other)
   }
   object Unique {

@@ -30,11 +30,11 @@ object NotificationView {
     def timestamp: EpochMilli
   }
   object Revision {
-    case class Delete(timestamp: EpochMilli) extends Revision
-    case class Edit(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
-    case class Create(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
+    final case class Delete(timestamp: EpochMilli) extends Revision
+    final case class Edit(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
+    final case class Create(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
   }
-  case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision])
+  final case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision])
 
   object LatestChangeInGroupOrdering extends Ordering[(Int, Array[UnreadNode])] {
     def compare(a: (Int, Array[UnreadNode]), b: (Int, Array[UnreadNode])) = {

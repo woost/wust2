@@ -143,8 +143,8 @@ object AppServer {
       HttpOriginRange(config.appServer.allowedOrigins.map(HttpOrigin(_)): _*)
     )
 
-    case class IssueEvent(action: String, issue: Issue)
-    case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
+    final case class IssueEvent(action: String, issue: Issue)
+    final case class IssueCommentEvent(action: String, issue: Issue, comment: Comment)
 
     val tokenObserver = ConcurrentSubject.publish[AuthenticationData]
     tokenObserver.foreach{ t =>
@@ -240,9 +240,9 @@ object AppServer {
 
 sealed trait GithubCall
 
-case class CreateIssue(owner: String, repo: String, title: String, content: String, nodeId: NodeId)
+final case class CreateIssue(owner: String, repo: String, title: String, content: String, nodeId: NodeId)
     extends GithubCall
-case class EditIssue(
+final case class EditIssue(
     owner: String,
     repo: String,
     externalNumber: Int,
@@ -251,7 +251,7 @@ case class EditIssue(
     content: String,
     nodeId: NodeId
 ) extends GithubCall
-case class DeleteIssue(
+final case class DeleteIssue(
     owner: String,
     repo: String,
     externalNumber: Int,
@@ -259,21 +259,21 @@ case class DeleteIssue(
     content: String,
     nodeId: NodeId
 ) extends GithubCall
-case class CreateComment(
+final case class CreateComment(
     owner: String,
     repo: String,
     externalIssueNumber: Int,
     content: String,
     nodeId: NodeId
 ) extends GithubCall
-case class EditComment(
+final case class EditComment(
     owner: String,
     repo: String,
     externalId: Int,
     content: String,
     nodeId: NodeId
 ) extends GithubCall
-case class DeleteComment(owner: String, repo: String, externalId: Int, nodeId: NodeId)
+final case class DeleteComment(owner: String, repo: String, externalId: Int, nodeId: NodeId)
     extends GithubCall
 
 trait MessageReceiver {
@@ -302,7 +302,7 @@ object WustReceiver {
     def empty: GraphTransition =
       new GraphTransition(Graph.empty, Seq.empty[GraphChanges], Graph.empty)
   }
-  case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
+  final case class GraphTransition(prevGraph: Graph, changes: Seq[GraphChanges], resGraph: Graph)
 
   def run(config: WustConfig, github: GithubClient)(implicit system: ActorSystem): WustReceiver = {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
@@ -630,7 +630,7 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 
   import github4s.jvm.Implicits._
 
-  case class Error(desc: String)
+  final case class Error(desc: String)
 
   def createIssue(i: CreateIssue): Future[Either[Error, Issue]] =
     client.issues
@@ -703,13 +703,13 @@ class GithubClient(client: Github)(implicit ec: ExecutionContext) {
 
 case object EventCoordinator {
   // TODO: Which data structure do I want here?
-  case class Buffer[T](buffer: List[T])
-  case class BufferItem(
+  final case class Buffer[T](buffer: List[T])
+  final case class BufferItem(
       githubCall: GithubCall,
       completedByFuture: Boolean,
       completedByHook: Boolean
   )
-  case class BufferCompletion(completedByFuture: Boolean, completedByHook: Boolean)
+  final case class BufferCompletion(completedByFuture: Boolean, completedByHook: Boolean)
 
   val bufferMap: mutable.Map[GithubCall, BufferCompletion] =
     mutable.Map.empty[GithubCall, BufferCompletion]

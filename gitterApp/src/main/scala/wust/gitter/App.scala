@@ -50,7 +50,7 @@ object Constants {
 //  }
 //}
 
-case class ExchangeMessage(content: String)
+final case class ExchangeMessage(content: String)
 
 trait MessageReceiver {
   type Result[T] = Future[Either[String, T]]

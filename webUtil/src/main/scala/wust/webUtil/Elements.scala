@@ -30,7 +30,7 @@ import scala.scalajs.js
 // They could be contributed to outwatch and used in other projects
 
 object Elements {
-  case class UnsafeHTML(html: String) extends AnyVal
+  final case class UnsafeHTML(html: String) extends AnyVal
   val innerHTML: PropBuilder[UnsafeHTML] = prop[UnsafeHTML]("innerHTML", _.html)
 
   def scrollToBottom(elem: dom.Element): Unit = {

@@ -19,7 +19,7 @@ import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
 object AWS {
-  case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]])
+  final case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]])
 
   def upload(state: GlobalState, file: dom.File): Either[String, UploadableFile] = { // TODO: return either and propagate error message to form error instead of toast
     state.user.now match {

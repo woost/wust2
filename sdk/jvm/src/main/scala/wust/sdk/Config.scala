@@ -1,16 +1,16 @@
 package wust.sdk
 
-case class WustConfig(host: String, port: Int, user: String, email: String, password: String) {
+final case class WustConfig(host: String, port: Int, user: String, email: String, password: String) {
   override def toString = s"WustConfig($host, $port, $user, $email, ***)"
 }
-case class ServerConfig(
+final case class ServerConfig(
                          host: String,
                          port: Int,
                          webhookPath: String,
                          allowedOrigins: List[String],
                        )
 
-case class OAuthConfig(clientId: String,
+final case class OAuthConfig(clientId: String,
   clientSecret: String,
   siteUri: String,
   authPath: Option[String],
@@ -21,7 +21,7 @@ case class OAuthConfig(clientId: String,
   override def toString = s"OAuthConfig(***, ***, $siteUri, $authPath, $redirectUri, $authorizeUrl, $tokenUrl)"
 }
 
-case class DefaultConfig(appServer: ServerConfig, wustServer: WustConfig, oAuth: OAuthConfig)
+final case class DefaultConfig(appServer: ServerConfig, wustServer: WustConfig, oAuth: OAuthConfig)
 
 object Config {
   import pureconfig._

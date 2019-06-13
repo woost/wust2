@@ -8,7 +8,7 @@ import wust.util.collection.{BasicMap, eitherSeq}
 import scala.collection.breakOut
 import scala.util.{Failure, Success, Try}
 
-case class Task(
+final case class Task(
   id: String,
   token: String,
   name: String,
@@ -26,18 +26,18 @@ case class Task(
   comments: Seq[Comment]
 )
 
-case class CheckItem(
+final case class CheckItem(
   checked: Boolean,
   name: String,
 )
 
-case class Comment(
+final case class Comment(
   name: String,
   author: String,
   date: EpochMilli
 )
 
-case class Project(
+final case class Project(
   name: String,
   tasks: Seq[Task]
 )

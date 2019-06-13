@@ -165,5 +165,5 @@ object Cuid {
 
   @inline implicit def ord:Ordering[Cuid] = Ordering.by(cuid => (cuid.left, cuid.right))
 
-  @inline case class Parts(timestamp: Long, counter: Int, fingerprint: Int, random: Long)
+  @inline final case class Parts(timestamp: Long, counter: Int, fingerprint: Int, random: Long)
 }

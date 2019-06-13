@@ -117,9 +117,9 @@ object JWT {
 
   sealed trait CustomClaim
   object CustomClaim {
-    case class UserAuth(user: AuthUser.Persisted) extends CustomClaim
-    case class Invitation(user: AuthUser.Implicit) extends CustomClaim
-    case class EmailVerify(userId: UserId, email: String) extends CustomClaim
+    final case class UserAuth(user: AuthUser.Persisted) extends CustomClaim
+    final case class Invitation(user: AuthUser.Implicit) extends CustomClaim
+    final case class EmailVerify(userId: UserId, email: String) extends CustomClaim
 
     import io.circe._
     import io.circe.generic.extras.semiauto._
@@ -128,4 +128,4 @@ object JWT {
   }
 }
 
-case class VerifiedEmailActivationToken(userId: UserId, email: String, expires: Long)
+final case class VerifiedEmailActivationToken(userId: UserId, email: String, expires: Long)

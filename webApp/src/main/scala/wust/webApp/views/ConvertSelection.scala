@@ -11,7 +11,7 @@ import wust.webApp.state.GlobalState
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
-case class ConvertSelection(
+final case class ConvertSelection(
   role: NodeRole,
   icon: IconLookup,
   description: String,
