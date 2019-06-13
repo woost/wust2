@@ -203,13 +203,13 @@ object EditElementParser {
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
     def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.modifier, Elements.dateInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.modifier, Elements.dateInputMod),
       elem => Task.pure(EditInteraction.Input(DateMilli(EpochMilli.parse(elem.value).getOrElse(EpochMilli.zero))))
     )
   }
   implicit object EditTimeMilli extends EditElementParser[TimeMilli] {
     def render(config: Config, initial: Task[Option[TimeMilli]], handler: Handler[EditInteraction[TimeMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.modifier, Elements.timeInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.modifier, Elements.timeInputMod),
       elem => Task.pure(EditInteraction.Input(TimeMilli(StringJsOps.timeStringToTime(elem.value).getOrElse(EpochMilli.zero))))
     )
   }
