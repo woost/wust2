@@ -85,6 +85,7 @@ object EditableContent {
       EditElementParser[T].render(EditElementParser.Config(
         inputEmitter = inputEmitter(config),
         inputModifier = inputModifiers(config, handler.edit),
+        blurEmitter = blurEmitter(config),
         emitter = emitter(handler.save),
         modifier = basicModifiers(config, handler.edit),
       ), Task.pure(initial), handler.edit)
@@ -333,12 +334,16 @@ object EditableContent {
     onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
   )
 
+  private def blurEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
+    config.submitMode match {
+      case SubmitMode.Explicit => onBlur.transform(_.delayOnNext(200 millis))
+      case SubmitMode.Emitter(builders) => EmitterBuilder.empty
+    }
+  }
+
   private def inputEmitter(config: Config): EmitterBuilder[Any, VDomModifier] = {
     val emitters = config.submitMode match {
-      case SubmitMode.Explicit => Seq(
-        // we delay the blur event, because otherwise in chrome it will trigger Before the onEscape, and we want onEscape to trigger frist.
-        onBlur.transform(_.delayOnNext(200 millis))
-      ) ++ (if (config.submitOnEnter) Seq(onEnter) else Seq(onCtrlEnter))
+      case SubmitMode.Explicit => if (config.submitOnEnter) Seq(onEnter) else Seq(onCtrlEnter)
       case SubmitMode.Emitter(builders) => builders
     }
 

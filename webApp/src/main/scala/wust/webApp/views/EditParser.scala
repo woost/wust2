@@ -174,6 +174,7 @@ object EditElementParser {
   case class Config(
     inputEmitter: EmitterBuilder[Any, VDomModifier], // emitter to be applied to an input element. but can be overwritten by element parser if not applicable. e.g. for file input only onChange/onInput makes sense.
     inputModifier: VDomModifier, // modifiers to be applied to an input element. but can be overwritten by element parser if not applicable. e.g.  for file input additional modifiers make no sense>
+    blurEmitter: EmitterBuilder[Any, VDomModifier], // emitter for blur event, if enabled, it may be used by the edit element
     emitter: EmitterBuilder[Any, VDomModifier], // mandatory emitter for any edit element. when this trigger we expect to parse and emit the current value.
     modifier: VDomModifier, // mandatory modifiers for any edit element. we expect this to be applied to the main edit element.
   )
@@ -184,32 +185,32 @@ object EditElementParser {
 
   implicit def EditStringParsing[T: EditStringParser: ValueStringifier]: EditElementParser[T] = new EditElementParser[T] {
     def render(config: Config, initial: Task[Option[T]], handler: Handler[EditInteraction[T]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.textInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.textInputMod),
       elem => EditStringParser[T].parse(elem.value)
     )
   }
 
   implicit object EditInteger extends EditElementParser[Int] {
     def render(config: Config, initial: Task[Option[Int]], handler: Handler[EditInteraction[Int]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.integerInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.integerInputMod),
       elem => Task.pure(EditInteraction.fromEither(Try(elem.valueAsNumber.toInt).toOption.toRight("Not an Integer Number")))
     )
   }
   implicit object EditDouble extends EditElementParser[Double] {
     def render(config: Config, initial: Task[Option[Double]], handler: Handler[EditInteraction[Double]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.decimalInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter, config.blurEmitter), VDomModifier(config.inputModifier, config.modifier, Elements.decimalInputMod),
       elem => Task.pure(EditInteraction.fromEither(util.Try(elem.valueAsNumber).toOption.toRight("Not a Double Number")))
     )
   }
   implicit object EditDateMilli extends EditElementParser[DateMilli] {
     def render(config: Config, initial: Task[Option[DateMilli]], handler: Handler[EditInteraction[DateMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.modifier, Elements.dateInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.modifier, Elements.dateInputMod),
       elem => Task.pure(EditInteraction.Input(DateMilli(EpochMilli.parse(elem.value).getOrElse(EpochMilli.zero))))
     )
   }
   implicit object EditTimeMilli extends EditElementParser[TimeMilli] {
     def render(config: Config, initial: Task[Option[TimeMilli]], handler: Handler[EditInteraction[TimeMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.modifier, Elements.timeInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, config.inputEmitter), VDomModifier(config.modifier, Elements.timeInputMod),
       elem => Task.pure(EditInteraction.Input(TimeMilli(StringJsOps.timeStringToTime(elem.value).getOrElse(EpochMilli.zero))))
     )
   }
