@@ -14,6 +14,8 @@ scalaVersion in ThisBuild := "2.12.8"
 // 2.11 is needed for android app
 crossScalaVersions in ThisBuild := Seq("2.11.12", scalaVersion.value)
 
+Global / onChangedBuildSource := ReloadOnSourceChanges
+
 lazy val commonSettings = Seq(
 
 //  exportJars := true, // for android app
