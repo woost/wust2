@@ -19,9 +19,12 @@ OVERRIDE_BRANCH=production ci/build-docker
 docker images | grep production
 echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" "$DOCKER_REGISTRY" --password-stdin;
 
-docker push "$DOCKER_REGISTRY/woost/db-migration:production-core"
-docker push "$DOCKER_REGISTRY/woost/core:production"
-docker push "$DOCKER_REGISTRY/woost/web:production"
+docker tag "woost/db-migration:staging-core" "$DOCKER_REGISTRY/woost/db-migration:staging-core"
+docker push "$DOCKER_REGISTRY/woost/db-migration:staging-core"
+docker tag "woost/core:staging" "$DOCKER_REGISTRY/woost/core:staging"
+docker push "$DOCKER_REGISTRY/woost/core:staging"
+docker tag "woost/web:staging" "$DOCKER_REGISTRY/woost/web:staging"
+docker push "$DOCKER_REGISTRY/woost/web:staging"
 
 if [[ -n "$PRODUCTION_URL" ]]; then
     echo "Triggering production deploy..."

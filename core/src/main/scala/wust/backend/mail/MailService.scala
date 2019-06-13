@@ -3,18 +3,10 @@ package wust.backend.mail
 import monix.eval.Task
 import wust.backend.config._
 
-<<<<<<< HEAD
-final case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
-final case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
-||||||| merged common ancestors
-case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty)
-case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
-=======
-case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty) {
+final case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty) {
   def exists(f: String => Boolean) = to.exists(f) || cc.exists(f) || bcc.exists(f)
 }
-case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
->>>>>>> support blocking certain recipient email domains
+final case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
 
 trait MailService {
   def sendMail(message: MailMessage): Task[MailService.Result]
