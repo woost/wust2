@@ -80,7 +80,8 @@ object ChatView {
     selectedNodes: Var[Set[SelectedNode]],
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: PublishSubject[Unit],
-  )(implicit ctx: Ctx.Owner) = VDomModifier (    position.relative, // for absolute positioning of selectednodes
+  )(implicit ctx: Ctx.Owner) = VDomModifier (
+    position.relative, // for absolute positioning of selectednodes
     SelectedNodes[SelectedNode](
       state,
       selectedNodes,
@@ -91,89 +92,6 @@ object ChatView {
         width := "100%"
       )
     )
-
-  private def renderCurrentReply(
-    state: GlobalState,
-    focusState: FocusState,
-    selectedNodes: Var[Set[SelectedNode]],
-    inputFieldFocusTrigger: PublishSubject[Unit],
-    currentReply: Var[Set[NodeId]],
-    pinReply: Var[Boolean]
-  )(implicit ctx: Ctx.Owner): Rx[BasicVNode] = {
-    Rx {
-      val graph = state.graph()
-      div(
-        Styles.flexStatic,
-
-        Styles.flex,
-        currentReply().map { replyNodeId =>
-          val isDeletedNow = graph.isDeletedNow(replyNodeId, focusState.focusedId)
-          val node = graph.nodesByIdOrThrow(replyNodeId)
-          div(
-            padding := "5px",
-            minWidth := "0", // fixes overflow-wrap for parent preview
-            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
-            div(
-              Styles.flex,
-              renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
-              closeButton(
-                marginLeft.auto,
-                onTap foreach { currentReply.update(_ - replyNodeId) }
-              ),
-            )
-          )
-        }(breakOut): Seq[VDomModifier]
-      )
-    }
-  }
-
-  private def chatInput(
-    state: GlobalState,
-    focusState: FocusState,
-    currentReply: Var[Set[NodeId]],
-    pinReply: Var[Boolean],
-    scrollHandler: ScrollBottomHandler,
-    inputFieldFocusTrigger: PublishSubject[Unit],
-  )(implicit ctx: Ctx.Owner) = {
-    val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
-    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
-
-    def submitAction(str: String): Unit = {
-
-      val replyNodes: Set[NodeId] = {
-        if (currentReply.now.nonEmpty) currentReply.now
-        else Set(focusState.focusedId)
-      }
-
-      //TODO: share code with threadview
-      val basicNode = Node.MarkdownMessage(str)
-      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes))
-      fileUploadHandler.now match {
-        case None             => state.eventProcessor.changes.onNext(basicGraphChanges)
-        case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
-      }
-
-      if (!pinReply.now) currentReply() = Set.empty[NodeId]
-      fileUploadHandler() = None
-      scrollHandler.scrollToBottomInAnimationFrame()
-    }
-
-    InputRow(
-      state,
-      submitAction,
-      fileUploadHandler = Some(fileUploadHandler),
-      scrollHandler = Some(scrollHandler),
-      preFillByShareApi = true,
-      autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
-      triggerFocus = inputFieldFocusTrigger,
-      showMarkdownHelp = !BrowserDetect.isMobile,
-      enforceUserName = true,
-      placeholder = Placeholder.newMessage
-    )(ctx)(
-        Styles.flexStatic,
-        Rx{ backgroundColor :=? bgColor() }
-      )
-  }
 
   private def chatHistory(
     state: GlobalState,
@@ -238,6 +156,68 @@ object ChatView {
       scrollHandler.modifier,
     )
   }
+
+  private def selectChatMessages(pageParentId: NodeId, graph: Graph): js.Array[Int] = {
+    graph.idToIdxFold(pageParentId)(js.Array[Int]()) { pageParentIdx =>
+      val nodeSet = ArraySet.create(graph.nodes.length)
+      var nodeCount = 0
+
+      dfs.withContinue(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
+        val node = graph.nodes(nodeIdx)
+        node.role match {
+          case NodeRole.Message =>
+            nodeSet.add(nodeIdx)
+            nodeCount += 1
+          case _ =>
+        }
+        true // always continue traversal
+      })
+
+      val nodes = new js.Array[Int](nodeCount)
+      nodeSet.foreachIndexAndElement((i, nodeIdx) => nodes(i) = nodeIdx)
+      sortByCreated(nodes, graph)
+      nodes
+    }
+  }
+
+  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentId: NodeId): Array[Array[Int]] = {
+    if (messages.isEmpty) Array[Array[Int]]()
+    else {
+      val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
+      val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
+      val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
+      var lastAuthor: Int = -2 // to distinguish between no author and no previous group
+      var lastParents: IndexedSeq[Int] = null
+      messages.foreach { message =>
+        val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
+        val parents: IndexedSeq[Int] = graph.parentsIdx(message).filter{ idx =>
+          val role = graph.nodes(idx).role
+          role != NodeRole.Stage && role != NodeRole.Tag
+        } // is there a more efficient way to ignore certain kinds of parent roles?
+
+        @inline def differentParents = lastParents != null && parents != lastParents
+        @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
+        @inline def noParents = lastParents != null && parents.forall(_ == pageParentIdx)
+        @inline def introduceGroupSplit(): Unit = {
+          groupsBuilder += currentGroupBuilder.result()
+          currentGroupBuilder.clear()
+        }
+
+        if (differentParents) {
+          introduceGroupSplit()
+        } else if (differentAuthors && noParents) {
+          introduceGroupSplit()
+        }
+
+        currentGroupBuilder += message
+        lastAuthor = author
+        lastParents = parents
+      }
+      groupsBuilder += currentGroupBuilder.result()
+      groupsBuilder.result()
+    }
+  }
+
 
   private def thunkRxFun(state: GlobalState, graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
@@ -450,66 +430,6 @@ object ChatView {
     )
   }
 
-  private def selectChatMessages(pageParentId: NodeId, graph: Graph): js.Array[Int] = {
-    graph.idToIdxFold(pageParentId)(js.Array[Int]()) { pageParentIdx =>
-      val nodeSet = ArraySet.create(graph.nodes.length)
-      var nodeCount = 0
-
-      dfs.withContinue(_ (pageParentIdx), dfs.afterStart, graph.childrenIdx, continue = { nodeIdx =>
-        val node = graph.nodes(nodeIdx)
-        node.role match {
-          case NodeRole.Message =>
-            nodeSet.add(nodeIdx)
-            nodeCount += 1
-          case _ =>
-        }
-        true // always continue traversal
-      })
-
-      val nodes = new js.Array[Int](nodeCount)
-      nodeSet.foreachIndexAndElement((i, nodeIdx) => nodes(i) = nodeIdx)
-      sortByCreated(nodes, graph)
-      nodes
-    }
-  }
-
-  private def calculateMessageGrouping(messages: js.Array[Int], graph: Graph, pageParentId: NodeId): Array[Array[Int]] = {
-    if (messages.isEmpty) return Array[Array[Int]]()
-
-    val pageParentIdx = graph.idToIdxOrThrow(pageParentId)
-    val groupsBuilder = mutable.ArrayBuilder.make[Array[Int]]
-    val currentGroupBuilder = new mutable.ArrayBuilder.ofInt
-    var lastAuthor: Int = -2 // to distinguish between no author and no previous group
-    var lastParents: IndexedSeq[Int] = null
-    messages.foreach { message =>
-      val author: Int = graph.nodeCreatorIdx(message) // without author, returns -1
-      val parents: IndexedSeq[Int] = graph.parentsIdx(message).filter{ idx =>
-        val role = graph.nodes(idx).role
-        role != NodeRole.Stage && role != NodeRole.Tag
-      } // is there a more efficient way to ignore certain kinds of parent roles?
-
-      @inline def differentParents = lastParents != null && parents != lastParents
-      @inline def differentAuthors = lastAuthor != -2 && author != lastAuthor
-      @inline def noParents = lastParents != null && parents.forall(_ == pageParentIdx)
-      @inline def introduceGroupSplit(): Unit = {
-        groupsBuilder += currentGroupBuilder.result()
-        currentGroupBuilder.clear()
-      }
-
-      if (differentParents) {
-        introduceGroupSplit()
-      } else if (differentAuthors && noParents) {
-        introduceGroupSplit()
-      }
-
-      currentGroupBuilder += message
-      lastAuthor = author
-      lastParents = parents
-    }
-    groupsBuilder += currentGroupBuilder.result()
-    groupsBuilder.result()
-  }
-
   //TODO share code with threadview?
   private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit]): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
@@ -521,4 +441,89 @@ object ChatView {
       }
     )
   )
+
+  private def renderCurrentReply(
+    state: GlobalState,
+    focusState: FocusState,
+    selectedNodes: Var[Set[SelectedNode]],
+    inputFieldFocusTrigger: PublishSubject[Unit],
+    currentReply: Var[Set[NodeId]],
+    pinReply: Var[Boolean]
+  )(implicit ctx: Ctx.Owner): Rx[BasicVNode] = {
+    Rx {
+      val graph = state.graph()
+      div(
+        Styles.flexStatic,
+
+        Styles.flex,
+        currentReply().map { replyNodeId =>
+          val isDeletedNow = graph.isDeletedNow(replyNodeId, focusState.focusedId)
+          val node = graph.nodesByIdOrThrow(replyNodeId)
+          div(
+            padding := "5px",
+            minWidth := "0", // fixes overflow-wrap for parent preview
+            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
+            div(
+              Styles.flex,
+              renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
+              closeButton(
+                marginLeft.auto,
+                onTap foreach { currentReply.update(_ - replyNodeId) }
+              ),
+            )
+          )
+        }(breakOut): Seq[VDomModifier]
+      )
+    }
+  }
+
+  private def chatInput(
+    state: GlobalState,
+    focusState: FocusState,
+    currentReply: Var[Set[NodeId]],
+    pinReply: Var[Boolean],
+    scrollHandler: ScrollBottomHandler,
+    inputFieldFocusTrigger: PublishSubject[Unit],
+  )(implicit ctx: Ctx.Owner) = {
+    val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
+    val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
+
+    def submitAction(str: String): Unit = {
+
+      val replyNodes: Set[NodeId] = {
+        if (currentReply.now.nonEmpty) currentReply.now
+        else Set(focusState.focusedId)
+      }
+
+      //TODO: share code with threadview
+      val basicNode = Node.MarkdownMessage(str)
+      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes))
+      fileUploadHandler.now match {
+        case None             => state.eventProcessor.changes.onNext(basicGraphChanges)
+        case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
+      }
+
+      if (!pinReply.now) currentReply() = Set.empty[NodeId]
+      fileUploadHandler() = None
+      scrollHandler.scrollToBottomInAnimationFrame()
+    }
+
+    InputRow(
+      state,
+      submitAction,
+      fileUploadHandler = Some(fileUploadHandler),
+      scrollHandler = Some(scrollHandler),
+      preFillByShareApi = true,
+      autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
+      triggerFocus = inputFieldFocusTrigger,
+      showMarkdownHelp = !BrowserDetect.isMobile,
+      enforceUserName = true,
+      placeholder = Placeholder.newMessage
+    )(ctx)(
+        Styles.flexStatic,
+        Rx{ backgroundColor :=? bgColor() }
+      )
+  }
+
+
 }
