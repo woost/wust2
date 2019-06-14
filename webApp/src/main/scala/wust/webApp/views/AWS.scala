@@ -88,6 +88,9 @@ object AWS {
           promise success None
           UI.toast("Sorry, the file-upload service is currently unavailable. Please try again later!")
           Analytics.sendEvent("AWS-upload", "aws-unavailable")
+        case Success(FileUploadConfiguration.Rejected(reason)) =>
+          promise success None
+          UI.toast(reason)
         case Failure(t)                       =>
           promise success None
           scribe.warn("Cannot get file upload configuration", t)

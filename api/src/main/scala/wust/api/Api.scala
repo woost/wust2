@@ -211,6 +211,7 @@ object ApiEvent {
 
 sealed trait FileUploadConfiguration
 object FileUploadConfiguration {
+  final case class Rejected(reason: String) extends FileUploadConfiguration
   final case class UploadToken(baseUrl: String, credential: String, policyBase64: String, signature: String, validSeconds: Int, acl: String, key: String, algorithm: String, date: String, contentDisposition: String, cacheControl: String) extends FileUploadConfiguration
   final case class KeyExists(key: String) extends FileUploadConfiguration
   case object QuotaExceeded extends FileUploadConfiguration

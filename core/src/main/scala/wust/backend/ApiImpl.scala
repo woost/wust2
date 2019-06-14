@@ -10,7 +10,7 @@ import wust.backend.DbConversions._
 import wust.backend.Dsl._
 import wust.core.aws.S3FileUploader
 import wust.core.{ChangeGraphAuthorization, ChangeGraphAuthorizer}
-import wust.db.{Db, SuccessResult}
+import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
 
@@ -122,9 +122,14 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   override def fileDownloadBaseUrl: ApiFunction[Option[StaticFileUrl]] = Action {
     fileUploader.fold(Task.pure(Option.empty[StaticFileUrl]))(_.getFileDownloadBaseUrl.map(Some(_))).runToFuture
   }
-  // only real users can upload files
+  // only real users with email address can upload files
   override def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): ApiFunction[FileUploadConfiguration] = Action.requireRealUser { (_, user) =>
-    fileUploader.fold(Task.pure[FileUploadConfiguration](FileUploadConfiguration.ServiceUnavailable))(_.getFileUploadConfiguration(user.id, key, fileSize = fileSize, fileName = fileName, fileContentType = fileContentType)).runToFuture
+    db.user.getUserDetail(user.id).flatMap{
+      case Some(Data.UserDetail(userId, Some(inviterEmail), true)) => // only allow verified user with an email to upload files
+        fileUploader.fold(Task.pure[FileUploadConfiguration](FileUploadConfiguration.ServiceUnavailable))(_.getFileUploadConfiguration(user.id, key, fileSize = fileSize, fileName = fileName, fileContentType = fileContentType)).runToFuture
+      case _ =>
+        Future.successful(FileUploadConfiguration.Rejected("Please verify your email address, before you can upload a file!"))
+    }
   }
   override def deleteFileUpload(key: String): ApiFunction[Boolean] = Action.requireRealUser { (_, user) =>
     fileUploader.fold(Task.pure(false))(_.deleteFileUpload(user.id, key)).runToFuture
