@@ -169,10 +169,22 @@ object SemanticNodeRole {
   case object File extends SemanticNodeRole
 }
 final case class RoleStat(role: SemanticNodeRole, count: Int, unreadCount: Int)
-final case class RoleStats(roles: List[RoleStat]) {
-  def mostCommonRole: SemanticNodeRole = roles.maxBy(_.count).role
-  def active: List[RoleStat] = roles.filter(_.count > 0)
-  def contains(role: SemanticNodeRole): Boolean = active.exists(_.role == role)
+final case class RoleStats(
+  taskStat:RoleStat,
+  messageStat:RoleStat,
+  noteStat:RoleStat,
+  fileStat:RoleStat,
+) {
+  val roles = List(taskStat, messageStat, noteStat, fileStat)
+}
+
+object RoleStats {
+  val empty = RoleStats(
+    taskStat = RoleStat(SemanticNodeRole(NodeRole.Task), 0, 0),
+    messageStat = RoleStat(SemanticNodeRole(NodeRole.Message), 0, 0),
+    noteStat = RoleStat(SemanticNodeRole(NodeRole.Note), 0, 0),
+    fileStat = RoleStat(SemanticNodeRole.File, 0, 0),
+  )
 }
 
 final class GraphLookup(
@@ -572,7 +584,7 @@ final class GraphLookup(
     } else IndexedSeq.empty[(Node.User, EpochMilli)]
   }
 
-  def topLevelRoleStats(userId: UserId, parentId: NodeId): RoleStats = idToIdxFold(parentId)(RoleStats(Nil))(topLevelRoleStatsIdx(userId, _))
+  def topLevelRoleStats(userId: UserId, parentId: NodeId): RoleStats = idToIdxFold(parentId)(RoleStats.empty)(topLevelRoleStatsIdx(userId, _))
 
   def topLevelRoleStatsIdx(userId: UserId, parentIdx: Int): RoleStats = {
     var messageCount = 0
@@ -617,12 +629,11 @@ final class GraphLookup(
       }
     }
     RoleStats(
-//      RoleStat(SemanticNodeRole(NodeRole.Project), projectCount, projectUnreadCount) ::
-      RoleStat(SemanticNodeRole(NodeRole.Task), taskCount, taskUnreadCount) ::
-      RoleStat(SemanticNodeRole(NodeRole.Message), messageCount, messageUnreadCount) ::
-      RoleStat(SemanticNodeRole(NodeRole.Note), noteCount, noteUnreadCount) ::
-      RoleStat(SemanticNodeRole.File, fileCount, fileUnreadCount) ::
-      Nil
+//      RoleStat(SemanticNodeRole(NodeRole.Project), projectCount, projectUnreadCount),
+      taskStat = RoleStat(SemanticNodeRole(NodeRole.Task), taskCount, taskUnreadCount),
+      messageStat = RoleStat(SemanticNodeRole(NodeRole.Message), messageCount, messageUnreadCount),
+      noteStat = RoleStat(SemanticNodeRole(NodeRole.Note), noteCount, noteUnreadCount),
+      fileStat = RoleStat(SemanticNodeRole.File, fileCount, fileUnreadCount),
     )
   }
 

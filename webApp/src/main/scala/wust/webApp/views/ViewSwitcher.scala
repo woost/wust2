@@ -141,8 +141,9 @@ object ViewSwitcher {
         val pageStyle = PageStyle.ofNode(Some(channelId))
         val graph = state.graph()
         val channelNode = graph.nodesById(channelId)
+        val user = state.user()
 
-        def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
+        def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
         val (numMsg, numTasks, numFiles) = if(!BrowserDetect.isPhone) {
           val nodeIdx = graph.idToIdxOrThrow(channelId)
@@ -179,7 +180,7 @@ object ViewSwitcher {
     val existingViews = Rx {
       val node = nodeRx()
       node.views match {
-        case None        => ViewHeuristic.bestView(state.graph(), node).toList
+        case None        => ViewHeuristic.bestView(state.graph(), node, state.user().id).toList
         case Some(views) => views
       }
     }
@@ -216,7 +217,7 @@ object ViewSwitcher {
           case n: Node.User => n.copy(views = None)
         }
 
-        val newView = ViewHeuristic.bestView(state.graph.now, node).getOrElse(View.Empty)
+        val newView = ViewHeuristic.bestView(state.graph.now, node, state.user.now.id).getOrElse(View.Empty)
         if (viewRx.now != newView) {
           viewAction(newView)
         }

@@ -107,7 +107,7 @@ object RightSidebar {
   }
   private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
-    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _)).getOrElse(View.Empty)
+    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, state.user.now.id)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
     def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
 
