@@ -277,7 +277,8 @@ object SharedViewElements {
           onChange.checked foreach { checked =>
             if(checked) selectedNodes.update(_ + newSelectedNode(nodeId))
             else selectedNodes.update(_.filterNot(_.nodeId == nodeId))
-          }
+          },
+          onClick.stopPropagation --> Observer.empty, // fix safari event, that automatically clicks on the message row, which again would unselect the message
         ),
         label()
       )

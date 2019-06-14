@@ -87,10 +87,11 @@ object ViewSwitcher {
             alignItems.center,
             input(
               tpe := "checkbox",
-              onInput.checked.foreach { checked =>
+              onChange.checked.foreach { checked =>
                 checkedState(idx) = checked
                 changed.onNext(())
               },
+              onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
               dsl.checked <-- changed.map(_ => checkedState(idx))
             ),
             description(value),

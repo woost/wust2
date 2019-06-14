@@ -16,6 +16,7 @@ import wust.util.collection._
 
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import monix.reactive.Observer
 
 object UI {
   private val currentlyEditingSubject = PublishSubject[Boolean]
@@ -32,7 +33,12 @@ object UI {
   def toggle(labelText:String, initialChecked: Boolean = false): CustomEmitterBuilder[Boolean, VDomModifier] = EmitterBuilder.ofModifier[Boolean]{sink =>
     div(
       cls := "ui toggle checkbox",
-      input(tpe := "checkbox", onChange.checked --> sink, defaultChecked := initialChecked),
+      input(
+        tpe := "checkbox",
+        onChange.checked --> sink,
+        onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
+        defaultChecked := initialChecked
+      ),
       label(labelText)
     )}
 
@@ -41,8 +47,9 @@ object UI {
       cls := "ui toggle checkbox",
       input(tpe := "checkbox",
         onChange.checked --> isChecked,
+        onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
         checked <-- isChecked,
-        defaultChecked := isChecked.now
+        defaultChecked := isChecked.now,
       ),
       label(labelText)
     )

@@ -514,7 +514,7 @@ object Components {
         input(
           tpe := "checkbox",
           checked <-- isChecked,
-          onClick.stopPropagation --> Observer.empty,
+          onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
           onChange.checked foreach { checking =>
             val graph = state.graph.now
             directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdxOrThrow(id))).foreach { workspaceIdx =>
