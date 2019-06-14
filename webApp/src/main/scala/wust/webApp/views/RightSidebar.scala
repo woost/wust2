@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import acyclic.file
 import fontAwesome.freeSolid
 import outwatch.dom._
 import outwatch.dom.dsl._
