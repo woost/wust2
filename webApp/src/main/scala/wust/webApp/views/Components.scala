@@ -915,14 +915,16 @@ object Components {
       // styles.extra.transform := "rotate(-7deg)",
 
       marginRight := "5px",
-      Elements.onClickN(desiredClicks = 8).foreach {
-        Logging.setup(enabled = true)
-        dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging is now enabled")
-      }
     )
   }
 
-  val betaSign = maturityLabel("beta")
+  val betaSign = maturityLabel("beta").apply (
+      Elements.onClickN(desiredClicks = 8).foreach {
+      Logging.setup(enabled = true)
+      dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging is now enabled")
+    }
+  )
+
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
   val unreadStyle = VDomModifier(

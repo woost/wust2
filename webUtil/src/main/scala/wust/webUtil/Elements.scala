@@ -378,7 +378,7 @@ object Elements {
       var clickCounter = 0
 
       VDomModifier(
-        onClick.foreach {
+        onClick.stopPropagation.foreach {
           clickCounter += 1
           if (clickCounter == desiredClicks) {
             sink.onNext(())
