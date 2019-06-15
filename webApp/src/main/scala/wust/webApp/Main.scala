@@ -2,6 +2,7 @@ package wust.webApp
 
 import colorado.HCL
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
+import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.SearchResults
 import wust.facades.highlightjs.Highlight
@@ -81,6 +82,7 @@ object Main {
 
   private def setupDom(): Unit = {
     setupDefaultPassiveEvents()
+    setupIntersectionObserverPolyfill()
     setupSetImmediatePolyfill()
     setupMarked()
     setupEmojis()
@@ -175,5 +177,10 @@ object Main {
   private def setupDefaultPassiveEvents():Unit = {
     // initialize default-passive-events for smoother scrolling
     DefaultPassiveEvents
+  }
+
+  private def setupIntersectionObserverPolyfill():Unit = {
+    // initialize intersection-observer polyfill for older browsers like safari < 12.1
+    IntersectionObserver
   }
 }
