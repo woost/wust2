@@ -25,12 +25,8 @@ class SendingMailService(settings: EmailSettings, client: MailClient) extends Ma
   }
 
   override def sendMail(message: MailMessage): Task[MailService.Result] = {
-    val task = if (isRecipientBlocked(message.recipient)) Task.pure(MailService.Blocked(s"Recipient address is blocked by us: $message"))
+    if (isRecipientBlocked(message.recipient)) Task.pure(MailService.Blocked(s"Recipient address is blocked by us: ${message.recipient}"))
     else client.sendMessage(settings.fromAddress, message).map(_ => MailService.Success)
-    task.doOnFinish {
-      case None => Task(scribe.info(s"Successfully sent out email: $message"))
-      case Some(err) => Task(scribe.error(s"Failed to send out email: $message", err))
-    }
   }
 }
 

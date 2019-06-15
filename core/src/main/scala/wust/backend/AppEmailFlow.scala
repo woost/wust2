@@ -153,19 +153,22 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   def start()(implicit scheduler: Scheduler): Cancelable =
     emailSubject.mapEval { message =>
       // retry? MonixUtils.retryWithBackoff(mailService.sendMail(message), maxRetries = 3, initialDelay = 1.minute)
-      mailService.sendMail(message)
+      mailService
+        .sendMail(message)
+        .map {
+          case MailService.Success =>
+            scribe.warn(s"Successfully sent out email: $message")
+            ()
+          case MailService.Blocked(reason) =>
+            scribe.warn(s"Sending email was blocked, because '$reason': $message")
+            ()
+        }
         .onErrorRecover { case NonFatal(t) =>
           scribe.warn(s"Failed to send email message, will not retry: $message", t)
           ()
         }
     }.subscribe(
-      result => {
-        result match {
-          case MailService.Success => ()
-          case MailService.Blocked(reason) => scribe.info(s"Sending email was blocked, because: $reason")
-        }
-        Ack.Continue
-      },
+      _ => Ack.Continue,
       err => scribe.error(s"Error while sending email, will not continue", err)
     )
 }
