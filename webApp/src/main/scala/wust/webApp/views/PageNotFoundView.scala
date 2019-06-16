@@ -3,14 +3,16 @@ package wust.webApp.views
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.Ctx
-import wust.webUtil.outwatchHelpers._
 import wust.api.AuthUser
 import wust.css.Styles
 import wust.ids.View
 import wust.webApp.state.GlobalState
+import wust.webApp.views.Components._
+import wust.webUtil.outwatchHelpers._
 
 object PageNotFoundView {
   def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val shrugEmoji = "🤷"
     div(
       padding := "80px 20px",
       Styles.growFull, // this view needs to be grow-full, because it is used to OVERLAY any view behind it.
@@ -20,11 +22,12 @@ object PageNotFoundView {
       alignItems.flexStart,
 
       div(
-        cls := "pagenotfound ui segment red",
+        cls := "pagenotfound ui segment",
         maxWidth := "80ex",
 
+        div(replaceEmojiUnified(shrugEmoji), fontSize := "50px", textAlign.center),
         h2(
-          "We're sorry. The page you're looking for does not exist or you don't have sufficient permissions."
+          "We're sorry. The content you're looking for does not exist or you don't have sufficient permissions."
         ),
 
         state.user.map {
