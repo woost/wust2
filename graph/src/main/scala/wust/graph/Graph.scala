@@ -168,7 +168,10 @@ object SemanticNodeRole {
   }
   case object File extends SemanticNodeRole
 }
-final case class RoleStat(role: SemanticNodeRole, count: Int, unreadCount: Int)
+final case class RoleStat(role: SemanticNodeRole, count: Int, unreadCount: Int) {
+  @inline def isEmpty = count == 0
+  @inline def nonEmpty = !isEmpty
+}
 final case class RoleStats(
   taskStat:RoleStat,
   messageStat:RoleStat,
@@ -176,6 +179,8 @@ final case class RoleStats(
   fileStat:RoleStat,
 ) {
   val roles = List(taskStat, messageStat, noteStat, fileStat)
+  lazy val isEmpty = roles.forall(_.isEmpty)
+  @inline def nonEmpty = !isEmpty
 }
 
 object RoleStats {

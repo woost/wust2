@@ -32,6 +32,7 @@ object ViewHeuristic {
   def bestView(graph: Graph, node: Node, userId:UserId): Option[View.Visible] = {
     node.views.fold(fallbackView(graph, node)){ views =>
       val roleStats = graph.topLevelRoleStats(userId, node.id)
+      (if(roleStats.nonEmpty)
       views.find {
         case View.Dashboard => true
         // unread
@@ -48,8 +49,8 @@ object ViewHeuristic {
         case View.Content if roleStats.noteStat.count > 0 => true
 
         case _ => false
-      }
-      .orElse(views.headOption)
+      } else None
+      ).orElse(views.headOption)
       .flatMap(visibleView(graph, node.id, _))
     }
   }
