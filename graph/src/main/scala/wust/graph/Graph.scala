@@ -600,7 +600,7 @@ final class GraphLookup(
 
     def isRead(childIdx: Int): Boolean = readEdgeIdx.exists(childIdx)(edgeIdx => graph.edges(edgeIdx).targetId == userId)
 
-    childrenIdx.foreachElement(parentIdx) { childIdx =>
+    notDeletedChildrenIdx.foreachElement(parentIdx) { childIdx =>
       nodes(childIdx).role match {
         case NodeRole.Message =>
           messageCount += 1
