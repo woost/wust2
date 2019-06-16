@@ -6,6 +6,7 @@ import boopickle.Default._
 import chameleon.ext.boopickle._
 import covenant.http._
 import monix.reactive.subjects.PublishSubject
+import wust.facades.woostConfig.WoostConfig
 import org.scalajs.dom.window
 import rx._
 import wust.webUtil.outwatchHelpers._
@@ -33,7 +34,7 @@ object Client {
     if (LinkingInfo.developmentMode)
       s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain
     else
-      s"$socketProtocol//core.${hostname}$port/ws"
+      s"$socketProtocol//core-${WoostConfig.value.versionString}.${hostname}$port/ws"
   }
 
   private val githubUrl = {
