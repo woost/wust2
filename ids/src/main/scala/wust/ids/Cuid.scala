@@ -6,6 +6,14 @@ import org.sazabi.base58.Base58
 import wust.util.collection._
 
 @inline final case class Cuid(left: Long, right: Long) {
+  // Structure of a cuid: c - h72gsb32 - 0000 - udoc - l363eofy
+  // The groups, in order, are:
+  // - 'c' - identifies this as a cuid, and allows you to use it in html entity ids.
+  // - Timestamp
+  // - Counter - a single process might generate the same random string. The weaker the pseudo-random source, the higher the probability. That problem gets worse as processors get faster. The counter will roll over if the value gets too big.
+  // - Client fingerprint
+  // - Random (using cryptographically secure libraries where available).
+  
   import wust.ids.Cuid._
   // the maximum number of each long for being convertable to a cuid (base 36 with 12 digits): java.lang.Long.parseLong("z" * 12, 36)
   assert(
@@ -16,6 +24,21 @@ import wust.util.collection._
     right >= 0 && right <= maxLong,
     s"right part of Cuid needs to be positive and less or equal than $maxLong, value is: $right."
   )
+
+  def toParts: Cuid.Parts = {
+    val cuid = toCuidString
+    val timestampStr = cuid.substring(1, 9)
+    val counterStr = cuid.substring(9, 13)
+    val fingerprintStr = cuid.substring(13, 17)
+    val randomStr = cuid.substring(17, 25)
+
+    Cuid.Parts(
+      timestamp = java.lang.Long.parseLong(timestampStr, cuidBase),
+      counter = java.lang.Integer.parseInt(counterStr, cuidBase),
+      fingerprint = java.lang.Integer.parseInt(fingerprintStr, cuidBase),
+      random = java.lang.Long.parseLong(randomStr, cuidBase)
+    )
+  }
 
   @inline def toUuid: UUID = new UUID(left, right)
 
@@ -94,27 +117,6 @@ import wust.util.collection._
 
   @inline override def toString: String = toStringFast // needs to be as fast as possible, so it can be used as snabbdom key
 
-  // Structure of a cuid: c - h72gsb32 - 0000 - udoc - l363eofy
-  // The groups, in order, are:
-  // - 'c' - identifies this as a cuid, and allows you to use it in html entity ids.
-  // - Timestamp
-  // - Counter - a single process might generate the same random string. The weaker the pseudo-random source, the higher the probability. That problem gets worse as processors get faster. The counter will roll over if the value gets too big.
-  // - Client fingerprint
-  // - Random (using cryptographically secure libraries where available).
-  def toParts: Cuid.Parts = {
-    val cuid = toCuidString
-    val timestampStr = cuid.substring(1, 9)
-    val counterStr = cuid.substring(9, 13)
-    val fingerprintStr = cuid.substring(13, 17)
-    val randomStr = cuid.substring(17, 25)
-
-    Cuid.Parts(
-      timestamp = java.lang.Long.parseLong(timestampStr, cuidBase),
-      counter = java.lang.Integer.parseInt(counterStr, cuidBase),
-      fingerprint = java.lang.Integer.parseInt(fingerprintStr, cuidBase),
-      random = java.lang.Long.parseLong(randomStr, cuidBase)
-    )
-  }
 }
 object Cuid {
   def cuidBase = 36
