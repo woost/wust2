@@ -287,8 +287,6 @@ object ChatView {
 
           div(
             cls := "chat-thread-messages-outer chat-thread-messages",
-            if (state.smallScreen) marginLeft := "0px"
-            else marginLeft := "5px",
             lineColor.map(lineColor => borderLeft := s"3px solid ${lineColor}"),
 
             group.map { nodeIdx =>
@@ -394,14 +392,12 @@ object ChatView {
         parent().map(node =>
           div(
             keyed(node.id),
-            chatMessageHeader(state, author)( padding := "2px", opacity := 0.7),
-            state.largeScreen.ifTrue[VDomModifier](marginLeft := "5px"),
+            chatMessageHeader(state, author)( padding := "2px"),
             borderLeft := s"3px solid ${accentColor(parentId).toHex}",
             paddingRight := "5px",
             paddingBottom := "3px",
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parentId)).toHex,
             div(
-              opacity := 0.7,
               Styles.flex,
               paddingLeft := "0.5em",
               div(
@@ -428,7 +424,7 @@ object ChatView {
             )
           ))
       },
-      isDeletedNow.ifTrue[VDomModifier](opacity := 0.5)
+      // VDomModifier.ifTrue(isDeletedNow)(opacity := 0.5, "(archived)") // TODO: does not work correctly. Always shows nested messages as deleted
     )
   }
 
