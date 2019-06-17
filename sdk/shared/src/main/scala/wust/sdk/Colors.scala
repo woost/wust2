@@ -7,7 +7,7 @@ object Colors {
 
   @inline final def unread = "#1F81F3"
   @inline final def unreadBorder = "#66c0ff"
-  @inline final def contentBg = "#EDEDED"
+  @inline final def contentBg = "#F0F1F2"
 
   @inline final def sidebarBg = "#fff"
   @inline final def fgColor = "rgba(0, 0, 0, 0.87)"
