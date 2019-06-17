@@ -201,7 +201,7 @@ object ListView {
             Styles.flex,
             alignItems.center,
             Rx{
-              renderNodeData(stage().data).apply(paddingLeft := "5px")
+              renderNodeData(stage().data)
             },
 
           )
