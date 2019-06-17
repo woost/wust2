@@ -285,7 +285,7 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".avatar" - (
     backgroundColor(c"rgb(255, 255, 255)"),
-    borderRadius(2 px),
+    borderRadius(3 px),
     padding(2 px),
     Styles.flexStatic,
   )
