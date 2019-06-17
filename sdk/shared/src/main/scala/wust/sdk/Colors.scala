@@ -20,7 +20,7 @@ object Colors {
 
 object BaseColors {
   val pageBg = RGB("#9A82F9").hcl
-  val pageBgLight = RGB("#c6fbd9").hcl
+  val pageBgLight = RGB("#f9efd7").hcl
 
   val tag = RGB("#fa8088").hcl
   val accent = tag
