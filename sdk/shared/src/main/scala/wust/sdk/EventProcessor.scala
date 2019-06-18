@@ -1,9 +1,9 @@
 package wust.sdk
 
-import monix.execution.{Ack, Scheduler}
+import monix.execution.{ Ack, Scheduler }
 import monix.reactive.Observable
 import monix.reactive.OverflowStrategy.Unbounded
-import monix.reactive.subjects.{PublishSubject, PublishToOneSubject}
+import monix.reactive.subjects.{ PublishSubject, PublishToOneSubject }
 import wust.api.ApiEvent._
 import wust.api._
 import wust.graph._
@@ -12,7 +12,7 @@ import wust.ids.UserId
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 sealed trait SyncStatus
 object SyncStatus {
@@ -26,10 +26,10 @@ object EventProcessor {
 
   //TODO factory and constructor shared responsibility
   def apply(
-      eventStream: Observable[Seq[ApiEvent]],
-      enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
-      sendChange: List[GraphChanges] => Future[Boolean],
-      initialAuth: Authentication
+    eventStream: Observable[Seq[ApiEvent]],
+    enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
+    sendChange: List[GraphChanges] => Future[Boolean],
+    initialAuth: Authentication
   )(implicit scheduler: Scheduler): EventProcessor = {
     val s = eventStream.share
     val graphEvents = s
@@ -51,11 +51,11 @@ object EventProcessor {
 }
 
 class EventProcessor private (
-    eventStream: Observable[Seq[ApiEvent.GraphContent]],
-    authEventStream: Observable[Seq[ApiEvent.AuthContent]],
-    enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
-    sendChange: List[GraphChanges] => Future[Boolean],
-    val initialAuth: Authentication
+  eventStream: Observable[Seq[ApiEvent.GraphContent]],
+  authEventStream: Observable[Seq[ApiEvent.AuthContent]],
+  enrichChanges: (GraphChanges, UserId, Graph) => GraphChanges,
+  sendChange: List[GraphChanges] => Future[Boolean],
+  val initialAuth: Authentication
 )(implicit scheduler: Scheduler) {
   // import Client.storage
   // storage.graphChanges <-- localChanges //TODO
@@ -74,16 +74,9 @@ class EventProcessor private (
   val localEvents = PublishSubject[ApiEvent.GraphContent]
 
   // public reader
-  val (localChanges, localChangesRemoteOnly, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[Graph]) = {
-    // events  withLatestFrom
-    // --------O----------------> localchanges
-    //         ^          |
-    //         |          v
-    //         -----------O---->--
-    //          graph,viewconfig
-
+  val (localChanges, localChangesRemoteOnly, graphEvents, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[LocalGraphUpdateEvent], Observable[Graph]) = {
     val rawGraph = PublishToOneSubject[Graph]()
-    val sharedRawGraph = rawGraph.share
+    val sharedRawGraph = rawGraph.share //TODO: when we get rid of enrichment, move to GlobalState
 
     def enrichedChangesf(changes: Observable[GraphChanges]) = changes.withLatestFrom2(currentUser.prepend(initialAuth.user), sharedRawGraph.prepend(Graph.empty)) { (changes, user, graph) =>
       val newChanges = enrichChanges(changes, user.id, graph)
@@ -103,32 +96,24 @@ class EventProcessor private (
 
     val localChangesAsEvents = localChanges.map { case (changes, user) => Seq(NewGraphChanges.forPrivate(user.toNode, changes)) }
     val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing)
-
-    val graphWithChanges: Observable[Graph] = {
-      var lastGraph = Graph.empty
-      graphEvents.map { events =>
-        var lastChanges: GraphChanges = null
-        val replacements = new mutable.ArrayBuffer[ApiEvent.ReplaceNode]
-        events.foreach {
-          case ApiEvent.NewGraphChanges(user, changes) =>
-            val completeChanges = if (changes.addNodes.exists(_.id == user.id)) changes else changes.copy(addNodes = changes.addNodes ++ Set(user)) // do not add author of change if the node was updated, the author might be outdated.
-            if (lastChanges == null) lastChanges = completeChanges.consistent
-            else lastChanges = lastChanges.merge(completeChanges).consistent
-          case ApiEvent.ReplaceGraph(graph) =>
-            lastChanges = null
-            lastGraph = graph
-          case r: ApiEvent.ReplaceNode =>
-            replacements += r
+      .scan((Graph.empty, LocalGraphUpdateEvent.empty)) { (lastGraphWithLastEvents, events) =>
+        val (lastGraph, _) = lastGraphWithLastEvents
+        val localEvents = LocalGraphUpdateEvent.deconstruct(lastGraph, events)
+        val newGraph = localEvents match {
+          case LocalGraphUpdateEvent.NewGraph(graph)     => graph
+          case LocalGraphUpdateEvent.NewChanges(changes) => lastGraph applyChanges changes
         }
-        if (lastChanges != null) lastGraph = lastGraph.applyChanges(lastChanges)
-        lastGraph = replacements.foldLeft[Graph](lastGraph) { case (g, ReplaceNode(oldNodeId, newNode)) => g.replaceNode(oldNodeId, newNode) }
-        lastGraph
-      }
-    }
+        (newGraph, localEvents)
+      }.share
 
-    graphWithChanges subscribe rawGraph
+    graphEvents.map(_._1) subscribe rawGraph
 
-    (localChanges.map(_._1), localChangesRemoteOnly.map(_._1), sharedRawGraph)
+    (
+      localChanges.map(_._1),
+      localChangesRemoteOnly.map(_._1),
+      graphEvents.map(_._2),
+      sharedRawGraph
+    )
   }
 
   // whenever the user changes something himself, we want to open up event processing again
@@ -167,9 +152,9 @@ class EventProcessor private (
     err => scribe.error("[Events] Error sending out changes, cannot continue", err) //TODO this is a critical error and should never happen? need something to notify the application of an unresolvable problem.
   )
 
-  graph.withLatestFrom(currentAuth)((_,_)).subscribe(
+  graph.withLatestFrom(currentAuth)((_, _)).subscribe(
     {
-      case (graph, auth@Authentication.Verified(user: AuthUser.Persisted, _, _)) =>
+      case (graph, auth @ Authentication.Verified(user: AuthUser.Persisted, _, _)) =>
         graph.nodesById(user.id).asInstanceOf[Option[Node.User]].fold[Future[Ack]](Ack.Continue) { userNode =>
           val newName = userNode.data.name
           if (newName != user.name) currentAuthUpdate.onNext(auth.copy(user = user.updateName(name = newName)))

@@ -98,25 +98,6 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   }
   @inline def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
 
-  def replaceNode(oldNodeId: NodeId, newNode: Node): Graph = {
-    val newNodes = Array.newBuilder[Node]
-    newNodes += newNode
-    this.nodes.foreach { n =>
-      if (n.id != oldNodeId && n.id != newNode.id) {
-        newNodes += n
-      }
-    }
-
-    val newEdges = this.edges.map { e =>
-      if (e.sourceId == oldNodeId && e.targetId == oldNodeId) e.copyId(sourceId = newNode.id, targetId = newNode.id)
-      else if (e.sourceId == oldNodeId) e.copyId(sourceId = newNode.id, targetId = e.targetId)
-      else if (e.targetId == oldNodeId) e.copyId(sourceId = e.sourceId, targetId = newNode.id)
-      else e
-    }
-
-    Graph(newNodes.result(), newEdges)
-  }
-
   private def changeGraphInternal(addNodes: Array[Node], addEdges: Array[Edge], deleteEdges: Array[Edge] = Array.empty): Graph = {
 
     def collectNodes() = {
