@@ -125,8 +125,7 @@ object GlobalState {
           val g = graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
-            user().toNode ::
-              Nil
+            user().toNode :: Nil
           )
           scribe.debug("  graph with added usernode: " + g)
           g
@@ -135,6 +134,13 @@ object GlobalState {
       newGraph
     }
   }
+
+  val graphState = Var(new GraphState(Graph.empty))
+  eventProcessor.graphEvents.foreach { 
+    case LocalGraphUpdateEvent.NewChanges(changes) => graphState.now.update(changes)
+    case LocalGraphUpdateEvent.NewGraph(graph) => graphState() = new GraphState(graph)
+  }
+
 
   val viewConfig: Rx[ViewConfig] = {
 
