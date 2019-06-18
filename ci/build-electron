@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -e
+set -o pipefail
+
+sbt webApp/fullOptJS::webpack
+
+# clear old electron integration
+rm -rf webApp/target/scala-2.12/scalajs-bundler/main/electron
+
+# switch to the webpack root folder:
+cd webApp/target/scala-2.12/scalajs-bundler/main
+
+# https://capacitor.ionicframework.com/docs/electron
+npx cap add electron
+npx cap copy
+
+electron electron/

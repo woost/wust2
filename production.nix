@@ -14,6 +14,7 @@ in
       nodejs-11_x yarn
       # phantomjs
       # gnumake gcc # required for some weird npm things
+      electron
     ];
 
     installPhase= ''

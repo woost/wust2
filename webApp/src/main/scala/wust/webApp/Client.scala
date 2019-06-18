@@ -23,12 +23,13 @@ object Client {
   import window.location
   // in firefox or chrome: location.port is always set
   // in edge: location.port might be empty if not specified.
-  private val hostname = location.hostname
+  private val hostname = if(location.hostname.isEmpty) "app.woost.space" else location.hostname // Electron: location.hostname == ""
   private val port = if (location.port.isEmpty) "" else ":" + location.port
   private val protocol = location.protocol
 
   private val wustUrl = {
-    val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
+    // Electron: location.protocol == "file:"
+    val socketProtocol = if (location.protocol == "https:" || location.protocol == "file:") "wss:" else "ws:"
 
     if (LinkingInfo.developmentMode)
       s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain

@@ -37,6 +37,9 @@
         };
     </script>
 
+    <!-- Make jquery work in electron: Insert this line above script imports (https://stackoverflow.com/questions/32621988/electron-jquery-is-not-defined/37480521#37480521)  -->
+    <script>if (typeof module === 'object') {window.module = module; module = undefined;}</script>
+
     <noscript>
         <div id="noscriptmsg">
             <p>Welcome to Woost!</p>
@@ -65,4 +68,6 @@
     <script>window.noltQueue=window.noltQueue||[];function nolt(){noltQueue.push(arguments)}</script>
     <% } %>
   </body>
+  <!-- Make jquery work in electron: Insert this line after script imports (https://stackoverflow.com/questions/32621988/electron-jquery-is-not-defined/37480521#37480521) -->
+  <script>if (window.module) module = window.module;</script>
 </html>

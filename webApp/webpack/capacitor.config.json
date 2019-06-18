@@ -1,0 +1,7 @@
+{
+  "appId": "space.woost",
+  "appName": "Woost",
+  "bundledWebRuntime": false,
+  "npmClient": "yarn",
+  "webDir": "dist"
+}

@@ -169,6 +169,8 @@ object Deps {
         "workbox-webpack-plugin" -> "4.3.1" ::
         "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
         "cssnano" -> "4.1.10" ::
+        "@capacitor/core" -> "1.0.0" ::
+        "@capacitor/cli" -> "1.0.0" ::
         Nil
   }
 
