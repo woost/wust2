@@ -4,7 +4,7 @@ const CleanPlugin = require("clean-webpack-plugin");
 const CompressionPlugin = require("compression-webpack-plugin");
 const zopfli = require("@gfx/zopfli");
 const BrotliPlugin = require('brotli-webpack-plugin');
-const ClosureCompilerPlugin = require("webpack-closure-compiler");
+const ClosurePlugin = require('closure-webpack-plugin');
 // const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
 const HtmlIncludeAssetsPlugin = require("html-webpack-include-assets-plugin");
@@ -65,24 +65,19 @@ module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 ////////////////////////////////////////
 // closure compiler
 ////////////////////////////////////////
-// https://github.com/google/closure-compiler-js#webpack
+// https://github.com/webpack-contrib/closure-webpack-plugin
+// process.env._JAVA_OPTIONS = "-Xms128M -Xmx800M";
 module.exports.optimization = {
-    minimize: false // disable default uglifyJs
+    minimizer: [
+      new ClosurePlugin({
+          platform: "java",
+          mode: 'STANDARD'
+      }, {
+          // compiler flags here
+          languageOut: 'ECMASCRIPT_2015'
+      })
+    ]
 };
-
-process.env._JAVA_OPTIONS = "-Xms128M -Xmx800M";
-module.exports.plugins.push(new ClosureCompilerPlugin({
-  compiler: {
-    language_in: 'ECMASCRIPT6',
-    language_out: 'ECMASCRIPT5',
-    compilation_level: 'SIMPLE', //TODO: ADVANCED
-    // process_common_js_modules: true,
-    // jscomp_off: 'checkVars',
-    warning_level: 'DEFAULT',
-    create_source_map: (process.env.SOURCEMAPS == 'true')
-  },
-  concurrency: 1
-}));
 
 ////////////////////////////////////////
 // html template generate index.html
