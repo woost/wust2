@@ -73,8 +73,8 @@ module.exports.optimization = {
 process.env._JAVA_OPTIONS = "-Xms128M -Xmx800M";
 module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
-    language_in: 'ECMASCRIPT6',
-    language_out: 'ECMASCRIPT5',
+    language_in: 'ECMASCRIPT_2015',
+    language_out: 'ECMASCRIPT_2015',
     compilation_level: 'SIMPLE', //TODO: ADVANCED
     // process_common_js_modules: true,
     // jscomp_off: 'checkVars',
