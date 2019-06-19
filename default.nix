@@ -16,7 +16,7 @@ in
       # python27Packages.docker_compose
       # python27Packages.backports_ssl_match_hostname
       # ngrok # github app -> webhooks to localhost
-      nodejs-10_x yarn
+      nodejs-11_x yarn
       phantomjs
       # Dev tools
       #jetbrains.idea-community
