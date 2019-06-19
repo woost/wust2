@@ -136,7 +136,7 @@ object Deps {
     val highlight = "highlight.js" -> "9.15.8"
     val dateFns = "date-fns" -> "v2.0.0-alpha.27"
     val draggable = "@shopify/draggable" -> "1.0.0-beta.8"
-    val fomanticUi = "fomantic-ui-css" -> "2.7.5"
+    val fomanticUi = "fomantic-ui-css" -> "2.7.6"
     val emoji = "emoji-js" -> "3.4.1"
     val emojiDatasource = "emoji-datasource" -> "4.1.0"
     val emojiDatasourceTwitter = "emoji-datasource-twitter" -> "4.1.0"
