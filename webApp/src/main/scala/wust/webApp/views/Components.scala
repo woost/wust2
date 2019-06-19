@@ -317,7 +317,7 @@ object Components {
         cls := "avatar",
       ),
       keyed(userNode.id),
-      UI.tooltip("top right") := s"${displayUserName(userNode.data)}. Click to unassign.",
+      UI.tooltip("left center") := s"${displayUserName(userNode.data)}. Click to unassign.",
       cursor.pointer,
       onClick.stopPropagation(GraphChanges.disconnect(Edge.Assigned)(targetNodeId, userNode.id)) --> state.eventProcessor.changes,
       DragComponents.drag(DragItem.User(userNode.id), target = DragItem.DisableDrag),
