@@ -383,7 +383,7 @@ object Components {
       if(withIcon) {
         val nodeWithoutFirstEmoji = node match {
           case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
-            editable.updateStr(EmojiReplacer.emojiRegex.replaceFirstIn(n.str, "")) match {
+            editable.updateStr(EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(n.str, "")) match {
               case Some(dataWithoutEmoji) =>
                 n.copy(data = dataWithoutEmoji)
               case None                   => n
@@ -392,7 +392,7 @@ object Components {
         }
 
         val iconModifier: VNode = node.str match {
-          case EmojiReplacer.emojiRegex(emoji) =>
+          case EmojiReplacer.emojiAtBeginningRegex(emoji) =>
             replaceEmoji(emoji)
           case _ if openFolder   =>
             span(freeSolid.faFolderOpen)

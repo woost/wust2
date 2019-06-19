@@ -432,7 +432,7 @@ object LeftSidebar {
   private def channelIcon(state: GlobalState, node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     def iconText(str:String):String = {
       str match {
-        case EmojiReplacer.emojiRegex(emoji) => emoji
+        case EmojiReplacer.emojiAtBeginningRegex(emoji) => emoji
         case _ => str.trim.take(2)
       }
     }

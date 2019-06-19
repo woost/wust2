@@ -11,7 +11,8 @@ object EmojiTitleConverter {
 }
 
 object EmojiReplacer {
-  val emojiRegex = raw"(:\w+:)".r.unanchored
+  // https://stackoverflow.com/questions/49745304/regex-to-find-and-replace-emoji-names-within-colons
+  val emojiAtBeginningRegex = raw"^(:[^:\s]*(?:::[^:\s]*)*:)".r.unanchored // unanchored finds pattern in entire input
 
   val emojiTextConvertor = new EmojiConvertor()
   emojiTextConvertor.colons_mode = true
