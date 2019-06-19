@@ -73,6 +73,8 @@ trait DropdownOptions extends js.Object {
   var onChange: js.UndefOr[js.Function3[js.UndefOr[String], js.UndefOr[String], JQuerySelection, Unit]] = js.undefined
   var action: js.UndefOr[String] = js.undefined
   var values: js.UndefOr[js.Array[DropdownEntry]] = js.undefined
+
+  var direction: js.UndefOr[String] = js.undefined
 }
 
 trait PopupOptions extends js.Object {

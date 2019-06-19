@@ -132,6 +132,7 @@ object UI {
     managedElement.asJquery { elem =>
       elem
         .dropdown(new DropdownOptions {
+          direction = "downward"
           onHide = { () =>
             currentlyEditingSubject.onNext(false)
             true
