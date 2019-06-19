@@ -152,6 +152,14 @@ object MembersModal {
             }
           },
           if (true) VDomModifier.empty else List(div)
+        ),
+        div(
+          textAlign.right,
+          button(
+            "Done",
+            cls := "ui primary button",
+            onClick.stopPropagation.foreach{ _ => state.uiModalClose.onNext(()) }
+          )
         )
       )
     }
