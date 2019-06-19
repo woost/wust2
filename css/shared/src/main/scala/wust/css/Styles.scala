@@ -766,13 +766,22 @@ object CommonStyles extends StyleSheet.Standalone {
 
     &(".breadcrumbs") - (
       margin(5 px, 0 px),
-    ),
-    &(".breadcrumbs .divider") - (
-      color(c"rgba(165, 165, 165, 0.78)")
+
+      &(".divider") - (
+        color(c"rgba(165, 165, 165, 0.78)")
+      ),
     ),
     &(".breadcrumb") - (
       nodeCardShadow
     )
+  )
+
+  ".sidebar" - (
+    &(".breadcrumbs") - (
+      &(".divider") - (
+        color(c"rgba(165, 165, 165, 0.78)")
+      ),
+    ),
   )
 
   ".breadcrumb" - (
