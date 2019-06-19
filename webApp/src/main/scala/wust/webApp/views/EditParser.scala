@@ -222,18 +222,19 @@ object EditElementParser {
   }
 
   implicit object EditDateTimeMilli extends EditElementParser[DateTimeMilli] {
+    //TODO: contribute to scala-js-dom overloads for toLocale*String with locale string argument
     private def splitDateTimeLocal(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
       val d = new Date(dateTime)
-      val dateDate = new Date(d.toLocaleDateString)
-      val timeDate = new Date(d.toLocaleString)
+      val timeDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleString("en").asInstanceOf[String])
+      val dateDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleDateString("en").asInstanceOf[String])
       timeDate.setMonth(0, 1)
       timeDate.setFullYear(1970)
       (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong + timeDate.getTimezoneOffset * EpochMilli.minute)))
     }
     private def splitDateTime(dateTime: DateTimeMilli): (DateMilli, TimeMilli) = {
       val d = new Date(dateTime)
-      val dateDate = new Date(d.toLocaleDateString)
-      val timeDate = new Date(d.toLocaleString)
+      val dateDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleDateString("en").asInstanceOf[String])
+      val timeDate = new Date(d.asInstanceOf[js.Dynamic].toLocaleString("en").asInstanceOf[String])
       timeDate.setMonth(0, 1)
       timeDate.setFullYear(1970)
       (DateMilli(EpochMilli(dateDate.getTime.toLong)), TimeMilli(EpochMilli(timeDate.getTime.toLong)))
