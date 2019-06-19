@@ -10,7 +10,7 @@ fi
 # variables
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 DOCKER_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.eu-central-1.amazonaws.com
-S3_BUCKET_WEB_ASSETS="${AWS_PROFILE}-web-assets"
+S3_BUCKET_WEB_ASSETS="${AWS_PROFILE}-web-assets-repository"
 web_assets_dir="./webApp/target/scala-2.12/scalajs-bundler/main/dist"
 version=$(git rev-parse --short HEAD)
 
