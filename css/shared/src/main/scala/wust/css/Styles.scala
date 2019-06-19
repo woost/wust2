@@ -307,6 +307,17 @@ object CommonStyles extends StyleSheet.Standalone {
     animationFillMode.forwards,
   )
 
+  ".animated-alternating-fade" - (
+    opacity(0),
+    animationName(Styles.fadeInKf),
+    animationDuration(1.5 seconds),
+    animationFillMode.forwards,
+    animationIterationCount.infinite,
+    animationDirection.alternate,
+    animationDelay(2 seconds),
+    animationTimingFunction.easeInOut,
+  )
+
   ".woost-loading-animation-logo" - (
     svgStrokeDashOffset := "0",
     animation := s"${Styles.loadingAnimationDashOffsetKf.name.value} 23.217s linear infinite, ${Styles.loadingAnimationDashArrayKf.name.value} 5.3721s ease alternate infinite"

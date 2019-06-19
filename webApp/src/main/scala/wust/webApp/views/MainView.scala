@@ -7,10 +7,10 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.BrowserDetect
 import wust.webUtil.outwatchHelpers._
-import wust.css.{Styles, ZIndex}
+import wust.css.{ Styles, ZIndex }
 import wust.sdk.Colors
 import wust.webApp.WoostNotification
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 
 object MainView {
@@ -81,7 +81,7 @@ object MainView {
       backgroundColor := Colors.contentBg,
 
       Rx {
-        if(viewIsContent())
+        if (viewIsContent())
           PageHeader(state, ViewRender).apply(Styles.flexStatic, viewWidthMod)
         else {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
@@ -129,7 +129,7 @@ object MainView {
     )
   }
 
-  def spaceFillingLoadingAnimation(state: GlobalState)(implicit data: Ctx.Data): VNode = {
+  def spaceFillingLoadingAnimation(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       alignItems.center,
@@ -140,15 +140,25 @@ object MainView {
       WoostLogoComponents.woostLoadingAnimationWithFadeIn,
 
       div(
-        cls := "animated-late-fadein",
         Styles.flex,
         alignItems.center,
 
         fontSize.xSmall,
         marginTop := "20px",
 
-        span("Loading forever?", marginRight := "10px"),
-        button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+        Rx {
+          if(state.isOnline())
+            div(
+              cls := "animated-late-fadein",
+              span("Loading forever?", marginRight := "10px"),
+              button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+            )
+          else 
+            div(
+              cls := "animated-alternating-fade",
+              span("CONNECTING"),
+            )
+        }
       )
     )
   }
