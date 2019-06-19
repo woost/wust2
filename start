@@ -174,7 +174,7 @@ function self() {
     sbtWithPoll)
         # Only exports polling parameter and then falls through!
         export "EXTRASBTARGS=$EXTRASBTARGS -Dsbt.watch.mode=polling"
-        ;&
+        ;;
     nsbt)
         nix-shell production.nix --run "./start sbt ${@:2}"
         ;;
