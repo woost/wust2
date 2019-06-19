@@ -2,7 +2,7 @@ import org.portablescala.sbtplatformdeps.PlatformDepsPlugin.autoImport._
 import sbt._
 
 object Deps {
-  import Def.{setting => dep}
+  import Def.{ setting => dep }
 
   val silencerVersion = "1.4.1"
 
@@ -126,7 +126,7 @@ object Deps {
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
   }
 
-  val webpackVersion = "4.32.2"
+  val webpackVersion = "4.34.0"
   val webpackDevServerVersion = "3.2.1"
 
   object npm {
