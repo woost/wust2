@@ -103,8 +103,8 @@ object ViewSwitcher {
   }
 
   //TODO FocusState?
-  @inline def apply(state: GlobalState, channelId: NodeId): VNode = {
-    apply(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)))
+  @inline def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    apply(state, channelId, state.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => state.urlConfig.update(_.focus(view)))
   }
   @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
     div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
