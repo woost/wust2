@@ -117,7 +117,7 @@ final case class GraphChanges(
 
     val sb = new StringBuilder
     sb ++= s"GraphChanges(\n"
-    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }/${n.role}  ${n.id.toBase58}  ${n.id.toUuid}").mkString("\n            ") }\n"
+    if(addNodes.nonEmpty) sb ++= s"  addNodes: ${ addNodes.map(n => s"${ id(n.id) }:${ n.tpe }/${n.role}/${n.views}  ${n.id.toBase58}  ${n.id.toUuid}").mkString("\n            ") }\n"
     if(addEdges.nonEmpty) sb ++= s"  addEdges: ${ addEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
     if(delEdges.nonEmpty) sb ++= s"  delEdges: ${ delEdges.map(e => s"${ id(e.sourceId) } -${ e.data }-> ${ id(e.targetId) }").mkString("\n            ") }\n"
     sb ++= ")"

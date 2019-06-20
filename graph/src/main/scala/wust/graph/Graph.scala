@@ -52,7 +52,7 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   }
   @inline def nodeStrDetail(nodeIdx: Int): String = {
     val node = nodes(nodeIdx)
-    s"""$nodeIdx ${nodeStr(nodeIdx)}:${node.tpe}/${node.role}"""
+    s"""$nodeIdx ${nodeStr(nodeIdx)}:${node.tpe}/${node.role}/${node.views}"""
   }
 
   @inline def edgeStr(edgeIdx: Int): String = {
