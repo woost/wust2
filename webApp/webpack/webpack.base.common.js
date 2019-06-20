@@ -26,14 +26,12 @@ if (!fs.existsSync(dummyOutputFile)) {
 // gather resources
 const cssFolder = Path.join(dirs.project, 'src/css');
 const htmlFolder = Path.join(dirs.project, 'src/html');
-const txtFolder = Path.join(dirs.project, 'src/txt');
 const jsFolder = Path.join(dirs.project, 'src/js');
 const cssFiles = glob.sync(Path.join(cssFolder, '*.css'));
 const htmlTemplateFile = Path.join(htmlFolder, 'index.template.html');
 
 // copy static assets that we depend on
 const staticCopyAssets = [
-    { from: Path.join(txtFolder, '*'), context: txtFolder, to: ''},
     { from: Path.join(htmlFolder, 'error-*.html'), context: htmlFolder, to: ''},
     { from: 'node_modules/emoji-datasource-twitter/img/twitter/sheets/64.png', to: 'emoji-datasource/sheet_twitter_64.png'},
     { from: 'node_modules/highlight.js/styles/github-gist.css', to: 'highlight/github-gist.css'},
