@@ -36,12 +36,18 @@ object ViewHeuristic {
       views.find {
         case View.Dashboard => true
         // unread
+        case View.Table(roles) if roles.exists(_ == NodeRole.Message) && roleStats.messageStat.unreadCount > 0 => true
+        case View.Table(roles) if roles.exists(_ == NodeRole.Note) && roleStats.noteStat.unreadCount > 0 => true
+        case View.Table(roles) if roles.exists(_ == NodeRole.Task) && roleStats.taskStat.unreadCount > 0 => true
         case View.Chat if roleStats.messageStat.unreadCount > 0 => true
         case View.Thread if roleStats.messageStat.unreadCount > 0 => true
         case View.List if roleStats.taskStat.unreadCount > 0 => true
         case View.Kanban if roleStats.taskStat.unreadCount > 0 => true
         case View.Content if roleStats.noteStat.unreadCount > 0 => true
         // non-empty
+        case View.Table(roles) if roles.exists(_ == NodeRole.Message) && roleStats.messageStat.count > 0 => true
+        case View.Table(roles) if roles.exists(_ == NodeRole.Note) && roleStats.noteStat.count > 0 => true
+        case View.Table(roles) if roles.exists(_ == NodeRole.Task) && roleStats.taskStat.count > 0 => true
         case View.Chat if roleStats.messageStat.count > 0 => true
         case View.Thread if roleStats.messageStat.count > 0 => true
         case View.List if roleStats.taskStat.count > 0 => true
