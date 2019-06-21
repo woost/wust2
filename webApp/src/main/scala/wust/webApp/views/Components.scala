@@ -920,8 +920,9 @@ object Components {
 
   val betaSign = maturityLabel("beta").apply (
       Elements.onClickN(desiredClicks = 8).foreach {
-      Logging.setup(enabled = true)
-      dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging is now enabled")
+      Logging.setup(enabled = true, debugEnabled = true)
+      DevOnly.isTrue = true
+      dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled")
     }
   )
 
