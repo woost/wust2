@@ -83,9 +83,9 @@ jobs:
           name: Save Docker images
           command: |
             mkdir -p /docker-images
-            docker save -o /docker-images/db-migration.tar "$DOCKER_REGISTRY/woost/db-migration"
-            docker save -o /docker-images/core.tar "$DOCKER_REGISTRY/woost/core"
-            docker save -o /docker-images/web.tar "$DOCKER_REGISTRY/woost/web"
+            docker save -o /docker-images/db-migration.tar "woost/db-migration"
+            docker save -o /docker-images/core.tar "woost/core"
+            docker save -o /docker-images/web.tar "woost/web"
       - persist_to_workspace:
           root: /docker-images
           paths: "*.tar"
@@ -102,8 +102,7 @@ jobs:
           command: |
             docker load -i /docker-images/db-migration.tar
             docker load -i /docker-images/core.tar
-            docker load -i /docker-images/web.tar
-      - run: ci/publish-docker
+      - run: ./publish-artifacts.sh
 
 workflows:
   version: 2

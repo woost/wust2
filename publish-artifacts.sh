@@ -2,21 +2,17 @@
 
 set -e
 
-if [ -z "$AWS_PROFILE" ]; then
-    echo "Please set your AWS_PROFILE to the desired account"
-    exit 1
-fi
-
 # variables
+environment=${1:-production}
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query "Account" --output text)
 DOCKER_REGISTRY=${AWS_ACCOUNT_ID}.dkr.ecr.eu-central-1.amazonaws.com
-S3_BUCKET_WEB_ASSETS="${AWS_PROFILE}-web-assets-repository"
+S3_BUCKET_WEB_ASSETS="woost-${environment}-web-assets-repository"
 web_assets_dir="./webApp/target/scala-2.12/scalajs-bundler/main/dist"
 version=$(git rev-parse --short HEAD)
 
 # build
 export OVERRIDE_BRANCH=$version
-sbt "; core/docker; dbMigration/docker; webApp/fullOptJS::webpack"
+sbt "clean; core/docker; dbMigration/docker; webApp/fullOptJS::webpack"
 
 
 # publish
