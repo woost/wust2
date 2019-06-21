@@ -40,14 +40,7 @@ object Docker {
   }
 
   def imageNames(name: String, versionPostfix: String = ""): Def.Initialize[List[ImageName]] = Def.setting {
-    val rawBranch = 
-      sys.env.get("OVERRIDE_BRANCH") orElse
-      sys.env.get("CIRCLE_BRANCH") orElse
-      Try(git.gitCurrentBranch.value).filter(_.nonEmpty).toOption getOrElse
-      "dirty"
-
-    val branch = if (rawBranch == "master") "latest" else rawBranch
-    val tags = branch :: Keys.version.value :: Nil
+    val tags = "latest" :: Keys.version.value :: Nil
 
     tags.map { v =>
       val version = if (versionPostfix.isEmpty) v else s"$v-$versionPostfix"
