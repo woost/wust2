@@ -6,6 +6,7 @@ import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl._
 import akka.{Done, NotUsed}
+import org.openqa.selenium.logging.LogEntry
 import org.specs2.execute.{AsResult, Failure, Result, ResultExecution}
 import org.specs2.mutable
 import org.specs2.specification.AroundEach
@@ -80,19 +81,20 @@ trait Browser extends mutable.After {
   val browser = new PhantomJSDriver {
     def errors: List[String] = {
       val logs = manage.logs.get(LogType.BROWSER)
+      val allLogs = logs.getAll.toArray(new Array[LogEntry](0))
 
       // errors in logger
-      val errors = logs.filter(Level.SEVERE).asScala.toList
+      val errors = allLogs.filter(_.getLevel == Level.SEVERE)
 
       // some exceptions are logged as stacktraces with loglevel warning
       // look for something that looks like a stacktrace
-      val warningStacktraces = logs.filter(Level.WARNING).asScala.toList.filter { warning =>
+      val warningStacktraces = allLogs.filter(_.getLevel == Level.WARNING).filter { warning =>
         val head :: tail = warning.getMessage.split("\n").toList
         head.startsWith("TypeError: ") || tail
           .exists(_.matches("  [^ ]+ \\(http://.*/.*\\.js:[0-9]+:[0-9]+\\)"))
       }
 
-      (errors ++ warningStacktraces).map(_.getMessage)
+      (errors ++ warningStacktraces).map(_.getMessage).toList
     }
   }
 
