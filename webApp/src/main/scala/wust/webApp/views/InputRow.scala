@@ -153,7 +153,7 @@ object InputRow {
       Styles.flex,
 
       alignItems.center,
-      div(
+      form(
         margin := "3px",
         VDomModifier.ifTrue(showSubmitIcon || fileUploadHandler.isDefined)(marginRight := "0"), // icons itself have marginLeft
         width := "100%",
