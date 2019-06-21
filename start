@@ -66,13 +66,8 @@ function sbt() {
     command sbt -Dquill.macro.log=${LOGQUILL:-false} $EXTRASBTARGS $@
 }
 
-FALLBACKVERSION="dirty" # When git is not available
-[ -n "$CIRCLE_BRANCH" ] && VERSION=$CIRCLE_BRANCH || VERSION=$git_branch || VERSION=$FALLBACKVERSION
-[ "$VERSION" == "master" ] && VERSION="latest"
-
 
 # TODO: if database docker image is not found, automatically do a migration
-env_wust_version="WUST_VERSION=$VERSION"
 env_wust_secret="WUST_AUTH_SECRET=secret WUST_USER=wust WUST_PASSWORD=wust WUST_PUSH_SUBJECT=push.dev@woost.space WUST_PUSH_PUBLIC_KEY=BDP21xA+AA6MyDK30zySyHYf78CimGpsv6svUm0dJaRgAjonSDeTlmE111Vj84jRdTKcLojrr5NtMlthXkpY+q0 WUST_PUSH_PRIVATE_KEY=or76yI5iDE+S9gWkVU2g0JuHyq4OD/AtwHTHefkoo3k"
 env_wust_local="WUST_HOSTNAME=localhost DOCKER_RESTART_POLICY=no"
 env_postgres_secret="POSTGRES_PASSWORD=test"
@@ -182,7 +177,7 @@ function self() {
         nix-shell -p graalvm8 --run "export JAVA_HOME=\"\$(dirname \$(dirname \$(which java)))\"; echo JAVA_HOME=\$JAVA_HOME; java -version; $SHELL"
         ;;
     sbt)
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
         echo -e "\e[1m\e[32m$env\e[0m"
         export $env
 
@@ -221,7 +216,7 @@ function self() {
         docker_compose core dev down
         ;;
     apps)
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
 
@@ -236,10 +231,10 @@ function self() {
         fi
         ;;
     env)
-        echo "export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
+        echo "export $env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
         ;;
     migrate)
-        export $env_wust_version $env_postgres_secret $env_wust_local_connectivity
+        export $env_postgres_secret $env_wust_local_connectivity
 
         assure_db_migration
 
@@ -276,7 +271,7 @@ function self() {
     prodlocal)
         echo "to open production: (slash in the end is important)"
         echo "http://localhost:12345/apps/web/"
-        env="$env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local $env_wust_local_connectivity $env_slack"
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local $env_wust_local_connectivity $env_slack"
         echo -e "- ENV: \e[1m\e[32m$env\e[0m"
         export $env
         sbt webApp/clean docker
@@ -293,13 +288,13 @@ function self() {
     test.postgres)
         assure_db_migration
         docker_compose core test.postgres down -v
-        export $env_wust_version $env_wust_local_connectivity
+        export $env_wust_local_connectivity
         docker_compose core test.postgres run db-migration
         docker_compose core test.postgres run test-postgres
         docker_compose core test.postgres down -v
         ;;
     test.integration)
-        export $env_wust_version $env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local_connectivity $env_slack
+        export $env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local_connectivity $env_slack
         docker_compose core dev down
         docker_compose core dev up -d --no-recreate
         docker_compose webApp dev up -d

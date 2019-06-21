@@ -10,21 +10,21 @@ if [[ "$git_branch" != "production" ]]; then
 fi
 
 sbt clean
-OVERRIDE_BRANCH=production ci/build-docker
+ci/build-docker
 
 [[ -n "$DOCKER_USERNAME" ]] || exit 0
 [[ -n "$DOCKER_PASSWORD" ]] || exit 0
 [[ -n "$DOCKER_REGISTRY" ]] || exit 0
 
-docker images | grep production
+docker images | grep latest
 echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" "$DOCKER_REGISTRY" --password-stdin;
 
-docker tag "woost/db-migration:staging-core" "$DOCKER_REGISTRY/woost/db-migration:staging-core"
-docker push "$DOCKER_REGISTRY/woost/db-migration:staging-core"
-docker tag "woost/core:staging" "$DOCKER_REGISTRY/woost/core:staging"
-docker push "$DOCKER_REGISTRY/woost/core:staging"
-docker tag "woost/web:staging" "$DOCKER_REGISTRY/woost/web:staging"
-docker push "$DOCKER_REGISTRY/woost/web:staging"
+docker tag "woost/db-migration:latest-core" "$DOCKER_REGISTRY/woost/db-migration:production-core"
+docker push "$DOCKER_REGISTRY/woost/db-migration:production-core"
+docker tag "woost/core:latest" "$DOCKER_REGISTRY/woost/core:production"
+docker push "$DOCKER_REGISTRY/woost/core:production"
+docker tag "woost/web:latest" "$DOCKER_REGISTRY/woost/web:production"
+docker push "$DOCKER_REGISTRY/woost/web:production"
 
 if [[ -n "$PRODUCTION_URL" ]]; then
     echo "Triggering production deploy..."

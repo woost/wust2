@@ -34,7 +34,7 @@ object Client {
     if (LinkingInfo.developmentMode)
       s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain
     else
-      s"$socketProtocol//core-${WoostConfig.value.versionString}.${hostname}$port/ws"
+      s"$socketProtocol//core-${WoostConfig.value.versionString.replace(".", "-")}.${hostname}$port/ws"
   }
 
   private val githubUrl = {

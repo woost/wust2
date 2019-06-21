@@ -1,0 +1,4 @@
+git_head_commit="$(git rev-parse --short HEAD 2> /dev/null || echo latest)"
+git_head_tag="$(git describe --tags --exact-match HEAD 2> /dev/null)"
+git_last_tag="$(git describe --tags --abbrev=0 2> /dev/null || echo v0.0.0)"
+[ -z "$git_head_tag" ] && export WUST_VERSION="${git_last_tag}-${git_head_commit}" || export WUST_VERSION="${git_head_tag}"

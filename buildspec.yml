@@ -1,0 +1,37 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 2.2
+    commands:
+      - nohup dockerd --host=unix:///var/run/docker.sock &
+      - timeout -t 15 sh -c "until docker info; do echo .; sleep 1; done"
+      - . ci/build-env
+  pre_build:
+    commands:
+      - echo Starting build.
+      - echo "CODEBUILD_INITIATOR:${CODEBUILD_INITIATOR}" | tee -a sns-message.txt
+      - echo "CODEBUILD_BUILD_ID:${CODEBUILD_BUILD_ID}" | tee -a sns-message.txt
+      - echo "CODEBUILD_SOURCE_REPO_URL:${CODEBUILD_SOURCE_REPO_URL}" | tee -a sns-message.txt
+      - echo "CODEBUILD_SOURCE_VERSION:${CODEBUILD_SOURCE_VERSION}" | tee -a sns-message.txt
+      - echo "CODEBUILD_RESOLVED_SOURCE_VERSION:${CODEBUILD_RESOLVED_SOURCE_VERSION}" | tee -a sns-message.txt
+      - echo "CODEBUILD_WEBHOOK_EVENT:${CODEBUILD_WEBHOOK_EVENT}" | tee -a sns-message.txt
+      - echo "CODEBUILD_WEBHOOK_HEAD_REF:${CODEBUILD_WEBHOOK_HEAD_REF}" | tee -a sns-message.txt
+      - echo "WUST_VERSION:${WUST_VERSION}" | tee -a sns-message.txt
+      - echo Sending notification ...
+      - aws sns publish --topic-arn "${SNS_TOPIC_ARN}" --subject "Hi, AWS CodeBuild Started - Woost ${WUST_VERSION}" --message file://sns-message.txt
+  build:
+    commands:
+      - echo Build started.
+      - ci/build-unit-test
+      - ci/build-docker
+      # - ci/test-postgres
+      # - ci/test-integration
+      - ci/publish-docker
+  post_build:
+    commands:
+      - echo Build completed.
+      - echo "CODEBUILD_BUILD_SUCCEEDING:${CODEBUILD_BUILD_SUCCEEDING}" | tee -a sns-message.txt
+      - echo Sending notification ...
+      - aws sns publish --topic-arn "${SNS_TOPIC_ARN}" --subject "$([[ \"$CODEBUILD_BUILD_SUCCEEDING\" == \"1\" ]] && echo Howdy, AWS CodeBuild completed successfully || echo Damn, AWS CodeBuild failed) - Woost ${WUST_VERSION}" --message file://sns-message.txt

@@ -13,7 +13,7 @@ defaults: &defaults
   environment:
     TERM: xterm-256color
   docker:
-    - image: fdietze/docker-alpine-scala-webdev:374f36e6e5b70cc47eec6c409295b6518b3d8d2d
+    - image: fdietze/docker-alpine-scala-webdev:latest
 
 restore_cache: &restore_cache
   restore_cache:
@@ -83,14 +83,14 @@ jobs:
           name: Save Docker images
           command: |
             mkdir -p /docker-images
-            docker save -o /docker-images/db-migration.tar "$DOCKER_REGISTRY/woost/db-migration"
-            docker save -o /docker-images/core.tar "$DOCKER_REGISTRY/woost/core"
-            docker save -o /docker-images/web.tar "$DOCKER_REGISTRY/woost/web"
+            docker save -o /docker-images/db-migration.tar "woost/db-migration"
+            docker save -o /docker-images/core.tar "woost/core"
+            docker save -o /docker-images/web.tar "woost/web"
       - persist_to_workspace:
           root: /docker-images
           paths: "*.tar"
 
-  deploy:
+  publish:
     <<: *defaults
     steps:
       - checkout
@@ -102,7 +102,6 @@ jobs:
           command: |
             docker load -i /docker-images/db-migration.tar
             docker load -i /docker-images/core.tar
-            docker load -i /docker-images/web.tar
       - run: ci/publish-docker
 
 workflows:
@@ -114,6 +113,7 @@ workflows:
             branches:
               only:
                 - circleci
+                - aws
       - hold:
           type: approval
           requires:
@@ -121,7 +121,7 @@ workflows:
       - test-integration:
           requires:
             - hold
-      - deploy:
+      - publish:
           requires:
             - test-integration
 
@@ -138,7 +138,7 @@ workflows:
       - test-integration:
           requires:
             - build-test-unit
-      - deploy:
+      - publish:
           requires:
             - test-integration
 
@@ -156,6 +156,6 @@ workflows:
           type: approval
           requires:
             - test-integration
-      - deploy:
+      - publish:
           requires:
             - hold

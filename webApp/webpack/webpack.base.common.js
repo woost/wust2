@@ -60,7 +60,7 @@ const staticIncludeAssets = [
     'emoji-picker/wdt-emoji-bundle.css',
 ];
 
-const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
+const woostVersion = process.env.WUST_VERSION ? process.env.WUST_VERSION : "latest";
 
 // export
 module.exports.webpack = webpack;
@@ -72,5 +72,5 @@ module.exports.woost = {
     htmlTemplateFile: htmlTemplateFile,
     staticCopyAssets: staticCopyAssets,
     staticIncludeAssets: staticIncludeAssets,
-    versionString: gitCommit
+    versionString: woostVersion
 };
