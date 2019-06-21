@@ -30,12 +30,13 @@ short_caching "site.webmanifest"
 eval $(aws ecr get-login --no-include-email)
 function docker_push() {
     local image="$1"
-    local version="$2"
-    local source_image="$image:$version"
-    local target_image="$DOCKER_REGISTRY/$image:$version"
+    local source_version="$2"
+    local target_version="$3"
+    local source_image="$image:$source_version"
+    local target_image="$DOCKER_REGISTRY/$image:$target_version"
 
     docker tag $source_image $target_image
     docker push $target_image
 }
-docker_push "woost/db-migration" "latest-core"
-docker_push "woost/core" "latest"
+docker_push "woost/db-migration" "latest-core" "$version-core"
+docker_push "woost/core" "latest" "$version"
