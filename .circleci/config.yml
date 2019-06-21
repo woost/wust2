@@ -49,26 +49,14 @@ jobs:
     steps:
       - checkout
       - *restore_cache
-      - run:
+      - run: 
           name: Compile all Code and Run Unit-Tests
           command: ci/build-unit-test
-      - run:
-          name: Build Docker Images
-          command: ci/build-docker
-      - run:
-          name: Save Docker images
-          command: |
-            mkdir -p /docker-images
-            docker save -o ./docker-images/db-migration.tar "woost/db-migration"
-            docker save -o ./docker-images/core.tar "woost/core"
-            docker save -o ./docker-images/web.tar "woost/web"
       - *cleanup_cache
       - *save_cache
       - persist_to_workspace:
           root: .
-          paths:
-            - "*/target"
-            - "docker-images/*.tar"
+          paths: "*/target"
 
   test-integration:
     <<: *defaults
@@ -78,6 +66,9 @@ jobs:
       - *restore_cache
       - attach_workspace:
           at: .
+      - run: 
+          name: Build Docker Images
+          command: ci/build-docker
       - run:
           name: Run Database Tests
           command: ci/test-postgres
@@ -88,6 +79,16 @@ jobs:
             ssh -i ~/.ssh/id_rsa_circleci_remote_docker_engine -o StrictHostKeyChecking=no -L localhost:8900:localhost:8900 -L localhost:8901:localhost:8901 -N circleci@$(echo $DOCKER_HOST | grep -Eo "(\d{1,3}\.){3}\d+") &
             ci/test-integration
             jobs -p | xargs kill -9 # kills all background processes. -> ssh port forwarding
+      - run:
+          name: Save Docker images
+          command: |
+            mkdir -p /docker-images
+            docker save -o /docker-images/db-migration.tar "woost/db-migration"
+            docker save -o /docker-images/core.tar "woost/core"
+            docker save -o /docker-images/web.tar "woost/web"
+      - persist_to_workspace:
+          root: /docker-images
+          paths: "*.tar"
 
   deploy:
     <<: *defaults
@@ -95,12 +96,12 @@ jobs:
       - checkout
       - setup_remote_docker # https://circleci.com/docs/2.0/building-docker-images/
       - attach_workspace:
-          at: ./docker-images
+          at: /docker-images
       - run:
           name: Load Docker images
           command: |
-            docker load -i ./docker-images/db-migration.tar
-            docker load -i ./docker-images/core.tar
+            docker load -i /docker-images/db-migration.tar
+            docker load -i /docker-images/core.tar
       - run: ci/publish-docker
 
 workflows:
