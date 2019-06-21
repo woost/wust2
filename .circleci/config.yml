@@ -102,7 +102,7 @@ jobs:
           command: |
             docker load -i /docker-images/db-migration.tar
             docker load -i /docker-images/core.tar
-      - run: ./publish-artifacts.sh
+      - run: ci/publish-docker
 
 workflows:
   version: 2
