@@ -90,7 +90,7 @@ jobs:
           root: /docker-images
           paths: "*.tar"
 
-  deploy:
+  publish:
     <<: *defaults
     steps:
       - checkout
@@ -121,7 +121,7 @@ workflows:
       - test-integration:
           requires:
             - hold
-      - deploy:
+      - publish:
           requires:
             - test-integration
 
@@ -138,7 +138,7 @@ workflows:
       - test-integration:
           requires:
             - build-test-unit
-      - deploy:
+      - publish:
           requires:
             - test-integration
 
@@ -156,6 +156,6 @@ workflows:
           type: approval
           requires:
             - test-integration
-      - deploy:
+      - publish:
           requires:
             - hold
