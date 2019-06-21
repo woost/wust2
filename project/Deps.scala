@@ -71,7 +71,7 @@ object Deps {
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
-  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC2-840c090")
+  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC2")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
