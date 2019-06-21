@@ -11,19 +11,19 @@ import org.scalajs.dom.window
 import outwatch.dom.helpers.OutwatchTracing
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, UI}
+import wust.webUtil.{ BrowserDetect, UI }
 import wust.api.ApiEvent.ReplaceGraph
 import wust.graph._
 import wust.ids._
 import wust.sdk._
 import wust.util.StringOps
-import wust.webApp.jsdom.{Navigator, ServiceWorker}
-import wust.webApp.parsers.{UrlConfigParser, UrlConfigWriter}
+import wust.webApp.jsdom.{ Navigator, ServiceWorker }
+import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
 import wust.webApp.views.EditableContent
-import wust.webApp.{Client, DevOnly}
+import wust.webApp.{ Client, DevOnly }
 
 import scala.concurrent.duration._
-import scala.util.{Failure, Success}
+import scala.util.{ Failure, Success }
 
 object GlobalStateFactory {
   def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
@@ -274,7 +274,6 @@ object GlobalStateFactory {
       window.location.reload(flag = false)
     }
 
-
     Client.apiErrorSubject.foreach { _ =>
       scribe.error("API request did fail, because the API is incompatible")
       hasError() = true
@@ -293,14 +292,20 @@ object GlobalStateFactory {
     })
 
     DevOnly {
-      rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
-      graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
-
-      page.debug("page")
-      view.debug("view")
-      user.debug("auth")
+      setupStateDebugLogging(state)
     }
 
     state
+  }
+
+  def setupStateDebugLogging(state: GlobalState)(implicit ctx:Ctx.Owner):Unit = {
+    import state._
+
+    rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
+    graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
+
+    page.debug("page")
+    view.debug("view")
+    user.debug("auth")
   }
 }

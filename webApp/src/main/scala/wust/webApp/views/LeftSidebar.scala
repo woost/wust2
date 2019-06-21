@@ -118,7 +118,7 @@ object LeftSidebar {
 
         hamburger(state),
         banner(state),
-        Components.betaSign.apply(fontSize := "12px"),
+        Components.betaSign(state).apply(fontSize := "12px"),
         syncStatus(state)(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
       ),
     )
