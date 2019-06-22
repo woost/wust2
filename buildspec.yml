@@ -12,9 +12,10 @@ phases:
     commands:
       - echo Build started on `date`
       - ci/build-unit-test
+      - ci/build-docker
+      # - ci/test-postgres
+      # - ci/test-integration
+      - ci/publish-docker
   post_build:
     commands:
       - echo Build completed on `date`
-artifacts:
-  files:
-    # - target/messageUtil-1.0.jar
