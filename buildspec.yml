@@ -5,7 +5,7 @@ phases:
     runtime-versions:
       docker: 2.2
     commands:
-      - nohup --host=unix:///var/run/docker.sock &
+      - nohup dockerd --host=unix:///var/run/docker.sock &
       - timeout -t 15 sh -c "until docker info; do echo .; sleep 1; done"
   pre_build:
     commands:
