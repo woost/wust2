@@ -1,4 +1,5 @@
 # Woost
+![Build Status](https://codebuild.eu-central-1.amazonaws.com/badges?uuid=eyJlbmNyeXB0ZWREYXRhIjoicDNUWjI3S0tjTlkrNTVmZnVEd0Q2eDhXUGxubER6dVQveEJNMjZxNFlGMS8wMTBScEF0UGptVlVJdlV6YWpZYnJUMi9DZ29Sd1h2NnEwdzkvaHh0Y3owPSIsIml2UGFyYW1ldGVyU3BlYyI6ImM5c2w4NnBMVmxBR00xdzgiLCJtYXRlcmlhbFNldFNlcmlhbCI6MX0%3D&branch=master)
 [![Coverage Status](https://coveralls.io/repos/github/woost/wust2/badge.svg)](https://coveralls.io/github/woost/wust2)
 [![Join the chat at https://gitter.im/wust2/Lobby](https://badges.gitter.im/wust2/Lobby.svg)](https://gitter.im/wust2/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
