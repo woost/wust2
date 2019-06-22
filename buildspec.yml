@@ -1,10 +1,9 @@
 version: 0.2
 
 phases:
-  # install:
-    # runtime-versions:
-      # java: openjdk11
-      # docker: 2.2
+  install:
+    runtime-versions:
+      docker: 2.2
   pre_build:
     commands:
       - echo Nothing to do in the pre_build phase...
