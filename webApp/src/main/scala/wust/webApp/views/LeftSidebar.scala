@@ -169,7 +169,7 @@ object LeftSidebar {
 
     val offlineIcon = fontawesome.layered(
       fontawesome.icon(freeSolid.faCircle, new Params {
-        styles = scalajs.js.Dictionary[String]("color" -> "tomato")
+        styles = scalajs.js.Dictionary[String]("color" -> "#858d94")
       }),
       fontawesome.icon(freeSolid.faBolt, new Params {
         transform = new Transform { size = 10.0 }
