@@ -162,15 +162,16 @@ object InputRow {
         VDomModifier.ifTrue(showMarkdownHelp)(
           position.relative,
           a(
-            color := "gray",
+            freeSolid.faFont,
+            color := "#a0a8ab",
             position.absolute,
             right := "8px",
-            top := "8px",
+            top := "6px",
+            fontSize := "16px",
             float.right,
-            freeSolid.faQuestion,
             Elements.safeTargetBlank,
-            UI.tooltip("left center") := "Use Markdown to format your text. Click for more details.",
-            href := "https://www.markdownguide.org/basic-syntax/"
+            UI.tooltip("left center") := "You can use Markdown to format your text. Click for help.",
+            href := "https://commonmark.org/help"
           ),
         ),
 
