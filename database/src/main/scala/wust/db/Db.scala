@@ -103,6 +103,18 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
     }
 
+    def addMemberIfPublicAndNotMember(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+      val insertMembership = quote { (nodeId: NodeId, userId: UserId) =>
+        infix"""
+          insert into edge(sourceid, data, targetid)
+          select ${nodeId}, jsonb_build_object('type', 'Member', 'level', 'readwrite'::accesslevel), ${userId}
+          where exists (select * from node where node.id = ${nodeId} and node.accesslevel = 'readwrite'::accesslevel)
+          ON CONFLICT DO NOTHING
+        """.as[Insert[Edge]]
+      }
+      ctx.run(insertMembership(lift(nodeId), lift(userId))).map(_ == 1)
+    }
+
     def addMember(nodeId: NodeId, userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Boolean] = addMember(nodeId :: Nil, userId, accessLevel).map(_.nonEmpty)
     def addMember(nodeIds: Seq[NodeId], userId: UserId, accessLevel: AccessLevel)(implicit ec: ExecutionContext): Future[Seq[NodeId]] = {
       val insertMembership = quote { nodeId: NodeId =>

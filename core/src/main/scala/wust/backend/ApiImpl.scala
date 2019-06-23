@@ -94,7 +94,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     db.user.getUserByMail(email).map(_.map(forClient))
   }
 
-  override def getGraph(page: Page): ApiFunction[Graph] = Action.requireUser { (state, user) =>
+  override def getGraph(page: Page): ApiFunction[Graph] = Action.assureDbUserIf(page.parentId.nonEmpty) { (state, user) =>
     getPage(user.id, page)
   }
 
@@ -105,7 +105,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
   // Simple Api
   // TODO: more efficient
-  override def getNodeList(parentId: Option[NodeId], nodeRole: Option[NodeRole] = None): ApiFunction[List[api.SimpleNode]] = Action.requireUser { (state, user) =>
+  override def getNodeList(parentId: Option[NodeId], nodeRole: Option[NodeRole] = None): ApiFunction[List[api.SimpleNode]] = Action.assureDbUserIf(parentId.nonEmpty) { (state, user) =>
     getPage(user.id, wust.graph.Page(parentId = parentId)).map { graph =>
       def toSimpleNode(node: Node): Option[SimpleNode] = node match {
         case node: Node.Content if nodeRole.forall(node.role == _) => Some(api.SimpleNode(node.id, node.str, node.role))
@@ -216,8 +216,18 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
   // }
 
   private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
+    // handle public nodes as invite links:
+    // the link of a public node acts as an invite link. Therefore when getting the graph of a public node,
+    // you automatically become a member of this node, then we get the graph and use normal access management.
+    //TODO: hacky and require all callers to assure that user exists in db if parentId is defined...
+    val requiredAction = page.parentId.fold(Future.successful(())) { parentId =>
+      db.node.addMemberIfPublicAndNotMember(nodeId = parentId, userId = userId).map(_ => ())
+    }
+
     // TODO: also include the transitive parents of the page-parentId to be able no navigate upwards
-    db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
+    requiredAction.flatMap { _ =>
+      db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
+    }
   }
 }
 

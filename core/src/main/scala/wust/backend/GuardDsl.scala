@@ -43,6 +43,9 @@ class GuardDsl(jwt: JWT, db: Db)(implicit ec: ExecutionContext) {
     def requireDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] =
       requireUserT[T, AuthUser.Persisted](f) { case u: AuthUser.Persisted => u }
 
+    def assureDbUserIf[T](condition: Boolean)(f: (State, AuthUser) => Future[F[T]]): ApiFunction[T] =
+      if (condition) assureDbUser(f) else requireUser(f)
+
     def assureDbUser[T](f: (State, AuthUser.Persisted) => Future[F[T]]): ApiFunction[T] =
       ApiFunction.redirect(requireDbUser(f)) { state =>
         val auth = state.auth.collect {
