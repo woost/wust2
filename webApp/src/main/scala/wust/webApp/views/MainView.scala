@@ -43,6 +43,7 @@ object MainView {
           topBannerContainer(state),
           content(state),
         ),
+        VDomModifier.ifNot(BrowserDetect.isMobile)(EmojiPicker()),
 
         RightSidebar(state, ViewRender),
       )
@@ -147,13 +148,13 @@ object MainView {
         marginTop := "20px",
 
         Rx {
-          if(state.isOnline())
+          if (state.isOnline())
             div(
               cls := "animated-late-fadein",
               span("Loading forever?", marginRight := "10px"),
               button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
             )
-          else 
+          else
             div(
               cls := "animated-alternating-fade",
               span("CONNECTING"),
@@ -162,5 +163,4 @@ object MainView {
       )
     )
   }
-
 }

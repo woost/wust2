@@ -126,7 +126,7 @@ object FeedbackForm {
     cls := "ui violet tiny button",
     marginTop := "5px",
     cls := "vote-button",
-    snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
+    snabbdom.VNodeProxy.repairDomBeforePatch, // nolt button modifies the dom
     VDomModifier.ifNot(LinkingInfo.developmentMode)(
       onDomMount.foreach { _ =>
         try {

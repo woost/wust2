@@ -516,7 +516,8 @@ object ChatView {
       triggerFocus = inputFieldFocusTrigger,
       showMarkdownHelp = !BrowserDetect.isMobile,
       enforceUserName = true,
-      placeholder = Placeholder.newMessage
+      placeholder = Placeholder.newMessage,
+      enableEmojiPicker = true,
     )(ctx)(
         Styles.flexStatic,
         Rx{ backgroundColor :=? bgColor() }

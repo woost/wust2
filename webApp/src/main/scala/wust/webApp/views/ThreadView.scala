@@ -398,7 +398,19 @@ object ThreadView {
       fileUploadHandler() = None
     }
 
-    InputRow(state, submitAction, fileUploadHandler = Some(fileUploadHandler), scrollHandler = Some(scrollHandler), preFillByShareApi = true, autoFocus = !BrowserDetect.isMobile && !focusState.isNested, triggerFocus = inputFieldFocusTrigger, showMarkdownHelp = true, enforceUserName = true, placeholder = Placeholder.newMessage)(ctx)(Styles.flexStatic)
+    InputRow(
+      state,
+      submitAction,
+      fileUploadHandler = Some(fileUploadHandler),
+      scrollHandler = Some(scrollHandler),
+      preFillByShareApi = true,
+      autoFocus = !BrowserDetect.isMobile && !focusState.isNested,
+      triggerFocus = inputFieldFocusTrigger,
+      showMarkdownHelp = true,
+      enableEmojiPicker = true,
+      enforceUserName = true,
+      placeholder = Placeholder.newMessage
+    )(ctx)(Styles.flexStatic)
   }
 
 }

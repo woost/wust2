@@ -814,6 +814,21 @@ object CommonStyles extends StyleSheet.Standalone {
     marginRight(0 px),
     )
 
+  "textarea.inputrow" - (
+    marginBottom(0 px).important // since introducing the emoji-picker, textarea got a margin-bottm. Don't know why...
+  )
+
+  ".wdt-emoji-picker" - (
+    // position emoji button at the top right of input
+    bottom.unset,
+    top(14 px),
+    right(9 px),
+  )
+
+  ".wdt-emoji-popup" - (
+    fontSize(20 px),
+    marginTop(-387 px), // reposition hack, because picker only opens to the bottom (https://github.com/needim/wdt-emoji-bundle/blob/master/wdt-emoji-bundle.js#L230)
+  )
 
 
 

@@ -1,5 +1,6 @@
 package wust.webApp
 
+import wust.facades.wdtEmojiBundle._
 import colorado.HCL
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
 import wust.facades.intersectionObserver.IntersectionObserver
@@ -148,6 +149,9 @@ object Main {
     EmojiConvertor.wrap_native = true
     EmojiConvertor.avoid_ms_emoji = true
     EmojiConvertor.replace_mode = "img"
+
+    wdtEmojiBundle.defaults.emojiType = "twitter";
+    wdtEmojiBundle.defaults.emojiSheets.twitter = "/emoji-picker/sheets/sheet_twitter_64_indexed_128.png";
   }
 
   private def setupRuntimeScalaCSSInjection():Unit = {

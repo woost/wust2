@@ -41,7 +41,11 @@ const staticCopyAssets = [
     { from: 'node_modules/emoji-js/lib/emoji.min.js', to: 'emoji.min.js'},
     { from: 'node_modules/fomantic-ui-css/semantic.min.css', to: 'semantic/' },
     { from: 'node_modules/fomantic-ui-css/semantic.min.js', to: 'semantic/' },
-    { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' }
+    { from: 'node_modules/fomantic-ui-css/themes/default/assets/fonts/icons.woff2', to: 'semantic/themes/default/assets/fonts/' },
+    { from: 'node_modules/wdt-emoji-bundle/emoji.min.js', to: 'emoji-picker/emoji.min.js' },
+    { from: 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.min.js', to: 'emoji-picker/wdt-emoji-bundle.min.js' },
+    { from: 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.css', to: 'emoji-picker/wdt-emoji-bundle.css' },
+    { from: 'node_modules/wdt-emoji-bundle/sheets/sheet_twitter_64_indexed_128.png', to: 'emoji-picker/sheets/sheet_twitter_64_indexed_128.png' },
 ];
 const staticIncludeAssets = [
     'jquery.min.js',
@@ -51,6 +55,9 @@ const staticIncludeAssets = [
     'semantic/semantic.min.js' ,
     'semantic/semantic.min.css' ,
     'highlight/github-gist.css',
+    'emoji-picker/emoji.min.js',
+    'emoji-picker/wdt-emoji-bundle.min.js',
+    'emoji-picker/wdt-emoji-bundle.css',
 ];
 
 const gitCommit = execSync('git rev-parse --short HEAD').toString().trim()
