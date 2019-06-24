@@ -14,8 +14,8 @@ object Docker {
     val logsFolder = s"$appFolder/logs"
 
     new Dockerfile {
-      from(Deps.docker.openjdk8)
-      runRaw("apk update && apk add curl")
+      from(Deps.docker.alpine)
+      runRaw("apk add --no-cache curl openjdk11-jre-headless")
       run("adduser", "user", "-D", "-u", "1000")
       run("mkdir", "-p", appFolder)
       run("mkdir", "-p", logsFolder)
