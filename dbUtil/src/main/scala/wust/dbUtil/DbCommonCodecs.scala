@@ -48,6 +48,9 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val encodingNodeRole: MappedEncoding[NodeRole, String] = MappedEncoding(encodeJson[NodeRole]) // encodeJson[PostData] is here on purpose, we want to serialize the base trait.
   implicit val decodingNodeRole: MappedEncoding[String, NodeRole] = MappedEncoding(decodeJson[NodeRole])
 
+  implicit val encodingOAuthClientService: MappedEncoding[OAuthClientService, String] = MappedEncoding(_.identifier)
+  implicit val decodingOAuthClientService: MappedEncoding[String, OAuthClientService] = MappedEncoding(str => OAuthClientService.fromString(str).getOrElse(throw new Exception(s"Cannot decode OAuthClientService: $str")))
+
   implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] = MappedEncoding { d => new Date(d) }
   implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] = MappedEncoding { d => EpochMilli(d.toInstant.toEpochMilli) }
 

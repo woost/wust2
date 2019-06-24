@@ -39,7 +39,7 @@ object Data {
         .drop(2).dropRight(2)
         .split("""","""")
         .map(_.replaceAll("""\\"""", """""""))
-        .toList
+          .toList
 
       viewStrings.flatMap(str => decode[View.Visible](str).right.toOption)
     }
@@ -83,19 +83,10 @@ object Data {
     }
   }
 
+  case class OAuthClient(userId: UserId, service: OAuthClientService, accessToken: String)
+
   // Result of notifiedUsersByNodes
-  final case class RawPushData(subscription: Data.WebPushSubscription, notifiedNodes: List[NodeId], subscribedNode: NodeId, subscribedNodeContent: String)
-  final case class NotifyRow(userId: UserId, nodeIds: List[NodeId], subscribedNode: NodeId)
-  final case class WebPushNotifications(
-    id: Long,
-    userId: UserId,
-    endpointUrl: String,
-    p256dh: String,
-    auth: String,
-    notifiedNodes: List[NodeId],
-    subscribedNodeId: NodeId,
-    subscribedNodeContent: String
-  )
+  final case class NotifiedUsersRow(userId: UserId, notifiedNodes: List[NodeId], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
   final case class GraphRow(

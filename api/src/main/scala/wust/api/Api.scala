@@ -65,6 +65,10 @@ trait AuthApi[Result[_]] {
   def updateUserEmail(id: UserId, newEmail: String): Result[Boolean]
   def resendEmailVerification(id: UserId): Result[Unit]
   def invitePerMail(address: String, nodeId:NodeId): Result[Unit]
+
+  def getOAuthConnectUrl(service: OAuthClientService): Result[Option[String]]
+  def getOAuthClients(): Result[Seq[OAuthClientService]]
+  def deleteOAuthClient(service: OAuthClientService): Result[Boolean]
 }
 
 final case class Password(string: String) extends AnyVal {

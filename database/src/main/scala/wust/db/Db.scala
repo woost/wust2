@@ -140,18 +140,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
 
   object notifications {
-    def notifyDataBySubscribedNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[RawPushData]] = {
-      val q = quote {
-        infix"select * from subscriptions_by_nodeid(${lift(nodesOfInterest)})"
-          .as[Query[WebPushNotifications]]
-      }
-      ctx.run(q).map(_.map(n => RawPushData(WebPushSubscription(n.id, n.userId, n.endpointUrl, n.p256dh, n.auth), n.notifiedNodes, n.subscribedNodeId, n.subscribedNodeContent)))
-    }
-
-    def notifiedUsersByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[NotifyRow]] = {
+    def notifiedUsersByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[NotifiedUsersRow]] = {
       ctx.run(
-        infix"select * from notified_users_at_deepest_node(${lift(nodesOfInterest)})"
-          .as[Query[NotifyRow]]
+        infix"select * from notified_users_by_nodeid(${lift(nodesOfInterest)})"
+          .as[Query[NotifiedUsersRow]]
       )
     }
 
@@ -189,7 +181,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of webpush subscription deletes: ${touched.sum} <= ${subscriptions.size} - ${subscriptions.zip(touched)}"))
     }
 
-    def getSubscriptions(userIds: Set[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
+    def getSubscription(userId: UserId)(implicit ec: ExecutionContext): Future[Option[WebPushSubscription]] = getSubscriptions(userId :: Nil).map(_.headOption)
+    def getSubscriptions(userIds: Seq[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
       ctx.run {
         query[WebPushSubscription].filter(sub =>
           liftQuery(userIds.toList) contains sub.userId
@@ -470,6 +463,49 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run {
         graphPage(lift(parentIds), lift(requestingUserId))
       }.map(Graph.from)
+    }
+  }
+
+  object oAuthClients {
+    def create(client: OAuthClient)(implicit ec:ExecutionContext): Future[Boolean] = {
+      ctx.run(
+        query[OAuthClient]
+          .insert(lift(client))
+          .onConflictUpdate(_.userId, _.service)(
+            (node, excluded) => node.accessToken -> excluded.accessToken
+          )
+      ).map(_ == 1)
+    }
+
+    def get(userId: UserId, service: OAuthClientService)(implicit ec:ExecutionContext): Future[Option[OAuthClient]] = get(userId :: Nil, service).map(_.headOption)
+    def get(userIds: Seq[UserId], service: OAuthClientService)(implicit ec:ExecutionContext): Future[Seq[OAuthClient]] = {
+      ctx.run(
+        query[OAuthClient]
+          .filter(client => liftQuery(userIds.toList).contains(client.userId) && client.service == lift(service))
+      )
+    }
+
+    def getAll(userId: UserId)(implicit ec:ExecutionContext): Future[Seq[OAuthClientService]] = {
+      ctx.run(
+        query[OAuthClient]
+          .filter(client => client.userId == lift(userId))
+          .map(_.service)
+      )
+    }
+
+    def delete(clients: Seq[OAuthClient])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
+      ctx.run(
+        liftQuery(clients.toList)
+          .foreach(s => query[OAuthClient].filter(client => client.userId == s.userId && client.service == s.service && client.accessToken == s.accessToken).delete)
+      ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of oauth client deletes: ${ touched.sum } <= ${ clients.size } - ${ clients.zip(touched) }"))
+    }
+
+    def delete(userId: UserId, service: OAuthClientService)(implicit ec:ExecutionContext): Future[Boolean] = {
+      ctx.run(
+        query[OAuthClient]
+          .filter(client => client.userId == lift(userId) && client.service == lift(service))
+          .delete
+      ).map(_ == 1)
     }
   }
 }

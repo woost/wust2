@@ -3,8 +3,8 @@ package wust.core
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity, StatusCodes}
 import akka.http.scaladsl.server.Route
 import wust.api.Authentication
-import wust.backend.auth.JWT
-import wust.backend.config.ServerConfig
+import wust.core.auth.JWT
+import wust.core.config.ServerConfig
 import wust.db.Db
 
 import scala.concurrent.ExecutionContext
@@ -20,7 +20,7 @@ class EmailVerificationEndpoint(db: Db, jwt: JWT, config: ServerConfig) {
     def errorMessage = complete(StatusCodes.InternalServerError -> s"Sorry, we cannot verify your email address. Please try again later.")
 
     jwt.emailActivationFromToken(token) match {
-      case Some(activation) if !JWT.isExpired(activation) =>
+      case Some(activation) =>
         onComplete(db.user.verifyEmailAddress(activation.userId, activation.email)) {
           case Success(true) => successMessage
           case Success(false) => invalidMessage

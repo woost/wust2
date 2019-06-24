@@ -78,7 +78,7 @@ object UserSettingsView {
     )
   }
 
-  def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = false): UI.AccordionEntry = {
+  private def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean = false): UI.AccordionEntry = {
     UI.AccordionEntry(
       title = VDomModifier(
         Styles.flexStatic,
@@ -154,11 +154,20 @@ object UserSettingsView {
   private def pluginSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = div(
     Styles.flex,
     flexWrap.wrap,
+    OAuthClientService.all.map { service =>
+      Observable.fromFuture(getEnabledOAuthClientServices()).map { enabledServices =>
+        div(
+          margin := "10px 30px 10px 0px",
+          minWidth := "200px",
+          oAuthClientServiceButton(user, service, enabledServices(service))
+        )
+      }
+    },
     div(
       margin := "10px 30px 10px 0px",
       minWidth := "200px",
       Observable.fromFuture(slackButton(user))
-    )
+    ),
   )
 
   private def accountSettings(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
@@ -391,8 +400,7 @@ object UserSettingsView {
     flexDirection.column,
     button(
       cls := "ui button green",
-      marginTop := "6px",
-      "Enable Slack plugin",
+      "Enable slack plugin",
       onClick foreach {
         Analytics.sendEvent("slack", "enableplugin")
       },
@@ -400,10 +408,10 @@ object UserSettingsView {
         UI.toast("Thanks for your interest in the slack plugin. It will be available soon.")
       }
     ),
-      div(
+    div(
       fontSize := "10px",
       textAlign.center,
-      "Slack plugin not enabled"
+      "Currently inactive"
     ),
   )
 
@@ -417,7 +425,48 @@ object UserSettingsView {
       }
   }
 
-  def linkWithGithub() = {
+  private def getEnabledOAuthClientServices(): Future[Set[OAuthClientService]] = {
+    Client.auth.getOAuthClients().recover { case _ => Set.empty[OAuthClientService] }.map(_.toSet)
+  }
+
+  private def oAuthClientServiceButton(user: UserInfo, service: OAuthClientService, initiallyEnabled: Boolean)(implicit ctx: Ctx.Owner): VNode = {
+    val isEnabled = Var(initiallyEnabled)
+    div(
+      Styles.flex,
+      flexDirection.column,
+      button(
+        Rx {
+          if (isEnabled()) VDomModifier(
+            cls := "ui button",
+            s"Disable ${service.identifier} plugin",
+          ) else VDomModifier(
+            cls := "ui button green",
+            s"Enable ${service.identifier} plugin",
+          )
+        },
+        onClick foreach {
+          Analytics.sendEvent(service.identifier, "enableplugin")
+        },
+        onClick foreach {
+          if (isEnabled.now) Client.auth.deleteOAuthClient(service).foreach { success =>
+            if (success) isEnabled() = false
+          } else Client.auth.getOAuthConnectUrl(service).onComplete {
+            case Success(Some(redirectUrl)) => dom.window.location.href = redirectUrl
+            case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.")
+          }
+        }
+      ),
+      div(
+        fontSize := "10px",
+        textAlign.center,
+        Rx {
+          if (isEnabled()) "Currently active" else "Currently inactive"
+        }
+      )
+    )
+  }
+
+  private def linkWithGithub() = {
     Client.auth.issuePluginToken().foreach { auth =>
       scribe.info(s"Generated plugin token: $auth")
       val connUser = Client.githubApi.connectUser(auth.token)
@@ -430,7 +479,7 @@ object UserSettingsView {
     }
   }
 
-  def linkWithGitter() = {
+  private def linkWithGitter() = {
     Client.auth.issuePluginToken().foreach { auth =>
       scribe.info(s"Generated plugin token: $auth")
       val connUser = Client.gitterApi.connectUser(auth.token)

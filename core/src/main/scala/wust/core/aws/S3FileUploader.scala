@@ -10,7 +10,7 @@ import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3Client}
 import monix.eval.Task
 import wust.api.{FileUploadConfiguration, StaticFileUrl}
-import wust.backend.config.{AwsConfig, ServerConfig}
+import wust.core.config.{AwsConfig, ServerConfig}
 import wust.ids.UserId
 
 import scala.collection.mutable
