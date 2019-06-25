@@ -50,7 +50,7 @@ class PushedClient private(val config: PushedConfig)(implicit system: ActorSyste
       entity = FormData(
         FormData.BodyPart.Strict("app_key", config.keys.appKey),
         FormData.BodyPart.Strict("app_secret", config.keys.appSecret),
-        FormData.BodyPart.Strict("access_token", accessToken.dropRight(1)+"1"),
+        FormData.BodyPart.Strict("access_token", accessToken),
         FormData.BodyPart.Strict("target_type", "user"),
         FormData.BodyPart.Strict("content", content),
         FormData.BodyPart.Strict("content_type", "url"),
