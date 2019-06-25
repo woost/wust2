@@ -21,5 +21,5 @@ else
     new_tag=$(echo $git_last_tag | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
 fi
 
-echo "Setting new tag: $new_tag"
 git tag "$new_tag"
+echo "Git tag was set: $new_tag"
