@@ -17,7 +17,7 @@ class OAuthClientVerificationEndpoint(db: Db, jwt: JWT, config: ServerConfig, se
   import akka.http.scaladsl.server.Directives._
 
   def verify(token: Authentication.Token, code: String)(implicit ec: ExecutionContext, materializer: ActorMaterializer): Route = {
-    val linkUrl = s"https://${config.host}/#user-settings"
+    val linkUrl = s"https://${config.host}/#view=usersettings"
     def link =  s"""<a href="$linkUrl">Go back to app</a>"""
     def successMessage = redirect(Uri(linkUrl), StatusCodes.TemporaryRedirect)
     def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot verify OAuth flow. This token was already used or is invalid or expired. $link"))
