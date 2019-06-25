@@ -35,7 +35,7 @@ object Docker {
 
       workDir(appFolder)
       copy(artifact, appFolder)
-      entryPoint("java", "-jar", artifact.getName)
+      entryPoint("java", "-XX:+UseContainerSupport", "-XX:MinRAMPercentage=50", "-XX:MaxRAMPercentage=80", "-jar", artifact.getName)
     }
   }
 
