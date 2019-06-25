@@ -30,16 +30,6 @@ object PageHeaderParts {
       cls := (if (isActiveTab(currentView, tabInfo)) "active"
               else "inactive")
 
-    /// @return A zIndex modifier, adjusting it based on activity
-    def modActivityZIndex(currentView: View, tabInfo : TabInfo) =
-      (if (isActiveTab(currentView, tabInfo))
-         // 1500 is the value that is set by the tooltip normally
-         // and allows it to be displayed
-         zIndex := 1500
-       else
-         // set it to auto: this lets the shadow from main-viewrender overlap the tab
-         zIndex.auto)
-
     /// @return A color modifier, setting the color matching the currently viewed topic
     def modTopicBackgroundColor(currentView: View, pageStyle: PageStyle, tabInfo : TabInfo) = {
       VDomModifier.ifTrue(isActiveTab(currentView, tabInfo))(
@@ -61,7 +51,6 @@ object PageHeaderParts {
     modifiers.modActivityStateCssClass(parms.currentView, tabInfo),
     modifiers.modTopicBackgroundColor(parms.currentView, parms.pageStyle, tabInfo),
     modifiers.modTooltip(tabInfo),
-    modifiers.modActivityZIndex(parms.currentView, tabInfo),
   )
 
   /// @return Most basic tab element that is further refined inside e.g. singleTab / doubleTab

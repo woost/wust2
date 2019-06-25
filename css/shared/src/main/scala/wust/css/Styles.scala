@@ -1384,9 +1384,7 @@ object CommonStyles extends StyleSheet.Standalone {
   ".viewswitcher-item.active" - (
     // borderBottomColor set programatically to topic color
   )
-  ".viewswitcher-item.active:hover" - (
-    zIndex(1500)
-  )
+
   ".viewswitcher-item.inactive" - (
     backgroundColor(rgba(0,0,0, 0.1)),
     color(rgba(255,255,255,0.75)),
