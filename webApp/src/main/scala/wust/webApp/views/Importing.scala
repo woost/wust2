@@ -123,7 +123,7 @@ object Importing {
           Input.FromFile("Upload text file with a multiline tasklist, where each task is separated with a newline.", Some("application/text")),
         ),
         parser = str => IO {
-          val nodes = str.lines.map[Node] { line => Node.MarkdownTask(line.trim) }.toIterable
+          val nodes = str.linesIterator.map[Node] { line => Node.MarkdownTask(line.trim) }.toIterable
 
           Right(GraphChanges.Import(
             GraphChanges(addNodes = nodes.to[Array]),

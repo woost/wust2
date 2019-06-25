@@ -10,8 +10,9 @@ object Base64Codec {
   import js.Dynamic.{global => g}
 
   def encode(buffer: ByteBuffer): String = {
-    val s = new StringBuilder(buffer.limit)
-    for (_ <- 0 until buffer.limit) {
+    val n = buffer.limit()
+    val s = new StringBuilder(n)
+    for (_ <- 0 until n) {
       val c = buffer.get
       s ++= g.String.fromCharCode(c & 0xFF).asInstanceOf[String]
     }

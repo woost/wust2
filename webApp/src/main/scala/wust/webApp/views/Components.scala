@@ -106,7 +106,7 @@ object Components {
     // 1. extract first line of string
     val firstLine = {
       //TODO: skip markdown syntax which does not display any text, like "```scala"
-      val lines = node.str.lines
+      val lines = node.str.linesIterator
       if (lines.hasNext) lines.next else ""
     }
 

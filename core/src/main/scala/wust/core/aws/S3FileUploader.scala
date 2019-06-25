@@ -136,7 +136,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
 
     val signingKey = AwsSignature.getSignatureKey(key = credentials.getAWSSecretKey, dateStamp = amzDateString, regionName = awsConfig.region, serviceName = "s3")
     val signedPolicy = AwsSignature.HmacSHA256(data = policy, key = signingKey)
-    val signature = javax.xml.bind.DatatypeConverter.printHexBinary(signedPolicy).toLowerCase
+    val signature = signedPolicy.map(byte => "%02x" format byte).mkString
 
     FileUploadConfiguration.UploadToken(baseUrl = s3PostUrl(awsConfig.uploadBucketName), credential = amzCredential, sessionToken = sessionToken, policyBase64 = policy, signature = signature, validSeconds = validSeconds, acl = acl, key = key, algorithm = amzAlgorithm, date = amzDateTimeString, contentDisposition = fileContentDisposition, cacheControl = fileCacheControl)
   }

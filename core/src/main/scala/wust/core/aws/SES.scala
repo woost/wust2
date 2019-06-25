@@ -6,29 +6,8 @@ import com.amazonaws.services.simpleemail.{AmazonSimpleEmailService, AmazonSimpl
 import wust.backend.config.{AwsConfig, SESConfig}
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
-import javax.xml.bind.DatatypeConverter
 import monix.eval.Task
 import wust.backend.mail.{MailClient, MailMessage}
-
-object SES {
-  case class SmtpCredentials(username: String, password: String)
-
-  // https://docs.aws.amazon.com/ses/latest/DeveloperGuide/example-create-smtp-credentials.html
-  def getSmtpCredentials(awsConfig: AwsConfig): SmtpCredentials = {
-    val credentials = DefaultAWSCredentialsProviderChain.getInstance().getCredentials
-    import AwsSignature._
-    val message = "SendRawEmail"
-    val version: Byte = 0x04
-    val kSigning = getSignatureKey(key = credentials.getAWSSecretKey, dateStamp = "11111111", regionName = awsConfig.region, serviceName = "ses") //TODO: no hardcode email region
-    val kMessage = HmacSHA256(message, kSigning)
-    val kMessageWithVersion = new Array[Byte](kMessage.length + 1)
-    kMessageWithVersion(0) = version
-    System.arraycopy(kMessage, 0, kMessageWithVersion, 1, kMessage.length)
-    val smtpPassword = DatatypeConverter.printBase64Binary(kMessageWithVersion)
-
-    SmtpCredentials(credentials.getAWSAccessKeyId, smtpPassword)
-  }
-}
 
 class SESMailClient(replyTo: String, config: SESConfig) extends MailClient {
   private val client = AmazonSimpleEmailServiceClientBuilder
