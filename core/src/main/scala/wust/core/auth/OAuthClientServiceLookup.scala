@@ -17,8 +17,7 @@ class OAuthClientServiceLookup(jwt: JWT, serverConfig: ServerConfig, pushClient:
 
   def getUrl(userId: UserId, service: OAuthClientService): Option[String] = {
     val token = jwt.generateOAuthClientToken(userId, OAuthClientService.Pushed)
-//    val redirectUri = s"https://${serverConfig.host}/${ServerPaths.oauth}/${token.string}" // canoot use ?token= because pushed append ?code=... and not &
-    val redirectUri = s"https://1c65a114.ngrok.io/${ServerPaths.oauth}/${token.string}"
+    val redirectUri = s"https://${serverConfig.host}/${ServerPaths.oauth}/${token.string}" // canoot use ?token= because pushed append ?code=... and not &
 
     service match {
       case OAuthClientService.Pushed => pushClient.flatMap(_.pushedClient.map(_.oAuthUrl(redirectUri)))
