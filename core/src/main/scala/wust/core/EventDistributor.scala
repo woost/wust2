@@ -177,7 +177,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     val parallelNotifications = notifications.par
     parallelNotifications.tasksupport = new ExecutionContextTaskSupport(ec)
 
-    val expiredSubscriptions: ParSeq[List[Future[Option[Data.WebPushSubscription]]]] = parallelNotifications.map {
+    val expiredSubscriptions: ParSeq[List[Future[List[Data.WebPushSubscription]]]] = parallelNotifications.map {
       case NotifiedUsersRow(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { nodeId =>
           val node = addNodesByNodeId(nodeId)
@@ -192,41 +192,43 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             EpochMilli.now.toString
           )
 
-          db.notifications.getSubscription(userId).flatMap {
-            case Some(subscription) =>
+          db.notifications.getSubscription(userId).flatMap { subscriptions =>
+            val futureSeq = subscriptions.map { subscription =>
               pushService.send(subscription, pushData).transform {
                 case Success(response) =>
                   response.getStatusLine.getStatusCode match {
                     case `successStatusCode`                                   =>
-                      Success(None)
+                      Success(Nil)
                     case statusCode if expiryStatusCodes.contains(statusCode)  =>
                       scribe.info(s"Subscription expired. Deleting subscription.")
-                      Success(Some(subscription))
+                      Success(List(subscription))
                     case statusCode if invalidHeaderCodes.contains(statusCode) =>
                       scribe.error(s"Invalid headers. Deleting subscription.")
-                      Success(Some(subscription))
-                    case `mismatchSenderIdCode`                                 =>
+                      Success(List(subscription))
+                    case `mismatchSenderIdCode`                                =>
                       scribe.error(s"Mismatch sender id error. Deleting subscription.")
-                      Success(Some(subscription))
+                      Success(List(subscription))
                     case `tooManyRequestsCode`                                 =>
                       scribe.error(s"Too many requests.")
-                      Success(None)
+                      Success(Nil)
                     case `payloadTooLargeCode`                                 =>
                       scribe.error(s"Payload too large.")
-                      Success(None)
+                      Success(Nil)
                     case _                                                     =>
                       val body = new java.util.Scanner(response.getEntity.getContent).asScala.mkString
                       scribe.error(s"Unexpected success code: $response body: $body.")
-                      Success(None)
+                      Success(Nil)
                   }
                 case Failure(t)        =>
                   scribe.error(s"Cannot send push notification, due to unexpected exception: $t.")
-                  Success(None)
+                  Success(Nil)
               }
-            case None => Future.successful(None)
+            }
+
+            Future.sequence(futureSeq).map(_.flatten)
           }
         }
-      case _ => List.empty[Future[Option[Data.WebPushSubscription]]]
+      case _ => List.empty[Future[List[Data.WebPushSubscription]]]
     }
 
     Future.sequence(expiredSubscriptions.seq.flatten)
@@ -252,7 +254,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     val parallelNotifications = notifications.par
     parallelNotifications.tasksupport = new ExecutionContextTaskSupport(ec)
 
-    val expiredSubscriptions: ParSeq[List[Future[Option[Data.OAuthClient]]]] = parallelNotifications.map {
+    val expiredSubscriptions: ParSeq[List[Future[List[Data.OAuthClient]]]] = parallelNotifications.map {
       case NotifiedUsersRow(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { nodeId =>
           val node = addNodesByNodeId(nodeId)
@@ -260,34 +262,36 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
           val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name }: ${ StringOps.trimToMaxLength(node.data.str.trim, 200) }"
           val contentUrl = s"https://${ serverConfig.host }/#page=${ node.id.toBase58 }"
 
-          db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap {
-            case Some(subscription) =>
+          db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap { subscriptions =>
+            val futureSeq = subscriptions.map { subscription =>
               pushedClient.sendPush(subscription.accessToken, content = content, url = contentUrl).transform {
                 case Success(response) =>
                   response match {
-                    case `successStatusCode`                                   =>
-                      Success(None)
-                    case statusCode if expiryStatusCodes.contains(statusCode)  =>
+                    case `successStatusCode`                                  =>
+                      Success(Nil)
+                    case statusCode if expiryStatusCodes.contains(statusCode) =>
                       scribe.info(s"Subscription expired. Deleting subscription.")
-                      Success(Some(subscription))
-                    case `tooManyRequestsCode`                                 =>
+                      Success(List(subscription))
+                    case `tooManyRequestsCode`                                =>
                       scribe.error(s"Too many requests.")
-                      Success(None)
-                    case `payloadTooLargeCode`                                 =>
+                      Success(Nil)
+                    case `payloadTooLargeCode`                                =>
                       scribe.error(s"Payload too large.")
-                      Success(None)
-                    case _                                                     =>
+                      Success(Nil)
+                    case _                                                    =>
                       scribe.error(s"Unexpected success code: $response.")
-                      Success(None)
+                      Success(Nil)
                   }
                 case Failure(t)        =>
                   scribe.error(s"Cannot send push notification, due to unexpected exception: $t.")
-                  Success(None)
+                  Success(Nil)
               }
-            case None => Future.successful(None)
+            }
+
+            Future.sequence(futureSeq).map(_.flatten)
           }
         }
-      case _ => List.empty[Future[Option[Data.OAuthClient]]]
+      case _ => List.empty[Future[List[Data.OAuthClient]]]
     }
 
     Future.sequence(expiredSubscriptions.seq.flatten)

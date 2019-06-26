@@ -181,7 +181,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of webpush subscription deletes: ${touched.sum} <= ${subscriptions.size} - ${subscriptions.zip(touched)}"))
     }
 
-    def getSubscription(userId: UserId)(implicit ec: ExecutionContext): Future[Option[WebPushSubscription]] = getSubscriptions(userId :: Nil).map(_.headOption)
+    def getSubscription(userId: UserId)(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = getSubscriptions(userId :: Nil)
     def getSubscriptions(userIds: Seq[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
       ctx.run {
         query[WebPushSubscription].filter(sub =>
@@ -477,8 +477,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ).map(_ == 1)
     }
 
-    def get(userId: UserId, service: OAuthClientService)(implicit ec:ExecutionContext): Future[Option[OAuthClient]] = get(userId :: Nil, service).map(_.headOption)
-    def get(userIds: Seq[UserId], service: OAuthClientService)(implicit ec:ExecutionContext): Future[Seq[OAuthClient]] = {
+    def get(userId: UserId, service: OAuthClientService)(implicit ec:ExecutionContext): Future[List[OAuthClient]] = get(userId :: Nil, service)
+    def get(userIds: Seq[UserId], service: OAuthClientService)(implicit ec:ExecutionContext): Future[List[OAuthClient]] = {
       ctx.run(
         query[OAuthClient]
           .filter(client => liftQuery(userIds.toList).contains(client.userId) && client.service == lift(service))
