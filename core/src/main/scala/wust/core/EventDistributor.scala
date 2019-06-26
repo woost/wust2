@@ -257,7 +257,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
         notifiedNodes.map { nodeId =>
           val node = addNodesByNodeId(nodeId)
 
-          val content = s"${ author.name }: ${ StringOps.trimToMaxLength(node.data.str.trim, 200) }"
+          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name }: ${ StringOps.trimToMaxLength(node.data.str.trim, 200) }"
           val contentUrl = s"https://${ serverConfig.host }/#page=${ node.id.toBase58 }"
 
           db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap {
