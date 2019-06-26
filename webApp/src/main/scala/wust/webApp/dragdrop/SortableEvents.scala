@@ -40,12 +40,15 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   private var currentOverContainerEvent: js.UndefOr[DragOverContainerEvent] = js.undefined
 
   private var ctrlDown = false
-  if (!BrowserDetect.isMobile) {
-    keyDown(KeyCode.Ctrl).foreach(ctrlDown = _)
+  private var shiftDown = false
+  private def setKeyDownFromEvent(event: DragEvent): Unit = {
+    if (!BrowserDetect.isMobile && event.originalEvent != null) {
+      ctrlDown = event.originalEvent.ctrlKey
+      shiftDown = event.originalEvent.shiftKey
+    }
   }
 
   //TODO: keyup-event for Shift does not work in chrome. It reports Capslock.
-  private var shiftDown = false
   //  if (!BrowserDetect.isMobile) {
   //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
   //  }
@@ -58,6 +61,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   draggable.on[DragStartEvent]("drag:start", (e: DragStartEvent) => {
+    setKeyDownFromEvent(e)
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     //    dragStartEvent.onNext(e)
@@ -68,11 +72,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOutEvent]("drag:out", { (e: DragOutEvent) =>
+    setKeyDownFromEvent(e)
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     currentOverEvent = js.undefined
   })
 
   draggable.on[DragOverContainerEvent]("drag:over:container", (e: DragOverContainerEvent) => {
+    setKeyDownFromEvent(e)
     e.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
     DevOnly {
       for {
@@ -84,11 +90,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOutContainerEvent]("drag:out:container", (e: DragOutContainerEvent) => {
+    setKeyDownFromEvent(e)
     snabbdom.VNodeProxy.setDirty(e.overContainer)
     currentOverContainerEvent = js.undefined
   })
 
   draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent: SortableStartEvent) =>
+    setKeyDownFromEvent(sortableStartEvent.dragEvent)
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(sortableStartEvent.startContainer)
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
@@ -103,6 +111,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dragging over
   draggable.on[SortableSortEvent]("sortable:sort", (sortableSortEvent: SortableSortEvent) => {
+    setKeyDownFromEvent(sortableSortEvent.dragEvent)
     sortableSortEvent.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
 
     (sortableSortEvent, currentOverContainerEvent) match {
@@ -120,6 +129,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOverEvent]("drag:over", (dragOverEvent: DragOverEvent) => {
+    setKeyDownFromEvent(dragOverEvent)
     snabbdom.VNodeProxy.setDirty(dragOverEvent.overContainer)
     DevOnly {
       readDragTarget(dragOverEvent.over).foreach { target => println(s"Dragging over: $target") }
@@ -138,6 +148,7 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
+    setKeyDownFromEvent(sortableStopEvent.dragEvent)
     try {
       snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
       scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
