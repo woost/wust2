@@ -313,7 +313,7 @@ object GraphChanges {
     disconnect merge connect
   }
 
-  def linkOrCopyInto(edge: Edge.LabeledProperty, nodeId: NodeId, graph:Graph): GraphChanges = {
+  def linkOrCopyInto(edge: Edge.LabeledProperty, nodeId: NodeId, graph:Graph): GraphChanges = if (edge.nodeId != nodeId) {
     graph.nodesById(edge.propertyId) match {
       case Some(node: Node.Content) if node.role == NodeRole.Neutral =>
         val copyNode = node.copy(id = NodeId.fresh)
@@ -326,7 +326,7 @@ object GraphChanges {
           addEdges = Array(edge.copy(nodeId = nodeId))
         )
     }
-  }
+  } else GraphChanges.empty
 
   @inline def linkInto(nodeId: ChildId, tagId: ParentId, graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagId, graph)
   @inline def linkInto(nodeId: ChildId, tagIds: Iterable[ParentId], graph:Graph): GraphChanges = linkInto(nodeId :: Nil, tagIds, graph)
