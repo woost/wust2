@@ -154,8 +154,10 @@ object InputRow {
     val activateEmojiPicker = VDomModifier.ifTrue(enableEmojiPicker && !BrowserDetect.isMobile)(
       snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
       onDomMount.foreach {
-        wdtEmojiBundle.init(".inputrow.field")
-      }
+        wdtEmojiBundle.init(".inputrow.field.enabled-emoji-picker")
+      },
+      cls := "enabled-emoji-picker",
+      cls := "wdt-emoji-open-on-colon"
     )
 
     val markdownHelp = VDomModifier.ifTrue(showMarkdownHelp)(
