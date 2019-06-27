@@ -8512,9 +8512,9 @@ wbuf@^1.1.0, wbuf@^1.7.3:
   dependencies:
     minimalistic-assert "^1.0.0"
 
-"wdt-emoji-bundle@git://github.com/fdietze/wdt-emoji-bundle.git#8e0ffdd":
+"wdt-emoji-bundle@git://github.com/fdietze/wdt-emoji-bundle.git#fcf05d9":
   version "0.2.1"
-  resolved "git://github.com/fdietze/wdt-emoji-bundle.git#8e0ffdd23eb5c21ae88fcbf59a49a9f96e0441a3"
+  resolved "git://github.com/fdietze/wdt-emoji-bundle.git#fcf05d907cb5b8ea1c1385210c5d1830bd83a6d3"
 
 webidl-conversions@^4.0.2:
   version "4.0.2"
