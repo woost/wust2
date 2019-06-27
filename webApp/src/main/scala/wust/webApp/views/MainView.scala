@@ -32,12 +32,16 @@ object MainView {
         Styles.growFull,
 
         position.relative, // needed for mobile expanded sidebars
-        LeftSidebar(state),
+
+        LeftSidebar(state).apply(
+          onMouseDown(None) --> state.rightSidebarNode,
+        ),
 
         div(
           Styles.flex,
           Styles.growFull,
           flexDirection.column,
+          onMouseDown(None) --> state.rightSidebarNode,
 
           //      DevOnly { DevView(state) },
           topBannerContainer(state),

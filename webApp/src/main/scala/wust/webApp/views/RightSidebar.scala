@@ -47,8 +47,7 @@ object RightSidebar {
         cls := "fa-fw", 
         fontSize.xLarge,
         cursor.pointer,
-        onClick(None).foreach(parentIdAction),
-        onGlobalMouseDown(None).foreach(parentIdAction), // mousedown instead of click, else a drag from sidebar to outside would close sidebar
+        onClick(None).foreach(parentIdAction)
       ),
       div(
         marginLeft := "5px",
@@ -78,7 +77,6 @@ object RightSidebar {
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
       flexDirection.column,
       color.black,
-      onMouseDown.stopPropagation.foreach {}, // prevents clicks to bubble up, become globalClick and close sidebar
 
       sidebarHeader.apply(Styles.flexStatic),
       nodeContent(state, focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),

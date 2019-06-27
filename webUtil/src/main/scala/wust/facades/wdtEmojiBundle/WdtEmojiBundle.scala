@@ -12,6 +12,7 @@ object wdtEmojiBundle extends js.Object {
   def init(selector: String): Unit = js.native
   def defaults:Options = js.native
   def changeType(tpe: String):Unit = js.native
+  def close():Unit = js.native
 }
 
 trait Options extends js.Object {

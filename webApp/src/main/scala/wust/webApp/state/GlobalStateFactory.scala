@@ -21,6 +21,7 @@ import wust.webApp.jsdom.{ Navigator, ServiceWorker }
 import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
 import wust.webApp.views.EditableContent
 import wust.webApp.{ Client, DevOnly }
+import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
@@ -69,6 +70,13 @@ object GlobalStateFactory {
         if (open) {
           state.rightSidebarNode() = None
         }
+      }
+    }
+
+    // on desktop, we have our custom emoji picker, which should be close when the rightsidebar is opened or closed.
+    if (!BrowserDetect.isMobile) {
+      state.rightSidebarNode.foreach { _ =>
+        wdtEmojiBundle.close()
       }
     }
 
