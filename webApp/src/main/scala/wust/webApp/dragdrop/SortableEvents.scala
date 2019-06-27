@@ -158,6 +158,10 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
           if (overSortcontainer) {
             performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
+            // actively repair the containers, since drags can be aborted / emit empty graphchanges
+            // happens when creating containment cycles or drag with ctrl (copy)
+            readDragContainer(sortableStopEvent.oldContainer).foreach(_.triggerRepair.onNext(()))
+            readDragContainer(sortableStopEvent.newContainer).foreach(_.triggerRepair.onNext(()))
           } else {
             performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
           }

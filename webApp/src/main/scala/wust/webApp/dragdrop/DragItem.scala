@@ -1,7 +1,8 @@
 package wust.webApp.dragdrop
 
 import wust.graph.Edge
-import wust.ids.{NodeId, NodeRole, UserId}
+import wust.ids.{ NodeId, NodeRole, UserId }
+import monix.reactive.subjects.PublishSubject
 
 sealed trait DragPayload extends Product with Serializable { def nodeIds: Seq[NodeId] }
 sealed trait DragTarget extends Product with Serializable { def nodeIds: Seq[NodeId] }
@@ -50,8 +51,13 @@ object DragItem {
   val draggedActionPropName = "_wust_draggedaction"
 }
 
-sealed trait DragContainer extends Product with Serializable
-sealed trait SortableContainer extends DragContainer { def parentId: NodeId; def items: Seq[NodeId] }
+sealed trait DragContainer extends Product with Serializable {
+  val triggerRepair = PublishSubject[Unit]()
+}
+sealed trait SortableContainer extends DragContainer {
+  def parentId: NodeId
+  def items: Seq[NodeId]
+}
 object DragContainer {
   case object Default extends DragContainer
   object Kanban {

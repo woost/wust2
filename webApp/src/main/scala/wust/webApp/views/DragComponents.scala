@@ -13,6 +13,7 @@ import wust.webApp.dragdrop._
 import wust.webApp.state.GlobalState
 
 import scala.scalajs.js
+import snabbdom.VNodeProxy
 
 object DragComponents {
   def onAfterPayloadWasDragged: EmitterBuilder[Unit, VDomModifier] =
@@ -22,6 +23,7 @@ object DragComponents {
       }
     }
   def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
+    var proxy: VNodeProxy = null
     VDomModifier(
       //          border := "2px solid violet",
       outline := "none", // hides focus outline
@@ -30,6 +32,11 @@ object DragComponents {
         case _ => cls := "draggable-container"
       },
       snabbdom.VNodeProxy.repairDomBeforePatch, // draggable modifies the dom, but snabbdom assumes that the dom corresponds to its last vdom representation. So Before patch
+
+      DomMountHook { proxy = _ },
+      managed(() => container.triggerRepair.foreach { _ =>
+        if(proxy != null) VNodeProxy.repairDom(proxy)
+      }),
 
       prop(DragContainer.propName) := (() => container),
       managedElement.asHtml { elem =>
