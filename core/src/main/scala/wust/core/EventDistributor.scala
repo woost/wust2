@@ -86,7 +86,9 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     //TODO: do not calcualte notified nodes twice, get notified users, then subscriptions/clients...
     // send out push notifications
     if (graphChanges.nonEmpty) {
-      val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.map(node => node.id -> node)(breakOut)
+      val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
+        case node: Node.Content => node.id -> node
+      }(breakOut)
       (for {
         parentNodeByChildId <- parentNodeByChildId(graphChanges)
         notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
