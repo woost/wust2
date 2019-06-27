@@ -7,6 +7,7 @@ import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.{Elements, ModalConfig}
 import wust.webUtil.outwatchHelpers._
+import wust.api.ApiEvent
 import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
@@ -41,6 +42,8 @@ object MembersModal {
           ()
         case Success(Some(u)) => // user exists with this email
           addUserMember(u.id)
+          //manually add this user into our local graph
+          state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, GraphChanges(addNodes = Array(u))))
         case Success(None) => // user does not exist with this email
           Client.auth.getUserDetail(state.user.now.id).onComplete {
             case Success(Some(userDetail)) if userDetail.verified =>
