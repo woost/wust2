@@ -275,7 +275,6 @@ object TaskNodeCard {
       Components.sidebarNodeFocusMod(state.rightSidebarNode, nodeId),
       onDblClick.stopPropagation.foreach{ _ =>
         state.urlConfig.update(_.focus(Page(nodeId)))
-        state.rightSidebarNode() = None
       },
       Components.showHoveredNode(state, nodeId),
       Components.readObserver(state, nodeId, marginTop := "7px"),

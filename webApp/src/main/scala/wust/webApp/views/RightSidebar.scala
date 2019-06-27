@@ -178,7 +178,6 @@ object RightSidebar {
       buttonMods,
       onClick.foreach {
         state.urlConfig.update(_.focus(Page(focusPref.nodeId)))
-        state.rightSidebarNode() = None
       }
     )
 
