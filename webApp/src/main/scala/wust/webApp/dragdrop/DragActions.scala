@@ -1,8 +1,9 @@
 package wust.webApp.dragdrop
 
+import wust.util.algorithm.dfs
 import wust.facades.draggable.SortableStopEvent
-import wust.graph.{Edge, GraphChanges, _}
-import wust.ids.{UserId, _}
+import wust.graph.{ Edge, GraphChanges, _ }
+import wust.ids.{ UserId, _ }
 
 object DragActions {
 
@@ -10,7 +11,7 @@ object DragActions {
   // Be aware: Other functions rely on its partiality (isDefinedAt), therefore do not make them a full function
   // The booleans: Ctrl-pressed, Shift-pressed
 
-  val sortAction: PartialFunction[(DragPayload, DragContainer, DragContainer, Boolean, Boolean), (SortableStopEvent, Graph, UserId) => GraphChanges] = {
+  val sortAction: PartialFunction[(DragPayload, SortableContainer, SortableContainer, Boolean, Boolean), (SortableStopEvent, Graph, UserId) => GraphChanges] = {
     // First, Sort actions:
     import DragContainer._
     import Sorting._
@@ -63,12 +64,16 @@ object DragActions {
       //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.
       case (payload: DragItem.Task, fromColumn: Kanban.Column, into: Kanban.Workspace, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
+
           // disconnect fromColumn all stage parents
           val addTargetWorkspace = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, fromColumn, into)
-          def disconnectFromWorkspace: GraphChanges = if (fromColumn.workspace != into.parentId)
+
+          def disconnectFromWorkspace: GraphChanges = if (fromColumn.workspace != into.parentId) // into is a Workspace
             GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
+
           def disconnectFromColumn = GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.nodeId), ChildId(payload.nodeId))
+
           if (ctrl)
             addTargetWorkspace
           else

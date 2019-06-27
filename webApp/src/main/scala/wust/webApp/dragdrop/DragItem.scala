@@ -3,13 +3,13 @@ package wust.webApp.dragdrop
 import wust.graph.Edge
 import wust.ids.{NodeId, NodeRole, UserId}
 
-sealed trait DragPayload extends Product with Serializable
-sealed trait DragTarget extends Product with Serializable
+sealed trait DragPayload extends Product with Serializable { def nodeIds: Seq[NodeId] }
+sealed trait DragTarget extends Product with Serializable { def nodeIds: Seq[NodeId] }
 sealed trait DragPayloadAndTarget extends DragPayload with DragTarget
 object DragItem {
-  case object DisableDrag extends DragPayloadAndTarget
+  case object DisableDrag extends DragPayloadAndTarget { def nodeIds = Seq.empty }
 
-  sealed trait ContentNode extends DragPayloadAndTarget { def nodeId: NodeId }
+  sealed trait ContentNode extends DragPayloadAndTarget { def nodeId: NodeId; def nodeIds = Seq(nodeId) }
   final case class Message(nodeId: NodeId) extends ContentNode { override def toString = s"Message(${nodeId.shortHumanReadable})" }
   final case class Task(nodeId: NodeId) extends ContentNode { override def toString = s"Task(${nodeId.shortHumanReadable})" }
   final case class Note(nodeId: NodeId) extends ContentNode { override def toString = s"Note(${nodeId.shortHumanReadable})" }
@@ -19,21 +19,21 @@ object DragItem {
     def propertyName: String
   }
   final case class TaskConnect(nodeId: NodeId, propertyName: String) extends ContentNodeConnect { override def toString = s"TaskConnect(${nodeId.shortHumanReadable}, $propertyName)" }
-  final case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Tag(${nodeId.shortHumanReadable})" }
-  final case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { override def toString = s"Property($edge)" }
+  final case class Tag(nodeId: NodeId) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Tag(${nodeId.shortHumanReadable})" }
+  final case class Property(edge: Edge.LabeledProperty) extends DragPayloadAndTarget { def nodeIds = Seq.empty; override def toString = s"Property($edge)" }
 
   final case class Thread(nodeIds: Seq[NodeId]) extends DragTarget { override def toString = s"Thread(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
-  final case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"Stage(${nodeId.shortHumanReadable})" }
+  final case class Stage(nodeId: NodeId) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Stage(${nodeId.shortHumanReadable})" }
 
-  case object Sidebar extends DragTarget
-  final case class Channel(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { override def toString = s"Channel(${nodeId.shortHumanReadable}, parentId: ${parentId.map(_.shortHumanReadable)})" }
-  final case class BreadCrumb(nodeId: NodeId) extends DragPayloadAndTarget { override def toString = s"BreadCrumb(${nodeId.shortHumanReadable})" }
-  final case class Workspace(nodeId: NodeId) extends DragTarget { override def toString = s"Workspace(${nodeId.shortHumanReadable})" }
-  final case class TagBar(nodeId: NodeId) extends DragTarget { override def toString = s"TagBar(${nodeId.shortHumanReadable})" }
+  case object Sidebar extends DragTarget { def nodeIds = Seq.empty }
+  final case class Channel(nodeId: NodeId, parentId: Option[NodeId]) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"Channel(${nodeId.shortHumanReadable}, parentId: ${parentId.map(_.shortHumanReadable)})" }
+  final case class BreadCrumb(nodeId: NodeId) extends DragPayloadAndTarget { def nodeIds = Seq(nodeId); override def toString = s"BreadCrumb(${nodeId.shortHumanReadable})" }
+  final case class Workspace(nodeId: NodeId) extends DragTarget { def nodeIds = Seq(nodeId); override def toString = s"Workspace(${nodeId.shortHumanReadable})" }
+  final case class TagBar(nodeId: NodeId) extends DragTarget { def nodeIds = Seq(nodeId); override def toString = s"TagBar(${nodeId.shortHumanReadable})" }
 
-  final case class User(userId: UserId) extends DragPayload { @inline def nodeId = userId: NodeId; override def toString = s"User(${nodeId.shortHumanReadable})" }
+  final case class User(userId: UserId) extends DragPayload { @inline def nodeId = userId: NodeId; def nodeIds = Seq(nodeId); override def toString = s"User(${nodeId.shortHumanReadable})" }
 
-  final case class SelectedNode(nodeId: NodeId) extends DragPayload { override def toString = s"SelectedNode(${nodeId.shortHumanReadable})" }
+  final case class SelectedNode(nodeId: NodeId) extends DragPayload { def nodeIds = Seq(nodeId); override def toString = s"SelectedNode(${nodeId.shortHumanReadable})" }
   final case class SelectedNodes(nodeIds: Seq[NodeId]) extends DragPayload { override def toString = s"SelectedNodes(${nodeIds.map(_.shortHumanReadable).mkString(",")})" }
 
   def fromNodeRole(nodeId: NodeId, role: NodeRole): Option[DragPayloadAndTarget] = Some(role) collect {
