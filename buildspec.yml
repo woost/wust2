@@ -19,8 +19,8 @@ phases:
       - echo "CODEBUILD_WEBHOOK_EVENT:${CODEBUILD_WEBHOOK_EVENT}" | tee -a sns-message.txt
       - echo "CODEBUILD_WEBHOOK_HEAD_REF:${CODEBUILD_WEBHOOK_HEAD_REF}" | tee -a sns-message.txt
       - echo "WUST_VERSION:${WUST_VERSION}" | tee -a sns-message.txt
-      - echo Sending notification ...
-      - aws sns publish --topic-arn "${SNS_TOPIC_ARN}" --subject "Hi, AWS CodeBuild Started - Woost ${WUST_VERSION}" --message file://sns-message.txt
+      # - echo Sending notification ...
+      # - aws sns publish --topic-arn "${SNS_TOPIC_ARN}" --subject "Hi, AWS CodeBuild Started - Woost ${WUST_VERSION}" --message file://sns-message.txt
   build:
     commands:
       - echo Build started.
