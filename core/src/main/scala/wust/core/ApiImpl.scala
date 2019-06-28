@@ -63,6 +63,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
         appliedChanges.map { _ =>
           val compactChanges = allChanges.foldLeft(GraphChanges.empty)(_ merge _).consistent
+          GraphChangesNotifier.notify(compactChanges)
           Returns(true, Seq(NewGraphChanges.forPublic(user.toNode, compactChanges)))
         }.recover { case NonFatal(e) =>
           scribe.warn("Cannot apply changes", e)
