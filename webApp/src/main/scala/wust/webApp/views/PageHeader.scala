@@ -18,6 +18,7 @@ import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.collection.breakOut
 import scala.scalajs.js
+import monix.reactive.Observer
 
 object PageHeader {
 
@@ -104,7 +105,8 @@ object PageHeader {
         breadCrumbs,
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            FeedbackForm(state)(ctx)(marginLeft.auto, Styles.flexStatic),
+            AnnouncekitWidget.widget(marginLeft.auto, Styles.flexStatic),
+            FeedbackForm(state)(ctx)(Styles.flexStatic),
             AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
         },
