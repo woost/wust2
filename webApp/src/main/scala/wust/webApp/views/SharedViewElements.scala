@@ -354,11 +354,11 @@ object SharedViewElements {
       ViewSwitcher.viewCheckboxes --> selectedViews,
     )
 
-    def newProject(name: String) = {
-      val newName = if (name.trim.isEmpty) GraphChanges.newProjectName else name
+    def newProject(sub: InputRow.Submission) = {
+      val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName, views))
+      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName, views) merge sub.changes(nodeId))
       state.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
       selectedViews() = Seq.empty
 
@@ -478,21 +478,23 @@ object SharedViewElements {
     }
   }
 
-  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[String], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty, onClose: () => Boolean = () => true)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[InputRow.Submission], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty, onClose: () => Boolean = () => true, enableMentions: Boolean = true)(implicit ctx: Ctx.Owner) = {
     ModalConfig(
       header = header,
       description = VDomModifier(
         InputRow(
           state = state,
-          submitAction = { str =>
+          focusState = None,
+          submitAction = { sub =>
             state.uiModalClose.onNext(())
-            newNameSink.onNext(str)
+            newNameSink.onNext(sub)
           },
           autoFocus = true,
           placeholder = placeholder,
           allowEmptyString = true,
           submitIcon = freeSolid.faArrowRight,
           showSubmitIcon = true,
+          enableMentions = enableMentions
         ),
 
         body
@@ -505,7 +507,7 @@ object SharedViewElements {
     )
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: String, body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty), placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[String] { sink =>
+  def onClickNewNamePrompt(state: GlobalState, header: String, body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty), placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
       onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body(ctx), placeholder) }) --> state.uiModalConfig,
       cursor.pointer

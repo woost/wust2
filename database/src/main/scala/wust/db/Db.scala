@@ -63,6 +63,24 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       infix"""can_access_node($userId, $nodeId)""".as[Boolean]
     }
 
+    def resolveMentionedNodesWithAccess(mentionedNodeIds: List[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
+      val q = quote {
+        infix"""
+          (
+            select * from node
+            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and can_access_node(node.id, ${lift(canAccessNodeId)})
+          ) UNION (
+            select node.* from node as initial
+            join edge on edge.sourceid = initial.id and edge.data->>'type' = 'Member'
+            join node on edge.targetid = node.id and node.data->>'type' = 'User' and can_access_node(node.id, ${lift(canAccessNodeId)})
+            where initial.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and initial.data->>'type' <> 'User'
+          )
+        """.as[Query[User]]
+      }
+
+      ctx.run(q)
+    }
+
     def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx.run {
         query[NodeRaw].filter(accessedNode =>
@@ -81,6 +99,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
 
       ctx.run(q).map(_.map(_.toNode))
+    }
+
+    def getAccessibleParents(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+      ctx.run(
+        query[Edge]
+          .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(lift(userId), e.sourceId))
+          .map(_.sourceId)
+      )
     }
 
     def getFileNodes(keys: Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {

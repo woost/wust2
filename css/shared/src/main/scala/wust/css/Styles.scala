@@ -438,11 +438,13 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   // webkit
+  ".tribute-container::-webkit-scrollbar," +
   ".tiny-scrollbar::-webkit-scrollbar" - (
     width(5.px),
     height(5.px)
   )
   // firefox
+  ".tribute-container," +
   ".tiny-scrollbar" - (
     Attr.real("scrollbar-width") := "thin"
   )
@@ -836,6 +838,18 @@ object CommonStyles extends StyleSheet.Standalone {
     zIndex(ZIndex.uiSidebarContent)
   )
 
+  ".tribute-container" - (
+    boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.32)",
+    borderRadius(3.px)
+  )
+
+  ".tribute-container li" - (
+    padding(2.px, 5.px).important
+  )
+
+  ".tribute-container li" - (
+    padding(2.px, 5.px).important
+  )
 
 
   val tagMarginPx = 2

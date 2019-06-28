@@ -150,11 +150,11 @@ object TagList {
     workspaceId: NodeId,
     newTagFieldActive: Var[Boolean],
   )(implicit ctx: Ctx.Owner): VNode = {
-    def submitAction(str:String) = {
-      val createdNode = Node.MarkdownTag(str)
+    def submitAction(sub: InputRow.Submission) = {
+      val createdNode = Node.MarkdownTag(sub.text)
       val change = GraphChanges.addNodeWithParent(createdNode, ParentId(parentId) :: Nil)
 
-      state.eventProcessor.changes.onNext(change)
+      state.eventProcessor.changes.onNext(change merge sub.changes(createdNode.id))
     }
 
     def blurAction(v:String): Unit = {
@@ -167,10 +167,12 @@ object TagList {
       Rx {
         if(newTagFieldActive())
           InputRow(state,
+            None,
             submitAction,
             autoFocus = true,
             blurAction = Some(blurAction),
             submitIcon = freeSolid.faPlus,
+            enableMentions = false
           )
         else
           div(

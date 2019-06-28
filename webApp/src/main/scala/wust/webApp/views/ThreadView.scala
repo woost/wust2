@@ -110,7 +110,7 @@ object ThreadView {
         state.screenSize() // on screensize change, rerender whole chat history
         val pageCount = pageCounter()
 
-        renderThreadGroups(state, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), selectedNodes, true)
+        renderThreadGroups(state, focusState, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), selectedNodes, true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
@@ -178,7 +178,7 @@ object ThreadView {
   }
 
 
-  private def renderThreadGroups(state: GlobalState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
+  private def renderThreadGroups(state: GlobalState, focusState: FocusState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = state.graph()
     val groups = calculateThreadMessageGrouping(messages, graph)
 
@@ -186,22 +186,22 @@ object ThreadView {
       // large padding-top to have space for selectedNodes bar
       (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
       groups.map { group =>
-        thunkRxFun(state, graph, group, directParentIds, transitiveParentIds, selectedNodes, isTopLevel)
+        thunkRxFun(state, focusState, graph, group, directParentIds, transitiveParentIds, selectedNodes, isTopLevel)
       },
     )
   }
 
-  private def thunkRxFun(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
+  private def thunkRxFun(state: GlobalState, focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
     div.thunk(key)(nodeIds, state.screenSize.now)(Ownable { implicit ctx =>
-      thunkGroup(state, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
+      thunkGroup(state, focusState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
     })
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def thunkGroup(state: GlobalState, focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = state.graph()
@@ -251,7 +251,7 @@ object ThreadView {
                 renderMessageRow(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
-                    renderExpandedThread(state, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
+                    renderExpandedThread(state, focusState, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
                   }
                 },
               )
@@ -262,7 +262,7 @@ object ThreadView {
     )
   }
 
-  private def renderExpandedThread(state: GlobalState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def renderExpandedThread(state: GlobalState, focusState: FocusState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
     VDomModifier(
       cls := "chat-expanded-thread",
@@ -276,10 +276,10 @@ object ThreadView {
           cls := "chat-thread-messages",
           width := "100%",
           Rx {
-            renderThreadGroups(state, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
+            renderThreadGroups(state, focusState, calculateThreadMessages(nodeIdList, state.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
           },
           Rx {
-            if(showReplyField()) threadReplyField(state, nodeId, showReplyField)
+            if(showReplyField()) threadReplyField(state, focusState, nodeId, showReplyField)
             else threadReplyButton(state, nodeId, showReplyField)
           }
         )
@@ -298,12 +298,13 @@ object ThreadView {
     )
   }
 
-  private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
+  private def threadReplyField(state: GlobalState, focusState: FocusState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
 
-    def handleInput(str: String): Future[Ack] = if (str.nonEmpty) {
+    def handleInput(sub: InputRow.Submission): Future[Ack] = if (sub.text.nonEmpty) {
       val graph = state.graph.now
       val user = state.user.now
-      val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), ParentId(nodeId) :: Nil)
+      val createdNode = Node.MarkdownMessage(sub.text)
+      val addNodeChange = GraphChanges.addNodeWithParent(createdNode, ParentId(nodeId) :: Nil) merge sub.changes(createdNode.id)
       val expandChange = if(!graph.isExpanded(user.id, nodeId).getOrElse(false)) GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
@@ -315,6 +316,7 @@ object ThreadView {
 
     InputRow(
       state,
+      Some(focusState),
       submitAction = handleInput,
       blurAction = Some(blurAction),
       autoFocus = true,
@@ -387,10 +389,10 @@ object ThreadView {
   )(implicit ctx: Ctx.Owner) = {
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
-    def submitAction(str:String) = {
+    def submitAction(sub: InputRow.Submission) = {
       scrollHandler.scrollToBottomInAnimationFrame()
-      val basicNode = Node.MarkdownMessage(str)
-      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId))
+      val basicNode = Node.MarkdownMessage(sub.text)
+      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
         case None => state.eventProcessor.changes.onNext(basicGraphChanges)
         case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
@@ -401,6 +403,7 @@ object ThreadView {
 
     InputRow(
       state,
+      Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),
       scrollHandler = Some(scrollHandler),

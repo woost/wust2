@@ -486,7 +486,7 @@ object ChatView {
     val bgColor = Rx{ NodeColor.mixHues(currentReply()).map(hue => BaseColors.pageBgLight.copy(h = hue).toHex) }
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
-    def submitAction(str: String): Unit = {
+    def submitAction(sub: InputRow.Submission): Unit = {
 
       val replyNodes: Set[NodeId] = {
         if (currentReply.now.nonEmpty) currentReply.now
@@ -494,8 +494,8 @@ object ChatView {
       }
 
       //TODO: share code with threadview
-      val basicNode = Node.MarkdownMessage(str)
-      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes))
+      val basicNode = Node.MarkdownMessage(sub.text)
+      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
         case None             => state.eventProcessor.changes.onNext(basicGraphChanges)
         case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
@@ -508,6 +508,7 @@ object ChatView {
 
     InputRow(
       state,
+      Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),
       scrollHandler = Some(scrollHandler),

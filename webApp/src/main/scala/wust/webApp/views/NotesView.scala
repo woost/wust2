@@ -42,9 +42,10 @@ object NotesView {
 
       InputRow(
         state,
-        submitAction = { str =>
-          val newNode = Node.MarkdownNote(str)
-          val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId))
+        Some(focusState),
+        submitAction = { sub =>
+          val newNode = Node.MarkdownNote(sub.text)
+          val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
           state.eventProcessor.changes.onNext(changes)
         },
         submitOnEnter = false,

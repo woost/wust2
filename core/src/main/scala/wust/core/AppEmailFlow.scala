@@ -27,6 +27,10 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     s"https://core.${serverConfig.host}/${ServerPaths.emailVerify}?token=${token.string}"
   }
 
+  private def workspaceLink(nodeId: NodeId):String = {
+    s"https://${serverConfig.host}/#page=${nodeId.toBase58}"
+  }
+
   private def workspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
     s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=${token.string}"
   }
@@ -135,6 +139,46 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body, bodyHtml = Some(bodyHtml))
   }
 
+  private def mentionMailMessage(email:String, mentionedIn: Seq[NodeId], authorName:String, authorEmail:String, node: Node.Content): MailMessage = {
+    //TODO: description of what woost is
+    val recipient = MailRecipient(to = email :: Nil)
+    val subject = s"$authorEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
+
+    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
+
+    val linkNodeIds = if (mentionedIn.isEmpty) Seq(node.id) else mentionedIn
+
+    val body =
+      s"""
+        |$authorEmail has mentioned you in a message in Woost.
+        |
+        |Click the following link to view the message:
+        |${linkNodeIds.map(id => workspaceLink(id)).mkString(", ")}
+        |
+        |
+        |"$escapedContent"
+        |
+        |$farewell
+        |
+        |$signature
+      """.stripMargin
+
+    val bodyHtml =
+      s"""
+        |<p>$authorEmail has invited you to collaborate on a workspace in Woost.</p>
+        |
+        |<p>Click the following link to view the message: ${linkNodeIds.map(id => s"<a href='${workspaceLink(id)}'>View Message</a>").mkString(", ")}</p>
+        |
+        |<blockquote>$escapedContent</blockquote>
+        |
+        |<p>$farewell</p>
+        |
+        |<p>$signature</p>
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml))
+  }
+
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
     val message = verificationMailMessage(userId, email)
     emailSubject.onNext(message)
@@ -147,6 +191,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   def sendEmailInvitation(email: String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
     val message = inviteMailMessage(email = email, invitedJwt = invitedJwt, inviterName = inviterName, inviterEmail = inviterEmail, node = node)
+    emailSubject.onNext(message)
+  }
+
+  def sendMentionNotification(email: String, authorName:String, authorEmail:String, mentionedIn: Seq[NodeId], node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+    val message = mentionMailMessage(email = email, mentionedIn = mentionedIn, authorName = authorName, authorEmail = authorEmail, node = node)
     emailSubject.onNext(message)
   }
 

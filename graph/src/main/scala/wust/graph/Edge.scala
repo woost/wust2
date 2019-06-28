@@ -101,6 +101,12 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, propertyId = PropertyId(targetId))
   }
 
+  final case class Mention(nodeId: NodeId, data: EdgeData.Mention, mentionedId: NodeId) extends Edge.Content {
+    def sourceId = nodeId
+    def targetId = mentionedId
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, mentionedId = targetId)
+  }
+
   def apply(sourceId:NodeId, data:EdgeData, targetId:NodeId): Edge = data match {
     case EdgeData.Assigned                  => new Edge.Assigned(sourceId, UserId(targetId))
     case EdgeData.Invite                    => new Edge.Invite(sourceId, UserId(targetId))
@@ -115,6 +121,7 @@ object Edge {
     case data: EdgeData.Child               => new Edge.Child(ParentId(sourceId), data, ChildId(targetId))
     case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, PropertyId(targetId))
     case data: EdgeData.DerivedFromTemplate => new Edge.DerivedFromTemplate(sourceId, data, TemplateId(targetId))
+    case data: EdgeData.Mention             => new Edge.Mention(sourceId, data, MentionedId(targetId))
   }
 }
 

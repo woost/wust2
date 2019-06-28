@@ -537,6 +537,7 @@ lazy val webApp = project
       Deps.npm.jqueryTablesort ::
       Deps.npm.juration ::
       Deps.npm.wdtEmojiBundle ::
+      Deps.npm.tribute ::
       Nil,
 
       /* wartremoverWarnings ++= Warts.allBut( */

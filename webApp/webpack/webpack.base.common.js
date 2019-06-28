@@ -46,6 +46,7 @@ const staticCopyAssets = [
     { from: 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.min.js', to: 'emoji-picker/wdt-emoji-bundle.min.js' },
     { from: 'node_modules/wdt-emoji-bundle/wdt-emoji-bundle.css', to: 'emoji-picker/wdt-emoji-bundle.css' },
     { from: 'node_modules/wdt-emoji-bundle/sheets/sheet_twitter_64_indexed_128.png', to: 'emoji-picker/sheets/sheet_twitter_64_indexed_128.png' },
+    { from: 'node_modules/tributejs/dist/tribute.css', to: 'tributejs/tribute.css' },
 ];
 const staticIncludeAssets = [
     'jquery.min.js',
@@ -58,6 +59,7 @@ const staticIncludeAssets = [
     'emoji-picker/emoji.min.js',
     'emoji-picker/wdt-emoji-bundle.min.js',
     'emoji-picker/wdt-emoji-bundle.css',
+    'tributejs/tribute.css',
 ];
 
 const woostVersion = process.env.WUST_VERSION ? process.env.WUST_VERSION : "latest";

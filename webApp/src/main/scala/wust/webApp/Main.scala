@@ -64,16 +64,10 @@ object Main {
             cls := "result", //we need this class for semantic ui to work,
             div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
             padding := "4px",
-            views.Components.nodeCardAsOneLineText(node).prepend(
+            views.Components.nodeCardAsOneLineText(node, projectWithIcon = true).prepend(
               cursor.pointer,
               Styles.flex,
-              alignItems.center,
-              VDomModifier.ifTrue(node.role == NodeRole.Project || node.isInstanceOf[Node.User])(
-                views.Components.nodeAvatar(node, size = 12).apply(
-                  Styles.flexStatic,
-                  marginRight := "4px",
-                )
-              )
+              alignItems.center
             )
           )
         }

@@ -74,8 +74,9 @@ object Server {
     val oAuthVerificationEndpoint = new OAuthClientVerificationEndpoint(db, jwt, config.server, oAuthClientServiceLookup)
     val emailVerificationEndpoint = new EmailVerificationEndpoint(db, jwt, config.server)
     val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
+    val graphChangesNotifier = new GraphChangesNotifier(db, emailFlow)
 
-    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow, changeGraphAuthorizer)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow, oAuthClientServiceLookup)
     val pushImpl = new PushApiImpl(guardDsl, db, pushClients)
 

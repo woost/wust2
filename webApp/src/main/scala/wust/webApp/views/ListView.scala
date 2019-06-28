@@ -47,7 +47,7 @@ object ListView {
     div(
       keyed,
 
-      addListItemInputField(state, focusState.focusedId, autoFocusInsert = !focusState.isNested),
+      addListItemInputField(state, focusState, autoFocusInsert = !focusState.isNested),
       renderInboxColumn(state, focusState, traverseState, inOneLine, isCompact),
       renderToplevelColumns(state, focusState, traverseState, inOneLine, isCompact)
         .apply(lastElementModifier),
@@ -247,17 +247,17 @@ object ListView {
     })
   }
 
-  private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
-    def submitAction(userId: UserId)(str: String) = {
-      val createdNode = Node.MarkdownTask(str)
-      val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusedNodeId))
+  private def addListItemInputField(state: GlobalState, focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
+    def submitAction(userId: UserId)(sub: InputRow.Submission) = {
+      val createdNode = Node.MarkdownTask(sub.text)
+      val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
-      state.eventProcessor.changes.onNext(addNode merge addTags)
+      state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     div(
       Rx {
-        InputRow(state, submitAction(state.userId()),
+        InputRow(state, Some(focusState), submitAction(state.userId()),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeholder = Placeholder.newTask,

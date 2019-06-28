@@ -17,7 +17,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future])(implicit ec: Scheduler) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future], graphChangesNotifier: GraphChangesNotifier)(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -63,6 +63,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
         appliedChanges.map { _ =>
           val compactChanges = allChanges.foldLeft(GraphChanges.empty)(_ merge _).consistent
+          graphChangesNotifier.notify(user, compactChanges)
           Returns(true, Seq(NewGraphChanges.forPublic(user.toNode, compactChanges)))
         }.recover { case NonFatal(e) =>
           scribe.warn("Cannot apply changes", e)

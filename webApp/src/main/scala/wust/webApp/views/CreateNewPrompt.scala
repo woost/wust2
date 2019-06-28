@@ -32,13 +32,14 @@ object CreateNewPrompt {
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
 
-    def newMessage(msg: String): Future[Ack] = {
+    def newMessage(sub: InputRow.Submission): Future[Ack] = {
       val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(state.user.now.id: NodeId)) else parentNodes.now
 
-      val newNode = Node.Content(NodeData.Markdown(msg), nodeRole.now, NodeMeta(nodeAccess.now))
+      val newNode = Node.Content(NodeData.Markdown(sub.text), nodeRole.now, NodeMeta(nodeAccess.now))
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
-          GraphChanges.addToParent(childNodes.now, ParentId(newNode.id))
+          GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge
+          sub.changes(newNode.id)
 
       val ack = if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, state.user.now.id)
@@ -125,7 +126,7 @@ object CreateNewPrompt {
     def description(implicit ctx: Ctx.Owner) = {
 
       VDomModifier(
-        InputRow (state, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
+        InputRow (state, focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
         div(
           Styles.flex,
           alignItems.center,

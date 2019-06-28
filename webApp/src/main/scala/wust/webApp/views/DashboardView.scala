@@ -141,7 +141,7 @@ object DashboardView {
         registerDragContainer(state)
       ),
       Rx{VDomModifier.ifTrue(settings.AlwaysShowNewSubprojectButton || editMode())(
-           newSubProjectButton(state, focusState.focusedId))}
+           newSubProjectButton(state, focusState))}
     )
   }
 
@@ -183,14 +183,14 @@ object DashboardView {
   }
 
 
-  private def newSubProjectButton(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def newSubProjectButton(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
     val fieldActive = Var(false)
-    def submitAction(str:String) = {
+    def submitAction(sub: InputRow.Submission) = {
       val change = {
         // -- stay in edit mode --
         editModeState() = true
-        val newProjectNode = Node.MarkdownProject(str)
-        GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusedId))
+        val newProjectNode = Node.MarkdownProject(sub.text)
+        GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusState.focusedId)) merge sub.changes(newProjectNode.id)
       }
       state.eventProcessor.changes.onNext(change)
     }
@@ -204,6 +204,7 @@ object DashboardView {
         if(fieldActive()) {
           VDomModifier(
             InputRow(state,
+              Some(focusState),
               submitAction,
               autoFocus = true,
               blurAction = Some(blurAction),

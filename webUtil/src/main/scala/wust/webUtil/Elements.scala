@@ -319,21 +319,21 @@ object Elements {
 
   def valueWithEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithEnter(true)
   def valueWithCtrlEnter: CustomEmitterBuilder[String, VDomModifier] = valueWithCtrlEnter(true)
-  def valueWithEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter)).emitterBuilder
-  def valueWithCtrlEnter(clearValue: Boolean): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter)).emitterBuilder
-  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = {
+  def valueWithEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onEnter.filter(_ => filterEvent()))).emitterBuilder
+  def valueWithCtrlEnter(clearValue: Boolean, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = (new ValueWithEnter(clearValue = clearValue, eventHandler = onCtrlEnter.filter(_ => filterEvent()))).emitterBuilder
+  def valueWithEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
-      eventHandler = onEnter
+      eventHandler = onEnter.filter(_ => filterEvent())
     ).emitterBuilder 
   }
 
-  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true): CustomEmitterBuilder[String, VDomModifier] = {
+  def valueWithCtrlEnterWithInitial(overrideValue: Observable[String], clearValue: Boolean = true, filterEvent: () => Boolean = () => true): CustomEmitterBuilder[String, VDomModifier] = {
     new ValueWithEnter(
       overrideValue = overrideValue,
       clearValue = clearValue,
-      eventHandler = onCtrlEnter
+      eventHandler = onCtrlEnter.filter(_ => filterEvent())
     ).emitterBuilder
   }
 
