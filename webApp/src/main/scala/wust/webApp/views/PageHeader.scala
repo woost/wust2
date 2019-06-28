@@ -72,13 +72,9 @@ object PageHeader {
     }
 
     val permissionLevel = Rx {
-      Permission.resolveInherited(state.graph(), pageNodeId)
+      Permission.resolveInherited(state.rawGraph(), pageNodeId)
     }
 
-    val permissionIndicator = Rx {
-      val level = permissionLevel()
-      div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, marginRight := "5px")
-    }
 
     val filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
@@ -131,7 +127,7 @@ object PageHeader {
             alignItems.center,
             flexShrink := 3,
 
-            permissionIndicator,
+            permissionLevel.map(Permission.permissionIndicator(_, marginRight := "5px")),
             channelTitle,
             channelNotification,
             marginBottom := "2px", // else nodecards in title overlap

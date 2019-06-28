@@ -10,6 +10,7 @@ import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
+import wust.webApp.Permission
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{FocusState, GlobalState, Placeholder}
 import wust.webApp.views.Components._
@@ -157,6 +158,10 @@ object DashboardView {
         dispatch(GraphChanges.delete(ChildId(project.id), ParentId(focusState.focusedId))))
     }
 
+    val permissionLevel = Rx {
+      Permission.resolveInherited(state.rawGraph(), project.id)
+    }
+
     div(
       marginLeft := "10px",
       cls := "node channel-line",
@@ -168,6 +173,8 @@ object DashboardView {
       onClick foreach {
         focusState.contextParentIdAction(project.id)
       },
+
+      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em")),
 
       Rx{VDomModifier.ifTrue(editMode())(deletionBtn)},
 

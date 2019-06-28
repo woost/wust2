@@ -4,13 +4,14 @@ import fontAwesome._
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
+import wust.css.Styles
 import wust.facades.googleanalytics.Analytics
 import wust.graph._
 import wust.ids._
 import wust.webApp.state._
 import wust.webApp.views.Components
 import wust.webApp.views.Components._
-import wust.webUtil.Elements
+import wust.webUtil.{Elements, UI}
 import wust.webUtil.outwatchHelpers._
 
 final case class PermissionDescription(
@@ -38,23 +39,27 @@ object Permission {
   )
 
   val `private` = PermissionDescription(
-        access = NodeAccess.Level(AccessLevel.Restricted),
-        value = "Private",
-        description = "Only you and explicit members can access this page",
-        icon = Icons.permissionPrivate
-      )
+    access = NodeAccess.Level(AccessLevel.Restricted),
+    value = "Private",
+    description = "Only you and explicit members can access this page",
+    icon = Icons.permissionPrivate
+  )
 
   val all: List[PermissionDescription] = `private` :: public :: inherit :: Nil
 
   def resolveInherited(graph: Graph, nodeId: NodeId): PermissionDescription = {
-      val level = graph.accessLevelOfNode(nodeId)
-      val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
-      val inheritedLevel = if(isPublic) {
-        Permission.public
-      } else {
-        Permission.`private`
-      }
-    inheritedLevel
+    val level = graph.accessLevelOfNode(nodeId)
+    val isPublic = level.fold(false)(_ == AccessLevel.ReadWrite)
+
+    if(isPublic) Permission.public else Permission.`private`
+  }
+
+  def permissionIndicator(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): BasicVNode = {
+    div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier)
+  }
+
+  def permissionIndicatorIfPublic(level: PermissionDescription, modifier: VDomModifier = VDomModifier.empty): VDomModifier = {
+    VDomModifier.ifTrue(level.access == NodeAccess.ReadWrite)(div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier))
   }
 
   def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -69,7 +74,7 @@ object Permission {
             description = Rx {
               item.inherited match {
                 case None => item.value
-                case Some(inheritance) => s"Inherited (${inheritance(state.graph(), channel.id).value})"
+                case Some(inheritance) => s"Inherited (${inheritance(state.rawGraph(), channel.id).value})"
               }
             },
             active = channel.meta.accessLevel == item.access,

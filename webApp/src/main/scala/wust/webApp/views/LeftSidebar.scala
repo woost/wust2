@@ -13,6 +13,7 @@ import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, Colors, NodeColor}
+import wust.webApp.Permission
 import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
@@ -254,6 +255,10 @@ object LeftSidebar {
       state.rawGraph().nodesByIdOrThrow(nodeId)
     }
 
+    val permissionLevel = Rx {
+      Permission.resolveInherited(state.rawGraph(), nodeId)
+    }
+
     div(
       Styles.flex,
       alignItems.center,
@@ -281,7 +286,9 @@ object LeftSidebar {
         cls := "node",
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         channelModifier
-      )
+      ),
+
+      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em"))
     )
   }
 
