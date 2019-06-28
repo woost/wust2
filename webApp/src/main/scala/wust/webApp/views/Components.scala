@@ -452,10 +452,11 @@ object Components {
         contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
-    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, projectWithIcon: Boolean = false): VNode = {
       renderNodeCard(
         node,
-        contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject),
+        projectWithIcon = projectWithIcon
       )
     }
     def nodeCardWithFile(state: GlobalState, node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {

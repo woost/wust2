@@ -378,6 +378,11 @@ object CommonStyles extends StyleSheet.Standalone {
       )
   )
 
+  ".create-new-prompt.ui.modal > .header," +
+  ".create-new-prompt.ui.modal > .content" - (
+    backgroundColor(Color(Colors.contentBg)),
+  )
+
 
 
   ".sidebar" - (

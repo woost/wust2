@@ -85,7 +85,7 @@ object ChatView {
     SelectedNodes[SelectedNode](
       state,
       selectedNodes,
-      selectedNodeActions[SelectedNode](state, selectedNodes, prependActions = additionalNodeActions(selectedNodes, currentReply, inputFieldFocusTrigger)),
+      selectedNodeActions[SelectedNode](state, selectedNodes, prependActions = additionalNodeActions(state, selectedNodes, currentReply, inputFieldFocusTrigger)),
       (_, _) => Nil
       ).apply(
         position.absolute,
@@ -429,7 +429,7 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def additionalNodeActions(selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit]): Boolean => List[VNode] = canWriteAll => List(
+  private def additionalNodeActions(state:GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClick foreach {
         currentReply() = selectedNodes.now.map(_.nodeId)
@@ -437,7 +437,8 @@ object ChatView {
         inputFieldTriggerFocus.onNext(Unit)
         ()
       }
-    )
+    ),
+    SharedViewElements.createNewButton(state)
   )
 
   private def renderCurrentReply(
@@ -518,8 +519,9 @@ object ChatView {
       enforceUserName = true,
       placeholder = Placeholder.newMessage,
       enableEmojiPicker = true,
-    )(ctx)(
+    ).apply(
         Styles.flexStatic,
+        margin := "3px",
         Rx{ backgroundColor :=? bgColor() }
       )
   }

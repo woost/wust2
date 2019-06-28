@@ -182,7 +182,6 @@ object InputRow {
 
       alignItems.center,
       form(
-        margin := "3px",
         VDomModifier.ifTrue(showSubmitIcon || fileUploadHandler.isDefined)(marginRight := "0"), // icons itself have marginLeft
         width := "100%",
         cls := "ui form",
@@ -204,7 +203,6 @@ object InputRow {
           textAreaModifiers,
         ),
         markdownHelp,
-
       ),
       fileUploadHandler.map(UploadComponents.uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
       VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic))

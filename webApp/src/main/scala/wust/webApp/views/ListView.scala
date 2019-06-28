@@ -263,7 +263,7 @@ object ListView {
           placeholder = Placeholder.newTask,
           submitOnEnter = true,
           showSubmitIcon = false,
-        ).apply(Styles.flexStatic)
+        ).apply(Styles.flexStatic, margin := "3px")
       }
     )
   }

@@ -44,9 +44,6 @@ object Icons {
 
     })
   )
-  val dashboard: IconDefinition = freeSolid.faChartLine
-  val project: IconDefinition = freeSolid.faProjectDiagram
-  val note: IconDefinition = freeSolid.faStickyNote
 
   val conversation: IconDefinition = freeRegular.faComments
   val chat: IconDefinition = freeRegular.faComments
@@ -78,10 +75,14 @@ object Icons {
   val graph: IconDefinition = freeBrands.faCloudsmith
   val notes: IconDefinition = freeRegular.faStickyNote
   val gantt: IconDefinition = freeSolid.faStream
+  val dashboard: IconDefinition = freeSolid.faChartLine
   val topological: IconDefinition = freeSolid.faSortNumericDown
   val notifications: IconDefinition = freeRegular.faBell
 
   val task: IconDefinition = freeRegular.faCheckSquare
+  val message: IconDefinition = freeRegular.faComment
+  val note: IconDefinition = freeRegular.faStickyNote
+  val project: IconDefinition = freeSolid.faProjectDiagram
 
   val fileUpload: IconDefinition = freeSolid.faPaperclip
   val userPermission: IconDefinition = freeSolid.faUserLock

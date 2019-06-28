@@ -322,6 +322,7 @@ object ThreadView {
       enforceUserName = true,
       placeholder = Placeholder.newMessage
     ).apply(
+      margin := "3px",
       closeButton(
         padding := "15px",
         onClick.stopPropagation foreach { showReplyField() = false },
@@ -410,7 +411,10 @@ object ThreadView {
       enableEmojiPicker = true,
       enforceUserName = true,
       placeholder = Placeholder.newMessage
-    )(ctx)(Styles.flexStatic)
+    ).apply(
+      Styles.flexStatic,
+      margin := "3px",
+    )
   }
 
 }

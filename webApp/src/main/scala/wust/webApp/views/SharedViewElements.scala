@@ -373,13 +373,13 @@ object SharedViewElements {
     )
   }
 
-  def createNewButton(state: GlobalState, label: String = "New", addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+  def createNewButton(state: GlobalState, addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = PublishSubject[Boolean]()
 
-    button(
-      cls := "ui tiny compact inverted button",
-      label,
-      onClick foreach { ev =>
+    div(
+      div(cls := "fa-fw", UI.tooltip("bottom right") := "Create new...", freeSolid.faPlus),
+      cursor.pointer,
+      onClick.stopPropagation foreach { ev =>
         ev.target.asInstanceOf[dom.html.Element].blur()
         show.onNext(true)
       },
