@@ -1036,4 +1036,6 @@ object Components {
       },
     }
   }
+
+  def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
 }

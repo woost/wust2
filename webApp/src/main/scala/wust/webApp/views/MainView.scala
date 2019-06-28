@@ -156,7 +156,7 @@ object MainView {
             div(
               cls := "animated-late-fadein",
               span("Loading forever?", marginRight := "10px"),
-              button(margin := "0px", cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+              Components.reloadButton
             )
           else
             div(

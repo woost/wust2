@@ -58,6 +58,7 @@ object LeftSidebar {
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,
+            Components.reloadButton(margin := "0 auto"),
             onClick(false) --> state.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
