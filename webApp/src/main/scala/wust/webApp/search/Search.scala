@@ -65,26 +65,33 @@ object Search {
   }
 
   protected def singleSearch(f: (String, String) => Double, needle: String, node: Node, boundary: Double) = {
-    val nodeStr = node.str.trim
-    val trimmedNeedle = needle.trim
-    val nodeStrLowered = nodeStr.toLowerCase
-    val trimmedLoweredNeedle = trimmedNeedle.toLowerCase
+    val nodeLowered = node.str.toLowerCase
+    val needleLowered = needle.toLowerCase
+    val nodeTrimmed = nodeLowered.trim
+    val needleTrimmed = needleLowered.trim
 
-    val nodeRes = if (trimmedNeedle.length == 0 || nodeStr.length == 0) None
-                  else if (trimmedNeedle == nodeStr) Some(node -> 1.0)
-                  else if (trimmedLoweredNeedle == nodeStrLowered) Some(node -> 0.99999)
-                  else if (nodeStrLowered.contains(trimmedLoweredNeedle)) {
-      val strPerc = 0.99 - 1.0 / trimmedLoweredNeedle.r.findAllMatchIn(nodeStrLowered).length * trimmedLoweredNeedle.length / nodeStrLowered.length
-      Some(node -> strPerc)
-    } else {
-      val sim_1 = f(trimmedLoweredNeedle, nodeStrLowered)
-      if(sim_1 > boundary)
-        Some(node -> sim_1)
-      else {
-        val sim_2 = (for(n <- trimmedLoweredNeedle.split(" "); h <- nodeStr.split(" ")) yield f(n, h)).max
-        if(sim_2 > boundary) Some(node -> (sim_2 - boundary)) else None
-      }
-    }
+    def weightedContains(n: String, h: String, maxMatch: Double = 0.999) = boundary + (maxMatch - boundary) * n.r.findAllMatchIn(h).length * n.length / h.length
+
+    val nodeRes = if (needleLowered.length == 0 || nodeLowered.length == 0) None
+                  else if (needle == node.str)            Some(node -> 1.0)       // case-sensitive matches
+                  else if (needleLowered == nodeLowered)  Some(node -> 0.99999)   // case-insensitive matches
+                  else if ((nodeLowered.length < 2 && needleLowered.length > 2) || (nodeLowered.length < 3 && needleLowered.length > 3)) None             // Ignore
+                  else if (needleLowered.length < nodeLowered.length && nodeTrimmed.contains(needleTrimmed)) {
+                    if(nodeLowered.contains(needleLowered)) Some(node -> weightedContains(needleLowered, nodeLowered))
+                    else Some(node -> weightedContains(needleTrimmed, nodeTrimmed, 0.91))
+                  } else if (nodeLowered.length < needleLowered.length && needleTrimmed.contains(nodeTrimmed)) {
+                    if(needleLowered.contains(nodeLowered)) Some(node -> weightedContains(nodeLowered, needleLowered))
+                    else Some(node -> weightedContains(nodeTrimmed, needleTrimmed, 0.91))
+                  }
+                  else {
+                    val sim_1 = f(needleTrimmed, nodeTrimmed)
+                    if(sim_1 > boundary)
+                      Some(node -> sim_1)
+                    else {
+                      val sim_2 = (for(n <- needleTrimmed.split(" "); h <- nodeTrimmed.split(" ")) yield f(n, h)).max
+                      if(sim_2 > boundary) Some(node -> (sim_2 - boundary)) else None
+                    }
+                  }
 
     nodeRes
   }
@@ -101,7 +108,7 @@ object Search {
 
     val maxNum = math.min(nodes.length, math.abs(num.getOrElse(nodes.length)))
 
-    val res = nodes.flatMap( node => singleSearch(f, needle, node, boundary) ).sortBy(_._2)
+    val res = nodes.flatMap( node => singleSearch(f, needle, node, boundary) ).sortBy(-_._2)
 
     num match {
       case Some(n) => if(n > 0) res.takeRight(maxNum) else res.take(maxNum)
