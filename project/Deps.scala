@@ -151,6 +151,7 @@ object Deps {
     val jqueryTablesort = "jquery-tablesort" -> "0.0.11"
     val juration = "juration" -> "0.1.0"
     val wdtEmojiBundle = "wdt-emoji-bundle" -> "git://github.com/fdietze/wdt-emoji-bundle.git#fcf05d9"
+    val tribute = "tributejs" -> "3.7.1"
 
     val webpackDependencies =
       "webpack-closure-compiler" -> "git://github.com/roman01la/webpack-closure-compiler.git#3677e5e" :: //TODO: "closure-webpack-plugin" -> "1.0.1" :: https://github.com/webpack-contrib/closure-webpack-plugin/issues/47

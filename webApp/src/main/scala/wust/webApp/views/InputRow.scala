@@ -19,6 +19,10 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 
+import scala.collection.breakOut
+import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
+
 object InputRow {
 
   def apply(
@@ -39,6 +43,7 @@ object InputRow {
     enforceUserName: Boolean = false,
     showMarkdownHelp: Boolean = false,
     enableEmojiPicker: Boolean = false,
+    enableMentions: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if (preFillByShareApi) Rx {
       state.urlConfig().shareOptions.fold("") { share =>
@@ -82,11 +87,44 @@ object InputRow {
       }
     }
 
+    val emojiPicker = if (enableEmojiPicker && !BrowserDetect.isMobile) {
+      Some(VDomModifier(
+        snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
+        onDomMount.foreach {
+          //TODO: only init for this element? not do whole initialization?
+          wdtEmojiBundle.init(".inputrow.field.enabled-emoji-picker")
+        },
+        cls := "enabled-emoji-picker",
+        cls := "wdt-emoji-open-on-colon"
+      ))
+    } else None
+
+    val mentionsTribute = if (enableMentions) {
+      import wust.facades.tribute._
+      val tribute = new Tribute(new TributeCollection[Node] {
+        lookup = { (node, text) =>
+          node.str
+        }: js.Function2[Node, String, String]
+        fillAttr = "__get_str"
+        values = { (text, cb) =>
+          cb(state.graph.now.nodes.collect { case item if item.str.contains(text) =>
+            //TODO: workaround to get value via static attribute, fillAttr should support function like lookup.
+            item.asInstanceOf[js.Dynamic].__get_str = StringOps.trimToMaxLength(item.str, 50)
+            item
+          }(breakOut))
+        }: js.Function2[String, js.Function1[js.Array[Node], Unit], Unit]
+      })
+
+      Some(tribute)
+    } else None
+
     val initialValueAndSubmitOptions = {
+      // ignore submit events if mentions or emoji picker is open
+      val filterEvent = () => mentionsTribute.forall(tribute => !tribute.isActive) && emojiPicker.forall(_ => dom.document.querySelectorAll(".wdt-emoji-picker-open").length == 0)
       if (submitOnEnter) {
-        valueWithEnterWithInitial(initialValue) foreach handleInput _
+        valueWithEnterWithInitial(initialValue, filterEvent = filterEvent) foreach handleInput _
       } else {
-        valueWithCtrlEnterWithInitial(initialValue) foreach handleInput _
+        valueWithCtrlEnterWithInitial(initialValue, filterEvent = filterEvent) foreach handleInput _
       }
     }
 
@@ -151,15 +189,6 @@ object InputRow {
       },
     )
 
-    val activateEmojiPicker = VDomModifier.ifTrue(enableEmojiPicker && !BrowserDetect.isMobile)(
-      snabbdom.VNodeProxy.repairDomBeforePatch, // the emoji-picker modifies the dom
-      onDomMount.foreach {
-        wdtEmojiBundle.init(".inputrow.field.enabled-emoji-picker")
-      },
-      cls := "enabled-emoji-picker",
-      cls := "wdt-emoji-open-on-colon"
-    )
-
     val markdownHelp = VDomModifier.ifTrue(showMarkdownHelp)(
       position.relative,
       a(
@@ -200,7 +229,8 @@ object InputRow {
           blurAction.map(onBlur.value foreach _),
           pageScrollFixForMobileKeyboard,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
-          activateEmojiPicker,
+          emojiPicker,
+          mentionsTribute,
           textAreaModifiers,
         ),
         markdownHelp,
