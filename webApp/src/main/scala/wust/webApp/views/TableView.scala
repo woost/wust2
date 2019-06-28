@@ -257,13 +257,13 @@ object TableView {
         cls := "ui mini compact button",
         "+ New Row",
         cursor.pointer,
-        onClickNewNamePrompt(state, header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { str =>
-          val newNode = Node.Content(NodeData.Markdown(str), targetRole)
+        onClickNewNamePrompt(state, header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { sub =>
+          val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
           val addTags = ViewFilter.addCurrentlyFilteredTags(state, newNode.id)
-          state.eventProcessor.changes.onNext(addNode merge addTags)
+          state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(newNode.id))
 
           ()
         }

@@ -43,6 +43,11 @@ package object ids {
     @inline def fromBase58String(str: String): Either[String, TemplateId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type TemplateId = TemplateId.Type
+  object MentionedId extends OverTagged(NodeId) {
+    @inline def fresh: MentionedId = apply(NodeId.fresh)
+    @inline def fromBase58String(str: String): Either[String, MentionedId] = NodeId.fromBase58String(str).map(apply(_))
+  }
+  type MentionedId = MentionedId.Type
 
   object DurationMilli extends TaggedType[Long]
   type DurationMilli = DurationMilli.Type

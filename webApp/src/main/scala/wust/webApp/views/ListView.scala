@@ -248,11 +248,11 @@ object ListView {
   }
 
   private def addListItemInputField(state: GlobalState, focusedNodeId: NodeId, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
-    def submitAction(userId: UserId)(str: String) = {
-      val createdNode = Node.MarkdownTask(str)
+    def submitAction(userId: UserId)(sub: InputRow.Submission) = {
+      val createdNode = Node.MarkdownTask(sub.text)
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusedNodeId))
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
-      state.eventProcessor.changes.onNext(addNode merge addTags)
+      state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     div(

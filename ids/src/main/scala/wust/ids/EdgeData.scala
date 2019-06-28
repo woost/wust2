@@ -24,6 +24,9 @@ object EdgeData {
   final case class Member(level: AccessLevel) extends Named with EdgeData
   object Member extends Named
 
+  final case class Mention(mentionName: String) extends Named with EdgeData
+  object Mention extends Named
+
   final case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
     override def toString: String = s"Child(${deletedAt.map(_.humanReadable)}, $ordering)"
   }
@@ -45,7 +48,6 @@ object EdgeData {
     def reference = LabeledProperty("Reference")
     def description = LabeledProperty("Description")
     def dueDate = LabeledProperty("Due Date")
-    def mention = LabeledProperty("Mention")
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData

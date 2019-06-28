@@ -15,19 +15,23 @@ import wust.api.AuthUser
 import wust.css.Styles
 import wust.graph._
 import wust.util._
+import wust.ids._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 
 import scala.collection.breakOut
+import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
 object InputRow {
 
+  case class Submission(text: String, changes: NodeId => GraphChanges)
+
   def apply(
     state: GlobalState,
-    submitAction: String => Unit,
+    submitAction: Submission => Unit,
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
     blurAction: Option[String => Unit] = None,
     scrollHandler: Option[ScrollBottomHandler] = None,
@@ -54,6 +58,7 @@ object InputRow {
     else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
 
     val autoResizer = new TextAreaAutoResizer
+    val collectedMentions = new mutable.HashMap[String, Node]
 
     val heightOptions = VDomModifier(
       rows := 1,
@@ -62,10 +67,33 @@ object InputRow {
       autoResizer.modifiers
     )
 
+    def nodeToSelectString(node: Node): String = {
+      val lines = node.str.linesIterator
+      val linesHead = if (lines.hasNext) StringOps.trimToMaxLength(lines.next.replace("\\", "\\\\").replace(" ", "\\ "), 100) else ""
+      linesHead
+    }
+
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       def handle() = {
-        submitAction(str)
+        val actualMentions = {
+          val mentionsRegex = raw"@(?:[^ \\]|\\\\)*(?:\\ [^ ]*)*".r
+          println("COLL "+collectedMentions)
+          val stringMentions = mentionsRegex.findAllIn(str).map(_.drop(1)).to[List]
+          println("STRMENTIONS "+stringMentions)
+          stringMentions.flatMap(str => collectedMentions.get(str).map(str -> _))
+        }
+          println("MENTIONS "+actualMentions)
+        def extraChanges(nodeId: NodeId): GraphChanges = {
+          println("EXTRA "+nodeId)
+          GraphChanges(
+          addEdges = actualMentions.map { case (mentionName, mentionedNode) =>
+            Edge.Mention(nodeId, EdgeData.Mention(mentionName), mentionedNode.id)
+          }(breakOut)
+        )
+        }
+        collectedMentions.clear()
+        submitAction(Submission(str, extraChanges))
         if (preFillByShareApi && state.urlConfig.now.shareOptions.isDefined) {
           state.urlConfig.update(_.copy(shareOptions = None))
         }
@@ -75,11 +103,11 @@ object InputRow {
         state.askedForUnregisteredUserName() = true
         state.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
-            val sink = state.eventProcessor.changes.redirectMapMaybe[String] { str =>
+            val sink = state.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
               val userNode = user.toNode
-              userNode.data.updateName(str).map(data => GraphChanges.addNode(userNode.copy(data = data)))
+              userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
             }
-            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true })))
+            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
           case _ => handle()
         }
       } else {
@@ -102,29 +130,42 @@ object InputRow {
     val mentionsTribute = if (enableMentions) {
       import wust.facades.tribute._
       val tribute = new Tribute(new TributeCollection[Node] {
+        trigger = "@"
         lookup = { (node, text) =>
           node.str
         }: js.Function2[Node, String, String]
-        fillAttr = "__get_str"
+        selectTemplate = { item =>
+          item.fold("@") { item =>
+            "@" + nodeToSelectString(item.original)
+          }
+        }: js.Function1[js.UndefOr[TributeItem[Node]], String]
+        menuItemTemplate = { item =>
+          Components.nodeCard(item.original).render.outerHTML
+        }: js.Function1[TributeItem[Node], String]
+        noMatchTemplate = { () =>
+          i("Not Found").render.outerHTML
+        }: js.Function0[String]
+        spaceSelectsMatch = true
         values = { (text, cb) =>
-          cb(state.graph.now.nodes.collect { case item if item.str.contains(text) =>
-            //TODO: workaround to get value via static attribute, fillAttr should support function like lookup.
-            item.asInstanceOf[js.Dynamic].__get_str = StringOps.trimToMaxLength(item.str, 50)
-            item
-          }(breakOut))
+          cb(state.graph.now.nodes.collect { case item if item.str.toLowerCase.startsWith(text.toLowerCase) => item }(breakOut))
         }: js.Function2[String, js.Function1[js.Array[Node], Unit], Unit]
+        searchOpts = new TributeSearchOpts {
+          pre = ""
+          post = ""
+        }
       })
 
       Some(tribute)
     } else None
 
+    val filterSubmitEvent = () => mentionsTribute.forall(tribute => !tribute.isActive) && emojiPicker.forall(_ => dom.document.querySelectorAll(".wdt-emoji-picker-open").length == 0)
+
     val initialValueAndSubmitOptions = {
       // ignore submit events if mentions or emoji picker is open
-      val filterEvent = () => mentionsTribute.forall(tribute => !tribute.isActive) && emojiPicker.forall(_ => dom.document.querySelectorAll(".wdt-emoji-picker-open").length == 0)
       if (submitOnEnter) {
-        valueWithEnterWithInitial(initialValue, filterEvent = filterEvent) foreach handleInput _
+        valueWithEnterWithInitial(initialValue, filterEvent = filterSubmitEvent) foreach handleInput _
       } else {
-        valueWithCtrlEnterWithInitial(initialValue, filterEvent = filterEvent) foreach handleInput _
+        valueWithCtrlEnterWithInitial(initialValue, filterEvent = filterSubmitEvent) foreach handleInput _
       }
     }
 
@@ -181,7 +222,7 @@ object InputRow {
         backgroundColor := "#545454",
         color := "white",
       ),
-      onClick.stopPropagation foreach {
+      onClick.filter(_ => filterSubmitEvent()).stopPropagation foreach {
         val str = currentTextArea.value
         handleInput(str)
         currentTextArea.value = ""
@@ -230,7 +271,17 @@ object InputRow {
           pageScrollFixForMobileKeyboard,
           onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           emojiPicker,
-          mentionsTribute,
+          mentionsTribute.map { tribute =>
+            VDomModifier(
+              tribute,
+              wust.facades.tribute.Tribute.replacedEvent[Node].foreach { e =>
+                e.detail.item.foreach { item =>
+                  val completedStr = nodeToSelectString(item.original)
+                  collectedMentions(completedStr) = item.original
+                }
+              }
+            )
+          },
           textAreaModifiers,
         ),
         markdownHelp,

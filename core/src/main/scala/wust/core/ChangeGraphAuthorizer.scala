@@ -66,6 +66,7 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     val addEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.addEdges.map {
       case e: Edge.Author  => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only add author edge for own user and an added node")
       case e: Edge.User    => Right(Seq(e.nodeId))
+      case e: Edge.Mention => Right(Seq(e.nodeId)) //TODO: generally you need access to a mentioned node, but i could be a user, so allow...
       case e: Edge.Content => Right(Seq(e.sourceId, e.targetId))
     }(breakOut))
 
@@ -76,6 +77,7 @@ class DbChangeGraphAuthorizer(db: Db)(implicit ec: ExecutionContext) extends Cha
     //  Right(nodeIds: Seq[NodeId]) => Allowed to delete this edge, if you have acces to all $nodeIds
     val delEdgesCheck: Either[Seq[String], Seq[Seq[NodeId]]] = eitherSeq(changes.delEdges.map {
       case _: Edge.Author   => Left("Cannot delete author edges")
+      case _: Edge.Mention  => Left("Cannot delete mention edges")
       case e: Edge.Member   => Right(Seq(e.nodeId))
       case e: Edge.Assigned => Right(Seq(e.nodeId))
       case e: Edge.User     => Either.cond(user.id == e.userId, Seq(e.nodeId), "Can only delete edge of own user")

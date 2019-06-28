@@ -57,8 +57,8 @@ object AssignedTasksView  {
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
 
-    def addNewTask(str: String): Unit = {
-      val newTask = Node.MarkdownTask(str)
+    def addNewTask(sub: InputRow.Submission): Unit = {
+      val newTask = Node.MarkdownTask(sub.text)
       val changes = GraphChanges(
         addNodes = Array(newTask),
         addEdges = Array(
@@ -67,7 +67,7 @@ object AssignedTasksView  {
         )
       )
 
-      state.eventProcessor.changes.onNext(changes)
+      state.eventProcessor.changes.onNext(changes merge sub.changes(newTask.id))
     }
 
     div(

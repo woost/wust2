@@ -422,17 +422,18 @@ object Components {
 
       VDomModifier(
         cls := "nodecard",
-        node.role match {
-          case NodeRole.Project => VDomModifier(
+        node match {
+          case user: Node.User => renderUser(user)
+          case node if node.role == NodeRole.Project => VDomModifier(
             cls := "project",
             renderProject(node, contentNode, withIcon = projectWithIcon)
           )
-          case NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
+          case node if node.role == NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
             cls := "tag colorful",
             backgroundColor := tagColor(node.id).toHex,
             contentNode(node),
           )
-          case _ => VDomModifier(
+          case node => VDomModifier(
             cls := "node",
             contentNode(node)
           )

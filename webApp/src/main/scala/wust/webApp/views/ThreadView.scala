@@ -300,10 +300,11 @@ object ThreadView {
 
   private def threadReplyField(state: GlobalState, nodeId: NodeId, showReplyField: Var[Boolean])(implicit ctx:Ctx.Owner): VNode = {
 
-    def handleInput(str: String): Future[Ack] = if (str.nonEmpty) {
+    def handleInput(sub: InputRow.Submission): Future[Ack] = if (sub.text.nonEmpty) {
       val graph = state.graph.now
       val user = state.user.now
-      val addNodeChange = GraphChanges.addNodeWithParent(Node.MarkdownMessage(str), ParentId(nodeId) :: Nil)
+      val createdNode = Node.MarkdownMessage(sub.text)
+      val addNodeChange = GraphChanges.addNodeWithParent(createdNode, ParentId(nodeId) :: Nil) merge sub.changes(createdNode.id)
       val expandChange = if(!graph.isExpanded(user.id, nodeId).getOrElse(false)) GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
       state.eventProcessor.changes.onNext(changes)
@@ -386,10 +387,10 @@ object ThreadView {
   )(implicit ctx: Ctx.Owner) = {
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
-    def submitAction(str:String) = {
+    def submitAction(sub: InputRow.Submission) = {
       scrollHandler.scrollToBottomInAnimationFrame()
-      val basicNode = Node.MarkdownMessage(str)
-      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId))
+      val basicNode = Node.MarkdownMessage(sub.text)
+      val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
         case None => state.eventProcessor.changes.onNext(basicGraphChanges)
         case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))

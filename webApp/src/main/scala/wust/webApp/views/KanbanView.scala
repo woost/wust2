@@ -287,14 +287,14 @@ object KanbanView {
       if(active) scrollHandler.scrollToBottomInAnimationFrame()
     }
 
-    def submitAction(userId: UserId)(str:String) = {
-      val createdNode = Node.MarkdownTask(str)
+    def submitAction(userId: UserId)(sub: InputRow.Submission) = {
+      val createdNode = Node.MarkdownTask(sub.text)
       val graph = state.graph.now
       val workspaces = graph.workspacesForParent(graph.idToIdxOrThrow(parentId)).viewMap(idx => ParentId(graph.nodeIds(idx)))
       val addNode = GraphChanges.addNodeWithParent(createdNode, (workspaces :+ ParentId(parentId)).distinct)
       val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
 
-      state.eventProcessor.changes.onNext(addNode merge addTags)
+      state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     def blurAction(v:String): Unit = {
@@ -328,10 +328,10 @@ object KanbanView {
 
   private def newColumnArea(state: GlobalState, focusedId:NodeId)(implicit ctx: Ctx.Owner) = {
     val fieldActive = Var(false)
-    def submitAction(str:String) = {
+    def submitAction(sub: InputRow.Submission) = {
       val change = {
-        val newStageNode = Node.MarkdownStage(str)
-        GraphChanges.addNodeWithParent(newStageNode, ParentId(focusedId))
+        val newStageNode = Node.MarkdownStage(sub.text)
+        GraphChanges.addNodeWithParent(newStageNode, ParentId(focusedId)) merge sub.changes(newStageNode.id)
       }
       state.eventProcessor.changes.onNext(change)
       //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again

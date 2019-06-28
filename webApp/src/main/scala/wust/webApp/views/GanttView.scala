@@ -89,9 +89,9 @@ object GanttView {
 
       InputRow(
         state,
-        submitAction = { str =>
-          val newNode = Node.MarkdownTask(str)
-          val changes = GraphChanges.addNodesWithParents(newNode :: Nil, state.page.now.parentId.map(ParentId(_)))
+        submitAction = { sub =>
+          val newNode = Node.MarkdownTask(sub.text)
+          val changes = GraphChanges.addNodesWithParents(newNode :: Nil, state.page.now.parentId.map(ParentId(_))) merge sub.changes(newNode.id)
           state.eventProcessor.changes.onNext(changes)
         },
         placeholder = Placeholder.newTask,

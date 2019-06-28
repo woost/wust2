@@ -34,8 +34,24 @@ object Tribute {
     )
   }
 
-  def replacedEvent = EmitterBuilder[dom.Event]("tribute-replaced")
-  def noMatchEvent = EmitterBuilder[dom.Event]("tribute-no-match")
+  def replacedEvent[Value] = EmitterBuilder[TributeReplacedEvent[Value]]("tribute-replaced")
+  def noMatchEvent[Value] = EmitterBuilder[TributeNoMatchEvent]("tribute-no-match")
+}
+
+@js.native
+trait TributeNoMatchEvent extends dom.Event {
+  def detail: dom.html.Element = js.native
+}
+
+@js.native
+trait TributeReplacedEvent[Value] extends dom.Event {
+  def detail: TributeDetail[Value] = js.native
+}
+
+@js.native
+trait TributeDetail[Value] extends js.Object {
+  def event: dom.Event = js.native
+  def item: js.UndefOr[TributeItem[Value]] = js.native
 }
 
 trait TributeCollection[Value] extends js.Object {
@@ -46,12 +62,12 @@ trait TributeCollection[Value] extends js.Object {
   // class added in the flyout menu for active item
   var selectClass: js.UndefOr[String] = js.undefined
   // function called on select that returns the content to insert
-  var selectTemplate: js.UndefOr[js.Function1[TributeItem[Value], String]] = js.undefined
+  var selectTemplate: js.UndefOr[js.Function1[js.UndefOr[TributeItem[Value]], String]] = js.undefined
   // template for displaying item in menu
   var menuItemTemplate: js.UndefOr[js.Function1[TributeItem[Value], String]] = js.undefined
   // template for when no match is found (optional),
   // If no template is provided, menu is hidden.
-  var noMatchTemplate: js.UndefOr[String] = js.undefined
+  var noMatchTemplate: js.UndefOr[js.Function0[String]] = js.undefined
   // specify an alternative parent container for the menu
   var menuContainer: js.UndefOr[dom.html.Element] = js.undefined
   // column to search against in the object (accepts function or string)
@@ -72,7 +88,7 @@ trait TributeCollection[Value] extends js.Object {
   var positionMenu: js.UndefOr[Boolean] = js.undefined
   // when the spacebar is hit, select the current match
   var spaceSelectsMatch: js.UndefOr[Boolean] = js.undefined
-  // turn tribute into an autocomplete
+  // turn tribute into an autocomplete, which starts without trigger
   var autocompleteMode: js.UndefOr[Boolean] = js.undefined
   // Customize the elements used to wrap matched strings within the results list
   // defaults to <span></span> if undefined
