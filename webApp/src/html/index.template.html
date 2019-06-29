@@ -66,11 +66,13 @@
     <script>window.noltQueue=window.noltQueue||[];function nolt(){noltQueue.push(arguments)}</script>
     <% } %>
 
+    <% if (htmlWebpackPlugin.options.minify) { %>
     <!-- announcekit sidebar widget -->
     <script>
       window.announcekit = (window.announcekit || { queue: [], on: function(n, x) { window.announcekit.queue.push([n, x]); }, push: function(x) { window.announcekit.queue.push(x); } });
     </script>
     <script async src="https://cdn.announcekit.app/widget.js"></script>
+    <% } %>
 
   </body>
 </html>

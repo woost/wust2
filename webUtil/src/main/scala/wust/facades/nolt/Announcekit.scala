@@ -7,6 +7,7 @@ import scala.scalajs.js.annotation._
 @JSGlobal
 object announcekit extends js.Object {
   def push(options: AnnouncekitOptions): Unit = js.native
+  def on(event: String, handler: js.Function1[js.Dynamic, Unit]): Unit = js.native
 }
 
 trait AnnouncekitOptions extends js.Object {

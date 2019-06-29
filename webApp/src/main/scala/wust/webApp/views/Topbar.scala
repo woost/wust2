@@ -15,7 +15,7 @@ object Topbar {
         cls := "topbar",
         // wust.webApp.DevOnly(SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic)),
 
-        AnnouncekitWidget.widget(marginLeft.auto, Styles.flexStatic, color.black, fontSize := "0.857rem", fontWeight := 700), // font size like feedback button
+        AnnouncekitWidget.widget(marginLeft.auto, Styles.flexStatic, color.black),
         FeedbackForm(state)(ctx)(Styles.flexStatic),
         AuthControls.authStatus(state, buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
       )

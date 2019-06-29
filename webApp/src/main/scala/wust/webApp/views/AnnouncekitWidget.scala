@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import scala.util.Try
 import wust.webUtil.BrowserDetect
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -20,40 +21,53 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import monix.reactive.Observer
 import snabbdom.VNodeProxy
+import wust.facades.announcekit._
+import org.scalajs.dom.console
+import fontAwesome.freeSolid
+import wust.webUtil.Elements.safeTargetBlank
+
+// https://announcekit.app/docs
 
 object AnnouncekitWidget {
+  val widgetId = "4hH5Qs"
+
+  val unreadCount = Var(0)
+
+  ProductionOnly {
+    announcekit.push(new AnnouncekitOptions {
+      widget = s"https://announcekit.app/widget/$widgetId"
+      name = widgetId
+      version = 2
+    })
+
+    announcekit.on("widget-unread", { e =>
+      // Called when unread post count of specified widget has been updated
+      unreadCount() = e.unread.asInstanceOf[Int]
+    })
+  }
+
   val widget = {
-    import wust.facades.announcekit._
-
-    def setup(): Unit = {
-      announcekit.push(new AnnouncekitOptions {
-        widget = "https://announcekit.app/widget/4hH5Qs"
-        selector = ".announcekit-widget"
-        name = "4hH5Qs"
-        version = 2
-        badge = new AnnouncekitBadgeOptions {
-          style = js.Dynamic.literal(
-            padding = "3px" // vertically center circle
-          )
-        }
-      })
-    }
-
     a(
       "What's new? ",
       href := "https://announcekit.app/woost/announcements",
-      onClick.preventDefault.foreach {
-        announcekit.asInstanceOf[js.Dynamic].widget$4hH5Qs.open()
-        ()
+      safeTargetBlank,
+      ProductionOnly {
+        onClick.preventDefault.foreach {
+          announcekit.asInstanceOf[js.Dynamic].widget$4hH5Qs.open()
+          ()
+        }
       },
       color.white,
-      fontWeight.bold,
-      cls := "announcekit-widget",
-      DomMountHook { proxy =>
-        VNodeProxy.repairDom(proxy)
-        setup()
-      },
-      snabbdom.VNodeProxy.repairDomBeforePatch,
+      // like semantic-ui tiny button
+      fontSize := "0.85714286rem",
+      fontWeight := 700,
+      padding := ".58928571em 1.125em .58928571em",
+      cursor.pointer,
+      Rx {
+        VDomModifier.ifTrue(unreadCount() > 0)(
+          freeSolid.faGift
+        )
+      }
     )
   }
 }

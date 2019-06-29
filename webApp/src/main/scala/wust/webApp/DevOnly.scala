@@ -10,6 +10,13 @@ object DevOnly {
   @inline def showDebugLogs = false
 }
 
+object ProductionOnly {
+  @inline def apply[T](code: => T): Option[T] = {
+    if (isTrue) Option(code) else None
+  }
+  @inline var isTrue = !LinkingInfo.developmentMode
+}
+
 object DevPrintln {
   @inline def apply(code: => Any): Unit = {
     DevOnly { println(code) }
