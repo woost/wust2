@@ -74,5 +74,13 @@
     <script async src="https://cdn.announcekit.app/widget.js"></script>
     <% } %>
 
+    <% if (htmlWebpackPlugin.options.minify) { %>
+    <script type="text/javascript">
+        window.$crisp=[];window.CRISP_WEBSITE_ID="5ab5c700-31d3-490f-917c-83dfa10b8205";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
+        $crisp.push(["do", "chat:hide"]);
+        $crisp.push(["safe", true]); // hide warnings about js shims
+    </script>
+    <% } %>
+
   </body>
 </html>
