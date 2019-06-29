@@ -22,6 +22,8 @@ import wust.webApp.views.Components._
 import scala.scalajs.LinkingInfo
 import scala.util.{ Failure, Success }
 import wust.webApp.ProductionOnly
+import wust.api.AuthUser.Implicit
+import wust.api.AuthUser.Real
 
 object FeedbackForm {
 
@@ -39,7 +41,10 @@ object FeedbackForm {
     def submit(): Unit = {
       if (feedbackText.now.trim.nonEmpty) {
         //         Client.api.feedback(ClientInfo(navigator.userAgent), feedbackText.now).onComplete { }
-        Try(crisp.push(js.Array("do", "message:send", js.Array("text", feedbackText.now)))) match {
+        Try{
+          initCrisp(state)
+          crisp.push(js.Array("do", "message:send", js.Array("text", feedbackText.now)))
+        } match {
           case Success(()) =>
             statusText() = "Thank you!"
             timeout.foreach(clearTimeout)
@@ -120,14 +125,34 @@ object FeedbackForm {
         div("Or write us an email: ", Components.woostTeamEmailLink, "."),
 
         div(cls := "ui divider", marginTop := "30px"),
-        supportChatButton(showPopup),
+        supportChatButton(state, showPopup),
         voteOnFeaturesButton,
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
     )
   }
 
-  def supportChatButton(showPopup: Var[Boolean]) = {
+  def initCrisp(state: GlobalState): Unit = {
+    state.user.now match {
+      case user: Implicit =>
+        crisp.push(js.Array("set", "user:nickname", js.Array(user.name)))
+
+      case user: Real =>
+        Client.auth.getUserDetail(user.id).onComplete {
+          case Success(detail) =>
+            detail.foreach(_.email.foreach{ email =>
+              crisp.push(js.Array("set", "user:email", js.Array(email)))
+            })
+          case Failure(err) =>
+            scribe.info("Cannot get UserDetail", err)
+        }
+        crisp.push(js.Array("set", "user:nickname", js.Array(user.name)))
+
+      case _ =>
+    }
+  }
+
+  def supportChatButton(state:GlobalState, showPopup: Var[Boolean]) = {
     button(
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue tiny fluid button",
@@ -135,6 +160,7 @@ object FeedbackForm {
       ProductionOnly{
         onClick.stopPropagation.foreach { _ =>
           Try{
+            initCrisp(state)
             crisp.push(js.Array("do", "chat:show"))
             crisp.push(js.Array("do", "chat:open"))
           }
@@ -145,7 +171,7 @@ object FeedbackForm {
   }
 
   def voteOnFeaturesButton = button(
-    freeSolid.faSort, " Vote on features",
+    freeSolid.faSort, " Vote on Features",
     cls := "ui violet tiny fluid button",
     marginTop := "5px",
     cls := "vote-button",
