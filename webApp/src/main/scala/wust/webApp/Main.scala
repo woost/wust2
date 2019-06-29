@@ -87,6 +87,7 @@ object Main {
     setupSetImmediatePolyfill()
     setupMarked()
     setupEmojis()
+    setupEmojiPicker()
     setupFomanticUISearch()
 
     if (LinkingInfo.developmentMode) {
@@ -149,9 +150,11 @@ object Main {
     EmojiConvertor.wrap_native = true
     EmojiConvertor.avoid_ms_emoji = true
     EmojiConvertor.replace_mode = "img"
+  }
 
-    wdtEmojiBundle.defaults.emojiType = "twitter";
-    wdtEmojiBundle.defaults.emojiSheets.twitter = "/emoji-picker/sheets/sheet_twitter_64_indexed_128.png";
+  private def setupEmojiPicker():Unit = {
+    wdtEmojiBundle.defaults.emojiType = "twitter"
+    wdtEmojiBundle.defaults.emojiSheets.twitter = "/emoji-picker/sheets/sheet_twitter_64_indexed_128.png"
   }
 
   private def setupRuntimeScalaCSSInjection():Unit = {
