@@ -12,10 +12,18 @@ import wust.sdk.Colors
 import wust.webApp.WoostNotification
 import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
+import wust.facades.wdtEmojiBundle._
+import wust.webUtil.Elements.{onGlobalEscape, onGlobalClick}
 
 object EmojiPicker {
   def apply() = {
     div(
+      onGlobalEscape.foreach {
+        wdtEmojiBundle.close()
+      },
+      onGlobalClick.foreach {
+        wdtEmojiBundle.close()
+      },
       cls := "wdt-emoji-popup",
       a(href := "#", cls := "wdt-emoji-popup-mobile-closer", " × "),
       div(

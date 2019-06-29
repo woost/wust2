@@ -18,6 +18,7 @@ import wust.util._
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
+import monix.reactive.Observer
 
 object InputRow {
 
@@ -205,7 +206,8 @@ object InputRow {
         markdownHelp,
       ),
       fileUploadHandler.map(UploadComponents.uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
-      VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic))
+      VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic)),
+      onClick.stopPropagation --> Observer.empty, // prevents globalClick trigger (which e.g. closes emojiPicker - it doesn't even open it in the first place)
     )
   }
 }
