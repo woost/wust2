@@ -1,13 +1,14 @@
 package wust.webApp.dragdrop
 
+import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.HTMLElement
 import wust.facades.draggable._
 import wust.webApp.DevOnly
 import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.state.GlobalState
-import wust.webApp.views.DragComponents.{readDragContainer, readDragPayload, readDragTarget, writeDragPayload}
-import wust.webUtil.{BrowserDetect, JSDefined}
+import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, writeDragPayload }
+import wust.webUtil.{ BrowserDetect, JSDefined }
 import wust.webUtil.outwatchHelpers._
 
 import scala.scalajs.js
@@ -29,7 +30,7 @@ object SortableEvents {
     }
   })
 
-  def init(state: GlobalState):Unit = {
+  def init(state: GlobalState): Unit = {
     new SortableEvents(state, sortable)
   }
 }
@@ -39,20 +40,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   private var currentOverEvent: js.UndefOr[DragOverEvent] = js.undefined
   private var currentOverContainerEvent: js.UndefOr[DragOverContainerEvent] = js.undefined
 
-  private var ctrlDown = false
-  private var shiftDown = false
-  private def setKeyDownFromEvent(event: DragEvent): Unit = {
-    if (!BrowserDetect.isMobile && event.originalEvent != null) {
-      ctrlDown = event.originalEvent.ctrlKey
-      shiftDown = event.originalEvent.shiftKey
-    }
-  }
-
-  //TODO: keyup-event for Shift does not work in chrome. It reports Capslock.
-  //  if (!BrowserDetect.isMobile) {
-  //    keyDown(KeyCode.Shift).foreach(shiftDown = _)
-  //  }
-
   def onStartDrag(): Unit = {
     state.eventProcessor.stopEventProcessing.onNext(true)
   }
@@ -61,7 +48,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   }
 
   draggable.on[DragStartEvent]("drag:start", (e: DragStartEvent) => {
-    setKeyDownFromEvent(e)
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     //    dragStartEvent.onNext(e)
@@ -72,13 +58,11 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOutEvent]("drag:out", { (e: DragOutEvent) =>
-    setKeyDownFromEvent(e)
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     currentOverEvent = js.undefined
   })
 
   draggable.on[DragOverContainerEvent]("drag:over:container", (e: DragOverContainerEvent) => {
-    setKeyDownFromEvent(e)
     e.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
     DevOnly {
       for {
@@ -90,13 +74,11 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOutContainerEvent]("drag:out:container", (e: DragOutContainerEvent) => {
-    setKeyDownFromEvent(e)
     snabbdom.VNodeProxy.setDirty(e.overContainer)
     currentOverContainerEvent = js.undefined
   })
 
   draggable.on[SortableStartEvent]("sortable:start", { (sortableStartEvent: SortableStartEvent) =>
-    setKeyDownFromEvent(sortableStartEvent.dragEvent)
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(sortableStartEvent.startContainer)
     // copy dragpayload reference from source to mirror // https://github.com/Shopify/draggable/issues/245
@@ -111,7 +93,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dragging over
   draggable.on[SortableSortEvent]("sortable:sort", (sortableSortEvent: SortableSortEvent) => {
-    setKeyDownFromEvent(sortableSortEvent.dragEvent)
     sortableSortEvent.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
 
     (sortableSortEvent, currentOverContainerEvent) match {
@@ -119,6 +100,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         val overSortcontainer = readDragContainer(sortableSortEvent.dragEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
         if (overSortcontainer) {
+          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
+          val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
+          val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
           validateSortInformation(sortableSortEvent, currentOverContainerEvent, ctrlDown, shiftDown)
         } else {
           // drag action is handled by dragOverEvent instead
@@ -129,7 +113,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
   })
 
   draggable.on[DragOverEvent]("drag:over", (dragOverEvent: DragOverEvent) => {
-    setKeyDownFromEvent(dragOverEvent)
     snabbdom.VNodeProxy.setDirty(dragOverEvent.overContainer)
     DevOnly {
       readDragTarget(dragOverEvent.over).foreach { target => println(s"Dragging over: $target") }
@@ -139,6 +122,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
     val notOverSortContainer = !readDragContainer(dragOverEvent.overContainer).exists(_.isInstanceOf[SortableContainer])
 
     if (notOverSortContainer) {
+      val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
+      val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
+      val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
       validateDragInformation(dragOverEvent, ctrlDown, shiftDown)
     } else {
       // drag action is handled by sortableSortEvent instead
@@ -148,7 +134,6 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
 
   // when dropping
   draggable.on[SortableStopEvent]("sortable:stop", (sortableStopEvent: SortableStopEvent) => {
-    setKeyDownFromEvent(sortableStopEvent.dragEvent)
     try {
       snabbdom.VNodeProxy.setDirty(sortableStopEvent.newContainer)
       scribe.debug(s"moved from position ${sortableStopEvent.oldIndex} to new position ${sortableStopEvent.newIndex}")
@@ -156,6 +141,9 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
         case (sortableStopEvent, JSDefined(currentOverContainerEvent), JSDefined(currentOverEvent)) =>
           val overSortcontainer = currentOverContainerEvent.overContainer.exists(overContainer => readDragContainer(overContainer).exists(_.isInstanceOf[SortableContainer]))
 
+          val currentEvent = dom.window.asInstanceOf[js.Dynamic].event.detail.originalEvent
+          val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
+          val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
           if (overSortcontainer) {
             performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
             // actively repair the containers, since drags can be aborted / emit empty graphchanges
