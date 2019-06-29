@@ -105,7 +105,7 @@ object PageHeader {
         breadCrumbs,
         Rx {
           VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            AnnouncekitWidget.widget(marginLeft.auto, Styles.flexStatic),
+            AnnouncekitWidget.widget(state).apply(marginLeft.auto, Styles.flexStatic),
             FeedbackForm(state)(ctx)(Styles.flexStatic),
             AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )

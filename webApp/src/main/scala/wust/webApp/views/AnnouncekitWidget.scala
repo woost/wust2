@@ -31,30 +31,45 @@ import wust.webUtil.Elements.safeTargetBlank
 object AnnouncekitWidget {
   val widgetId = "4hH5Qs"
 
-  val unreadCount = Var(0)
+  def widget(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+    val unreadCount = Var(0)
+    val announcekitLoaded = Var(false)
 
-  ProductionOnly {
-    announcekit.push(new AnnouncekitOptions {
-      widget = s"https://announcekit.app/widget/$widgetId"
-      name = widgetId
-      version = 2
-    })
+    ProductionOnly {
+      Try {
+        announcekit.push(new AnnouncekitOptions {
+          widget = s"https://announcekit.app/widget/$widgetId"
+          name = widgetId
+          version = 2
+          data = new AnnouncekitDataOptions {
+            user_id = state.userId.now.toUuid.toString
+            user_name = state.user.now.name
+          }
+        })
 
-    announcekit.on("widget-unread", { e =>
-      // Called when unread post count of specified widget has been updated
-      unreadCount() = e.unread.asInstanceOf[Int]
-    })
-  }
+        announcekit.on("widget-unread", { e =>
+          // Called when unread post count of specified widget has been updated
+          unreadCount() = e.unread.asInstanceOf[Int]
+        })
 
-  val widget = {
+        announcekitLoaded() = true
+      }
+    }
+
     a(
       "What's new? ",
       href := "https://announcekit.app/woost/announcements",
       safeTargetBlank,
       ProductionOnly {
-        onClick.preventDefault.foreach {
-          announcekit.asInstanceOf[js.Dynamic].widget$4hH5Qs.open()
-          ()
+        Rx {
+          VDomModifier.ifTrue(announcekitLoaded())(
+            onClick.preventDefault.foreach {
+              Try {
+                announcekit.asInstanceOf[js.Dynamic].selectDynamic(s"widget$$$widgetId").open()
+              }
+              ()
+            }
+          )
         }
       },
       color.white,
