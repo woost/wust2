@@ -14,6 +14,7 @@ import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 import wust.facades.wdtEmojiBundle._
 import wust.webUtil.Elements.{onGlobalEscape, onGlobalClick}
+import monix.reactive.Observer
 
 object EmojiPicker {
   def apply() = {
@@ -21,9 +22,10 @@ object EmojiPicker {
       onGlobalEscape.foreach {
         wdtEmojiBundle.close()
       },
-      onGlobalClick.foreach {
-        wdtEmojiBundle.close()
-      },
+      // onGlobalClick.foreach {
+      //   wdtEmojiBundle.close()
+      // },
+      // onClick.stopPropagation --> Observer.empty,
       cls := "wdt-emoji-popup",
       a(href := "#", cls := "wdt-emoji-popup-mobile-closer", " × "),
       div(
