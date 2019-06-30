@@ -389,7 +389,7 @@ object SharedViewElements {
         placeholder = Placeholder("Name of the Project"),
         showSubmitIcon = false,
         triggerSubmit = triggerSubmit,
-      ).foreach(newProject(_)),
+      ).transform(_.take(1)).foreach(newProject(_)), // before take(1), one was able to create many projects by pressing enter many times quickly
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
