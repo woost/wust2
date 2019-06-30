@@ -286,10 +286,10 @@ object LeftSidebar {
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node",
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
+        permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", marginLeft.auto, marginRight := "5px"))),
         channelModifier
       ),
 
-      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em"))
     )
   }
 
