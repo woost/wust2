@@ -61,11 +61,9 @@ object ViewHeuristic {
     }
   }
 
-  def fallbackView(graph: Graph, node: Node): Option[View.Visible] = node.role match {
-    case NodeRole.Project => Some(View.Dashboard)
-    case NodeRole.Message => visibleView(graph, node.id, View.Conversation)
-    case NodeRole.Task    => visibleView(graph, node.id, View.Tasks)
-    case NodeRole.Note    => Some(View.Content)
-    case _                => None
+  def fallbackView(graph: Graph, node: Node): Option[View.Visible] = View.forNodeRole(node.role) flatMap {
+    case view: View.Visible => Some(view)
+    case View.Conversation => visibleView(graph, node.id, View.Conversation)
+    case View.Tasks => visibleView(graph, node.id, View.Tasks)
   }
 }
