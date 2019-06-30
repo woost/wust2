@@ -73,7 +73,7 @@ object FeedbackForm {
           value <-- clear,
           rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
           resize := "none",
-          placeholder := "Missing features? Suggestions? You found a bug? What do you like? What is annoying?"
+          placeholder := "Questions? Missing features? Suggestions? Something is not working? What do you like? What is annoying?"
         )
       ),
     )
