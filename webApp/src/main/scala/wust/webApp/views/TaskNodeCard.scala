@@ -320,7 +320,7 @@ object TaskNodeCard {
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             DragComponents.drag(DragItem.DisableDrag),
-          ),
+          ).apply(paddingLeft := "15px"),
           paddingBottom := "0px",
         )
       },
