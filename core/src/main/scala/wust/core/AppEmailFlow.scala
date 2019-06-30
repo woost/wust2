@@ -142,7 +142,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   private def mentionMailMessage(email:String, mentionedIn: Seq[NodeId], authorName:String, authorEmail:String, node: Node.Content): MailMessage = {
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
-    val subject = s"$authorEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
+    val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 20)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
 
@@ -150,13 +150,13 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
     val body =
       s"""
-        |$authorEmail has mentioned you in a message in Woost.
+        |$authorName has mentioned you in a message in Woost:
+        |
+        |"$escapedContent"
         |
         |Click the following link to view the message:
         |${linkNodeIds.map(id => workspaceLink(id)).mkString(", ")}
         |
-        |
-        |"$escapedContent"
         |
         |$farewell
         |
@@ -165,11 +165,12 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
     val bodyHtml =
       s"""
-        |<p>$authorEmail has invited you to collaborate on a workspace in Woost.</p>
+        |<p>$authorName has mentioned you in a message in Woost:</p>
+        |
+        |<blockquote>$escapedContent</blockquote>
         |
         |<p>Click the following link to view the message: ${linkNodeIds.map(id => s"<a href='${workspaceLink(id)}'>View Message</a>").mkString(", ")}</p>
         |
-        |<blockquote>$escapedContent</blockquote>
         |
         |<p>$farewell</p>
         |
