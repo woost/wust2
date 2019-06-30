@@ -27,6 +27,7 @@ import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 
 import scala.collection.breakOut
 import scala.scalajs.js
+import monix.reactive.Observable
 
 object SharedViewElements {
 
@@ -349,9 +350,22 @@ object SharedViewElements {
 
   def newProjectButton(state: GlobalState, label: String = "New Project"): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
+    val triggerSubmit = PublishSubject[Unit]
     def body(implicit ctx: Ctx.Owner) = div(
       color := "#333",
+      div("Emojis at the beginning of the name become the Project's icon. For Example ", b(":tomato: Shopping List")),
       ViewSwitcher.viewCheckboxes --> selectedViews,
+      div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ",  b("Members"), "."),
+      div(
+        marginTop := "20px",
+        Styles.flex,
+        justifyContent.flexEnd,
+        button(
+          "Create",
+          cls := "ui violet button",
+          onClick.stopPropagation(()) --> triggerSubmit
+        )
+      )
     )
 
     def newProject(sub: InputRow.Submission) = {
@@ -368,7 +382,14 @@ object SharedViewElements {
     button(
       cls := "ui button",
       label,
-      onClickNewNamePrompt(state, header = "Create a new Project", body = Ownable { implicit ctx => body }, placeholder = Placeholder("Name of the Project")).foreach(newProject(_)),
+      onClickNewNamePrompt(
+        state,
+        header = "Create Project",
+        body = Ownable { implicit ctx => body },
+        placeholder = Placeholder("Name of the Project"),
+        showSubmitIcon = false,
+        triggerSubmit = triggerSubmit,
+      ).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
@@ -478,7 +499,17 @@ object SharedViewElements {
     }
   }
 
-  def newNamePromptModalConfig(state: GlobalState, newNameSink: Observer[InputRow.Submission], header: VDomModifier, body: VDomModifier = VDomModifier.empty, placeholder: Placeholder = Placeholder.empty, onClose: () => Boolean = () => true, enableMentions: Boolean = true)(implicit ctx: Ctx.Owner) = {
+  def newNamePromptModalConfig(
+    state: GlobalState,
+    newNameSink: Observer[InputRow.Submission],
+    header: VDomModifier,
+    body: VDomModifier = VDomModifier.empty,
+    placeholder: Placeholder = Placeholder.empty,
+    onClose: () => Boolean = () => true,
+    enableMentions: Boolean = true,
+    showSubmitIcon:Boolean = true,
+    triggerSubmit:Observable[Unit] = Observable.empty
+  )(implicit ctx: Ctx.Owner) = {
     ModalConfig(
       header = header,
       description = VDomModifier(
@@ -493,8 +524,9 @@ object SharedViewElements {
           placeholder = placeholder,
           allowEmptyString = true,
           submitIcon = freeSolid.faArrowRight,
-          showSubmitIcon = true,
-          enableMentions = enableMentions
+          showSubmitIcon = showSubmitIcon,
+          enableMentions = enableMentions,
+          triggerSubmit = triggerSubmit,
         ),
 
         body
@@ -507,9 +539,26 @@ object SharedViewElements {
     )
   }
 
-  def onClickNewNamePrompt(state: GlobalState, header: String, body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty), placeholder: Placeholder = Placeholder.empty) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
+  def onClickNewNamePrompt(
+    state: GlobalState,
+    header: String,
+    body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty),
+    placeholder: Placeholder = Placeholder.empty,
+    showSubmitIcon:Boolean = true,
+    triggerSubmit:Observable[Unit] = Observable.empty
+  ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => newNamePromptModalConfig(state, sink, header, body(ctx), placeholder) }) --> state.uiModalConfig,
+      onClick.stopPropagation(Ownable { implicit ctx => 
+        newNamePromptModalConfig(
+          state,
+          sink,
+          header,
+          body(ctx),
+          placeholder,
+          showSubmitIcon = showSubmitIcon,
+          triggerSubmit = triggerSubmit
+        )
+      }) --> state.uiModalConfig,
       cursor.pointer
     )
   }

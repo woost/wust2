@@ -63,9 +63,9 @@ object ViewSwitcher {
       VDomModifier(
         width := "100%",
         padding := "20px 10px",
-        h2("Select views:"),
+        h3("Select views:", marginBottom := "0px"),
+        div("(can be changed later)", fontSize.smaller, color.gray, marginBottom := "15px"),
         modifier,
-        div(width := "100%", fontSize.smaller, textAlign.right, color.gray, "(can be changed later)"),
       )
     }
 
