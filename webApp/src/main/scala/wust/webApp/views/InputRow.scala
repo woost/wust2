@@ -25,6 +25,7 @@ import scala.collection.breakOut
 import scala.collection.mutable
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import monix.reactive.subjects.PublishSubject
 
 object InputRow {
 
@@ -42,6 +43,7 @@ object InputRow {
     placeholder: Placeholder = Placeholder.empty,
     preFillByShareApi: Boolean = false,
     submitOnEnter: Boolean = !BrowserDetect.isMobile,
+    triggerSubmit: Observable[Unit] = Observable.empty,
     submitIcon: VDomModifier = freeRegular.faPaperPlane,
     showSubmitIcon: Boolean = BrowserDetect.isMobile,
     textAreaModifiers: VDomModifier = VDomModifier.empty,
@@ -214,6 +216,12 @@ object InputRow {
       }
     ))
 
+    def submit():Unit = {
+      handleInput(currentTextArea.value)
+      currentTextArea.value = ""
+      autoResizer.trigger()
+    }
+
     def submitButton = div( // clickable box around circular button
       padding := "3px",
       button(
@@ -224,12 +232,9 @@ object InputRow {
         backgroundColor := "#545454",
         color := "white",
       ),
-      onClick.filter(_ => filterSubmitEvent()).stopPropagation foreach {
-        val str = currentTextArea.value
-        handleInput(str)
-        currentTextArea.value = ""
-        autoResizer.trigger()
-      },
+      onClick
+        .filter(_ => filterSubmitEvent())
+        .stopPropagation foreach { submit() },
     )
 
     val markdownHelp = VDomModifier.ifTrue(showMarkdownHelp)(
@@ -250,6 +255,7 @@ object InputRow {
 
     div(
       emitter(triggerFocus).foreach { currentTextArea.focus() },
+      emitter(triggerSubmit).foreach { submit() },
       Styles.flex,
 
       alignItems.center,
