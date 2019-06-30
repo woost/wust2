@@ -7,7 +7,7 @@ import wust.core.auth.JWT
 import wust.core.config.ServerConfig
 import wust.core.mail.{MailMessage, MailRecipient, MailService}
 import wust.graph.Node
-import wust.ids.{NodeId, UserId}
+import wust.ids.{NodeId, UserId, View}
 import wust.util.StringOps
 
 import scala.concurrent.ExecutionContext
@@ -27,11 +27,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     s"https://core.${serverConfig.host}/${ServerPaths.emailVerify}?token=${token.string}"
   }
 
-  private def workspaceLink(nodeId: NodeId):String = {
-    s"https://${serverConfig.host}/#page=${nodeId.toBase58}"
+  private def workspaceLink(nodeId: NodeId, view: Option[View]):String = {
+    s"https://${serverConfig.host}/#${view.fold("")(view => s"view=${view}&")}page=${nodeId.toBase58}"
   }
 
-  private def workspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
+  private def inviteWorkspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
     s"https://${serverConfig.host}/#page=${nodeId.toBase58}&invitation=${token.string}"
   }
 
@@ -110,7 +110,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
     val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
-    val secretLink = workspaceLink(node.id, invitedJwt)
+    val secretLink = inviteWorkspaceLink(node.id, invitedJwt)
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
 
@@ -150,6 +150,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 20)}'"
 
     val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
+    val view = View.forNodeRole(node.role)
 
     val linkNodeIds = if (mentionedIn.isEmpty) Seq(node.id) else mentionedIn
 
@@ -160,7 +161,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |"$escapedContent"
         |
         |Click the following link to view the message:
-        |${linkNodeIds.map(id => workspaceLink(id)).mkString(", ")}
+        |${linkNodeIds.map(id => workspaceLink(id, view)).mkString(", ")}
         |
         |
         |$farewell
@@ -174,7 +175,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<blockquote>$escapedContent</blockquote>
         |
-        |<p>Click the following link to view the message: ${linkNodeIds.map(id => s"<a href='${workspaceLink(id)}'>View Message</a>").mkString(", ")}</p>
+        |<p>Click the following link to view the message: ${linkNodeIds.map(id => s"<a href='${workspaceLink(id, view)}'>View Message</a>").mkString(", ")}</p>
         |
         |
         |<p>$farewell</p>
