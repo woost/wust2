@@ -42,7 +42,12 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   private val farewell = "Your Woost Team"
 
   //TODO config
-  private val signature = "Woost - c/o DigitalHUB Aachen e.V. - Jülicher Straße 72a - 52070 Aachen"
+  private val signature =
+    """
+      |Woost
+      |Jülicher Straße 72a
+      |52070 Aachen"
+    """.stripMargin
 
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
     val recipient = MailRecipient(to = email :: Nil)
