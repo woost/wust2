@@ -47,7 +47,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
           targetUsers.foreach { user =>
             if (author.id != user.id) db.user.getUserDetail(user.id).onComplete {
               case Success(Some(userDetail)) => userDetail.email match {
-                case Some(email) => db.node.getAccessibleParents(author.id, groupedMention.node.id).onComplete {
+                case Some(email) => db.node.getAccessibleWorkspaces(author.id, groupedMention.node.id).onComplete {
                   case Success(parentIds) => emailFlow.sendMentionNotification(email = email, authorName = author.name, authorEmail = authorEmail, mentionedIn = parentIds, node = groupedMention.node)
                   case Failure(t) => scribe.error("Failed to query accessible parent of node mention, will not send email.", t)
                 }

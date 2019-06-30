@@ -101,11 +101,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(q).map(_.map(_.toNode))
     }
 
-    def getAccessibleParents(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+    def getAccessibleWorkspaces(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+      val workspaceRoles = List(NodeRole.Task, NodeRole.Project, NodeRole.Note, NodeRole.Message, NodeRole.Neutral)
       ctx.run(
-        query[Edge]
-          .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(lift(userId), e.sourceId))
-          .map(_.sourceId)
+        for {
+          parentId <- query[Edge]
+            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(lift(userId), e.sourceId))
+            .map(_.sourceId)
+          node <- query[Node].filter(node => node.id == parentId && liftQuery(workspaceRoles).contains(node.role))
+        } yield node.id
       )
     }
 
