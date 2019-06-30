@@ -240,7 +240,7 @@ object ThreadView {
                 // we need to get the newest node content from the graph
                 val graph = state.graph()
                 val user = state.user()
-                graph.isExpanded(user.id, nodeId).getOrElse(groupGraph.hasChildrenIdx(nodeIdx))
+                graph.isExpanded(user.id, nodeId).getOrElse(graph.hasChildren(nodeId))
               }
 
               val showExpandedThread = Rx {
