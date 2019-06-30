@@ -52,28 +52,16 @@ object GraphChangesAutomationUI {
       Rx {
         val graph = state.rawGraph()
         val templates = templatesRx()
-        if(templates.isEmpty) {
-          VDomModifier(
+        VDomModifier(
+          height := "600px",
+
+          div(
             padding := "10px",
-            Styles.flex,
-            flexDirection.column,
-            b("This node is currently not automated.", alignSelf.flexStart),
-            newTemplateButton.apply(
-              marginTop := "10px",
-              alignSelf.center,
-              "Create new Automation Template",
-              cls := "primary"
-            ),
-          )
-        } else {
-          VDomModifier(
-            height := "600px",
+            Styles.growFull,
+            overflowY.auto,
 
-            div(
-              padding := "10px",
-              Styles.growFull,
-              overflowY.auto,
-
+            if (templates.isEmpty) b("This node is currently not automated.", alignSelf.flexStart)
+            else VDomModifier(
               div(
                 b("Active automation templates:"),
                 div(fontSize.xSmall, "Each will be applied to every child of this node."),
@@ -86,83 +74,84 @@ object GraphChangesAutomationUI {
                 alignItems.center,
                 b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
                 SharedViewElements.channelMembers(state, state.page.now.parentId.get),
-              ),
+              )
+            ),
 
-              DragComponents.registerDragContainer(state),
+            DragComponents.registerDragContainer(state),
 
-              div(
-                Styles.flex,
-                flexDirection.column,
-                alignItems.center,
-                padding := "0 0 10px 10px",
+            div(
+              Styles.flex,
+              flexDirection.column,
+              alignItems.center,
+              padding := "0 0 10px 10px",
 
-                Components.removeableList[Node](
-                  templates,
-                  state.eventProcessor.changes.redirectMap { templateNode =>
-                    val g = state.rawGraph.now
-                    val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
+              Components.removeableList[Node](
+                templates,
+                state.eventProcessor.changes.redirectMap { templateNode =>
+                  val g = state.rawGraph.now
+                  val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
+                    val edge = graph.edges(edgeIdx).as[Edge.Child]
+                    edge.parentId == focusedId
+                  }
+
+                  GraphChanges(
+                    addEdges = existingParent.map { edgeIdx =>
                       val edge = graph.edges(edgeIdx).as[Edge.Child]
-                      edge.parentId == focusedId
-                    }
+                      edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
+                    }.toArray,
+                    delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
+                  )
+                },
+              )({ templateNode =>
+                  val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
-                    GraphChanges(
-                      addEdges = existingParent.map { edgeIdx =>
-                        val edge = graph.edges(edgeIdx).as[Edge.Child]
-                        edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
-                      }.toArray,
-                      delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
-                    )
-                  },
-                )({ templateNode =>
-                    val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
+                  Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                    padding := "3px",
+                    width := "200px",
+                    div(
+                      Styles.flex,
+                      flexWrap.wrap,
 
-                    Components.nodeCard(templateNode, maxLength = Some(100)).apply(
-                      padding := "3px",
-                      width := "200px",
-                      div(
-                        Styles.flex,
-                        flexWrap.wrap,
+                      propertySingle.info.tags.map { tag =>
+                        Components.removableNodeTag(state, tag, taggedNodeId = templateNode.id)
+                      },
 
-                        propertySingle.info.tags.map { tag =>
-                          Components.removableNodeTag(state, tag, taggedNodeId = templateNode.id)
-                        },
+                      propertySingle.properties.map { property =>
+                        property.values.map { value =>
+                          Components.removableNodeCardProperty(state, value.edge, value.node)
+                        }
+                      },
 
-                        propertySingle.properties.map { property =>
-                          property.values.map { value =>
-                            Components.removableNodeCardProperty(state, value.edge, value.node)
-                          }
-                        },
+                      {
+                        val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
+                          Components.removableUserAvatar(state, user, templateNode.id)
+                        }(breakOut)
 
-                        {
-                          val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
-                            Components.removableUserAvatar(state, user, templateNode.id)
-                          }(breakOut)
+                        users match {
+                          case head :: tail => head.apply(marginLeft := "auto") :: tail
+                          case Nil => Nil
+                        }
+                      },
 
-                          users match {
-                            case head :: tail => head.apply(marginLeft := "auto") :: tail
-                            case Nil => Nil
-                          }
-                        },
+                      state.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
+                    ),
 
-                        state.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
-                      ),
+                    DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
+                    Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
+                  ).prepend(
+                    b(color.gray, templateNode.role.toString)
+                  )
+              }),
 
-                      DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
-                      Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
-                    ).prepend(
-                      b(color.gray, templateNode.role.toString)
-                    )
-                }),
-
-                newTemplateButton.apply(
-                  "+ Add Template",
-                  cls := "compact mini",
-                  margin := "10px 0 0 0"
-                ),
+              newTemplateButton.apply(
+                "+ Create a new Automation Template",
+                alignSelf.flexStart,
+                cls := "compact mini",
+                margin := "30px 0 0 0"
               ),
             ),
-          )
-        }
+          ),
+        )
       },
 
       position.relative, // needed for right sidebar
