@@ -66,6 +66,7 @@ object NotesView {
 
     div(
       cls := "ui segment",
+      cls := "note",
       Styles.flex,
       justifyContent.spaceBetween,
       alignItems.flexStart,

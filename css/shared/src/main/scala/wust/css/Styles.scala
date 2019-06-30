@@ -732,6 +732,12 @@ object CommonStyles extends StyleSheet.Standalone {
     minHeight(1 em).important, // height when card is empty. important, because it may be overwritten by Styles.flex which sets minHeight to 0.
   )
 
+  ".note" - (
+    &(".markdown") - (
+      Styles.wordWrap,
+    )  
+  )
+
 
 
 
