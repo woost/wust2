@@ -310,19 +310,15 @@ object ThreadView {
       state.eventProcessor.changes.onNext(changes)
     } else Future.successful(Continue)
 
-    def blurAction(value: String):Unit = if(value.isEmpty) {
-      window.setTimeout(() => showReplyField() = false, 150)
-    }
-
     InputRow(
       state,
       Some(focusState),
       submitAction = handleInput,
-      blurAction = Some(blurAction),
       autoFocus = true,
       showMarkdownHelp = !BrowserDetect.isMobile,
       enforceUserName = true,
-      placeholder = Placeholder.newMessage
+      placeholder = Placeholder.newMessage,
+      enableEmojiPicker = true
     ).apply(
       margin := "3px",
       closeButton(
