@@ -475,6 +475,10 @@ final class GraphLookup(
     idToIdxFold(childId)(false)(childIdx => childrenIdx.contains(nodeIdx)(childIdx))
   }
 
+  @inline def isDerivedFromTemplate(idx:Int):Boolean = {
+    derivedFromTemplateEdgeIdx.sliceNonEmpty(idx)
+  }
+
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
   def propertyLookup(name: String): NestedArrayInt = {
