@@ -144,7 +144,7 @@ object NotificationView {
     val haveUnreadNotifications = Rx {
       val graph = state.graph()
       val user = state.user()
-      existingNewNodes(graph, nodeId, user)
+      hasUnreadNodes(graph, nodeId, user)
     }
 
     val channelNotification = Rx {
@@ -160,92 +160,37 @@ object NotificationView {
     channelNotification
   }
 
-  private def findLastReadTime(graph: Graph, nodeIdx: Int, userId: UserId): EpochMilli = {
-    var lastReadTime = EpochMilli.min
-    graph.readEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-      val edge = graph.edges(edgeIdx).as[Edge.Read]
-      if (edge.userId == userId && lastReadTime < edge.data.timestamp) {
-        lastReadTime = edge.data.timestamp
-      }
-    }
-    lastReadTime
-  }
-
-  private def existingNewNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
+  // check whether there are unread nodes for the user within parentNodeId
+  private def hasUnreadNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        val node = graph.nodes(nodeIdx)
-        node match {
-          case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
-            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
-            graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-              val edge = graph.edges(edgeIdx).as[Edge.Author]
-              if (lastReadTime < edge.data.timestamp) {
-                return true
-              }
-            }
-          case _ =>
-        }
+        if (UnreadComponents.nodeIsUnread(graph, user.id, nodeIdx))
+          return true
       }
     }
 
     false
   }
-
+  // dual method of hasUnreadNodes, which returns the actual unreadnodes
   private def calculateUnreadNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
     graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
       graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        val node = graph.nodes(nodeIdx)
-        node match {
-          case node: Node.Content if UnreadComponents.nodeIsUnread(graph, user.id, nodeIdx) =>
+        def appendAuthorship(lastAuthorship: UnreadComponents.Authorship, seen: Boolean): Unit = {
+          import lastAuthorship._
+          val revision =
+            if (isCreation) Revision.Create(author, timestamp, seen = seen)
+            else Revision.Edit(author, timestamp, seen = seen)
 
-            val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
-            val isReadDuringRender = lastReadTime > renderTime
-            if (isReadDuringRender) { // show only last revision if read during this rendering
-              val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
-              if (sliceLength > 0) {
-                val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
-                val edge = graph.edges(edgeIdx).as[Edge.Author]
-                val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                if (author.id != user.id) {
-                  val isFirst = sliceLength == 1
-                  val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
-                  unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
-                }
-              }
-            } else if (BrowserDetect.isMobile) { // just take last revision on mobile
-              val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
-              if (sliceLength > 0) {
-                val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
-                val edge = graph.edges(edgeIdx).as[Edge.Author]
-                if (lastReadTime < edge.data.timestamp) {
-                  val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                  val isFirst = sliceLength == 1
-                  val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
-                  unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
-                }
-              }
-            } else {
-              var newSortedRevisions = List.empty[Revision]
-              var isFirst = true
-              graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-                val edge = graph.edges(edgeIdx).as[Edge.Author]
-                def isUnread = lastReadTime < edge.data.timestamp
-                if (isUnread) {
-                  val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                  val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
-                  newSortedRevisions ::= revision
-                }
-                isFirst = false
-              }
-
-              if (newSortedRevisions.nonEmpty) {
-                unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
-              }
-            }
-          case _ =>
+          unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+        }
+        UnreadComponents.readStatusOfNode(graph, user.id, nodeIdx) match {
+          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime =>
+            appendAuthorship(lastAuthorship, seen = true)
+          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
+            appendAuthorship(lastAuthorship, seen = false)
+          case _ => ()
         }
       }
     }

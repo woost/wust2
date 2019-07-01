@@ -63,31 +63,75 @@ object UnreadComponents {
     unreadStyle
   )
 
+  sealed trait ReadStatus
+  object ReadStatus {
+    case class SeenAt(timestamp: EpochMilli, lastAuthorship: Authorship) extends ReadStatus
+    case class Unseen(lastAuthorship: Authorship) extends ReadStatus
+    case object Ignore extends ReadStatus
+  }
+  case class Authorship(author: Node.User, timestamp: EpochMilli, isCreation: Boolean)
+
+  private def findLastReadTime(graph: Graph, userId: UserId, nodeIdx: Int): Option[EpochMilli] = {
+    var lastReadTime: Option[EpochMilli] = None
+    graph.readEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+      val edge = graph.edges(edgeIdx).as[Edge.Read]
+      if (edge.userId == userId && lastReadTime.forall(_ < edge.data.timestamp)) {
+        lastReadTime = Some(edge.data.timestamp)
+      }
+    }
+    lastReadTime
+  }
+  private def findLastAuthorshipFromSomeoneElse(graph: Graph, userId: UserId, nodeIdx: Int): Option[Authorship] = {
+    val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
+    if (sliceLength > 0) {
+      val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
+      val edge = graph.edges(edgeIdx).as[Edge.Author]
+      val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+      if (userId == author.id) None
+      else Some(Authorship(author, edge.data.timestamp, isCreation = sliceLength == 1))
+    } else None
+  }
+
+  // check is node is not read yet (if it can be read)
   def nodeIsUnread(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
+    @inline def nodeWasModifiedAfterUserRead = {
+      findLastAuthorshipFromSomeoneElse(graph, userId, nodeIdx).fold(false) { lastAuthorship =>
+        !graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.Read]
+          edge.targetId == userId && (edge.data.timestamp isAfterOrEqual lastAuthorship.timestamp)
+        }
+      }
+    }
+
+    nodeIsReadable(graph, userId, nodeIdx) && nodeWasModifiedAfterUserRead
+  }
+  // dual of nodeIsUnread, but returns more information about the readstatus
+  // whether it is ignored in read calculation, whether the change was seen and
+  // when, or whether an authorship was never seen.
+  def readStatusOfNode(graph:Graph, userId:UserId, nodeIdx:Int):ReadStatus = {
+    @inline def seenTimestamp(lastAuthorship: Authorship): ReadStatus = {
+      val seenLastAuthorshipAt = findLastReadTime(graph, userId, nodeIdx).filter(_ isAfterOrEqual lastAuthorship.timestamp)
+      seenLastAuthorshipAt.fold[ReadStatus](ReadStatus.Unseen(lastAuthorship))(ReadStatus.SeenAt(_, lastAuthorship))
+    }
+
+    if (nodeIsReadable(graph, userId, nodeIdx))
+      findLastAuthorshipFromSomeoneElse(graph, userId, nodeIdx).fold[ReadStatus](ReadStatus.Ignore)(seenTimestamp)
+    else
+      ReadStatus.Ignore
+  }
+
+  def nodeIsReadable(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
     @inline def nodeHasContentRole = {
       val node = graph.nodes(nodeIdx)
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
     }
-    @inline def userIsMemberOfParent = {
-      graph.idToIdxFold(userId)(false){userIdx =>
-      graph.parentsIdx.exists(nodeIdx)(parentIdx => graph.userIsMemberOf(userIdx, parentIdx))}
-    }
+    // @inline def userIsMemberOfParent = {
+    //   graph.idToIdxFold(userId)(false){userIdx =>
+    //   graph.parentsIdx.exists(nodeIdx)(parentIdx => graph.userIsMemberOf(userIdx, parentIdx))}
+    // }
     @inline def nodeIsNotDerivedFromTemplate = !graph.isDerivedFromTemplate(nodeIdx)
 
-    @inline def nodeWasModifiedAfterUserRead = {
-      val lastModification = graph.nodeModified(nodeIdx)
-      graph.readEdgeIdx.forall(nodeIdx) { edgeIdx =>
-        val edge = graph.edges(edgeIdx).as[Edge.Read]
-        edge.targetId == userId && (lastModification isAfterOrEqual edge.data.timestamp)
-      }
-    }
-
-    //TODO: reject own edits/creations
-
-    nodeHasContentRole &&
-    nodeIsNotDerivedFromTemplate &&
-    userIsMemberOfParent  &&
-    nodeWasModifiedAfterUserRead
+    nodeHasContentRole && nodeIsNotDerivedFromTemplate
   }
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
