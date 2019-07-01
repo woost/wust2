@@ -332,7 +332,7 @@ object ChatView {
     }
     else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes))
+    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes), selectedNodes = selectedNodes)
     val controls = msgControls(state, nodeId, directParentIds.asInstanceOf[Iterable[ParentId]], selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {

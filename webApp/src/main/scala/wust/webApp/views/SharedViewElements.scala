@@ -157,7 +157,14 @@ object SharedViewElements {
     }
   }
 
-  def renderMessage(state: GlobalState, nodeId: NodeId, directParentIds:Iterable[NodeId], isDeletedNow: Rx[Boolean], renderedMessageModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
+  def renderMessage[SelectedNode <: SelectedNodeBase](
+    state: GlobalState,
+    nodeId: NodeId,
+    directParentIds:Iterable[NodeId],
+    isDeletedNow: Rx[Boolean],
+    renderedMessageModifier:VDomModifier = VDomModifier.empty,
+    selectedNodes: Var[Set[SelectedNode]],
+  )(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
 
     val node = Rx {
       // we need to get the latest node content from the graph
@@ -225,7 +232,7 @@ object SharedViewElements {
       node().map { node =>
         render(node, isDeletedNow()).apply(
           cursor.pointer,
-          Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+          VDomModifier.ifTrue(selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)),
           Components.showHoveredNode(state, node.id),
           Components.readObserver(state, node.id)
         )
@@ -233,7 +240,7 @@ object SharedViewElements {
     }
   }
 
-  def messageDragOptions[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[T]])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageDragOptions[SelectedNode <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = state.graph()
       graph.idToIdx(nodeId).map { nodeIdx =>

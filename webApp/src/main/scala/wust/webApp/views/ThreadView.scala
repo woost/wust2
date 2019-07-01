@@ -334,7 +334,12 @@ object ThreadView {
       selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
+    val renderedMessage = renderMessage(
+      state,
+      nodeId,
+      directParentIds,
+      isDeletedNow = isDeletedNow,
+      renderedMessageModifier = VDomModifier(VDomModifier.ifTrue(inCycle)(
         Styles.flex,
         alignItems.center,
         freeSolid.faSyncAlt,
@@ -344,7 +349,9 @@ object ThreadView {
         boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
       ),
       messageDragOptions(state, nodeId, selectedNodes),
-    ))
+      ),
+      selectedNodes = selectedNodes
+    )
     val controls = msgControls(state, nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = showReplyField() = !showReplyField.now)
     val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(showReplyField), isSelected = isSelected)
     val selectByClickingOnRow = {
