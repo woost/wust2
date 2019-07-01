@@ -30,7 +30,9 @@ class OAuthClientVerificationEndpoint(db: Db, jwt: JWT, config: ServerConfig, se
         serviceLookup.getAccessToken(activation.service, code) match {
           case Some(accessTokenFuture) =>
             onComplete(accessTokenFuture.flatMap(token => db.oAuthClients.create(Data.OAuthClient(activation.userId, service = activation.service, accessToken = token)))) {
-              case Success(true) => successMessage
+              case Success(true) =>
+                scribe.info(s"Successfully verified oauth flow for '${activation.service}' with user '${activation.userId}'")
+                successMessage
               case Success(false) => invalidMessage
               case Failure(t) => errorMessage
             }

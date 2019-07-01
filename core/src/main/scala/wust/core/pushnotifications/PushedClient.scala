@@ -59,9 +59,9 @@ class PushedClient private(val config: PushedConfig)(implicit system: ActorSyste
       ).toEntity
     )).map { response =>
       response.discardEntityBytes()
+      scribe.info(s"Got response for pushed push: ${response.status}")
       response.status.intValue
     }
-
 }
 
 object PushedClient {
