@@ -12,6 +12,7 @@ import wust.db.{Data, Db}
 import wust.graph._
 import wust.ids._
 import wust.util.StringOps
+import wust.util.macros.InlineList
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ExecutionContextTaskSupport
