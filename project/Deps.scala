@@ -126,6 +126,7 @@ object Deps {
     val s3 = dep("com.amazonaws" % "aws-java-sdk-s3" % version)
     val ses = dep("com.amazonaws" % "aws-java-sdk-ses" % version)
   }
+  val javaEmojis = dep("com.vdurmont" % "emoji-java" % "4.0.0")
 
   val webpackVersion = "4.34.0"
   val webpackDevServerVersion = "3.2.1"

@@ -454,6 +454,7 @@ lazy val core = project
         Deps.webPush.value ::
         Deps.awsSdk.s3.value ::
         Deps.awsSdk.ses.value ::
+        Deps.javaEmojis.value ::
         Nil,
     javaOptions in reStart += "-Xmx300m"
   )
