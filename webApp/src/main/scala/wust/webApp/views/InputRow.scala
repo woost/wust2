@@ -162,7 +162,7 @@ object InputRow {
       Some(tribute)
     } else None
 
-    val filterSubmitEvent = () => mentionsTribute.forall(tribute => !tribute.isActive) && emojiPicker.forall(_ => dom.document.querySelectorAll(".wdt-emoji-picker-open").length == 0)
+    val filterSubmitEvent = () => mentionsTribute.forall(tribute => !tribute.isActive) //&& emojiPicker.forall(_ => dom.document.querySelectorAll(".wdt-emoji-picker-open").length == 0)
 
     val initialValueAndSubmitOptions = {
       // ignore submit events if mentions or emoji picker is open
