@@ -27,7 +27,6 @@ object EmojiPicker {
       // },
       // onClick.stopPropagation --> Observer.empty,
       cls := "wdt-emoji-popup",
-      a(href := "#", cls := "wdt-emoji-popup-mobile-closer", " × "),
       div(
         cls := "wdt-emoji-menu-content",
         div(
@@ -42,6 +41,8 @@ object EmojiPicker {
           a(cls := "wdt-emoji-tab", data.`group-name` := "Symbols"),
           a(cls := "wdt-emoji-tab", data.`group-name` := "Flags"),
           // a(cls := "wdt-emoji-tab", data.`group-name` := "Custom"),
+
+          div(float.right, cursor.pointer, onClick.stopPropagation.foreach(wdtEmojiBundle.close()), " × ")
         ),
         div(
           cls := "wdt-emoji-scroll-wrapper",
