@@ -507,6 +507,7 @@ object SharedViewElements {
     placeholder: Placeholder = Placeholder.empty,
     onClose: () => Boolean = () => true,
     enableMentions: Boolean = true,
+    enableEmojiPicker: Boolean = false,
     showSubmitIcon:Boolean = true,
     triggerSubmit:Observable[Unit] = Observable.empty
   )(implicit ctx: Ctx.Owner) = {
@@ -526,6 +527,7 @@ object SharedViewElements {
           submitIcon = freeSolid.faArrowRight,
           showSubmitIcon = showSubmitIcon,
           enableMentions = enableMentions,
+          enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit,
         ),
 
@@ -545,7 +547,9 @@ object SharedViewElements {
     body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty),
     placeholder: Placeholder = Placeholder.empty,
     showSubmitIcon:Boolean = true,
-    triggerSubmit:Observable[Unit] = Observable.empty
+    triggerSubmit:Observable[Unit] = Observable.empty,
+    enableMentions: Boolean = true,
+    enableEmojiPicker: Boolean = false,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
       onClick.stopPropagation(Ownable { implicit ctx => 
@@ -556,6 +560,8 @@ object SharedViewElements {
           body(ctx),
           placeholder,
           showSubmitIcon = showSubmitIcon,
+          enableMentions = enableMentions,
+          enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit
         )
       }) --> state.uiModalConfig,
