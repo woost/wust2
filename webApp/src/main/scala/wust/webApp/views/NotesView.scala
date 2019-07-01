@@ -86,7 +86,7 @@ object NotesView {
 
         zoomButton(state, node.id)( padding := "3px", marginRight := "5px"),
 
-        Components.readObserver(state, node.id),
+        UnreadComponents.readObserver(state, node.id),
 
         div(
           padding := "3px",

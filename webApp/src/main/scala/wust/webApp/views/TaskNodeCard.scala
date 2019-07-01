@@ -277,7 +277,7 @@ object TaskNodeCard {
         state.urlConfig.update(_.focus(Page(nodeId)))
       },
       Components.showHoveredNode(state, nodeId),
-      Components.readObserver(state, nodeId, marginTop := "7px"),
+      UnreadComponents.readObserver(state, nodeId, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
         node.map(Components.taskCheckbox(state, _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
       ),
@@ -556,7 +556,7 @@ object TaskNodeCard {
     ).prepend(
       Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
       Components.showHoveredNode(state, node.id),
-      Components.readObserver(state, node.id, marginTop := "7px"),
+      UnreadComponents.readObserver(state, node.id, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
         Components.taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )

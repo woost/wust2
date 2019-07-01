@@ -210,7 +210,7 @@ object RightSidebar {
         cls := "enable-text-selection",
         onClick.stopPropagation(true) --> editMode,
 
-        Components.readObserver(state, node().id)
+        UnreadComponents.readObserver(state, node().id)
       )
     }
 

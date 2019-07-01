@@ -48,7 +48,7 @@ object PageHeader {
         Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
         Components.showHoveredNode(state, node.id),
         div(
-          Components.readObserver(
+          UnreadComponents.readObserver(
             state,
             node.id,
             labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
