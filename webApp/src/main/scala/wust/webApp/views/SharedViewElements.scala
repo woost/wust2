@@ -250,7 +250,7 @@ object SharedViewElements {
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
           nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
-          DragComponents.onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[T] }
+          DragComponents.onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[SelectedNode] }
         )
       }
     },
