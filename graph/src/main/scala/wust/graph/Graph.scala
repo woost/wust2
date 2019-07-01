@@ -479,6 +479,9 @@ final class GraphLookup(
     derivedFromTemplateEdgeIdx.sliceNonEmpty(idx)
   }
 
+  @inline def userIsNotifiedBy(userIdx: Int, nodeIdx:Int):Boolean = graph.notifyByUserIdx(userIdx).contains(nodeIdx)
+  @inline def userIsMemberOf(userIdx: Int, nodeIdx:Int):Boolean = graph.membershipEdgeForNodeIdx(nodeIdx).exists(edgeIdx => edgesIdx.b(edgeIdx) == userIdx)
+
   @inline def isPinned(idx: Int, userIdx: Int): Boolean = pinnedNodeIdx.contains(userIdx)(idx)
 
   def propertyLookup(name: String): NestedArrayInt = {

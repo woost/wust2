@@ -195,59 +195,64 @@ object NotificationView {
   private def calculateUnreadNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
     val unreadNodes = Array.newBuilder[UnreadNode]
 
-    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        if (!graph.isDerivedFromTemplate(nodeIdx)) {
 
-          val node = graph.nodes(nodeIdx)
-          node match {
-            case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
+    graph.idToIdx(user.id).foreach { userIdx =>
+      @inline def userIsMemberOfParent(nodeIdx: Int) = graph.parentsIdx.exists(nodeIdx)(parentIdx => graph.userIsMemberOf(userIdx, parentIdx))
+      graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
+        graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
+          if (!graph.isDerivedFromTemplate(nodeIdx) &&
+            userIsMemberOfParent(nodeIdx)) {
 
-              val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
-              val isReadDuringRender = lastReadTime > renderTime
-              if (isReadDuringRender) { // show only last revision if read during this rendering
-                val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
-                if (sliceLength > 0) {
-                  val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
-                  val edge = graph.edges(edgeIdx).as[Edge.Author]
-                  val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                  if (author.id != user.id) {
-                    val isFirst = sliceLength == 1
-                    val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
-                    unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
-                  }
-                }
-              } else if (BrowserDetect.isMobile) { // just take last revision on mobile
-                val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
-                if (sliceLength > 0) {
-                  val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
-                  val edge = graph.edges(edgeIdx).as[Edge.Author]
-                  if (lastReadTime < edge.data.timestamp) {
+            val node = graph.nodes(nodeIdx)
+            node match {
+              case node: Node.Content if InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Note, NodeRole.Project)(node.role) =>
+
+                val lastReadTime = findLastReadTime(graph, nodeIdx, user.id)
+                val isReadDuringRender = lastReadTime > renderTime
+                if (isReadDuringRender) { // show only last revision if read during this rendering
+                  val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
+                  if (sliceLength > 0) {
+                    val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
+                    val edge = graph.edges(edgeIdx).as[Edge.Author]
                     val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                    val isFirst = sliceLength == 1
-                    val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
-                    unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                    if (author.id != user.id) {
+                      val isFirst = sliceLength == 1
+                      val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = true) else Revision.Edit(author, edge.data.timestamp, seen = true)
+                      unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                    }
                   }
-                }
-              } else {
-                var newSortedRevisions = List.empty[Revision]
-                var isFirst = true
-                graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
-                  val edge = graph.edges(edgeIdx).as[Edge.Author]
-                  def isUnread = lastReadTime < edge.data.timestamp
-                  if (isUnread) {
-                    val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
-                    val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
-                    newSortedRevisions ::= revision
+                } else if (BrowserDetect.isMobile) { // just take last revision on mobile
+                  val sliceLength = graph.sortedAuthorshipEdgeIdx.sliceLength(nodeIdx)
+                  if (sliceLength > 0) {
+                    val edgeIdx = graph.sortedAuthorshipEdgeIdx(nodeIdx, sliceLength - 1)
+                    val edge = graph.edges(edgeIdx).as[Edge.Author]
+                    if (lastReadTime < edge.data.timestamp) {
+                      val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+                      val isFirst = sliceLength == 1
+                      val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
+                      unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
+                    }
                   }
-                  isFirst = false
-                }
+                } else {
+                  var newSortedRevisions = List.empty[Revision]
+                  var isFirst = true
+                  graph.sortedAuthorshipEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+                    val edge = graph.edges(edgeIdx).as[Edge.Author]
+                    def isUnread = lastReadTime < edge.data.timestamp
+                    if (isUnread) {
+                      val author = graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.User]
+                      val revision = if (isFirst) Revision.Create(author, edge.data.timestamp, seen = false) else Revision.Edit(author, edge.data.timestamp, seen = false)
+                      newSortedRevisions ::= revision
+                    }
+                    isFirst = false
+                  }
 
-                if (newSortedRevisions.nonEmpty) {
-                  unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
+                  if (newSortedRevisions.nonEmpty) {
+                    unreadNodes += UnreadNode(nodeIdx, newSortedRevisions)
+                  }
                 }
-              }
-            case _ =>
+              case _ =>
+            }
           }
         }
       }
