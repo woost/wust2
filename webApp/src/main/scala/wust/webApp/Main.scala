@@ -12,6 +12,7 @@ import wust.facades.jquery.JQuery
 import wust.facades.marked.{Marked, MarkedOptions, Renderer}
 import monix.reactive.Observable
 import org.scalajs.dom.{console, document}
+import org.scalajs.dom
 import outwatch.dom._
 import rx._
 import wust.webUtil.Elements
@@ -149,6 +150,27 @@ object Main {
   private def setupEmojiPicker():Unit = {
     wdtEmojiBundle.defaults.emojiType = "twitter"
     wdtEmojiBundle.defaults.emojiSheets.twitter = "/emoji-picker/sheets/sheet_twitter_64_indexed_128.png"
+
+    // reposition hack, because picker only opens to the bottom (https://github.com/needim/wdt-emoji-bundle/blob/master/wdt-emoji-bundle.js#L230)
+    val oldOpen = wdtEmojiBundle.asInstanceOf[js.Dynamic].openPicker.asInstanceOf[js.Function1[js.Any, js.Any]]
+    wdtEmojiBundle.asInstanceOf[js.Dynamic].openPicker = { (self, ev) =>
+      val element = document.querySelector(".wdt-emoji-popup")
+      if (element != null) {
+        element.asInstanceOf[dom.html.Element].style.marginTop = "0px"
+      }
+      oldOpen.call(self, ev)
+      if (element != null && element.classList.contains("open")) {
+        val rect = element.getBoundingClientRect();
+        val inViewPort =
+            rect.top >= 0 &&
+            rect.left >= 0 &&
+            rect.bottom <= (dom.window.innerHeight) &&
+            rect.right <= (dom.window.innerWidth)
+        if (!inViewPort) {
+          element.asInstanceOf[dom.html.Element].style.marginTop = "-387px"
+        }
+      }
+    }: js.ThisFunction1[js.Object, js.Any, js.Any]
   }
 
   private def setupRuntimeScalaCSSInjection():Unit = {

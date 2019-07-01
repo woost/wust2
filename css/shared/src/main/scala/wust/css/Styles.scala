@@ -840,7 +840,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".wdt-emoji-popup" - (
     fontSize(20 px),
-    marginTop(-387 px), // reposition hack, because picker only opens to the bottom (https://github.com/needim/wdt-emoji-bundle/blob/master/wdt-emoji-bundle.js#L230)
     zIndex(ZIndex.uiSidebarContent)
   )
 
