@@ -42,7 +42,7 @@ object EmojiPicker {
           a(cls := "wdt-emoji-tab", data.`group-name` := "Flags"),
           // a(cls := "wdt-emoji-tab", data.`group-name` := "Custom"),
 
-          div(float.right, cursor.pointer, onClick.stopPropagation.foreach(wdtEmojiBundle.close()), " × ")
+          div(" × ", float.right, cursor.pointer, onClick.stopPropagation.foreach(wdtEmojiBundle.close()), padding := "4px 10px")
         ),
         div(
           cls := "wdt-emoji-scroll-wrapper",
