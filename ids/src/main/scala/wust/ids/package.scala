@@ -81,7 +81,9 @@ package object ids {
       @inline def plus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) + (duration:Long))
       @inline def minus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) - (duration:Long))
       @inline def isBefore(that: EpochMilli): Boolean = t < that
+      @inline def isBeforeOrEqual(that: EpochMilli): Boolean = t <= that
       @inline def isAfter(that: EpochMilli): Boolean = t > that
+      @inline def isAfterOrEqual(that: EpochMilli): Boolean = t >= that
       @inline def newest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) max (that:Long))
       @inline def oldest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) min (that:Long))
 

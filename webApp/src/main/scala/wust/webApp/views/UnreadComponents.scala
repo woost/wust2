@@ -63,15 +63,31 @@ object UnreadComponents {
     unreadStyle
   )
 
-  def nodeIsUnread(graph: Graph, userId: UserId, nodeIdx: Int): Boolean = {
-    val node = graph.nodes(nodeIdx)
-    if (InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)) {
+  def nodeIsUnread(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
+    @inline def nodeHasContentRole = {
+      val node = graph.nodes(nodeIdx)
+      InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
+    }
+    @inline def userIsMemberOfParent = {
+      graph.idToIdxFold(userId)(false){userIdx =>
+      graph.parentsIdx.exists(nodeIdx)(parentIdx => graph.userIsMemberOf(userIdx, parentIdx))}
+    }
+    @inline def nodeIsNotDerivedFromTemplate = !graph.isDerivedFromTemplate(nodeIdx)
+
+    @inline def nodeWasModifiedAfterUserRead = {
       val lastModification = graph.nodeModified(nodeIdx)
-      graph.readEdgeIdx.exists(nodeIdx) { edgeIdx =>
+      graph.readEdgeIdx.forall(nodeIdx) { edgeIdx =>
         val edge = graph.edges(edgeIdx).as[Edge.Read]
-        edge.targetId == userId && edge.data.timestamp >= lastModification
+        edge.targetId == userId && (lastModification isAfterOrEqual edge.data.timestamp)
       }
-    } else true
+    }
+
+    //TODO: reject own edits/creations
+
+    nodeHasContentRole &&
+    nodeIsNotDerivedFromTemplate &&
+    userIsMemberOfParent  &&
+    nodeWasModifiedAfterUserRead
   }
 
   def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
