@@ -390,7 +390,7 @@ object SharedViewElements {
         showSubmitIcon = false,
         triggerSubmit = triggerSubmit,
         enableEmojiPicker = true
-      ).transform(_.take(1)).foreach(newProject(_)), // before take(1), one was able to create many projects by pressing enter many times quickly
+      ).foreach(newProject(_)),
       onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
     )
   }
