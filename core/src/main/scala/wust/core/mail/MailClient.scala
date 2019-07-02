@@ -19,6 +19,7 @@ class JavaMailClient(config: SmtpConfig) extends MailClient {
 
   private def createMessage(fromEmail: String, mail: MailMessage): Task[Message] = Task {
     //TODO: Introduce tagged type for Email(String)
+    //TODO: replyTo?
     import mail._
 
     val properties = new Properties()

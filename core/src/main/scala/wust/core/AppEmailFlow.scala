@@ -183,7 +183,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |<p>$signature</p>
       """.stripMargin
 
-    MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml))
+    MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail))
   }
 
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {

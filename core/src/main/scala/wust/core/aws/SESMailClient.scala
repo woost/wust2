@@ -6,7 +6,7 @@ import monix.eval.Task
 import wust.core.config.SESConfig
 import wust.core.mail.{MailClient, MailMessage}
 
-class SESMailClient(replyTo: String, config: SESConfig) extends MailClient {
+class SESMailClient(defaultReplyTo: String, config: SESConfig) extends MailClient {
   private val client = AmazonSimpleEmailServiceClientBuilder
     .standard
     .withRegion(config.region)
@@ -14,7 +14,7 @@ class SESMailClient(replyTo: String, config: SESConfig) extends MailClient {
 
   def sendMessage(from: String, mail: MailMessage): Task[Unit] = Task {
     val request = new SendEmailRequest()
-      .withReplyToAddresses(replyTo)
+      .withReplyToAddresses(mail.replyTo.getOrElse(defaultReplyTo))
       .withDestination(new Destination()
         .withToAddresses(mail.recipient.to: _*)
         .withCcAddresses(mail.recipient.cc: _*)

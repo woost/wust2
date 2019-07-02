@@ -6,7 +6,7 @@ import wust.core.config.{EmailConfig, EmailSettings}
 final case class MailRecipient(to: Seq[String], cc: Seq[String] = Seq.empty, bcc: Seq[String] = Seq.empty) {
   def exists(f: String => Boolean) = to.exists(f) || cc.exists(f) || bcc.exists(f)
 }
-final case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None)
+final case class MailMessage(recipient: MailRecipient, subject: String, fromPersonal: String, body: String, bodyHtml: Option[String] = None, replyTo: Option[String] = None)
 
 trait MailService {
   def sendMail(message: MailMessage): Task[MailService.Result]
