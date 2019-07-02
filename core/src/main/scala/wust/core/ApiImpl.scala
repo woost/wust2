@@ -221,7 +221,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     // you automatically become a member of this node, then we get the graph and use normal access management.
     //TODO: hacky and require all callers to assure that user exists in db if parentId is defined...
     val requiredAction = page.parentId.fold(Future.successful(())) { parentId =>
-      db.node.addMemberIfPublicAndNotMember(nodeId = parentId, userId = userId).map(_ => ())
+      db.node.addMemberIfCanAccessViaUrlAndNotMember(nodeId = parentId, userId = userId).map(_ => ())
     }
 
     // TODO: also include the transitive parents of the page-parentId to be able no navigate upwards
