@@ -12,6 +12,7 @@ import wust.sdk.Colors
 import wust.webApp.WoostNotification
 import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
+import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 
 object MainView {
 
@@ -32,6 +33,10 @@ object MainView {
         Styles.growFull,
 
         position.relative, // needed for mobile expanded sidebars
+
+        onMouseDown.foreach {
+          wdtEmojiBundle.close()
+        },
 
         LeftSidebar(state).apply(
           onMouseDown(None) --> state.rightSidebarNode,

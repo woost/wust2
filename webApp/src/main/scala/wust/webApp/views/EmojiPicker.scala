@@ -22,10 +22,7 @@ object EmojiPicker {
       onGlobalEscape.foreach {
         wdtEmojiBundle.close()
       },
-      // onGlobalClick.foreach {
-      //   wdtEmojiBundle.close()
-      // },
-      // onClick.stopPropagation --> Observer.empty,
+      onMouseDown.stopPropagation --> Observer.empty,
       cls := "wdt-emoji-popup",
       div(
         cls := "wdt-emoji-menu-content",
