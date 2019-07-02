@@ -468,6 +468,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeQuery(lift(userId), lift(nodeId))
     }
 
+    def canAccessNodeViaUrl(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = ctx.run {
+      canAccessNodeViaUrlQuery(lift(userId), lift(nodeId))
+    }
+
     def inaccessibleNodes(userId: UserId, nodeIds: List[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
       inaccessibleNodesQuery(lift(userId), lift(nodeIds.toList))
     }
@@ -475,6 +479,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val canAccessNodeQuery = quote { (userId: UserId, nodeId: NodeId) =>
       // TODO why not as[Query[Boolean]] like other functions?
       infix"select * from can_access_node($userId, $nodeId)".as[Boolean]
+    }
+
+    private val canAccessNodeViaUrlQuery = quote { (userId: UserId, nodeId: NodeId) =>
+      infix"select * from can_access_node_via_url($userId, $nodeId)".as[Boolean]
     }
 
     private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: List[NodeId]) =>
