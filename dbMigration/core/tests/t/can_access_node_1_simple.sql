@@ -207,8 +207,8 @@ select cleanup();
 select usernode('A8');
 select node('B8', 'readwrite');
 
-SELECT cmp_ok(can_access_node(user_to_uuid('A8'), node_to_uuid('B8')), '=', true);
-SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A8'), array[node_to_uuid('B8')]), '=', array[]::uuid[]);
+SELECT cmp_ok(can_access_node(user_to_uuid('A8'), node_to_uuid('B8')), '=', false);
+SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A8'), array[node_to_uuid('B8')]), '=', array[node_to_uuid('B8')]::uuid[]);
 
 
 SELECT * FROM finish();

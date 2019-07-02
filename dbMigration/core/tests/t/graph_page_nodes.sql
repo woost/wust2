@@ -147,6 +147,7 @@ select is_empty( $$ select * from graph_traversed_page_nodes( array[node_to_uuid
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')) $$);
@@ -155,6 +156,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
 select node('12', 'readwrite'); select child('01', '12');
 select set_eq(
@@ -175,6 +177,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
 select node('12', 'readwrite'); select child('11', '12');
 select set_eq(
@@ -187,6 +190,8 @@ select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01');
 select node('12', 'readwrite'); select child('12', '01');
+select member('12', '0A', 'readwrite');
+select member('11', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')) $$);
@@ -197,6 +202,7 @@ select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01');
 select node('12', 'readwrite'); select child('12', '11');
+select member('12', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')) $$);
@@ -206,9 +212,11 @@ select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01');
+select member('11', '0A', 'readwrite');
 select node('21', 'readwrite'); select child('01', '21');
 select node('02', 'readwrite');
 select node('12', 'readwrite'); select child('12', '02');
+select member('12', '0A', 'readwrite');
 select node('22', 'readwrite'); select child('02', '22');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01'),node_to_uuid('02')]::uuid[], user_to_uuid('0A')) $$,
@@ -222,9 +230,11 @@ select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
+select member('01', '0A', 'readwrite');
 select node('12', 'readwrite'); select child('11', '12');
 select node('02', 'readwrite'); select child('02', '12');
 select node('03', 'readwrite'); select child('03', '02');
+select member('03', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')), (node_to_uuid('02')) $$);
@@ -233,6 +243,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
 select node('12', 'readwrite'); select child('01', '12');
 select node('02', 'readwrite'); select child('11', '02'); select child('12', '02');
@@ -247,6 +258,7 @@ select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01');
 select node('12', 'readwrite'); select child('12', '01');
 select node('02', 'readwrite'); select child('02', '11'); select child('02', '12');
+select member('02', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')), (node_to_uuid('02')) $$);
@@ -255,6 +267,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite'); select child('01', '01');
+select member('01', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')) $$);
@@ -263,6 +276,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11'); select child('11', '11');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
@@ -273,6 +287,7 @@ select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01'); select child('11', '11');
+select member('11', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')) $$);
@@ -281,7 +296,9 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11'); select child('11', '01');
+select member('11', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')) $$);
@@ -290,6 +307,7 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
 select node('12', 'readwrite'); select child('11', '12'); select child('12', '11');
 select set_eq(
@@ -302,6 +320,8 @@ select usernode('0A');
 select node('01', 'readwrite');
 select node('11', 'readwrite'); select child('11', '01');
 select node('12', 'readwrite'); select child('11', '12'); select child('12', '11');
+select member('11', '0A', 'readwrite');
+select member('12', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')) $$);
@@ -392,6 +412,7 @@ select is_empty($$ select * from graph_traversed_page_nodes(array[node_to_uuid('
 -- 26) case 8:
 select usernode('A8');
 select node('B8', 'readwrite');
+select member('B8', 'A8', 'readwrite');
 select node('C8', null);
 select child('B8', 'C8');
 
@@ -412,8 +433,10 @@ select is_empty($$ select * from graph_traversed_page_nodes( array[node_to_uuid(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'restricted'); select child('01', '11');
 select node('12', 'readwrite'); select child('11', '12');
+select member('12', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')) $$);
@@ -422,8 +445,10 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'restricted'); select child('11', '01');
 select node('12', 'readwrite'); select child('12', '11');
+select member('12', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')) $$,
@@ -433,10 +458,14 @@ select set_eq(
 select cleanup();
 select usernode('0A');
 select node('01', 'readwrite');
+select member('01', '0A', 'readwrite');
 select node('11', 'readwrite'); select child('01', '11');
+select member('11', '0A', 'readwrite');
 select node('12', 'readwrite'); select child('11', '12');
+select member('12', '0A', 'readwrite');
 select node('02', 'restricted'); select child('02', '12');
 select node('03', 'readwrite'); select child('03', '02');
+select member('03', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')), (node_to_uuid('11')), (node_to_uuid('12')) $$);
@@ -447,6 +476,7 @@ select usernode('0A');
 select node('01', null); -- inherited
 select node('11', null); select child('01', '11');
 select node('12', 'readwrite'); select child('12', '01');
+select member('12', '0A', 'readwrite');
 select set_eq(
     $$ select * from graph_traversed_page_nodes( array[node_to_uuid('01')]::uuid[], user_to_uuid('0A')) $$,
     $$ values (node_to_uuid('01')),(node_to_uuid('11')),(node_to_uuid('12')) $$);

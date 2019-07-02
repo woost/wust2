@@ -223,8 +223,8 @@ select node('B8', 'readwrite');
 select node('C8', null);
 select child('B8', 'C8');
 
-SELECT cmp_ok(can_access_node(user_to_uuid('A8'), node_to_uuid('C8')), '=', true);
-SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A8'), array[node_to_uuid('C8')]), '=', array[]::uuid[]);
+SELECT cmp_ok(can_access_node(user_to_uuid('A8'), node_to_uuid('C8')), '=', false);
+SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A8'), array[node_to_uuid('C8')]), '=', array[node_to_uuid('C8')]::uuid[]);
 
 
 SELECT * FROM finish();

@@ -138,6 +138,7 @@ select cleanup();
 select usernode('A1'); -- user
 select node('B1', 'restricted'); -- node without permission
 select node('C1', 'readwrite'); -- node with permission
+select member('C1', 'A1', 'readwrite');
 select node('D1', NULL); -- node with permission multiple inheritance
 select child('B1', 'D1'); -- inheritance happens via this child edge
 select child('C1', 'D1'); -- inheritance happens via this child edge
@@ -150,6 +151,7 @@ SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A1'), array[node_to_uuid('D1')]),
 select cleanup();
 select usernode('A2');
 select node('B2', 'readwrite');
+select member('B2', 'A2', 'readwrite');
 select node('C2', NULL);
 select node('D2', NULL);
 select child('B2', 'C2');
@@ -174,6 +176,7 @@ SELECT cmp_ok(inaccessible_nodes(user_to_uuid('A3'), array[node_to_uuid('D3')]),
 select cleanup();
 select usernode('A4');
 select node('B4', 'readwrite');
+select member('B4', 'A4', 'readwrite');
 select node('C4', NULL);
 select node('D4', NULL);
 select child('B4', 'C4');
