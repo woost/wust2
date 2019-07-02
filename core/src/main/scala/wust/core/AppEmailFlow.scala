@@ -109,10 +109,10 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   private def inviteMailMessage(email:String, invitedJwt: Authentication.Token, inviterName:String, inviterEmail:String, node: Node.Content): MailMessage = {
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
-    val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 20)}'"
+    val subject = s"$inviterEmail invited you to '${StringOps.trimToMaxLength(node.str, 50)}'"
     val secretLink = inviteWorkspaceLink(node.id, invitedJwt)
 
-    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
+    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
 
     val body =
       s"""
@@ -147,9 +147,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   private def mentionMailMessage(email:String, mentionedIn: Seq[NodeId], authorName:String, authorEmail:String, node: Node.Content): MailMessage = {
     //TODO: description of what woost is
     val recipient = MailRecipient(to = email :: Nil)
-    val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 20)}'"
+    val subject = s"$authorName mentioned you in '${StringOps.trimToMaxLength(node.str, 50)}'"
 
-    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 200))
+    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
     val view = View.forNodeRole(node.role)
 
     val linkNodeIds = if (mentionedIn.isEmpty) Seq(node.id) else mentionedIn
