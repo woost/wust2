@@ -71,7 +71,8 @@ object InputRow {
       autoResizer.modifiers
     )
 
-    def nodeToSelectString(node: Node): String = {
+    val mentionsRegex = raw"@(?:[^ \\]|\\\\)*(?:\\ [^ ]*)*".r
+    def nodeToMentionsString(node: Node): String = {
       val lines = node.str.linesIterator
       val linesHead = if (lines.hasNext) StringOps.trimToMaxLength(lines.next.replace("\\", "\\\\").replace(" ", "\\ "), 100) else ""
       linesHead
@@ -81,7 +82,6 @@ object InputRow {
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       def handle() = {
         val actualMentions = {
-          val mentionsRegex = raw"@(?:[^ \\]|\\\\)*(?:\\ [^ ]*)*".r
           val stringMentions = mentionsRegex.findAllIn(str).map(_.drop(1)).to[List]
           stringMentions.flatMap(str => collectedMentions.get(str).map(str -> _))
         }
@@ -136,7 +136,7 @@ object InputRow {
         }: js.Function2[Node, String, String]
         selectTemplate = { item =>
           item.fold("@") { item =>
-            "@" + nodeToSelectString(item.original)
+            "@" + nodeToMentionsString(item.original)
           }
         }: js.Function1[js.UndefOr[TributeItem[Node]], String]
         menuItemTemplate = { item =>
@@ -283,7 +283,7 @@ object InputRow {
               tribute,
               wust.facades.tribute.Tribute.replacedEvent[Node].foreach { e =>
                 e.detail.item.foreach { item =>
-                  val completedStr = nodeToSelectString(item.original)
+                  val completedStr = nodeToMentionsString(item.original)
                   collectedMentions(completedStr) = item.original
                 }
               }
