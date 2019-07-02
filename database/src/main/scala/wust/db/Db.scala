@@ -68,11 +68,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           (
             select * from node
-            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and can_access_node(node.id, ${lift(canAccessNodeId)})
+            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and can_access_node_via_url(node.id, ${lift(canAccessNodeId)})
           ) UNION (
             select node.* from node as initial
             join edge on edge.sourceid = initial.id and edge.data->>'type' = 'Member'
-            join node on edge.targetid = node.id and node.data->>'type' = 'User' and can_access_node(node.id, ${lift(canAccessNodeId)})
+            join node on edge.targetid = node.id and node.data->>'type' = 'User' and can_access_node_via_url(node.id, ${lift(canAccessNodeId)})
             where initial.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and initial.data->>'type' <> 'User'
           )
         """.as[Query[User]]
