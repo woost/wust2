@@ -149,8 +149,8 @@ object InputRow {
         values = { (text, cb) =>
           val graph = state.graph.now
           cb(
-            focusState.flatMap(f => graph.nodesById(f.focusedId).collect { case node: Node.Content => node.copy(data = NodeData.Markdown("all")) }).toJSArray ++
-              graph.nodes.collect { case item if EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
+            focusState.flatMap(f => graph.nodesById(f.focusedId).collect { case node: Node.Content if node.role == NodeRole.Project => node.copy(data = NodeData.Markdown("all")) }).toJSArray ++
+              graph.nodes.collect { case item if (item.role == NodeRole.Project || item.isInstanceOf[Node.User]) && EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
           )
         }: js.Function2[String, js.Function1[js.Array[Node], Unit], Unit]
         searchOpts = new TributeSearchOpts {
