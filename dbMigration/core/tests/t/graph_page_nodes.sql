@@ -117,6 +117,11 @@ $$ language plpgsql;
 CREATE or replace FUNCTION cleanup() RETURNS void AS $$
 begin
     truncate node cascade;
+
+    drop table if exists can_access_cache;
+
+    create temporary table can_access_cache (id uuid NOT NULL, can_access boolean) on commit drop;
+    create unique index on can_access_cache (id);
 end
 $$ language plpgsql;
 
