@@ -343,7 +343,7 @@ object Components {
       )
     }
 
-    def renderUser(user: Node.User): VNode = {
+    def renderUser(user: Node.User, size:Int = 20): VNode = {
       div(
         padding := "2px",
         borderRadius := "3px",
@@ -351,7 +351,7 @@ object Components {
         color.black,
         Styles.flex,
         alignItems.center,
-        div(Avatar.user(user.id)(height := "20px")),
+        Avatar.user(user.id)(height := s"${size}px"),
         div(marginLeft := "5px", displayUserName(user.data), Styles.wordWrap),
       )
     }
@@ -421,20 +421,22 @@ object Components {
       )
 
       VDomModifier(
-        cls := "nodecard",
         node match {
-          case user: Node.User => renderUser(user)
+          case user: Node.User => renderUser(user, size = 14)
           case node if node.role == NodeRole.Project => VDomModifier(
             cls := "project",
+            cls := "nodecard",
             renderProject(node, contentNode, withIcon = projectWithIcon)
           )
           case node if node.role == NodeRole.Tag => VDomModifier( //TODO merge this definition with renderNodeTag
             cls := "tag colorful",
+            cls := "nodecard",
             backgroundColor := tagColor(node.id).toHex,
             contentNode(node),
           )
           case node => VDomModifier(
             cls := "node",
+            cls := "nodecard",
             contentNode(node)
           )
         },
