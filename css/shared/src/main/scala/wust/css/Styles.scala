@@ -599,6 +599,14 @@ object CommonStyles extends StyleSheet.Standalone {
     ),
   )
 
+  ".threadview" - (
+    &(".chat-expanded-thread") - (
+      &(".chatmsg-header") -(
+        paddingLeft(30 px), // to align with the other messages, which are pushed right by the expand-button
+      )
+    )
+  )
+
   ".chatmsg-author" - (
     fontWeight.bold,
     color(c"#50575f"),

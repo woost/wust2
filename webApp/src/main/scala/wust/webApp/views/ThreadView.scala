@@ -46,6 +46,8 @@ object ThreadView {
     val shouldLoadInfinite = Var[Boolean](false)
 
     div(
+      cls := "threadview",
+
       keyed,
       Styles.flex,
       flexDirection.column,
@@ -267,6 +269,8 @@ object ThreadView {
     VDomModifier(
       cls := "chat-expanded-thread",
       backgroundColor := bgColor,
+      borderLeft := s"3px solid ${NodeColor.accentColor(nodeId).toHex}",
+      marginLeft := "-3px",
 
       drag(target = DragItem.Thread(nodeId :: Nil)),
 
