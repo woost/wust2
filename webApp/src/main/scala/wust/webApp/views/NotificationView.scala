@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.util.collection._
 import scala.scalajs.js
 import wust.facades.dateFns.DateFns
 import flatland._
@@ -41,6 +42,7 @@ object NotificationView {
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val renderTime = EpochMilli.now
+    val expanded = Var(Set(focusState.focusedId))
 
     div(
       keyed,
@@ -70,7 +72,7 @@ object NotificationView {
                   h3("What's new?"),
                   markAllAsReadButton(state, "Mark everything as read", focusState.focusedId, graph, userId, renderTime)
                 ),
-                renderUnreadGroup(state, graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime)
+                renderUnreadGroup(state, graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
               )
             case _ =>
               h3(
@@ -145,7 +147,9 @@ object NotificationView {
     unreadParentNodeInitial: UnreadNode,
     focusedId: NodeId,
     renderTime: EpochMilli,
-    currentTime: EpochMilli
+    currentTime: EpochMilli,
+    expanded: Var[Set[NodeId]],
+    isToplevel: Boolean = false,
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     // skip chains of already read nodes
@@ -157,95 +161,135 @@ object NotificationView {
       BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
     }
 
+    val deepUnreadChildrenCount = { 
+      calculateDeepUnreadChildren(graph, parentId, userId, renderTime).length 
+    }
+    val expandToggleButton = Rx {
+      val toggleIcon =
+        if(expanded().contains(parentId)) freeSolid.faAngleDown:VDomModifier
+        else freeSolid.faAngleRight:VDomModifier
+
+      VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
+        div(
+          cls := "expand-collapsebutton",
+          cursor.pointer,
+          div(toggleIcon, cls := "fa-fw"),
+          onClick.stopPropagation.foreach{ _ => expanded.update(_.toggle(parentId)) }
+        )
+      )
+    }
+
+    val deepUnreadChildrenLabel = Rx {
+      VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
+        UnreadComponents.unreadLabelElement(
+          deepUnreadChildrenCount,
+          // marginRight := "0px"
+        )
+      )
+    }
+
     VDomModifier(
       div(
         cls := "notifications-header",
 
+        VDomModifier.ifNot(isToplevel)(
+          expandToggleButton,
+        ),
         breadCrumbs,
-        markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime)
-      ),
-      div(
-        cls := "ui segment",
-        marginTop := "0px", // remove semantic ui marginTop
-        table(
-          cls := "ui fixed table",
-          border := "none",
-          unreadParentNode.children.map { unreadNode =>
-            graph.nodes(unreadNode.nodeIdx) match {
-              case node: Node.Content => // node is always Content
-                val (revisionTable, allSeen, deletedTime) = renderRevisions(graph, unreadNode, node, focusedId, currentTime)
-
-                VDomModifier(
-                  VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
-                    tr(
-                      padding := "0px",
-                      td(
-                        cls := "top aligned",
-                        width := "400px",
-                        VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                        nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
-                          VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                          Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-                        ),
-                      ),
-
-                      td(
-                        cls := "top aligned",
-                        revisionTable,
-                      ),
-
-                      td(
-                        cls := "top aligned",
-                        width := "20px",
-
-                        //TODO: hack for having a better layout on mobile with this table
-                        if (BrowserDetect.isMobile)
-                          marginTop := "-6px"
-                        else
-                          padding := "5px",
-
-                        textAlign.right,
-                        if (allSeen) VDomModifier(
-                          freeRegular.faCircle,
-                          color.gray,
-                        )
-                        else VDomModifier(
-                          color := Colors.unread,
-                          freeSolid.faCircle,
-                        ),
-
-                        cursor.pointer,
-
-                        onClick.stopPropagation.foreach {
-                          val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
-                            val edge = state.graph.now.edges(idx).as[Edge.Read]
-                            if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
-                          })
-                          else GraphChanges(
-                            addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
-                          )
-
-                          state.eventProcessor.changes.onNext(changes)
-                          ()
-                        }
-                      )
-                    )
-                  ),
-                  VDomModifier.ifTrue(unreadNode.children.nonEmpty){
-                    tr(
-                      td(
-                        colSpan := 3,
-                        renderUnreadGroup(state, graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime)
-                      )
-                    )
-                  }
-                )
-
-              case _ => VDomModifier.empty
-            }
-          }
+        VDomModifier.ifNot(isToplevel)(
+          deepUnreadChildrenLabel,
+          markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime),
         )
-      )
+      ),
+      Rx {
+        val selfExpanded = expanded().contains(parentId)
+        VDomModifier.ifTrue(selfExpanded)(
+          div(
+            cls := "ui segment",
+            marginTop := "0px", // remove semantic ui marginTop
+            table(
+              cls := "ui fixed table",
+              border := "none",
+              unreadParentNode.children.map { unreadNode =>
+                graph.nodes(unreadNode.nodeIdx) match {
+                  case node: Node.Content => // node is always Content
+                    val (revisionTable, allSeen, deletedTime) = renderRevisions(graph, unreadNode, node, focusedId, currentTime)
+
+                    VDomModifier(
+                      VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
+                        tr(
+                          padding := "0px",
+                          td(
+                            cls := "top aligned",
+                            width := "400px",
+                            VDomModifier.ifTrue(allSeen)(opacity := 0.5),
+                            nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
+                              VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
+                              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                            ),
+                          ),
+
+                          td(
+                            cls := "top aligned",
+                            revisionTable,
+                          ),
+
+                          td(
+                            cls := "top aligned",
+                            width := "20px",
+
+                            //TODO: hack for having a better layout on mobile with this table
+                            if (BrowserDetect.isMobile)
+                              marginTop := "-6px"
+                            else
+                              padding := "5px",
+
+                            textAlign.right,
+                            if (allSeen) VDomModifier(
+                              freeRegular.faCircle,
+                              color.gray,
+                            )
+                            else VDomModifier(
+                              color := Colors.unread,
+                              freeSolid.faCircle,
+                            ),
+
+                            cursor.pointer,
+
+                            onClick.stopPropagation.foreach {
+                              val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
+                                val edge = state.graph.now.edges(idx).as[Edge.Read]
+                                if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
+                              })
+                              else GraphChanges(
+                                addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                              )
+
+                              state.eventProcessor.changes.onNext(changes)
+                              ()
+                            }
+                          )
+                        )
+                      ),
+                      VDomModifier.ifTrue(unreadNode.children.nonEmpty){
+                        tr(
+                          td(
+                            colSpan := 3,
+                            paddingRight := "0px",
+                            paddingLeft := "0px",
+                            renderUnreadGroup(state, graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
+                          )
+                        )
+                      }
+                    )
+
+                  case _ => VDomModifier.empty
+                }
+              }
+            )
+          )
+        )
+      }
     )
   }
 
