@@ -49,6 +49,7 @@ object TableView {
         case (_, user: Node.User) => Components.displayUserName(user.data) // sort users by display name
       }.mkString(", "),
       value = VDomModifier(
+        position.relative, // needed for absolutlely positioned save/cancel buttons from editable content
         edges.map {
           case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
           case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)

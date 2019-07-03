@@ -13,6 +13,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, UI}
 import wust.graph._
 import wust.webApp.state.GlobalState
+import wust.css.Styles
 
 import scala.concurrent.duration._
 import scala.scalajs.js
@@ -166,20 +167,20 @@ object EditableContent {
   private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
     "Cancel",
     cls := "ui button compact mini",
-    padding := "3px",
+    padding := "5px",
     margin := "1px",
     flexShrink := 0,
-    fontSize.xxSmall,
+    fontSize.xSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(EditInteraction.Cancel) --> current
   )
   private def saveButton(current: Observer[Unit]) = dsl.span(
     "Save",
     cls := "ui button primary compact mini",
-    padding := "3px",
+    padding := "5px",
     margin := "1px",
     flexShrink := 0,
-    fontSize.xxSmall,
+    fontSize.xSmall,
     styleAttr := "cursor: pointer !important", // overwrite style from semantic ui with important
     onClick.stopPropagation(()) --> current
   )
@@ -200,13 +201,15 @@ object EditableContent {
         width := "100%",
         modifier(CommonEditHandler(handledCurrent, saveHandler)),
         config.submitMode match {
-          case SubmitMode.Explicit => dsl.span(
-            display.inlineFlex,
-            flexDirection.column,
-            justifyContent.spaceBetween,
-            alignItems.flexStart,
-            marginLeft.auto,
-            cancelButton(handledCurrent),
+          case SubmitMode.Explicit => div(
+            position.absolute,
+            padding := "2px",
+            right := "4px",
+            marginTop := "-30px", // hopefully always correct
+            backgroundColor := "rgba(255, 255, 255, 0.75)",
+            boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
+            borderRadius := "3px",
+            cancelButton(handledCurrent).apply(marginRight := "6px"),
             saveButton(saveHandler)
           )
           case _ => VDomModifier.empty
