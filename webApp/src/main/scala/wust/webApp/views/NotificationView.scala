@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.state._
 import wust.util.collection._
 import scala.scalajs.js
 import wust.facades.dateFns.DateFns
@@ -158,7 +159,14 @@ object NotificationView {
 
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
-      BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
+      BreadCrumbs(
+        state,
+        graph,
+        state.user(),
+        Some(focusedId),
+        parentId = Some(parentId), 
+        parentIdAction = nodeId => state.rightSidebarNode() = Some(FocusPreference(nodeId))
+      )
     }
 
     val deepUnreadChildrenCount = { 
