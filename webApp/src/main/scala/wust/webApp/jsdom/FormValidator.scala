@@ -12,7 +12,7 @@ object FormValidator {
     def checkFun = form.asInstanceOf[js.Dynamic].checkValidity.asInstanceOf[js.UndefOr[js.Function0[Boolean]]].map(_.bind(form).asInstanceOf[js.Function0[Boolean]]).map { f =>
       { () =>
         val isValid = f()
-        if (!isValid) UI.toast("Please check the input field for correctness.", "This form is invalid", level = UI.ToastLevel.Warning)
+        if (!isValid) UI.toast("Please check the input fields for correctness.", "This form is invalid", level = UI.ToastLevel.Warning)
         isValid
       }: js.Function0[Boolean]
     }
