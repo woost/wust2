@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.api.AuthUser
 import acyclic.file
 import wust.webUtil.outwatchHelpers._
 import cats.effect.IO
@@ -208,5 +209,43 @@ object UnreadComponents {
           }
       },
     }
+  }
+
+  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+
+    val haveUnreadNotifications = Rx {
+      val graph = state.graph()
+      val user = state.user()
+      hasUnreadChildren(graph, nodeId, deep = true, user)
+    }
+
+    val channelNotification = Rx {
+      VDomModifier.ifTrue(haveUnreadNotifications())(
+        button(
+          cls := "ui compact inverted button",
+          Icons.notifications,
+          onClick.stopPropagation(View.Notifications) --> sink,
+          modifiers,
+        )
+      )
+    }
+    channelNotification
+  }
+
+  // check whether there are unread nodes for the user within parentNodeId
+  private def hasUnreadChildren(graph: Graph, parentNodeId: NodeId, deep: Boolean, user: AuthUser): Boolean = {
+    @inline def foreachChildren(parentNodeIdx: Int)(code: Int => Unit) = {
+      if (deep) graph.descendantsIdxForeach(parentNodeIdx)(code)
+      else graph.childrenIdx.foreachElement(parentNodeIdx)(code)
+    }
+
+    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
+      foreachChildren(parentNodeIdx) { nodeIdx =>
+        if (UnreadComponents.nodeIsUnread(graph, user.id, nodeIdx))
+          return true
+      }
+    }
+
+    false
   }
 }

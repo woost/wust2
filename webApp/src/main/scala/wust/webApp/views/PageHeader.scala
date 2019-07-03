@@ -60,7 +60,7 @@ object PageHeader {
       )
     }
 
-    val channelNotification = NotificationView.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
+    val channelNotification = UnreadComponents.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
       marginLeft := "5px",
     )).foreach(view => state.urlConfig.update(_.focus(view)))
 

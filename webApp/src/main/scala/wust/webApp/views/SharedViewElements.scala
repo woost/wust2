@@ -56,6 +56,30 @@ object SharedViewElements {
     }
   }
 
+  @inline def sortByDeepCreated[T](nodes: js.Array[T], index:T => Int, graph: Graph): Unit = {
+    nodes.sort { (aRaw, bRaw) =>
+      val a = index(aRaw)
+      val b = index(bRaw)
+      val createdA = graph.nodeDeepCreated(a)
+      val createdB = graph.nodeDeepCreated(b)
+      val result = createdA.compare(createdB)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      else result
+    }
+  }
+
+  @inline def sortByDeepModifiedReversed[T](nodes: js.Array[T], index:T => Int, graph: Graph): Unit = {
+    nodes.sort { (aRaw, bRaw) =>
+      val a = index(aRaw)
+      val b = index(bRaw)
+      val modifiedA = graph.nodeDeepModified(a)
+      val modifiedB = graph.nodeDeepModified(b)
+      val result = modifiedB.compare(modifiedA) // switched
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      else result
+    }
+  }
+
   val dragHandle:VNode = div(
     Styles.flex,
     alignItems.center,

@@ -790,7 +790,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".notifications-header" - (
-    marginTop(40 px),
+    // marginTop(40 px),
     Styles.flex,
     justifyContent.spaceBetween,
     flexWrap.wrapReverse,

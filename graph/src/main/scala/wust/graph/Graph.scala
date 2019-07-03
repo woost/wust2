@@ -549,6 +549,14 @@ final class GraphLookup(
     (nodeCreated, nodeCreator, nodeModified)
   }
 
+  def nodeDeepModified(nodeIdx:Int):EpochMilli = {
+    var modified = nodeModified(nodeIdx)
+    dfs.foreach(_(nodeIdx), dfs.withoutStart, childrenIdx, { childIdx => 
+      val childModified = nodeModified(childIdx)
+      if(childModified isAfter modified) modified = childModified
+    })
+    modified
+  }
 
   def nodeDeepCreated(nodeIdx:Int):EpochMilli = {
     var created = nodeCreated(nodeIdx)

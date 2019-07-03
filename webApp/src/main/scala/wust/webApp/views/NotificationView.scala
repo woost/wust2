@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import scala.scalajs.js
 import wust.facades.dateFns.DateFns
 import flatland._
 import fontAwesome.{ IconDefinition, freeRegular, freeSolid }
@@ -18,6 +19,7 @@ import wust.util.macros.InlineList
 import wust.webApp.Icons
 import wust.webApp.state.{ FocusState, GlobalState }
 import wust.webApp.views.Components._
+import SharedViewElements._
 
 import scala.collection.{ breakOut, mutable }
 import scala.scalajs.js.Date
@@ -34,18 +36,7 @@ object NotificationView {
     final case class Edit(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
     final case class Create(author: Node.User, timestamp: EpochMilli, seen: Boolean) extends Revision
   }
-  final case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision])
-
-  object LatestChangeInGroupOrdering extends Ordering[(Int, Array[UnreadNode])] {
-    def compare(a: (Int, Array[UnreadNode]), b: (Int, Array[UnreadNode])) = {
-      val aValue = a._2(0).newRevisions.head.timestamp
-      val bValue = b._2(0).newRevisions.head.timestamp
-      -aValue compare -bValue
-    }
-  }
-  object LatestChangeInUnreadNodeOrdering extends Ordering[UnreadNode] {
-    def compare(a: UnreadNode, b: UnreadNode) = -a.newRevisions(0).timestamp compare -b.newRevisions(0).timestamp
-  }
+  final case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision], children: js.Array[UnreadNode] = js.Array[UnreadNode]())
 
   def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
@@ -59,78 +50,34 @@ object NotificationView {
 
       Rx {
         val graph = state.rawGraph()
-        val user = state.user()
+        val userId = state.user().id
         val page = state.page()
 
-        val allUnreadNodes: Array[UnreadNode] = page.parentId.fold(Array.empty[UnreadNode])(pageParentId => calculateUnreadNodes(graph, pageParentId, user, renderTime = renderTime))
-        val unreadNodes: Array[UnreadNode] = allUnreadNodes.take(200)
+        val unreadTree: Option[UnreadNode] = for {
+          pageParentId <- page.parentId
+          pageParentIdx <- graph.idToIdx(pageParentId)
+          tree <- calculateUnreadTree(graph, pageParentIdx, userId, renderTime)
+        } yield tree
 
         val currentTime = EpochMilli.now
 
-        val unreadNodesByParentBuilder = new Array[mutable.ArrayBuilder[UnreadNode]](graph.nodes.length) // default = null
-        unreadNodes.foreach { n =>
-          var hasParent = false
-          graph.workspacesForNode(n.nodeIdx).foreach { parentIdx =>
-            hasParent = true
-            if (unreadNodesByParentBuilder(parentIdx) == null) unreadNodesByParentBuilder(parentIdx) = new mutable.ArrayBuilder.ofRef[UnreadNode]
-            unreadNodesByParentBuilder(parentIdx) += n
-          }
-
-          if (!hasParent) {
-            if (unreadNodesByParentBuilder(n.nodeIdx) == null) unreadNodesByParentBuilder(n.nodeIdx) = new mutable.ArrayBuilder.ofRef[UnreadNode]
-            unreadNodesByParentBuilder(n.nodeIdx) += n
-          }
-        }
-        val unreadNodesByParentSorted: Array[(Int, Array[UnreadNode])] = {
-          val result = new mutable.ArrayBuilder.ofRef[(Int, Array[UnreadNode])]
-          unreadNodesByParentBuilder.foreachIndexAndElement{ (parentIdx, unreadNodesBuilder) =>
-            if (unreadNodesBuilder != null) {
-              val unreadNodes = unreadNodesBuilder.result()
-              scala.util.Sorting.quickSort(unreadNodes)(LatestChangeInUnreadNodeOrdering)
-              result += (parentIdx -> unreadNodes)
-            }
-          }
-          val sortedResult = result.result
-          scala.util.Sorting.quickSort(sortedResult)(LatestChangeInGroupOrdering)
-          sortedResult
-        }
-
         VDomModifier(
-          if (unreadNodes.isEmpty)
-            h3(
-            textAlign.center,
-            color.gray,
-            "Nothing New.",
-            padding := "10px"
-          )
-          else
-            div(
-              Styles.flex,
-              h3("What's new?"),
-              button(
-                alignSelf.center,
-                marginLeft.auto,
-                marginRight := "0px",
-                cls := "ui tiny compact button",
-                "Mark everything as read",
-
-                cursor.pointer,
-
-                onClick.stopPropagation.foreach {
-                  val changes = GraphChanges(
-                    addEdges = allUnreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
-                  )
-
-                  state.eventProcessor.changes.onNext(changes)
-                  ()
-                }
+          unreadTree match {
+            case Some(unreadTreeNode) =>
+              VDomModifier(
+                div(
+                  Styles.flex,
+                  h3("What's new?"),
+                  markAllAsReadButton(state, "Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+                ),
+                renderUnreadGroup(state, graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime)
               )
-            ),
-          // render outer groups
-          unreadNodesByParentSorted.map {
-            case (idx, nodes) =>
-              VDomModifier.ifTrue(nodes != null)(
-                renderUnreadGroup(state, graph, nodes, parentId = graph.nodeIds(idx), focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime)
+            case _ =>
+              h3(
+                textAlign.center,
+                color.gray,
+                "Nothing New.",
+                padding := "10px"
               )
           }
         )
@@ -139,74 +86,73 @@ object NotificationView {
     )
   }
 
-  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def calculateUnreadTree(graph: Graph, nodeIdx: Int, userId: UserId, renderTime: EpochMilli): Option[UnreadNode] = {
+    val visited = ArraySet.create(graph.nodes.length)
 
-    val haveUnreadNotifications = Rx {
-      val graph = state.graph()
-      val user = state.user()
-      hasUnreadNodes(graph, nodeId, user)
-    }
+    def recurse(nodeIdx: Int): Option[UnreadNode] = {
+      if (visited contains nodeIdx) None
+      else {
+        visited += nodeIdx
 
-    val channelNotification = Rx {
-      VDomModifier.ifTrue(haveUnreadNotifications())(
-        button(
-          cls := "ui compact inverted button",
-          Icons.notifications,
-          onClick.stopPropagation(View.Notifications) --> sink,
-          modifiers,
-        )
-      )
-    }
-    channelNotification
-  }
-
-  // check whether there are unread nodes for the user within parentNodeId
-  private def hasUnreadNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser): Boolean = {
-    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        if (UnreadComponents.nodeIsUnread(graph, user.id, nodeIdx))
-          return true
-      }
-    }
-
-    false
-  }
-  // dual method of hasUnreadNodes, which returns the actual unreadnodes
-  private def calculateUnreadNodes(graph: Graph, parentNodeId: NodeId, user: AuthUser, renderTime: EpochMilli): Array[UnreadNode] = {
-    val unreadNodes = Array.newBuilder[UnreadNode]
-
-    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
-      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
-        def appendAuthorship(lastAuthorship: UnreadComponents.Authorship, seen: Boolean): Unit = {
-          import lastAuthorship._
-          val revision =
-            if (isCreation) Revision.Create(author, timestamp, seen = seen)
-            else Revision.Edit(author, timestamp, seen = seen)
-
-          unreadNodes += UnreadNode(nodeIdx, revision :: Nil)
-        }
-        UnreadComponents.readStatusOfNode(graph, user.id, nodeIdx) match {
-          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime =>
-            appendAuthorship(lastAuthorship, seen = true)
-          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
-            appendAuthorship(lastAuthorship, seen = false)
-          case _ => ()
+        if (graph.hasChildrenIdx(nodeIdx)) {
+          val unreadChildren = js.Array[UnreadNode]()
+          graph.childrenIdx.foreachElement(nodeIdx){ childIdx =>
+            recurse(childIdx) match {
+              case Some(unreadTreeNode) => unreadChildren += unreadTreeNode
+              case _                    =>
+            }
+          }
+          // val isUnread = UnreadComponents.nodeIsUnread(graph, userId, nodeIdx)
+          // if (unreadChildren.nonEmpty || isUnread) {
+          sortByDeepModifiedReversed[UnreadNode](unreadChildren, index = _.nodeIdx, graph)
+          constructUnreadTreeNode(nodeIdx, graph, userId, renderTime, unreadChildren)
+          // } else None
+        } else {
+          val isUnread = UnreadComponents.nodeIsUnread(graph, userId, nodeIdx)
+          constructUnreadTreeNode(nodeIdx, graph, userId, renderTime, js.Array[UnreadNode]())
         }
       }
     }
 
-    unreadNodes.result
+    recurse(nodeIdx)
+  }
+
+  def constructUnreadTreeNode(nodeIdx: Int, graph: Graph, userId: UserId, renderTime: EpochMilli, children: js.Array[UnreadNode]): Option[UnreadNode] = {
+    def appendAuthorship(nodeIdx: Int, lastAuthorship: UnreadComponents.Authorship, seen: Boolean): UnreadNode = {
+      import lastAuthorship._
+      val revision =
+        if (isCreation) Revision.Create(author, timestamp, seen = seen)
+        else Revision.Edit(author, timestamp, seen = seen)
+
+      UnreadNode(nodeIdx, revision :: Nil, children = children)
+    }
+
+    UnreadComponents.readStatusOfNode(graph, userId, nodeIdx) match {
+      case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime =>
+        Some(appendAuthorship(nodeIdx, lastAuthorship, seen = true))
+      case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
+        Some(appendAuthorship(nodeIdx, lastAuthorship, seen = false))
+      case _ =>
+        if (children.nonEmpty) Some(UnreadNode(nodeIdx, Nil, children))
+        else None
+    }
   }
 
   private def renderUnreadGroup(
     state: GlobalState,
     graph: Graph,
-    unreadNodes: Array[UnreadNode],
-    parentId: NodeId,
+    userId: UserId,
+    unreadParentNodeInitial: UnreadNode,
     focusedId: NodeId,
     renderTime: EpochMilli,
     currentTime: EpochMilli
   )(implicit ctx: Ctx.Owner): VDomModifier = {
+
+    // skip chains of already read nodes
+    var unreadParentNode = unreadParentNodeInitial
+    while (unreadParentNode.children.size == 1 && unreadParentNode.children.head.newRevisions.isEmpty) unreadParentNode = unreadParentNode.children.head
+
+    val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
       BreadCrumbs(state, graph, state.user(), Some(focusedId), parentId = Some(parentId), parentIdAction = nodeId => state.urlConfig.update(_.focus(Page(nodeId))))
     }
@@ -216,23 +162,7 @@ object NotificationView {
         cls := "notifications-header",
 
         breadCrumbs,
-        button(
-          cls := "ui tiny compact button",
-          "Mark all as read",
-          marginLeft := "auto",
-          marginRight := "0px", // remove semantic ui button margin
-
-          cursor.pointer,
-
-          onClick.stopPropagation.foreach {
-            val changes = GraphChanges(
-              addEdges = unreadNodes.map(n => Edge.Read(state.graph.now.nodeIds(n.nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
-            )
-
-            state.eventProcessor.changes.onNext(changes)
-            ()
-          }
-        )
+        markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime)
       ),
       div(
         cls := "ui segment",
@@ -240,63 +170,75 @@ object NotificationView {
         table(
           cls := "ui fixed table",
           border := "none",
-          unreadNodes.map { unreadNode =>
+          unreadParentNode.children.map { unreadNode =>
             graph.nodes(unreadNode.nodeIdx) match {
-              case node: Node.Content => // node is always Content. See calculateUnreadNodes.
+              case node: Node.Content => // node is always Content
                 val (revisionTable, allSeen, deletedTime) = renderRevisions(graph, unreadNode, node, focusedId, currentTime)
 
-                tr(
-                  padding := "0px",
-                  td(
-                    cls := "top aligned",
-                    width := "400px",
-                    VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                    nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
-                      VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                      Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-                    ),
-                  ),
+                VDomModifier(
+                  VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
+                    tr(
+                      padding := "0px",
+                      td(
+                        cls := "top aligned",
+                        width := "400px",
+                        VDomModifier.ifTrue(allSeen)(opacity := 0.5),
+                        nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
+                          VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
+                          Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                        ),
+                      ),
 
-                  td(
-                    cls := "top aligned",
-                    revisionTable,
-                  ),
+                      td(
+                        cls := "top aligned",
+                        revisionTable,
+                      ),
 
-                  td(
-                    cls := "top aligned",
-                    width := "20px",
+                      td(
+                        cls := "top aligned",
+                        width := "20px",
 
-                    //TODO: hack for having a better layout on mobile with this table
-                    if (BrowserDetect.isMobile)
-                      marginTop := "-6px"
-                    else
-                      padding := "5px",
+                        //TODO: hack for having a better layout on mobile with this table
+                        if (BrowserDetect.isMobile)
+                          marginTop := "-6px"
+                        else
+                          padding := "5px",
 
-                    textAlign.right,
-                    if (allSeen) VDomModifier(
-                      freeRegular.faCircle,
-                      color.gray,
-                    )
-                    else VDomModifier(
-                      color := Colors.unread,
-                      freeSolid.faCircle,
-                    ),
+                        textAlign.right,
+                        if (allSeen) VDomModifier(
+                          freeRegular.faCircle,
+                          color.gray,
+                        )
+                        else VDomModifier(
+                          color := Colors.unread,
+                          freeSolid.faCircle,
+                        ),
 
-                    cursor.pointer,
+                        cursor.pointer,
 
-                    onClick.stopPropagation.foreach {
-                      val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
-                        val edge = state.graph.now.edges(idx).as[Edge.Read]
-                        if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
-                      })
-                      else GraphChanges(
-                        addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                        onClick.stopPropagation.foreach {
+                          val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
+                            val edge = state.graph.now.edges(idx).as[Edge.Read]
+                            if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
+                          })
+                          else GraphChanges(
+                            addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                          )
+
+                          state.eventProcessor.changes.onNext(changes)
+                          ()
+                        }
                       )
-
-                      state.eventProcessor.changes.onNext(changes)
-                      ()
-                    }
-                  )
+                    )
+                  ),
+                  VDomModifier.ifTrue(unreadNode.children.nonEmpty){
+                    tr(
+                      td(
+                        colSpan := 3,
+                        renderUnreadGroup(state, graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime)
+                      )
+                    )
+                  }
                 )
 
               case _ => VDomModifier.empty
@@ -407,4 +349,46 @@ object NotificationView {
 
     (tableNode, allSeen, deletedTime)
   }
+
+  def markAllAsReadButton(state: GlobalState, text: String, parentId: NodeId, graph: Graph, userId: UserId, renderTime: EpochMilli) = {
+    button(
+      cls := "ui tiny compact button",
+      text,
+      marginLeft := "auto",
+      marginRight := "0px", // remove semantic ui button margin
+      marginTop := "3px",
+      marginBottom := "3px",
+
+      cursor.pointer,
+
+      onClick.stopPropagation.foreach {
+        val changes = GraphChanges(
+          addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
+            .map(nodeIdx => Edge.Read(state.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
+        )
+
+        state.eventProcessor.changes.onNext(changes)
+        ()
+      }
+    )
+  }
+
+  private def calculateDeepUnreadChildren(graph: Graph, parentNodeId: NodeId, userId: UserId, renderTime: EpochMilli): js.Array[Int] = {
+    val unreadNodes = js.Array[Int]()
+
+    graph.idToIdx(parentNodeId).foreach { parentNodeIdx =>
+      graph.descendantsIdxForeach(parentNodeIdx) { nodeIdx =>
+        UnreadComponents.readStatusOfNode(graph, userId, nodeIdx) match {
+          case UnreadComponents.ReadStatus.SeenAt(timestamp, lastAuthorship) if timestamp > renderTime =>
+            unreadNodes += nodeIdx
+          case UnreadComponents.ReadStatus.Unseen(lastAuthorship) =>
+            unreadNodes += nodeIdx
+          case _ => ()
+        }
+      }
+    }
+
+    unreadNodes
+  }
+
 }
