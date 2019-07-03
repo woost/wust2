@@ -18,6 +18,8 @@ import scala.util.control.NonFatal
 class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAuthClientServiceLookup: OAuthClientServiceLookup)(implicit ec: ExecutionContext) extends AuthApi[ApiFunction] {
   import dsl._
 
+  private def isValidEmail(email: String) = email.contains("@")
+
   def changePassword(password: Password): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
     val digest = passwordDigest(password)
     db.ctx.transaction { implicit ec =>
@@ -28,24 +30,26 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
 
   //TODO: some email or name or password checks?
   def register(name: String, email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
-    val digest = passwordDigest(password)
-    state.auth.map(_.user) match {
-      case Some(AuthUser.Implicit(prevUserId, _, _)) =>
-        val user = db.ctx.transaction { implicit ec =>
-          db.user.activateImplicitUser(prevUserId, name = name, email = email, passwordDigest = digest)
-        }.recover { case NonFatal(t) => None }
-        resultOnVerifiedAuthAfterRegister(user, email = email, replaces = Some(prevUserId))
-      case Some(AuthUser.Assumed(userId)) =>
-        val user = db.ctx.transaction { implicit ec =>
-          db.user.create(userId, name = name, email = email, passwordDigest = digest)
-        }.map(Some(_)).recover{ case NonFatal(t) => None }
-        resultOnVerifiedAuthAfterRegister(user, email = email)
-      case _ =>
-        val user = db.ctx.transaction { implicit ec =>
-          db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
-        }.map(Some(_)).recover { case NonFatal(t) => None }
-        resultOnVerifiedAuthAfterRegister(user, email = email)
-    }
+    if (isValidEmail(email)) {
+      val digest = passwordDigest(password)
+      state.auth.map(_.user) match {
+        case Some(AuthUser.Implicit(prevUserId, _, _)) =>
+          val user = db.ctx.transaction { implicit ec =>
+            db.user.activateImplicitUser(prevUserId, name = name, email = email, passwordDigest = digest)
+          }.recover { case NonFatal(t) => None }
+          resultOnVerifiedAuthAfterRegister(user, email = email, replaces = Some(prevUserId))
+        case Some(AuthUser.Assumed(userId)) =>
+          val user = db.ctx.transaction { implicit ec =>
+            db.user.create(userId, name = name, email = email, passwordDigest = digest)
+          }.map(Some(_)).recover{ case NonFatal(t) => None }
+          resultOnVerifiedAuthAfterRegister(user, email = email)
+        case _ =>
+          val user = db.ctx.transaction { implicit ec =>
+            db.user.create(UserId.fresh, name = name, email = email, passwordDigest = digest)
+          }.map(Some(_)).recover { case NonFatal(t) => None }
+          resultOnVerifiedAuthAfterRegister(user, email = email)
+      }
+    } else Future.successful(Returns(AuthResult.InvalidEmail))
   }
 
   def login(email: String, password: Password): ApiFunction[AuthResult] = Effect { state =>
@@ -144,12 +148,14 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
 
   override def updateUserEmail(userId: UserId, newEmail: String): ApiFunction[Boolean] = Action.requireRealUser { (_, user) =>
     if (userId == user.id) { // currently only allow to change own user details
-      val result = db.user.updateUserEmail(user.id, newEmail)
+      if (isValidEmail(newEmail)) {
+        val result = db.user.updateUserEmail(user.id, newEmail)
 
-      result.map { success =>
-        if (success) sendEmailVerification(UserDetail(userId, Some(newEmail), verified = false))
-        Returns(success)
-      }
+        result.map { success =>
+          if (success) sendEmailVerification(UserDetail(userId, Some(newEmail), verified = false))
+          Returns(success)
+        }
+      } else Future.successful(false)
     } else Future.successful(Returns.error(ApiError.Forbidden))
   }
 

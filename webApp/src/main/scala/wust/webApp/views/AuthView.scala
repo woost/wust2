@@ -16,6 +16,7 @@ import wust.graph.Page
 import wust.ids.View
 import wust.util._
 import wust.webApp._
+import wust.webApp.jsdom.FormValidator
 import wust.webApp.state.{GlobalState, PageChange}
 import wust.webApp.views.Components._
 
@@ -42,7 +43,7 @@ object AuthView {
     val errorMessageHandler = Handler.unsafe[String]
     var element: dom.html.Form = null
     def actionSink() = {
-      if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) submitAction(userValue.now).onComplete {
+      if (FormValidator.reportValidity(element)) submitAction(userValue.now).onComplete {
         case Success(None)        =>
           userValue() = UserValue()
           state.urlConfig.update(_.redirect)
@@ -181,15 +182,16 @@ object AuthView {
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     hotjar.pageView("/login")
     apply(state)(
-      header = "Login",
+      header = "Login - fu",
       submitText = "Login",
       needUserName = false,
       submitAction = {userValue =>
         hotjar.pageView("/login/submit")
         Client.auth.login(userValue.email, Password(userValue.password)).map {
-          case AuthResult.BadPassword => Some("Wrong password.")
-          case AuthResult.BadEmail    => Some("No account with this email address exists. Please check spelling and capitalization.")
-          case AuthResult.Success     =>
+          case AuthResult.BadPassword  => Some("Wrong password.")
+          case AuthResult.BadEmail     => Some("No account with this email address exists. Please check spelling and capitalization.")
+          case AuthResult.InvalidEmail => Some("Email address is invalid")
+          case AuthResult.Success      =>
             Analytics.sendEvent("auth", "login")
             None
         }
@@ -210,9 +212,10 @@ object AuthView {
       submitAction = {userValue =>
         hotjar.pageView("/signup/submit")
         Client.auth.register(name = userValue.username, email = userValue.email, password = Password(userValue.password)).map {
-          case AuthResult.BadPassword => Some("Insufficient password")
-          case AuthResult.BadEmail    => Some("Email address already taken")
-          case AuthResult.Success     => 
+          case AuthResult.BadPassword  => Some("Insufficient password")
+          case AuthResult.BadEmail     => Some("Email address already taken")
+          case AuthResult.InvalidEmail => Some("Email address is invalid")
+          case AuthResult.Success      =>
             Analytics.sendEvent("auth", "signup")
             None
         }

@@ -87,6 +87,7 @@ sealed trait AuthResult
 object AuthResult {
   case object BadEmail extends AuthResult
   case object BadPassword extends AuthResult
+  case object InvalidEmail extends AuthResult
   case object Success extends AuthResult
 }
 

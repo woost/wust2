@@ -12,6 +12,7 @@ import wust.graph.Node.User
 import wust.graph._
 import wust.ids._
 import wust.webApp._
+import wust.webApp.jsdom.FormValidator
 import wust.webApp.state._
 import wust.webApp.views.Components._
 
@@ -81,12 +82,12 @@ object MembersModal {
     }
 
     def description(implicit ctx: Ctx.Owner) = {
-      var element: dom.html.Element = null
+      var element: dom.html.Form = null
       val showEmailInvite = Var(false)
       val inputSizeMods = VDomModifier(width := "250px", height := "30px")
       VDomModifier(
         form(
-          onDomMount.asHtml.foreach { element = _ },
+          onDomMount.asHtml.foreach { e => element = e.asInstanceOf[dom.html.Form] },
 
           input(tpe := "text", position.fixed, left := "-10000000px", disabled := true), // prevent autofocus of input elements. it might not be pretty, but it works.
 
@@ -100,7 +101,7 @@ object MembersModal {
                   placeholder := "Invite by email address",
                   value <-- clear,
                   Elements.valueWithEnter(clearValue = false) foreach { str =>
-                    if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                    if (FormValidator.reportValidity(element)) {
                       handleAddMember(str)
                     }
                   },
@@ -110,7 +111,7 @@ object MembersModal {
                   cls := "ui primary button approve",
                   "Add",
                   onClick.stopPropagation(userNameInputProcess) foreach { str =>
-                    if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+                    if (FormValidator.reportValidity(element)) {
                       handleAddMember(str)
                     }
                   }

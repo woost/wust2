@@ -11,6 +11,7 @@ import wust.css.Styles
 import wust.facades.googleanalytics.Analytics
 import wust.ids._
 import wust.webApp._
+import wust.webApp.jsdom.FormValidator
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
 import wust.webUtil.Elements._
@@ -236,7 +237,7 @@ object UserSettingsView {
           value <-- userDetail.map(_.fold("")(_.email.getOrElse(""))),
           onChange.value --> email,
           onEnter.value foreach { email =>
-            if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+            if (FormValidator.reportValidity(element)) {
               actionSink(email)
             }
           }
@@ -271,7 +272,7 @@ object UserSettingsView {
         display.block,
 
         onClick(email).foreach { email =>
-          if (element.asInstanceOf[js.Dynamic].reportValidity().asInstanceOf[Boolean]) {
+          if (FormValidator.reportValidity(element)) {
             actionSink(email)
           }
         }
