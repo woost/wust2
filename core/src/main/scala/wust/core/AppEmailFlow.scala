@@ -46,7 +46,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     """
       |Woost
       |Jülicher Straße 72a
-      |52070 Aachen"
+      |52070 Aachen
     """.stripMargin
 
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
