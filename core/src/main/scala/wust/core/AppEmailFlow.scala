@@ -28,7 +28,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
   }
 
   private def workspaceLink(nodeId: NodeId, view: Option[View]):String = {
-    s"https://${serverConfig.host}/#${view.fold("")(view => s"view=${view}&")}page=${nodeId.toBase58}"
+    s"https://${serverConfig.host}/#${view.fold("")(view => s"view=${view.viewKey}&")}page=${nodeId.toBase58}"
   }
 
   private def inviteWorkspaceLink(nodeId: NodeId, token: Authentication.Token):String = {
