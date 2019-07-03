@@ -18,7 +18,9 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
   case class MentionsWithNode(mentions: Seq[Edge.Mention], node: Node.Content)
 
   def notify(author: AuthUser.Persisted, changes: GraphChanges)(implicit ec: ExecutionContext): Unit = {
-    val mentions = changes.addEdges.collect { case e: Edge.Mention => e }
+    val mentions: Seq[Edge.Mention] = changes.addEdges.collect { case e: Edge.Mention => e }
+    if (mentions.isEmpty) return
+
     scribe.info(s"Notifying mentions: $mentions")
     db.user.getUserDetail(author.id).onComplete {
       case Success(Some(userDetail)) => userDetail.email match {
