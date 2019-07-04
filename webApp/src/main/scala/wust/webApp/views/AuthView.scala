@@ -182,7 +182,7 @@ object AuthView {
   def login(state: GlobalState)(implicit ctx: Ctx.Owner) = {
     hotjar.pageView("/login")
     apply(state)(
-      header = "Login - fu",
+      header = "Login",
       submitText = "Login",
       needUserName = false,
       submitAction = {userValue =>
