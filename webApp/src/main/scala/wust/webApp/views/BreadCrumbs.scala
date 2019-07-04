@@ -124,7 +124,7 @@ object BreadCrumbs {
     Rx {
       val parentId = parentIdRx()
       val user = state.user()
-      val graph = state.graph()
+      val graph = state.rawGraph()
 
       modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
     }
