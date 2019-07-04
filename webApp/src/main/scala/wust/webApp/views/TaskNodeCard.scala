@@ -30,6 +30,16 @@ object TaskNodeCard {
     )
   }
 
+  private val renderProjectsCount = {
+    div(
+      cls := "childstat",
+      Styles.flex,
+      Styles.flexStatic,
+      margin := "5px 5px 5px 0px",
+      div(Icons.projects, marginLeft := "5px", marginRight := "5px"),
+    )
+  }
+
   private val renderNotesCount = {
     div(
       cls := "childstat",
@@ -77,9 +87,9 @@ object TaskNodeCard {
       state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
     }
 
-    final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
+    final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int, projectChildrenCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
-      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 && noteChildrenCount == 0 //&& propertiesCount == 0
+      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 && noteChildrenCount == 0 && projectChildrenCount == 0 //&& propertiesCount == 0
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
@@ -91,15 +101,17 @@ object TaskNodeCard {
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
-        if (graph.isDone(childIdx)) count + 1
+        if (graph.isDone(childIdx)) count + 1 //TODO done inside this node...
         else count
       }
 
       val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
 
-      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx()).length
+      val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx())
 
-      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount)
+      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx())
+
+      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount, projectChildrenCount)
     }
 
     val buttonBar = {
@@ -267,6 +279,14 @@ object TaskNodeCard {
               cursor.pointer,
             ),
           ),
+          VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
+            renderProjectsCount(
+              taskStats().projectChildrenCount,
+              UI.tooltip("left center") := "Show Projects",
+              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> state.rightSidebarNode,
+              cursor.pointer,
+            ),
+          ),
         )
       )
     }
@@ -356,9 +376,9 @@ object TaskNodeCard {
       state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
     }
 
-    final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int) {
+    final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int, projectChildrenCount: Int) {
       @inline def progress = (100 * taskDoneCount) / taskChildrenCount
-      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 //&& propertiesCount == 0
+      @inline def isEmpty = messageChildrenCount == 0 && taskChildrenCount == 0 && noteChildrenCount == 0 && projectChildrenCount == 0 //&& propertiesCount == 0
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
@@ -370,15 +390,17 @@ object TaskNodeCard {
       val taskChildrenCount = taskChildren.length
 
       val taskDoneCount = taskChildren.fold(0) { (count, childIdx) =>
-        if (graph.isDone(childIdx)) count + 1
+        if (graph.isDone(childIdx)) count + 1 //TODO done inside this node...
         else count
       }
 
       val noteChildrenCount = graph.noteChildrenIdx.sliceLength(nodeIdx())
 
-      val propertiesCount = graph.propertiesEdgeIdx(nodeIdx()).length
+      val propertiesCount = graph.propertiesEdgeIdx.sliceLength(nodeIdx())
 
-      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount)
+      val projectChildrenCount = graph.projectChildrenIdx.sliceLength(nodeIdx())
+
+      TaskStats(messageChildrenCount, taskChildrenCount, noteChildrenCount, taskDoneCount, propertiesCount, projectChildrenCount)
     }
 
     val buttonBar = {
@@ -528,7 +550,7 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().noteChildrenCount > 0)(
             renderNotesCount(
               taskStats().noteChildrenCount,
-              UI.tooltip("left center") := "Show notes",
+              UI.tooltip("left center") := "Show Notes",
               onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Content)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
@@ -536,8 +558,16 @@ object TaskNodeCard {
           VDomModifier.ifTrue(taskStats().messageChildrenCount > 0)(
             renderMessageCount(
               taskStats().messageChildrenCount,
-              UI.tooltip("left center") := "Show comments",
+              UI.tooltip("left center") := "Show Comments",
               onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> state.rightSidebarNode,
+              cursor.pointer,
+            ),
+          ),
+          VDomModifier.ifTrue(taskStats().projectChildrenCount > 0)(
+            renderProjectsCount(
+              taskStats().projectChildrenCount,
+              UI.tooltip("left center") := "Show Projects",
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Dashboard)))) --> state.rightSidebarNode,
               cursor.pointer,
             ),
           ),
