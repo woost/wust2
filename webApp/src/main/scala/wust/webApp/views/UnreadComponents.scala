@@ -121,10 +121,12 @@ object UnreadComponents {
       ReadStatus.Ignore
   }
 
+  @inline def nodeRoleIsAccepted(role: NodeRole) = InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(role)
+
   def nodeIsReadable(graph:Graph, userId:UserId, nodeIdx:Int):Boolean = {
     @inline def nodeHasContentRole = {
       val node = graph.nodes(nodeIdx)
-      InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Project, NodeRole.Note, NodeRole.Task)(node.role)
+      nodeRoleIsAccepted(node.role)
     }
     // @inline def userIsMemberOfParent = {
     //   graph.idToIdxFold(userId)(false){userIdx =>

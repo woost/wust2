@@ -93,7 +93,7 @@ object NotificationView {
     val visited = ArraySet.create(graph.nodes.length)
 
     def recurse(nodeIdx: Int): Option[UnreadNode] = {
-      if (visited contains nodeIdx) None
+      if ((visited contains nodeIdx) || !UnreadComponents.nodeRoleIsAccepted(graph.nodes(nodeIdx).role)) None
       else {
         visited += nodeIdx
 
@@ -150,7 +150,7 @@ object NotificationView {
     renderTime: EpochMilli,
     currentTime: EpochMilli,
     expanded: Var[Set[NodeId]],
-    isToplevel: Boolean = false,
+    isToplevel: Boolean = false
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
     // skip chains of already read nodes
@@ -167,18 +167,18 @@ object NotificationView {
         parentId = Some(parentId),
         parentIdAction = nodeId => state.rightSidebarNode.update({
           case Some(pref) if pref.nodeId == nodeId => None
-          case _ => Some(FocusPreference(nodeId))
+          case _                                   => Some(FocusPreference(nodeId))
         }: Option[FocusPreference] => Option[FocusPreference])
       )
     }
 
-    val deepUnreadChildrenCount = { 
-      calculateDeepUnreadChildren(graph, parentId, userId, renderTime).length 
+    val deepUnreadChildrenCount = {
+      calculateDeepUnreadChildren(graph, parentId, userId, renderTime).length
     }
     val expandToggleButton = Rx {
       val toggleIcon =
-        if(expanded().contains(parentId)) freeSolid.faAngleDown:VDomModifier
-        else freeSolid.faAngleRight:VDomModifier
+        if (expanded().contains(parentId)) freeSolid.faAngleDown: VDomModifier
+        else freeSolid.faAngleRight: VDomModifier
 
       VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
         div(
@@ -194,7 +194,7 @@ object NotificationView {
       VDomModifier.ifTrue(deepUnreadChildrenCount > 0)(
         UnreadComponents.unreadLabelElement(
           deepUnreadChildrenCount,
-          // marginRight := "0px"
+        // marginRight := "0px"
         )
       )
     }
@@ -204,12 +204,12 @@ object NotificationView {
         cls := "notifications-header",
 
         VDomModifier.ifNot(isToplevel)(
-          expandToggleButton,
+          expandToggleButton
         ),
         breadCrumbs,
         VDomModifier.ifNot(isToplevel)(
           deepUnreadChildrenLabel,
-          markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime),
+          markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime)
         )
       ),
       Rx {
@@ -236,13 +236,13 @@ object NotificationView {
                             VDomModifier.ifTrue(allSeen)(opacity := 0.5),
                             nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
                               VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-                            ),
+                              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
+                            )
                           ),
 
                           td(
                             cls := "top aligned",
-                            revisionTable,
+                            revisionTable
                           ),
 
                           td(
@@ -258,11 +258,11 @@ object NotificationView {
                             textAlign.right,
                             if (allSeen) VDomModifier(
                               freeRegular.faCircle,
-                              color.gray,
+                              color.gray
                             )
                             else VDomModifier(
                               color := Colors.unread,
-                              freeSolid.faCircle,
+                              freeSolid.faCircle
                             ),
 
                             cursor.pointer,
@@ -344,7 +344,7 @@ object NotificationView {
         display.inlineBlock,
         cls := "fa-fw",
         doIcon,
-        marginRight := "5px",
+        marginRight := "5px"
       ),
       doDescription
     )
@@ -358,7 +358,7 @@ object NotificationView {
           alignItems.center,
           Components.nodeAvatar(author, size = 12).apply(Styles.flexStatic, marginRight := "3px"),
           Components.displayUserName(author.data),
-          marginLeft.auto,
+          marginLeft.auto
         )
       }
     )
