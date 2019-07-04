@@ -75,7 +75,7 @@ object Importing {
       ),
 
       Source(
-        icon = img(src := "/trello.svg"),
+        icon = img(src := "/wunderlist.png"),
         title = "Wunderlist",
         description = "Wunderlist Export (JSON)",
         inputs = List(
