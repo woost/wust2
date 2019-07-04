@@ -108,6 +108,18 @@ object PageSettingsMenu {
         })
       }
 
+      val resyncWithTemplatesItem = Rx {
+        VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
+          val hasTemplates = state.rawGraph().idToIdxFold(channel.id)(false)(channelIdx => state.rawGraph().derivedFromTemplateEdgeIdx.sliceNonEmpty(channelIdx))
+          VDomModifier.ifTrue(hasTemplates)(
+            GraphChangesAutomationUI.resyncWithTemplatesItem(state, channel.id).foreach { changes =>
+              UI.toast("Successfully synced with templates", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
+              state.eventProcessor.changes.onNext(changes)
+            }
+          )
+        })
+      }
+
       val importItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
           Importing.settingsItem(state, channel.id)
@@ -129,7 +141,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, deleteItem)
     }
 
     GenericSidebar.SidebarConfig(

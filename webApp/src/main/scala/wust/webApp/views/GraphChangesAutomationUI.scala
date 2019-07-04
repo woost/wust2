@@ -219,4 +219,19 @@ object GraphChangesAutomationUI {
       }
     )
   }
+
+  // a settings item for automation to resync with existing templates
+  def resyncWithTemplatesItem(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    a(
+      cls := "item",
+      Elements.icon(Icons.sync),
+      span("Re-Sync with templates"),
+      cursor.pointer,
+      onClick.foreach {
+        val changes = GraphChangesAutomation.resyncWithTemplates(state.userId.now, state.rawGraph.now, nodeId)
+        sink.onNext(changes)
+        ()
+      }
+    )
+  }
 }
