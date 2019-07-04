@@ -87,21 +87,24 @@ object GraphChangesAutomationUI {
 
               Components.removeableList[Node](
                 templates,
-                state.eventProcessor.changes.redirectMap { templateNode =>
-                  val g = state.rawGraph.now
-                  val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
-                    val edge = graph.edges(edgeIdx).as[Edge.Child]
-                    edge.parentId == focusedId
-                  }
-
-                  GraphChanges(
-                    addEdges = existingParent.map { edgeIdx =>
+                multiObserver[Node](
+                  state.eventProcessor.changes.redirectMap { templateNode =>
+                    val g = state.rawGraph.now
+                    val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
                       val edge = graph.edges(edgeIdx).as[Edge.Child]
-                      edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
-                    }.toArray,
-                    delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
-                  )
-                },
+                      edge.parentId == focusedId
+                    }
+
+                    GraphChanges(
+                      addEdges = existingParent.map { edgeIdx =>
+                        val edge = graph.edges(edgeIdx).as[Edge.Child]
+                        edge.copy(data = edge.data.copy(deletedAt = Some(EpochMilli.now)))
+                      }.toArray,
+                      delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
+                    )
+                  },
+                  Sink.fromFunction(templateNode => selectedTemplate.update(_.filter(_.nodeId != templateNode.id)))
+                )
               )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
@@ -157,7 +160,7 @@ object GraphChangesAutomationUI {
       position.relative, // needed for right sidebar
       RightSidebar(
         state,
-        Rx { selectedTemplate().filter(pref => templatesRx().exists(_.id == pref.nodeId)) },
+        Rx { selectedTemplate() },
         nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)),
         viewRender,
         openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))
