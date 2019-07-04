@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import outwatch.dom.helpers.EmitterBuilder
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx.{Ctx, Rx, Var}
@@ -12,8 +13,9 @@ import wust.sdk.BaseColors
 import wust.sdk.NodeColor._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FocusPreference, GlobalState}
+import wust.webApp.state.{FocusPreference, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.Components._
+import wust.webUtil.Elements
 
 import scala.collection.breakOut
 
@@ -191,6 +193,30 @@ object GraphChangesAutomationUI {
       },
       cursor.pointer,
       onClick(Ownable(implicit ctx => modalConfig(state, focusedId, viewRender))) --> state.uiModalConfig
+    )
+  }
+
+  // a settings button for automation that opens the modal on click.
+  def copyItem(state: GlobalState, templateId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[(Node.Content, GraphChanges), VDomModifier] = EmitterBuilder.ofModifier { sink =>
+    a(
+      cls := "item",
+      Elements.icon(Icons.copy),
+      span("Copy Node"),
+      cursor.pointer,
+      onClick.foreach {
+        state.rawGraph.now.nodesById(templateId) match {
+          case Some(templateNode: Node.Content) =>
+            val newData = templateNode.data match {
+              case data: NodeData.EditableText => data.updateStr(s"Copy of '${data.str}'").getOrElse(data)
+              case data => data
+            }
+            val newNode = templateNode.copy(id = NodeId.fresh, data = newData)
+            val changes = GraphChangesAutomation.copySubGraphOfNode(state.userId.now, state.rawGraph.now, newNode, templateNode)
+            sink.onNext(newNode -> changes)
+            ()
+          case _ => ()
+        }
+      }
     )
   }
 }
