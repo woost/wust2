@@ -118,7 +118,7 @@ object Components {
     )
   }
 
-  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = false): VNode = {
+  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true): VNode = {
     renderNodeCard(node, contentInject = renderAsOneLineText, projectWithIcon = projectWithIcon)
   }
 
@@ -414,7 +414,7 @@ object Components {
       }
     }
 
-    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = false): VDomModifier = {
+    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
       def contentNode(node: Node) = div(
         cls := "nodecard-content",
         contentInject(node)
@@ -443,7 +443,7 @@ object Components {
       )
     }
 
-    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = false): VNode = {
+    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VNode = {
       div(
         keyed(node.id),
         renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
@@ -455,7 +455,7 @@ object Components {
         contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject)
       )
     }
-    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, projectWithIcon: Boolean = false): VNode = {
+    def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, projectWithIcon: Boolean = true): VNode = {
       renderNodeCard(
         node,
         contentInject = node => VDomModifier(renderNodeData(node.data, maxLength).apply(nodeInject), contentInject),
