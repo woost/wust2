@@ -84,7 +84,7 @@ object RightSidebar {
       UI.accordion(
         content = Seq(
           accordionEntry("Properties & Custom Fields", VDomModifier(
-            nodeProperties(state, focusPref),
+            nodeProperties(state, focusPref, parentIdAction),
             Styles.flexStatic,
           ), active = false),
           accordionEntry("Views", VDomModifier(
@@ -258,7 +258,7 @@ object RightSidebar {
     )
   }
 
-  private def nodeProperties(state: GlobalState, focusPref: FocusPreference)(implicit ctx: Ctx.Owner) = {
+  private def nodeProperties(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
 
     val propertySingle = Rx {
       val graph = state.rawGraph()
@@ -297,8 +297,9 @@ object RightSidebar {
     sealed trait AddProperty
     object AddProperty {
       case object None extends AddProperty
-      case object Custom extends AddProperty
-      final case class Key(key: String, tpe: NodeData.Type) extends AddProperty
+      case object CustomField extends AddProperty
+      final case class DefinedField(title: String, key: String, tpe: NodeData.Type) extends AddProperty
+      final case class EdgeReference(title: String, create: (NodeId, NodeId) => Edge) extends AddProperty
     }
 
     val addFieldMode = Var[AddProperty](AddProperty.None)
@@ -310,16 +311,26 @@ object RightSidebar {
     }
 
     addFieldMode.map {
-      case AddProperty.Custom =>
+      case AddProperty.CustomField =>
         ItemProperties.managePropertiesInline(
           state,
           ItemProperties.Target.Node(focusPref.nodeId)
         ).map(_ => AddProperty.None) --> addFieldMode
-      case AddProperty.Key(key, tpe) =>
+      case AddProperty.EdgeReference(title, create) =>
         ItemProperties.managePropertiesInline(
           state,
           ItemProperties.Target.Node(focusPref.nodeId),
-          ItemProperties.Config(prefilledType = Some(ItemProperties.TypeSelection.Data(tpe)), hidePrefilledType = true, prefilledKey = key)
+          ItemProperties.TypeConfig(prefilledType = Some(ItemProperties.TypeSelection.Ref), hidePrefilledType = true),
+          ItemProperties.EdgeFactory.Plain(create),
+          ItemProperties.Names(addButton = title)
+        ).map(_ => AddProperty.None) --> addFieldMode
+      case AddProperty.DefinedField(title, key, tpe) =>
+        ItemProperties.managePropertiesInline(
+          state,
+          ItemProperties.Target.Node(focusPref.nodeId),
+          ItemProperties.TypeConfig(prefilledType = Some(ItemProperties.TypeSelection.Data(tpe)), hidePrefilledType = true),
+          ItemProperties.EdgeFactory.labeledProperty(key),
+          names = ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.None => VDomModifier(
         div(
@@ -328,7 +339,7 @@ object RightSidebar {
           Rx {
             VDomModifier(
               propertySingle().properties.map { property =>
-                Components.removablePropertySection(state, property.key, property.values)
+                Components.removablePropertySection(state, property.key, property.values, parentIdAction)
               },
 
               VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
@@ -339,7 +350,7 @@ object RightSidebar {
                 propertySingle().info.reverseProperties.map { node =>
                   Components.nodeCard(node, maxLength = Some(50)).apply(
                     margin := "3px",
-                    Components.sidebarNodeFocusMod(state.rightSidebarNode, focusPref.nodeId)
+                    Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                   )
                 }
               ))
@@ -347,32 +358,77 @@ object RightSidebar {
           }
         ),
         div(
-          Styles.flex,
-          justifyContent.center,
+          div(
+            Styles.flex,
+            justifyContent.center,
 
-          button(
-            cls := "ui compact basic primary button mini",
-            "+ Add Due Date",
-            cursor.pointer,
-            onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
+            button(
+              cls := "ui compact basic primary button mini",
+              "+ Add Due Date",
+              cursor.pointer,
+              onClick.stopPropagation(AddProperty.DefinedField("Add Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.DateTime.tpe)) --> addFieldMode
+            ),
+
+            selfOrParentIsAutomationTemplate.map {
+              case false => VDomModifier.empty
+              case true => button(
+                cls := "ui compact basic primary button mini",
+                "+ Add Relative Due Date",
+                cursor.pointer,
+                onClick.stopPropagation(AddProperty.DefinedField("Add Relative Due Date", EdgeData.LabeledProperty.dueDate.key, NodeData.RelativeDate.tpe)) --> addFieldMode
+              )
+            },
+
+            button(
+              cls := "ui compact basic button mini",
+              "+ Add Custom Field",
+              cursor.pointer,
+              onClick.stopPropagation(AddProperty.CustomField) --> addFieldMode
+            )
           ),
 
           selfOrParentIsAutomationTemplate.map {
             case false => VDomModifier.empty
-            case true => button(
-              cls := "ui compact basic primary button mini",
-              "+ Add Relative Due Date",
-              cursor.pointer,
-              onClick.stopPropagation(AddProperty.Key(EdgeData.LabeledProperty.dueDate.key, NodeData.RelativeDate.tpe)) --> addFieldMode
-            )
-          },
+            case true =>
+              val referenceNodes = Rx {
+                val graph = state.rawGraph()
+                val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
+                graph.referencesTemplateEdgeIdx.map(nodeIdx)(edgeIdx => graph.nodes(graph.edgesIdx.b(edgeIdx)))
+              }
 
-          button(
-            cls := "ui compact basic button mini",
-            "+ Add Custom Field",
-            cursor.pointer,
-            onClick.stopPropagation(AddProperty.Custom) --> addFieldMode
-          )
+              def addButton = VDomModifier(
+                cursor.pointer,
+                onClick.stopPropagation(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, TemplateId(targetId)))) --> addFieldMode
+              )
+              def deleteButton(referenceNodeId: NodeId) = VDomModifier(
+                cursor.pointer,
+                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, TemplateId(referenceNodeId))))) --> state.eventProcessor.changes
+              )
+
+              div(
+                padding := "5px",
+                alignItems.flexStart,
+                Styles.flex,
+                justifyContent.spaceBetween,
+
+                b("Template Reference:", UI.popup := "Reference another template, such that the current node becomes the automation template for any existing node derived from the referenced template node."),
+
+                referenceNodes.map { nodes =>
+                  div(
+                    nodes.map { node =>
+                      div(
+                        Styles.flex,
+                        Components.nodeCard(node, maxLength = Some(200)).apply(
+                          Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
+                        ),
+                        div(padding := "2px", Icons.delete, deleteButton(node.id))
+                      )
+                    },
+                    button(cls := "ui compact basic button mini", "Add Template Reference", addButton)
+                  )
+                }
+              )
+          }
         ),
         renderSplit(
           left = VDomModifier(

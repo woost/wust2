@@ -36,8 +36,11 @@ object EdgeData {
   }
 
   case object Automated extends Named with EdgeData
+
   final case class DerivedFromTemplate(timestamp: EpochMilli) extends Named with EdgeData
   object DerivedFromTemplate extends Named
+
+  case object ReferencesTemplate extends Named with EdgeData
 
   sealed trait PropertyKey
   case object Assigned extends Named with EdgeData with PropertyKey

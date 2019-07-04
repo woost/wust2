@@ -191,7 +191,12 @@ object TableView {
                 alignItems.center,
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
-              ItemProperties.managePropertiesDropdown(state, ItemProperties.Target.Node(group.node.id), ItemProperties.Config(prefilledType = predictedType, hidePrefilledType = true, prefilledKey = property.key)),
+              ItemProperties.managePropertiesDropdown(
+                state,
+                ItemProperties.Target.Node(group.node.id),
+                ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
+                ItemProperties.EdgeFactory.labeledProperty(property.key)
+              ),
             )
           )
         }(breakOut)
@@ -217,9 +222,9 @@ object TableView {
               "+ New Column"
             ),
             ItemProperties.managePropertiesDropdown(state,
-              target = ItemProperties.Target.Custom({ (edgeData, changesf) =>
+              target = ItemProperties.Target.Custom({ (selectedKey, changesf) =>
                 if (keepPropertyAsDefault.now) {
-                  val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${edgeData.key}'"), targetRole)
+                  val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${selectedKey.fold("")(_.string)}'"), targetRole)
                   val changes = changesf(templateNode.id) merge GraphChanges(
                     addNodes = Array(templateNode),
                     addEdges = Array(

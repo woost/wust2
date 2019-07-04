@@ -36,7 +36,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
-    changes.addEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
     changes.delEdges mustEqual Array.empty
     changes.addNodes mustEqual Array.empty
   }
@@ -54,9 +56,11 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
-    changes.addEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
     changes.delEdges mustEqual Array.empty
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       newNode.copy(views = Some(templateViews))
     )
   }
@@ -76,7 +80,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
-    changes.addEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
     changes.delEdges mustEqual Array.empty
     changes.addNodes mustEqual Array.empty
   }
@@ -99,8 +105,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges mustEqual Array(
+    changes.addEdges must contain theSameElementsAs Array(
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -121,7 +128,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
 
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       copyNode(node)
     )
     changes.delEdges mustEqual Array.empty
@@ -129,6 +136,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(newNode.id)),
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -149,8 +157,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges mustEqual Array(
-      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id))
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -171,8 +180,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges mustEqual Array(
+    changes.addEdges must contain theSameElementsAs Array(
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -196,8 +206,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges mustEqual Array(
+    changes.addEdges must contain theSameElementsAs Array(
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(userNode.id: NodeId)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -219,7 +230,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
 
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       copyNode(node), copyNode(otherNode)
     )
     changes.delEdges mustEqual Array.empty
@@ -227,7 +238,46 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
-      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id))
+      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node inside template" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1 = newNodeContent("child1", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, childNode1, childNode2, templateNode1
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(node1.id), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+      Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -249,7 +299,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
 
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       copyNode(neutralNode)
     )
     changes.delEdges mustEqual Array.empty
@@ -257,6 +307,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
       Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("copy"), PropertyId(copyNodeId(neutralNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(neutralNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(neutralNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -275,12 +326,13 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("link"), PropertyId(linkedNode.id)),
         Edge.LabeledProperty(node.id, EdgeData.LabeledProperty("copy"), PropertyId(neutralNode.id)),
+        Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
       )
     )
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
 
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       copyNode(node), copyNode(neutralNode)
     )
     changes.delEdges mustEqual Array.empty
@@ -290,6 +342,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("copy"), PropertyId(copyNodeId(neutralNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
       Edge.DerivedFromTemplate(copyNodeId(neutralNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(neutralNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -313,8 +366,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges mustEqual Array(
+    changes.addEdges must contain theSameElementsAs Array(
       Edge.Child(ParentId(node.id), defaultChildData, ChildId(newNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 
@@ -336,7 +390,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     val changes = copySubGraphOfNode(graph, newNode, templateNode)
 
-    changes.addNodes mustEqual Array(
+    changes.addNodes must contain theSameElementsAs Array(
       copyNode(node), copyNode(otherNode)
     )
     changes.delEdges mustEqual Array.empty
@@ -344,7 +398,8 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
-      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id))
+      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
 
     val graph2 = graph applyChanges changes
@@ -352,9 +407,12 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes2.addNodes mustEqual Array.empty
     changes2.delEdges mustEqual Array.empty
-    changes2.addEdges mustEqual Array( // TODO: not really idempotent as of changes (but the result is still the same). it readds already existing edges of the newNode.
+    changes2.addEdges must contain theSameElementsAs Array( // TODO: not really idempotent as of changes (but the result is still the same). it readds already existing edges of the newNode.
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node.id))),
       Edge.Child(ParentId(copyNodeId(node.id)), defaultChildData, ChildId(copyNodeId(otherNode.id))),
+      Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
+      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
 
     val nextNode = newNodeContent("node2", NodeRole.Task)
@@ -385,6 +443,9 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.LabeledProperty(copyNodeId(node.id), EdgeData.LabeledProperty("copy"), PropertyId(copyNodeId(neutralNode.id))),
       Edge.DerivedFromTemplate(copyNodeId(nextNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(nextNode.id)),
       Edge.DerivedFromTemplate(copyNodeId(neutralNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(neutralNode.id)),
+      Edge.DerivedFromTemplate(copyNodeId(node.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node.id)),
+      Edge.DerivedFromTemplate(copyNodeId(otherNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(otherNode.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
   }
 }

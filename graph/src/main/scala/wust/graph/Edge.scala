@@ -95,6 +95,13 @@ object Edge {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, referenceNodeId = TemplateId(targetId))
   }
 
+  final case class ReferencesTemplate(nodeId: NodeId, referenceNodeId: TemplateId) extends Edge.Content {
+    def sourceId = nodeId
+    def targetId = referenceNodeId
+    def data = EdgeData.ReferencesTemplate
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, referenceNodeId = TemplateId(targetId))
+  }
+
   final case class LabeledProperty(nodeId: NodeId, data: EdgeData.LabeledProperty, propertyId: PropertyId) extends Edge.Content {
     def sourceId = nodeId
     def targetId = propertyId
@@ -118,6 +125,7 @@ object Edge {
     case data: EdgeData.Read                => new Edge.Read(sourceId, data, UserId(targetId))
 
     case EdgeData.Automated                 => new Edge.Automated(sourceId, TemplateId(targetId))
+    case EdgeData.ReferencesTemplate        => new Edge.ReferencesTemplate(sourceId, TemplateId(targetId))
     case data: EdgeData.Child               => new Edge.Child(ParentId(sourceId), data, ChildId(targetId))
     case data: EdgeData.LabeledProperty     => new Edge.LabeledProperty(sourceId, data, PropertyId(targetId))
     case data: EdgeData.DerivedFromTemplate => new Edge.DerivedFromTemplate(sourceId, data, TemplateId(targetId))

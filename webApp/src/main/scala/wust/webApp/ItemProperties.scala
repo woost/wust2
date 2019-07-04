@@ -41,23 +41,42 @@ object ItemProperties {
     final case class Ref(nodeId: NodeId) extends ValueSelection
   }
 
-  final case class Config(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, prefilledKey: String = "")
-  object Config {
-    def default = Config()
+  sealed trait EdgeFactory
+  object EdgeFactory {
+    final case class Plain(create: (NodeId, NodeId) => Edge) extends EdgeFactory
+    final case class WithKey(prefilledKey: String, create: (NodeId, String, NodeId) => Edge) extends EdgeFactory
+
+    @inline def labeledProperty: WithKey = labeledProperty("")
+    def labeledProperty(key: String): WithKey = WithKey(key, (sourceId, key, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key), PropertyId(targetId)))
+  }
+  final case class TypeConfig(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false)
+  object TypeConfig {
+    @inline def default = TypeConfig()
+  }
+
+  final case class Names(
+    addButton: String = "Add Custom Field"
+  )
+  object Names {
+    @inline def default = Names()
   }
 
   sealed trait Target
   object Target {
     final case class Node(id: NodeId) extends Target
-    final case class Custom(submitAction: (EdgeData.LabeledProperty, NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
+    final case class Custom(submitAction: (Option[NonEmptyString], NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
   }
 
-  def managePropertiesContent(state: GlobalState, target: Target, config: Config = Config.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
+  def managePropertiesContent(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
+
+    val prefilledKeyString = edgeFactory match {
+      case EdgeFactory.WithKey(prefilledKey, _) => Some(prefilledKey)
+      case _ => None
+    }
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-
     val propertyTypeSelection = Var[Option[TypeSelection]](config.prefilledType)
-    val propertyKeyInput = Var[Option[NonEmptyString]](NonEmptyString(config.prefilledKey))
+    val propertyKeyInput = Var[Option[NonEmptyString]](prefilledKeyString.flatMap(NonEmptyString(_)))
     val propertyValueInput = Var[Option[ValueSelection]](None)
     propertyTypeSelection.foreach { selection =>
       propertyValueInput() = None// clear value on each type change...
@@ -95,7 +114,7 @@ object ItemProperties {
         cls := "ui mini form",
         onDomMount.asHtml.foreach { element = _ },
 
-        VDomModifier.ifTrue(propertyKeyInput.now.isEmpty)( //do not select key if already specifided
+        VDomModifier.ifTrue(prefilledKeyString.isDefined && propertyKeyInput.now.isEmpty)( //do not select key if already specifided
           div(
             cls := "field",
             label("Name"),
@@ -129,7 +148,7 @@ object ItemProperties {
         )),
         div(
           cls := "field",
-          label(if (config.prefilledKey.isEmpty) "Value" else config.prefilledKey),
+          prefilledKeyString.map(prefilledKey => label(if (prefilledKey.isEmpty) "Value" else prefilledKey)),
           propertyTypeSelection.map(_.flatMap {
             case TypeSelection.Data(propertyType) =>
               EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
@@ -163,9 +182,9 @@ object ItemProperties {
           div(
             cls := "ui primary fluid button approve",
             Rx {
-              VDomModifier.ifTrue(propertyKeyInput().isEmpty || propertyValueInput().isEmpty)(cls := "disabled")
+              VDomModifier.ifTrue((propertyKeyInput().isEmpty && prefilledKeyString.isDefined) || propertyValueInput().isEmpty)(cls := "disabled")
             },
-            "Add Custom Field",
+            names.addButton,
             onClick.stopPropagation foreach(createProperty())
           ),
         )
@@ -173,19 +192,22 @@ object ItemProperties {
     }
 
     def handleAddProperty(propertyKey: Option[NonEmptyString], propertyValue: Option[ValueSelection])(implicit ctx: Ctx.Owner): Unit = for {
-      propertyKey <- propertyKey
       propertyValue <- propertyValue
+      if propertyKey.isDefined || prefilledKeyString.isEmpty
     } {
-
-      val propertyEdgeData = EdgeData.LabeledProperty(propertyKey.string)
 
       def sendChanges(addProperty: NodeId => GraphChanges, extendable: Either[NodeId, Node.Content]) = {
         val changes = target match {
-          case Target.Custom(submitAction, _) => submitAction(propertyEdgeData, addProperty)
+          case Target.Custom(submitAction, _) => submitAction(propertyKey, addProperty)
           case Target.Node(nodeId) => addProperty(nodeId)
         }
 
         state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
+      }
+
+      def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {
+        case EdgeFactory.Plain(create) => create(sourceId, targetId)
+        case EdgeFactory.WithKey(prefilledKey, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), targetId)
       }
 
       propertyValue match {
@@ -194,7 +216,7 @@ object ItemProperties {
           val propertyNode = Node.Content(NodeId.fresh, data, NodeRole.Neutral)
           def addProperty(targetNodeId: NodeId): GraphChanges = {
             val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-            val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(newPropertyNode.id))
+            val propertyEdge = createEdge(targetNodeId, newPropertyNode.id)
             GraphChanges(addNodes = Array(newPropertyNode), addEdges = Array(propertyEdge))
           }
 
@@ -202,7 +224,7 @@ object ItemProperties {
 
         case ValueSelection.Ref(nodeId)                  =>
           def addProperty(targetNodeId: NodeId): GraphChanges = {
-            val propertyEdge = Edge.LabeledProperty(targetNodeId, propertyEdgeData, PropertyId(nodeId))
+            val propertyEdge = createEdge(targetNodeId, nodeId)
             GraphChanges(addEdges = Array(propertyEdge))
           }
 
@@ -223,25 +245,25 @@ object ItemProperties {
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesDropdown(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
-        managePropertiesContent(state, target, config).mapResult(_.apply(width := "200px")) --> closeDropdown,
+        managePropertiesContent(state, target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
       )
     ), closeDropdown, dropdownModifier = dropdownModifier)
   }
 
-  def managePropertiesInline(state: GlobalState, target: Target, config: Config = Config.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
+  def managePropertiesInline(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
     div(
       padding := "10px",
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      managePropertiesContent(state, target, config, enableCancelButton = true) --> editMode,
+      managePropertiesContent(state, target, config, edgeFactory, names, enableCancelButton = true) --> editMode,
       descriptionModifier
     )
   }

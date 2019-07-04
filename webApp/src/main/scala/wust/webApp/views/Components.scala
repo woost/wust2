@@ -213,6 +213,7 @@ object Components {
     state: GlobalState,
     key: String,
     properties: Seq[PropertyData.PropertyValue],
+    parentIdAction: Option[NodeId] => Unit,
   )(implicit ctx: Ctx.Owner): VNode = {
 
     val editKey = Var(false)
@@ -245,7 +246,7 @@ object Components {
             margin := "3px 0px",
 
             editablePropertyNode(state, property.node, property.edge, editMode = editValue,
-              nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(FocusPreference(property.node.id))) --> state.rightSidebarNode),
+              nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(property.node.id)).foreach(parentIdAction(_))),
               maxLength = Some(100), config = EditableContent.Config.default,
             ),
             div(
@@ -877,12 +878,13 @@ object Components {
     sidebarNodeFocusVisualizeMod(sidebarNode, nodeId)
   )
 
-  def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+  def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = sidebarNodeFocusClickMod(sidebarNode, sidebarNode() = _, nodeId)
+  def sidebarNodeFocusClickMod(sidebarNode: Rx[Option[FocusPreference]], onSidebarNode: Option[FocusPreference] => Unit, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     cursor.pointer,
     onMouseDown.stopPropagation --> Observer.empty, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
     onClick.stopPropagation.foreach {
       val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
-      sidebarNode() = nextNode
+      onSidebarNode(nextNode)
     },
   )
 
