@@ -69,6 +69,7 @@ object Icons {
   val kanban: IconDefinition = freeSolid.faColumns
   val list: IconDefinition = freeSolid.faList
   val files: IconDefinition = freeSolid.faPaperclip
+  val projects: IconDefinition = freeSolid.faFolder
   val stage: IconDefinition = freeSolid.faColumns
   val tags: IconDefinition = freeSolid.faTags
   val tag: IconDefinition = freeSolid.faTag
@@ -94,6 +95,7 @@ object Icons {
   val `import`: IconDefinition =  freeSolid.faFileImport
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
   val mentionIn: IconDefinition = freeSolid.faCopy
+  val copy: IconDefinition = freeSolid.faCopy
   val pin: IconDefinition = freeSolid.faThumbtack
   val signOut: IconDefinition =  freeSolid.faSignOutAlt
   val menu: IconDefinition = freeSolid.faCog
