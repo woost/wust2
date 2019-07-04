@@ -92,7 +92,7 @@ object PageSettingsMenu {
                 GraphChanges.delete(ChildId(channelId), state.graph.now.parents(channelId).map(ParentId(_))(breakOut))
                   .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
               )
-              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) } at all places'", level = UI.ToastLevel.Success)
+              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
             }
           )
         })
