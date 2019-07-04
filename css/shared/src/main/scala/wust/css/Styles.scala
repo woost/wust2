@@ -805,6 +805,9 @@ object CommonStyles extends StyleSheet.Standalone {
     ),
     &(".breadcrumb") - (
       nodeCardShadow
+    ),
+    &(".breadcrumb.project") - (
+      boxShadow := none
     )
   )
 
