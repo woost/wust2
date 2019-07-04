@@ -216,7 +216,7 @@ object EditElementParser {
   }
   implicit object EditDurationMilli extends EditElementParser[DurationMilli] {
     def render(config: Config, initial: Task[Option[DurationMilli]], handler: Handler[EditInteraction[DurationMilli]])(implicit ctx: Ctx.Owner) = renderSimpleInput(
-      initial, handler, EmitterBuilder.combine(config.emitter, onChange), VDomModifier(config.inputModifier, config.modifier, Elements.durationInputMod),
+      initial, handler, EmitterBuilder.combine(config.emitter, onInput), VDomModifier(config.inputModifier, config.modifier, Elements.durationInputMod),
       elem => Task.pure(EditInteraction.fromEither(StringJsOps.safeToDuration(elem.value)))
     )
   }
@@ -390,6 +390,7 @@ object EditHelper {
     valueSetter: String => VDomModifier,
     valueGetter: Elem => String,
     parse: Elem => Task[EditInteraction[T]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    var ownValueParsed: Option[T] = None
     val valueHandler = Var[String]("")
     var elem: Elem = null
     initial.runToFuture.foreach { initial => //TODO meh?
@@ -401,7 +402,7 @@ object EditHelper {
       onDomMount.foreach { e => elem = e.asInstanceOf[Elem] },
 
       emitter(handler).foreach({
-        case EditInteraction.Input(v) =>
+        case EditInteraction.Input(v) if ownValueParsed.forall(_ != v) =>
           valueHandler() = ValueStringifier[T].stringify(v)
         case _ =>
       }: EditInteraction[T] => Unit),
@@ -409,7 +410,12 @@ object EditHelper {
       inputEmitter.transform(_.mapEval[EditInteraction[T]] { _ =>
         val str = valueGetter(elem)
         valueHandler() = str
-        parse(elem)
+        parse(elem).map {
+          case e@EditInteraction.Input(v) =>
+            ownValueParsed = Some(v)
+            e
+          case e => e
+        }
       }) --> handler,
 
       valueHandler.map(valueSetter)
