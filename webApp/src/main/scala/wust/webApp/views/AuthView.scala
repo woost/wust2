@@ -56,9 +56,9 @@ object AuthView {
 
     div(
       Styles.flex,
-      justifyContent.center,
-      alignItems.center,
+      overflow.auto,
       div(
+        margin.auto, // horizontal and vertical centering
         onSubmit.foreach(_.preventDefault()),
         padding := "10px",
         maxWidth := "400px",
