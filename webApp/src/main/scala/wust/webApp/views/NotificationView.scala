@@ -89,6 +89,23 @@ object NotificationView {
     )
   }
 
+  @inline def sortUnreadNodes[T](nodes: js.Array[T], index: T => Int, graph: Graph): Unit = {
+    nodes.sort { (aRaw, bRaw) =>
+      val a = index(aRaw)
+      val b = index(bRaw)
+      // projects should be last
+      if (graph.nodes(a).role == NodeRole.Project) 1
+      else if (graph.nodes(b).role == NodeRole.Project) -1
+      else {
+        val modifiedA = graph.nodeDeepModified(a)
+        val modifiedB = graph.nodeDeepModified(b)
+        val result = modifiedB.compare(modifiedA) // switched
+        if (result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+        else result
+      }
+    }
+  }
+
   private def calculateUnreadTree(graph: Graph, nodeIdx: Int, userId: UserId, renderTime: EpochMilli): Option[UnreadNode] = {
     val visited = ArraySet.create(graph.nodes.length)
 
@@ -107,7 +124,7 @@ object NotificationView {
           }
           // val isUnread = UnreadComponents.nodeIsUnread(graph, userId, nodeIdx)
           // if (unreadChildren.nonEmpty || isUnread) {
-          sortByDeepModifiedReversed[UnreadNode](unreadChildren, index = _.nodeIdx, graph)
+          sortUnreadNodes[UnreadNode](unreadChildren, index = _.nodeIdx, graph)
           constructUnreadTreeNode(nodeIdx, graph, userId, renderTime, unreadChildren)
           // } else None
         } else {
@@ -200,14 +217,12 @@ object NotificationView {
     }
 
     VDomModifier(
-      div(
-        cls := "notifications-header",
+      VDomModifier.ifNot(isToplevel)(
+        div(
+          cls := "notifications-header",
 
-        VDomModifier.ifNot(isToplevel)(
-          expandToggleButton
-        ),
-        breadCrumbs,
-        VDomModifier.ifNot(isToplevel)(
+          expandToggleButton,
+          breadCrumbs,
           deepUnreadChildrenLabel,
           markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime)
         )
