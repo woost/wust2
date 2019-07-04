@@ -53,6 +53,11 @@ final case class IdRef(
   id: String
 )
 
+final case class MemberCreator(
+  fullName: Option[String],
+  username: Option[String]
+)
+
 final case class ActionData(
   card: Option[IdRef],
   board: Option[IdRef],
@@ -64,7 +69,8 @@ final case class Action(
   id: String,
   `type`: String,
   date: String,
-  data: ActionData
+  data: ActionData,
+  memberCreator: Option[MemberCreator]
 )
 
 final case class Label(
@@ -196,7 +202,8 @@ object Trello {
           action.data.text.foreach { text =>
             action.data.card.foreach { card =>
               cardsById.get(card.id).foreach { nodeIdCard =>
-                val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(text), NodeRole.Message, NodeMeta.default, None)
+                val authorPrefix = action.memberCreator.flatMap(member => member.fullName.orElse(member.username)).fold("")(author => s"${author}: ")
+                val commentNode = Node.Content(NodeId.fresh, NodeData.Markdown(s"$authorPrefix$text"), NodeRole.Message, NodeMeta.default, None)
                 addNodes += commentNode
                 addEdges += Edge.Child(ParentId(nodeIdCard), ChildId(commentNode.id))
               }
