@@ -144,7 +144,7 @@ object RightSidebar {
       Rx {
         BreadCrumbs(
           state,
-          state.graph(),
+          state.rawGraph(),
           state.user(),
           state.page().parentId,
           Some(focusedNodeId.nodeId),

@@ -102,7 +102,7 @@ object BreadCrumbs {
             case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
               Components.nodeCardAsOneLineText(node, projectWithIcon = true).apply(
                 cls := "breadcrumb",
-                VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
+                // VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
                 DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
                 onClickFocus,
               )

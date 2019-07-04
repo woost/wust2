@@ -466,6 +466,8 @@ final class GraphLookup(
     case edgeIdx if edges(edgeIdx).targetId == userId => edges(edgeIdx).as[Edge.Expanded].data.isExpanded
   }
 
+  @inline def notDeletedParents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => notDeletedParentsIdx.map(idx)(nodeIds(_)))
+
   @inline def parents(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => parentsIdx.map(idx)(nodeIds(_)))
   @inline def children(nodeId: NodeId): Seq[NodeId] = idToIdxFold(nodeId)(Seq.empty[NodeId])(idx => childrenIdx.map(idx)(nodeIds(_)))
   @inline def parentsContains(nodeId: NodeId)(parentId: NodeId): Boolean = idToIdxFold(nodeId)(false) { nodeIdx =>
@@ -986,9 +988,9 @@ final class GraphLookup(
     def ResultMap() = Map[Distance, Map[GroupIdx, Seq[NodeId]]]()
 
     // NodeId -> distance
-    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](parents, node)
+    val (distanceMap: Map[NodeId, Int], _) = dijkstra[NodeId](notDeletedParents, node)
     val nodesInCycles = distanceMap.keys.filter(involvedInContainmentCycle)
-    val groupedByCycle: Map[Iterable[NodeId], Iterable[NodeId]] = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, parents) }
+    val groupedByCycle: Map[Iterable[NodeId], Iterable[NodeId]] = nodesInCycles.groupBy { node => dfs.withStartInCycleDetection[NodeId](node, notDeletedParents) }
     val distanceMapForCycles: Map[NodeId, (GroupIdx, Distance)] =
       groupedByCycle.flatMapWithIndex { (groupIdx, groupAndNodes) =>
           val (group, cycledNodes) = groupAndNodes
