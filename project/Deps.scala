@@ -10,7 +10,7 @@ object Deps {
   val acyclic = dep(acyclicDef % "provided")
 
   // testing
-  val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.7")
+  val scalatest = dep("org.scalatest" %%% "scalatest" % "3.0.8")
   val selenium = dep("org.seleniumhq.selenium" % "selenium-java" % "3.3.1")
   val specs2 = dep("org.specs2" %% "specs2-core" % "4.5.1")
   val mockito = dep("org.mockito" % "mockito-core" % "2.28.2")
