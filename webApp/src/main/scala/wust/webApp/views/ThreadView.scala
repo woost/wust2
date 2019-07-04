@@ -382,8 +382,8 @@ object ThreadView {
       selectByClickingOnRow,
 
       renderedMessage,
-      checkbox,
       messageTags(state, nodeId),
+      checkbox,
       controls,
     )
   }
