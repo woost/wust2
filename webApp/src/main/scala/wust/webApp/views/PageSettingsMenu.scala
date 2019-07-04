@@ -100,8 +100,8 @@ object PageSettingsMenu {
 
       val copyItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          GraphChangesAutomationUI.copyItem(state, channel.id).foreach({ case (node, changes) =>
-            UI.toast("Successfully copied node", StringOps.trimToMaxLength(node.str, 50), level = UI.ToastLevel.Success)
+          GraphChangesAutomationUI.copyNodeItem(state, channel.id).foreach({ case (node, changes) =>
+            UI.toast("Successfully copied node", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
             state.eventProcessor.changes.onNext(changes)
             state.urlConfig.update(_.focus(Page(node.id), needsGet = false))
           }: ((Node.Content, GraphChanges)) => Unit)

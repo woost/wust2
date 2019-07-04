@@ -196,8 +196,8 @@ object GraphChangesAutomationUI {
     )
   }
 
-  // a settings button for automation that opens the modal on click.
-  def copyItem(state: GlobalState, templateId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[(Node.Content, GraphChanges), VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  // a settings item for automation to copy from a node
+  def copyNodeItem(state: GlobalState, templateId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[(Node.Content, GraphChanges), VDomModifier] = EmitterBuilder.ofModifier { sink =>
     a(
       cls := "item",
       Elements.icon(Icons.copy),
