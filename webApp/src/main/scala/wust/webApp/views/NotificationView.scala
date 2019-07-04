@@ -164,8 +164,11 @@ object NotificationView {
         graph,
         state.user(),
         Some(focusedId),
-        parentId = Some(parentId), 
-        parentIdAction = nodeId => state.rightSidebarNode() = Some(FocusPreference(nodeId))
+        parentId = Some(parentId),
+        parentIdAction = nodeId => state.rightSidebarNode.update({
+          case Some(pref) if pref.nodeId == nodeId => None
+          case _ => Some(FocusPreference(nodeId))
+        }: Option[FocusPreference] => Option[FocusPreference])
       )
     }
 
