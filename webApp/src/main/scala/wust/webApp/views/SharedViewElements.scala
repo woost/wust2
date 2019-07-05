@@ -41,7 +41,7 @@ object SharedViewElements {
       val createdA = graph.nodeCreated(a)
       val createdB = graph.nodeCreated(b)
       val result = createdA.compare(createdB)
-      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b) // deterministic tie break
       else result
     }
   }
@@ -51,7 +51,7 @@ object SharedViewElements {
       val createdA = graph.nodeDeepCreated(a)
       val createdB = graph.nodeDeepCreated(b)
       val result = createdA.compare(createdB)
-      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b) // deterministic tie break
       else result
     }
   }
@@ -63,7 +63,7 @@ object SharedViewElements {
       val createdA = graph.nodeDeepCreated(a)
       val createdB = graph.nodeDeepCreated(b)
       val result = createdA.compare(createdB)
-      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
+      if(result == 0) graph.nodeIds(a) compare graph.nodeIds(b) // deterministic tie break
       else result
     }
   }

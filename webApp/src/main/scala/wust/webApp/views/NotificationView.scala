@@ -90,18 +90,27 @@ object NotificationView {
   }
 
   @inline def sortUnreadNodes[T](nodes: js.Array[T], index: T => Int, graph: Graph): Unit = {
+    @inline def compareDeepModified(a: Int, b: Int) = {
+      val modifiedA = graph.nodeDeepModified(a)
+      val modifiedB = graph.nodeDeepModified(b)
+      val result = modifiedB.compare(modifiedA)
+      if (result == 0) graph.nodeIds(a) compare graph.nodeIds(b) // deterministic tie break
+      else result
+    }
+
     nodes.sort { (aRaw, bRaw) =>
       val a = index(aRaw)
       val b = index(bRaw)
-      // projects should be last
-      if (graph.nodes(a).role == NodeRole.Project) 1
-      else if (graph.nodes(b).role == NodeRole.Project) -1
+      val aRole = graph.nodes(a).role
+      val bRole = graph.nodes(b).role
+      val aIsProject = aRole == NodeRole.Project
+      val bIsProject = bRole == NodeRole.Project
+      if (aIsProject && bIsProject) compareDeepModified(a, b)
+      else if (aIsProject && !bIsProject) 1 // put projects last
+      else if (!aIsProject && bIsProject) -1 // put projects last
       else {
-        val modifiedA = graph.nodeDeepModified(a)
-        val modifiedB = graph.nodeDeepModified(b)
-        val result = modifiedB.compare(modifiedA) // switched
-        if (result == 0) graph.nodeIds(a) compare graph.nodeIds(b)
-        else result
+        // reverse order for non-projects
+        compareDeepModified(b, a)
       }
     }
   }
