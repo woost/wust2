@@ -16,6 +16,47 @@ import scala.collection.mutable
 
 object GraphChangesAutomation {
 
+  val templateVariableRegex = "\\$\\{woost((\\.[^\\.\\}]+)+)\\}".r
+  def replaceVariableInText(graph: Graph, node: Node, templateText: String, replacedNodes: mutable.HashMap[NodeId, mutable.ArrayBuffer[NodeId]]): String = {
+    templateVariableRegex.replaceAllIn(templateText, { m =>
+      val propertyNames = m.group(1).drop(1).split("\\.")
+      val n = propertyNames.length
+      var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
+      referenceNodesPath(0) = Array(node)
+      var i = 0
+      var done = false
+      println("NAMES " + propertyNames.toList)
+      while (!done && i < n) {
+        val propertyName = propertyNames(i)
+        println("LLOKING " + propertyName + referenceNodesPath(i).toList)
+        val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName).map { id =>
+          replacedNodes
+        }
+        println("FOUND " + references.toList)
+        if (references.isEmpty) done = false
+        else referenceNodesPath(i + 1) = references
+
+        i += 1
+      }
+      println("PATH " + referenceNodesPath.toList)
+      val lastReferenceNodes = referenceNodesPath(n)
+      println("PATH LAST " + lastReferenceNodes)
+      if (lastReferenceNodes == null) "#NAME?"
+      else lastReferenceNodes.map(_.str).mkString(", ")
+    })
+  }
+
+  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String): Array[Node] = nodes.flatMap { node =>
+    graph.idToIdxFold(node.id)(Array.empty[Node]) { nodeIdx =>
+      val arr = Array.newBuilder[Node]
+      graph.propertiesEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+        val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+        if (edge.data.key == key) arr += graph.nodes(graph.edgesIdx.b(edgeIdx))
+      }
+      arr.result
+    }
+  }
+
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
   def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNode: Node, ignoreParents: Set[NodeId] = Set.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = {
@@ -136,6 +177,12 @@ object GraphChangesAutomation {
       }
     })
 
+    val newLabeledProperties = new mutable.HashMap[NodeId, mutable.ArrayBuffer[Edge.LabeledProperty]]
+    val updateNewLabeledProperties(nodeId: NodeId, edge: Edge.LabeledProperty): Unit = {
+      val buffer = newLabeledProperties.getOrElseUpdate(nodeId, new mutable.ArrayBuffer[Edge.LabeledProperty])
+      buffer += edge
+    }
+
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
@@ -169,7 +216,7 @@ object GraphChangesAutomation {
         }
     }
 
-    GraphChanges(addNodes = addNodes.result().distinct, addEdges = addEdges.result().distinct)
+    GraphChanges(addNodes = addNodes.result(), addEdges = addEdges.result()).consistent
   }
 
   // Whenever a graphchange is emitted in the frontend, we can enrich the changes here.
