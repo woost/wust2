@@ -53,7 +53,7 @@ class PushedClient private(val config: PushedConfig)(implicit system: ActorSyste
         FormData.BodyPart.Strict("app_secret", config.keys.appSecret),
         FormData.BodyPart.Strict("access_token", accessToken),
         FormData.BodyPart.Strict("target_type", "user"),
-        FormData.BodyPart.Strict("content", EmojiParser.parseToUnicode(content)),
+        FormData.BodyPart.Strict("content", EmojiParser.parseToText(content)),
         FormData.BodyPart.Strict("content_type", "url"),
         FormData.BodyPart.Strict("content_extra", url),
       ).toEntity
