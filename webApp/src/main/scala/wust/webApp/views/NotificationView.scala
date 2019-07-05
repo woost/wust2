@@ -52,7 +52,7 @@ object NotificationView {
       if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
       Rx {
-        val graph = state.rawGraph()
+        val graph = state.graph()
         val userId = state.user().id
         val page = state.page()
 
