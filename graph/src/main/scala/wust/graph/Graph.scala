@@ -93,10 +93,10 @@ final class Graph(val nodes: Array[Node], val edges: Array[Edge], createNewLooku
   }
 
   def applyChangesWithUser(user: Node.User, c: GraphChanges): Graph = {
-    val addNodes = if (c.addNodes.exists(_.id == user.id)) c.addNodes else c.addNodes ++ Set(user) // do not add author of change if the node was updated, the author might be outdated.
-    changeGraphInternal(addNodes = addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+    val addNodes = if (c.consistent.addNodes.exists(_.id == user.id)) c.consistent.addNodes else c.consistent.addNodes ++ Set(user) // do not add author of change if the node was updated, the author might be outdated.
+    changeGraphInternal(addNodes = addNodes, addEdges = c.consistent.addEdges, deleteEdges = c.consistent.delEdges)
   }
-  @inline def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.addNodes, addEdges = c.addEdges, deleteEdges = c.delEdges)
+  @inline def applyChanges(c: GraphChanges): Graph = changeGraphInternal(addNodes = c.consistent.addNodes, addEdges = c.consistent.addEdges, deleteEdges = c.consistent.delEdges)
 
   private def changeGraphInternal(addNodes: Array[Node], addEdges: Array[Edge], deleteEdges: Array[Edge] = Array.empty): Graph = {
 

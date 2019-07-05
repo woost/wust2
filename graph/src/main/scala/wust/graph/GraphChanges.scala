@@ -64,20 +64,44 @@ final case class GraphChanges(
   }
 
   lazy val consistent: GraphChanges = {
+    val addNodesBuilder = Array.newBuilder[Node]
     val addEdgesBuilder = Array.newBuilder[Edge]
-    val addEdgesSet = new mutable.HashSet[Edge]()
-    val delEdgesSet = HashSetFromArray(delEdges)
-    addEdges.foreach { addEdge =>
-      if (!addEdgesSet(addEdge) && !delEdgesSet(addEdge)) {
+    val delEdgesBuilder = Array.newBuilder[Edge]
+    val addNodesSet = new mutable.HashSet[NodeId]()
+    val addEdgesSet = new mutable.HashSet[EdgeEquality.Unique]()
+    val delEdgesSet = new mutable.HashSet[EdgeEquality.Unique]()
+    addNodes.reverseIterator.foreach { addNode =>
+      val seen = addNodesSet.contains(addNode.id)
+      if (!seen) {
+        addNodesBuilder += addNode
+        addNodesSet += addNode.id
+      }
+    }
+    delEdges.reverseIterator.foreach { delEdge =>
+      val seen = EdgeEquality.Unique(delEdge).fold(false) { edgeEquality =>
+        val r = delEdgesSet.contains(edgeEquality)
+        if (!r) delEdgesSet += edgeEquality
+        r
+      }
+      if (!seen) {
+        delEdgesBuilder += delEdge
+      }
+    }
+    addEdges.reverseIterator.foreach { addEdge =>
+      val seen = EdgeEquality.Unique(addEdge).fold(false) { edgeEquality =>
+        val r = addEdgesSet.contains(edgeEquality) || delEdgesSet.contains(edgeEquality)
+        if (!r) addEdgesSet += edgeEquality
+        r
+      }
+      if (!seen) {
         addEdgesBuilder += addEdge
-        addEdgesSet += addEdge
       }
     }
 
     copy(
-      addNodes = addNodes.distinct,
+      addNodes = addNodesBuilder.result,
       addEdges = addEdgesBuilder.result(),
-      delEdges = delEdges.distinct
+      delEdges = delEdgesBuilder.result()
     )
   }
 
