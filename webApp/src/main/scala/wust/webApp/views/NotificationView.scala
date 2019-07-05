@@ -49,6 +49,8 @@ object NotificationView {
       keyed,
       Styles.growFull,
       overflow.auto,
+      cls := "notifications-view",
+
       if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
       Rx {
@@ -131,11 +133,8 @@ object NotificationView {
               case _                    =>
             }
           }
-          // val isUnread = UnreadComponents.nodeIsUnread(graph, userId, nodeIdx)
-          // if (unreadChildren.nonEmpty || isUnread) {
           sortUnreadNodes[UnreadNode](unreadChildren, index = _.nodeIdx, graph)
           constructUnreadTreeNode(nodeIdx, graph, userId, renderTime, unreadChildren)
-          // } else None
         } else {
           val isUnread = UnreadComponents.nodeIsUnread(graph, userId, nodeIdx)
           constructUnreadTreeNode(nodeIdx, graph, userId, renderTime, js.Array[UnreadNode]())
@@ -246,8 +245,6 @@ object NotificationView {
             cls := "ui segment",
             marginTop := "0px", // remove semantic ui marginTop
             table(
-              cls := "ui fixed table",
-              border := "none",
               unreadParentNode.children.map { unreadNode =>
                 graph.nodes(unreadNode.nodeIdx) match {
                   case node: Node.Content => // node is always Content
@@ -256,9 +253,7 @@ object NotificationView {
                     VDomModifier(
                       VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
                         tr(
-                          padding := "0px",
                           td(
-                            cls := "top aligned",
                             width := "400px",
                             VDomModifier.ifTrue(allSeen)(opacity := 0.5),
                             nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
@@ -268,12 +263,10 @@ object NotificationView {
                           ),
 
                           td(
-                            cls := "top aligned",
                             revisionTable
                           ),
 
                           td(
-                            cls := "top aligned",
                             width := "20px",
 
                             //TODO: hack for having a better layout on mobile with this table
@@ -291,8 +284,6 @@ object NotificationView {
                               color := Colors.unread,
                               freeSolid.faCircle
                             ),
-
-                            cursor.pointer,
 
                             onClick.stopPropagation.foreach {
                               val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
@@ -440,8 +431,6 @@ object NotificationView {
       marginRight := "0px", // remove semantic ui button margin
       marginTop := "3px",
       marginBottom := "3px",
-
-      cursor.pointer,
 
       onClick.stopPropagation.foreach {
         val changes = GraphChanges(

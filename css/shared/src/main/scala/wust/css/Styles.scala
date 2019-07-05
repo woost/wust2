@@ -746,7 +746,43 @@ object CommonStyles extends StyleSheet.Standalone {
     )  
   )
 
+  ".notifications-view" - (
+    &(".notifications-header") - (
+      // marginTop(40 px),
+      Styles.flex,
+      justifyContent.spaceBetween,
+      flexWrap.wrapReverse,
+      alignItems.center,
 
+      &(".breadcrumbs") - (
+        margin(5 px, 0 px),
+        maxWidth(50 %%),
+
+        &(".divider") - (
+          color(c"rgba(165, 165, 165, 0.78)")
+        ),
+      ),
+      &(".breadcrumb") - (
+        nodeCardShadow
+      ),
+      &(".breadcrumb.project") - (
+        boxShadow := none
+      )
+    ),
+
+    &("table") - (
+      &("td") - (
+        verticalAlign.top,
+        &(".notifications-header") - (
+          flexWrap.nowrap,
+        ),
+      ),
+
+      &("td > .nodecard") - (
+          display.inlineFlex, // avoid 100% width given by div
+      ),
+    )
+  )
 
 
   // -- breadcrumb --
@@ -781,7 +817,8 @@ object CommonStyles extends StyleSheet.Standalone {
   ".pageheader" - (
     &(".breadcrumb") - (
       // pageheader has a colored background. No shadow needed.
-      (boxShadow := s"none").important // overwrite nodecard shadow
+      (boxShadow := s"none").important, // overwrite nodecard shadow
+      maxWidth(10 em),
     ),
 
     &(".breadcrumb.nodecard.project") - (
@@ -789,30 +826,11 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
-  ".notifications-header" - (
-    // marginTop(40 px),
-    Styles.flex,
-    justifyContent.spaceBetween,
-    flexWrap.wrapReverse,
-    alignItems.center,
-
-    &(".breadcrumbs") - (
-      margin(5 px, 0 px),
-
-      &(".divider") - (
-        color(c"rgba(165, 165, 165, 0.78)")
-      ),
-    ),
-    &(".breadcrumb") - (
-      nodeCardShadow
-    ),
-    &(".breadcrumb.project") - (
-      boxShadow := none
-    )
-  )
-
   ".sidebar" - (
     &(".breadcrumbs") - (
+    &(".breadcrumb") - (
+        maxWidth(7 em),
+    ),
       &(".divider") - (
         color(c"rgba(165, 165, 165, 0.78)")
       ),
@@ -825,7 +843,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
   ".breadcrumb," +
   ".breadcrumb *:not(.emoji-outer):not(.emoji-sizer):not(.emoji-inner)" - (
-    maxWidth(10 em),
     fontSize(13 px),
   )
 
