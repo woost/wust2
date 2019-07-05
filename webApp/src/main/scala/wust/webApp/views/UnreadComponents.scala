@@ -42,26 +42,13 @@ import scala.scalajs.js.JSConverters._
 
 object UnreadComponents {
 
-  val unreadStyle = VDomModifier(
-    float.right,
-    marginLeft := "5px",
-    marginRight := "5px",
-  )
-
   val unreadLabelElement = div(
-    cls := "ui label",
-    color := "white",
-    fontSize.xSmall,
-    unreadStyle,
-    backgroundColor := Colors.unread,
+    cls := "ui label unread-label",
   )
 
   val unreadDot = span(
+    cls := "unread-dot",
     freeSolid.faCircle,
-    color := Colors.unread,
-    transition := "color 10s",
-    transitionDelay := "5s",
-    unreadStyle
   )
 
   sealed trait ReadStatus

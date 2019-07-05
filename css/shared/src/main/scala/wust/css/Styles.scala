@@ -838,6 +838,29 @@ object CommonStyles extends StyleSheet.Standalone {
     marginRight(0 px),
     )
 
+
+  ".unread-label" - (
+    // important to overwrite "ui label"
+    float.right,
+    marginLeft(5 px).important,
+    marginRight(5 px).important,
+
+    color.white.important,
+    (fontSize := "x-small").important,
+    backgroundColor(Color(Colors.unread)).important,
+  )
+
+  ".unread-dot" - (
+    float.right,
+    marginLeft(5 px),
+    marginRight(5 px),
+
+    color(Color(Colors.unread)),
+    transition := "color 10s",
+    transitionDelay(5 seconds),
+  )
+
+
   "textarea.inputrow" - (
     marginBottom(0 px).important // since introducing the emoji-picker, textarea got a margin-bottm. Don't know why...
   )
