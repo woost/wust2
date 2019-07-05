@@ -320,7 +320,10 @@ object RightSidebar {
         ItemProperties.managePropertiesInline(
           state,
           ItemProperties.Target.Node(focusPref.nodeId),
-          ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Ref), hidePrefilledType = true),
+          ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Ref), hidePrefilledType = true, filterRefCompletion = { node =>
+            val graph = state.rawGraph.now
+            graph.idToIdxFold(node.id)(false)(graph.selfOrParentIsAutomationTemplate(_))
+          }),
           ItemProperties.EdgeFactory.Plain(create),
           ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode

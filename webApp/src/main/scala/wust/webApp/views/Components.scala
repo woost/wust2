@@ -643,7 +643,7 @@ object Components {
 
       def refEditor = EditableContent.customOrRender[Node](node, editMode,
         implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
-        implicit ctx => handler => searchAndSelectNodeApplied(state, handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config
+        implicit ctx => handler => searchAndSelectNodeApplied(state, handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id))), filter = (_:Node) => true), config
       ).editValue.collect { case newNode if newNode.id != edge.propertyId => GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id)))) } --> state.eventProcessor.changes
 
       div(
@@ -656,11 +656,11 @@ object Components {
       )
     }
 
-    def searchAndSelectNodeApplied(state: GlobalState, current: Var[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current.toObservable) --> current
-    def searchAndSelectNodeApplied(state: GlobalState, current: Handler[Option[NodeId]])(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current) --> current
-    def searchAndSelectNode(state: GlobalState, observable: Observable[Option[NodeId]])(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
+    def searchAndSelectNodeApplied(state: GlobalState, current: Var[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current.toObservable, filter: Node => Boolean) --> current
+    def searchAndSelectNodeApplied(state: GlobalState, current: Handler[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): VNode = searchAndSelectNode(state, current, filter) --> current
+    def searchAndSelectNode(state: GlobalState, observable: Observable[Option[NodeId]], filter: Node => Boolean)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[NodeId], VNode] =
       Components.searchInGraph(state.rawGraph, "Search", filter = {
-            case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role)
+            case n: Node.Content => InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task, NodeRole.Project)(n.role) && filter(n)
             case _ => false
       }, innerElementModifier = width := "100%", inputModifiers = width := "100%").mapResult[VNode] { search =>
         div(

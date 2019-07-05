@@ -48,7 +48,7 @@ object ItemProperties {
     @inline def labeledProperty(key: String): Property = labeledProperty(key, false)
     def labeledProperty(key: String, showOnCard: Boolean): Property = Property(key, showOnCard, (sourceId, key, showOnCard, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(targetId)))
   }
-  final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false)
+  final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, filterRefCompletion: Node => Boolean = _ => true)
   object TypeConfig {
     @inline def default = TypeConfig()
   }
@@ -167,7 +167,7 @@ object ItemProperties {
                   )).apply(editModifier)
                 }
               case NodeTypeSelection.Ref => Some(
-                Components.searchAndSelectNodeApplied(state, propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_)))).apply(
+                Components.searchAndSelectNodeApplied(state, propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
                   width := "100%",
                   marginTop := "4px",
                 )

@@ -6,6 +6,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.util.algorithm.dfs
+import wust.util.macros.InlineList
 
 import scala.collection.mutable
 
@@ -15,6 +16,88 @@ import scala.collection.mutable
 // then be applied to the new sourceId.
 
 object GraphChangesAutomation {
+
+  val templateVariableRegex = "\\$\\{woost((\\.[^\\.\\}]+)+)\\}".r
+  def replaceVariableInText(graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): String = {
+
+    templateVariableRegex.replaceAllIn(templateText, { m =>
+      val propertyNames = m.group(1).drop(1).split("\\.")
+      val n = propertyNames.length
+      var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
+      referenceNodesPath(0) = Array(node)
+      var isCommandMode = true
+      var i = 0
+      var done = false
+      while (!done && i < n) {
+        val propertyName = propertyNames(i)
+        if (isCommandMode) propertyName match {
+          case "field" =>
+            referenceNodesPath(i + 1) = referenceNodesPath(i)
+            isCommandMode = false
+          case "parent" =>
+            val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges)
+            if (references.isEmpty) done = true
+            else referenceNodesPath(i + 1) = references
+          case _ =>
+            done = true
+        } else {
+          val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges)
+          if (references.isEmpty) done = true
+          else referenceNodesPath(i + 1) = references
+          isCommandMode = true
+        }
+
+        i += 1
+      }
+
+      val lastReferenceNodes = referenceNodesPath(n)
+      if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) "#NAME?"
+      else lastReferenceNodes.map(_.str).mkString(", ")
+    })
+  }
+
+  def lookupParentVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+    val arr = Array.newBuilder[Node]
+
+    @inline def add(node: Node): Unit = if (InlineList.contains(NodeRole.Task, NodeRole.Message, NodeRole.Project, NodeRole.Note)(node.role)) arr += node
+
+    nodes.foreach { node =>
+      newEdges.get(node.id).foreach(_.foreach {
+        case (edge: Edge.Child, node) => add(node)
+        case (_, _) => ()
+      })
+
+      graph.idToIdxForeach(node.id) { nodeIdx =>
+        graph.parentsIdx.foreachElement(nodeIdx) { nodeIdx =>
+          add(graph.nodes(nodeIdx))
+        }
+      }
+    }
+
+    arr.result.distinct
+  }
+
+  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+    val arr = Array.newBuilder[Node]
+
+    @inline def add(edge: Edge.LabeledProperty, node: => Node): Unit = if (edge.data.key == key) arr += node
+
+    nodes.foreach { node =>
+      newEdges.get(node.id).foreach(_.foreach {
+        case (edge: Edge.LabeledProperty, node) => add(edge, node)
+        case (_, _) => ()
+      })
+
+      graph.idToIdxForeach(node.id) { nodeIdx =>
+        graph.propertiesEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+          add(edge, graph.nodes(graph.edgesIdx.b(edgeIdx)))
+        }
+      }
+    }
+
+    arr.result.distinct
+  }
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
@@ -136,6 +219,17 @@ object GraphChangesAutomation {
       }
     })
 
+    val newReplacableEdges = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
+    def updateNewReplacableEdges(edge: Edge, sourceNode: => Node, targetNode: => Node): Unit = edge match {
+      case edge: Edge.LabeledProperty =>
+        val buffer = newReplacableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
+        buffer += (edge -> targetNode)
+      case edge: Edge.Child =>
+        val buffer = newReplacableEdges.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)])
+        buffer += (edge -> sourceNode)
+      case _ => ()
+    }
+
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
@@ -152,24 +246,41 @@ object GraphChangesAutomation {
           case _ => ()
         })
       case edge                                                           =>
+
         // replace node ids to point to our copied nodes
         (replacedNodes.get(edge.sourceId), replacedNodes.get(edge.targetId)) match {
           case (Some(newSources), Some(newTargets)) if newSources.nonEmpty && newTargets.nonEmpty => newSources.foreach { newSource =>
             newTargets.foreach { newTarget =>
-              addEdges += edge.copyId(sourceId = newSource.id, targetId = newTarget.id)
+              val newEdge = edge.copyId(sourceId = newSource.id, targetId = newTarget.id)
+              addEdges += newEdge
+              updateNewReplacableEdges(newEdge, newSource, newTarget)
             }
           }
           case (None, Some(newTargets)) if newTargets.nonEmpty => newTargets.foreach { newTarget =>
-            addEdges += edge.copyId(sourceId = edge.sourceId, targetId = newTarget.id)
+            val newEdge = edge.copyId(sourceId = edge.sourceId, targetId = newTarget.id)
+            addEdges += newEdge
+            updateNewReplacableEdges(newEdge, graph.nodesByIdOrThrow(edge.sourceId), newTarget)
           }
           case (Some(newSources), None) if newSources.nonEmpty => newSources.foreach { newSource =>
-            addEdges += edge.copyId(sourceId = newSource.id, targetId = edge.targetId)
+            val newEdge = edge.copyId(sourceId = newSource.id, targetId = edge.targetId)
+            addEdges += newEdge
+            updateNewReplacableEdges(newEdge, newSource, graph.nodesByIdOrThrow(edge.targetId))
           }
           case (_, _) => ()
         }
     }
 
-    GraphChanges(addNodes = addNodes.result().distinct, addEdges = addEdges.result().distinct)
+    val addAndEditNodes: Array[Node] = addNodes.result().map {
+      case node: Node.Content => node.data match {
+        case data: NodeData.EditableText =>
+          val newStr = replaceVariableInText(graph, node, data.str, newReplacableEdges)
+          data.updateStr(newStr).fold(node)(data => node.copy(data = data))
+        case _ => node
+      }
+      case node => node
+    }
+
+    GraphChanges(addNodes = addAndEditNodes, addEdges = addEdges.result()).consistent
   }
 
   // Whenever a graphchange is emitted in the frontend, we can enrich the changes here.
