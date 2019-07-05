@@ -23,11 +23,11 @@ object Logging {
     val rootSetup = Logger.root
       .clearHandlers()
       .withHandler(formatter = simpleFormatter, minimumLevel = None, writer = ConsoleWriter)
-      .withHandler(
-        formatter = detailFormatter,
-        minimumLevel = Some(Level.Debug),
-        writer = FileWriter().path(LogPath.daily(prefix = id, directory = Paths.get("logs")))
-      )
+      // .withHandler(
+      //   formatter = detailFormatter,
+      //   minimumLevel = Some(Level.Debug),
+      //   writer = FileWriter().path(LogPath.daily(prefix = id, directory = Paths.get("logs")))
+      // )
 
 
     val configuredSetup = logstashConfig.fold(rootSetup) { logstashCfg =>

@@ -200,7 +200,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
   override def log(message: String): ApiFunction[Boolean] = Action { state =>
     val msgId = state.auth.fold("anonymous")(_.user.id.toCuidString)
-    ApiLogger.client.info(s"[$msgId] $message")
+    scribe.info(s"[$msgId] $message")
     Future.successful(true)
   }
 
@@ -228,21 +228,5 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
     requiredAction.flatMap { _ =>
       db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
     }
-  }
-}
-
-object ApiLogger {
-  import scribe._
-  import scribe.format._
-  import scribe.writer._
-
-  val client: Logger = {
-   val loggerName = "client-log"
-   val formatter = formatter"$date $levelPaddedRight - $message$newLine"
-   val writer = FileWriter().path(LogPath.daily(prefix = loggerName)).maxLogs(max = 3).maxSize(maxSizeInBytes = 100 * 1024 * 1024)
-   Logger(loggerName)
-     .clearHandlers()
-     .withHandler(formatter = formatter, minimumLevel = Some(Level.Info), writer = writer)
-     .replace()
   }
 }
