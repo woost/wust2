@@ -179,9 +179,12 @@ object NotificationView {
     isToplevel: Boolean = false
   )(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    // skip chains of already read nodes
     var unreadParentNode = unreadParentNodeInitial
-    while (unreadParentNode.children.size == 1 && unreadParentNode.children.head.newRevisions.isEmpty) unreadParentNode = unreadParentNode.children.head
+    if (!isToplevel) {
+      // skip chains of already read nodes
+      while (unreadParentNode.children.size == 1 && unreadParentNode.children.head.newRevisions.isEmpty)
+        unreadParentNode = unreadParentNode.children.head
+    }
 
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
