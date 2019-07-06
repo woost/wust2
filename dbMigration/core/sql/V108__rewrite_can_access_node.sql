@@ -72,13 +72,52 @@ begin
     ) on conflict do nothing;
 
     --- 2. temp-table resolve direct access by member edge (initial trivial access levels)
-    execute resolve_direct_accesslevel_in_can_access_cache_table(userid, get_via_url_mode);
+    -- resolve_direct_accesslevel_in_can_access_cache_table(userid, get_via_url_mode);
+    if get_via_url_mode then
+        update can_access_cache
+            set can_access = 'readwrite'
+            from node
+            where node.id = can_access_cache.id and accesslevel = 'readwrite';
+    end if;
+
+    -- write restrictions from node into can_access_cache
+    update can_access_cache
+        set can_access = 'restricted'
+        from node
+        where node.id = can_access_cache.id and accesslevel = 'restricted';
+
+    -- write accesslevel from member edge into can_access_cache
+    update can_access_cache
+        set can_access = (member.data->>'level')::accesslevel_tmp
+        from member
+        where member.source_nodeid = can_access_cache.id
+            AND member.target_userid = userid;
 
 
     --- 3. propagate access down iteratively until no more updates are possible
     loop
-        updated := propagate_permissions_in_can_access_cache_table(userid);
-        exit when updated = false;
+        -- call propagate_permissions_in_can_access_cache_table(userid, can_access_cache);
+
+        update can_access_cache
+            set can_access = 'readwrite'
+            FROM accessedge
+            JOIN can_access_cache as parent_cache ON parent_cache.id = source_nodeid AND parent_cache.can_access = 'readwrite'
+            JOIN node on node.id = target_nodeid -- AND node.accesslevel <> 'restricted'
+            WHERE
+                can_access_cache.can_access = 'unknown' and  -- only overwrite unknown rows
+                (
+                node.accesslevel is null or
+                node.accesslevel = 'readwrite' -- allow inheritance for all not-restricted nodes
+                or
+                EXISTS
+                    (SELECT *
+                     FROM member
+                     WHERE member.source_nodeid = accessedge.target_nodeid
+                         AND member.target_userid = userid
+                         AND member.data->>'level' = 'readwrite' )
+                );
+
+        exit when FOUND = false;
     end loop;
 
     -- raise warning '%', (select count(*) from can_access_cache);
