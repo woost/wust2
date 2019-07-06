@@ -45,7 +45,6 @@ $$ language sql stable;
 -- non-existing user: we assume that a user exist in any cases and therefore we do not handle this explicitly
 create function can_access_node_recursive(userid uuid, nodeid uuid, get_via_url_mode boolean) returns boolean as $$
 declare
-    updated boolean;
     current_level accesslevel_tmp;
 begin
     select can_access into current_level from can_access_cache where can_access_cache.id = nodeid and can_access_cache.can_access <> 'unknown';
@@ -77,14 +76,14 @@ begin
         update can_access_cache
             set can_access = 'readwrite'
             from node
-            where node.id = can_access_cache.id and accesslevel = 'readwrite';
+            where node.id = can_access_cache.id and accesslevel = 'readwrite' and can_access <> 'readwrite';
     end if;
 
     -- write restrictions from node into can_access_cache
     update can_access_cache
         set can_access = 'restricted'
         from node
-        where node.id = can_access_cache.id and accesslevel = 'restricted';
+        where node.id = can_access_cache.id and accesslevel = 'restricted' and can_access <> 'restricted';
 
     -- write accesslevel from member edge into can_access_cache
     update can_access_cache
@@ -93,8 +92,8 @@ begin
         where member.source_nodeid = can_access_cache.id
             AND member.target_userid = userid;
 
-
     --- 3. propagate access down iteratively until no more updates are possible
+    -- raise warning 'before propagation %: % unknown', nodeid, (select count(*) from can_access_cache where can_access = 'unknown');
     loop
         -- call propagate_permissions_in_can_access_cache_table(userid, can_access_cache);
 
@@ -117,6 +116,9 @@ begin
                          AND member.data->>'level' = 'readwrite' )
                 );
 
+        -- if FOUND = true then
+            -- raise warning 'updated %: % unknown', nodeid, (select count(*) from can_access_cache where can_access = 'unknown');
+        -- end if;
         exit when FOUND = false;
     end loop;
 
@@ -193,13 +195,20 @@ begin
 end;
 $$ language plpgsql strict;
 
+create procedure create_access_cache_table() as $$
+    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
+    create unique index on can_access_cache (id);
+    create index on can_access_cache (can_access);
+
+-- , set_by_membership boolean
+    -- create index on can_access_cache (set_by_membership);
+$$ language sql;
+
 create function can_access_node_providing_cache_table(userid uuid, nodeid uuid, get_via_url_mode boolean default false) returns boolean as $$
 declare
     result boolean;
 begin
-    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
-    create unique index on can_access_cache (id);
-    create index on can_access_cache (can_access, id);
+    call create_access_cache_table();
 
     result := can_access_node_expecting_cache_table(userid, nodeid, get_via_url_mode);
 
@@ -221,9 +230,7 @@ $$ language sql strict;
 -- returns nodeids which the user does not have permission for
 create function inaccessible_nodes(userid uuid, nodeids uuid[]) returns setof uuid[] as $$
 begin
-    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
-    create unique index on can_access_cache (id);
-    create index on can_access_cache (can_access, id);
+    call create_access_cache_table();
 
     return query select COALESCE(array_agg(id), array[]::uuid[]) from (select unnest(nodeids) id) ids where not can_access_node_expecting_cache_table(userid, id);
 
@@ -325,9 +332,7 @@ create aggregate array_merge_agg(anyarray) (
 
 
 
---    create temporary table can_access_cache (id uuid, level accesslevel_tmp);
---    create unique index on can_access_cache (id);
--- create index on can_access_cache (can_access, id);
+    -- call create_access_cache_table();
 
 --    -- TODO: get all transitive parents of page_parents and check for direct access (not inherited access) by readwrite-member edges or node.accesslevel = 'readwrite'.
 --    -- put the accessible nodeids into can_access_cache table with level 'readwrite'
@@ -452,9 +457,7 @@ create function graph_page(parents uuid[], userid uuid)
 returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
 as $$
 begin
-create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
-create unique index on can_access_cache (id);
-create index on can_access_cache (can_access, id);
+call create_access_cache_table();
 
 return query select * from induced_subgraph(
     array(
