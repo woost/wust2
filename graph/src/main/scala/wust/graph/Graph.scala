@@ -215,6 +215,7 @@ final class GraphLookup(
   private val outDegree = new Array[Int](n)
   private val parentsDegree = new Array[Int](n)
   private val contentsDegree = new Array[Int](n)
+  private val accessEdgeReverseDegree = new Array[Int](n)
   private val readDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
   private val messageChildrenDegree = new Array[Int](n)
@@ -252,6 +253,10 @@ final class GraphLookup(
         outDegree(sourceIdx) += 1
         edge match {
           case e: Edge.Content => contentsDegree(sourceIdx) += 1
+          case _               =>
+        }
+        edge match {
+          case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseDegree(targetIdx) += 1
           case _               =>
         }
 
@@ -327,6 +332,7 @@ final class GraphLookup(
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
+  private val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
   private val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
   private val childEdgeIdxBuilder = NestedArrayInt.builder(childrenDegree)
@@ -363,7 +369,11 @@ final class GraphLookup(
 
     edge match {
       case e: Edge.Content => contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+      case _               =>
+    }
 
+    edge match {
+      case _: Edge.Child | _: Edge.LabeledProperty => accessEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
       case _               =>
     }
 
@@ -442,6 +452,7 @@ final class GraphLookup(
   val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
   val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
   val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
+  val accessEdgeReverseIdx: NestedArrayInt = accessEdgeReverseIdxBuilder.result()
   val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
   val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
   val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
@@ -875,14 +886,15 @@ final class GraphLookup(
       }
       levelFromMembership match {
         case None => // if no member edge exists
-          // read access level directly from node
+          // read access level directly from node through inheritance
           nodes(nodeIdx).meta.accessLevel match {
-            case NodeAccess.Level(level) => level == AccessLevel.ReadWrite
-            case NodeAccess.Inherited =>
+            case NodeAccess.Inherited | NodeAccess.Level(AccessLevel.ReadWrite) =>
               // recursively inherit permissions from parents. minimum one parent needs to allow access.
-              parentsIdx.exists(nodeIdx) { parentIdx =>
+              accessEdgeReverseIdx.exists(nodeIdx) { edgeIdx =>
+                val parentIdx = edgesIdx.a(edgeIdx)
                 can_access_node_recursive(parentIdx, visited + nodeIdx)
               }
+            case NodeAccess.Level(level) => false
           }
         case Some(level) =>
           level == AccessLevel.ReadWrite
@@ -905,7 +917,8 @@ final class GraphLookup(
         case NodeAccess.Inherited =>
           // recursively inherit permissions from parents. minimum one parent needs to allow access.
           var hasPrivateLevel = false
-          parentsIdx.foreachElement(nodeIdx) { parentIdx =>
+          accessEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+            val parentIdx = edgesIdx.a(edgeIdx)
             inner(parentIdx, visited + nodeIdx) match {
               case Some(AccessLevel.ReadWrite)  => return Some(AccessLevel.ReadWrite) // return outer method, there is at least one public parent
               case Some(AccessLevel.Restricted) => hasPrivateLevel = true
