@@ -120,7 +120,7 @@ begin
 
     drop table if exists can_access_cache;
 
-    create temporary table can_access_cache (id uuid NOT NULL, can_access boolean) on commit drop;
+    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
     create unique index on can_access_cache (id);
 end
 $$ language plpgsql;
