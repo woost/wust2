@@ -320,7 +320,7 @@ object RightSidebar {
         ItemProperties.managePropertiesInline(
           state,
           ItemProperties.Target.Node(focusPref.nodeId),
-          ItemProperties.TypeConfig(prefilledType = Some(ItemProperties.TypeSelection.Ref), hidePrefilledType = true),
+          ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Ref), hidePrefilledType = true),
           ItemProperties.EdgeFactory.Plain(create),
           ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode
@@ -328,7 +328,7 @@ object RightSidebar {
         ItemProperties.managePropertiesInline(
           state,
           ItemProperties.Target.Node(focusPref.nodeId),
-          ItemProperties.TypeConfig(prefilledType = Some(ItemProperties.TypeSelection.Data(tpe)), hidePrefilledType = true),
+          ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Data(tpe)), hidePrefilledType = true),
           ItemProperties.EdgeFactory.labeledProperty(key),
           names = ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode

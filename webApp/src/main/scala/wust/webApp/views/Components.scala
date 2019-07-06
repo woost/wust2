@@ -66,6 +66,19 @@ object Components {
   def displayRelativeDate(data: NodeData.RelativeDate) = VDomModifier(span(color := "lightgray", "X + "), span(StringJsOps.durationToString(data.content)))
   def displayDate(data: NodeData.Date) = span(StringJsOps.dateToString(data.content))
   def displayDateTime(data: NodeData.DateTime) = span(StringJsOps.dateTimeToString(data.content))
+  def displayPlaceholder(data: NodeData.Placeholder) = span(
+    color := "#CD5C5C	",
+    freeSolid.faExclamation,
+    i(
+      marginLeft := "5px",
+      "TODO",
+      data.targetType match {
+        case Some(NodeTypeSelection.Ref) => " Link"
+        case Some(NodeTypeSelection.Data(data)) => s" Type:$data"
+        case None => ""
+      }
+    )
+  )
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
     case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
@@ -75,6 +88,7 @@ object Components {
     case data: NodeData.Date         => div(displayDate(data))
     case data: NodeData.DateTime     => div(displayDateTime(data))
     case data: NodeData.Duration     => div(displayDuration(data))
+    case data: NodeData.Placeholder   => div(displayPlaceholder(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -86,7 +100,7 @@ object Components {
     case data: NodeData.RelativeDate => div(displayRelativeDate(data))
     case data: NodeData.Date         => div(displayDate(data))
     case data: NodeData.DateTime     => div(displayDateTime(data))
-    case data: NodeData.Duration     => div(displayDuration(data))
+    case data: NodeData.Placeholder   => div(displayPlaceholder(data))
     case d                           => div(trimToMaxLength(d.str, maxLength))
   }
 
@@ -615,17 +629,20 @@ object Components {
     }
 
     def editablePropertyNode(state: GlobalState, node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+
+      def contentEditor = EditableContent.ofNodeOrRender(state, node, editMode, implicit ctx => node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
+
+      def refEditor = EditableContent.customOrRender[Node](node, editMode,
+        implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
+        implicit ctx => handler => searchAndSelectNodeApplied(state, handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config
+      ).editValue.collect { case newNode if newNode.id != edge.propertyId => GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id)))) } --> state.eventProcessor.changes
+
       div(
-        node.role match {
-          case NodeRole.Neutral => VDomModifier(
-            EditableContent.ofNodeOrRender(state, node, editMode, implicit ctx => node => renderNodeDataWithFile(state, node.id, node.data, maxLength), config).editValue.map(GraphChanges.addNode) --> state.eventProcessor.changes
-          )
-          case _ => VDomModifier(
-            EditableContent.customOrRender[Node](node, editMode,
-              implicit ctx => node => nodeCardWithFile(state, node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),
-              implicit ctx => handler => searchAndSelectNodeApplied(state, handler.edit.collectHandler[Option[NodeId]] { case id => EditInteraction.fromOption(id.map(state.rawGraph.now.nodesByIdOrThrow(_))) } { case EditInteraction.Input(v) => Some(v.id) }.transformObservable(_.prepend(Some(node.id)))), config
-            ).editValue.collect { case newNode if newNode.id != edge.propertyId => GraphChanges(delEdges = Array(edge), addEdges = Array(edge.copy(propertyId = PropertyId(newNode.id)))) } --> state.eventProcessor.changes,
-          )
+        (node.role, node.data) match {
+          case (_, NodeData.Placeholder(Some(NodeTypeSelection.Ref))) => refEditor
+          case (_, NodeData.Placeholder(Some(NodeTypeSelection.Data(_)))) => contentEditor
+          case (NodeRole.Neutral, _) => contentEditor
+          case (_, _) => refEditor
         }
       )
     }

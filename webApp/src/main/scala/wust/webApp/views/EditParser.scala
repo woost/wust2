@@ -134,7 +134,10 @@ object EditStringParser extends EditStringParserInstances0 {
     case _ => None
   }
   def forNode(node: Node): Option[EditStringParser[Node]] = node match {
-    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
+    case node: Node.Content => node.data match {
+      case NodeData.Placeholder(Some(NodeTypeSelection.Data(dataType))) => forNodeDataType(dataType).map(_.map(data => node.copy(data = data)))
+      case _ => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data)))
+    }
     case user: Node.User => Some(EditNodeDataUser(user.data).map[Node](data => user.copy(data = data)))
   }
 }
@@ -335,7 +338,10 @@ object EditElementParser {
     case _ => None
   })
   def forNode(node: Node)(implicit context: EditContext): Option[EditElementParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_, ValueStringifier.ValueNode)).orElse(node match {
-    case node: Node.Content => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data).widen[Node])
+    case node: Node.Content => node.data match {
+      case NodeData.Placeholder(Some(NodeTypeSelection.Data(dataType))) => forNodeDataType(dataType).map(_.map(data => node.copy(data = data))(_.data).widen[Node])
+      case _ => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data).widen[Node])
+    }
     case _ => None
   })
 }

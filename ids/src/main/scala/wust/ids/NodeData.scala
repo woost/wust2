@@ -69,6 +69,10 @@ object NodeData {
   }
   object RelativeDate extends Named
 
+  final case class Placeholder(targetType: Option[NodeTypeSelection]) extends Named with Content {
+    def str = ""
+  }
+  object Placeholder extends Named
 
   final case class User(name: String, isImplicit: Boolean, revision: Int) extends Named with NodeData {
     def str = name
@@ -78,3 +82,8 @@ object NodeData {
 
 }
 
+sealed trait NodeTypeSelection
+object NodeTypeSelection {
+  final case class Data(data: NodeData.Type) extends NodeTypeSelection
+  case object Ref extends NodeTypeSelection
+}

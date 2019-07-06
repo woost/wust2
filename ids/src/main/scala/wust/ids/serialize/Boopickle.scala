@@ -16,6 +16,7 @@ trait Boopickle {
 
   implicit val accessLevelPickler: Pickler[AccessLevel] = generatePickler[AccessLevel]
 
+  implicit val NodeTypeSelectionPickler: Pickler[NodeTypeSelection] = generatePickler[NodeTypeSelection]
   implicit val postContentPickler: Pickler[NodeData] = generatePickler[NodeData]
   implicit val connectionContentPickler: Pickler[EdgeData] = generatePickler[EdgeData]
 

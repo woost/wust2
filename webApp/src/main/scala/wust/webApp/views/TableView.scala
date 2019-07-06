@@ -174,8 +174,8 @@ object TableView {
       val predictedType = property.groups.find(_.values.nonEmpty).map { group =>
         val node = group.values.head.node
         node.role match {
-          case NodeRole.Neutral => ItemProperties.TypeSelection.Data(node.data.tpe)
-          case _ => ItemProperties.TypeSelection.Ref
+          case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
+          case _ => NodeTypeSelection.Ref
         }
       }
       UI.Column(

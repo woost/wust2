@@ -22,23 +22,21 @@ import wust.webApp.views._
  */
 object ItemProperties {
 
-  sealed trait TypeSelection
-  object TypeSelection {
-    final case class Data(data: NodeData.Type) extends TypeSelection
-    case object Ref extends TypeSelection
-
+  object NodeTypeSelectionHelper {
     import io.circe._
     import io.circe.generic.auto._
     import wust.ids.serialize.Circe._
 
-    implicit val parser: EditStringParser[TypeSelection] = EditImplicits.circe.StringParser[TypeSelection]
-    implicit val stringifier: ValueStringifier[TypeSelection] = EditImplicits.circe.Stringifier[TypeSelection]
+    implicit val parser: EditStringParser[NodeTypeSelection] = EditImplicits.circe.StringParser[NodeTypeSelection]
+    implicit val stringifier: ValueStringifier[NodeTypeSelection] = EditImplicits.circe.Stringifier[NodeTypeSelection]
   }
+  import NodeTypeSelectionHelper._
 
   sealed trait ValueSelection
   object ValueSelection {
     final case class Data(nodeData: NodeData.Content) extends ValueSelection
     final case class Ref(nodeId: NodeId) extends ValueSelection
+    case object Placeholder extends ValueSelection
   }
 
   sealed trait EdgeFactory
@@ -49,7 +47,7 @@ object ItemProperties {
     @inline def labeledProperty: WithKey = labeledProperty("")
     def labeledProperty(key: String): WithKey = WithKey(key, (sourceId, key, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key), PropertyId(targetId)))
   }
-  final case class TypeConfig(prefilledType: Option[TypeSelection] = Some(TypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false)
+  final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false)
   object TypeConfig {
     @inline def default = TypeConfig()
   }
@@ -75,14 +73,15 @@ object ItemProperties {
     }
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    val propertyTypeSelection = Var[Option[TypeSelection]](config.prefilledType)
+    val propertyTypeSelection = Var[Option[NodeTypeSelection]](config.prefilledType)
     val propertyKeyInput = Var[Option[NonEmptyString]](prefilledKeyString.flatMap(NonEmptyString(_)))
     val propertyValueInput = Var[Option[ValueSelection]](None)
+    val propertyValueIsPlaceholder = propertyValueInput.map(_.exists { case ValueSelection.Placeholder => true; case _ => false })
     propertyTypeSelection.foreach { selection =>
       propertyValueInput() = None// clear value on each type change...
       if (propertyKeyInput.now.isEmpty) selection.foreach {
-        case TypeSelection.Data(NodeData.File.tpe) => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
-        case TypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.reference.key)
+        case NodeTypeSelection.Data(NodeData.File.tpe) => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
+        case NodeTypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.reference.key)
         case _ => ()
       }
     }
@@ -107,7 +106,7 @@ object ItemProperties {
       }
 
       def createProperty() = {
-        handleAddProperty(propertyKeyInput.now, propertyValueInput.now)
+        handleAddProperty(propertyTypeSelection.now, propertyKeyInput.now, propertyValueInput.now)
       }
 
       form(
@@ -131,42 +130,52 @@ object ItemProperties {
           cls := "field",
           label("Type"),
           selfOrParentIsAutomationNode.map { isTemplate =>
-            EditableContent.select[TypeSelection](
+            EditableContent.select[NodeTypeSelection](
               "Select a field type",
               propertyTypeSelection,
-              ("Text", TypeSelection.Data(NodeData.Markdown.tpe)) ::
-              ("Number", TypeSelection.Data(NodeData.Decimal.tpe)) ::
-              ("File", TypeSelection.Data(NodeData.File.tpe)) ::
-              ("Date", TypeSelection.Data(NodeData.Date.tpe)) ::
-              ("DateTime", TypeSelection.Data(NodeData.DateTime.tpe)) ::
-              ("Duration", TypeSelection.Data(NodeData.Duration.tpe)) ::
-              (if (isTemplate) ("Relative Date", TypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
-              ("Refer to...", TypeSelection.Ref) ::
+              ("Text", NodeTypeSelection.Data(NodeData.Markdown.tpe)) ::
+              ("Number", NodeTypeSelection.Data(NodeData.Decimal.tpe)) ::
+              ("File", NodeTypeSelection.Data(NodeData.File.tpe)) ::
+              ("Date", NodeTypeSelection.Data(NodeData.Date.tpe)) ::
+              ("DateTime", NodeTypeSelection.Data(NodeData.DateTime.tpe)) ::
+              ("Duration", NodeTypeSelection.Data(NodeData.Duration.tpe)) ::
+              (if (isTemplate) ("Relative Date", NodeTypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
+              ("Refer to...", NodeTypeSelection.Ref) ::
               Nil
             ).apply(tabIndex := -1)
           }
         )),
+        propertyValueIsPlaceholder.map {
+          case false => div(
+            cls := "field",
+            prefilledKeyString.map(prefilledKey => label(if (prefilledKey.isEmpty) "Value" else prefilledKey)),
+            propertyTypeSelection.map(_.flatMap {
+              case NodeTypeSelection.Data(propertyType) =>
+                EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
+                  EditableContent.editorRx[NodeData.Content](propertyValueInput.imap[Option[NodeData.Content]](_.collect { case ValueSelection.Data(data) => data })(_.map(ValueSelection.Data(_))), editableConfig.copy(
+                    modifier = VDomModifier(
+                      width := "100%",
+                      marginTop := "4px",
+                      Elements.onEnter.stopPropagation foreach(createProperty())
+                    )
+                  )).apply(editModifier)
+                }
+              case NodeTypeSelection.Ref => Some(
+                Components.searchAndSelectNodeApplied(state, propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_)))).apply(
+                  width := "100%",
+                  marginTop := "4px",
+                )
+              )
+            }),
+          )
+          case true => VDomModifier.empty
+        },
         div(
           cls := "field",
-          prefilledKeyString.map(prefilledKey => label(if (prefilledKey.isEmpty) "Value" else prefilledKey)),
-          propertyTypeSelection.map(_.flatMap {
-            case TypeSelection.Data(propertyType) =>
-              EditElementParser.forNodeDataType(propertyType) map { implicit parser =>
-                EditableContent.editorRx[NodeData.Content](propertyValueInput.imap[Option[NodeData.Content]](_.collect { case ValueSelection.Data(data) => data })(_.map(ValueSelection.Data(_))), editableConfig.copy(
-                  modifier = VDomModifier(
-                    width := "100%",
-                    marginTop := "4px",
-                    Elements.onEnter.stopPropagation foreach(createProperty())
-                  )
-                )).apply(editModifier)
-              }
-            case TypeSelection.Ref => Some(
-              Components.searchAndSelectNodeApplied(state, propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_)))).apply(
-                width := "100%",
-                marginTop := "4px",
-              )
-            )
-          }),
+          UI.toggleEmitter("Value is a Placeholder", propertyValueIsPlaceholder).map {
+            case true => Some(ValueSelection.Placeholder)
+            case false => None
+          } --> propertyValueInput
         ),
         div(
           marginTop := "5px",
@@ -191,7 +200,7 @@ object ItemProperties {
       )
     }
 
-    def handleAddProperty(propertyKey: Option[NonEmptyString], propertyValue: Option[ValueSelection])(implicit ctx: Ctx.Owner): Unit = for {
+    def handleAddProperty(propertyType: Option[NodeTypeSelection], propertyKey: Option[NonEmptyString], propertyValue: Option[ValueSelection])(implicit ctx: Ctx.Owner): Unit = for {
       propertyValue <- propertyValue
       if propertyKey.isDefined || prefilledKeyString.isEmpty
     } {
@@ -210,17 +219,24 @@ object ItemProperties {
         case EdgeFactory.WithKey(prefilledKey, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), targetId)
       }
 
+      def addDataProperty(data: NodeData.Content): Unit = {
+        val propertyNode = Node.Content(NodeId.fresh, data, NodeRole.Neutral)
+        def addProperty(targetNodeId: NodeId): GraphChanges = {
+          val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
+          val propertyEdge = createEdge(targetNodeId, newPropertyNode.id)
+          GraphChanges(addNodes = Array(newPropertyNode), addEdges = Array(propertyEdge))
+        }
+
+        sendChanges(addProperty, Right(propertyNode))
+      }
+
       propertyValue match {
+        case ValueSelection.Placeholder =>
+          val data = NodeData.Placeholder(propertyType)
+          addDataProperty(data)
 
         case ValueSelection.Data(data: NodeData.Content) =>
-          val propertyNode = Node.Content(NodeId.fresh, data, NodeRole.Neutral)
-          def addProperty(targetNodeId: NodeId): GraphChanges = {
-            val newPropertyNode = propertyNode.copy(id = NodeId.fresh)
-            val propertyEdge = createEdge(targetNodeId, newPropertyNode.id)
-            GraphChanges(addNodes = Array(newPropertyNode), addEdges = Array(propertyEdge))
-          }
-
-          sendChanges(addProperty, Right(propertyNode))
+          addDataProperty(data)
 
         case ValueSelection.Ref(nodeId)                  =>
           def addProperty(targetNodeId: NodeId): GraphChanges = {
