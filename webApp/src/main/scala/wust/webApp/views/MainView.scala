@@ -104,7 +104,7 @@ object MainView {
       Rx {
         VDomModifier.ifTrue(viewIsContent()) (
           if (state.isLoading()) spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
-          else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := state.pageStyle().bgLightColor)
+          else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
           else VDomModifier.empty
         )
       },
