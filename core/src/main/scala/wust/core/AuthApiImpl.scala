@@ -207,17 +207,13 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
 
   def acceptInvitation(token: Authentication.Token): ApiFunction[Unit] = Effect.assureDbUser { (_, user) =>
     jwt.invitationUserFromToken(token) match {
-      case Some(tokenUser) => tokenUser match {
-        case tokenUser: AuthUser.Implicit =>
-          db.ctx.transaction { implicit ec =>
-            for {
-              Some(_) <- db.user.checkIfEqualUserExists(tokenUser)
-              true <- db.user.mergeImplicitUser(implicitId = tokenUser.id, userId = user.id)
-            } yield Returns((), Seq(ReplaceNode(tokenUser.id, user.toNode)))
-          }
-        case _ => Future.successful(Returns.error(ApiError.Forbidden))
+      case Some(tokenUser: AuthUser.Implicit) => db.ctx.transaction { implicit ec =>
+        for {
+            Some(_) <- db.user.checkIfEqualUserExists(tokenUser)
+            true <- db.user.mergeImplicitUser(implicitId = tokenUser.id, userId = user.id)
+          } yield Returns((), Seq(ReplaceNode(tokenUser.id, user.toNode)))
       }
-      case None => Future.successful(Returns.error(ApiError.Forbidden))
+      case _ => Future.successful(Returns.error(ApiError.Forbidden))
     }
   }
 
