@@ -61,36 +61,43 @@ begin
         with recursive
         transitive_parents(id) AS (
             select id from node where id = nodeid
-            union
+            union -- discards duplicates, therefore handles cycles and diamond cases
             select contentedge.source_nodeid
             FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
             where not exists (select * from can_access_cache where can_access_cache.id = contentedge.source_nodeid) -- if node already exists in cache, don't go further
 
         )
-        select id, 'unknown' from transitive_parents
+        select id, 'unknown', false from transitive_parents
     ) on conflict do nothing;
 
     --- 2. temp-table resolve direct access by member edge (initial trivial access levels)
     -- resolve_direct_accesslevel_in_can_access_cache_table(userid, get_via_url_mode);
+    -- these 3 update queries overwrite each other, so the order matters
     if get_via_url_mode then
         update can_access_cache
             set can_access = 'readwrite'
             from node
-            where node.id = can_access_cache.id and accesslevel = 'readwrite' and can_access <> 'readwrite';
+            where set_by_membership = false and node.id = can_access_cache.id and accesslevel = 'readwrite' and can_access <> 'readwrite';
     end if;
 
     -- write restrictions from node into can_access_cache
     update can_access_cache
         set can_access = 'restricted'
         from node
-        where node.id = can_access_cache.id and accesslevel = 'restricted' and can_access <> 'restricted';
+        where set_by_membership = false and node.id = can_access_cache.id and accesslevel = 'restricted' and can_access <> 'restricted';
 
     -- write accesslevel from member edge into can_access_cache
     update can_access_cache
-        set can_access = (member.data->>'level')::accesslevel_tmp
+        set can_access = (member.data->>'level')::accesslevel_tmp,
+        set_by_membership = true
         from member
-        where member.source_nodeid = can_access_cache.id
+        where set_by_membership = false and member.source_nodeid = can_access_cache.id
             AND member.target_userid = userid;
+
+    -- raise warning 'after member %', (select array_agg(to_json(can_access_cache)) from can_access_cache);
+    -- raise warning 'after member FOUND %', FOUND;
+
+
 
     --- 3. propagate access down iteratively until no more updates are possible
     -- raise warning 'before propagation %: % unknown', nodeid, (select count(*) from can_access_cache where can_access = 'unknown');
@@ -106,8 +113,7 @@ begin
                 can_access_cache.can_access = 'unknown' and  -- only overwrite unknown rows
                 (
                 node.accesslevel is null or
-                node.accesslevel = 'readwrite' -- allow inheritance for all not-restricted nodes
-                or
+                node.accesslevel = 'readwrite' or -- allow inheritance for all not-restricted nodes
                 EXISTS
                     (SELECT *
                      FROM member
@@ -122,7 +128,10 @@ begin
         exit when FOUND = false;
     end loop;
 
-    -- raise warning '%', (select count(*) from can_access_cache);
+
+    -- raise warning 'after propagate FOUND %', FOUND;
+    -- raise warning 'after propagate %', (select array_agg(to_json(can_access_cache)) from can_access_cache);
+    -- raise warning '';
 
     --- 4. return nodes ids from table which have access
     return exists(select from can_access_cache where can_access_cache.id = nodeid and can_access_cache.can_access = 'readwrite');
@@ -196,12 +205,10 @@ end;
 $$ language plpgsql strict;
 
 create procedure create_access_cache_table() as $$
-    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp) on commit drop;
+    create temporary table can_access_cache (id uuid NOT NULL, can_access accesslevel_tmp NOT NULL, set_by_membership boolean NOT NULL) on commit drop;
     create unique index on can_access_cache (id);
     create index on can_access_cache (can_access);
-
--- , set_by_membership boolean
-    -- create index on can_access_cache (set_by_membership);
+    create index on can_access_cache (set_by_membership);
 $$ language sql;
 
 create function can_access_node_providing_cache_table(userid uuid, nodeid uuid, get_via_url_mode boolean default false) returns boolean as $$
