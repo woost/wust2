@@ -935,7 +935,7 @@ object Components {
   def betaSign(state:GlobalState)(implicit ctx:Ctx.Owner) = maturityLabel("beta").apply (
     Elements.onClickN(desiredClicks = 8).foreach {
       Logging.setup(enabled = true, debugEnabled = true)
-      wust.webApp.state.GlobalStateFactory.setupStateDebugLogging(state)
+      wust.webApp.state.GlobalStateFactory.setupStateDebugLogging()
       DevOnly.isTrue = true
       dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled")
     }

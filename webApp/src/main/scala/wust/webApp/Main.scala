@@ -35,23 +35,22 @@ object Main {
 
     setupDom()
 
-    // register the serviceworker and get an update observable when serviceworker updates are available.
-    val swUpdateIsAvailable = if (!LinkingInfo.developmentMode) ServiceWorker.register() else Observable.empty
+    GlobalStateFactory.init()
 
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
-    val state = GlobalStateFactory.create(swUpdateIsAvailable)
+    
+    setupFomanticUISearch(GlobalState)
 
-    setupFomanticUISearch(state)
-
-    DevOnly { enableEventLogging(state) }
-    SortableEvents.init(state)
+    DevOnly { enableEventLogging(GlobalState) }
+    SortableEvents.init(GlobalState)
 
     // render main content
-    OutWatch.renderReplace("#container", MainView(state)).unsafeRunSync()
-    // render single modal instance for the whole page that can be configured via state.uiModalConfig
-    OutWatch.renderReplace("#modal-placeholder", Modal.modal(state.uiModalConfig, state.uiModalClose)).unsafeRunSync()
-    // render single sidebar instance for the whole page that can be configured via state.uiSidebarConfig
-    OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(state.uiSidebarConfig, state.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
+    import GlobalState.ctx
+    OutWatch.renderReplace("#container", MainView(GlobalState)).unsafeRunSync()
+    // render single modal instance for the whole page that can be configured via GlobalState.uiModalConfig
+    OutWatch.renderReplace("#modal-placeholder", Modal.modal(GlobalState.uiModalConfig, GlobalState.uiModalClose)).unsafeRunSync()
+    // render single sidebar instance for the whole page that can be configured via GlobalState.uiSidebarConfig
+    OutWatch.renderReplace("#sidebar-placeholder", GenericSidebar.sidebar(GlobalState.uiSidebarConfig, GlobalState.uiSidebarClose, targetSelector = Some(".main-viewrender"))).unsafeRunSync()
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))

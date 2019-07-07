@@ -27,40 +27,11 @@ import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
 
 object GlobalStateFactory {
-  def create(swUpdateIsAvailable: Observable[Unit])(implicit ctx: Ctx.Owner): GlobalState = {
-    val sidebarOpen = Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
-    val urlConfig = UrlRouter.variable.imap(UrlConfigParser.fromUrlRoute)(UrlConfigWriter.toUrlRoute)
+  def init(): Unit = {
 
-    val eventProcessor = EventProcessor(
-      Client.observable.event,
-      (changes, userId, graph) => GraphChangesAutomation.enrich(userId, graph, urlConfig, EmojiReplacer.replaceChangesToColons(changes)).consistent,
-      Client.api.changeGraph,
-      Client.currentAuth
-    )
+    import GlobalState._
 
     Observable(EditableContent.currentlyEditing, UI.currentlyEditing).merge.subscribe(eventProcessor.stopEventProcessing)
-
-    val isOnline = Observable(
-      Client.observable.connected.map(_ => true),
-      Client.observable.closed.map(_ => false)
-    ).merge.unsafeToRx(true)
-
-    val isLoading = Var(false)
-
-    val hasError = Var(false)
-
-    val fileDownloadBaseUrl = Var[Option[String]](None)
-
-    val screenSize: Rx[ScreenSize] = outwatch.dom.dsl.events.window.onResize
-      .debounce(0.2 second)
-      .map(_ => ScreenSize.calculate())
-      .unsafeToRx(ScreenSize.calculate())
-
-    val showTagsList = Client.storage.taglistOpen.imap(_ getOrElse false)(Some(_))
-    val showFilterList = Client.storage.filterlistOpen.imap(_ getOrElse false)(Some(_))
-
-    val state = new GlobalState(swUpdateIsAvailable, eventProcessor, sidebarOpen, showTagsList, showFilterList, urlConfig, isOnline, isLoading, hasError, fileDownloadBaseUrl, screenSize)
-    import state._
 
     // on mobile left and right sidebars overlay the screen.
     // close the right sidebar when the left sidebar is opened on mobile.
@@ -68,7 +39,7 @@ object GlobalStateFactory {
     if (BrowserDetect.isMobile) {
       leftSidebarOpen.triggerLater { open =>
         if (open) {
-          state.rightSidebarNode() = None
+          rightSidebarNode() = None
         }
       }
     }
@@ -76,28 +47,28 @@ object GlobalStateFactory {
     // on desktop, we have our custom emoji picker, which should be close when the rightsidebar is opened or closed.
     // or the modal is closed or opened
     if (!BrowserDetect.isMobile) {
-      state.rightSidebarNode.foreach { _ =>
+      rightSidebarNode.foreach { _ =>
         wdtEmojiBundle.close()
       }
 
-      state.uiModalClose.foreach { _ =>
+      uiModalClose.foreach { _ =>
         wdtEmojiBundle.close()
       }
 
-      state.uiModalConfig.foreach { _ =>
+      uiModalConfig.foreach { _ =>
         wdtEmojiBundle.close()
       }
     }
 
     def closeAllOverlays(): Unit = {
-      state.uiSidebarClose.onNext(())
-      state.uiModalClose.onNext(())
-      state.rightSidebarNode() = None
+      uiSidebarClose.onNext(())
+      uiModalClose.onNext(())
+      rightSidebarNode() = None
     }
 
     page.triggerLater {
       closeAllOverlays()
-      state.graphTransformations() = state.defaultTransformations
+      graphTransformations() = defaultTransformations
     }
     view.map(_.isContent).triggerLater { isContent =>
       if (!isContent) {
@@ -126,7 +97,7 @@ object GlobalStateFactory {
     // automatically notify visited nodes and add self as member
     def enrichVisitedGraphWithSideEffects(page: Page, graph: Graph): Graph = {
       //TODO: userdescendant
-      val user = state.user.now
+      val user = GlobalState.user.now
 
       page.parentId.fold(graph) { parentId =>
         val userIdx = graph.idToIdx(user.id)
@@ -172,7 +143,7 @@ object GlobalStateFactory {
         case Some(inviteToken) => Client.auth.acceptInvitation(inviteToken).foreach {
           case () =>
             //clear the invitation from the viewconfig and url
-            state.urlConfig.update(_.copy(invitation = None))
+            urlConfig.update(_.copy(invitation = None))
 
             // get a new graph with new right after the accepted invitation
             getNewGraph(viewConfig.pageChange.page).foreach { graph =>
@@ -194,7 +165,7 @@ object GlobalStateFactory {
       clearTrigger.foreach { _ => selectedNodes() = Nil }
     }
 
-    state.auth.foreach { auth =>
+    GlobalState.auth.foreach { auth =>
       Analytics.setUserId(auth.user.id.toUuid.toString)
     }
 
@@ -309,14 +280,13 @@ object GlobalStateFactory {
     })
 
     DevOnly {
-      setupStateDebugLogging(state)
+      setupStateDebugLogging()
     }
 
-    state
   }
 
-  def setupStateDebugLogging(state: GlobalState)(implicit ctx:Ctx.Owner):Unit = {
-    import state._
+  def setupStateDebugLogging(): Unit = {
+    import GlobalState._
 
     rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
     graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
