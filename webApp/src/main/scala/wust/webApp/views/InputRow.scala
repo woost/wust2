@@ -27,6 +27,8 @@ import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import monix.reactive.subjects.PublishSubject
 
+import wust.webApp.state.InputMention._
+
 object InputRow {
 
   case class Submission(text: String, changes: NodeId => GraphChanges)
@@ -70,13 +72,6 @@ object InputRow {
       minHeight := "42px",
       autoResizer.modifiers
     )
-
-    val mentionsRegex = raw"@(?:[^ \\]|\\\\)*(?:\\ [^ ]*)*".r
-    def nodeToMentionsString(node: Node): String = {
-      val lines = node.str.linesIterator
-      val linesHead = if (lines.hasNext) StringOps.trimToMaxLength(lines.next.replace("\\", "\\\\").replace(" ", "\\ "), 100) else ""
-      linesHead
-    }
 
     var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
