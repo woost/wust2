@@ -23,7 +23,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
 
     scribe.info(s"Notifying mentions: $mentions")
     db.user.getUserDetail(author.id).onComplete {
-      case Success(Some(userDetail)) => userDetail.email match {
+      case Success(Some(userDetail)) if userDetail.verified => userDetail.email match {
         case Some(authorEmail) =>
           val mentionsBySourceId = mentions.groupBy(_.nodeId)
           db.node.get(mentionsBySourceId.keySet).onComplete {
@@ -35,7 +35,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
           }
         case None => scribe.info("Author user has has no email defined, will not send email.")
       }
-      case Success(None) => scribe.info("Author user has no user details defined, will not send email.")
+      case Success(_) => scribe.info("Author user has no verified user details defined, will not send email.")
       case Failure(t) => scribe.error("Failed to query user detail of author, will not send email.", t)
     }
   }
@@ -48,7 +48,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
           scribe.info(s"Resolved mentionedNodeId '$mentionedIds' to users: $targetUsers")
           targetUsers.foreach { user =>
             if (author.id != user.id) db.user.getUserDetail(user.id).onComplete {
-              case Success(Some(userDetail)) => userDetail.email match {
+              case Success(Some(userDetail)) if userDetail.verified => userDetail.email match {
                 case Some(email) => db.node.getAccessibleWorkspaces(author.id, groupedMention.node.id).onComplete {
                   case Success(parentIds) => emailFlow.sendMentionNotification(email = email, authorName = author.name, authorEmail = authorEmail, mentionedIn = parentIds, node = groupedMention.node)
                   case Failure(t) => scribe.error("Failed to query accessible parent of node mention, will not send email.", t)
@@ -56,7 +56,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
 
                 case None => scribe.info("Mentioned user has no email address defined, will not send email.")
               }
-              case Success(None) => scribe.info("Mentioned user has no user details defined, will not send email.")
+              case Success(_) => scribe.info("Mentioned user has no verified user details defined, will not send email.")
               case Failure(t) => scribe.error("Failed to query user detail of mentioned user, will not send email.", t)
             }
           }
