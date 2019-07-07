@@ -42,6 +42,10 @@ object GraphChangesAutomation {
             val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges)
             if (references.isEmpty) done = true
             else referenceNodesPath(i + 1) = references
+          case "assignee" =>
+            val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges)
+            if (references.isEmpty) done = true
+            else referenceNodesPath(i + 1) = references
           case _ =>
             done = true
         } else {
@@ -69,6 +73,27 @@ object GraphChangesAutomation {
     })
 
     (newStr, extraEdges.result)
+  }
+
+  def lookupAssigneeVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+    val arr = Array.newBuilder[Node]
+
+    @inline def add(node: Node): Unit = if (InlineList.contains(NodeRole.Task, NodeRole.Message, NodeRole.Project, NodeRole.Note)(node.role)) arr += node
+
+    nodes.foreach { node =>
+      newEdges.get(node.id).foreach(_.foreach {
+        case (edge: Edge.Assigned, node) => add(node)
+        case (_, _) => ()
+      })
+
+      graph.idToIdxForeach(node.id) { nodeIdx =>
+        graph.assignedUsersIdx.foreachElement(nodeIdx) { nodeIdx =>
+          add(graph.nodes(nodeIdx))
+        }
+      }
+    }
+
+    arr.result.distinct
   }
 
   def lookupParentVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
@@ -246,6 +271,9 @@ object GraphChangesAutomation {
       case edge: Edge.Child =>
         val buffer = newReplacableEdges.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)])
         buffer += (edge -> sourceNode)
+      case edge: Edge.Assigned =>
+        val buffer = newReplacableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
+        buffer += (edge -> targetNode)
       case _ => ()
     }
 
