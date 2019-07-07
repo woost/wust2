@@ -17,11 +17,15 @@ import scala.collection.mutable
 
 object GraphChangesAutomation {
 
-  val templateVariableRegex = "\\$\\{woost((\\.[^\\.\\}]+)+)\\}".r
-  def replaceVariableInText(graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): String = {
+  val templateVariableRegex = "\\$(@)?\\{woost((\\.[^\\.\\}]+)+)\\}".r
+  def replaceVariableInText(graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = {
 
-    templateVariableRegex.replaceAllIn(templateText, { m =>
-      val propertyNames = m.group(1).drop(1).split("\\.")
+    val extraEdges = Array.newBuilder[Edge]
+
+    val newStr = templateVariableRegex.replaceAllIn(templateText, { m =>
+      val modifier = m.group(1)
+      val isMentionMode = modifier == "@"
+      val propertyNames = m.group(2).drop(1).split("\\.")
       val n = propertyNames.length
       var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
       referenceNodesPath(0) = Array(node)
@@ -52,8 +56,19 @@ object GraphChangesAutomation {
 
       val lastReferenceNodes = referenceNodesPath(n)
       if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) "#NAME?"
-      else lastReferenceNodes.map(_.str).mkString(", ")
+      else {
+        if (isMentionMode) {
+          lastReferenceNodes.foreach { refNode =>
+            extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
+          }
+          lastReferenceNodes.map(n => "@" + n.str).mkString(" ")
+        } else {
+          lastReferenceNodes.map(_.str).mkString(", ")
+        }
+      }
     })
+
+    (newStr, extraEdges.result)
   }
 
   def lookupParentVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
@@ -273,7 +288,8 @@ object GraphChangesAutomation {
     val addAndEditNodes: Array[Node] = addNodes.result().map {
       case node: Node.Content => node.data match {
         case data: NodeData.EditableText =>
-          val newStr = replaceVariableInText(graph, node, data.str, newReplacableEdges)
+          val (newStr, extraEdges) = replaceVariableInText(graph, node, data.str, newReplacableEdges)
+          addEdges ++= extraEdges
           data.updateStr(newStr).fold(node)(data => node.copy(data = data))
         case _ => node
       }
