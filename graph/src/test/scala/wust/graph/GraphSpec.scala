@@ -205,10 +205,43 @@ class GraphSpec extends FreeSpec with MustMatchers {
           )
           assert(access(g, "A", "B") == false)
         }
+
         "8" in {
           val g = Graph(
             nodes = Array(user("A"), channelNode, node("B", Level(ReadWrite))),
             edges = Array()
+          )
+          assert(access(g, "A", "B") == false)
+        }
+
+        "9" in {
+          val g = Graph(
+            nodes = Array(user("A"), channelNode, node("B", Inherited)),
+            edges = Array()
+          )
+          assert(access(g, "A", "B") == false)
+        }
+
+        "10" in {
+          val g = Graph(
+            nodes = Array(user("A"), channelNode, node("B", Level(Restricted))),
+            edges = Array(member("A", ReadWrite, "B"))
+          )
+          assert(access(g, "A", "B") == true)
+        }
+
+        "11" in {
+          val g = Graph(
+            nodes = Array(user("A"), channelNode, node("B", Level(ReadWrite))),
+            edges = Array(member("A", ReadWrite, "B"))
+          )
+          assert(access(g, "A", "B") == true)
+        }
+
+        "12" in {
+          val g = Graph(
+            nodes = Array(user("A"), channelNode, node("B", Inherited)),
+            edges = Array(member("A", ReadWrite, "B"))
           )
           assert(access(g, "A", "B") == true)
         }
@@ -268,10 +301,11 @@ class GraphSpec extends FreeSpec with MustMatchers {
           )
           assert(access(g, "A", "C") == false)
         }
+
         "8" in {
           val g = Graph(
             nodes = Array(user("A"), channelNode, node("B", Level(ReadWrite)), node("C", Inherited)),
-            edges = Array(parent("C", "B"))
+            edges = Array(member("A", ReadWrite, "B"), parent("C", "B"))
           )
           assert(access(g, "A", "C") == true)
         }
@@ -286,6 +320,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             node("D", Inherited)
           ),
           edges = Array(
+            member("A", ReadWrite, "C"),
             parent("D", "B"),
             parent("D", "C")
           )
@@ -302,6 +337,7 @@ class GraphSpec extends FreeSpec with MustMatchers {
             node("D", Inherited)
           ),
           edges = Array(
+            member("A", ReadWrite, "B"),
             parent("C", "B"),
             parent("D", "C")
           )
@@ -325,7 +361,44 @@ class GraphSpec extends FreeSpec with MustMatchers {
         assert(access(g, "A", "D") == false)
       }
 
-      "inheritance cycle: readwrite" in {
+      "inheritance cycle: inherit without member" in {
+        val g = Graph(
+          nodes = Array(
+            user("A"), channelNode,
+            node("B", Inherited),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Array(
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("C", "D")
+          )
+        )
+        assert(access(g, "A", "D") == false)
+        assert(access(g, "A", "C") == false)
+      }
+
+      "inheritance cycle: inherit with member" in {
+        val g = Graph(
+          nodes = Array(
+            user("A"), channelNode,
+            node("B", Inherited),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Array(
+            member("A", ReadWrite, "B"),
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("C", "D")
+          )
+        )
+        assert(access(g, "A", "D") == true)
+        assert(access(g, "A", "C") == true)
+      }
+
+      "inheritance cycle: readwrite without member" in {
         val g = Graph(
           nodes = Array(
             user("A"), channelNode,
@@ -334,6 +407,25 @@ class GraphSpec extends FreeSpec with MustMatchers {
             node("D", Inherited)
           ),
           edges = Array(
+            parent("C", "B"),
+            parent("D", "C"),
+            parent("C", "D")
+          )
+        )
+        assert(access(g, "A", "D") == false)
+        assert(access(g, "A", "C") == false)
+      }
+
+      "inheritance cycle: readwrite with member" in {
+        val g = Graph(
+          nodes = Array(
+            user("A"), channelNode,
+            node("B", Level(ReadWrite)),
+            node("C", Inherited),
+            node("D", Inherited)
+          ),
+          edges = Array(
+            member("A", ReadWrite, "B"),
             parent("C", "B"),
             parent("D", "C"),
             parent("C", "D")
