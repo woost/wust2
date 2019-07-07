@@ -135,7 +135,7 @@ object InputRow {
           }
         }: js.Function1[js.UndefOr[TributeItem[Node]], String]
         menuItemTemplate = { item =>
-          Components.nodeCard(item.original, projectWithIcon = true, maxLength = Some(200)).render.outerHTML
+          Components.nodeCard(state, item.original, projectWithIcon = true, maxLength = Some(200)).render.outerHTML
         }: js.Function1[TributeItem[Node], String]
         noMatchTemplate = { () =>
           i("Not Found").render.outerHTML

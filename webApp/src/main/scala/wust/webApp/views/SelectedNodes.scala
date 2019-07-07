@@ -110,7 +110,7 @@ object SelectedNodes {
   }
 
   private def selectedNodeCard[T <: SelectedNodeBase](state:GlobalState, selectedNodes: Var[Set[T]], node: Node)(implicit ctx: Ctx.Owner) = {
-    nodeCard(node,contentInject = Seq[VDomModifier](
+    nodeCard(state, node,contentInject = Seq[VDomModifier](
       Styles.flex,
       alignItems.center,
       span(
@@ -123,7 +123,7 @@ object SelectedNodes {
       ),
     ),
       maxLength = Some(20)
-    )(
+    ).apply(
       drag(DragItem.SelectedNode(node.id)),
       cls := "draggable"
     )

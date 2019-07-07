@@ -306,6 +306,7 @@ object TaskNodeCard {
 
       node.map { node =>
         Components.nodeCardMod(
+          state,
           node,
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
@@ -580,6 +581,7 @@ object TaskNodeCard {
     )
 
     Components.nodeCard(
+      state,
       node,
       maxLength = Some(maxLength),
       contentInject = VDomModifier(

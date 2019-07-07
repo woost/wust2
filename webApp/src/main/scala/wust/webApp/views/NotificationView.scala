@@ -256,7 +256,7 @@ object NotificationView {
                           td(
                             width := "400px",
                             VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                            nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
+                            nodeCard(state, node, maxLength = Some(150), projectWithIcon = true).apply(
                               VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
                               Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
                             )

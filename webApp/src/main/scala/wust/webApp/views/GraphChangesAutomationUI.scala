@@ -110,7 +110,7 @@ object GraphChangesAutomationUI {
               )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
-                  Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                  Components.nodeCard(state, templateNode, maxLength = Some(100)).apply(
                     padding := "3px",
                     width := "200px",
                     div(

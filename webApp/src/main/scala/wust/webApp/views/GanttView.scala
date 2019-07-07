@@ -190,7 +190,7 @@ object GanttView {
       justifyContent.spaceBetween,
       alignItems.flexStart,
 
-      renderNodeData(bar.node.data),
+      renderNodeData(state, bar.node),
     )
   }
 }

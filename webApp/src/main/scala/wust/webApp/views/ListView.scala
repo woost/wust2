@@ -201,7 +201,7 @@ object ListView {
             Styles.flex,
             alignItems.center,
             Rx{
-              renderNodeData(stage().data)
+              renderNodeData(state, stage())
             },
 
           )

@@ -351,7 +351,7 @@ object RightSidebar {
                 fontSize.small,
                 span("Backlinks: ", color.gray),
                 propertySingle().info.reverseProperties.map { node =>
-                  Components.nodeCard(node, maxLength = Some(50)).apply(
+                  Components.nodeCard(state, node, maxLength = Some(50)).apply(
                     margin := "3px",
                     Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                   )
@@ -421,7 +421,7 @@ object RightSidebar {
                     nodes.map { node =>
                       div(
                         Styles.flex,
-                        Components.nodeCard(node, maxLength = Some(200)).apply(
+                        Components.nodeCard(state, node, maxLength = Some(200)).apply(
                           Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                         ),
                         div(padding := "2px", Icons.delete, deleteButton(node.id))

@@ -72,7 +72,7 @@ object CreateNewPrompt {
           val g = state.graph()
           parentNodes().map(nodeId =>
             g.nodesById(nodeId).map { node =>
-              nodeCard(node)(padding := "2px", marginLeft := "5px")
+              nodeCard(state, node).apply(padding := "2px", marginLeft := "5px")
               // removableNodeTagCustom(state, tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
             })
         },
@@ -173,6 +173,7 @@ object CreateNewPrompt {
             val nodes = childNodes().flatMap { id =>
               state.graph().nodesById(id).map { node =>
                 nodeCard(
+                  state,
                   node,
                   contentInject = VDomModifier(
                     Styles.flex,

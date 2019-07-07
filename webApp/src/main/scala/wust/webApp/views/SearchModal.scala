@@ -36,7 +36,7 @@ object SearchModal {
           fontWeight.normal,
           cursor.pointer,
           padding := "3px",
-          Components.nodeCard(nodeRes._1),
+          Components.nodeCard(state, nodeRes._1),
           onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeRes._1.id))) --> state.urlConfig,
           onClick.stopPropagation(()) --> state.uiModalClose
         )

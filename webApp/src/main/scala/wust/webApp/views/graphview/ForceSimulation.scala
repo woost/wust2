@@ -385,7 +385,7 @@ class ForceSimulation(
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, nodeSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomNodes(graph.nodes.toJSArray, nodeSelection, nodeOnClick) // d3 data join
+      updateDomNodes(state, graph.nodes.toJSArray, nodeSelection, nodeOnClick) // d3 data join
       nodeSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated nodeSelection
       registerDragHandlers(nodeSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
@@ -524,10 +524,11 @@ object ForceSimulation {
   }
 
   def updateDomNodes(
-      posts: js.Array[Node],
-      nodeSelection: d3.Selection[Node],
-      nodeOnClick: (Node, Int) => Unit
-  ): Unit = {
+    state: GlobalState,
+    posts: js.Array[Node],
+    nodeSelection: d3.Selection[Node],
+    nodeOnClick: (Node, Int) => Unit
+  )(implicit ctx: Ctx.Owner): Unit = {
     // This is updating the dom using a D3 data join. (https://bost.ocks.org/mike/join)
     val node = nodeSelection.data(posts, (p: Node) => p.id.toString)
     time(log(s"removing old posts from dom[${node.exit().size()}]")) {
@@ -553,7 +554,7 @@ object ForceSimulation {
           div(
             cls := "graphnode",
             postWidth,
-            renderNodeData(node.data),
+            renderNodeData(state, node),
             // pointerEvents.auto, // re-enable mouse events
             drag(target = DragItem.Task(node.id))
           ).render

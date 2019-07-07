@@ -215,7 +215,7 @@ object SharedViewElements {
               renderedMessageModifier,
             )
           case _ =>
-            nodeCardWithFile(state, node,
+            nodeCard(state, node,
               contentInject = div(
                 Styles.flex,
                 flexDirection.column,
