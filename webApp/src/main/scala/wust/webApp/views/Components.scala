@@ -69,15 +69,7 @@ object Components {
   def displayPlaceholder(data: NodeData.Placeholder) = span(
     color := "#CD5C5C	",
     freeSolid.faExclamation,
-    i(
-      marginLeft := "5px",
-      "TODO",
-      data.targetType match {
-        case Some(NodeTypeSelection.Ref) => " Link"
-        case Some(NodeTypeSelection.Data(data)) => s" $data"
-        case None => ""
-      }
-    )
+    i(marginLeft := "5px", "TODO")
   )
 
   def renderNodeData(nodeData: NodeData, maxLength: Option[Int] = None): VNode = nodeData match {
