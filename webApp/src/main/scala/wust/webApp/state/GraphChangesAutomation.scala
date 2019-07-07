@@ -136,13 +136,15 @@ object GraphChangesAutomation {
     val addNodes = Array.newBuilder[Node]
     val addEdges = Array.newBuilder[Edge]
 
-    newNode match {
+    def applyTemplateToNode(newNode: Node, templateNode: Node): Unit = newNode match {
       // add defined views of template to new node
       case newNode: Node.Content if templateNode.views.isDefined =>
         addNodes += newNode.copy(views = templateNode.views)
         addNodeIds += newNode.id
       case _ => ()
     }
+
+    applyTemplateToNode(newNode = newNode, templateNode = templateNode)
 
     updateReplacedNodes(templateNode.id, newNode)
     alreadyExistingNodes += newNode.id -> newNode
@@ -220,6 +222,7 @@ object GraphChangesAutomation {
               if (implementationNode.id != descendant.id) {
                 addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                 updateReplacedNodes(descendant.id, implementationNode)
+                applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
               }
             case None =>
               val copyNode = copyAndTransformNode(descendantReference)
@@ -229,6 +232,7 @@ object GraphChangesAutomation {
               addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
               updateReplacedNodes(descendantReference.id, copyNode)
               updateReplacedNodes(descendant.id, copyNode)
+              applyTemplateToNode(newNode = copyNode, templateNode = descendant)
           }
         }
       }
