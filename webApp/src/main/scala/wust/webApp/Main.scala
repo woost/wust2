@@ -41,6 +41,8 @@ object Main {
     implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
     val state = GlobalStateFactory.create(swUpdateIsAvailable)
 
+    setupFomanticUISearch(state)
+
     DevOnly { enableEventLogging(state) }
     SortableEvents.init(state)
 
@@ -53,7 +55,7 @@ object Main {
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  private def setupFomanticUISearch(): Unit = {
+  private def setupFomanticUISearch(state: GlobalState): Unit = {
     import dsl._
     import wust.css.Styles
 
@@ -65,7 +67,7 @@ object Main {
             cls := "result", //we need this class for semantic ui to work,
             div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
             padding := "4px",
-            views.Components.nodeCardAsOneLineText(node, projectWithIcon = true).prepend(
+            views.Components.nodeCardAsOneLineText(state, node, projectWithIcon = true).prepend(
               cursor.pointer,
               Styles.flex,
               alignItems.center
@@ -83,7 +85,6 @@ object Main {
     setupMarked()
     setupEmojis()
     setupEmojiPicker()
-    setupFomanticUISearch()
 
     if (LinkingInfo.developmentMode) {
       setupRuntimeScalaCSSInjection()

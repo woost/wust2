@@ -96,7 +96,7 @@ object Components {
     ))
   }
 
-  def renderAsOneLineText(node: Node): VNode = {
+  def renderAsOneLineText(state: GlobalState, node: Node): VNode = {
     // 1. extract first line of string
     val firstLine = {
       //TODO: skip markdown syntax which does not display any text, like "```scala"
@@ -112,8 +112,8 @@ object Components {
     )
   }
 
-  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true): VNode = {
-    renderNodeCard(node, contentInject = renderAsOneLineText, projectWithIcon = projectWithIcon)
+  def nodeCardAsOneLineText(state: GlobalState, node: Node, projectWithIcon: Boolean = true): VNode = {
+    renderNodeCard(node, contentInject = renderAsOneLineText(state, _), projectWithIcon = projectWithIcon)
   }
 
   def markdownVNode(str: String) = {
@@ -375,7 +375,7 @@ object Components {
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => DragComponents.drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
     ): VNode = {
-      val contentString = renderAsOneLineText(tag)
+      val contentString = renderAsOneLineText(state, tag)
       renderNodeTag(state, tag, VDomModifier(contentString, dragOptions(tag.id)), pageOnClick)
     }
 

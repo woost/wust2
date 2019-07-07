@@ -35,7 +35,7 @@ object Modal {
           flexDirection.column,
           node.map { node =>
             div(
-              renderAsOneLineText(node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+              renderAsOneLineText(state, node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             )
           },
