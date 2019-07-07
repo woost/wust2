@@ -23,6 +23,8 @@ object Icons {
     })
   )
 
+  val showOnCard: IconDefinition = freeRegular.faEye
+
   val filterDropdown: Layer = fontawesome.layered(
     fontawesome.icon(freeSolid.faFilter),
     fontawesome.icon(freeSolid.faCaretDown, new Params {

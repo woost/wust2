@@ -27,6 +27,7 @@ object TableView {
       keyed,
       Styles.growFull,
       overflow.auto,
+      paddingTop := "20px",
 
       Rx {
         val graph = state.graph()
@@ -37,6 +38,8 @@ object TableView {
 
   def table(state: GlobalState, graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
+
+    val globalEditMode = Var(Option.empty[(String, Array[Edge.LabeledProperty])])
 
     val targetRole = roles match {
       case head :: _ => head
@@ -49,7 +52,6 @@ object TableView {
         case (_, user: Node.User) => Components.displayUserName(user.data) // sort users by display name
       }.mkString(", "),
       value = VDomModifier(
-        position.relative, // needed for absolutlely positioned save/cancel buttons from editable content
         edges.map {
           case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
           case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
@@ -68,35 +70,37 @@ object TableView {
 
     def columnHeaderWithDelete(name: String, edges: Array[Edge.LabeledProperty]) = {
       val editMode = Var(false)
+      var lastEditMode = false
+      editMode.triggerLater { editMode =>
+        if (editMode) globalEditMode() = Some(name -> edges)
+        else if (globalEditMode.now.exists { case (key, _) => key == name }) globalEditMode() = None
+      }
+
       def miniButton = span(
-        paddingLeft := "5px",
         fontSize.xSmall,
         cursor.pointer,
       )
 
       span(
+        position.relative, // needed for absolutlely positioned save/cancel buttons from editable content
         Styles.inlineFlex,
         justifyContent.spaceBetween,
-        EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
-          if (newName.nonEmpty) {
-            state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
+
+        div(
+          EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
+            if (newName.nonEmpty) {
+              state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
+            }
           }
-        },
-        editMode.map[VDomModifier] {
-          case true => miniButton(
-            keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
-            Icons.delete,
-            onClick.stopPropagation.foreach {
-              if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
-              }
-              ()
-            },
-          )
+        ),
+
+        editMode.map {
           case false => miniButton(
+            paddingLeft := "5px",
             Icons.edit,
             onClick.stopPropagation(true) --> editMode
           )
+          case true => VDomModifier.empty
         }
       )
     }
@@ -171,12 +175,15 @@ object TableView {
     }
 
     val propertyColumns: List[UI.Column] = propertyGroup.properties.map { property =>
-      val predictedType = property.groups.find(_.values.nonEmpty).map { group =>
-        val node = group.values.head.node
-        node.role match {
+      val (predictedType, predictedShowOnCard) = property.groups.find(_.values.nonEmpty).fold((Option.empty[NodeTypeSelection], false)) { group =>
+        val value = group.values.head
+        val node = value.node
+        val edge = value.edge
+        val tpe = node.role match {
           case NodeRole.Neutral => NodeTypeSelection.Data(node.data.tpe)
           case _ => NodeTypeSelection.Ref
         }
+        (Some(tpe), edge.data.showOnCard)
       }
       UI.Column(
         columnHeaderWithDelete(property.key, property.groups.flatMap(_.values.map(_.edge))),
@@ -195,7 +202,7 @@ object TableView {
                 state,
                 ItemProperties.Target.Node(group.node.id),
                 ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
-                ItemProperties.EdgeFactory.labeledProperty(property.key)
+                ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
               ),
             )
           )
@@ -214,9 +221,12 @@ object TableView {
         alignItems.flexStart,
         UI.sortableTable(nodeColumns ++ propertyColumns, sort),
 
-        VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(
+        VDomModifier.ifTrue(propertyGroup.infos.nonEmpty)(div(
+          Styles.flex,
+          flexDirection.column,
+          margin := "10px",
+
           div(
-            margin := "10px",
             button(
               cls := "ui mini compact button",
               "+ New Column"
@@ -254,8 +264,42 @@ object TableView {
                 )
               ),
             ),
-          )
-        )
+          ),
+
+          globalEditMode.map[VDomModifier] {
+            case Some((name, edges)) => div(
+              Styles.flex,
+              alignItems.flexEnd,
+              flexDirection.column,
+              marginTop := "10px",
+              padding := "5px",
+              backgroundColor := "white",
+              boxShadow := "0px 0px 3px 0px rgba(0, 0, 0, 0.75)",
+              borderRadius := "3px",
+
+              b(s"Edit Column '$name'", marginBottom := "5px"),
+
+              UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card"), edges.forall(_.data.showOnCard)).map { showOnCard =>
+                GraphChanges(addEdges = edges.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
+              } --> state.eventProcessor.changes,
+
+              div(
+                marginTop := "5px",
+                cls := "ui mini compact red button",
+                keyed, // TODO: this key is a hack. if we leave it out the onclick event of edit-icon only works once! with this key, it works. outwatch-bug!
+                Icons.delete,
+                " Delete",
+                onClick.stopPropagation.foreach {
+                  if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
+                    state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
+                  }
+                  ()
+                },
+              )
+            )
+            case None => VDomModifier.empty
+          },
+        ))
       ),
 
       button(

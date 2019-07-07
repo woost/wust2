@@ -74,7 +74,7 @@ object Components {
       "TODO",
       data.targetType match {
         case Some(NodeTypeSelection.Ref) => " Link"
-        case Some(NodeTypeSelection.Data(data)) => s" Type:$data"
+        case Some(NodeTypeSelection.Data(data)) => s" $data"
         case None => ""
       }
     )
@@ -238,44 +238,61 @@ object Components {
       Styles.flex,
       flexWrap.wrap,
       alignItems.flexStart,
+      justifyContent.spaceBetween,
+
       b(
-        Styles.flex,
         EditableContent.inlineEditorOrRender[String](key, editKey, _ => key => span(key + ":")).editValue.collect { case newKey if newKey != key =>
           GraphChanges(addEdges = properties.map(p => p.edge.copy(data = p.edge.data.copy(key = newKey)))(breakOut), delEdges = properties.map(_.edge)(breakOut)),
         } --> state.eventProcessor.changes,
         cursor.pointer,
         onClick.stopPropagation(true) --> editKey,
       ),
+
       div(
-        Styles.flex,
-        marginLeft := "auto",
-        flexDirection.column,
-        alignItems.flexEnd,
+        flexGrow := 1,
 
         properties.map { property =>
           val editValue = Var(false)
           div(
+            marginLeft := "10px",
             Styles.flex,
-            justifyContent.flexEnd,
-            margin := "3px 0px",
+            justifyContent.spaceBetween,
 
-            editablePropertyNode(state, property.node, property.edge, editMode = editValue,
-              nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(property.node.id)).foreach(parentIdAction(_))),
-              maxLength = Some(100), config = EditableContent.Config.default,
-            ),
             div(
-              marginLeft := "5px",
-              cursor.pointer,
               editValue.map {
                 case true => VDomModifier(
-                  Icons.delete,
-                  onClick(GraphChanges(delEdges = Array(property.edge))) --> state.eventProcessor.changes
+                  UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card", fontSize.xSmall), isChecked = property.edge.data.showOnCard).collect { case showOnCard if property.edge.data.showOnCard != showOnCard =>
+                    GraphChanges(addEdges = Array(property.edge.copy(data = property.edge.data.copy(showOnCard = showOnCard)))),
+                  } --> state.eventProcessor.changes,
                 )
-                case false => VDomModifier(
-                  Icons.edit,
-                  onClick.stopPropagation(true) --> editValue
-                )
-              },
+                case false => VDomModifier.empty
+              }
+            ),
+
+            div(
+              Styles.flex,
+              justifyContent.flexEnd,
+              margin := "3px 0px",
+
+              editablePropertyNode(state, property.node, property.edge, editMode = editValue,
+                nonPropertyModifier = VDomModifier(writeHoveredNode(state, property.node.id), cursor.pointer, onClick.stopPropagation(Some(property.node.id)).foreach(parentIdAction(_))),
+                maxLength = Some(100), config = EditableContent.Config.default,
+              ),
+
+              div(
+                marginLeft := "5px",
+                cursor.pointer,
+                editValue.map {
+                  case true => VDomModifier(
+                    Icons.delete,
+                    onClick(GraphChanges(delEdges = Array(property.edge))) --> state.eventProcessor.changes
+                  )
+                  case false => VDomModifier(
+                    Icons.edit,
+                    onClick.stopPropagation(true) --> editValue
+                  )
+                },
+              )
             )
           )
         }

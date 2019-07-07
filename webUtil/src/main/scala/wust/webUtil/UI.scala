@@ -30,20 +30,24 @@ object UI {
     )
   }
 
-  def toggleEmitter(labelText:String, isChecked: Rx[Boolean] = Var(false)): CustomEmitterBuilder[Boolean, VNode] = EmitterBuilder.ofNode[Boolean]{sink =>
+  @inline def checkbox(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = checkboxEmitter(labelText, isChecked) --> isChecked
+  @inline def checkboxEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, Var(isChecked))
+  def checkboxEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = EmitterBuilder.ofNode[Boolean]{sink =>
     div(
-      cls := "ui toggle checkbox",
+      cls := "ui checkbox",
       input(
         tpe := "checkbox",
         onChange.checked --> sink,
         onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
         checked <-- isChecked,
-        defaultChecked := isChecked.now
+        // defaultChecked := isChecked.now
       ),
       label(labelText)
     )}
 
-  def toggle(labelText:String, isChecked: Var[Boolean]):VNode = toggleEmitter(labelText, isChecked) --> isChecked
+  @inline def toggle(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = toggleEmitter(labelText, isChecked) --> isChecked
+  @inline def toggleEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = toggleEmitter(labelText, Var(isChecked))
+  def toggleEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, isChecked).mapResult(_(cls := "toggle"))
 
   val tooltip: AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.variation := "mini basic")
   def tooltip(position: String): AttributeBuilder[String, VDomModifier] = str => VDomModifier.ifNot(BrowserDetect.isMobile)(data.tooltip := str, data.position := position, data.variation := "mini basic")

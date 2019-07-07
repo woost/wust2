@@ -42,10 +42,11 @@ object ItemProperties {
   sealed trait EdgeFactory
   object EdgeFactory {
     final case class Plain(create: (NodeId, NodeId) => Edge) extends EdgeFactory
-    final case class WithKey(prefilledKey: String, create: (NodeId, String, NodeId) => Edge) extends EdgeFactory
+    final case class Property(prefilledKey: String, prefilledShowOnCard: Boolean, create: (NodeId, String, Boolean, NodeId) => Edge) extends EdgeFactory
 
-    @inline def labeledProperty: WithKey = labeledProperty("")
-    def labeledProperty(key: String): WithKey = WithKey(key, (sourceId, key, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key), PropertyId(targetId)))
+    @inline def labeledProperty: Property = labeledProperty("")
+    @inline def labeledProperty(key: String): Property = labeledProperty(key, false)
+    def labeledProperty(key: String, showOnCard: Boolean): Property = Property(key, showOnCard, (sourceId, key, showOnCard, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(targetId)))
   }
   final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false)
   object TypeConfig {
@@ -68,7 +69,12 @@ object ItemProperties {
   def managePropertiesContent(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
 
     val prefilledKeyString = edgeFactory match {
-      case EdgeFactory.WithKey(prefilledKey, _) => Some(prefilledKey)
+      case EdgeFactory.Property(prefilledKey, _, _) => Some(prefilledKey)
+      case _ => None
+    }
+
+    val toggleShowOnCard = edgeFactory match {
+      case EdgeFactory.Property(_, prefilledShowOnCard, _) => Some(Var(prefilledShowOnCard))
       case _ => None
     }
 
@@ -106,7 +112,7 @@ object ItemProperties {
       }
 
       def createProperty() = {
-        handleAddProperty(propertyTypeSelection.now, propertyKeyInput.now, propertyValueInput.now)
+        handleAddProperty(propertyTypeSelection.now, propertyKeyInput.now, propertyValueInput.now, toggleShowOnCard.fold(false)(_.now))
       }
 
       form(
@@ -172,10 +178,16 @@ object ItemProperties {
         },
         div(
           cls := "field",
-          UI.toggleEmitter("Value is a Placeholder", propertyValueIsPlaceholder).map {
+          Styles.flex,
+          flexWrap.wrap,
+          justifyContent.spaceBetween,
+          UI.checkboxEmitter("Value is a Placeholder", propertyValueIsPlaceholder).map {
             case true => Some(ValueSelection.Placeholder)
             case false => None
-          } --> propertyValueInput
+          } --> propertyValueInput,
+          toggleShowOnCard.map { toggle =>
+            UI.checkbox("Show on Card", toggle)
+          },
         ),
         div(
           marginTop := "5px",
@@ -200,7 +212,7 @@ object ItemProperties {
       )
     }
 
-    def handleAddProperty(propertyType: Option[NodeTypeSelection], propertyKey: Option[NonEmptyString], propertyValue: Option[ValueSelection])(implicit ctx: Ctx.Owner): Unit = for {
+    def handleAddProperty(propertyType: Option[NodeTypeSelection], propertyKey: Option[NonEmptyString], propertyValue: Option[ValueSelection], propertyShowOnCard: Boolean)(implicit ctx: Ctx.Owner): Unit = for {
       propertyValue <- propertyValue
       if propertyKey.isDefined || prefilledKeyString.isEmpty
     } {
@@ -216,7 +228,7 @@ object ItemProperties {
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {
         case EdgeFactory.Plain(create) => create(sourceId, targetId)
-        case EdgeFactory.WithKey(prefilledKey, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), targetId)
+        case EdgeFactory.Property(prefilledKey, _, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), propertyShowOnCard, targetId)
       }
 
       def addDataProperty(data: NodeData.Content): Unit = {

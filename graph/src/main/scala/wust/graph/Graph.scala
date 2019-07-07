@@ -510,7 +510,7 @@ final class GraphLookup(
 
     consistentEdges.foreach { edgeIdx =>
       edges(edgeIdx).data match {
-        case EdgeData.LabeledProperty(`name`) =>
+        case EdgeData.LabeledProperty(`name`, _) =>
           val sourceIdx = edgesIdx.a(edgeIdx)
           targetDegree(sourceIdx) += 1
           relevantEdges.add(edgeIdx)

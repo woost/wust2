@@ -221,7 +221,9 @@ object TaskNodeCard {
 
           propertySingle().properties.map { property =>
             property.values.map { value =>
-              Components.removableNodeCardProperty(state, value.edge, value.node)
+              VDomModifier.ifTrue(value.edge.data.showOnCard) {
+                Components.removableNodeCardProperty(state, value.edge, value.node)
+              }
             }
           },
 
@@ -505,7 +507,9 @@ object TaskNodeCard {
 
           propertySingle.properties.map { property =>
             property.values.map { value =>
-              Components.removableNodeCardProperty(state, value.edge, value.node)
+              VDomModifier.ifTrue(value.edge.data.showOnCard) {
+                Components.removableNodeCardProperty(state, value.edge, value.node)
+              }
             }
           },
 

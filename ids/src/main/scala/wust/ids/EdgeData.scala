@@ -45,7 +45,7 @@ object EdgeData {
   sealed trait PropertyKey
   case object Assigned extends Named with EdgeData with PropertyKey
 
-  case class LabeledProperty(key: String) extends Named with EdgeData with PropertyKey
+  case class LabeledProperty(key: String, showOnCard: Boolean = false) extends Named with EdgeData with PropertyKey
   object LabeledProperty extends Named {
     def attachment = LabeledProperty("Attachment")
     def reference = LabeledProperty("Reference")
