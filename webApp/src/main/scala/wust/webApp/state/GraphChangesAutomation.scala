@@ -388,6 +388,7 @@ object GraphChangesAutomation {
             targetIdxs.foreach { case (targetIdx, ignoreParents) => graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
               val templateNode = graph.nodes(templateNodeIdx).as[Node.Content]
+              //TODO: allow referenced templates to override this matching
               if (templateNode.role == childNode.role) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
                 val changes = copySubGraphOfNode(userId, graph, newNode = childNode, templateNode = templateNode, ignoreParents = ignoreParents)
