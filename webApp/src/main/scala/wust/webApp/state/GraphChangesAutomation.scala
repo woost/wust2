@@ -163,9 +163,14 @@ object GraphChangesAutomation {
 
     def applyTemplateToNode(newNode: Node, templateNode: Node): Unit = newNode match {
       // add defined views of template to new node
-      case newNode: Node.Content if templateNode.views.isDefined =>
-        addNodes += newNode.copy(views = templateNode.views)
-        addNodeIds += newNode.id
+      case newNode: Node.Content =>
+        val newView = if (templateNode.views.isDefined) templateNode.views else newNode.views
+        val newRole = templateNode.role
+        val updatedNewNode = newNode.copy(role = newRole, views = templateNode.views)
+        if (newNode != updatedNewNode) {
+          addNodes += updatedNewNode
+          addNodeIds += updatedNewNode.id
+        }
       case _ => ()
     }
 
