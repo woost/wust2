@@ -230,26 +230,31 @@ object GraphChangesAutomation {
     // of the descendant node. We want to have a copy of each descendant of the
     // template. A descendant of a template may reference another template node,
     // that means that it is a placeholder for that referenced node and everything
-    // done to it should be done to the reference template node.
+    // done to it should be done to the reference template node.  we need to do
+    // this for all template nodes that were passed in.
     templateNodesIdx.foreach { templateNodeIdx =>
       val templateNode = graph.nodes(templateNodeIdx)
+      // do the dfs for this template node and copy/update/register all nodes that should be created and may already exists in newNode.
       dfs.withManualSuccessors(_(templateNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
         val descendant = graph.nodes(descendantIdx).as[Node.Content]
         val descendantReferences = graph.referencesTemplateEdgeIdx.map(descendantIdx)(edgeIdx => graph.nodes(graph.edgesIdx.b(edgeIdx)).as[Node.Content])
 
-        if (descendantReferences.isEmpty) {
-          if (descendant.id == templateNode.id) {
-            if (templateNode.role == newNode.role) {
+        // for each descendant of the template, we need to check whether the node already exists or whether we need to create it.
+        // A template can have ReferencesTemplate engines. That means sourceId wants to automated any node derived from targetId.
+        if (descendantReferences.isEmpty) { // if there is no references template
+          if (descendant.id == templateNode.id) { // if this is the actually templateNode and we have no references
+            if (templateNode.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
               addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id))
               alreadyExistingNodes += (templateNode.id -> newNode)
               alreadyExistingNodes += (newNode.id -> newNode)
               updateReplacedNodes(templateNode.id, newNode)
               applyTemplateToNode(newNode = newNode, templateNode = templateNode)
             }
-          } else alreadyExistingNodes.get(descendant.id).orElse(if (descendant.id == templateNode.id) Some(newNode) else None) match {
+          } else alreadyExistingNodes.get(descendant.id) match { // this is not the template node, search for already existing node.
             case Some(implementationNode) =>
               if (implementationNode.id != descendant.id) {
                 addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                alreadyExistingNodes += (descendant.id -> implementationNode)
                 updateReplacedNodes(descendant.id, implementationNode)
               }
             case None =>
@@ -257,28 +262,35 @@ object GraphChangesAutomation {
               addNodes += copyNode
               addNodeIds += copyNode.id
               addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+              alreadyExistingNodes += (descendant.id -> copyNode)
               updateReplacedNodes(descendant.id, copyNode)
           }
-        } else {
+        } else { // we have template references
           referencingNodeIds += descendant.id
           descendantReferences foreach { descendantReference =>
             referencedTemplateIds += descendantReference.id
+            // check if the descendantRefence already has a counterpart in the newNode graph
             alreadyExistingNodes.get(descendantReference.id) match {
               case Some(implementationNode) =>
-                if (implementationNode.id != descendant.id) {
+                if (implementationNode.id != descendant.id) { // guard against a self-loop, because this somehow happened once and makes no sense. TODO: we should be able to remove this, but needs thorough testing.
                   addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                  alreadyExistingNodes += (descendant.id -> implementationNode)
                   updateReplacedNodes(descendant.id, implementationNode)
                   applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
                 }
               case None =>
-                val copyNode = copyAndTransformNode(descendantReference)
-                addNodes += copyNode
-                addNodeIds += copyNode.id
-                addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendantReference.id))
-                addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                updateReplacedNodes(descendantReference.id, copyNode)
-                updateReplacedNodes(descendant.id, copyNode)
-                applyTemplateToNode(newNode = copyNode, templateNode = descendant)
+                if (descendant.id != templateNode.id) { // we only auto-create references templates, if there is a reason. If we just got passed in a template that does not reference anything in the current tree, we do nothing.
+                  val copyNode = copyAndTransformNode(descendantReference)
+                  addNodes += copyNode
+                  addNodeIds += copyNode.id
+                  addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendantReference.id))
+                  addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                  alreadyExistingNodes += (descendant.id -> copyNode)
+                  alreadyExistingNodes += (descendantReference.id -> copyNode)
+                  updateReplacedNodes(descendantReference.id, copyNode)
+                  updateReplacedNodes(descendant.id, copyNode)
+                  applyTemplateToNode(newNode = copyNode, templateNode = descendant)
+              }
             }
           }
         }
@@ -368,6 +380,19 @@ object GraphChangesAutomation {
   def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
+    case class CopyArgs(newNode: Node.Content, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)], childEdges: Array[Edge.Child]) {
+      def merge(args: CopyArgs) = {
+        require(args.newNode == newNode, "CopyArgs can only be merged for the same newNode")
+        CopyArgs(newNode, templateNodesIdx ++ args.templateNodesIdx, ignoreParents ++ args.ignoreParents, childEdges ++ args.childEdges)
+      }
+    }
+
+    val groupedAutomatedNodeWithTemplates = new mutable.HashMap[NodeId, mutable.ArrayBuffer[CopyArgs]]
+    def updateGroupedAutomatedNodeWithTemplates(args: CopyArgs): Unit = {
+      val buffer = groupedAutomatedNodeWithTemplates.getOrElseUpdate(args.newNode.id, new mutable.ArrayBuffer[CopyArgs])
+      buffer += args
+    }
+
     val addNodes = mutable.ArrayBuffer[Node]()
     val addEdges = mutable.ArrayBuffer[Edge]()
     val delEdges = mutable.ArrayBuffer[Edge]()
@@ -389,22 +414,17 @@ object GraphChangesAutomation {
 
           if (!shouldAutomate) addEdges += parent // do not automate template nodes
           else {
-            var doneSomethingLocally = false
-            var doneAutomatedParent = false
-
             // if this is a stage, we want to apply automation to nested stages as well:
             val ignoreParents = mutable.HashSet[(Int, NodeId)]()
-            val templateNodesIdx = Array.newBuilder[Int]
+            val templateNodesIdxBuilder = Array.newBuilder[Int]
             val parentNode = graph.nodes(parentIdx)
             def addTemplateIdx(targetIdx: Int): Unit = graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
               val templateNode = graph.nodes(templateNodeIdx).as[Node.Content]
-              def hasReferencedTemplate = graph.referencesTemplateEdgeIdx.exists(templateNodeIdx)(_
+              def hasReferencedTemplate = graph.referencesTemplateEdgeIdx.sliceNonEmpty(templateNodeIdx)
               if (templateNode.role == childNode.role || hasReferencedTemplate) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
-                templateNodesIdx += templateNodeIdx
-                doneSomethingLocally = true
-                if (targetIdx == parentIdx) doneAutomatedParent = true
+                templateNodesIdxBuilder += templateNodeIdx
               }
             }
 
@@ -422,38 +442,38 @@ object GraphChangesAutomation {
               })
             }
 
-            val (isTouched, changes) = copySubGraphOfNodeWithIsTouched(userId, graph, newNode = childNode, templateNodesIdx = templateNodesIdx.result, ignoreParents = ignoreParents)
-            // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
-            // so an automated node can be drag/dropped to the correct position.
-            if (isTouched) {
-              addEdges ++= changes.addEdges.map {
-                case addParent: Edge.Child if addParent.childId == parent.childId && addParent.parentId == parent.parentId =>
-                  addParent.copy(data = addParent.data.copy(ordering = parent.data.ordering))
-                case e => e
-              }
-            } else {
-              addEdges ++= changes.addEdges
-              addEdges += parent
-            }
-            addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
-            delEdges ++= changes.delEdges
-
-            if (doneSomethingLocally) {
-              automatedNodes += childNode
-              if (!doneAutomatedParent) {
-                addEdges += parent
-              }
-            } else {
-              addEdges += parent
-            }
+            val templateNodesIdx = templateNodesIdxBuilder.result
+            if (templateNodesIdx.nonEmpty) updateGroupedAutomatedNodeWithTemplates(CopyArgs(childNode, templateNodesIdx, ignoreParents, Array(parent)))
+            else addEdges += parent
           }
-
         }
       case e => addEdges += e
 
     }
 
-    addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
+    groupedAutomatedNodeWithTemplates.values.foreach { allArgs =>
+      val args = allArgs.reduce(_ merge _)
+      val (isTouched, changes) = copySubGraphOfNodeWithIsTouched(userId, graph, newNode = args.newNode, templateNodesIdx = args.templateNodesIdx, ignoreParents = args.ignoreParents)
+      // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
+      // so an automated node can be drag/dropped to the correct position.
+      if (isTouched) {
+        automatedNodes += args.newNode
+        addEdges ++= changes.addEdges.map {
+          case addParent: Edge.Child =>
+            args.childEdges.find(edge => addParent.childId == edge.childId && addParent.parentId == edge.parentId).fold(addParent) { edge =>
+              addParent.copy(data = addParent.data.copy(ordering = edge.data.ordering))
+            }
+          case e => e
+        }
+      } else {
+        addEdges ++= changes.addEdges
+        addEdges ++= args.childEdges
+      }
+      addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
+      delEdges ++= changes.delEdges
+    }
+
+    addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes. TODO: efficient!
     delEdges ++= changes.delEdges
 
     automatedNodes.foreach { childNode =>
