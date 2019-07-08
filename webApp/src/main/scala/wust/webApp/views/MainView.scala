@@ -16,17 +16,17 @@ import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 
 object MainView {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.growFull,
       Rx {
-        if (state.hasError()) ErrorPage()
-        else main(state)
+        if (GlobalState.hasError()) ErrorPage()
+        else main
       }
     )
   }
 
-  private def main(state: GlobalState)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def main(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       div(
         Styles.flex,
@@ -38,43 +38,43 @@ object MainView {
           wdtEmojiBundle.close()
         },
 
-        LeftSidebar(state).apply(
-          onMouseDown(None) --> state.rightSidebarNode,
+        LeftSidebar.apply(
+          onMouseDown(None) --> GlobalState.rightSidebarNode,
         ),
 
         div(
           Styles.flex,
           Styles.growFull,
           flexDirection.column,
-          onMouseDown(None) --> state.rightSidebarNode,
+          onMouseDown(None) --> GlobalState.rightSidebarNode,
 
-          //      DevOnly { DevView(state) },
-          topBannerContainer(state),
-          content(state),
+          //      DevOnly { DevView },
+          topBannerContainer,
+          content,
         ),
         VDomModifier.ifNot(BrowserDetect.isMobile)(EmojiPicker()),
 
-        RightSidebar(state, ViewRender),
+        RightSidebar( ViewRender),
       )
     )
   }
 
-  def topBannerContainer(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def topBannerContainer(implicit ctx: Ctx.Owner) = {
     val projectName = Rx {
-      state.page().parentId.map(pid => state.graph().nodesByIdOrThrow(pid).str)
+      GlobalState.page().parentId.map(pid => GlobalState.graph().nodesByIdOrThrow(pid).str)
     }
 
     div(
       cls := "topBannerContainer",
       Rx {
-        WoostNotification.banner(state, state.permissionState(), projectName())
+        WoostNotification.banner( GlobalState.permissionState(), projectName())
       }
     )
   }
 
-  def content(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def content(implicit ctx: Ctx.Owner) = {
     val viewIsContent = Rx {
-      state.view().isContent
+      GlobalState.view().isContent
     }
 
     // a view should never be shrinked to less than 300px-45px collapsed sidebar
@@ -92,10 +92,10 @@ object MainView {
 
       Rx {
         if (viewIsContent())
-          PageHeader(state, ViewRender).apply(Styles.flexStatic, viewWidthMod)
+          PageHeader( ViewRender).apply(Styles.flexStatic, viewWidthMod)
         else {
-          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            Topbar(state).apply(Styles.flexStatic, viewWidthMod)
+          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+            Topbar.apply(Styles.flexStatic, viewWidthMod)
           )
         }
       },
@@ -103,8 +103,8 @@ object MainView {
       //TODO: combine with second rx! but it does not work because it would not overlay everthing as it does now.
       Rx {
         VDomModifier.ifTrue(viewIsContent()) (
-          if (state.isLoading()) spaceFillingLoadingAnimation(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
-          else if (state.pageNotFound()) PageNotFoundView(state).apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
+          if (GlobalState.isLoading()) spaceFillingLoadingAnimation.apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
+          else if (GlobalState.pageNotFound()) PageNotFoundView.apply.apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
           else VDomModifier.empty
         )
       },
@@ -124,9 +124,9 @@ object MainView {
           Styles.growFull,
           cls := "pusher",
           Rx {
-            val viewConfig = state.viewConfig()
+            val viewConfig = GlobalState.viewConfig()
 
-            ViewRender(state, state.toFocusState(viewConfig), viewConfig.view).apply(
+            ViewRender( GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
               Styles.growFull,
               flexGrow := 1
             ).prepend(
@@ -139,7 +139,7 @@ object MainView {
     )
   }
 
-  def spaceFillingLoadingAnimation(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def spaceFillingLoadingAnimation(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       alignItems.center,
@@ -157,7 +157,7 @@ object MainView {
         marginTop := "20px",
 
         Rx {
-          if (state.isOnline())
+          if (GlobalState.isOnline())
             div(
               cls := "animated-late-fadein",
               span("Loading forever?", marginRight := "10px"),

@@ -30,21 +30,21 @@ object SortableEvents {
     }
   })
 
-  def init(state: GlobalState): Unit = {
-    new SortableEvents(state, sortable)
+  def init(): Unit = {
+    new SortableEvents( sortable)
   }
 }
 
-class SortableEvents(state: GlobalState, draggable: Draggable) {
+class SortableEvents(draggable: Draggable) {
 
   private var currentOverEvent: js.UndefOr[DragOverEvent] = js.undefined
   private var currentOverContainerEvent: js.UndefOr[DragOverContainerEvent] = js.undefined
 
   def onStartDrag(): Unit = {
-    state.eventProcessor.stopEventProcessing.onNext(true)
+    GlobalState.eventProcessor.stopEventProcessing.onNext(true)
   }
   def onStopDrag(): Unit = {
-    state.eventProcessor.stopEventProcessing.onNext(false)
+    GlobalState.eventProcessor.stopEventProcessing.onNext(false)
   }
 
   draggable.on[DragStartEvent]("drag:start", (e: DragStartEvent) => {
@@ -145,13 +145,13 @@ class SortableEvents(state: GlobalState, draggable: Draggable) {
           val ctrlDown = currentEvent.ctrlKey.asInstanceOf[Boolean]
           val shiftDown = currentEvent.shiftKey.asInstanceOf[Boolean]
           if (overSortcontainer) {
-            performSort(state, sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
+            performSort( sortableStopEvent, currentOverContainerEvent, currentOverEvent, ctrlDown, shiftDown)
             // actively repair the containers, since drags can be aborted / emit empty graphchanges
             // happens when creating containment cycles or drag with ctrl (copy)
             readDragContainer(sortableStopEvent.oldContainer).foreach(_.triggerRepair.onNext(()))
             readDragContainer(sortableStopEvent.newContainer).foreach(_.triggerRepair.onNext(()))
           } else {
-            performDrag(state, sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
+            performDrag( sortableStopEvent, currentOverEvent, ctrlDown, shiftDown)
           }
         case _ =>
           scribe.debug("dropped outside container or target")

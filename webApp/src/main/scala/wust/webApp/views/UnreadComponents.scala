@@ -124,20 +124,20 @@ object UnreadComponents {
     nodeHasContentRole && nodeIsNotDerivedFromTemplate
   }
 
-  def readObserver(state: GlobalState, nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def readObserver(nodeId: NodeId, labelModifier:VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
 
     val isUnread = Rx {
-      val graph = state.graph()
-      val user = state.user()
+      val graph = GlobalState.graph()
+      val user = GlobalState.user()
 
       nodeIsUnread(graph, user.id, nodeIdx())
     }
 
     val unreadChildren = Rx {
-      val graph = state.graph()
-      val user = state.user()
+      val graph = GlobalState.graph()
+      val user = GlobalState.user()
 
       graph.descendantsIdxCount(nodeIdx())(idx => nodeIsUnread(graph, user.id, idx))
     }
@@ -164,7 +164,7 @@ object UnreadComponents {
                 val isIntersecting = entry.head.isIntersecting
                 if (isIntersecting && isUnread.now) {
                   val markAsReadChanges = GraphChanges(
-                    addEdges = Array(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                    addEdges = Array(Edge.Read(nodeId, EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))
                   )
 
                   // stop observing once read
@@ -173,7 +173,7 @@ object UnreadComponents {
 
                   observed() = true // makes the dot fade out
 
-                  state.eventProcessor.changesRemoteOnly.onNext(markAsReadChanges)
+                  GlobalState.eventProcessor.changesRemoteOnly.onNext(markAsReadChanges)
                 }
               },
               new IntersectionObserverOptions {
@@ -200,11 +200,11 @@ object UnreadComponents {
     }
   }
 
-  def notificationsButton(state: GlobalState, nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def notificationsButton(nodeId: NodeId, modifiers: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[View.Visible, VDomModifier] = EmitterBuilder.ofModifier { sink =>
 
     val haveUnreadNotifications = Rx {
-      val graph = state.graph()
-      val user = state.user()
+      val graph = GlobalState.graph()
+      val user = GlobalState.user()
       hasUnreadChildren(graph, nodeId, deep = true, user)
     }
 

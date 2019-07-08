@@ -19,8 +19,8 @@ import wust.webUtil.{Ownable, UI}
 
 object RightSidebar {
 
-  @inline def apply(state: GlobalState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(state, state.rightSidebarNode, nodeId => state.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
-  def apply(state: GlobalState, focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  @inline def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply( GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
+  def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = Var(focusedNodeId.now.isDefined)
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
     toggleVar.triggerLater(show => if (!show) parentIdAction(None))
@@ -28,12 +28,12 @@ object RightSidebar {
     GenericSidebar.right(
       toggleVar,
       config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = VDomModifier(focusedNodeId.map(_.map(content(state, _, parentIdAction, viewRender))), openModifier)
+        openModifier = VDomModifier(focusedNodeId.map(_.map(content( _, parentIdAction, viewRender))), openModifier)
       )}
     )
   }
 
-  def content(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
+  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
     val sidebarHeader = div(
@@ -51,7 +51,7 @@ object RightSidebar {
       ),
       div(
         marginLeft := "5px",
-        nodeBreadcrumbs(state, focusPref, parentIdAction, hideIfSingle = true),
+        nodeBreadcrumbs( focusPref, parentIdAction, hideIfSingle = true),
       ),
     )
 
@@ -79,17 +79,17 @@ object RightSidebar {
       color.black,
 
       sidebarHeader.apply(Styles.flexStatic),
-      nodeContent(state, focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
+      nodeContent( focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
 
       UI.accordion(
         content = Seq(
           accordionEntry("Properties & Custom Fields", VDomModifier(
-            nodeProperties(state, focusPref, parentIdAction),
+            nodeProperties( focusPref, parentIdAction),
             Styles.flexStatic,
           ), active = false),
           accordionEntry("Views", VDomModifier(
             height := "100%",
-            viewContent(state, focusPref, parentIdAction, nodeStyle, viewRender),
+            viewContent( focusPref, parentIdAction, nodeStyle, viewRender),
           ), active = true),
         ),
         styles = "styled fluid",
@@ -103,9 +103,9 @@ object RightSidebar {
       )
     )
   }
-  private def viewContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
-    val graph = state.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
-    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, state.user.now.id)).getOrElse(View.Empty)
+  private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
+    val graph = GlobalState.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
+    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
     val viewVar = Var[View.Visible](initialView)
     def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
 
@@ -122,13 +122,13 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher(state, focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        UnreadComponents.notificationsButton(state, focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
+        ViewSwitcher( focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        UnreadComponents.notificationsButton( focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
       ),
 
       Rx {
         val view = viewVar()
-        viewRender(state, FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+        viewRender( FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(
@@ -139,14 +139,14 @@ object RightSidebar {
     )
   }
 
-  private def nodeBreadcrumbs(state: GlobalState, focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle:Boolean)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
         BreadCrumbs(
-          state,
-          state.rawGraph(),
-          state.user(),
-          state.page().parentId,
+          
+          GlobalState.rawGraph(),
+          GlobalState.user(),
+          GlobalState.page().parentId,
           Some(focusedNodeId.nodeId),
           nodeId => parentIdAction(Some(nodeId)),
           hideIfSingle = hideIfSingle
@@ -155,15 +155,15 @@ object RightSidebar {
     )
   }
 
-  private def nodeContent(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
     val editMode = Var(false)
 
     val node = Rx {
-      state.graph().nodesByIdOrThrow(focusPref.nodeId)
+      GlobalState.graph().nodesByIdOrThrow(focusPref.nodeId)
     }
 
     val hasNotDeletedParents = Rx {
-      state.graph().hasNotDeletedParents(focusPref.nodeId)
+      GlobalState.graph().hasNotDeletedParents(focusPref.nodeId)
     }
 
     val buttonMods = VDomModifier(
@@ -177,7 +177,7 @@ object RightSidebar {
       Icons.zoom,
       buttonMods,
       onClick.foreach {
-        state.urlConfig.update(_.focus(Page(focusPref.nodeId)))
+        GlobalState.urlConfig.update(_.focus(Page(focusPref.nodeId)))
       }
     )
 
@@ -187,7 +187,7 @@ object RightSidebar {
           Icons.delete,
           buttonMods,
           onClick.stopPropagation.foreach { _ =>
-            state.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), state.graph.now))
+            GlobalState.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
             parentIdAction(None)
           },
         )
@@ -195,7 +195,7 @@ object RightSidebar {
     }
 
     val nodeCard = Rx {
-      Components.nodeCardEditable(state, node(), editMode,
+      Components.nodeCardEditable( node(), editMode,
         contentInject = width := "100%" // pushes cancel button to the right
       ).apply(
         cls := "right-sidebar-node",
@@ -210,7 +210,7 @@ object RightSidebar {
         cls := "enable-text-selection",
         onClick.stopPropagation(true) --> editMode,
 
-        UnreadComponents.readObserver(state, node().id)
+        UnreadComponents.readObserver( node().id)
       )
     }
 
@@ -228,20 +228,20 @@ object RightSidebar {
         }
       ),
 
-      nodeAuthor(state, focusPref.nodeId),
+      nodeAuthor( focusPref.nodeId),
 
       div(
         Styles.flex,
         alignItems.center,
 
-        Components.automatedNodesOfNode(state, focusPref.nodeId),
+        Components.automatedNodesOfNode( focusPref.nodeId),
       ),
     )
   }
 
-  private def nodeAuthor(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def nodeAuthor(nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val authorship = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val idx = graph.idToIdxOrThrow(nodeId)
       val author = graph.nodeCreator(idx)
       val creationEpochMillis = graph.nodeCreated(idx)
@@ -253,15 +253,15 @@ object RightSidebar {
       justifyContent.flexEnd,
 
       authorship.map { case (author, creationEpochMillis) =>
-        chatMessageHeader(state, author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
+        chatMessageHeader( author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
       },
     )
   }
 
-  private def nodeProperties(state: GlobalState, focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
+  private def nodeProperties(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit)(implicit ctx: Ctx.Owner) = {
 
     val propertySingle = Rx {
-      val graph = state.rawGraph()
+      val graph = GlobalState.rawGraph()
       val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
       PropertyData.Single(graph, nodeIdx)
     }
@@ -280,14 +280,14 @@ object RightSidebar {
 
     def createNewTag(str: String): Boolean = {
       val createdNode = Node.MarkdownTag(str)
-      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(state.page.now.parentId)) merge
+      val change = GraphChanges.addNodeWithParent(createdNode, ParentId(GlobalState.page.now.parentId)) merge
         GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(focusPref.nodeId))
-      state.eventProcessor.changes.onNext(change)
+      GlobalState.eventProcessor.changes.onNext(change)
       true
     }
 
     def searchInput(placeholder: String, filter: Node => Boolean, createNew: String => Boolean = _ => false, showNotFound: Boolean = true) =
-      Components.searchInGraph(state.rawGraph, placeholder = placeholder, filter = filter, showNotFound = showNotFound, createNew = createNew, inputModifiers = VDomModifier(
+      Components.searchInGraph(GlobalState.rawGraph, placeholder = placeholder, filter = filter, showNotFound = showNotFound, createNew = createNew, inputModifiers = VDomModifier(
         width := "140px",
         padding := "2px 10px 2px 10px",
       ), elementModifier = VDomModifier(
@@ -305,7 +305,7 @@ object RightSidebar {
     val addFieldMode = Var[AddProperty](AddProperty.None)
 
     val selfOrParentIsAutomationTemplate = Rx {
-      val graph = state.rawGraph()
+      val graph = GlobalState.rawGraph()
       val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
       graph.selfOrParentIsAutomationTemplate(nodeIdx)
     }
@@ -313,15 +313,15 @@ object RightSidebar {
     addFieldMode.map {
       case AddProperty.CustomField =>
         ItemProperties.managePropertiesInline(
-          state,
+          
           ItemProperties.Target.Node(focusPref.nodeId)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.EdgeReference(title, create) =>
         ItemProperties.managePropertiesInline(
-          state,
+          
           ItemProperties.Target.Node(focusPref.nodeId),
           ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Ref), hidePrefilledType = true, filterRefCompletion = { node =>
-            val graph = state.rawGraph.now
+            val graph = GlobalState.rawGraph.now
             graph.idToIdxFold(node.id)(false)(graph.selfOrParentIsAutomationTemplate(_))
           }),
           ItemProperties.EdgeFactory.Plain(create),
@@ -329,7 +329,7 @@ object RightSidebar {
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.DefinedField(title, key, tpe) =>
         ItemProperties.managePropertiesInline(
-          state,
+          
           ItemProperties.Target.Node(focusPref.nodeId),
           ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Data(tpe)), hidePrefilledType = true),
           ItemProperties.EdgeFactory.labeledProperty(key),
@@ -342,7 +342,7 @@ object RightSidebar {
           Rx {
             VDomModifier(
               propertySingle().properties.map { property =>
-                Components.removablePropertySection(state, property.key, property.values, parentIdAction)
+                Components.removablePropertySection( property.key, property.values, parentIdAction)
               },
 
               VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
@@ -351,7 +351,7 @@ object RightSidebar {
                 fontSize.small,
                 span("Backlinks: ", color.gray),
                 propertySingle().info.reverseProperties.map { node =>
-                  Components.nodeCard(state, node, maxLength = Some(50)).apply(
+                  Components.nodeCard( node, maxLength = Some(50)).apply(
                     margin := "3px",
                     Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                   )
@@ -394,7 +394,7 @@ object RightSidebar {
             case false => VDomModifier.empty
             case true =>
               val referenceNodes = Rx {
-                val graph = state.rawGraph()
+                val graph = GlobalState.rawGraph()
                 val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
                 graph.referencesTemplateEdgeIdx.map(nodeIdx)(edgeIdx => graph.nodes(graph.edgesIdx.b(edgeIdx)))
               }
@@ -405,7 +405,7 @@ object RightSidebar {
               )
               def deleteButton(referenceNodeId: NodeId) = VDomModifier(
                 cursor.pointer,
-                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, TemplateId(referenceNodeId))))) --> state.eventProcessor.changes
+                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
               )
 
               div(
@@ -421,7 +421,7 @@ object RightSidebar {
                     nodes.map { node =>
                       div(
                         Styles.flex,
-                        Components.nodeCard(state, node, maxLength = Some(200)).apply(
+                        Components.nodeCard( node, maxLength = Some(200)).apply(
                           Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                         ),
                         div(padding := "2px", Icons.delete, deleteButton(node.id))
@@ -436,7 +436,7 @@ object RightSidebar {
         renderSplit(
           left = VDomModifier(
             searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
-              state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
             }
           ),
           right = VDomModifier(
@@ -445,7 +445,7 @@ object RightSidebar {
             flexWrap.wrap,
             Rx {
               propertySingle().info.tags.map { tag =>
-                Components.removableNodeTag(state, tag, taggedNodeId = focusPref.nodeId)
+                Components.removableNodeTag( tag, taggedNodeId = focusPref.nodeId)
               }
             }
           ),
@@ -453,7 +453,7 @@ object RightSidebar {
         renderSplit(
           left = VDomModifier(
             searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-              state.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
             }
           ),
           right = VDomModifier(
@@ -462,7 +462,7 @@ object RightSidebar {
             flexWrap.wrap,
             Rx {
               propertySingle().info.assignedUsers.map { user =>
-                Components.removableAssignedUser(state, user, focusPref.nodeId)
+                Components.removableAssignedUser( user, focusPref.nodeId)
               }
             }
           )

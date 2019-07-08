@@ -20,7 +20,7 @@ import wust.webUtil.outwatchHelpers._
 import scala.collection.{breakOut, mutable}
 
 object TableView {
-  def apply(state: GlobalState, focusState: FocusState, roles: List[NodeRole])(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, roles: List[NodeRole])(implicit ctx: Ctx.Owner): VNode = {
     val sort = Var[Option[UI.ColumnSort]](None)
 
     div(
@@ -30,13 +30,13 @@ object TableView {
       paddingTop := "20px",
 
       Rx {
-        val graph = state.graph()
-        table(state, graph, focusState.focusedId, roles, sort)
+        val graph = GlobalState.graph()
+        table( graph, focusState.focusedId, roles, sort)
       }
     )
   }
 
-  def table(state: GlobalState, graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
     val globalEditMode = Var(Option.empty[(String, Array[Edge.LabeledProperty])])
@@ -53,11 +53,11 @@ object TableView {
       }.mkString(", "),
       value = VDomModifier(
         edges.map {
-          case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick(state, node, edge, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag(state, tag, row)
-          case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag(state, stage, row)
-          case (_, node: Node.Content) => Components.editableNodeOnClick(state, node, maxLength = Some(50), config = EditableContent.Config.default)
-          case (_, user: Node.User)                               => Components.removableAssignedUser(state, user, row)
+          case (Some(edge), node: Node.Content) => Components.editablePropertyNodeOnClick( node, edge, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, tag: Node.Content) if tag.role == NodeRole.Tag => Components.removableNodeTag( tag, row)
+          case (_, stage: Node.Content) if stage.role == NodeRole.Stage => Components.removableNodeTag( stage, row)
+          case (_, node: Node.Content) => Components.editableNodeOnClick( node, maxLength = Some(50), config = EditableContent.Config.default)
+          case (_, user: Node.User)                               => Components.removableAssignedUser( user, row)
         },
         cellModifier
       )
@@ -89,7 +89,7 @@ object TableView {
         div(
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
-              state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
             }
           }
         ),
@@ -124,15 +124,15 @@ object TableView {
           UI.ColumnEntry(idx,
             VDomModifier(
              backgroundColor := "#f9fafb", // same color as header of table
-             Components.sidebarNodeFocusVisualizeRightMod(state.rightSidebarNode, property.node.id),
-             Components.sidebarNodeFocusClickMod(state.rightSidebarNode, property.node.id),
+             Components.sidebarNodeFocusVisualizeRightMod(GlobalState.rightSidebarNode, property.node.id),
+             Components.sidebarNodeFocusClickMod(GlobalState.rightSidebarNode, property.node.id),
              div(
                fontSize.xxSmall,
                idx + 1,
              )
             ),
             rowModifier = VDomModifier(
-              Components.sidebarNodeFocusVisualizeMod(state.rightSidebarNode, property.node.id),
+              Components.sidebarNodeFocusVisualizeMod(GlobalState.rightSidebarNode, property.node.id),
               DragItem.fromNodeRole(property.node.id, property.node.role).map(item => DragComponents.drag(target = item))
             )
           )
@@ -199,7 +199,7 @@ object TableView {
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
               ItemProperties.managePropertiesDropdown(
-                state,
+                
                 ItemProperties.Target.Node(group.node.id),
                 ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
                 ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
@@ -231,7 +231,7 @@ object TableView {
               cls := "ui mini compact button",
               "+ New Column"
             ),
-            ItemProperties.managePropertiesDropdown(state,
+            ItemProperties.managePropertiesDropdown(
               target = ItemProperties.Target.Custom({ (selectedKey, changesf) =>
                 if (keepPropertyAsDefault.now) {
                   val templateNode = Node.Content(NodeData.Markdown(s"Default for row '${selectedKey.fold("")(_.string)}'"), targetRole)
@@ -243,10 +243,10 @@ object TableView {
                     )
                   )
                   // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
-                  val tmpGraph = state.rawGraph.now applyChanges changes
+                  val tmpGraph = GlobalState.rawGraph.now applyChanges changes
                   val templateIdx = tmpGraph.idToIdxOrThrow(templateNode.id)
                   // run automation of this template for each row
-                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(state.user.now.id, tmpGraph, info.node, templateNodesIdx = Array(templateIdx)))
+                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(GlobalState.user.now.id, tmpGraph, info.node, templateNodesIdx = Array(templateIdx)))
                 } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
               }, keepPropertyAsDefault),
               dropdownModifier = cls := "top left",
@@ -254,7 +254,7 @@ object TableView {
                 padding := "10px",
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                  // GraphChangesAutomationUI.settingsButton(state, focusedId).prepend(
+                  // GraphChangesAutomationUI.settingsButton( focusedId).prepend(
                   //   span("Manage automations", textDecoration.underline, marginRight := "5px")
                   // ),
                   // i(
@@ -282,7 +282,7 @@ object TableView {
 
               UI.checkboxEmitter(span(Icons.showOnCard, " Show on Card"), edges.forall(_.data.showOnCard)).map { showOnCard =>
                 GraphChanges(addEdges = edges.collect { case edge if edge.data.showOnCard != showOnCard => edge.copy(data = edge.data.copy(showOnCard = showOnCard)) }(breakOut))
-              } --> state.eventProcessor.changes,
+              } --> GlobalState.eventProcessor.changes,
 
               div(
                 marginTop := "5px",
@@ -292,7 +292,7 @@ object TableView {
                 " Delete",
                 onClick.stopPropagation.foreach {
                   if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                    state.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
+                    GlobalState.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
                   }
                   ()
                 },
@@ -308,18 +308,18 @@ object TableView {
         cls := "ui mini compact button",
         "+ New Row",
         cursor.pointer,
-        onClickNewNamePrompt(state, header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { sub =>
+        onClickNewNamePrompt( header = "Add a new Row", placeholder = Placeholder(s"A new ${targetRole}")).foreach { sub =>
           val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
-          val addTags = ViewFilter.addCurrentlyFilteredTags(state, newNode.id)
-          state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(newNode.id))
+          val addTags = ViewFilter.addCurrentlyFilteredTags( newNode.id)
+          GlobalState.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(newNode.id))
 
           ()
         }
       ),
-      registerDragContainer(state, DragContainer.Default)
+      registerDragContainer( DragContainer.Default)
     )
   }
 

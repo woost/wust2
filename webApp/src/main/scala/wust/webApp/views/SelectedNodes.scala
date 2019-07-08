@@ -19,19 +19,19 @@ import scala.collection.breakOut
 object SelectedNodes {
   import SharedViewElements.SelectedNodeBase
 
-  def apply[T <: SelectedNodeBase](state: GlobalState, selected:Var[Set[T]], nodeActions:(List[T], Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, singleNodeActions:(T, Boolean) => List[VNode] = (_: T, _: Boolean) => Nil)(implicit ctx: Ctx.Owner): VNode = {
+  def apply[T <: SelectedNodeBase](selected:Var[Set[T]], nodeActions:(List[T], Boolean) => List[VNode] = (_:List[T], _: Boolean) => Nil, singleNodeActions:(T, Boolean) => List[VNode] = (_: T, _: Boolean) => Nil)(implicit ctx: Ctx.Owner): VNode = {
 
     val selectedNodes: Var[Set[T]] = selected.mapRead { selectedNodes =>
-      selectedNodes().filter(data => state.graph().lookup.contains(data.nodeId))
+      selectedNodes().filter(data => GlobalState.graph().lookup.contains(data.nodeId))
     }
 
     div(
-      emitterRx(selected).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> state.selectedNodes,
+      emitterRx(selected).map(_.map(_.nodeId)(breakOut): List[NodeId]) --> GlobalState.selectedNodes,
 
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val sortedNodeIds = selectedNodes().toList //.sortBy(data => graph.nodeCreated(graph.idToIdx(data.nodeId)): Long)
-        val canWriteAll = NodePermission.canWriteAll(state.user(), graph, sortedNodeIds.map(_.nodeId))
+        val canWriteAll = NodePermission.canWriteAll(GlobalState.user(), graph, sortedNodeIds.map(_.nodeId))
         VDomModifier(
           sortedNodeIds match {
             case Nil => VDomModifier.empty
@@ -44,7 +44,7 @@ object SelectedNodes {
               div(nonEmptyNodeIds.size, marginRight := "10px", fontWeight.bold),
 
               Rx {
-                (state.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList(state, nonEmptyNodeIds.map(_.nodeId), selectedNodes, state.graph()))
+                (GlobalState.screenSize() != ScreenSize.Small).ifTrue[VDomModifier](nodeList( nonEmptyNodeIds.map(_.nodeId), selectedNodes, GlobalState.graph()))
               }, // grow, so it can be grabbed
 
               div(marginLeft.auto),
@@ -54,14 +54,14 @@ object SelectedNodes {
           }
         )
       },
-      registerDragContainer(state),
+      registerDragContainer,
       keyed,
       zIndex := ZIndex.selected,
       onGlobalEscape(Set.empty[T]) --> selectedNodes,
     )
   }
 
-  private def nodeList[T <: SelectedNodeBase](state:GlobalState, selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], graph:Graph)(implicit ctx: Ctx.Owner) = {
+  private def nodeList[T <: SelectedNodeBase]( selectedNodeIds:List[NodeId], selectedNodes: Var[Set[T]], graph:Graph)(implicit ctx: Ctx.Owner) = {
     div(
       cls := "nodelist",
       drag(payload = DragItem.SelectedNodes(selectedNodeIds)),
@@ -72,12 +72,12 @@ object SelectedNodes {
       flexWrap.wrap,
       selectedNodeIds.map { nodeId =>
           val node = graph.nodesByIdOrThrow(nodeId)
-          selectedNodeCard(state, selectedNodes, node)
+          selectedNodeCard( selectedNodes, node)
         }
     )
   }
 
-  def deleteAllButton[T <: SelectedNodeBase](state:GlobalState, selectedNodesList:List[T], selectedNodes: Var[Set[T]], allSelectedNodesAreDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+  def deleteAllButton[T <: SelectedNodeBase]( selectedNodesList:List[T], selectedNodes: Var[Set[T]], allSelectedNodesAreDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(
         cls := "fa-fw",
@@ -94,7 +94,7 @@ object SelectedNodes {
           else
             selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(ChildId(t.nodeId), t.directParentIds.map(ParentId(_))))
 
-        state.eventProcessor.changes.onNext(changes)
+        GlobalState.eventProcessor.changes.onNext(changes)
         selectedNodes() = Set.empty[T]
       }
     )
@@ -109,8 +109,8 @@ object SelectedNodes {
     )
   }
 
-  private def selectedNodeCard[T <: SelectedNodeBase](state:GlobalState, selectedNodes: Var[Set[T]], node: Node)(implicit ctx: Ctx.Owner) = {
-    nodeCard(state, node,contentInject = Seq[VDomModifier](
+  private def selectedNodeCard[T <: SelectedNodeBase]( selectedNodes: Var[Set[T]], node: Node)(implicit ctx: Ctx.Owner) = {
+    nodeCard( node,contentInject = Seq[VDomModifier](
       Styles.flex,
       alignItems.center,
       span(

@@ -21,8 +21,8 @@ import scala.util.{Failure, Success}
 object AWS {
   final case class UploadableFile(file: dom.File, dataUrl: String, uploadKey: Task[Option[String]])
 
-  def upload(state: GlobalState, file: dom.File): Either[String, UploadableFile] = { // TODO: return either and propagate error message to form error instead of toast
-    state.user.now match {
+  def upload(file: dom.File): Either[String, UploadableFile] = { // TODO: return either and propagate error message to form error instead of toast
+    GlobalState.user.now match {
       case _: AuthUser.Real => ()
       case _ =>
         return Left(s"You need to register an account before you can upload anything.")
@@ -82,7 +82,7 @@ object AWS {
           Analytics.sendEvent("AWS-upload", "success", label = "MB", value = (file.size / 1024 / 1024).toInt)
         case Success(FileUploadConfiguration.QuotaExceeded) =>
           promise success None
-          UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => state.urlConfig.update(_.focus(View.UserSettings)))
+          UI.toast(s"Sorry, you have exceeded your file-upload quota. You only have ${FileUploadConfiguration.maxUploadBytesPerUser / 1024 / 1024} MB. Click here to check your uploaded files in your user settings.", click = () => GlobalState.urlConfig.update(_.focus(View.UserSettings)))
           Analytics.sendEvent("AWS-upload", "total-size-limit")
         case Success(FileUploadConfiguration.ServiceUnavailable) =>
           promise success None
@@ -105,10 +105,10 @@ object AWS {
     Right(UploadableFile(file = file, dataUrl = url, uploadKey = uploadedKey))
   }
 
-  def uploadFileAndCreateNode(state: GlobalState, uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Unit] = {
+  def uploadFileAndCreateNode(uploadFile: AWS.UploadableFile, extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): Future[Unit] = {
 
     val nodeId = NodeId.fresh
-    val (initialNodeData, observableNodeData) = uploadFileAndCreateNodeDataFull(state, uploadFile, Some(nodeId))
+    val (initialNodeData, observableNodeData) = uploadFileAndCreateNodeDataFull( uploadFile, Some(nodeId))
     val initialNode = Node.Content(nodeId, initialNodeData, NodeRole.Neutral)
 
     def toGraphChanges(node: Node) = GraphChanges.addNode(node).merge(extraChanges(node.id))
@@ -116,15 +116,15 @@ object AWS {
     val initialChanges = toGraphChanges(initialNode)
     val observableChanges = observableNodeData.map(data => toGraphChanges(initialNode.copy(data = data)))
 
-    state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, initialChanges.withAuthor(state.user.now.id)))
-    observableChanges.runToFuture.flatMap { e => state.eventProcessor.changes.onNext(e).map(_ => ()) }
+    GlobalState.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(GlobalState.user.now.toNode, initialChanges.withAuthor(GlobalState.user.now.id)))
+    observableChanges.runToFuture.flatMap { e => GlobalState.eventProcessor.changes.onNext(e).map(_ => ()) }
   }
 
-  def uploadFileAndCreateNodeData(state: GlobalState, uploadFile: AWS.UploadableFile): Task[NodeData.File] = {
-    uploadFileAndCreateNodeDataFull(state, uploadFile, None)._2
+  def uploadFileAndCreateNodeData(uploadFile: AWS.UploadableFile): Task[NodeData.File] = {
+    uploadFileAndCreateNodeDataFull( uploadFile, None)._2
   }
 
-  def uploadFileAndCreateNodeDataFull(state: GlobalState, uploadFile: AWS.UploadableFile, nodeId: Option[NodeId] = None): (NodeData.File, Task[NodeData.File]) = {
+  def uploadFileAndCreateNodeDataFull(uploadFile: AWS.UploadableFile, nodeId: Option[NodeId] = None): (NodeData.File, Task[NodeData.File]) = {
 
     val rawFileNodeData = NodeData.File(key = "", fileName = uploadFile.file.name, contentType = uploadFile.file.`type`) // TODO: empty string for signaling pending fileupload
 
@@ -133,15 +133,15 @@ object AWS {
       val observableChanges = Promise[NodeData.File]
       var uploadTask: Task[Unit] = null
       uploadTask = Task.defer{
-        nodeId.foreach(nodeId => state.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Waiting(uploadFile.dataUrl))))
+        nodeId.foreach(nodeId => GlobalState.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Waiting(uploadFile.dataUrl))))
 
         uploadFile.uploadKey.map {
           case Some(key) =>
-            nodeId.foreach(nodeId => state.uploadingFiles.update(_ - nodeId))
+            nodeId.foreach(nodeId => GlobalState.uploadingFiles.update(_ - nodeId))
             observableChanges.trySuccess(rawFileNodeData.copy(key = key))
             ()
           case None      =>
-            nodeId.foreach(nodeId => state.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Error(uploadFile.dataUrl, uploadTask))))
+            nodeId.foreach(nodeId => GlobalState.uploadingFiles.update(_ ++ Map(nodeId -> UploadingFile.Error(uploadFile.dataUrl, uploadTask))))
             ()
         }
       }

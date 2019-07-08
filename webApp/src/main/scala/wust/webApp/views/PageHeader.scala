@@ -22,76 +22,76 @@ import monix.reactive.Observer
 
 object PageHeader {
 
-  def apply(state: GlobalState, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
-        backgroundColor <-- state.pageStyle.map(_.pageBgColor),
+        backgroundColor <-- GlobalState.pageStyle.map(_.pageBgColor),
 
-        state.page.map(_.parentId.map(pageRow(state, _, viewRender))),
+        GlobalState.page.map(_.parentId.map(pageRow( _, viewRender))),
       )
     })
   }
 
-  private def pageRow(state: GlobalState, pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def pageRow(pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val pageNode = Rx {
-      state.graph().nodesByIdOrThrow(pageNodeId)
+      GlobalState.graph().nodesByIdOrThrow(pageNodeId)
     }
 
     val channelTitle = Rx {
       val node = pageNode()
       div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText(state, _), projectWithIcon = false),
+        Components.renderNodeCardMod(node, Components.renderAsOneLineText( _), projectWithIcon = false),
         cls := "pageheader-channeltitle",
         DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
-        Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-        Components.showHoveredNode(state, node.id),
+        Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
+        Components.showHoveredNode( node.id),
         div(
           UnreadComponents.readObserver(
-            state,
+            
             node.id,
             labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
           ), 
-          onClick.stopPropagation(View.Notifications).foreach(view => state.urlConfig.update(_.focus(view))),
+          onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
           float.right,
           alignSelf.center,
         )
       )
     }
 
-    val channelNotification = UnreadComponents.notificationsButton(state, pageNodeId, modifiers = VDomModifier(
+    val channelNotification = UnreadComponents.notificationsButton( pageNodeId, modifiers = VDomModifier(
       marginLeft := "5px",
-    )).foreach(view => state.urlConfig.update(_.focus(view)))
+    )).foreach(view => GlobalState.urlConfig.update(_.focus(view)))
 
     val hasBigScreen = Rx {
-      state.screenSize() != ScreenSize.Small
+      GlobalState.screenSize() != ScreenSize.Small
     }
 
     val channelMembersList = Rx {
-      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers(state, pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
+      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers( pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
     }
 
     val permissionLevel = Rx {
-      Permission.resolveInherited(state.rawGraph(), pageNodeId)
+      Permission.resolveInherited(GlobalState.rawGraph(), pageNodeId)
     }
 
 
     val filterControls = VDomModifier(
-      ViewFilter.filterBySearchInputWithIcon(state).apply(marginLeft.auto),
+      ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
       MovableElement.withToggleSwitch(
         Seq(
-          FilterWindow.movableWindow(state, MovableElement.RightPosition(100, 200)),
-          TagList.movableWindow(state, viewRender, MovableElement.RightPosition(100, 400)),
+          FilterWindow.movableWindow( MovableElement.RightPosition(100, 200)),
+          TagList.movableWindow( viewRender, MovableElement.RightPosition(100, 400)),
         ),
-        enabled = state.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
-        resizeEvent = state.rightSidebarNode.toTailObservable.map(_ => ()),
+        enabled = GlobalState.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
+        resizeEvent = GlobalState.rightSidebarNode.toTailObservable.map(_ => ()),
       )
     )
 
     val breadCrumbs = Rx{ 
-      VDomModifier.ifTrue(state.pageHasNotDeletedParents())(
-        BreadCrumbs(state)(flexShrink := 1, marginRight := "10px")
+      VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents())(
+        BreadCrumbs(flexShrink := 1, marginRight := "10px")
       ) 
     }
 
@@ -104,10 +104,10 @@ object PageHeader {
 
         breadCrumbs,
         Rx {
-          VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
-            AnnouncekitWidget.widget(state).apply(marginLeft.auto, Styles.flexStatic),
-            FeedbackForm(state)(ctx)(Styles.flexStatic),
-            AuthControls.authStatus(state, buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+            AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic),
+            FeedbackForm(ctx)(Styles.flexStatic),
+            AuthControls.authStatus( buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
         },
       ),
@@ -118,7 +118,7 @@ object PageHeader {
         alignItems.center,
         flexWrap := "wrap-reverse",
 
-        ViewSwitcher(state, pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
+        ViewSwitcher( pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
         div(
           Styles.flex,
           justifyContent.spaceBetween,
@@ -134,34 +134,34 @@ object PageHeader {
             channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
-          Rx{ VDomModifier.ifTrue(state.screenSize() != ScreenSize.Small)(
+          Rx{ VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
             filterControls
           )},
           div(
             Styles.flex,
             alignItems.center,
-            Components.automatedNodesOfNode(state, pageNodeId),
+            Components.automatedNodesOfNode( pageNodeId),
             channelMembersList,
 
-            menuItems(state, pageNodeId)
+            menuItems( pageNodeId)
           )
         ),
       )
     )
   }
 
-  private def menuItems(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def menuItems(channelId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
     val isSpecialNode = Rx {
       //TODO we should use the permission system here and/or share code with the settings menu function
-      channelId == state.userId()
+      channelId == GlobalState.userId()
     }
-    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(state, channelId)
+    val isBookmarked = PageSettingsMenu.nodeIsBookmarked( channelId)
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
     val pinButton = Rx {
       val hideBookmarkButton = isSpecialNode() || isBookmarked()
-      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(state, channelId).apply(
+      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton( channelId).apply(
         cls := "mini",
         buttonStyle,
         marginRight := "5px"
@@ -170,7 +170,7 @@ object PageHeader {
 
     VDomModifier(
       pinButton,
-      PageSettingsMenu(state, channelId).apply(buttonStyle, fontSize := "20px"),
+      PageSettingsMenu( channelId).apply(buttonStyle, fontSize := "20px"),
     )
   }
 

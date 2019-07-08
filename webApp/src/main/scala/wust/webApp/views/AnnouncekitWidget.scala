@@ -31,7 +31,7 @@ import wust.webUtil.Elements.safeTargetBlank
 object AnnouncekitWidget {
   val widgetId = "4hH5Qs"
 
-  def widget(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def widget(implicit ctx: Ctx.Owner) = {
     val unreadCount = Var(0)
     val announcekitLoaded = Var(false)
 
@@ -42,8 +42,8 @@ object AnnouncekitWidget {
           name = widgetId
           version = 2
           data = new AnnouncekitDataOptions {
-            user_id = state.userId.now.toUuid.toString
-            user_name = state.user.now.name
+            user_id = GlobalState.userId.now.toUuid.toString
+            user_name = GlobalState.user.now.name
           }
         })
 

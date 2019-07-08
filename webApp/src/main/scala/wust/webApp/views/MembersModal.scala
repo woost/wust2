@@ -20,7 +20,7 @@ import scala.scalajs.js
 import scala.util.{Failure, Success}
 
 object MembersModal {
-  def config(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def config(node: Node.Content)(implicit ctx: Ctx.Owner): ModalConfig = {
 
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
     val userNameInputProcess = PublishSubject[String]
@@ -31,22 +31,22 @@ object MembersModal {
         Edge.Invite(node.id, userId),
         Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
       ))
-      state.eventProcessor.changes.onNext(change)
+      GlobalState.eventProcessor.changes.onNext(change)
       clear.onNext(())
     }
     def handleAddMember(email: String)(implicit ctx: Ctx.Owner): Unit = {
       val graphUser = Client.api.getUserByEMail(email)
       graphUser.onComplete {
-        case Success(Some(u)) if state.graph.now.members(node.id).exists(_.id == u.id) => // user exists and is already member
+        case Success(Some(u)) if GlobalState.graph.now.members(node.id).exists(_.id == u.id) => // user exists and is already member
           statusMessageHandler.onNext(None)
           clear.onNext(())
           ()
         case Success(Some(u)) => // user exists with this email
           addUserMember(u.id)
           //manually add this user into our local graph
-          state.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(state.user.now.toNode, GraphChanges(addNodes = Array(u))))
+          GlobalState.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(GlobalState.user.now.toNode, GraphChanges(addNodes = Array(u))))
         case Success(None) => // user does not exist with this email
-          Client.auth.getUserDetail(state.user.now.id).onComplete {
+          Client.auth.getUserDetail(GlobalState.user.now.id).onComplete {
             case Success(Some(userDetail)) if userDetail.verified =>
               Client.auth.invitePerMail(address = email, node.id).onComplete {
                 case Success(()) =>
@@ -70,15 +70,15 @@ object MembersModal {
     }
 
     def handleRemoveMember(membership: Edge.Member)(implicit ctx: Ctx.Owner): Unit = {
-      if (membership.userId == state.user.now.id) {
+      if (membership.userId == GlobalState.user.now.id) {
         if (dom.window.confirm("Do you really want to remove yourself from this workspace?")) {
-          state.urlConfig.update(_.focus(Page.empty))
-          state.uiModalClose.onNext(())
+          GlobalState.urlConfig.update(_.focus(Page.empty))
+          GlobalState.uiModalClose.onNext(())
         } else return
       }
 
       val change: GraphChanges = GraphChanges(delEdges = Array(membership))
-      state.eventProcessor.changes.onNext(change)
+      GlobalState.eventProcessor.changes.onNext(change)
     }
 
     def description(implicit ctx: Ctx.Owner) = {
@@ -120,7 +120,7 @@ object MembersModal {
               a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(false) --> showEmailInvite, "Invite user by username")
             )
             case false => VDomModifier(
-              searchInGraph(state.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !state.graph.now.members(node.id).exists(_.id == u.id), inputModifiers = inputSizeMods).foreach { userId =>
+              searchInGraph(GlobalState.rawGraph, "Invite by username", filter = u => u.isInstanceOf[Node.User] && !GlobalState.graph.now.members(node.id).exists(_.id == u.id), inputModifiers = inputSizeMods).foreach { userId =>
                 addUserMember(UserId(userId))
               },
               a(href := "#", padding := "5px", onClick.stopPropagation.preventDefault(true) --> showEmailInvite, "Invite user by email address")
@@ -138,7 +138,7 @@ object MembersModal {
         div(
           marginLeft := "10px",
           Rx {
-            val graph = state.graph()
+            val graph = GlobalState.graph()
             graph.idToIdx(node.id).map { nodeIdx =>
               graph.membershipEdgeForNodeIdx(nodeIdx).map { membershipIdx =>
                 val membership = graph.edges(membershipIdx).as[Edge.Member]
@@ -162,14 +162,14 @@ object MembersModal {
           button(
             "Done",
             cls := "ui primary button",
-            onClick.stopPropagation.foreach{ _ => state.uiModalClose.onNext(()) }
+            onClick.stopPropagation.foreach{ _ => GlobalState.uiModalClose.onNext(()) }
           )
         )
       )
     }
 
     ModalConfig(
-      header = Modal.defaultHeader(state, node, "Members", Icons.users),
+      header = Modal.defaultHeader( node, "Members", Icons.users),
       description = description,
       modalModifier = VDomModifier(
         cls := "mini form",

@@ -66,7 +66,7 @@ object ItemProperties {
     final case class Custom(submitAction: (Option[NonEmptyString], NodeId => GraphChanges) => GraphChanges, isAutomation: Rx[Boolean]) extends Target
   }
 
-  def managePropertiesContent(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
+  def managePropertiesContent(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, enableCancelButton: Boolean = false)(implicit ctx: Ctx.Owner) = EmitterBuilder.ofNode[Unit] { sink =>
 
     val prefilledKeyString = edgeFactory match {
       case EdgeFactory.Property(prefilledKey, _, _) => Some(prefilledKey)
@@ -97,14 +97,13 @@ object ItemProperties {
       submitMode = EditableContent.SubmitMode.OnInput,
       selectTextOnFocus = false
     )
-    implicit val context:EditContext = EditContext(state)
 
     def description(implicit ctx: Ctx.Owner) = {
       var element: dom.html.Element = null
 
       val selfOrParentIsAutomationNode = target match {
         case Target.Node(nodeId) => Rx {
-          val graph = state.rawGraph()
+          val graph = GlobalState.rawGraph()
           val nodeIdx = graph.idToIdxOrThrow(nodeId)
           graph.selfOrParentIsAutomationTemplate(nodeIdx)
         }
@@ -167,7 +166,7 @@ object ItemProperties {
                   )).apply(editModifier)
                 }
               case NodeTypeSelection.Ref => Some(
-                Components.searchAndSelectNodeApplied(state, propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
+                Components.searchAndSelectNodeApplied( propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
                   width := "100%",
                   marginTop := "4px",
                 )
@@ -223,7 +222,7 @@ object ItemProperties {
           case Target.Node(nodeId) => addProperty(nodeId)
         }
 
-        state.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
+        GlobalState.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
       }
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {
@@ -267,31 +266,31 @@ object ItemProperties {
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
       Styles.flex,
       alignItems.center,
-      Components.removableNodeCardProperty(state, propertyKey, propertyValue),
+      Components.removableNodeCardProperty( propertyKey, propertyValue),
     )
 
     description
   }
 
-  def managePropertiesDropdown(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
+  def managePropertiesDropdown(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty, dropdownModifier: VDomModifier = cls := "top left")(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
     UI.dropdownMenu(VDomModifier(
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
-        managePropertiesContent(state, target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
+        managePropertiesContent( target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
       )
     ), closeDropdown, dropdownModifier = dropdownModifier)
   }
 
-  def managePropertiesInline(state: GlobalState, target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
+  def managePropertiesInline(target: Target, config: TypeConfig = TypeConfig.default, edgeFactory: EdgeFactory = EdgeFactory.labeledProperty, names: Names = Names.default, descriptionModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): EmitterBuilder[Unit, VDomModifier] = EmitterBuilder.ofModifier { editMode =>
     div(
       padding := "10px",
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      managePropertiesContent(state, target, config, edgeFactory, names, enableCancelButton = true) --> editMode,
+      managePropertiesContent( target, config, edgeFactory, names, enableCancelButton = true) --> editMode,
       descriptionModifier
     )
   }

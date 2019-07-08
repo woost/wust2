@@ -10,9 +10,9 @@ import wust.ids._
 import wust.webApp.state.{FocusState, GlobalState}
 
 object FilesView {
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val files: Rx.Dynamic[Seq[(NodeId, NodeData.File, EpochMilli)]] = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
       graph.pageFilesIdx(focusedIdx).map { fileIdx =>
@@ -26,7 +26,7 @@ object FilesView {
       keyed,
       padding := "20px",
       overflow.auto,
-      UploadComponents.uploadField(state, UploadComponents.defaultFileUploadHandler(state, focusState.focusedId)),
+      UploadComponents.uploadField( UploadComponents.defaultFileUploadHandler( focusState.focusedId)),
       UI.horizontalDivider("Files")(marginTop := "20px", marginBottom := "20px"),
       files.map { files =>
         if (files.isEmpty) p("There are no files in this workspace, yet.", color := "grey")
@@ -35,7 +35,7 @@ object FilesView {
           flexDirection.row,
           flexWrap.wrap,
           files.map { case (id, file, date) =>
-            UploadComponents.renderUploadedFile(state, id, file).apply(
+            UploadComponents.renderUploadedFile( id, file).apply(
               cls := "ui bordered medium",
               padding := "10px",
               margin := "10px",

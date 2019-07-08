@@ -19,12 +19,12 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ModalConfig, Ownable, UI}
 
 object UploadComponents {
-  def renderUploadedFile(state: GlobalState, nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
+  def renderUploadedFile(nodeId: NodeId, file: NodeData.File)(implicit ctx: Ctx.Owner): VNode = {
     import file._
 
     val maxImageHeight = "250px"
 
-    def downloadUrl(attr: AttributeBuilder[String, VDomModifier]): VDomModifier = state.fileDownloadBaseUrl.map(_.map(baseUrl => attr := baseUrl + "/" + key))
+    def downloadUrl(attr: AttributeBuilder[String, VDomModifier]): VDomModifier = GlobalState.fileDownloadBaseUrl.map(_.map(baseUrl => attr := baseUrl + "/" + key))
     def preview(dataUrl: String): VDomModifier = {
       file.contentType match {
         case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
@@ -51,7 +51,7 @@ object UploadComponents {
         VDomModifier(
           file.fileName,
           Rx {
-            val uploadingFiles = state.uploadingFiles()
+            val uploadingFiles = GlobalState.uploadingFiles()
             uploadingFiles.get(nodeId) match {
               case Some(UploadingFile.Error(dataUrl, retry)) => div(
                 preview(dataUrl),
@@ -80,7 +80,7 @@ object UploadComponents {
           case t if t.startsWith("image/") =>
             val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              state.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
+              GlobalState.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
           //TODO pdf preview does not work with "content-disposition: attachment"-header
@@ -93,11 +93,11 @@ object UploadComponents {
     )
   }
 
-  def defaultFileUploadHandler(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
+  def defaultFileUploadHandler(focusedId: NodeId)(implicit ctx: Ctx.Owner): Var[Option[AWS.UploadableFile]] = {
     val fileUploadHandler = Var[Option[AWS.UploadableFile]](None)
 
     fileUploadHandler.foreach(_.foreach { uploadFile =>
-      AWS.uploadFileAndCreateNode(state, uploadFile, nodeId => GraphChanges.addToParent(ChildId(nodeId), ParentId(focusedId)) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
+      AWS.uploadFileAndCreateNode( uploadFile, nodeId => GraphChanges.addToParent(ChildId(nodeId), ParentId(focusedId)) merge GraphChanges.connect(Edge.LabeledProperty)(focusedId, EdgeData.LabeledProperty.attachment, PropertyId(nodeId))).foreach { _ =>
         fileUploadHandler() = None
       }
     })
@@ -154,9 +154,7 @@ object UploadComponents {
     )
   }
 
-  def uploadField(state: GlobalState, selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
-    implicit val context = EditContext(state)
-
+  def uploadField(selected: Var[Option[AWS.UploadableFile]])(implicit ctx: Ctx.Owner): VNode = {
     EditableContent.editorRx[AWS.UploadableFile](selected, config = EditableContent.Config(
       errorMode = EditableContent.ErrorMode.ShowToast,
       submitMode = EditableContent.SubmitMode.Off

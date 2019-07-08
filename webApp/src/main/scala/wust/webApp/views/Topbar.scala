@@ -9,15 +9,15 @@ import wust.webUtil.outwatchHelpers._
 
 object Topbar {
 
-  def apply(state: GlobalState): VNode = {
+  def apply: VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
-        // wust.webApp.DevOnly(SharedViewElements.createNewButton(state).apply(marginRight := "10px", Styles.flexStatic)),
+        // wust.webApp.DevOnly(SharedViewElements.createNewButton.apply(marginRight := "10px", Styles.flexStatic)),
 
-        AnnouncekitWidget.widget(state).apply(marginLeft.auto, Styles.flexStatic, color.black),
-        FeedbackForm(state)(ctx)(Styles.flexStatic),
-        AuthControls.authStatus(state, buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
+        AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic, color.black),
+        FeedbackForm(ctx)(Styles.flexStatic),
+        AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
       )
     })
   }

@@ -82,8 +82,6 @@ object ValueStringifier {
   implicit val ValueNode: ValueStringifier[Node] = ValueNodeData.map(_.data)
 }
 
-final case class EditContext(state: GlobalState) extends AnyVal
-
 trait EditStringParser[+T] { self =>
   def parse(elem: String): Task[EditInteraction[T]]
 
@@ -323,11 +321,11 @@ object EditElementParser {
   implicit val EditNodeDataRelativeDate: EditElementParser[NodeData.RelativeDate] = EditDurationMilli.map[NodeData.RelativeDate](NodeData.RelativeDate.apply)(_.content)
   implicit val EditNodeDataDuration: EditElementParser[NodeData.Duration] = EditDurationMilli.map[NodeData.Duration](NodeData.Duration.apply)(_.content)
 
-  implicit def EditUploadableFile(implicit context: EditContext): EditElementParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(context.state, file)))(aws => EditInteraction.Input(aws.file))
-  implicit def EditNodeDataFile(implicit context: EditContext): EditElementParser[NodeData.File] = EditUploadableFile.flatMapEval(aws => AWS.uploadFileAndCreateNodeData(context.state, aws).map(EditInteraction.Input(_)))(_ => Task.pure(EditInteraction.Cancel))
+  implicit def EditUploadableFile: EditElementParser[AWS.UploadableFile] = EditFile.flatMap(file => EditInteraction.fromEither(AWS.upload(file)))(aws => EditInteraction.Input(aws.file))
+  implicit def EditNodeDataFile: EditElementParser[NodeData.File] = EditUploadableFile.flatMapEval(aws => AWS.uploadFileAndCreateNodeData(aws).map(EditInteraction.Input(_)))(_ => Task.pure(EditInteraction.Cancel))
 
   //TODO: FIX! as instance of buillshit. one parser for node.
-  def forNodeDataType(tpe: NodeData.Type)(implicit context: EditContext): Option[EditElementParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_, ValueStringifier.ValueNodeData)).orElse(tpe match {
+  def forNodeDataType(tpe: NodeData.Type): Option[EditElementParser[NodeData.Content]] = EditStringParser.forNodeDataType(tpe).map(EditStringParsing[NodeData.Content](_, ValueStringifier.ValueNodeData)).orElse(tpe match {
     case NodeData.Integer.tpe => Some(EditNodeDataInteger.widen[NodeData.Content])
     case NodeData.Decimal.tpe => Some(EditNodeDataDecimal.widen[NodeData.Content])
     case NodeData.Date.tpe => Some(EditNodeDataDate.widen[NodeData.Content])
@@ -337,7 +335,7 @@ object EditElementParser {
     case NodeData.File.tpe => Some(EditNodeDataFile.widen[NodeData.Content])
     case _ => None
   })
-  def forNode(node: Node)(implicit context: EditContext): Option[EditElementParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_, ValueStringifier.ValueNode)).orElse(node match {
+  def forNode(node: Node): Option[EditElementParser[Node]] = EditStringParser.forNode(node).map(EditStringParsing[Node](_, ValueStringifier.ValueNode)).orElse(node match {
     case node: Node.Content => node.data match {
       case NodeData.Placeholder(Some(NodeTypeSelection.Data(dataType))) => forNodeDataType(dataType).map(_.map(data => node.copy(data = data))(_.data).widen[Node])
       case _ => forNodeDataType(node.data.tpe).map(_.map(data => node.copy(data = data))(_.data).widen[Node])

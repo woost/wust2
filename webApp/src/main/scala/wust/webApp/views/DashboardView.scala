@@ -37,17 +37,17 @@ object DashboardView {
   }
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val segmentMod = VDomModifier(
       margin := "10px"
     )
 
     val configWidgets = VDomModifier(
       Styles.flex,
-      UI.segment("Views", ViewSwitcher.selectForm(state, focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Views", ViewSwitcher.selectForm( focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
     )
 
-    val projectNodes = Rx { getProjectList(state.graph(), focusState.focusedId) }
+    val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
     val forceEditMode = Rx { settings.ForceEditModeOnEmptySubprojects && projectNodes().length == 0 }
     val editMode = Rx { editModeState() || forceEditMode() }
     val editModeSwitcher = Rx {
@@ -66,7 +66,7 @@ object DashboardView {
 
     val detailWidgets = VDomModifier(
       Styles.flex,
-      div(StatisticsView(state, focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
+      div(StatisticsView( focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
 
       //TODO: renderSubprojects mit summary
       UI.segment(
@@ -74,9 +74,9 @@ object DashboardView {
           "Subprojects ",
           editModeSwitcher
         ),
-        VDomModifier(renderSubprojects(state, focusState, editMode), overflowX.auto)
+        VDomModifier(renderSubprojects( focusState, editMode), overflowX.auto)
       ).apply(Styles.flexStatic, segmentMod),
-      UI.segment("Tasks", AssignedTasksView(state, focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Tasks", AssignedTasksView( focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
@@ -112,7 +112,7 @@ object DashboardView {
   }
 
   /// Render all subprojects as a list
-  private def renderSubprojects(state: GlobalState, focusState: FocusState, editMode: Rx.Dynamic[Boolean])
+  private def renderSubprojects(focusState: FocusState, editMode: Rx.Dynamic[Boolean])
                                (implicit ctx: Ctx.Owner): VDomModifier = {
 
     div(
@@ -129,27 +129,27 @@ object DashboardView {
         padding := "0px", // remove ul default padding
 
         Rx {
-          val projectNodes = getProjectList(state.graph(), focusState.focusedId)
+          val projectNodes = getProjectList(GlobalState.graph(), focusState.focusedId)
           projectNodes map { projectInfo =>
             li(
               Styles.flexStatic,
               listStyle := "none",
-              renderSubproject(state, state.graph(), focusState, projectInfo, editMode)
+              renderSubproject( GlobalState.graph(), focusState, projectInfo, editMode)
             )
           }
         },
-        registerDragContainer(state)
+        registerDragContainer
       ),
       Rx{VDomModifier.ifTrue(settings.AlwaysShowNewSubprojectButton || editMode())(
-           newSubProjectButton(state, focusState))}
+           newSubProjectButton( focusState))}
     )
   }
 
   /// Render the overview of a single (sub-) project
-  private def renderSubproject(state: GlobalState, graph: Graph, focusState: FocusState, project: Node,
+  private def renderSubproject(graph: Graph, focusState: FocusState, project: Node,
                                editMode: Rx.Dynamic[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
-    val dispatch = state.eventProcessor.changes.onNext _
+    val dispatch = GlobalState.eventProcessor.changes.onNext _
     val deletionBtn = if(isDeleted) {
       Components.unremovableTagMod(() =>
         dispatch(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
@@ -159,7 +159,7 @@ object DashboardView {
     }
 
     val permissionLevel = Rx {
-      Permission.resolveInherited(state.rawGraph(), project.id)
+      Permission.resolveInherited(GlobalState.rawGraph(), project.id)
     }
 
     div(
@@ -167,7 +167,7 @@ object DashboardView {
       cls := "node channel-line",
 
       DragComponents.drag(DragItem.Project(project.id)),
-      renderProject(project, renderNode = node => renderAsOneLineText(state, node).apply(cls := "channel-name"), withIcon = true),
+      renderProject(project, renderNode = node => renderAsOneLineText( node).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,
       onClick foreach {
@@ -183,7 +183,7 @@ object DashboardView {
   }
 
 
-  private def newSubProjectButton(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def newSubProjectButton(focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
     val fieldActive = Var(false)
     def submitAction(sub: InputRow.Submission) = {
       val change = {
@@ -192,7 +192,7 @@ object DashboardView {
         val newProjectNode = Node.MarkdownProject(sub.text)
         GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusState.focusedId)) merge sub.changes(newProjectNode.id)
       }
-      state.eventProcessor.changes.onNext(change)
+      GlobalState.eventProcessor.changes.onNext(change)
     }
 
     def blurAction(v:String) = {
@@ -203,7 +203,7 @@ object DashboardView {
       Rx {
         if(fieldActive()) {
           VDomModifier(
-            InputRow(state,
+            InputRow(
               Some(focusState),
               submitAction,
               autoFocus = true,

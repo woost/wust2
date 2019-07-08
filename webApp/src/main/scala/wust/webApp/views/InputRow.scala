@@ -34,7 +34,7 @@ object InputRow {
   case class Submission(text: String, changes: NodeId => GraphChanges)
 
   def apply(
-    state: GlobalState,
+    
     focusState: Option[FocusState],
     submitAction: Submission => Unit,
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
@@ -56,7 +56,7 @@ object InputRow {
     enableMentions: Boolean = true,
   )(implicit ctx: Ctx.Owner): VNode = {
     val initialValue = if (preFillByShareApi) Rx {
-      state.urlConfig().shareOptions.fold("") { share =>
+      GlobalState.urlConfig().shareOptions.fold("") { share =>
         val elements = List(share.title, share.text, share.url).filter(_.nonEmpty)
         elements.mkString(" - ")
       }
@@ -89,20 +89,20 @@ object InputRow {
         }
         collectedMentions.clear()
         submitAction(Submission(str, extraChanges))
-        if (preFillByShareApi && state.urlConfig.now.shareOptions.isDefined) {
-          state.urlConfig.update(_.copy(shareOptions = None))
+        if (preFillByShareApi && GlobalState.urlConfig.now.shareOptions.isDefined) {
+          GlobalState.urlConfig.update(_.copy(shareOptions = None))
         }
         if (BrowserDetect.isMobile) currentTextArea.focus() // re-gain focus on mobile. Focus gets lost and closes the on-screen keyboard after pressing the button.
       }
-      if (enforceUserName && !state.askedForUnregisteredUserName.now) {
-        state.askedForUnregisteredUserName() = true
-        state.user.now match {
+      if (enforceUserName && !GlobalState.askedForUnregisteredUserName.now) {
+        GlobalState.askedForUnregisteredUserName() = true
+        GlobalState.user.now match {
           case user: AuthUser.Implicit if user.name.isEmpty =>
-            val sink = state.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
+            val sink = GlobalState.eventProcessor.changes.redirectMapMaybe[Submission] { sub =>
               val userNode = user.toNode
               userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
             }
-            state.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig(state, sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
+            GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig( sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
           case _ => handle()
         }
       } else {
@@ -135,17 +135,17 @@ object InputRow {
           }
         }: js.Function1[js.UndefOr[TributeItem[Node]], String]
         menuItemTemplate = { item =>
-          Components.nodeCard(state, item.original, projectWithIcon = true, maxLength = Some(200)).render.outerHTML
+          Components.nodeCard( item.original, projectWithIcon = true, maxLength = Some(200)).render.outerHTML
         }: js.Function1[TributeItem[Node], String]
         noMatchTemplate = { () =>
           i("Not Found").render.outerHTML
         }: js.Function0[String]
         spaceSelectsMatch = true
         values = { (text, cb) =>
-          val graph = state.graph.now
+          val graph = GlobalState.graph.now
           cb(
             focusState.flatMap(f => graph.nodesById(f.focusedId).collect { case node: Node.Content if node.role == NodeRole.Project => node.copy(data = NodeData.Markdown("all")) }).toJSArray ++
-              graph.nodes.collect { case item if (item.role == NodeRole.Project || item.isInstanceOf[Node.User] && item.id != state.userId.now) && EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
+              graph.nodes.collect { case item if (item.role == NodeRole.Project || item.isInstanceOf[Node.User] && item.id != GlobalState.userId.now) && EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(item.str, "").trim.toLowerCase.startsWith(text.toLowerCase) => item }.take(50)
           )
         }: js.Function2[String, js.Function1[js.Array[Node], Unit], Unit]
         searchOpts = new TributeSearchOpts {
@@ -168,7 +168,7 @@ object InputRow {
       }
     }
 
-    val placeholderString = if (BrowserDetect.isMobile || state.screenSize.now == ScreenSize.Small) placeholder.short else placeholder.long
+    val placeholderString = if (BrowserDetect.isMobile || GlobalState.screenSize.now == ScreenSize.Small) placeholder.short else placeholder.long
 
     val immediatelyFocus = {
       autoFocus.ifTrue(
@@ -288,7 +288,7 @@ object InputRow {
         ),
         markdownHelp,
       ),
-      fileUploadHandler.map(UploadComponents.uploadField(state, _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
+      fileUploadHandler.map(UploadComponents.uploadField( _).apply(Styles.flexStatic, width := "unset")), // unsetting width:100% from commonedithandler
       VDomModifier.ifTrue(showSubmitIcon)(submitButton.apply(Styles.flexStatic)),
       onClick.stopPropagation --> Observer.empty, // prevents globalClick trigger (which e.g. closes emojiPicker - it doesn't even open it in the first place)
     )

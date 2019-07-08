@@ -103,18 +103,18 @@ object ViewSwitcher {
   }
 
   //TODO FocusState?
-  @inline def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    apply(state, channelId, state.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => state.urlConfig.update(_.focus(view)))
+  @inline def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    apply( channelId, GlobalState.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => GlobalState.urlConfig.update(_.focus(view)))
   }
-  @inline def apply(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(state, channelId, viewRx, viewAction, initialView) })
-  }
-
-  def selectForm(state: GlobalState, channelId: NodeId): VNode = {
-    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx => selector(state, channelId, state.view, view => state.urlConfig.update(_.focus(view)), None, Observer.empty) })
+  @inline def apply(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
+    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier( channelId, viewRx, viewAction, initialView) })
   }
 
-  private def modifier(state: GlobalState, channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
+  def selectForm(channelId: NodeId): VNode = {
+    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx => selector( channelId, GlobalState.view, view => GlobalState.urlConfig.update(_.focus(view)), None, Observer.empty) })
+  }
+
+  private def modifier(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
@@ -124,7 +124,7 @@ object ViewSwitcher {
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-          selector(state, channelId, viewRx, viewAction, initialView, closeDropdown)
+          selector( channelId, viewRx, viewAction, initialView, closeDropdown)
         ), close = closeDropdown, dropdownModifier = cls := "top left")
       )
     })
@@ -141,9 +141,9 @@ object ViewSwitcher {
       Rx {
         val currentView = viewRx()
         val pageStyle = PageStyle.ofNode(Some(channelId))
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val channelNode = graph.nodesById(channelId)
-        val user = state.user()
+        val user = GlobalState.user()
 
         def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
@@ -175,7 +175,7 @@ object ViewSwitcher {
   }
 
   private def selector(
-    state: GlobalState,
+    
     channelId: NodeId,
     viewRx: Rx[View.Visible],
     viewAction: View => Unit,
@@ -183,13 +183,13 @@ object ViewSwitcher {
     done: Observer[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
     val nodeRx = Rx {
-      state.graph().nodesByIdOrThrow(channelId)
+      GlobalState.graph().nodesByIdOrThrow(channelId)
     }
 
     val existingViews = Rx {
       val node = nodeRx()
       node.views match {
-        case None        => ViewHeuristic.bestView(state.graph(), node, state.user().id).toList
+        case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.user().id).toList
         case Some(views) => views
       }
     }
@@ -199,8 +199,8 @@ object ViewSwitcher {
     }
 
     //TODO rewrite this in a less sideeffecting way
-    viewRx.triggerLater { view => addNewView(state, viewRx, viewAction, done, nodeRx, existingViews, view) }
-    initialView.foreach(addNewView(state, viewRx, viewAction, done, nodeRx, existingViews, _))
+    viewRx.triggerLater { view => addNewView( viewRx, viewAction, done, nodeRx, existingViews, view) }
+    initialView.foreach(addNewView( viewRx, viewAction, done, nodeRx, existingViews, _))
 
     VDomModifier(
       div(
@@ -223,7 +223,7 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               Elements.icon(info.icon),
               view.toString,
-              onClick.stopPropagation.foreach(addNewView(state, viewRx, viewAction, done, nodeRx, existingViews, view)),
+              onClick.stopPropagation.foreach(addNewView( viewRx, viewAction, done, nodeRx, existingViews, view)),
               cursor.pointer
             )
           }
@@ -246,7 +246,7 @@ object ViewSwitcher {
         Rx {
           val currentViews = existingViews()
           if (currentViews.isEmpty) div("Nothing, yet.")
-          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView(state, viewRx, viewAction, done, nodeRx, _))) { view =>
+          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView( viewRx, viewAction, done, nodeRx, _))) { view =>
             val info = viewToTabInfo(view, 0, 0, 0)
             VDomModifier(
               marginTop := "8px",
@@ -272,14 +272,14 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               "Reset to default",
               cursor.pointer,
-              onClick.stopPropagation.foreach { resetView(state, viewRx, viewAction, done, nodeRx) }
+              onClick.stopPropagation.foreach { resetView( viewRx, viewAction, done, nodeRx) }
             )
           )
         }
       )
     )
   }
-  private def resetView(state: GlobalState, viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node]): Unit = {
+  private def resetView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node]): Unit = {
     done.onNext(())
     val node = nodeRx.now
     if(node.views.isDefined) {
@@ -288,15 +288,15 @@ object ViewSwitcher {
         case n: Node.User    => n.copy(views = None)
       }
 
-      val newView = ViewHeuristic.bestView(state.graph.now, node, state.user.now.id).getOrElse(View.Empty)
+      val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
       if(viewRx.now != newView) {
         viewAction(newView)
       }
 
-      state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+      GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
     }
   }
-  private def removeView(state: GlobalState, viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], view: View.Visible): Unit = {
+  private def removeView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], view: View.Visible): Unit = {
     done.onNext(())
     val node = nodeRx.now
     val currentViews = node.views.getOrElse(Nil)
@@ -314,9 +314,9 @@ object ViewSwitcher {
       viewAction(newView)
     }
 
-    state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+    GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
   }
-  private def addNewView(state: GlobalState, viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], existingViews: Rx.Dynamic[List[View.Visible]], newView: View.Visible): Unit = {
+  private def addNewView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], existingViews: Rx.Dynamic[List[View.Visible]], newView: View.Visible): Unit = {
     if(viewDefs.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
@@ -328,7 +328,7 @@ object ViewSwitcher {
           case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
         }
 
-        state.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+        GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
       }
 
       if(viewRx.now != newView) {

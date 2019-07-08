@@ -30,7 +30,7 @@ object AuthView {
   private final case class UserValue(username: String = "", email: String = "", password: String = "")
   private val userValue = Var(UserValue())
 
-  def apply(state: GlobalState)(
+  def apply(
       header: String,
       submitText: String,
       needUserName: Boolean,
@@ -46,7 +46,7 @@ object AuthView {
       if (FormValidator.reportValidity(element)) submitAction(userValue.now).onComplete {
         case Success(None)        =>
           userValue() = UserValue()
-          state.urlConfig.update(_.redirect)
+          GlobalState.urlConfig.update(_.redirect)
         case Success(Some(vnode)) =>
           errorMessageHandler.onNext(vnode)
         case Failure(t)           =>
@@ -112,7 +112,7 @@ object AuthView {
               onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
             )
           ),
-          discardContentMessage(state),
+          discardContentMessage,
           button(
             cls := "ui fluid primary button",
             submitText,
@@ -130,9 +130,9 @@ object AuthView {
           },
           div(cls := "ui divider"),
           h3(alternativeHeader, textAlign := "center"),
-          state.urlConfig.map { cfg =>
+          GlobalState.urlConfig.map { cfg =>
             div(
-              onClick(cfg.focus(alternativeView)) --> state.urlConfig,
+              onClick(cfg.focus(alternativeView)) --> GlobalState.urlConfig,
               cls := "ui fluid button",
               alternativeText,
               display.block,
@@ -148,9 +148,9 @@ object AuthView {
     )
   }
 
-  def discardContentMessage(state:GlobalState)(implicit ctx:Ctx.Owner) = {
+  def discardContentMessage(implicit ctx:Ctx.Owner) = {
     Rx {
-      state.user() match {
+      GlobalState.user() match {
         // User.Implicit user means, that the user already created content, else it would be User.Assumed.
         case AuthUser.Implicit(_, name, _) => UI.message(
           msgType = "warning",
@@ -164,7 +164,7 @@ object AuthView {
               "discard all content now",
               onClick.preventDefault foreach {
                 if(dom.window.confirm("This will delete all your content, you created as an unregistered user. Do you want to continue?")) {
-                  state.urlConfig.update(cfg => cfg.copy(redirectTo = None, pageChange = PageChange(Page.empty))) // clear page, so we do not access an old page anymore
+                  GlobalState.urlConfig.update(cfg => cfg.copy(redirectTo = None, pageChange = PageChange(Page.empty))) // clear page, so we do not access an old page anymore
                   Client.auth.logout()
                 }
                 ()
@@ -179,9 +179,9 @@ object AuthView {
     },
   }
 
-  def login(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def login(implicit ctx: Ctx.Owner) = {
     hotjar.pageView("/login")
-    apply(state)(
+    apply(
       header = "Login",
       submitText = "Login",
       needUserName = false,
@@ -203,9 +203,9 @@ object AuthView {
     )
   }
 
-  def signup(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def signup(implicit ctx: Ctx.Owner) = {
     hotjar.pageView("/signup")
-    apply(state)(
+    apply(
       header = "Create an account",
       submitText = "Signup",
       needUserName = true,

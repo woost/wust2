@@ -100,20 +100,20 @@ object SharedViewElements {
       cursor.pointer,
     )
 
-  def chatMessageHeader(state:GlobalState, author: Option[Node.User]): VNode = div(
+  def chatMessageHeader( author: Option[Node.User]): VNode = div(
     cls := "chatmsg-header",
-    author.map(author => VDomModifier(smallAuthorAvatar(author), authorName(state, author))),
+    author.map(author => VDomModifier(smallAuthorAvatar(author), authorName( author))),
   )
 
-  //  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, modificationData: IndexedSeq[(Node.User, EpochMilli)], avatar: VDomModifier) = div(
-  def chatMessageHeader(state:GlobalState, author: Option[Node.User], creationEpochMillis: EpochMilli, nodeId: NodeId, avatar: VDomModifier)(implicit ctx: Ctx.Owner): VNode = div(
+  //  def chatMessageHeader( author: Option[Node.User], creationEpochMillis: EpochMilli, modificationData: IndexedSeq[(Node.User, EpochMilli)], avatar: VDomModifier) = div(
+  def chatMessageHeader( author: Option[Node.User], creationEpochMillis: EpochMilli, nodeId: NodeId, avatar: VDomModifier)(implicit ctx: Ctx.Owner): VNode = div(
     cls := "chatmsg-header",
     avatar,
     author.map { author =>
       VDomModifier(
-        authorName(state, author),
+        authorName( author),
         creationDate(creationEpochMillis),
-        state.graph.map { graph =>
+        GlobalState.graph.map { graph =>
           graph.idToIdx(nodeId).map { nodeIdx =>
             modificationDetails(author, graph.nodeModifier(nodeIdx))
           }
@@ -135,11 +135,11 @@ object SharedViewElements {
     authorAvatar(author, avatarSize = 40, avatarPadding = 3)
   }
 
-  def authorName(state: GlobalState, author: Node.User): VNode = {
+  def authorName(author: Node.User): VNode = {
     div(
       cls := "chatmsg-author",
       Components.displayUserName(author.data),
-      onClickDirectMessage(state, author),
+      onClickDirectMessage( author),
     )
   }
 
@@ -170,7 +170,7 @@ object SharedViewElements {
   }
 
   def renderMessage[SelectedNode <: SelectedNodeBase](
-    state: GlobalState,
+    
     nodeId: NodeId,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],
@@ -180,20 +180,20 @@ object SharedViewElements {
 
     val node = Rx {
       // we need to get the latest node content from the graph
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.nodesById(nodeId) //TODO: why option? shouldn't the node always exist?
     }
 
     val propertyData = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
     }
 
 
     val isSynced: Rx[Boolean] = {
       // when a node is not in transit, avoid rx subscription
-      val nodeInTransit = state.addNodesInTransit.now contains nodeId
-      if(nodeInTransit) state.addNodesInTransit.map(nodeIds => !nodeIds(nodeId))
+      val nodeInTransit = GlobalState.addNodesInTransit.now contains nodeId
+      if(nodeInTransit) GlobalState.addNodesInTransit.map(nodeIds => !nodeIds(nodeId))
       else Rx(true)
     }
 
@@ -209,20 +209,20 @@ object SharedViewElements {
       else {
         node.role match {
           case NodeRole.Task =>
-            nodeCardWithCheckbox(state, node, directParentIds).apply(
+            nodeCardWithCheckbox( node, directParentIds).apply(
               Styles.flex,
               alignItems.flexStart,
               renderedMessageModifier,
             )
           case _ =>
-            nodeCard(state, node,
+            nodeCard( node,
               contentInject = div(
                 Styles.flex,
                 flexDirection.column,
                 propertyData.map { propertySingle =>
                   propertySingle.properties.map { property =>
                     property.values.map { value =>
-                      Components.nodeCardProperty(state, value.edge, value.node)
+                      Components.nodeCardProperty( value.edge, value.node)
                     }
                   },
                 }
@@ -244,17 +244,17 @@ object SharedViewElements {
       node().map { node =>
         render(node, isDeletedNow()).apply(
           cursor.pointer,
-          VDomModifier.ifTrue(selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)),
-          Components.showHoveredNode(state, node.id),
-          UnreadComponents.readObserver(state, node.id)
+          VDomModifier.ifTrue(selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)),
+          Components.showHoveredNode( node.id),
+          UnreadComponents.readObserver( node.id)
         )
       }
     }
   }
 
-  def messageDragOptions[SelectedNode <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageDragOptions[SelectedNode <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.idToIdx(nodeId).map { nodeIdx =>
         val node = graph.nodes(nodeIdx)
         val selection = selectedNodes()
@@ -284,7 +284,7 @@ object SharedViewElements {
     else drag(payload = payload(), target = target)
   }
 
-  def msgCheckbox[T <: SelectedNodeBase](state:GlobalState, nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
+  def msgCheckbox[T <: SelectedNodeBase]( nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
     BrowserDetect.isMobile.ifFalse[VDomModifier] {
       div(
         cls := "ui nodeselection-checkbox checkbox fitted",
@@ -304,9 +304,9 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](state: GlobalState, nodeId: NodeId, directParentIds: Iterable[ParentId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def msgControls[T <: SelectedNodeBase](nodeId: NodeId, directParentIds: Iterable[ParentId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
-    val canWrite = NodePermission.canWrite(state, nodeId)
+    val canWrite = NodePermission.canWrite( nodeId)
 
     BrowserDetect.isMobile.ifFalse[VDomModifier] {
       Rx {
@@ -317,7 +317,7 @@ object SharedViewElements {
           cls := "chatmsg-controls",
           if(isDeletedNow()) {
             ifCanWrite(undeleteButton(
-              onClick(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> state.eventProcessor.changes,
+              onClick(GraphChanges.undelete(ChildId(nodeId), directParentIds)) --> GlobalState.eventProcessor.changes,
             ))
           }
           else VDomModifier(
@@ -326,7 +326,7 @@ object SharedViewElements {
             ),
             ifCanWrite(deleteButton(
               onClick foreach {
-                state.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), directParentIds))
+                GlobalState.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), directParentIds))
                 selectedNodes.update(_.filterNot(_.nodeId == nodeId))
               },
             )),
@@ -336,16 +336,16 @@ object SharedViewElements {
     }
   }
 
-  def messageTags(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
+  def messageTags(nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[VDomModifier] = {
     Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.idToIdx(nodeId).map{ nodeIdx =>
         val directNodeTags = graph.directNodeTags(nodeIdx)
         VDomModifier.ifTrue(directNodeTags.nonEmpty)(
           div(
             cls := "tags",
             directNodeTags.map { tag =>
-              removableNodeTag(state, tag, nodeId, pageOnClick = true)(Styles.flexStatic)
+              removableNodeTag( tag, nodeId, pageOnClick = true)(Styles.flexStatic)
             },
           )
         )
@@ -353,21 +353,21 @@ object SharedViewElements {
     }
   }
 
-  def selectedNodeActions[T <: SelectedNodeBase](state: GlobalState, selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
+  def selectedNodeActions[T <: SelectedNodeBase](selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
     val allSelectedNodesAreDeleted = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
     }
 
     val middleActions =
       if (canWriteAll) List(
-        SelectedNodes.deleteAllButton[T](state, selected, selectedNodes, allSelectedNodesAreDeleted)
+        SelectedNodes.deleteAllButton[T]( selected, selectedNodes, allSelectedNodesAreDeleted)
       ) else Nil
 
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def newProjectButton(state: GlobalState, label: String = "New Project"): VNode = {
+  def newProjectButton(label: String = "New Project"): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
     val triggerSubmit = PublishSubject[Unit]
     def body(implicit ctx: Ctx.Owner) = div(
@@ -391,8 +391,8 @@ object SharedViewElements {
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      state.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, state.user.now.id, newName, views) merge sub.changes(nodeId))
-      state.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+      GlobalState.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
+      GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
       selectedViews() = Seq.empty
 
       Ack.Continue
@@ -402,7 +402,7 @@ object SharedViewElements {
       cls := "ui button",
       label,
       onClickNewNamePrompt(
-        state,
+        
         header = "Create Project",
         body = Ownable { implicit ctx => body },
         placeholder = Placeholder("Name of the Project"),
@@ -414,7 +414,7 @@ object SharedViewElements {
     )
   }
 
-  def createNewButton(state: GlobalState, addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+  def createNewButton(addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = PublishSubject[Boolean]()
 
     div(
@@ -425,7 +425,7 @@ object SharedViewElements {
         show.onNext(true)
       },
 
-      CreateNewPrompt(state, show, addToChannels, nodeRole)
+      CreateNewPrompt( show, addToChannels, nodeRole)
     )
   }
 
@@ -437,7 +437,7 @@ object SharedViewElements {
     onClickAction,
   )
 
-  def dataImport(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+  def dataImport(implicit owner: Ctx.Owner): VNode = {
     val urlImporter = Handler.unsafe[String]
 
     def importGithubUrl(url: String): Unit = Client.githubApi.importContent(url)
@@ -475,7 +475,7 @@ object SharedViewElements {
     )
   }
 
-  def expandedNodeContentWithLeftTagColor(state: GlobalState, nodeId: NodeId): VNode = {
+  def expandedNodeContentWithLeftTagColor(nodeId: NodeId): VNode = {
     div(
       Styles.flex,
       div(
@@ -484,14 +484,14 @@ object SharedViewElements {
 
         cursor.pointer,
         UI.popup := "Click to collapse", // we use the js-popup here, since it it always spawns at a visible position
-        onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes
+        onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
       )
     )
   }
 
-  def renderExpandCollapseButton(state: GlobalState, nodeId: NodeId, isExpanded: Rx[Boolean], alwaysShow: Boolean = false)(implicit ctx: Ctx.Owner) = {
+  def renderExpandCollapseButton(nodeId: NodeId, isExpanded: Rx[Boolean], alwaysShow: Boolean = false)(implicit ctx: Ctx.Owner) = {
     val childrenSize = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.messageChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId)) + graph.taskChildrenIdx.sliceLength(graph.idToIdxOrThrow(nodeId))
     }
     Rx {
@@ -499,7 +499,7 @@ object SharedViewElements {
         div(
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleDown, cls := "fa-fw"),
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
           cursor.pointer,
         )
       } else {
@@ -507,7 +507,7 @@ object SharedViewElements {
           cls := "expand-collapsebutton",
           div(freeSolid.faAngleRight, cls := "fa-fw"),
           VDomModifier.ifTrue(!alwaysShow && childrenSize() == 0)(visibility.hidden),
-          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes,
+          onClick.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes,
           cursor.pointer,
         )
       }
@@ -515,7 +515,7 @@ object SharedViewElements {
   }
 
   def newNamePromptModalConfig(
-    state: GlobalState,
+    
     newNameSink: Observer[InputRow.Submission],
     header: VDomModifier,
     body: VDomModifier = VDomModifier.empty,
@@ -530,10 +530,9 @@ object SharedViewElements {
       header = header,
       description = VDomModifier(
         InputRow(
-          state = state,
           focusState = None,
           submitAction = { sub =>
-            state.uiModalClose.onNext(())
+            GlobalState.uiModalClose.onNext(())
             newNameSink.onNext(sub)
           },
           autoFocus = true,
@@ -557,7 +556,6 @@ object SharedViewElements {
   }
 
   def onClickNewNamePrompt(
-    state: GlobalState,
     header: String,
     body: Ownable[VDomModifier] = Ownable.value(VDomModifier.empty),
     placeholder: Placeholder = Placeholder.empty,
@@ -569,7 +567,6 @@ object SharedViewElements {
     VDomModifier(
       onClick.stopPropagation(Ownable { implicit ctx => 
         newNamePromptModalConfig(
-          state,
           sink,
           header,
           body(ctx),
@@ -579,20 +576,20 @@ object SharedViewElements {
           enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit
         )
-      }) --> state.uiModalConfig,
+      }) --> GlobalState.uiModalConfig,
       cursor.pointer
     )
   }
 
-  def channelMembers(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def channelMembers(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       cls := "tiny-scrollbar",
       overflowX.auto, // make scrollable for long member lists
       overflowY.hidden, // wtf firefox and chrome...
-      registerDragContainer(state),
+      registerDragContainer,
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val nodeIdx = graph.idToIdxOrThrow(channelId)
         val members = graph.membersByIndex(nodeIdx)
 

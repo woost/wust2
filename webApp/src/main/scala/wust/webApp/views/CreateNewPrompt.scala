@@ -25,7 +25,7 @@ import wust.sdk.Colors
 
 object CreateNewPrompt {
 
-  def apply(state: GlobalState, show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
+  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
     val parentNodes = Var[List[ParentId]](Nil)
     val childNodes = Var[List[ChildId]](Nil)
     val nodeRole = Var[NodeRole](defaultNodeRole)
@@ -33,7 +33,7 @@ object CreateNewPrompt {
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
 
     def newMessage(sub: InputRow.Submission): Future[Ack] = {
-      val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(state.user.now.id: NodeId)) else parentNodes.now
+      val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
 
       val newNode = Node.Content(NodeData.Markdown(sub.text), nodeRole.now, NodeMeta(nodeAccess.now))
       val changes =
@@ -42,22 +42,22 @@ object CreateNewPrompt {
           sub.changes(newNode.id)
 
       val ack = if (addToChannels.now) {
-        val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, state.user.now.id)
-        val ack = state.eventProcessor.changes.onNext(changes merge channelChanges)
-        state.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
+        val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.user.now.id)
+        val ack = GlobalState.eventProcessor.changes.onNext(changes merge channelChanges)
+        GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
         ack
       } else {
-        val ack = state.eventProcessor.changes.onNext(changes)
+        val ack = GlobalState.eventProcessor.changes.onNext(changes)
         def newViewConfig = nodeRole.now match {
-          case NodeRole.Message => state.urlConfig.now.focus(Page(parents.head), View.Conversation)
-          case NodeRole.Task    => state.urlConfig.now.focus(Page(parents.head), View.Tasks)
-          case NodeRole.Note    => state.urlConfig.now.focus(Page(parents.head), View.Content)
+          case NodeRole.Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
+          case NodeRole.Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
+          case NodeRole.Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
-        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => state.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
+        UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
         ack
       }
 
-      state.uiModalClose.onNext(())
+      GlobalState.uiModalClose.onNext(())
       ack
     }
 
@@ -69,23 +69,23 @@ object CreateNewPrompt {
 
         div("Inside:"),
         Rx {
-          val g = state.graph()
+          val g = GlobalState.graph()
           parentNodes().map(nodeId =>
             g.nodesById(nodeId).map { node =>
-              nodeCard(state, node).apply(padding := "2px", marginLeft := "5px")
-              // removableNodeTagCustom(state, tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
+              nodeCard( node).apply(padding := "2px", marginLeft := "5px")
+              // removableNodeTagCustom( tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
             })
         },
         div(
           paddingLeft := "5px",
           searchInGraph(
-            state.rawGraph,
+            GlobalState.rawGraph,
             placeholder = "Select Project",
             valid = parentNodes.map(_.nonEmpty),
             {
               case n: Node.Content => !parentNodes.now.contains(n.id)
               // only allow own user, we do not have public profiles yet
-              case n: Node.User    => state.user.now.id == n.id && !parentNodes.now.contains(n.id)
+              case n: Node.User    => GlobalState.user.now.id == n.id && !parentNodes.now.contains(n.id)
             }
           ).foreach { nodeId =>
               parentNodes() = (parentNodes.now :+ ParentId(nodeId)).distinct
@@ -126,7 +126,7 @@ object CreateNewPrompt {
     def description(implicit ctx: Ctx.Owner) = {
 
       VDomModifier(
-        InputRow (state, focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
+        InputRow ( focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
         div(
           Styles.flex,
           alignItems.center,
@@ -171,9 +171,9 @@ object CreateNewPrompt {
 
           Rx {
             val nodes = childNodes().flatMap { id =>
-              state.graph().nodesById(id).map { node =>
+              GlobalState.graph().nodesById(id).map { node =>
                 nodeCard(
-                  state,
+                  
                   node,
                   contentInject = VDomModifier(
                     Styles.flex,
@@ -207,15 +207,15 @@ object CreateNewPrompt {
       emitter(show).foreach { show =>
         if (show) {
           Var.set(
-            parentNodes -> List(ParentId(state.page.now.parentId.getOrElse(state.user.now.id))),
-            childNodes -> ChildId(state.selectedNodes.now)
+            parentNodes -> List(ParentId(GlobalState.page.now.parentId.getOrElse(GlobalState.user.now.id))),
+            childNodes -> ChildId(GlobalState.selectedNodes.now)
           )
 
-          state.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
+          GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
           ))))
         }
-        else state.uiModalClose.onNext(())
+        else GlobalState.uiModalClose.onNext(())
       }
     )
   }

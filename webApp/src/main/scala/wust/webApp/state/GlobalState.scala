@@ -40,9 +40,7 @@ import scala.util.{ Failure, Success }
 
 import scala.collection.{ breakOut, mutable }
 
-object GlobalState extends GlobalState
-
-class GlobalState() {
+object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
@@ -185,7 +183,7 @@ class GlobalState() {
   val permissionState: Rx[PermissionState] = Notifications.createPermissionStateRx()
   permissionState.triggerLater { state =>
     if (state == PermissionState.granted || state == PermissionState.denied)
-      Analytics.sendEvent("notification", state.asInstanceOf[String])
+      Analytics.sendEvent("notification", GlobalState.asInstanceOf[String])
   }
 
   val pageStyle = Rx {

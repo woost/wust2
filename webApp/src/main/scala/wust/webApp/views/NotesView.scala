@@ -19,7 +19,7 @@ import wust.webUtil.outwatchHelpers._
 object NotesView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       keyed,
       Styles.growFull,
@@ -27,7 +27,7 @@ object NotesView {
       padding := "20px",
 
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
         val childNodes = graph.childrenIdx.map(nodeIdx) { childIdx =>
@@ -35,18 +35,18 @@ object NotesView {
         }.sortBy(_.id)
 
         childNodes.map { node =>
-          VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(state, node, parentId = focusState.focusedId))
+          VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote( node, parentId = focusState.focusedId))
         }
       },
-      registerDragContainer(state),
+      registerDragContainer,
 
       InputRow(
-        state,
+        
         Some(focusState),
         submitAction = { sub =>
           val newNode = Node.MarkdownNote(sub.text)
           val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
-          state.eventProcessor.changes.onNext(changes)
+          GlobalState.eventProcessor.changes.onNext(changes)
         },
         submitOnEnter = false,
         showSubmitIcon = true,
@@ -57,9 +57,9 @@ object NotesView {
     )
   }
 
-  private def renderNote(state: GlobalState, node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderNote(node: Node, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = Rx {
-      state.graph().isDeletedNow(node.id, parentId = parentId)
+      GlobalState.graph().isDeletedNow(node.id, parentId = parentId)
     }
 
     val editMode = Var(false)
@@ -78,15 +78,15 @@ object NotesView {
         )
       },
 
-      editableNodeOnClick(state, node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
+      editableNodeOnClick( node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
 
       div(
         Styles.flex,
         alignItems.center,
 
-        zoomButton(state, node.id)( padding := "3px", marginRight := "5px"),
+        zoomButton( node.id)( padding := "3px", marginRight := "5px"),
 
-        UnreadComponents.readObserver(state, node.id),
+        UnreadComponents.readObserver( node.id),
 
         div(
           padding := "3px",
@@ -100,7 +100,7 @@ object NotesView {
               case true => GraphChanges.undelete(ChildId(node.id), ParentId(parentId))
               case false => GraphChanges.delete(ChildId(node.id), ParentId(parentId))
             }
-            state.eventProcessor.changes.onNext(changes)
+            GlobalState.eventProcessor.changes.onNext(changes)
             ()
           }
         )

@@ -26,31 +26,31 @@ import scala.scalajs.js
 object LeftSidebar {
   val minWidthSidebar = 40
 
-  def apply(state: GlobalState): VNode = {
+  def apply: VNode = {
 
-    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus(state, buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary").map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
+    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary").map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
 
     GenericSidebar.left(
-      state.leftSidebarOpen,
+      GlobalState.leftSidebarOpen,
       config = Ownable { implicit ctx =>
-        val toplevelChannels = toplevelChannelsRx(state)
-        val invites = invitesRx(state)
+        val toplevelChannels = toplevelChannelsRx
+        val invites = invitesRx
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
-            registerDragContainer(state, DragContainer.Sidebar),
+            registerDragContainer( DragContainer.Sidebar),
             drag(target = DragItem.Sidebar),
           ),
           openModifier = VDomModifier(
-            header(state).apply(Styles.flexStatic),
-            channels(state, toplevelChannels),
-            invitations(state, invites).apply(Styles.flexStatic),
-            newProjectButton(state).apply(
+            header.apply(Styles.flexStatic),
+            channels( toplevelChannels),
+            invitations( invites).apply(Styles.flexStatic),
+            newProjectButton().apply(
               cls := "newChannelButton-large " + buttonStyles,
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
               marginBottom := "10px",
             ),
-            // appUpdatePrompt(state).apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
+            // appUpdatePrompt.apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginTop := "10px",
               marginBottom := "10px"
@@ -59,14 +59,14 @@ object LeftSidebar {
           overlayOpenModifier = VDomModifier(
             authStatus,
             Components.reloadButton(margin := "0 auto"),
-            onClick(false) --> state.leftSidebarOpen
+            onClick(false) --> GlobalState.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
           closedModifier = Some(VDomModifier(
             minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
-            hamburger(state),
-            channelIcons(state, toplevelChannels, minWidthSidebar),
-            newProjectButton(state, "+").apply(
+            hamburger,
+            channelIcons( toplevelChannels, minWidthSidebar),
+            newProjectButton( "+").apply(
               cls := "newChannelButton-small " + buttonStyles,
               UI.tooltip("right center") := "New Project",
               onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
@@ -79,19 +79,19 @@ object LeftSidebar {
 
   private val buttonStyles = "tiny basic compact"
 
-  private def toplevelChannelsRx(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
-    val graph = state.rawGraph()
-    val userId = state.userId()
+  private def toplevelChannelsRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+    val graph = GlobalState.rawGraph()
+    val userId = GlobalState.userId()
     ChannelTreeData.toplevelChannels(graph, userId)
   }
 
-  private def invitesRx(state: GlobalState)(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
-    val graph = state.rawGraph()
-    val userId = state.userId()
+  private def invitesRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+    val graph = GlobalState.rawGraph()
+    val userId = GlobalState.userId()
     ChannelTreeData.invites(graph, userId)
   }
 
-  def banner(state: GlobalState)(implicit ctx: Ctx.Owner) = div(
+  def banner(implicit ctx: Ctx.Owner) = div(
     Styles.flexStatic,
     Styles.flex,
     alignItems.center,
@@ -105,29 +105,29 @@ object LeftSidebar {
       marginRight := "3px",
     ),
     div("Woost", marginRight := "5px"),
-    onClick(UrlConfig.default) --> state.urlConfig,
+    onClick(UrlConfig.default) --> GlobalState.urlConfig,
     onClick foreach {
       Analytics.sendEvent("logo", "clicked")
     },
     cursor.pointer
   )
 
-  def header(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def header(implicit ctx: Ctx.Owner): VNode = {
     div(
       div(
         Styles.flex,
         alignItems.center,
 
-        hamburger(state),
-        banner(state),
-        Components.betaSign(state).apply(fontSize := "12px"),
-        syncStatus(state)(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
+        hamburger,
+        banner,
+        Components.betaSign.apply(fontSize := "12px"),
+        syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
       ),
     )
   }
 
-  def hamburger(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
-    import state.leftSidebarOpen
+  def hamburger(implicit ctx: Ctx.Owner): VNode = {
+    import GlobalState.leftSidebarOpen
     div(
       Styles.flexStatic,
       padding := "10px",
@@ -144,7 +144,7 @@ object LeftSidebar {
     )
   }
 
-  def syncStatus(state: GlobalState)(implicit ctx: Ctx.Owner): VNode = {
+  def syncStatus(implicit ctx: Ctx.Owner): VNode = {
     val syncingIcon = fontawesome.layered(
       fontawesome.icon(freeSolid.faCircle, new Params {
         styles = scalajs.js.Dictionary[String]("color" -> "#4EBA4C")
@@ -181,7 +181,7 @@ object LeftSidebar {
 
     val status = {
       val rx = Rx {
-        (state.isOnline(), state.isSynced() && !state.isLoading())
+        (GlobalState.isOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
       }
       //TODO: scala.rx debounce is not working correctly
       ValueObservable(rx.toTailObservable.debounce(300 milliseconds), rx.now)
@@ -198,8 +198,8 @@ object LeftSidebar {
     div(syncStatusIcon)
   }
 
-  def appUpdatePrompt(state: GlobalState)(implicit ctx: Ctx.Owner) =
-    div(state.appUpdateIsAvailable.map { _ =>
+  def appUpdatePrompt(implicit ctx: Ctx.Owner) =
+    div(GlobalState.appUpdateIsAvailable.map { _ =>
       button(cls := "tiny ui primary basic button", "Update App", onClick foreach {
         window.location.reload(flag = false)
       })
@@ -232,7 +232,7 @@ object LeftSidebar {
     )
   }
 
-  private def expandToggleButton(state: GlobalState, nodeId: NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def expandToggleButton(nodeId: NodeId, userId: UserId, expanded: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
 
     div(
       padding := "1px 3px",
@@ -243,27 +243,27 @@ object LeftSidebar {
         else
           VDomModifier(freeSolid.faAngleRight, color := "#a9a9a9")
       },
-      onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> state.eventProcessor.changes
+      onClick.stopPropagation.mapTo(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(!expanded.now), userId)) --> GlobalState.eventProcessor.changes
     )
   }
 
   @inline def fontSizeByDepth(depth:Int) = s"${math.max(8, 14 - depth)}px"
 
-  def channelLine(state: GlobalState, traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
-    val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
+    val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
     val node = Rx {
-      state.rawGraph().nodesByIdOrThrow(nodeId)
+      GlobalState.rawGraph().nodesByIdOrThrow(nodeId)
     }
 
     val permissionLevel = Rx {
-      Permission.resolveInherited(state.rawGraph(), nodeId)
+      Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
     }
 
     div(
       Styles.flex,
       alignItems.center,
-      expandToggleButton(state, nodeId, userId, expanded).apply(
+      expandToggleButton( nodeId, userId, expanded).apply(
         Rx {
           VDomModifier.ifNot(hasChildren())(visibility.hidden)
         }
@@ -278,11 +278,11 @@ object LeftSidebar {
               color := Colors.sidebarBg,
               backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
             ),
-            renderProject(node(), renderNode = node => renderAsOneLineText(state, node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
+            renderProject(node(), renderNode = node => renderAsOneLineText( node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
           )
         },
 
-        onChannelClick(state, nodeId),
+        onChannelClick( nodeId),
         onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node",
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
@@ -293,21 +293,21 @@ object LeftSidebar {
     )
   }
 
-  private def channels(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channels(toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
-          val graph = state.rawGraph()
+          val graph = GlobalState.rawGraph()
           findChildren(graph, traverseState)
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
-          state.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
+          GlobalState.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
         }
 
         VDomModifier(
-          channelLine(state, traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
+          channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
@@ -323,7 +323,7 @@ object LeftSidebar {
       cls := "channels tiny-scrollbar",
 
       Rx {
-        val userId = state.userId()
+        val userId = GlobalState.userId()
 
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
@@ -333,14 +333,14 @@ object LeftSidebar {
     )
   })
 
-  private def invitations(state: GlobalState, invites: Rx[Seq[NodeId]])(implicit ctx: Ctx.Owner) = {
+  private def invitations(invites: Rx[Seq[NodeId]])(implicit ctx: Ctx.Owner) = {
     div(
       Rx {
-        val userId = state.userId()
+        val userId = GlobalState.userId()
 
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
-          invites().map(nodeId => channelLine(state, TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), channelModifier = VDomModifier(
+          invites().map(nodeId => channelLine( TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), channelModifier = VDomModifier(
             div(
               cls := "ui icon buttons",
               margin := "2px 3px 2px auto",
@@ -348,14 +348,14 @@ object LeftSidebar {
                 cls := "mini compact green ui button",
                 padding := "0.5em",
                 i(cls := "icon fa-fw", freeSolid.faCheck),
-                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> GlobalState.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "accept-invite") }
               ),
               button(
                 cls := "mini compact ui button",
                 padding := "0.5em",
                 i(cls := "icon fa-fw", freeSolid.faTimes),
-                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> state.eventProcessor.changes,
+                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> GlobalState.eventProcessor.changes,
                 onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
               )
             )
@@ -368,25 +368,25 @@ object LeftSidebar {
     )
   }
 
-  private def channelIcons(state: GlobalState, toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channelIcons(toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
     val indentFactor = 3
     val maxDepth = 6
     val defaultPadding = CommonStyles.channelIconDefaultPadding
 
     def renderChannel(traverseState: TraverseState, userId: UserId, depth: Int, expanded: Rx[Boolean], hasChildren: Rx[Boolean])(implicit ctx: Ctx.Owner) = {
       val nodeId = traverseState.parentId
-      val selected = Rx { (state.page().parentId contains nodeId) && state.view().isContent }
+      val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
       val node = Rx {
-        state.rawGraph().nodesByIdOrThrow(nodeId)
+        GlobalState.rawGraph().nodesByIdOrThrow(nodeId)
       }
 
       val sanitizedDepth = depth.min(maxDepth)
 
       VDomModifier(
         Rx {
-          channelIcon(state, node(), selected, size)(ctx)(
+          channelIcon( node(), selected, size)(ctx)(
             UI.popup("right center") <-- node.map(_.str),
-            onChannelClick(state, nodeId),
+            onChannelClick( nodeId),
             onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
             drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
             cls := "node",
@@ -403,12 +403,12 @@ object LeftSidebar {
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
       div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
         val children = Rx {
-          val graph = state.rawGraph()
+          val graph = GlobalState.rawGraph()
           findChildren(graph, traverseState)
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
-          state.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
+          GlobalState.rawGraph().isExpanded(userId, traverseState.parentId).getOrElse(true)
         }
 
         VDomModifier(
@@ -429,7 +429,7 @@ object LeftSidebar {
       cls := "channelIcons tiny-scrollbar",
 
       Rx {
-        val userId = state.userId()
+        val userId = GlobalState.userId()
 
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
@@ -437,7 +437,7 @@ object LeftSidebar {
       },
     )
   })
-  private def channelIcon(state: GlobalState, node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
+  private def channelIcon(node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
     def iconText(str:String):String = {
       str match {
         case EmojiReplacer.emojiAtBeginningRegex(emoji) => emoji
@@ -459,9 +459,9 @@ object LeftSidebar {
     )
   }
 
-  private def onChannelClick(state: GlobalState, nodeId: NodeId) = VDomModifier(
+  private def onChannelClick(nodeId: NodeId) = VDomModifier(
     onClick foreach {
-      state.urlConfig.update(_.focus(Page(nodeId)))
+      GlobalState.urlConfig.update(_.focus(Page(nodeId)))
       ()
     }
   )

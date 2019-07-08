@@ -27,7 +27,7 @@ import wust.api.AuthUser.Real
 
 object FeedbackForm {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(implicit ctx: Ctx.Owner) = {
     val showPopup = Var(false)
     val activeDisplay = Rx { display := (if (showPopup()) "block" else "none") }
 
@@ -42,7 +42,7 @@ object FeedbackForm {
       if (feedbackText.now.trim.nonEmpty) {
         //         Client.api.feedback(ClientInfo(navigator.userAgent), feedbackText.now).onComplete { }
         Try{
-          initCrisp(state)
+          initCrisp
           crisp.push(js.Array("do", "message:send", js.Array("text", feedbackText.now)))
         } match {
           case Success(()) =>
@@ -96,7 +96,7 @@ object FeedbackForm {
       ),
       div(
         activeDisplay,
-        position.fixed, top := "35px", right <-- Rx{ if (state.screenSize() == ScreenSize.Small) "0px" else "100px" },
+        position.fixed, top := "35px", right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "100px" },
         zIndex := ZIndex.formOverlay,
         padding := "10px",
         borderRadius := "5px",
@@ -125,15 +125,15 @@ object FeedbackForm {
         div("Or write us an email: ", Components.woostTeamEmailLink, "."),
 
         div(cls := "ui divider", marginTop := "30px"),
-        supportChatButton(state, showPopup),
+        supportChatButton( showPopup),
         voteOnFeaturesButton,
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
     )
   }
 
-  def initCrisp(state: GlobalState): Unit = {
-    state.user.now match {
+  def initCrisp: Unit = {
+    GlobalState.user.now match {
       case user: Implicit =>
         crisp.push(js.Array("set", "user:nickname", js.Array(user.name)))
 
@@ -152,7 +152,7 @@ object FeedbackForm {
     }
   }
 
-  def supportChatButton(state:GlobalState, showPopup: Var[Boolean]) = {
+  def supportChatButton( showPopup: Var[Boolean]) = {
     button(
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue tiny fluid button",
@@ -160,7 +160,7 @@ object FeedbackForm {
       ProductionOnly{
         onClick.stopPropagation.foreach { _ =>
           Try{
-            initCrisp(state)
+            initCrisp
             crisp.push(js.Array("do", "chat:show"))
             crisp.push(js.Array("do", "chat:open"))
           }

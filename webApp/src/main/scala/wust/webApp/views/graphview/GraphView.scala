@@ -22,9 +22,9 @@ object GraphView {
     case (nodeId, NodeRole.Tag) => DragItem.Tag(nodeId)
   }
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit owner: Ctx.Owner) = {
+  def apply(focusState: FocusState)(implicit owner: Ctx.Owner) = {
 
-    val forceSimulation = new ForceSimulation(state, focusState, onDrop(state)(_, _, _), roleToDragItemPayload, roleToDragItemTarget)
+    val forceSimulation = new ForceSimulation( focusState, onDrop(_, _, _), roleToDragItemPayload, roleToDragItemTarget)
 
     val nodeStyle = PageStyle.ofNode(focusState.focusedId)
     val showControls = Var(LinkingInfo.developmentMode)
@@ -83,24 +83,24 @@ object GraphView {
       ),
       forceSimulation.component,
       forceSimulation.postCreationMenus.map(_.map { menu =>
-        PostCreationMenu(state, focusState, menu, forceSimulation.transform)
+        PostCreationMenu( focusState, menu, forceSimulation.transform)
       }),
     )
   }
 
-  def onDrop(state: GlobalState)(draggingId: NodeId, targetId: NodeId, ctrl: Boolean): Boolean = {
-    val graph = state.graph.now
+  def onDrop(draggingId: NodeId, targetId: NodeId, ctrl: Boolean): Boolean = {
+    val graph = GlobalState.graph.now
 
     def payload:DragPayload = { roleToDragItemPayload.applyOrElse((draggingId, graph.nodesByIdOrThrow(draggingId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
     def target:DragTarget = { roleToDragItemTarget.applyOrElse((targetId, graph.nodesByIdOrThrow(targetId).role), (_: (NodeId, NodeRole)) => DragItem.DisableDrag) }
 
     val changes = for {
       changes <- DragActions.dragAction.lift((payload, target, ctrl, false))
-    } yield changes(graph, state.user.now.id)
+    } yield changes(graph, GlobalState.user.now.id)
     
     changes match {
       case Some(changes) => 
-        state.eventProcessor.changes.onNext(changes)
+        GlobalState.eventProcessor.changes.onNext(changes)
         true
       case None => false
     } 

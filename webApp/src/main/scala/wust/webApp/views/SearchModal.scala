@@ -17,7 +17,7 @@ import wust.webUtil.outwatchHelpers._
 
 object SearchModal {
 
-  def config(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def config(node: Node)(implicit ctx: Ctx.Owner): ModalConfig = {
 
     sealed trait SearchInput
     object SearchInput {
@@ -36,9 +36,9 @@ object SearchModal {
           fontWeight.normal,
           cursor.pointer,
           padding := "3px",
-          Components.nodeCard(state, nodeRes._1),
-          onClick.stopPropagation.mapTo(state.urlConfig.now.focus(Page(nodeRes._1.id))) --> state.urlConfig,
-          onClick.stopPropagation(()) --> state.uiModalClose
+          Components.nodeCard( nodeRes._1),
+          onClick.stopPropagation.mapTo(GlobalState.urlConfig.now.focus(Page(nodeRes._1.id))) --> GlobalState.urlConfig,
+          onClick.stopPropagation(()) --> GlobalState.uiModalClose
         )
       }
 
@@ -69,7 +69,7 @@ object SearchModal {
 
     val searchResult: Observable[VDomModifier] = searches.map {
       case SearchInput.Local(query) if query.nonEmpty =>
-        val graph = state.graph.now
+        val graph = GlobalState.graph.now
         val nodes = graph.nodes.toList
         val nodeIdx = graph.idToIdxOrThrow(node.id)
         val descendants = ArraySet.create(graph.nodes.length)
@@ -85,7 +85,7 @@ object SearchModal {
     }
 
     def header(implicit ctx: Ctx.Owner) = Modal.defaultHeader(
-      state,
+      
       node,
       modalHeader = div(
         cls := "ui search",

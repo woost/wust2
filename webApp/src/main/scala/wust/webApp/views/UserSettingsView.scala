@@ -56,19 +56,19 @@ object UserSettingsView {
     )
   }
 
-  def apply(state: GlobalState)(implicit owner: Ctx.Owner): VNode = {
+  def apply(implicit owner: Ctx.Owner): VNode = {
     div(
       padding := "20px",
       overflow.auto,
       Rx {
-        val user = state.user()
+        val user = GlobalState.user()
         VDomModifier(
-          header(state, user).apply(marginBottom := "50px"),
+          header( user).apply(marginBottom := "50px"),
           UI.accordion(
             Seq(
-              accordionEntry("Account Settings", accountSettings(state, user), active = true),
+              accordionEntry("Account Settings", accountSettings( user), active = true),
               accordionEntry( span( i(Icons.plugin), b(" Plugins") ), pluginSettings(user)),
-              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings(state, user)),
+              accordionEntry( span( i(Icons.files), b(" Uploaded Files") ), uploadSettings( user)),
               accordionEntry( b("§ Legal Information" ), LegalNotice.information),
             ),
             styles = "fluid",
@@ -95,7 +95,7 @@ object UserSettingsView {
     )
   }
 
-  private def uploadSettings(state: GlobalState, ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+  private def uploadSettings(ser: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
     val fileUploads = Var[Option[Seq[UploadedFile]]](None)
     div(
       margin := "10px 30px 10px 0px",
@@ -134,7 +134,7 @@ object UserSettingsView {
                 flexDirection.row,
                 justifyContent.spaceBetween,
                 alignItems.center,
-                UploadComponents.renderUploadedFile(state, nodeId, file),
+                UploadComponents.renderUploadedFile( nodeId, file),
                 div(f"(${size.toDouble / 1024 / 1024}%1.1f MB)"),
                 button(cls := "ui negative button", "Delete file", onClick.foreach {
                   val shouldDelete = dom.window.confirm("Are you sure you want to delete this file upload?")
@@ -171,14 +171,14 @@ object UserSettingsView {
     ),
   )
 
-  private def accountSettings(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
+  private def accountSettings(user: UserInfo)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Styles.flex,
       flexWrap.wrap,
       div(
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
-        changeEmail(state, user)
+        changeEmail( user)
       ),
       div(
         margin := "10px 30px 10px 0px",
@@ -188,7 +188,7 @@ object UserSettingsView {
     )
   }
 
-  private def changeEmail(state: GlobalState, user: UserInfo)(implicit ctx: Ctx.Owner) = {
+  private def changeEmail(user: UserInfo)(implicit ctx: Ctx.Owner) = {
     val userDetail = Var[Option[UserDetail]](None)
     val detailsUnavailable = Var(true)
     Client.auth.getUserDetail(user.id).onComplete {
@@ -334,7 +334,7 @@ object UserSettingsView {
     )
   }
 
-  private def header(state: GlobalState, user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
+  private def header(user: AuthUser)(implicit ctx: Ctx.Owner): VNode = {
     val editMode = Var(false)
     div(
       Styles.flex,
@@ -346,7 +346,7 @@ object UserSettingsView {
         height := "50px",
         padding := "4px",
       ),
-      editableNode(state, user.toNode, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
+      editableNode( user.toNode, editMode).apply(marginLeft := "20px", marginBottom := "0px", fontSize := "30px", alignItems.center, cls := "enable-text-selection"),
       button(
         cls := "ui button primary tiny",
         marginLeft := "20px",

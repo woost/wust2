@@ -62,7 +62,7 @@ object Permission {
     VDomModifier.ifTrue(level.access == NodeAccess.ReadWrite)(div(level.icon, Styles.flexStatic, UI.popup("bottom center") := level.description, modifier))
   }
 
-  def permissionItem(state: GlobalState, channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def permissionItem(channel: Node.Content)(implicit ctx: Ctx.Owner): VDomModifier = {
     a(
       cls := "item",
 //      Components.icon(Icons.userPermission),
@@ -74,12 +74,12 @@ object Permission {
             description = Rx {
               item.inherited match {
                 case None => item.value
-                case Some(inheritance) => s"Inherited (${inheritance(state.rawGraph(), channel.id).value})"
+                case Some(inheritance) => s"Inherited (${inheritance(GlobalState.rawGraph(), channel.id).value})"
               }
             },
             active = channel.meta.accessLevel == item.access,
             clickAction = { () =>
-              state.eventProcessor.changes.onNext(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
               Analytics.sendEvent("pageheader", "changepermission", item.access.str)
             }
           )

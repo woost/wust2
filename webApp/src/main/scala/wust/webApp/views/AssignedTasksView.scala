@@ -27,7 +27,7 @@ object AssignedTasksView  {
     EpochMilli(date.getTime.toLong + days * EpochMilli.day)
   }
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val renderTime = EpochMilli.now
     val bucketNames = Array(
       "Overdue",
@@ -44,15 +44,15 @@ object AssignedTasksView  {
       datePlusDays(renderTime, 30)
     )
 
-    val selectedUserId = Var(state.userId.now)
+    val selectedUserId = Var(GlobalState.userId.now)
 
     val selectableUsers = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.members(focusState.focusedId)
     }
 
     val assignedTasks = Rx {
-      AssignedTasksData.assignedTasks(state.graph(), focusState.focusedId, selectedUserId(), buckets)
+      AssignedTasksData.assignedTasks(GlobalState.graph(), focusState.focusedId, selectedUserId(), buckets)
     }
     val assignedTasksDue = Rx { assignedTasks().dueTasks }
     val assignedTasksOther = Rx { assignedTasks().tasks }
@@ -67,7 +67,7 @@ object AssignedTasksView  {
         )
       )
 
-      state.eventProcessor.changes.onNext(changes merge sub.changes(newTask.id))
+      GlobalState.eventProcessor.changes.onNext(changes merge sub.changes(newTask.id))
     }
 
     div(
@@ -78,7 +78,7 @@ object AssignedTasksView  {
       padding := "20px",
       overflow.auto,
 
-      registerDragContainer(state),
+      registerDragContainer,
 
       div(
         Styles.flex,
@@ -87,7 +87,7 @@ object AssignedTasksView  {
         chooseUser(selectableUsers, selectedUserId).apply(Styles.flexStatic),
 
         InputRow(
-          state,
+          
           Some(focusState),
           addNewTask,
           placeholder = Placeholder("Add Task"),
@@ -105,7 +105,7 @@ object AssignedTasksView  {
             foundSomething = true
             VDomModifier(
               h3(coloringHeader, bucketName, cls := "tasklist-header"),
-              div(cls := "tasklist",dueTasks.map(renderTask(state, focusState, _))),
+              div(cls := "tasklist",dueTasks.map(renderTask( focusState, _))),
             )
           }
         }
@@ -117,7 +117,7 @@ object AssignedTasksView  {
         val tasks = assignedTasksOther()
         VDomModifier.ifTrue(tasks.nonEmpty)(
           h3("Todo", cls := "tasklist-header"),
-          div(cls := "tasklist", assignedTasksOther().map(renderTask(state, focusState, _))),
+          div(cls := "tasklist", assignedTasksOther().map(renderTask( focusState, _))),
         )
       },
 
@@ -125,8 +125,8 @@ object AssignedTasksView  {
     )
   }
 
-  private def renderTask(state: GlobalState, focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(
-    state,
+  private def renderTask(focusState: FocusState, task: AssignedTask) = TaskNodeCard.renderThunk(
+    
     focusState,
     TraverseState(task.parentId),
     task.nodeId,

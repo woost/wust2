@@ -22,45 +22,45 @@ import scala.util.{Failure, Success}
 
 object PageSettingsMenu {
 
-  def apply(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     div(
       Icons.menu,
       cursor.pointer,
-      onClick.stopPropagation.foreach { toggleSidebar(state, channelId) }
+      onClick.stopPropagation.foreach { toggleSidebar( channelId) }
     )
   }
 
-  def toggleSidebar(state: GlobalState, channelId: NodeId): Unit = {
+  def toggleSidebar(channelId: NodeId): Unit = {
     //TODO better way to check whether sidebar is currently active for toggling.
-    if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) state.uiSidebarClose.onNext(())
-    else state.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig(state, channelId)))
+    if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) GlobalState.uiSidebarClose.onNext(())
+    else GlobalState.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig( channelId)))
     ()
   }
 
-  def nodeIsBookmarked(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
-    val g = state.graph()
+  def nodeIsBookmarked(channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
+    val g = GlobalState.graph()
     val channelIdx = g.idToIdxOrThrow(channelId)
-    val userIdx = g.idToIdxOrThrow(state.userId())
-    state.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
+    val userIdx = g.idToIdxOrThrow(GlobalState.userId())
+    GlobalState.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
   }
 
-  def sidebarConfig(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+  def sidebarConfig(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
     def sidebarItems: List[VDomModifier] = {
-      val isBookmarked = nodeIsBookmarked(state, channelId)
+      val isBookmarked = nodeIsBookmarked( channelId)
 
       val channelAsNode: Rx[Option[Node]] = Rx {
-        state.graph().nodesById(channelId)
+        GlobalState.graph().nodesById(channelId)
       }
       val channelAsContent: Rx[Option[Node.Content]] = channelAsNode.map(_.collect { case n: Node.Content => n })
       val channelIsContent: Rx[Boolean] = channelAsContent.map(_.isDefined)
-      val canWrite: Rx[Boolean] = NodePermission.canWrite(state, channelId)
+      val canWrite: Rx[Boolean] = NodePermission.canWrite( channelId)
 
       val permissionItem = Rx {
-        VDomModifier.ifTrue(canWrite())(channelAsContent().map(Permission.permissionItem(state, _)))
+        VDomModifier.ifTrue(canWrite())(channelAsContent().map(Permission.permissionItem( _)))
       }
       val nodeRoleItem:VDomModifier = Rx {
         channelAsContent().collect {
-          case channel if canWrite() => ConvertSelection.menuItem(state, channel)
+          case channel if canWrite() => ConvertSelection.menuItem( channel)
         }
       }
 
@@ -71,11 +71,11 @@ object PageSettingsMenu {
           if (isBookmarked()) VDomModifier(
             Elements.icon(Icons.signOut),
             span("Unpin from sidebar"),
-            onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id)) --> state.eventProcessor.changes
+            onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
           ) else VDomModifier(
             Elements.icon(Icons.pin),
             span("Pin to sidebar"),
-            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes
+            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
           )
         ))
       }
@@ -88,9 +88,9 @@ object PageSettingsMenu {
             Elements.icon(Icons.delete),
             span("Archive at all places"),
             onClick.stopPropagation foreach {
-              state.eventProcessor.changes.onNext(
-                GraphChanges.delete(ChildId(channelId), state.graph.now.parents(channelId).map(ParentId(_))(breakOut))
-                  .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, state.user.now.id))
+              GlobalState.eventProcessor.changes.onNext(
+                GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).map(ParentId(_))(breakOut))
+                  .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id))
               )
               UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
             }
@@ -100,20 +100,20 @@ object PageSettingsMenu {
 
       val copyItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          GraphChangesAutomationUI.copyNodeItem(state, channel.id).foreach({ case (node, changes) =>
-            state.eventProcessor.changes.onNext(changes)
-            UI.toast("Successfully copied node, click to focus", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success, click = () => state.urlConfig.update(_.focus(Page(node.id), needsGet = false)))
+          GraphChangesAutomationUI.copyNodeItem( channel.id).foreach({ case (node, changes) =>
+            GlobalState.eventProcessor.changes.onNext(changes)
+            UI.toast("Successfully copied node, click to focus", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success, click = () => GlobalState.urlConfig.update(_.focus(Page(node.id), needsGet = false)))
           }: ((Node.Content, GraphChanges)) => Unit)
         })
       }
 
       val resyncWithTemplatesItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          val hasTemplates = state.rawGraph().idToIdxFold(channel.id)(false)(channelIdx => state.rawGraph().derivedFromTemplateEdgeIdx.sliceNonEmpty(channelIdx))
+          val hasTemplates = GlobalState.rawGraph().idToIdxFold(channel.id)(false)(channelIdx => GlobalState.rawGraph().derivedFromTemplateEdgeIdx.sliceNonEmpty(channelIdx))
           VDomModifier.ifTrue(hasTemplates)(
-            GraphChangesAutomationUI.resyncWithTemplatesItem(state, channel.id).foreach { changes =>
+            GraphChangesAutomationUI.resyncWithTemplatesItem( channel.id).foreach { changes =>
               UI.toast("Successfully synced with templates", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
-              state.eventProcessor.changes.onNext(changes)
+              GlobalState.eventProcessor.changes.onNext(changes)
             }
           )
         })
@@ -121,23 +121,23 @@ object PageSettingsMenu {
 
       val importItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          Importing.settingsItem(state, channel.id)
+          Importing.settingsItem( channel.id)
         })
       }
 
       val addMemberItem: VDomModifier = Rx {
         channelAsContent() collect {
-          case channel if canWrite() => manageMembers(state, channel)
+          case channel if canWrite() => manageMembers( channel)
         }
       }
       val shareItem = Rx {
-        channelAsContent().map(shareButton(state, _))
+        channelAsContent().map(shareButton( _))
       }
       val searchItem = Rx {
-        channelAsNode().map(searchModalButton(state, _))
+        channelAsNode().map(searchModalButton( _))
       }
       val notificationItem = Rx {
-        channelAsContent().map(WoostNotification.generateNotificationItem(state, state.permissionState(), state.graph(), state.user().toNode, _))
+        channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
       }
 
       List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, deleteItem)
@@ -153,7 +153,7 @@ object PageSettingsMenu {
     )
   }
 
-  private def shareButton(state: GlobalState, channel: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def shareButton(channel: Node)(implicit ctx: Ctx.Owner): VNode = {
     import scala.concurrent.duration._
 
     val shareTitle = StringOps.trimToMaxLength(channel.data.str, 15)
@@ -166,7 +166,7 @@ object PageSettingsMenu {
         case channel: Node.Content =>
           if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
             val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
-            state.eventProcessor.changes.onNext(changes)
+            GlobalState.eventProcessor.changes.onNext(changes)
             UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
           }
         case _ => ()
@@ -208,28 +208,28 @@ object PageSettingsMenu {
     )
   }
 
-  private def searchModalButton(state: GlobalState, node: Node)(implicit ctx: Ctx.Owner): VNode = {
+  private def searchModalButton(node: Node)(implicit ctx: Ctx.Owner): VNode = {
     SharedViewElements.searchButtonWithIcon(
-      onClick.stopPropagation(Ownable(implicit ctx => SearchModal.config(state, node))) --> state.uiModalConfig
+      onClick.stopPropagation(Ownable(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 
-  private def manageMembers(state: GlobalState, node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
+  private def manageMembers(node: Node.Content)(implicit ctx: Ctx.Owner): VNode = {
     a(
       cls := "item",
       cursor.pointer,
       Elements.icon(Icons.users),
       span("Members"),
 
-      onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config(state, node))) --> state.uiModalConfig
+      onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 
-  def addToChannelsButton(state: GlobalState, channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  def addToChannelsButton(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     button(
       cls := "ui compact inverted button",
       if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, state.user.now.id), Edge.Notify(channelId, state.user.now.id)), delEdges = Array(Edge.Invite(channelId, state.user.now.id)))) --> state.eventProcessor.changes,
+      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
   }

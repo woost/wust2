@@ -37,16 +37,14 @@ object Main {
 
     GlobalStateFactory.init()
 
-    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
-    
-    setupFomanticUISearch(GlobalState)
+    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()    
 
-    DevOnly { enableEventLogging(GlobalState) }
-    SortableEvents.init(GlobalState)
+    DevOnly { enableEventLogging() }
+    SortableEvents.init()
 
     // render main content
     import GlobalState.ctx
-    OutWatch.renderReplace("#container", MainView(GlobalState)).unsafeRunSync()
+    OutWatch.renderReplace("#container", MainView.apply).unsafeRunSync()
     // render single modal instance for the whole page that can be configured via GlobalState.uiModalConfig
     OutWatch.renderReplace("#modal-placeholder", Modal.modal(GlobalState.uiModalConfig, GlobalState.uiModalClose)).unsafeRunSync()
     // render single sidebar instance for the whole page that can be configured via GlobalState.uiSidebarConfig
@@ -54,7 +52,7 @@ object Main {
   }
 
   @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
-  private def setupFomanticUISearch(state: GlobalState): Unit = {
+  private def setupFomanticUISearch(): Unit = {
     import dsl._
     import wust.css.Styles
 
@@ -66,7 +64,7 @@ object Main {
             cls := "result", //we need this class for semantic ui to work,
             div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
             padding := "4px",
-            views.Components.nodeCardAsOneLineText(state, node, projectWithIcon = true).prepend(
+            views.Components.nodeCardAsOneLineText( node, projectWithIcon = true).prepend(
               cursor.pointer,
               Styles.flex,
               alignItems.center
@@ -84,6 +82,7 @@ object Main {
     setupMarked()
     setupEmojis()
     setupEmojiPicker()
+    setupFomanticUISearch()
 
     if (LinkingInfo.developmentMode) {
       setupRuntimeScalaCSSInjection()
@@ -91,7 +90,7 @@ object Main {
     }
   }
 
-  private def enableEventLogging(state:GlobalState)= {
+  private def enableEventLogging() = {
     val boxBgColor = "#666" // HCL(baseHue, 50, 63).toHex
     val boxStyle =
       s"color: white; background: $boxBgColor; border-radius: 3px; padding: 2px; font-weight: bold"
@@ -99,7 +98,7 @@ object Main {
     Client.observable.event.foreach { events =>
       events.foreach {
         case ApiEvent.NewGraphChanges(user, change) =>
-          console.log(s"%c ➙ from User:${ user.name } %c ${ change.toPrettyString(state.graph.now) }", boxStyle, s"background: $color")
+          console.log(s"%c ➙ from User:${ user.name } %c ${ change.toPrettyString(GlobalState.graph.now) }", boxStyle, s"background: $color")
         case other                                  => console.log(s"%c ➙ %c ${ other }", boxStyle, s"background: $color")
       }
     }

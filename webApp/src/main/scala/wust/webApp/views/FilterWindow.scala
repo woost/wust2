@@ -11,7 +11,7 @@ import wust.webUtil.{Elements, Ownable}
 
 
 object FilterWindow {
-  def movableWindow(state: GlobalState, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
+  def movableWindow(position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
     MovableElement.Window(
       title = VDomModifier(
@@ -24,7 +24,7 @@ object FilterWindow {
         border := "2px solid transparent",
         borderRadius := "3px",
         padding := "2px",
-        state.isAnyFilterActive.map {
+        GlobalState.isAnyFilterActive.map {
           case true =>
             Rx{VDomModifier(
               border := "2px solid rgb(255,255,255)",
@@ -33,14 +33,14 @@ object FilterWindow {
           case false => VDomModifier.empty
         }
       ),
-      isVisible = state.showFilterList,
+      isVisible = GlobalState.showFilterList,
       initialPosition = position,
       initialWidth = 260,
       initialHeight = 250,
       resizable = false,
       titleModifier = Ownable(implicit ctx =>
         Rx{VDomModifier(
-          backgroundColor := state.pageStyle().pageBgColor,
+          backgroundColor := GlobalState.pageStyle().pageBgColor,
           color.white,
         )}
       ),
@@ -54,9 +54,9 @@ object FilterWindow {
               Components.MenuItem(
                 title = VDomModifier(transformation.icon, marginLeft := "5px", marginRight := "5px"),
                 description = transformation.description,
-                active = state.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
+                active = GlobalState.graphTransformations.map(_.contains(transformation.transform) ^ transformation.invertedSwitch),
                 clickAction = { () =>
-                  state.graphTransformations.update { transformations =>
+                  GlobalState.graphTransformations.update { transformations =>
                     if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
                     else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
                   }
@@ -69,7 +69,7 @@ object FilterWindow {
             cursor.pointer,
             Elements.icon(Icons.noFilter),
             span("Reset ALL filters"),
-            onClick(state.defaultTransformations) --> state.graphTransformations,
+            onClick(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
             onClick foreach { Analytics.sendEvent("filter", "reset") },
           )
         )

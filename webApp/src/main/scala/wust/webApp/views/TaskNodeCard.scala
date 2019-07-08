@@ -61,7 +61,7 @@ object TaskNodeCard {
   }
 
   def renderThunk(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -75,16 +75,16 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
 
-    val nodeIdx = state.graph.map(_.idToIdxOrThrow(nodeId))
-    val parentIdx = state.graph.map(_.idToIdxOrThrow(traverseState.parentId))
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
+    val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(traverseState.parentId))
     val node = Rx {
-      state.graph().nodes(nodeIdx())
+      GlobalState.graph().nodes(nodeIdx())
     }
     val isDeletedNow = Rx {
-      state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+      GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
     val isExpanded = Rx {
-      state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
+      GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
     }
 
     final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int, projectChildrenCount: Int) {
@@ -93,7 +93,7 @@ object TaskNodeCard {
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
 
       val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
 
@@ -133,14 +133,14 @@ object TaskNodeCard {
         if (isDeletedNow.now) GraphChanges.undelete(childId, parentId) else GraphChanges.delete(childId, parentId)
       }
       def toggleDeleteClickAction(): Unit = {
-        val graph = state.graph.now
+        val graph = GlobalState.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).viewMap(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != traverseState.parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
         val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(nodeId), ParentId(traverseState.parentId))
-        state.eventProcessor.changes.onNext(changes)
+        GlobalState.eventProcessor.changes.onNext(changes)
         selectedNodeIds.update(_ - nodeId)
       }
       def toggleDelete = {
@@ -153,10 +153,10 @@ object TaskNodeCard {
       }
       def expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
       def toggleExpand = Rx {
         @inline def largerOnMobile = VDomModifier.ifTrue(BrowserDetect.isMobile)(fontSize := "24px", paddingTop := "5px", color := "#D9D9D9", backgroundColor := Colors.nodecardBg)
         (if (isExpanded()) collapse else expand).apply(largerOnMobile)
@@ -194,7 +194,7 @@ object TaskNodeCard {
     }
 
     val propertySingle = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(nodeId))
     }
     val propertySingleEmpty = Rx {
@@ -205,7 +205,7 @@ object TaskNodeCard {
       Styles.flex,
       flexWrap.wrap,
 
-      Components.automatedNodesOfNode(state, nodeId),
+      Components.automatedNodesOfNode( nodeId),
       Rx {
         if (propertySingleEmpty()) VDomModifier.empty
         else VDomModifier(
@@ -216,13 +216,13 @@ object TaskNodeCard {
           ),
 
           propertySingle().info.tags.map { tag =>
-            Components.removableNodeTag(state, tag, taggedNodeId = nodeId)
+            Components.removableNodeTag( tag, taggedNodeId = nodeId)
           },
 
           propertySingle().properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.removableNodeCardProperty(state, value.edge, value.node)
+                Components.removableNodeCardProperty( value.edge, value.node)
               }
             }
           },
@@ -233,7 +233,7 @@ object TaskNodeCard {
             justifyContent.flexEnd,
             flexWrap.wrap,
             propertySingle().info.assignedUsers.map(userNode =>
-              Components.removableUserAvatar(state, userNode, targetNodeId = nodeId)
+              Components.removableUserAvatar( userNode, targetNodeId = nodeId)
             ),
           ),
         )
@@ -258,9 +258,9 @@ object TaskNodeCard {
               renderTaskProgress(taskStats()).apply(alignSelf.center),
 
               onClick.stopPropagation.mapTo {
-                val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), state.user.now.id)
+                val edge = Edge.Expanded(nodeId, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
                 GraphChanges(addEdges = Array(edge))
-              } --> state.eventProcessor.changes,
+              } --> GlobalState.eventProcessor.changes,
               cursor.pointer,
             )
           ),
@@ -269,7 +269,7 @@ object TaskNodeCard {
             renderNotesCount(
               taskStats().noteChildrenCount,
               UI.tooltip("left center") := "Show notes",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Content)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Content)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -277,7 +277,7 @@ object TaskNodeCard {
             renderMessageCount(
               taskStats().messageChildrenCount,
               UI.tooltip("left center") := "Show comments",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -285,7 +285,7 @@ object TaskNodeCard {
             renderProjectsCount(
               taskStats().projectChildrenCount,
               UI.tooltip("left center") := "Show Projects",
-              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(nodeId, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -294,19 +294,19 @@ object TaskNodeCard {
     }
 
     VDomModifier(
-      Components.sidebarNodeFocusMod(state.rightSidebarNode, nodeId),
+      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, nodeId),
       onDblClick.stopPropagation.foreach{ _ =>
-        state.urlConfig.update(_.focus(Page(nodeId)))
+        GlobalState.urlConfig.update(_.focus(Page(nodeId)))
       },
-      Components.showHoveredNode(state, nodeId),
-      UnreadComponents.readObserver(state, nodeId, marginTop := "7px"),
+      Components.showHoveredNode( nodeId),
+      UnreadComponents.readObserver( nodeId, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
-        node.map(Components.taskCheckbox(state, _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
+        node.map(Components.taskCheckbox( _, traverseState.parentId :: Nil).apply(float.left, marginRight := "5px"))
       ),
 
       node.map { node =>
         Components.nodeCardMod(
-          state,
+          
           node,
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
@@ -337,9 +337,9 @@ object TaskNodeCard {
       cardFooter,
 
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
+          ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             DragComponents.drag(DragItem.DisableDrag),
@@ -356,7 +356,7 @@ object TaskNodeCard {
   //TODO: this is a less performant duplicate of renderThunk. rewrite all usages to renderThunk.
   @deprecated("Use the new thunk version instead", "")
   def render(
-    state: GlobalState,
+    
     node: Node,
     parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to focusState.focusedId
     focusState: FocusState,
@@ -370,13 +370,13 @@ object TaskNodeCard {
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
   )(implicit ctx: Ctx.Owner): VNode = {
 
-    val nodeIdx = state.graph.map(_.idToIdxOrThrow(node.id))
-    val parentIdx = state.graph.map(_.idToIdxOrThrow(parentId))
+    val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(node.id))
+    val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(parentId))
     val isDeletedNow = Rx {
-      state.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
+      GlobalState.graph().isDeletedNowIdx(nodeIdx(), parentIdx())
     }
     val isExpanded = Rx {
-      state.graph().isExpanded(state.userId(), nodeIdx()).getOrElse(false)
+      GlobalState.graph().isExpanded(GlobalState.userId(), nodeIdx()).getOrElse(false)
     }
 
     final case class TaskStats(messageChildrenCount: Int, taskChildrenCount: Int, noteChildrenCount: Int, taskDoneCount: Int, propertiesCount: Int, projectChildrenCount: Int) {
@@ -385,7 +385,7 @@ object TaskNodeCard {
       @inline def nonEmpty = !isEmpty
     }
     val taskStats = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
 
       val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx())
 
@@ -425,14 +425,14 @@ object TaskNodeCard {
         if (isDeletedNow.now) GraphChanges.undelete(childId, parentId) else GraphChanges.delete(childId, parentId)
       }
       def toggleDeleteClickAction(): Unit = {
-        val graph = state.graph.now
+        val graph = GlobalState.graph.now
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val stageParents = graph.getRoleParentsIdx(nodeIdx.now, NodeRole.Stage).filter(graph.workspacesForParent(_).contains(focusedIdx)).viewMap(graph.nodeIds)
         val hasMultipleStagesInFocusedNode = stageParents.exists(_ != parentId)
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))
 
         val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(node.id), ParentId(parentId))
-        state.eventProcessor.changes.onNext(changes)
+        GlobalState.eventProcessor.changes.onNext(changes)
         selectedNodeIds.update(_ - node.id)
       }
       def toggleDelete = {
@@ -445,10 +445,10 @@ object TaskNodeCard {
       }
       def expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(false), state.user.now.id)) --> state.eventProcessor.changes)
+        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(node.id, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
       def toggle = Rx {
         if (isExpanded()) collapse else expand
       }
@@ -485,7 +485,7 @@ object TaskNodeCard {
     }
 
     val propertySingle = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
     }
 
@@ -493,7 +493,7 @@ object TaskNodeCard {
       Styles.flex,
       flexWrap.wrap,
 
-      Components.automatedNodesOfNode(state, node.id),
+      Components.automatedNodesOfNode( node.id),
       propertySingle.map { propertySingle =>
         VDomModifier(
           VDomModifier.ifTrue(!inOneLine)(
@@ -503,13 +503,13 @@ object TaskNodeCard {
           ),
 
           propertySingle.info.tags.map { tag =>
-            Components.removableNodeTag(state, tag, taggedNodeId = node.id)
+            Components.removableNodeTag( tag, taggedNodeId = node.id)
           },
 
           propertySingle.properties.map { property =>
             property.values.map { value =>
               VDomModifier.ifTrue(value.edge.data.showOnCard) {
-                Components.removableNodeCardProperty(state, value.edge, value.node)
+                Components.removableNodeCardProperty( value.edge, value.node)
               }
             }
           },
@@ -520,7 +520,7 @@ object TaskNodeCard {
             justifyContent.flexEnd,
             flexWrap.wrap,
             propertySingle.info.assignedUsers.map(userNode =>
-              Components.removableUserAvatar(state, userNode, targetNodeId = node.id)
+              Components.removableUserAvatar( userNode, targetNodeId = node.id)
             ),
           ),
         )
@@ -545,9 +545,9 @@ object TaskNodeCard {
               renderTaskProgress(taskStats()).apply(alignSelf.center),
 
               onClick.stopPropagation.mapTo {
-                val edge = Edge.Expanded(node.id, EdgeData.Expanded(!isExpanded()), state.user.now.id)
+                val edge = Edge.Expanded(node.id, EdgeData.Expanded(!isExpanded()), GlobalState.user.now.id)
                 GraphChanges(addEdges = Array(edge))
-              } --> state.eventProcessor.changes,
+              } --> GlobalState.eventProcessor.changes,
               cursor.pointer,
             )
           ),
@@ -556,7 +556,7 @@ object TaskNodeCard {
             renderNotesCount(
               taskStats().noteChildrenCount,
               UI.tooltip("left center") := "Show Notes",
-              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Content)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Content)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -564,7 +564,7 @@ object TaskNodeCard {
             renderMessageCount(
               taskStats().messageChildrenCount,
               UI.tooltip("left center") := "Show Comments",
-              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Conversation)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -572,7 +572,7 @@ object TaskNodeCard {
             renderProjectsCount(
               taskStats().projectChildrenCount,
               UI.tooltip("left center") := "Show Projects",
-              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Dashboard)))) --> state.rightSidebarNode,
+              onClick.stopPropagation(Some(FocusPreference(node.id, Some(View.Dashboard)))) --> GlobalState.rightSidebarNode,
               cursor.pointer,
             ),
           ),
@@ -581,7 +581,7 @@ object TaskNodeCard {
     )
 
     Components.nodeCard(
-      state,
+      
       node,
       maxLength = Some(maxLength),
       contentInject = VDomModifier(
@@ -590,11 +590,11 @@ object TaskNodeCard {
       ),
       nodeInject = VDomModifier.ifTrue(inOneLine)(marginRight := "10px")
     ).prepend(
-      Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
-      Components.showHoveredNode(state, node.id),
-      UnreadComponents.readObserver(state, node.id, marginTop := "7px"),
+      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
+      Components.showHoveredNode( node.id),
+      UnreadComponents.readObserver( node.id, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(
-        Components.taskCheckbox(state, node, parentId :: Nil).apply(float.left, marginRight := "5px")
+        Components.taskCheckbox( node, parentId :: Nil).apply(float.left, marginRight := "5px")
       )
     ).apply(
       Rx {
@@ -609,9 +609,9 @@ object TaskNodeCard {
       cardFooter,
 
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList(state, focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply( // TODO: proper traverstate
+          ListView.fieldAndList( focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply( // TODO: proper traverstate
             paddingBottom := "3px",
             onClick.stopPropagation --> Observer.empty,
             DragComponents.drag(DragItem.DisableDrag),

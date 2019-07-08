@@ -10,7 +10,7 @@ import wust.util.time.StopWatch
 import wust.webApp.state.GlobalState
 
 object AvatarView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(implicit ctx: Ctx.Owner) = {
     val n = 100
     val size = 40
     div(

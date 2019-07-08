@@ -47,24 +47,24 @@ object BreadCrumbs {
     )
   }
 
-  def apply(state: GlobalState): VNode = {
+  def apply: VNode = {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-      modifier(state, None, state.page.map(_.parentId), nid => state.urlConfig.update(_.focus(Page(nid))))
+      modifier( None, GlobalState.page.map(_.parentId), nid => GlobalState.urlConfig.update(_.focus(Page(nid))))
     })
   }
-  def apply(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VNode = {
    div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
-      modifier(state, filterUpTo, parentIdRx, parentIdAction)
+      modifier( filterUpTo, parentIdRx, parentIdAction)
    })
   }
 
-  def apply(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     div(
-      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction, hideIfSingle)
+      modifier( graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction, hideIfSingle)
     )
   }
 
-  private def modifier(state: GlobalState, graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(graph: Graph, user: AuthUser, filterUpTo: Option[NodeId], parentId: Option[NodeId], parentIdAction: NodeId => Unit, hideIfSingle:Boolean = false)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       cls := "breadcrumbs",
       parentId.map { (parentId: NodeId) =>
@@ -97,10 +97,10 @@ object BreadCrumbs {
             }
           )
           graph.nodesById(nid) match {
-            // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent state.
+            // hiding the stage/tag prevents accidental zooming into stages/tags, which in turn prevents to create inconsistent GlobalState.
             // example of unwanted inconsistent state: task is only child of stage/tag, but child of nothing else.
             case Some(node) if (showOwn || nid != parentId) && node.role != NodeRole.Stage && node.role != NodeRole.Tag =>
-              Components.nodeCardAsOneLineText(state, node, projectWithIcon = true).apply(
+              Components.nodeCardAsOneLineText( node, projectWithIcon = true).apply(
                 cls := "breadcrumb",
                 // VDomModifier.ifTrue(graph.isDeletedNowInAllParents(nid))(cls := "node-deleted"),
                 DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
@@ -115,18 +115,18 @@ object BreadCrumbs {
           intersperseWhile(elements, div(freeSolid.faAngleRight, cls := "divider"), (mod: VDomModifier) => !mod.isInstanceOf[outwatch.dom.EmptyModifier.type])
         )
       },
-      registerDragContainer(state),
+      registerDragContainer,
       onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
     )
   }
 
-  private def modifier(state: GlobalState, filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(filterUpTo: Option[NodeId], parentIdRx: Rx[Option[NodeId]], parentIdAction: NodeId => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
     Rx {
       val parentId = parentIdRx()
-      val user = state.user()
-      val graph = state.rawGraph()
+      val user = GlobalState.user()
+      val graph = GlobalState.rawGraph()
 
-      modifier(state, graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
+      modifier( graph, user, filterUpTo, parentId = parentId, parentIdAction = parentIdAction)
     }
   }
 }

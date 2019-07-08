@@ -53,7 +53,7 @@ final case class NotificationState(
 
 object WoostNotification {
 
-  private def decorateNotificationIcon(state: GlobalState, notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def decorateNotificationIcon(notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     val default = "default".asInstanceOf[PermissionState]
 
@@ -62,21 +62,21 @@ object WoostNotification {
         case PermissionState.granted            => VDomModifier(
           Elements.icon(notification.icon),
           title := notification.description,
-          onClick(notification.changes) --> state.eventProcessor.changes
+          onClick(notification.changes) --> GlobalState.eventProcessor.changes
         )
         case PermissionState.prompt | `default` => VDomModifier(
           Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faQuestionCircle, "black")),
           title := "Notifications are currently disabled. Click to enable.",
           onClick foreach {
             Notifications.requestPermissionsAndSubscribe {
-              if(notification.changesOnSuccessPrompt) state.eventProcessor.changes.onNext(notification.changes)
+              if(notification.changesOnSuccessPrompt) GlobalState.eventProcessor.changes.onNext(notification.changes)
             }
           },
         )
         case PermissionState.denied             => VDomModifier(
           Elements.icon(Elements.iconWithIndicator(notification.icon, freeRegular.faTimesCircle, "tomato")),
           title := s"${notification.description} (Notifications are blocked by your browser. Please reconfigure your browser settings for this site.)",
-          onClick(notification.changes) --> state.eventProcessor.changes
+          onClick(notification.changes) --> GlobalState.eventProcessor.changes
         )
       },
       span(text),
@@ -118,7 +118,7 @@ object WoostNotification {
     notify
   }
 
-  def generateNotificationItem(state: GlobalState, permissionState: PermissionState, graph: Graph, user: User, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def generateNotificationItem(permissionState: PermissionState, graph: Graph, user: User, channel: Node)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val channelIdx = graph.idToIdxOrThrow(channel.id)
     val userIdx = graph.idToIdxOrThrow(user.id)
@@ -130,12 +130,12 @@ object WoostNotification {
 
     a(
       cls := "item",
-      decorateNotificationIcon(state, notifyControl(graph, user, permissionState, channel), text),
+      decorateNotificationIcon( notifyControl(graph, user, permissionState, channel), text),
     )
   }
 
-  def banner(state: GlobalState, permissionState: PermissionState, projectName: Option[String])(implicit ctx: Ctx.Owner): VDomModifier = Rx {
-    if(!state.askedForNotifications() && permissionState == PermissionState.prompt) {
+  def banner(permissionState: PermissionState, projectName: Option[String])(implicit ctx: Ctx.Owner): VDomModifier = Rx {
+    if(!GlobalState.askedForNotifications() && permissionState == PermissionState.prompt) {
       def mobileText = div(
         marginLeft.auto,
         s"Enable ", span("notifications", textDecoration.underline),
@@ -149,12 +149,12 @@ object WoostNotification {
         Elements.topBanner(Some(desktopText), Some(mobileText)),
         onClick foreach {
           Notifications.requestPermissionsAndSubscribe()
-          state.askedForNotifications() = true
+          GlobalState.askedForNotifications() = true
         },
 
         div(
           freeSolid.faTimes,
-          onClick.stopPropagation(true) --> state.askedForNotifications,
+          onClick.stopPropagation(true) --> GlobalState.askedForNotifications,
           marginLeft.auto,
           marginRight := "10px"
         )

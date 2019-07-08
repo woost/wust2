@@ -47,10 +47,10 @@ object GanttView {
     Array(minStart,maxEnd)
   }
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val barsRx: Rx[Array[Bar]] = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
       var i = 0
@@ -88,12 +88,12 @@ object GanttView {
       flexDirection.column,
 
       InputRow(
-        state,
+        
         Some(focusState),
         submitAction = { sub =>
           val newNode = Node.MarkdownTask(sub.text)
-          val changes = GraphChanges.addNodesWithParents(newNode :: Nil, state.page.now.parentId.map(ParentId(_))) merge sub.changes(newNode.id)
-          state.eventProcessor.changes.onNext(changes)
+          val changes = GraphChanges.addNodesWithParents(newNode :: Nil, GlobalState.page.now.parentId.map(ParentId(_))) merge sub.changes(newNode.id)
+          GlobalState.eventProcessor.changes.onNext(changes)
         },
         placeholder = Placeholder.newTask,
         showMarkdownHelp = true
@@ -124,7 +124,7 @@ object GanttView {
           Rx {
             barsRx().map { bar =>
               if (bar.startDate.isDefined && bar.endDate.isDefined) {
-                renderTask(state, bar, scaledX(), parentId = focusState.focusedId)
+                renderTask( bar, scaledX(), parentId = focusState.focusedId)
               } else
                 VDomModifier.empty
             }
@@ -157,7 +157,7 @@ object GanttView {
     )
   }
 
-  private def renderTask(state: GlobalState, bar: Bar, x: d3.TimeScale, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderTask(bar: Bar, x: d3.TimeScale, parentId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
 
     val xPosWidth: Option[(Double, Double)] = for {
       startDate <- bar.startDate
@@ -190,7 +190,7 @@ object GanttView {
       justifyContent.spaceBetween,
       alignItems.flexStart,
 
-      renderNodeData(state, bar.node),
+      renderNodeData( bar.node),
     )
   }
 }

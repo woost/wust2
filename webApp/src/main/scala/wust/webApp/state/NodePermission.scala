@@ -16,6 +16,6 @@ object NodePermission {
   }
   def canWriteAll(currentUser: AuthUser, graph: Graph, nodeIds: Seq[NodeId]): Boolean = nodeIds.forall(canWrite(currentUser, graph, _))
 
-  def canWrite(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { canWrite(state.user(), state.graph(), nodeId)}
-  def canWriteAll(state: GlobalState, nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { canWriteAll(state.user(), state.graph(), nodeIds) }
+  def canWrite(nodeId: NodeId)(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { canWrite(GlobalState.user(), GlobalState.graph(), nodeId)}
+  def canWriteAll(nodeIds: Seq[NodeId])(implicit ctx: Ctx.Owner): Rx[Boolean] = Rx { canWriteAll(GlobalState.user(), GlobalState.graph(), nodeIds) }
 }

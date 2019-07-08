@@ -14,7 +14,7 @@ import wust.webUtil.outwatchHelpers._
 
 object WelcomeView {
 
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(implicit ctx: Ctx.Owner) = {
     div(
       Styles.flex,
       flexDirection.column,
@@ -26,7 +26,7 @@ object WelcomeView {
         overflow.auto,
         div(
           Rx{
-            val user = state.user().toNode
+            val user = GlobalState.user().toNode
             VDomModifier(
               h1(
                 "Hello ",
@@ -46,7 +46,7 @@ object WelcomeView {
           },
           marginBottom := "10%",
           textAlign.center,
-          newProjectButton(state).apply(
+          newProjectButton().apply(
             cls := "primary",
             padding := "20px",
             margin := "0px 40px",
@@ -55,7 +55,7 @@ object WelcomeView {
             },
           ),
           Rx{
-            val user = state.user().toNode
+            val user = GlobalState.user().toNode
             user.data.isImplicit.ifTrue[VDomModifier](
               div(
                 cls := "ui segment",
@@ -63,7 +63,7 @@ object WelcomeView {
                 marginTop := "50px",
                 marginBottom := "50px",
                 p("You can use Woost without registration."), p("Everything you create is private (unless you share it). Whenever you want to access your data from another device, just ", a(href := "#", "create an account",
-                  onClick.preventDefault(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
+                  onClick.preventDefault(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
                   onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") }), ".")
               )
             )
@@ -71,14 +71,14 @@ object WelcomeView {
         )
       ),
       Rx {
-        (state.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
+        (GlobalState.screenSize() == ScreenSize.Small).ifTrue[VDomModifier](
           div(
             padding := "15px",
             div(
               Styles.flex,
               alignItems.center,
               justifyContent.spaceAround,
-              AuthControls.authStatus(state, buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
+              AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
             )
           )
         )

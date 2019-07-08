@@ -15,8 +15,8 @@ import wust.webUtil.outwatchHelpers._
 
 object ViewFilter {
 
-  def addLabeledFilterCheckbox(state: GlobalState, filterName: String, header: VDomModifier, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
-    val checkbox = addFilterCheckbox(state, filterName, transform)
+  def addLabeledFilterCheckbox(filterName: String, header: VDomModifier, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
+    val checkbox = addFilterCheckbox( filterName, transform)
 
     div(
       cls := "item",
@@ -29,39 +29,39 @@ object ViewFilter {
     )
   }
 
-  def addFilterCheckbox(state: GlobalState, filterName: String, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
+  def addFilterCheckbox(filterName: String, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
     val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
-      state.graphTransformations.map(_ :+ transform)
+      GlobalState.graphTransformations.map(_ :+ transform)
     } else {
-      state.graphTransformations.map(_.filter(_ != transform))
+      GlobalState.graphTransformations.map(_.filter(_ != transform))
     }
 
     input(tpe := "checkbox",
-      onChange.checked.map(v => activeFilter(v).now) --> state.graphTransformations,
+      onChange.checked.map(v => activeFilter(v).now) --> GlobalState.graphTransformations,
       onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", s"$filterName") },
-      checked <-- state.graphTransformations.map(_.contains(transform)),
+      checked <-- GlobalState.graphTransformations.map(_.contains(transform)),
     )
   }
 
-  def addCurrentlyFilteredTags(state: GlobalState, nodeId: NodeId) = {
+  def addCurrentlyFilteredTags(nodeId: NodeId) = {
     val currentTagFilters:Seq[ParentId] = {
-      state.graphTransformations.now.collect {
+      GlobalState.graphTransformations.now.collect {
         case GraphOperation.OnlyTaggedWith(tagId) => ParentId(tagId)
       }
     }
     GraphChanges.addToParents(ChildId(nodeId), currentTagFilters)
   }
 
-  def filterBySearchInputWithIcon(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def filterBySearchInputWithIcon(implicit ctx: Ctx.Owner) = {
     import scala.concurrent.duration._
 
     val isActive = Rx {
-      state.graphTransformations().exists(_.isInstanceOf[GraphOperation.ContentContains])
+      GlobalState.graphTransformations().exists(_.isInstanceOf[GraphOperation.ContentContains])
     }
     val focused = Var(false)
 
     div(
-      Rx { VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(display.none) },
+      Rx { VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(display.none) },
       cls := "ui search",
       div(
         backgroundColor := "rgba(0,0,0,0.15)",
@@ -79,22 +79,22 @@ object ViewFilter {
         input(
           `type` := "text",
           placeholder := "Filter",
-          value <-- clearOnPageSwitch(state),
+          value <-- clearOnPageSwitch,
           onFocus(true) --> focused,
           onBlur(false) --> focused,
           onInput.value.debounce(500 milliseconds).map{ needle =>
-            val baseTransform = state.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
+            val baseTransform = GlobalState.graphTransformations.now.filterNot(_.isInstanceOf[GraphOperation.ContentContains])
             if(needle.length < 1) baseTransform
             else baseTransform :+ GraphOperation.ContentContains(needle)
-          } --> state.graphTransformations
+          } --> GlobalState.graphTransformations
         ),
         i(cls :="search icon", marginRight := "5px"),
       )
     )
   }
-  def clearOnPageSwitch(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def clearOnPageSwitch(implicit ctx: Ctx.Owner) = {
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
-    state.page.foreach(_ => clear.onNext(()))
+    GlobalState.page.foreach(_ => clear.onNext(()))
     clear
   }
 }

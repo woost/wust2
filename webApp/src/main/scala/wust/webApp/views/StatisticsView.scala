@@ -23,7 +23,7 @@ object StatisticsView  {
     case SemanticNodeRole.File => View.Files -> Icons.files
   }
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     div(
       keyed,
       width := "100%",
@@ -36,15 +36,15 @@ object StatisticsView  {
         overflow.auto,
         cls := "ui compact menu",
         Rx {
-          val graph = state.graph()
-          val stats = graph.topLevelRoleStats(state.userId(), focusState.focusedId).roles
+          val graph = GlobalState.graph()
+          val stats = graph.topLevelRoleStats(GlobalState.userId(), focusState.focusedId).roles
 
           stats.map { stat =>
             val (view, icon) = nodeRoleVisuals(stat.role)
             a(
               VDomModifier.ifTrue(stat.count == 0)(opacity := 0.5),
               cls := "item",
-              if (state.screenSize() == ScreenSize.Small) fontSize := "10px" else minWidth := "110px", // not much space on mobile, so try to stay as small as possible
+              if (GlobalState.screenSize() == ScreenSize.Small) fontSize := "10px" else minWidth := "110px", // not much space on mobile, so try to stay as small as possible
               Styles.flex,
               flexDirection.column,
               alignItems.center,
@@ -52,7 +52,7 @@ object StatisticsView  {
               div(Elements.icon(icon), stat.role.toString),
               h2(
                 stat.count,
-                VDomModifier.ifTrue(state.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible
+                VDomModifier.ifTrue(GlobalState.screenSize() == ScreenSize.Small)(fontSize.small), // not much space on mobile, so try to stay as small as possible
               ),
 
               onClick.stopPropagation(view).foreach(focusState.viewAction),

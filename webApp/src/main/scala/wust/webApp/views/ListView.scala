@@ -16,14 +16,14 @@ import wust.webApp.views.DragComponents.registerDragContainer
 object ListView {
   import SharedViewElements._
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
     val marginBottomHack = VDomModifier(
       position.relative,
       div(position.absolute, top := "100%", width := "1px", height := "10px") // https://www.brunildo.org/test/overscrollback.html
     )
 
     fieldAndList(
-      state,
+      
       focusState,
       TraverseState(focusState.focusedId),
       inOneLine = true,
@@ -37,7 +37,7 @@ object ListView {
   }
 
   def fieldAndList(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine: Boolean,
@@ -47,15 +47,15 @@ object ListView {
     div(
       keyed,
 
-      addListItemInputField(state, focusState, autoFocusInsert = !focusState.isNested),
-      renderInboxColumn(state, focusState, traverseState, inOneLine, isCompact),
-      renderToplevelColumns(state, focusState, traverseState, inOneLine, isCompact)
+      addListItemInputField( focusState, autoFocusInsert = !focusState.isNested),
+      renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
+      renderToplevelColumns( focusState, traverseState, inOneLine, isCompact)
         .apply(lastElementModifier),
     )
   }
 
   private def renderNodeCard(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -64,7 +64,6 @@ object ListView {
     isDone: Boolean
   ): VNode = {
     TaskNodeCard.renderThunk(
-      state = state,
       focusState = focusState,
       traverseState = traverseState,
       nodeId = nodeId,
@@ -76,14 +75,14 @@ object ListView {
   }
 
   private def renderToplevelColumns(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine: Boolean,
     isCompact:Boolean,
   )(implicit ctx: Ctx.Owner): VNode = {
     val columns = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       KanbanData.columns(graph, traverseState)
     }
 
@@ -91,27 +90,27 @@ object ListView {
       Rx {
         VDomModifier(
           columns().map { columnId =>
-            renderColumn(state, focusState, traverseState, nodeId = columnId, inOneLine = inOneLine, isCompact = isCompact)
+            renderColumn( focusState, traverseState, nodeId = columnId, inOneLine = inOneLine, isCompact = isCompact)
           },
-          registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
+          registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, columns())),
         )
       }
     )
   }
 
   private def renderInboxColumn(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine:Boolean,
     isCompact:Boolean
   )(implicit ctx: Ctx.Owner): VNode = {
     val children = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       KanbanData.inboxNodes(graph, traverseState)
     }
 
-    //      registerDragContainer(state, DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
+    //      registerDragContainer( DragContainer.Kanban.ColumnArea(focusState.focusedId, inboxIds)),
     div(
       cls := "tasklist",
       VDomModifier.ifTrue(isCompact)(cls := "compact"),
@@ -119,10 +118,10 @@ object ListView {
 
       Rx {
         VDomModifier(
-          registerDragContainer(state, DragContainer.Kanban.Inbox(focusState.focusedId, children())),
+          registerDragContainer( DragContainer.Kanban.Inbox(focusState.focusedId, children())),
 
           children().map { nodeId =>
-            renderNodeCard(state, focusState, traverseState, nodeId = nodeId, isDone = false, inOneLine = inOneLine, isCompact = isCompact)
+            renderNodeCard( focusState, traverseState, nodeId = nodeId, isDone = false, inOneLine = inOneLine, isCompact = isCompact)
           }
         )
       }
@@ -130,7 +129,7 @@ object ListView {
   }
 
   private def renderTaskOrStage(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -142,7 +141,7 @@ object ListView {
     nodeRole match {
       case NodeRole.Task =>
         renderNodeCard(
-          state,
+          
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -152,7 +151,7 @@ object ListView {
         )
       case NodeRole.Stage => 
         renderColumn(
-          state,
+          
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -164,7 +163,7 @@ object ListView {
   }
 
   private def renderColumn(
-    state: GlobalState,
+    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -173,23 +172,23 @@ object ListView {
   ): VNode = {
     div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
       val isExpanded = Rx {
-        val graph = state.graph()
-        val user = state.user()
+        val graph = GlobalState.graph()
+        val user = GlobalState.user()
         graph.isExpanded(user.id, nodeId).getOrElse(true)
       }
 
       val stage = Rx {
-        state.graph().nodesByIdOrThrow(nodeId)
+        GlobalState.graph().nodesByIdOrThrow(nodeId)
       }
 
       val isDone = Rx {
-        state.graph().isDoneStage(stage())
+        GlobalState.graph().isDoneStage(stage())
       }
 
       val nextTraverseState = traverseState.step(nodeId)
 
       val children = Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         KanbanData.columnNodes(graph, nextTraverseState)
       }
 
@@ -197,11 +196,11 @@ object ListView {
         fontSize.larger,
         paddingLeft := "5px",
         opacity := 0.6,
-        renderExpandCollapseButton(state, nodeId, isExpanded, alwaysShow = true).map(_.apply(
+        renderExpandCollapseButton( nodeId, isExpanded, alwaysShow = true).map(_.apply(
             Styles.flex,
             alignItems.center,
             Rx{
-              renderNodeData(state, stage())
+              renderNodeData( stage())
             },
 
           )
@@ -218,11 +217,11 @@ object ListView {
 
               Rx {
                 VDomModifier(
-                  registerDragContainer(state, DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
+                  registerDragContainer( DragContainer.Kanban.Column(nodeId, children().map(_._1), workspace = focusState.focusedId)),
                   children().map {
                     case (id, role) =>
                       renderTaskOrStage(
-                        state,
+                        
                         focusState,
                         nextTraverseState,
                         nodeId = id,
@@ -247,17 +246,17 @@ object ListView {
     })
   }
 
-  private def addListItemInputField(state: GlobalState, focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
+  private def addListItemInputField(focusState: FocusState, autoFocusInsert: Boolean)(implicit ctx: Ctx.Owner) = {
     def submitAction(userId: UserId)(sub: InputRow.Submission) = {
       val createdNode = Node.MarkdownTask(sub.text)
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
-      val addTags = ViewFilter.addCurrentlyFilteredTags(state, createdNode.id)
-      state.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
+      val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
+      GlobalState.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     div(
       Rx {
-        InputRow(state, Some(focusState), submitAction(state.userId()),
+        InputRow( Some(focusState), submitAction(GlobalState.userId()),
           preFillByShareApi = true,
           autoFocus = !BrowserDetect.isMobile && autoFocusInsert,
           placeholder = Placeholder.newTask,

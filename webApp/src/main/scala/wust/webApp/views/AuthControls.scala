@@ -14,10 +14,10 @@ import wust.webApp.state._
 
 object AuthControls {
 
-  def authStatus(state: GlobalState, buttonStyleLoggedIn: String, buttonStyleLoggedOut: String)(implicit ctx: Ctx.Owner): Rx[VNode] =
-    state.user.map {
-      case user: AuthUser.Assumed  => loginSignupButtons(state, buttonStyleLoggedOut).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => loginSignupButtons(state, buttonStyleLoggedOut).apply(Styles.flexStatic)
+  def authStatus(buttonStyleLoggedIn: String, buttonStyleLoggedOut: String)(implicit ctx: Ctx.Owner): Rx[VNode] =
+    GlobalState.user.map {
+      case user: AuthUser.Assumed  => loginSignupButtons( buttonStyleLoggedOut).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => loginSignupButtons( buttonStyleLoggedOut).apply(Styles.flexStatic)
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
@@ -32,20 +32,20 @@ object AuthControls {
           ),
           cursor.pointer,
           onClick foreach {
-            state.urlConfig.update(_.focus(View.UserSettings))
+            GlobalState.urlConfig.update(_.focus(View.UserSettings))
             Analytics.sendEvent("authstatus", "avatar")
           },
         ),
-        logoutButton(state, buttonStyleLoggedIn)
+        logoutButton( buttonStyleLoggedIn)
       )
     }
 
-  private def loginSignupButtons(state: GlobalState, buttonStyle: String)(implicit ctx: Ctx.Owner) =
+  private def loginSignupButtons(buttonStyle: String)(implicit ctx: Ctx.Owner) =
     div(
       button(
         "Signup",
         cls := s"tiny compact ui $buttonStyle button",
-        onClick.mapTo(state.urlConfig.now.focusWithRedirect(View.Signup)) --> state.urlConfig,
+        onClick.mapTo(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "signup")
         },
@@ -53,7 +53,7 @@ object AuthControls {
       button(
         "Login",
         cls := s"tiny compact ui $buttonStyle button",
-        onClick.mapTo(state.urlConfig.now.focusWithRedirect(View.Login)) --> state.urlConfig,
+        onClick.mapTo(GlobalState.urlConfig.now.focusWithRedirect(View.Login)) --> GlobalState.urlConfig,
         onClick foreach {
           Analytics.sendEvent("topbar", "login")
         },
@@ -61,13 +61,13 @@ object AuthControls {
       )
     )
 
-  private def logoutButton(state: GlobalState, buttonStyle: String) =
+  private def logoutButton(buttonStyle: String) =
     button(
       "Logout",
       cls := s"tiny compact ui $buttonStyle button",
       onClick foreach {
         Client.auth.logout().foreach { _ =>
-          state.urlConfig.update(_.focus(Page.empty, View.Login))
+          GlobalState.urlConfig.update(_.focus(Page.empty, View.Login))
         }
         Analytics.sendEvent("topbar", "logout")
       },

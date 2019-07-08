@@ -19,9 +19,9 @@ object Modal {
   import wust.sdk.{BaseColors, NodeColor}
   import wust.webApp.state.GlobalState
 
-  @inline def defaultHeader(state: GlobalState, node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, Some(node), modalHeader, icon)
-  @inline def defaultHeader(state: GlobalState, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader(state, None, modalHeader, icon)
-  def defaultHeader(state: GlobalState, node: Option[Node], modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
+  @inline def defaultHeader(node: Node, modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( Some(node), modalHeader, icon)
+  @inline def defaultHeader(modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = defaultHeader( None, modalHeader, icon)
+  def defaultHeader(node: Option[Node], modalHeader: VDomModifier, icon: VDomModifier)(implicit ctx: Ctx.Owner): VDomModifier = {
     VDomModifier(
       backgroundColor :=? node.map(node => BaseColors.pageBg.copy(h = NodeColor.hue(node.id)).toHex),
       color.white,
@@ -35,7 +35,7 @@ object Modal {
           flexDirection.column,
           node.map { node =>
             div(
-              renderAsOneLineText(state, node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
+              renderAsOneLineText( node)(cls := "channel-name", fontWeight.normal, marginRight := "15px"),
               paddingBottom := "5px",
             )
           },

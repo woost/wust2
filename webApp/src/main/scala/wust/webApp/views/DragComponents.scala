@@ -22,7 +22,8 @@ object DragComponents {
         prop(DragItem.draggedActionPropName) := (() => () => sink.onNext(Unit))
       }
     }
-  def registerDragContainer(state: GlobalState, container: DragContainer = DragContainer.Default): VDomModifier = {
+  @inline def registerDragContainer: VDomModifier = registerDragContainer()
+  def registerDragContainer(container: DragContainer = DragContainer.Default): VDomModifier = {
     var proxy: VNodeProxy = null
     VDomModifier(
       //          border := "2px solid violet",

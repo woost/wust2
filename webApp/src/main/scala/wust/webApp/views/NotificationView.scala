@@ -40,7 +40,7 @@ object NotificationView {
   }
   final case class UnreadNode(nodeIdx: Int, newRevisions: List[Revision], children: js.Array[UnreadNode] = js.Array[UnreadNode]())
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     val renderTime = EpochMilli.now
     val expanded = Var(Set(focusState.focusedId))
@@ -54,9 +54,9 @@ object NotificationView {
       if (BrowserDetect.isMobile) padding := "8px" else padding := "20px",
 
       Rx {
-        val graph = state.graph()
-        val userId = state.user().id
-        val page = state.page()
+        val graph = GlobalState.graph()
+        val userId = GlobalState.user().id
+        val page = GlobalState.page()
 
         val unreadTree: Option[UnreadNode] = for {
           pageParentId <- page.parentId
@@ -73,9 +73,9 @@ object NotificationView {
                 div(
                   Styles.flex,
                   h3("What's new?"),
-                  markAllAsReadButton(state, "Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+                  markAllAsReadButton( "Mark everything as read", focusState.focusedId, graph, userId, renderTime)
                 ),
-                renderUnreadGroup(state, graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
+                renderUnreadGroup( graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
               )
             case _ =>
               h3(
@@ -167,7 +167,7 @@ object NotificationView {
   }
 
   private def renderUnreadGroup(
-    state: GlobalState,
+    
     graph: Graph,
     userId: UserId,
     unreadParentNodeInitial: UnreadNode,
@@ -188,12 +188,12 @@ object NotificationView {
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
       BreadCrumbs(
-        state,
+        
         graph,
-        state.user(),
+        GlobalState.user(),
         Some(focusedId),
         parentId = Some(parentId),
-        parentIdAction = nodeId => state.rightSidebarNode.update({
+        parentIdAction = nodeId => GlobalState.rightSidebarNode.update({
           case Some(pref) if pref.nodeId == nodeId => None
           case _                                   => Some(FocusPreference(nodeId))
         }: Option[FocusPreference] => Option[FocusPreference])
@@ -235,7 +235,7 @@ object NotificationView {
           expandToggleButton,
           breadCrumbs,
           deepUnreadChildrenLabel,
-          markAllAsReadButton(state, "Mark all as read", parentId, graph, userId, renderTime)
+          markAllAsReadButton( "Mark all as read", parentId, graph, userId, renderTime)
         )
       ),
       Rx {
@@ -256,9 +256,9 @@ object NotificationView {
                           td(
                             width := "400px",
                             VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                            nodeCard(state, node, maxLength = Some(150), projectWithIcon = true).apply(
+                            nodeCard( node, maxLength = Some(150), projectWithIcon = true).apply(
                               VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
-                              Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id)
+                              Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)
                             )
                           ),
 
@@ -287,15 +287,15 @@ object NotificationView {
                             ),
 
                             onClick.stopPropagation.foreach {
-                              val changes = if (allSeen) GraphChanges.from(delEdges = state.graph.now.readEdgeIdx.flatMap[Edge.Read](state.graph.now.idToIdxOrThrow(node.id)) { idx =>
-                                val edge = state.graph.now.edges(idx).as[Edge.Read]
-                                if (edge.userId == state.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
+                              val changes = if (allSeen) GraphChanges.from(delEdges = GlobalState.graph.now.readEdgeIdx.flatMap[Edge.Read](GlobalState.graph.now.idToIdxOrThrow(node.id)) { idx =>
+                                val edge = GlobalState.graph.now.edges(idx).as[Edge.Read]
+                                if (edge.userId == GlobalState.user.now.id && edge.data.timestamp >= renderTime) Array(edge) else Array.empty
                               })
                               else GraphChanges(
-                                addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), state.user.now.id))
+                                addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))
                               )
 
-                              state.eventProcessor.changes.onNext(changes)
+                              GlobalState.eventProcessor.changes.onNext(changes)
                               ()
                             }
                           )
@@ -307,7 +307,7 @@ object NotificationView {
                             colSpan := 3,
                             paddingRight := "0px",
                             paddingLeft := "0px",
-                            renderUnreadGroup(state, graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
+                            renderUnreadGroup( graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
                           )
                         )
                       }
@@ -424,7 +424,7 @@ object NotificationView {
     (tableNode, allSeen, deletedTime)
   }
 
-  def markAllAsReadButton(state: GlobalState, text: String, parentId: NodeId, graph: Graph, userId: UserId, renderTime: EpochMilli) = {
+  def markAllAsReadButton(text: String, parentId: NodeId, graph: Graph, userId: UserId, renderTime: EpochMilli) = {
     button(
       cls := "ui tiny compact button",
       text,
@@ -436,10 +436,10 @@ object NotificationView {
       onClick.stopPropagation.foreach {
         val changes = GraphChanges(
           addEdges = calculateDeepUnreadChildren(graph, parentId, userId, renderTime = renderTime)
-            .map(nodeIdx => Edge.Read(state.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), state.user.now.id))(breakOut)
+            .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)
         )
 
-        state.eventProcessor.changes.onNext(changes)
+        GlobalState.eventProcessor.changes.onNext(changes)
         ()
       }
     )

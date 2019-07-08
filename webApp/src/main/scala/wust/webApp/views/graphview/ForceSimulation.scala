@@ -50,7 +50,7 @@ object ForceSimulationConstants {
 }
 
 class ForceSimulation(
-    state: GlobalState,
+    
     focusState: FocusState,
     onDrop: (NodeId, NodeId, Boolean) => Boolean,
     roleToDragItemPayload:PartialFunction[(NodeId, NodeRole), DragPayload],
@@ -122,7 +122,7 @@ class ForceSimulation(
         position := "absolute",
         // pointerEvents := "none", // background handles mouse events
         transformOrigin := "top left", // same as svg/canvas default
-        registerDragContainer(state)
+        registerDragContainer
       )
     )
   }
@@ -148,9 +148,9 @@ class ForceSimulation(
     canvasContext = canvasLayerElement.getContext("2d").asInstanceOf[CanvasRenderingContext2D]
 
     val graphRx: Rx[Graph] = Rx {
-      scribe.info(log("\n") + log(s"---- graph update[${state.graph().nodes.length}] ----"))
+      scribe.info(log("\n") + log(s"---- graph update[${GlobalState.graph().nodes.length}] ----"))
       time(log("filtering graph")) {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
         val taskChildrenSet = graph.taskChildrenIdx.toArraySet(focusedIdx)
         val tagSet = ArraySet.create(graph.size)
@@ -215,7 +215,7 @@ class ForceSimulation(
       )
     cancelable += Cancelable(() => background.on("click", null:ListenerFunction0))
 
-    cancelable += Observable(events.window.onResize, state.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
+    cancelable += Observable(events.window.onResize, GlobalState.rightSidebarNode.map(_.isDefined).toLazyTailObservable).merge.foreach { _ =>
       // TODO: detect element resize instead: https://www.npmjs.com/package/element-resize-detector
       resized()
       startAnimated()
@@ -315,8 +315,8 @@ class ForceSimulation(
       d3.event.stopPropagation() // prevent click from bubbling to background
 
       if (InlineList.contains[NodeRole](NodeRole.Task, NodeRole.Message, NodeRole.Note)(node.role)) {
-        val nextNode = if (state.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))
-        state.rightSidebarNode() = nextNode
+        val nextNode = if (GlobalState.rightSidebarNode.now.exists(_.nodeId == node.id)) None else Some(FocusPreference(node.id))
+        GlobalState.rightSidebarNode() = nextNode
       }
     }
 
@@ -385,7 +385,7 @@ class ForceSimulation(
       // First, we write x,y,vx,vy into the dom
       backupSimDataToDom(simData, nodeSelection)
       // The CoordinateWrappers are stored in dom and reordered by d3
-      updateDomNodes(state, graph.nodes.toJSArray, nodeSelection, nodeOnClick) // d3 data join
+      updateDomNodes( graph.nodes.toJSArray, nodeSelection, nodeOnClick) // d3 data join
       nodeSelection = nodeContainer.selectAll[Node]("div.graphnode") // update outdated nodeSelection
       registerDragHandlers(nodeSelection, dragSubject, dragStart, dragging, dropped)
       // afterwards we write the data back to our new arrays in simData
@@ -524,7 +524,7 @@ object ForceSimulation {
   }
 
   def updateDomNodes(
-    state: GlobalState,
+    
     posts: js.Array[Node],
     nodeSelection: d3.Selection[Node],
     nodeOnClick: (Node, Int) => Unit
@@ -554,7 +554,7 @@ object ForceSimulation {
           div(
             cls := "graphnode",
             postWidth,
-            renderNodeData(state, node),
+            renderNodeData( node),
             // pointerEvents.auto, // re-enable mouse events
             drag(target = DragItem.Task(node.id))
           ).render

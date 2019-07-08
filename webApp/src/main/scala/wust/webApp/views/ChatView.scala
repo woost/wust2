@@ -33,8 +33,8 @@ object ChatView {
 
   final case class SelectedNode(nodeId: NodeId)(val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
 
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with state.selectednode. also in sync with threadview
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with GlobalState.selectednode. also in sync with threadview
 
     val scrollHandler = new ScrollBottomHandler
     val inputFieldFocusTrigger = PublishSubject[Unit]
@@ -53,13 +53,13 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
 
-      selectedNodesBar(state, selectedNodes, currentReply, inputFieldFocusTrigger),
+      selectedNodesBar( selectedNodes, currentReply, inputFieldFocusTrigger),
 
       div(
         // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
         chatHistory(
-          state,
+          
           focusState,
           currentReply,
           selectedNodes,
@@ -70,22 +70,22 @@ object ChatView {
         ),
       ),
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
-      renderCurrentReply(state, focusState, selectedNodes, inputFieldFocusTrigger, currentReply, pinReply),
-      chatInput(state, focusState, currentReply, pinReply, scrollHandler, inputFieldFocusTrigger)
+      renderCurrentReply( focusState, selectedNodes, inputFieldFocusTrigger, currentReply, pinReply),
+      chatInput( focusState, currentReply, pinReply, scrollHandler, inputFieldFocusTrigger)
     )
   }
 
   private def selectedNodesBar(
-    state: GlobalState,
+    
     selectedNodes: Var[Set[SelectedNode]],
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: PublishSubject[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
     SelectedNodes[SelectedNode](
-      state,
+      
       selectedNodes,
-      selectedNodeActions[SelectedNode](state, selectedNodes, prependActions = additionalNodeActions(state, selectedNodes, currentReply, inputFieldFocusTrigger)),
+      selectedNodeActions[SelectedNode]( selectedNodes, prependActions = additionalNodeActions( selectedNodes, currentReply, inputFieldFocusTrigger)),
       (_, _) => Nil
       ).apply(
         position.absolute,
@@ -94,7 +94,7 @@ object ChatView {
     )
 
   private def chatHistory(
-    state: GlobalState,
+    
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
     selectedNodes: Var[Set[SelectedNode]],
@@ -108,8 +108,8 @@ object ChatView {
     val pageCounter = Var(initialPageCounter)
 
     val messages = Rx {
-      state.screenSize() // on screensize change, rerender whole chat history
-      val graph = state.graph()
+      GlobalState.screenSize() // on screensize change, rerender whole chat history
+      val graph = GlobalState.graph()
 
       selectChatMessages(pageParentId, graph)
     }
@@ -121,29 +121,29 @@ object ChatView {
     }
 
     Rx {
-      shouldLoadInfinite() = !state.isLoading() && messages().length > pageCounter()
+      shouldLoadInfinite() = !GlobalState.isLoading() && messages().length > pageCounter()
     }
 
     def outerDragOptions(pageId: NodeId) = VDomModifier(
       drag(target = DragItem.Workspace(pageId)),
-      registerDragContainer(state, DragContainer.Chat),
+      registerDragContainer( DragContainer.Chat),
     )
 
     VDomModifier(
       cls := "chat-history",
 
       Rx {
-        val graph = state.graph()
+        val graph = GlobalState.graph()
         val pageCount = pageCounter()
         val groups = calculateMessageGrouping(messages().takeRight(pageCount), graph, pageParentId)
 
         VDomModifier(
           groups.nonEmpty.ifTrue[VDomModifier](
-            if (state.screenSize.now == ScreenSize.Small) padding := "50px 0px 5px 5px"
+            if (GlobalState.screenSize.now == ScreenSize.Small) padding := "50px 0px 5px 5px"
             else padding := "50px 0px 5px 20px"
           ),
           groups.map { group =>
-            thunkRxFun(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger)
+            thunkRxFun( graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger)
           }
         )
       },
@@ -220,7 +220,7 @@ object ChatView {
   }
 
 
-  private def thunkRxFun(state: GlobalState, graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
+  private def thunkRxFun(graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(graph.nodeIds)
     val key = nodeIds.head.toString
@@ -229,14 +229,14 @@ object ChatView {
 
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.viewMap(graph.nodeIds)
-    div.thunk(key)(nodeIds, state.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup(state, graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger)))
+    div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup( graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 
-  private def thunkGroup(state: GlobalState, groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.idToIdx(groupHeadId).flatMap(graph.nodeCreator)
     }
     val creationEpochMillis = groupGraph.nodeCreated(group(0))
@@ -256,7 +256,7 @@ object ChatView {
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
-        renderParentMessage(state, groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply, inputFieldFocusTrigger)
+        renderParentMessage( groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply, inputFieldFocusTrigger)
       }
     )
 
@@ -267,12 +267,12 @@ object ChatView {
 
     VDomModifier(
       cls := "chat-group-outer-frame",
-      state.largeScreen.ifTrue[VDomModifier](if (inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage(state, user))))),
+      GlobalState.largeScreen.ifTrue[VDomModifier](if (inReplyGroup) paddingLeft := "40px" else author.map(_.map(user => bigAuthorAvatar(user)(onClickDirectMessage( user))))),
       div(
         cls := "chat-group-inner-frame",
         inReplyGroup.ifFalse[VDomModifier](author.map{ author =>
-          val header = chatMessageHeader(state, author, creationEpochMillis, groupHeadId, state.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))
-          header(state.smallScreen.ifTrue[VDomModifier](VDomModifier(paddingLeft := "0")))
+          val header = chatMessageHeader( author, creationEpochMillis, groupHeadId, GlobalState.largeScreen.ifFalse[VDomModifier](author.map(smallAuthorAvatar)))
+          header(GlobalState.smallScreen.ifTrue[VDomModifier](VDomModifier(paddingLeft := "0")))
         }),
 
         div(
@@ -293,7 +293,7 @@ object ChatView {
               val previousNodeId = _previousNodeId
               _previousNodeId = Some(nodeId)
 
-              div.thunk(nodeId.toStringFast)(state.screenSize.now)(Ownable { implicit ctx =>
+              div.thunk(nodeId.toStringFast)(GlobalState.screenSize.now)(Ownable { implicit ctx =>
                 // the parent ids of this node are a dependency of the thunk above us thunkRxFun
                 // therefore we know they will never change and we can use the groupGraph
                 // and statically calculate the parentIds and use inReplyGroup here.
@@ -301,9 +301,9 @@ object ChatView {
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
                 val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
 
-                val isDeletedNow = state.graph.map(g => g.idToIdx(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
+                val isDeletedNow = GlobalState.graph.map(g => g.idToIdx(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
 
-                renderMessageRow(state, pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
+                renderMessageRow( pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
             },
           )
@@ -312,7 +312,7 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(state: GlobalState, pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup: Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup: Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
       selectedNodes().exists(_.nodeId == nodeId)
@@ -324,17 +324,17 @@ object ChatView {
     }
 
     def messageHeader: VDomModifier = if (inReplyGroup) Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val idx = graph.idToIdxOrThrow(nodeId)
       val author: Option[Node.User] = graph.nodeCreator(idx)
-      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdxOrThrow(id)).map(_.id) != author.map(_.id))) chatMessageHeader(state, author, graph.nodeCreated(idx), nodeId, author.map(smallAuthorAvatar))
+      if (previousNodeId.fold(true)(id => graph.nodeCreator(graph.idToIdxOrThrow(id)).map(_.id) != author.map(_.id))) chatMessageHeader( author, graph.nodeCreated(idx), nodeId, author.map(smallAuthorAvatar))
       else VDomModifier.empty
     }
     else VDomModifier.empty
 
-    val renderedMessage = renderMessage(state, nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions(state, nodeId, selectedNodes), selectedNodes = selectedNodes)
-    val controls = msgControls(state, nodeId, directParentIds.asInstanceOf[Iterable[ParentId]], selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
-    val checkbox = msgCheckbox(state, nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
+    val renderedMessage = renderMessage( nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions( nodeId, selectedNodes), selectedNodes = selectedNodes)
+    val controls = msgControls( nodeId, directParentIds.asInstanceOf[Iterable[ParentId]], selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
+    val checkbox = msgCheckbox( nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
         if (longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(directParentIds))
@@ -355,7 +355,7 @@ object ChatView {
         isSelected.map(_.ifTrue[VDomModifier](backgroundColor := "rgba(65,184,255, 0.5)")),
         selectByClickingOnRow,
         renderedMessage,
-        messageTags(state, nodeId),
+        messageTags( nodeId),
         checkbox,
         controls,
       )
@@ -363,7 +363,7 @@ object ChatView {
   }
 
   private def renderParentMessage(
-    state: GlobalState,
+    
     parentId: NodeId,
     isDeletedNow: Boolean,
     selectedNodes: Var[Set[SelectedNode]],
@@ -372,14 +372,14 @@ object ChatView {
     pinReply: Option[Var[Boolean]] = None
   )(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.idToIdxFold(parentId)((Option.empty[Node.User], Option.empty[EpochMilli])) { parentIdx =>
         (graph.authorsByIndex(parentIdx).headOption, Some(graph.nodeCreated(parentIdx)))
       }
     }
 
     val parent = Rx{
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       graph.nodesById(parentId)
     }
 
@@ -391,7 +391,7 @@ object ChatView {
         parent().map(node =>
           div(
             keyed(node.id),
-            chatMessageHeader(state, author)( padding := "2px"),
+            chatMessageHeader( author)( padding := "2px"),
             borderLeft := s"3px solid ${accentColor(parentId).toHex}",
             paddingRight := "5px",
             paddingBottom := "3px",
@@ -401,22 +401,22 @@ object ChatView {
               paddingLeft := "0.5em",
               div(
                 cls := "nodecard-content",
-                Components.sidebarNodeFocusMod(state.rightSidebarNode, node.id),
+                Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
                 fontSize.smaller,
                 node.role match {
                   case NodeRole.Task => VDomModifier(
                     Styles.flex,
                     "Task: ",
-                    renderNodeData(state, node, maxLength = Some(100))
+                    renderNodeData( node, maxLength = Some(100))
                   )
                   case _ => VDomModifier(
-                    renderNodeData(state, node, maxLength = Some(100))
+                    renderNodeData( node, maxLength = Some(100))
                   )
                 }
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
-                state.urlConfig.update(_.focus(Page(node.id)))
+                GlobalState.urlConfig.update(_.focus(Page(node.id)))
                 selectedNodes() = Set.empty[SelectedNode]
               }, cursor.pointer),
               pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },
@@ -428,7 +428,7 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def additionalNodeActions(state:GlobalState, selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
+  private def additionalNodeActions( selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClick foreach {
         currentReply() = selectedNodes.now.map(_.nodeId)
@@ -437,11 +437,11 @@ object ChatView {
         ()
       }
     ),
-    SharedViewElements.createNewButton(state)
+    SharedViewElements.createNewButton()
   )
 
   private def renderCurrentReply(
-    state: GlobalState,
+    
     focusState: FocusState,
     selectedNodes: Var[Set[SelectedNode]],
     inputFieldFocusTrigger: PublishSubject[Unit],
@@ -449,7 +449,7 @@ object ChatView {
     pinReply: Var[Boolean]
   )(implicit ctx: Ctx.Owner): Rx[BasicVNode] = {
     Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       div(
         Styles.flexStatic,
 
@@ -463,7 +463,7 @@ object ChatView {
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
             div(
               Styles.flex,
-              renderParentMessage(state, node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
+              renderParentMessage( node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
               closeButton(
                 marginLeft.auto,
                 onTap foreach { currentReply.update(_ - replyNodeId) }
@@ -476,7 +476,7 @@ object ChatView {
   }
 
   private def chatInput(
-    state: GlobalState,
+    
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean],
@@ -497,8 +497,8 @@ object ChatView {
       val basicNode = Node.MarkdownMessage(sub.text)
       val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
-        case None             => state.eventProcessor.changes.onNext(basicGraphChanges)
-        case Some(uploadFile) => AWS.uploadFileAndCreateNode(state, uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
+        case None             => GlobalState.eventProcessor.changes.onNext(basicGraphChanges)
+        case Some(uploadFile) => AWS.uploadFileAndCreateNode( uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
       }
 
       if (!pinReply.now) currentReply() = Set.empty[NodeId]
@@ -507,7 +507,7 @@ object ChatView {
     }
 
     InputRow(
-      state,
+      
       Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),

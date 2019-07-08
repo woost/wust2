@@ -11,7 +11,7 @@ import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
 
 object PageNotFoundView {
-  def apply(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  def apply(implicit ctx: Ctx.Owner) = {
     val shrugEmoji = "🤷"
     div(
       padding := "80px 20px",
@@ -30,7 +30,7 @@ object PageNotFoundView {
           "We're sorry. The content you're looking for does not exist or you don't have sufficient permissions."
         ),
 
-        state.user.map {
+        GlobalState.user.map {
           case _: AuthUser.Real => VDomModifier.empty
           case _ => div(
             padding := "10px",
@@ -39,7 +39,7 @@ object PageNotFoundView {
               marginLeft := "20px",
               cls := "ui primary button",
               "Login",
-              onClick.stopPropagation.foreach(state.urlConfig.update(_.focusWithRedirect(View.Login)))
+              onClick.stopPropagation.foreach(GlobalState.urlConfig.update(_.focusWithRedirect(View.Login)))
             )
           )
         }

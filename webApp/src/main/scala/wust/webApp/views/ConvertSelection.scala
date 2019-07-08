@@ -18,7 +18,7 @@ final case class ConvertSelection(
 )
 object ConvertSelection {
 
-  def menuItem(state: GlobalState, node: Node.Content): VNode = {
+  def menuItem(node: Node.Content): VNode = {
     a(
       cls := "item",
       Elements.icon(Icons.convertItem),
@@ -34,7 +34,7 @@ object ConvertSelection {
             ),
             active = node.role == convert.role,
             clickAction = { () =>
-              state.eventProcessor.changes.onNext(GraphChanges.addNode(node.copy(role = convert.role)))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(node.copy(role = convert.role)))
               Analytics.sendEvent("pageheader", "changerole", convert.role.toString)
             }
           )

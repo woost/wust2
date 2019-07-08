@@ -48,44 +48,44 @@
 //       viewConfig = Var(ViewConfig.default),
 //       isOnline = Var(true))
 
-//     (eventStream, state)
+//     (eventStream)
 //   }
 
 //   "focusing post" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node: Node = Node.Content(NodeData.PlainText("Moin"))
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges.addNode(node)) :: Nil)
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
-//         state.page() = Page.apply(node.id)
+//         GlobalState.page() = Page.apply(node.id)
 //     }
 //   }
 
 //   "unfocusing post" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node: Node = Node.Content(NodeData.PlainText("Moin"))
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges.addNode(node)) :: Nil)
-//         state.page() = Page(node.id)
+//         GlobalState.page() = Page(node.id)
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
-//         state.page() = Page.empty
+//         GlobalState.page() = Page.empty
 //     }
 //   }
 
 //   "adding post" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node: Node = Node.Content(NodeData.PlainText("Moin"))
-//         state.page() = Page.apply(node.id)
+//         GlobalState.page() = Page.apply(node.id)
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges.addNode(node)) :: Nil)
 //     }
@@ -94,12 +94,12 @@
 //   "updating post" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node: Node = Node.Content(NodeData.PlainText("Moin"))
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges.addNode(node)) :: Nil)
-//         state.page() = Page.apply(node.id)
+//         GlobalState.page() = Page.apply(node.id)
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
 //         val newNode = Node.Content(node.id, NodeData.PlainText("Bye"))
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges.addNode(newNode)) :: Nil)
@@ -109,13 +109,13 @@
 //   "adding connection" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node1: Node = Node.Content(NodeData.PlainText("Moin"))
 //         val node2: Node = Node.Content(NodeData.PlainText("Byte"))
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges(addNodes = Set(node1, node2))) :: Nil)
-//         state.page() = Page.apply(Seq(node1.id,node2.id))
+//         GlobalState.page() = Page.apply(Seq(node1.id,node2.id))
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
 //         val edge = Edge.Parent(node1.id, node2.id)
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges(addEdges = Set(edge))) :: Nil)
@@ -125,14 +125,14 @@
 //   "deleting connection" in new ViewsExamples {
 //     forAll(views) {
 //       case (_, view) =>
-//         val (eventStream, state) = freshState
+//         val (eventStream) = freshState
 //         val node1: Node = Node.Content(NodeData.PlainText("Moin"))
 //         val node2: Node = Node.Content(NodeData.PlainText("Byte"))
 //         val edge: Edge = Edge.Parent(node1.id, node2.id)
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges(addNodes = Set(node1, node2), addEdges = Set(edge))) :: Nil)
-//         state.page() = Page.apply(Seq(node1.id,node2.id))
+//         GlobalState.page() = Page.apply(Seq(node1.id,node2.id))
 
-//         val vnode = ViewRender(view, state)
+//         val vnode = ViewRender(view)
 //         vnode.render
 //         eventStream.onNext(ApiEvent.NewGraphChanges(GraphChanges(delEdges = Set(edge))) :: Nil)
 //     }

@@ -16,19 +16,19 @@ import scala.concurrent.duration._
 
 // Topologically sorted items by property relations
 object TopologicalView {
-  def apply(state: GlobalState, focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
 
     final case class NodeInfo(node: Node, depth: Int)
 
     val propertyName = Var("depends on")
     val nodeDepth: Rx[Array[Int]] = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val lookup = graph.propertyLookup(propertyName())
       algorithm.longestPathsIdx(lookup)
     }
 
     val nodeInfos: Rx[Array[NodeInfo]] = Rx {
-      val graph = state.graph()
+      val graph = GlobalState.graph()
       val depth = nodeDepth()
       val nodeIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
@@ -71,7 +71,6 @@ object TopologicalView {
           val isNewGroup = lastLevel != nodeInfo.depth
           lastLevel = nodeInfo.depth
           TaskNodeCard.render(
-            state,
             nodeInfo.node,
             parentId = focusState.focusedId,
             focusState = focusState,
@@ -84,7 +83,7 @@ object TopologicalView {
             )
         }
       },
-      registerDragContainer(state),
+      registerDragContainer,
     )
   }
 }

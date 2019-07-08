@@ -277,7 +277,7 @@ object Importing {
     )
   }
 
-  private def renderSource(state: GlobalState, source: Source, importToChanges: (Graph, GraphChanges.Import) => GraphChanges)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  private def renderSource(source: Source, importToChanges: (Graph, GraphChanges.Import) => GraphChanges)(implicit ctx: Ctx.Owner): EmitterBuilder[Option[Source], VDomModifier] = EmitterBuilder.ofModifier { sink =>
     val importers = Importer.fromSource(source)
     div(
       Styles.flex,
@@ -300,21 +300,21 @@ object Importing {
           val field = importerForm(importer).transform(_.flatMap { result =>
             Observable.fromIO(result).flatMap {
               case Right(importChanges) =>
-                val changes: GraphChanges = importToChanges(state.graph.now, importChanges)
+                val changes: GraphChanges = importToChanges(GlobalState.graph.now, importChanges)
                 UI.toast("Successfully imported Project")
 
                 //TODO: do not sideeffect with state changes here...
                 importChanges.focusNodeId.foreach { focusNodeId =>
-                  state.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
+                  GlobalState.urlConfig.update(_.focus(Page(focusNodeId), needsGet = false))
                 }
-                state.uiModalClose.onNext(())
+                GlobalState.uiModalClose.onNext(())
 
                 Observable(changes)
               case Left(error)     =>
                 UI.toast(s"${StringOps.trimToMaxLength(error, 200)}", title = "Failed to import Project", level = UI.ToastLevel.Error)
                 Observable.empty
             }
-          }) --> state.eventProcessor.changes
+          }) --> GlobalState.eventProcessor.changes
 
           if(prev.isEmpty) Seq(field) else prev ++ Seq(importerSeparator, field) // TODO: proper with css?
         }
@@ -342,7 +342,7 @@ object Importing {
     changes
   }
   // returns the modal config for rendering a modal for making an import
-  def modalConfig(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(focusedId: NodeId)(implicit ctx: Ctx.Owner): ModalConfig = {
     val selectedSource = Var[Option[Source]](None)
     val allSources = Source.all
 
@@ -364,9 +364,9 @@ object Importing {
     }
 
     val modalHeader: VDomModifier = Rx {
-      state.rawGraph().nodesById(focusedId).map { node =>
+      GlobalState.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader(
-          state,
+          
           node,
           modalHeader = div(
             Styles.flex,
@@ -382,7 +382,7 @@ object Importing {
 
     val modalDescription: VDomModifier = div(
       selectedSource.map {
-        case Some(source) => renderSource(state, source, importChangesToGraphChanges(_, focusedId, _)) --> selectedSource
+        case Some(source) => renderSource( source, importChangesToGraphChanges(_, focusedId, _)) --> selectedSource
         case None => selectSource(allSources) --> selectedSource
       }
     )
@@ -391,14 +391,14 @@ object Importing {
   }
 
   // a settings button for importing that opens the modal on click.
-  def settingsItem(state: GlobalState, focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsItem(focusedId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     a(
       cls := "item",
       Elements.icon(Icons.`import`),
       span("Import"),
 
       dsl.cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig(state, focusedId))) --> state.uiModalConfig
+      onClick(Ownable(implicit ctx => modalConfig( focusedId))) --> GlobalState.uiModalConfig
     )
   }
 }

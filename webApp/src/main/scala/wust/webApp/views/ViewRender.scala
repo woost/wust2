@@ -8,31 +8,31 @@ import wust.webApp.state.{FocusState, GlobalState}
 import wust.webApp.views.graphview.GraphView
 
 object ViewRender extends ViewRenderLike {
-  def apply(state: GlobalState, focusState: FocusState, view: View.Visible)(implicit ctx: Ctx.Owner): VNode = apply(state, Some(focusState), view)
-  def apply(state: GlobalState, focusState: Option[FocusState], view: View.Visible)(implicit ctx: Ctx.Owner): VNode = {
+  def apply(focusState: FocusState, view: View.Visible)(implicit ctx: Ctx.Owner): VNode = apply( Some(focusState), view)
+  def apply(focusState: Option[FocusState], view: View.Visible)(implicit ctx: Ctx.Owner): VNode = {
     @inline def emptyView = dsl.div
     def withoutFocusState: PartialFunction[View.Visible, VNode] = {
-      case View.Login            => AuthView.login(state)
-      case View.Signup           => AuthView.signup(state)
-      case View.UserSettings     => UserSettingsView(state)
-      case View.Welcome          => WelcomeView(state)
-      case View.Avatar           => AvatarView(state)
-      case View.Tiled(op, views) => TiledView(op, views.map(ViewRender(state, focusState, _)), state)
+      case View.Login            => AuthView.login
+      case View.Signup           => AuthView.signup
+      case View.UserSettings     => UserSettingsView.apply
+      case View.Welcome          => WelcomeView.apply
+      case View.Avatar           => AvatarView.apply
+      case View.Tiled(op, views) => TiledView(op, views.map(ViewRender( focusState, _)))
       case View.Empty            => emptyView
     }
     def withFocusState(focusState: FocusState): PartialFunction[View.Visible, VNode] = withoutFocusState orElse {
-      case View.Chat          => ChatView(state, focusState)
-      case View.Thread        => ThreadView(state, focusState)
-      case View.Table(roles)  => TableView(state, focusState, roles)
-      case View.List          => ListView(state, focusState)
-      case View.Kanban        => KanbanView(state, focusState, ViewRender)
-      case View.Graph         => GraphView(state, focusState)
-      case View.Dashboard     => DashboardView(state, focusState)
-      case View.Files         => FilesView(state, focusState)
-      case View.Content       => NotesView(state, focusState)
-      case View.Gantt         => GanttView(state, focusState)
-      case View.Topological   => TopologicalView(state, focusState)
-      case View.Notifications => NotificationView(state, focusState)
+      case View.Chat          => ChatView( focusState)
+      case View.Thread        => ThreadView( focusState)
+      case View.Table(roles)  => TableView( focusState, roles)
+      case View.List          => ListView( focusState)
+      case View.Kanban        => KanbanView( focusState, ViewRender)
+      case View.Graph         => GraphView( focusState)
+      case View.Dashboard     => DashboardView( focusState)
+      case View.Files         => FilesView( focusState)
+      case View.Content       => NotesView( focusState)
+      case View.Gantt         => GanttView( focusState)
+      case View.Topological   => TopologicalView( focusState)
+      case View.Notifications => NotificationView( focusState)
     }
 
     val renderView: PartialFunction[View.Visible, VNode] = focusState.fold(withoutFocusState)(withFocusState)

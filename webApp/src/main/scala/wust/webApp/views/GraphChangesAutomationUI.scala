@@ -24,10 +24,10 @@ import scala.collection.breakOut
 object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(state: GlobalState, focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
-      state.rawGraph().nodesById(focusedId).map { node =>
-        Modal.defaultHeader(state, node, "Automation", Icons.automate)
+      GlobalState.rawGraph().nodesById(focusedId).map { node =>
+        Modal.defaultHeader( node, "Automation", Icons.automate)
       }
     }
 
@@ -40,11 +40,11 @@ object GraphChangesAutomationUI {
       onClick.mapTo {
         val templateNode = Node.MarkdownTask("Template")
         GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
-      } --> state.eventProcessor.changes,
+      } --> GlobalState.eventProcessor.changes,
     )
 
     val templatesRx = Rx {
-      state.graph().templateNodes(state.graph().idToIdxOrThrow(focusedId))
+      GlobalState.graph().templateNodes(GlobalState.graph().idToIdxOrThrow(focusedId))
     }
 
     val description: VDomModifier = div(
@@ -52,7 +52,7 @@ object GraphChangesAutomationUI {
       justifyContent.spaceBetween,
 
       Rx {
-        val graph = state.rawGraph()
+        val graph = GlobalState.rawGraph()
         val templates = templatesRx()
         VDomModifier(
           height := "600px",
@@ -75,11 +75,11 @@ object GraphChangesAutomationUI {
                 Styles.flex,
                 alignItems.center,
                 b(fontSize.small, "Drag Users to assign them:", color.gray, marginRight := "5px"),
-                SharedViewElements.channelMembers(state, state.page.now.parentId.get),
+                SharedViewElements.channelMembers( GlobalState.page.now.parentId.get),
               )
             ),
 
-            DragComponents.registerDragContainer(state),
+            DragComponents.registerDragContainer,
 
             div(
               Styles.flex,
@@ -90,8 +90,8 @@ object GraphChangesAutomationUI {
               Components.removeableList[Node](
                 templates,
                 multiObserver[Node](
-                  state.eventProcessor.changes.redirectMap { templateNode =>
-                    val g = state.rawGraph.now
+                  GlobalState.eventProcessor.changes.redirectMap { templateNode =>
+                    val g = GlobalState.rawGraph.now
                     val existingParent = g.parentEdgeIdx(g.idToIdxOrThrow(templateNode.id)).find { edgeIdx =>
                       val edge = graph.edges(edgeIdx).as[Edge.Child]
                       edge.parentId == focusedId
@@ -110,7 +110,7 @@ object GraphChangesAutomationUI {
               )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
 
-                  Components.nodeCard(state, templateNode, maxLength = Some(100)).apply(
+                  Components.nodeCard( templateNode, maxLength = Some(100)).apply(
                     padding := "3px",
                     width := "200px",
                     div(
@@ -118,18 +118,18 @@ object GraphChangesAutomationUI {
                       flexWrap.wrap,
 
                       propertySingle.info.tags.map { tag =>
-                        Components.removableNodeTag(state, tag, taggedNodeId = templateNode.id)
+                        Components.removableNodeTag( tag, taggedNodeId = templateNode.id)
                       },
 
                       propertySingle.properties.map { property =>
                         property.values.map { value =>
-                          Components.removableNodeCardProperty(state, value.edge, value.node)
+                          Components.removableNodeCardProperty( value.edge, value.node)
                         }
                       },
 
                       {
                         val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
-                          Components.removableUserAvatar(state, user, templateNode.id)
+                          Components.removableUserAvatar( user, templateNode.id)
                         }(breakOut)
 
                         users match {
@@ -138,7 +138,7 @@ object GraphChangesAutomationUI {
                         }
                       },
 
-                      state.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
+                      GlobalState.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
                     ),
 
                     DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
@@ -161,7 +161,7 @@ object GraphChangesAutomationUI {
 
       position.relative, // needed for right sidebar
       RightSidebar(
-        state,
+        
         Rx { selectedTemplate() },
         nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)),
         viewRender,
@@ -173,13 +173,13 @@ object GraphChangesAutomationUI {
   }
 
   // a settings button for automation that opens the modal on click.
-  def settingsButton(state: GlobalState, focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsButton(focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     div(
       i(cls := "fa-fw", Icons.automate),
 
       Rx {
-        val graph = state.rawGraph()
+        val graph = GlobalState.rawGraph()
         val hasTemplates = graph.automatedEdgeIdx.sliceNonEmpty(graph.idToIdxOrThrow(focusedId))
         if (hasTemplates) VDomModifier(
           UI.tooltip("bottom center") := "Automation: active",
@@ -192,27 +192,27 @@ object GraphChangesAutomationUI {
         )
       },
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig(state, focusedId, viewRender))) --> state.uiModalConfig
+      onClick(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig
     )
   }
 
   // a settings item for automation to copy from a node
-  def copyNodeItem(state: GlobalState, templateId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[(Node.Content, GraphChanges), VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def copyNodeItem(templateId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[(Node.Content, GraphChanges), VDomModifier] = EmitterBuilder.ofModifier { sink =>
     a(
       cls := "item",
       Elements.icon(Icons.copy),
       span("Copy Node"),
       cursor.pointer,
       onClick.foreach {
-        state.rawGraph.now.idToIdxForeach(templateId) { templateIdx =>
-          state.rawGraph.now.nodes(templateIdx) match {
+        GlobalState.rawGraph.now.idToIdxForeach(templateId) { templateIdx =>
+          GlobalState.rawGraph.now.nodes(templateIdx) match {
             case templateNode: Node.Content =>
               val newData = templateNode.data match {
                 case data: NodeData.EditableText => data.updateStr(s"Copy of '${data.str}'").getOrElse(data)
                 case data => data
               }
               val newNode = templateNode.copy(id = NodeId.fresh, data = newData)
-              val changes = GraphChangesAutomation.copySubGraphOfNode(state.userId.now, state.rawGraph.now, newNode, templateNodesIdx = Array(templateIdx))
+              val changes = GraphChangesAutomation.copySubGraphOfNode(GlobalState.userId.now, GlobalState.rawGraph.now, newNode, templateNodesIdx = Array(templateIdx))
               sink.onNext(newNode -> (changes merge GraphChanges(addNodes = Array(newNode))))
               ()
             case _ => ()
@@ -223,14 +223,14 @@ object GraphChangesAutomationUI {
   }
 
   // a settings item for automation to resync with existing templates
-  def resyncWithTemplatesItem(state: GlobalState, nodeId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VDomModifier] = EmitterBuilder.ofModifier { sink =>
+  def resyncWithTemplatesItem(nodeId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VDomModifier] = EmitterBuilder.ofModifier { sink =>
     a(
       cls := "item",
       Elements.icon(Icons.sync),
       span("Re-Sync with templates"),
       cursor.pointer,
       onClick.foreach {
-        val changes = GraphChangesAutomation.resyncWithTemplates(state.userId.now, state.rawGraph.now, nodeId)
+        val changes = GraphChangesAutomation.resyncWithTemplates(GlobalState.userId.now, GlobalState.rawGraph.now, nodeId)
         sink.onNext(changes)
         ()
       }

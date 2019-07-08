@@ -17,9 +17,9 @@ import scala.collection.mutable
 import scala.concurrent.duration.{span => _}
 object DevView {
 
-  def benchGraphLookup(state:GlobalState, n:Int) = {
+  def benchGraphLookup( n:Int) = {
     var i = 0
-    var g = state.graph.now
+    var g = GlobalState.graph.now
     val stopWatch = new StopWatch
     stopWatch.measure {
       while(i < n) {
@@ -35,7 +35,7 @@ object DevView {
   def button =
     outwatch.dom.dsl.button(fontSize := "14px", padding := "0px 5px", margin := "0px 1px")
 
-  def devPeek(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
+  def devPeek(additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     val show = Var(false)
     val activeDisplay = display <-- show.map(if (_) "block" else "none")
     val inactiveDisplay = display <-- show.map(if (_) "none" else "block")
@@ -46,7 +46,7 @@ object DevView {
       right := "0",
       boxSizing.borderBox,
       padding := "5px",
-      state.pageStyle.map { pageStyle =>
+      GlobalState.pageStyle.map { pageStyle =>
         Seq(
           backgroundColor := Colors.sidebarBg,
         )
@@ -68,7 +68,7 @@ object DevView {
         minWidth := "200px",
         activeDisplay,
         div("×", cursor.pointer, float.right, onClick(false) --> show),
-        DevView(state, additions),
+        DevView( additions),
         borderRight := "none",
       )
     )
@@ -80,10 +80,10 @@ object DevView {
 
   val apiEvents = Var[List[ApiEvent]](Nil)
 
-  //  def jsError(state: GlobalState)(implicit ctx: Ctx.Owner) = {
+  //  def jsError(implicit ctx: Ctx.Owner) = {
   //    span(
   //      Rx {
-  //        (state.jsError() match {
+  //        (GlobalState.jsError() match {
   //          case Some(error) =>
   //            pre(
   //              position.fixed, right := 0, bottom := 50,
@@ -97,7 +97,7 @@ object DevView {
   //    )
   //  }
 
-  def apply(state: GlobalState, additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
+  def apply(additions: Seq[VDomModifier] = Nil)(implicit ctx: Ctx.Owner) = {
     span(
       div(
         Styles.flex,
@@ -119,8 +119,8 @@ object DevView {
           def addRandomPost(count: Int): Unit = {
             val newPosts =
               List.fill(count)(Node.MarkdownMessage(rSentence))
-            val changes = GraphChanges.addNodesWithParents(newPosts, state.page.now.parentId.map(ParentId(_)))
-            state.eventProcessor.changes.onNext(changes)
+            val changes = GraphChanges.addNodesWithParents(newPosts, GlobalState.page.now.parentId.map(ParentId(_)))
+            GlobalState.eventProcessor.changes.onNext(changes)
           }
 
           div(
@@ -131,12 +131,12 @@ object DevView {
           )
         },
         Rx {
-          val posts = scala.util.Random.shuffle(state.graph().nodeIds.toSeq)
+          val posts = scala.util.Random.shuffle(GlobalState.graph().nodeIds.toSeq)
 
           def deletePost(ids: Seq[NodeId]): Unit = {
             ids.foreach { nodeId =>
-              state.eventProcessor.changes
-                .onNext(GraphChanges.delete(ChildId(nodeId), state.page.now.parentId.map(ParentId(_))))
+              GlobalState.eventProcessor.changes
+                .onNext(GraphChanges.delete(ChildId(nodeId), GlobalState.page.now.parentId.map(ParentId(_))))
             }
           }
 
@@ -148,7 +148,7 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.graph().nodeIds.toArray
+          val posts = GlobalState.graph().nodeIds.toArray
           def randomConnection =
             Edge.LabeledProperty(posts(rInt(posts.length)), EdgeData.LabeledProperty(rWord), PropertyId(posts(rInt(posts.length))))
 
@@ -160,7 +160,7 @@ object DevView {
                 selected += randomConnection
               }
 
-              state.eventProcessor.changes.onNext(GraphChanges.from(addEdges = selected))
+              GlobalState.eventProcessor.changes.onNext(GraphChanges.from(addEdges = selected))
             }
           }
 
@@ -172,11 +172,11 @@ object DevView {
           )
         },
         Rx {
-          val posts = state.graph().nodeIds.toArray
+          val posts = GlobalState.graph().nodeIds.toArray
           def randomConnection = Edge.Child(ParentId(posts(rInt(posts.length))), ChildId(posts(rInt(posts.length))))
 
           def contain(count: Int): Unit = {
-            state.eventProcessor.changes
+            GlobalState.eventProcessor.changes
               .onNext(GraphChanges(addEdges = Array.fill(count)(randomConnection)))
           }
 
@@ -188,10 +188,10 @@ object DevView {
           )
         },
         Rx {
-          val connections = scala.util.Random.shuffle(state.graph().edges.toSeq)
+          val connections = scala.util.Random.shuffle(GlobalState.graph().edges.toSeq)
 
           def disconnect(count: Int): Unit = {
-            state.eventProcessor.changes
+            GlobalState.eventProcessor.changes
               .onNext(GraphChanges.from(delEdges = connections.take(count)))
           }
 
@@ -208,7 +208,7 @@ object DevView {
         //          br(),
         //          {
         //            import scalajs.js.timers._
-        //            def graph = state.rawGraph.now
+        //            def graph = GlobalState.rawGraph.now
         //
         //            def randomNodeId: Option[NodeId] = if (graph.postsById.size > 0) Option((graph.nodeIds.toIndexedSeq) (rInt(graph.postsById.size))) else None
         //
@@ -237,7 +237,7 @@ object DevView {
         //              val changes = List.fill(numberOfConcurrentEvents)(randomEvent)
         //                .flatten
         //                .foldLeft(GraphChanges.empty)(_ merge _)
-        //              state.persistence.addChanges(changes)
+        //              GlobalState.persistence.addChanges(changes)
         //            }
         //
         //            var interval: Option[SetIntervalHandle] = None
@@ -268,7 +268,7 @@ object DevView {
         //            }
         //          }
         //        ) // ,Rx {
-        //   state.rawGraph().toSummaryString
+        //   GlobalState.rawGraph().toSummaryString
         // },
 //        pre(maxWidth := "400px", maxHeight := "300px", overflow.scroll, fontSize := "11px", Rx {
 //          apiEvents().mkString("\n")
@@ -278,7 +278,7 @@ object DevView {
 //        })
       ),
 //      Rx {
-//        (state.jsError() match {
+//        (GlobalState.jsError() match {
 //          case Some(error) =>
 //            pre(
 //              position.fixed, right := 0, bottom := 50,
@@ -291,8 +291,8 @@ object DevView {
 //      }
       div(
         "Benchmark Graph lookup:",
-        Rx{s"Graph(${state.graph().nodes.size}, ${state.graph().edges.size})"},
-        List(1,10,100, 1000, 10000, 100000).map(n => button(s"${n}x", onClick.foreach{benchGraphLookup(state, n)}))
+        Rx{s"Graph(${GlobalState.graph().nodes.size}, ${GlobalState.graph().edges.size})"},
+        List(1,10,100, 1000, 10000, 100000).map(n => button(s"${n}x", onClick.foreach{benchGraphLookup( n)}))
       )
 
     )
