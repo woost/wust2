@@ -30,7 +30,7 @@ import wust.util.macros.InlineList
 import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState}
+import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState, InputMention}
 import wust.webApp.views.UploadComponents._
 
 import scala.collection.breakOut
@@ -73,7 +73,7 @@ object Components {
   )
 
   def renderNodeData(node: Node, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = node.data match {
-    case NodeData.Markdown(content)  => markdownVNode(trimToMaxLength(content, maxLength))
+    case NodeData.Markdown(content)  => markdownVNode(node.id, trimToMaxLength(content, maxLength))
     case NodeData.PlainText(content) => div(trimToMaxLength(content, maxLength))
     case user: NodeData.User         => div(displayUserName(user))
     case file: NodeData.File         => renderUploadedFile( node.id, file)
@@ -105,7 +105,7 @@ object Components {
     }
 
     // 2. render markdown
-    markdownVNode(firstLine)(
+    markdownVNode(node.id, firstLine).apply(
       // 3. overwrite font styles via css
       // 4. crop via overflow ellipsis
       cls := "oneline" 
@@ -116,7 +116,19 @@ object Components {
     renderNodeCard(node, contentInject = renderAsOneLineText( _), projectWithIcon = projectWithIcon)
   }
 
-  def markdownVNode(str: String) = {
+  def markdownVNode(nodeId: NodeId, rawStr: String) = {
+    // highlight mentions. just use graph.now, because mentions are normally added together with the node.
+    // updates are not to be expected.
+    val graph = GlobalState.rawGraph.now
+    val str = graph.idToIdxFold(nodeId)(rawStr) { nodeIdx =>
+      graph.mentionsEdgeIdx.foldLeft(nodeIdx)(rawStr) { (str, edgeIdx) =>
+        val edge = graph.edges(edgeIdx).as[Edge.Mention]
+        val mentionName = "@" + InputMention.stringToMentionsString(edge.data.mentionName)
+        // bold with markdown. how to inject html with popup?
+        str.replace(mentionName, s"**${mentionName}**")
+      }
+    }
+
     div.thunkStatic(uniqueKey(str))(VDomModifier(
       cls := "markdown",
       div(innerHTML := UnsafeHTML(Elements.markdownString(str)))
@@ -368,9 +380,7 @@ object Components {
       )
     }
 
-
     def nodeTag(
-      
       tag: Node,
       pageOnClick: Boolean = false,
       dragOptions: NodeId => VDomModifier = nodeId => DragComponents.drag(DragItem.Tag(nodeId), target = DragItem.DisableDrag),
@@ -384,7 +394,7 @@ object Components {
     }
 
     def removableNodeTag(tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
-      removableNodeTagCustom( tag, () => {
+      removableNodeTagCustom(tag, () => {
         GlobalState.eventProcessor.changes.onNext(
           GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
