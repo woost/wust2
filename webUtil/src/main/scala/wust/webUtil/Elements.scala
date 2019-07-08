@@ -3,7 +3,7 @@ package wust.webUtil
 import cats.effect.IO
 import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
 import wust.facades.dateFns.DateFns
-import wust.facades.hammerjs.{CssProps, Event, Hammer, Options, propagating}
+import wust.facades.hammerjs
 import wust.facades.immediate.immediate
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}
@@ -171,11 +171,12 @@ object Elements {
     }
   }
 
-  def onHammer(events: String):CustomEmitterBuilder[Event, VDomModifier] = {
-    EmitterBuilder.ofModifier[Event] { sink =>
+  def onHammer(events: String):CustomEmitterBuilder[hammerjs.Event, VDomModifier] = {
+    import wust.facades.hammerjs.{CssProps, Hammer, Options, propagating}
+    EmitterBuilder.ofModifier[hammerjs.Event] { sink =>
       managedElement.asHtml { elem =>
         elem.asInstanceOf[js.Dynamic].hammer = js.undefined
-        var hammertime = new Hammer[Event](elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
+        var hammertime = new Hammer[hammerjs.Event](elem, new Options { cssProps = new CssProps { userSelect = "auto"}} )
         propagating(hammertime).on(events, { e =>
           e.stopPropagation()
           // if(e.target == elem)
@@ -202,10 +203,10 @@ object Elements {
     )
   }
 
-  val onTap: CustomEmitterBuilder[Event, VDomModifier] = onHammer("tap")
-  val onPress: CustomEmitterBuilder[Event, VDomModifier] = onHammer("press")
-  val onSwipeRight: CustomEmitterBuilder[Event, VDomModifier] = onHammer("swiperight")
-  val onSwipeLeft: CustomEmitterBuilder[Event, VDomModifier] = onHammer("swipeleft")
+  val onTap: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("tap")
+  val onPress: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("press")
+  val onSwipeRight: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swiperight")
+  val onSwipeLeft: CustomEmitterBuilder[hammerjs.Event, VDomModifier] = onHammer("swipeleft")
 
   def readPropertyFromElement[T](elem: dom.html.Element, propName: String): js.UndefOr[T] = {
     for {
