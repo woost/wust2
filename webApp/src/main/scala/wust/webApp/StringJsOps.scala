@@ -10,8 +10,8 @@ import scala.util.control.NonFatal
 
 object StringJsOps {
   @inline def safeToDuration(durationString: String): Either[String, DurationMilli] = {
-      try {
-    Right(DurationMilli(Juration.parse(durationString).toLong * 1000))
+    try {
+      Right(DurationMilli(Juration.parse(durationString).toLong * 1000))
     } catch { case NonFatal(e) =>
       val msg = e.getMessage.split(": ").drop(1).mkString(": ") // split of function name of juration in exception, e.g.: "juration.parse(): something..."
       Left(msg)
