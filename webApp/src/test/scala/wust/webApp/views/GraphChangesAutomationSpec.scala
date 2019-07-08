@@ -20,7 +20,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
   val defaultChildData = EdgeData.Child(deletedAt = None, ordering = BigDecimal(0))
 
-  def copySubGraphOfNode(graph: Graph, newNode: Node, templateNode: Node) = GraphChangesAutomation.copySubGraphOfNode(
+  def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNode: Node.Content) = GraphChangesAutomation.copySubGraphOfNode(
     UserId(freshNodeId()), graph, newNode, templateNode, newId = copyNodeId(_), copyTime = copyTime
   )
 
