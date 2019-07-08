@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.parsers.{ UrlConfigWriter }
 import fontAwesome._
 import monix.execution.Ack
 import monix.reactive.Observer
@@ -611,4 +612,7 @@ object SharedViewElements {
     )
   }
 
+  def nodeUrl(nodeId: NodeId)(implicit ctx: Ctx.Owner):Rx[String] = Rx {
+    UrlConfigWriter.toUrlRoute(GlobalState.urlConfig().copy(pageChange = PageChange(page = Page(Some(nodeId))))).hash.fold("#")("#" + _)
+  }
 }

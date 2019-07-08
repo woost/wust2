@@ -19,6 +19,7 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.SharedViewElements._
+import wust.webUtil.Elements._
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -268,7 +269,8 @@ object LeftSidebar {
           VDomModifier.ifNot(hasChildren())(visibility.hidden)
         }
       ),
-      div(
+      a(
+        href <-- nodeUrl(nodeId),
         flexGrow := 1,
         flexShrink := 0,
         cls := "channel-line",
@@ -278,7 +280,7 @@ object LeftSidebar {
               color := Colors.sidebarBg,
               backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
             ),
-            renderProject(node(), renderNode = node => renderAsOneLineText( node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())
+            renderProject(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected()),
           )
         },
 
@@ -460,7 +462,7 @@ object LeftSidebar {
   }
 
   private def onChannelClick(nodeId: NodeId) = VDomModifier(
-    onClick foreach {
+    onClickPreventDefaultExceptCtrl {
       GlobalState.urlConfig.update(_.focus(Page(nodeId)))
       ()
     }
