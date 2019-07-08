@@ -8,7 +8,7 @@ import wust.util.StringOps
 import wust.util.algorithm.dfs
 import wust.util.macros.InlineList
 
-import scala.collection.mutable
+import scala.collection.{breakOut, mutable}
 
 // This file is about automation. We want to automate changes to the graph and emit additional changes
 // whenever an automation is triggered. Currently an automation can only be triggered by adding a
@@ -383,7 +383,7 @@ object GraphChangesAutomation {
     case class CopyArgs(newNode: Node.Content, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)], childEdges: Array[Edge.Child]) {
       def merge(args: CopyArgs) = {
         require(args.newNode == newNode, "CopyArgs can only be merged for the same newNode")
-        CopyArgs(newNode, templateNodesIdx ++ args.templateNodesIdx, ignoreParents ++ args.ignoreParents, childEdges ++ args.childEdges)
+        CopyArgs(newNode, (templateNodesIdx ++ args.templateNodesIdx).distinct, ignoreParents ++ args.ignoreParents, (childEdges ++ args.childEdges).distinct)
       }
     }
 
@@ -415,8 +415,10 @@ object GraphChangesAutomation {
           if (!shouldAutomate) addEdges += parent // do not automate template nodes
           else {
             // if this is a stage, we want to apply automation to nested stages as well:
+            var foundTemplateNode = false
+            var forceKeepParent = false
             val ignoreParents = mutable.HashSet[(Int, NodeId)]()
-            val templateNodesIdxBuilder = Array.newBuilder[Int]
+            val templateNodesIdx = Array.newBuilder[Int]
             val parentNode = graph.nodes(parentIdx)
             def addTemplateIdx(targetIdx: Int): Unit = graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
@@ -424,7 +426,8 @@ object GraphChangesAutomation {
               def hasReferencedTemplate = graph.referencesTemplateEdgeIdx.sliceNonEmpty(templateNodeIdx)
               if (templateNode.role == childNode.role || hasReferencedTemplate) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
-                templateNodesIdxBuilder += templateNodeIdx
+                templateNodesIdx += templateNodeIdx
+                foundTemplateNode = true
               }
             }
 
@@ -432,6 +435,7 @@ object GraphChangesAutomation {
             if (parentNode.role == NodeRole.Stage) {
               // special case: if the role of the parent is stage, we need to handle nested stages, so we do a dfs on the parents until we find a non stage.
               // We want to apply automations of nested stages and therefore need to gather all templates from stage parents.
+              forceKeepParent = !foundTemplateNode // keep adding this parent edge in case we just automate a parent stage
               dfs.foreachStopLocally(_(parentIdx), dfs.afterStart, graph.parentsIdx, { idx =>
                 val node = graph.nodes(idx)
                 if (node.role == NodeRole.Stage) {
@@ -442,9 +446,10 @@ object GraphChangesAutomation {
               })
             }
 
-            val templateNodesIdx = templateNodesIdxBuilder.result
-            if (templateNodesIdx.nonEmpty) updateGroupedAutomatedNodeWithTemplates(CopyArgs(childNode, templateNodesIdx, ignoreParents, Array(parent)))
-            else addEdges += parent
+            if (foundTemplateNode) {
+              if (forceKeepParent) addEdges += parent
+              updateGroupedAutomatedNodeWithTemplates(CopyArgs(childNode, templateNodesIdx.result, ignoreParents, Array(parent)))
+            } else addEdges += parent
           }
         }
       case e => addEdges += e
