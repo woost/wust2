@@ -141,7 +141,8 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = if (templateNodesIdx.isEmpty) GraphChanges.empty else {
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodesIdx, ignoreParents, newId, copyTime)._2
+  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): (Boolean, GraphChanges) = if (templateNodesIdx.isEmpty) (false, GraphChanges.empty) else {
     scribe.info(s"Copying sub graph of node $newNode")
 
     val newNodeIdx = graph.idToIdx(newNode.id)
@@ -227,11 +228,13 @@ object GraphChangesAutomation {
 
         if (descendantReferences.isEmpty) {
           if (descendant.id == templateNode.id) {
-            addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id))
-            alreadyExistingNodes += (templateNode.id -> newNode)
-            alreadyExistingNodes += (newNode.id -> newNode)
-            updateReplacedNodes(templateNode.id, newNode)
-            applyTemplateToNode(newNode = newNode, templateNode = templateNode)
+            if (templateNode.role == newNode.role) {
+              addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id))
+              alreadyExistingNodes += (templateNode.id -> newNode)
+              alreadyExistingNodes += (newNode.id -> newNode)
+              updateReplacedNodes(templateNode.id, newNode)
+              applyTemplateToNode(newNode = newNode, templateNode = templateNode)
+            }
           } else alreadyExistingNodes.get(descendant.id).orElse(if (descendant.id == templateNode.id) Some(newNode) else None) match {
             case Some(implementationNode) =>
               if (implementationNode.id != descendant.id) {
@@ -336,7 +339,8 @@ object GraphChangesAutomation {
       case node => node
     }
 
-    GraphChanges(addNodes = addAndEditNodes, addEdges = addEdges.result()).consistent
+    val isTouched = alreadyExistingNodes.contains(newNode.id)
+    (isTouched, GraphChanges(addNodes = addAndEditNodes, addEdges = addEdges.result()).consistent)
   }
 
   // Whenever a graphchange is emitted in the frontend, we can enrich the changes here.
@@ -398,13 +402,18 @@ object GraphChangesAutomation {
               })
             }
 
-            val changes = copySubGraphOfNode(userId, graph, newNode = childNode, templateNodesIdx = templateNodesIdx.result, ignoreParents = ignoreParents)
+            val (isTouched, changes) = copySubGraphOfNodeWithIsTouched(userId, graph, newNode = childNode, templateNodesIdx = templateNodesIdx.result, ignoreParents = ignoreParents)
             // if the automated changes re-add the same child edge were are currently replacing, then we want to take the ordering from the new child edge.
             // so an automated node can be drag/dropped to the correct position.
-            addEdges ++= changes.addEdges.map {
-              case addParent: Edge.Child if addParent.childId == parent.childId && addParent.parentId == parent.parentId =>
-                addParent.copy(data = addParent.data.copy(ordering = parent.data.ordering))
-              case e => e
+            if (isTouched) {
+              addEdges ++= changes.addEdges.map {
+                case addParent: Edge.Child if addParent.childId == parent.childId && addParent.parentId == parent.parentId =>
+                  addParent.copy(data = addParent.data.copy(ordering = parent.data.ordering))
+                case e => e
+              }
+            } else {
+              addEdges ++= changes.addEdges
+              addEdges += parent
             }
             addNodes ++= changes.addNodes.filter(node => !addNodes.exists(_.id == node.id)) // not have same node in addNodes twice
             delEdges ++= changes.delEdges
