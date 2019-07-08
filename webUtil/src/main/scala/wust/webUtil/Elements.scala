@@ -68,6 +68,17 @@ object Elements {
     )
   }
 
+  def onClickPreventDefaultExceptCtrl(action: => Unit):VDomModifier = {
+    // on middle click / ctrl+click opens new tab with `href`
+    // https://jsfiddle.net/53njtdg6/1/
+    onClick.foreach { e:dom.MouseEvent =>
+      if(!e.ctrlKey) {
+        e.preventDefault()
+        action
+      }
+    }
+  }
+
 
   val onEnter: SyncEmitterBuilder[dom.KeyboardEvent, VDomModifier] =
     onKeyDown

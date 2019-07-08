@@ -176,5 +176,5 @@ object UrlConfigWriter {
     val hash = List(viewString, pageString, redirectToString).flatten.mkString("&")
     UrlRoute(search = None, hash = Some(hash))
   }
-  def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
+  @inline def toUrlRoute(config: UrlConfig): UrlRoute = UrlConfigWriter.write(config)
 }
