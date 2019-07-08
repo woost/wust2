@@ -204,17 +204,19 @@ object GraphChangesAutomationUI {
       span("Copy Node"),
       cursor.pointer,
       onClick.foreach {
-        state.rawGraph.now.nodesById(templateId) match {
-          case Some(templateNode: Node.Content) =>
-            val newData = templateNode.data match {
-              case data: NodeData.EditableText => data.updateStr(s"Copy of '${data.str}'").getOrElse(data)
-              case data => data
-            }
-            val newNode = templateNode.copy(id = NodeId.fresh, data = newData)
-            val changes = GraphChangesAutomation.copySubGraphOfNode(state.userId.now, state.rawGraph.now, newNode, templateNode)
-            sink.onNext(newNode -> (changes merge GraphChanges(addNodes = Array(newNode))))
-            ()
-          case _ => ()
+        state.rawGraph.now.idToIdxForeach(templateId) { templateIdx =>
+          state.rawGraph.now.nodes(templateIdx) match {
+            case templateNode: Node.Content =>
+              val newData = templateNode.data match {
+                case data: NodeData.EditableText => data.updateStr(s"Copy of '${data.str}'").getOrElse(data)
+                case data => data
+              }
+              val newNode = templateNode.copy(id = NodeId.fresh, data = newData)
+              val changes = GraphChangesAutomation.copySubGraphOfNode(state.userId.now, state.rawGraph.now, newNode, templateNodesIdx = Array(templateIdx))
+              sink.onNext(newNode -> (changes merge GraphChanges(addNodes = Array(newNode))))
+              ()
+            case _ => ()
+          }
         }
       }
     )
