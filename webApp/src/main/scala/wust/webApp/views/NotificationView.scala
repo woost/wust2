@@ -268,6 +268,7 @@ object NotificationView {
 
                           td(
                             width := "20px",
+                            cursor.pointer,
 
                             //TODO: hack for having a better layout on mobile with this table
                             if (BrowserDetect.isMobile)
