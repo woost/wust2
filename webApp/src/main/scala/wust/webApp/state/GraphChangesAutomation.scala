@@ -147,19 +147,29 @@ object GraphChangesAutomation {
 
     val newNodeIdx = graph.idToIdx(newNode.id)
 
+    // all potentially automated nodes that already exists. The map maps
+    // template node ids to existing nodes that are already part of newNode.
     val alreadyExistingNodes = new mutable.HashMap[NodeId, Node]
+    // all nodes within the template node graph, that should be replaced by new
+    // nodes. one template can yield multiple nodes. the map maps template node
+    // ids to its counterparts in the newNode graphq
     val replacedNodes = new mutable.HashMap[NodeId, mutable.ArrayBuffer[Node]]
     def updateReplacedNodes(nodeId: NodeId, node: Node): Unit = {
       val buffer = replacedNodes.getOrElseUpdate(nodeId, new mutable.ArrayBuffer[Node])
       buffer += node
     }
-
+    // all templates that are referenced via a ReferencesTemplate edge
     val referencedTemplateIds = new mutable.HashSet[NodeId]
+    // all nodes that reference a template, reverse set of referencedTemplates
     val referencingNodeIds = new mutable.HashSet[NodeId]
+    // all node ids we are adding (in sync with addNodes)
     val addNodeIds = new mutable.HashSet[NodeId]
+    // all nodes we are adding
     val addNodes = Array.newBuilder[Node]
+    // all edges we are adding
     val addEdges = Array.newBuilder[Edge]
 
+    // how to apply a template to an existing node
     def applyTemplateToNode(newNode: Node, templateNode: Node): Unit = newNode match {
       // add defined views of template to new node
       case newNode: Node.Content =>
@@ -173,6 +183,7 @@ object GraphChangesAutomation {
       case _ => ()
     }
 
+    // how to create a node from a template
     def copyAndTransformNode(node: Node.Content): Node.Content = {
       // transform certain node data in automation
       val newData = node.data match {
@@ -274,16 +285,17 @@ object GraphChangesAutomation {
       })
     }
 
-    val newReplacableEdges = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
-    def updateNewReplacableEdges(edge: Edge, sourceNode: => Node, targetNode: => Node): Unit = edge match {
+    // all new edges that we are creating that might be need for resolving variables in new nodes.
+    val newResolvableEdges = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
+    def updateNewResolvableEdges(edge: Edge, sourceNode: => Node, targetNode: => Node): Unit = edge match {
       case edge: Edge.LabeledProperty =>
-        val buffer = newReplacableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
+        val buffer = newResolvableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
         buffer += (edge -> targetNode)
       case edge: Edge.Child =>
-        val buffer = newReplacableEdges.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)])
+        val buffer = newResolvableEdges.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)])
         buffer += (edge -> sourceNode)
       case edge: Edge.Assigned =>
-        val buffer = newReplacableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
+        val buffer = newResolvableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
         buffer += (edge -> targetNode)
       case _ => ()
     }
@@ -311,27 +323,29 @@ object GraphChangesAutomation {
             newTargets.foreach { newTarget =>
               val newEdge = edge.copyId(sourceId = newSource.id, targetId = newTarget.id)
               addEdges += newEdge
-              updateNewReplacableEdges(newEdge, newSource, newTarget)
+              updateNewResolvableEdges(newEdge, newSource, newTarget)
             }
           }
           case (None, Some(newTargets)) if newTargets.nonEmpty => newTargets.foreach { newTarget =>
             val newEdge = edge.copyId(sourceId = edge.sourceId, targetId = newTarget.id)
             addEdges += newEdge
-            updateNewReplacableEdges(newEdge, graph.nodesByIdOrThrow(edge.sourceId), newTarget)
+            updateNewResolvableEdges(newEdge, graph.nodesByIdOrThrow(edge.sourceId), newTarget)
           }
           case (Some(newSources), None) if newSources.nonEmpty => newSources.foreach { newSource =>
             val newEdge = edge.copyId(sourceId = newSource.id, targetId = edge.targetId)
             addEdges += newEdge
-            updateNewReplacableEdges(newEdge, newSource, graph.nodesByIdOrThrow(edge.targetId))
+            updateNewResolvableEdges(newEdge, newSource, graph.nodesByIdOrThrow(edge.targetId))
           }
           case (_, _) => ()
         }
     }
 
+    // for all added nodes, we are resolving variables in the content, we can
+    // only do so after knowing all new edges
     val addAndEditNodes: Array[Node] = addNodes.result().map {
       case node: Node.Content => node.data match {
         case data: NodeData.EditableText =>
-          val (newStr, extraEdges) = replaceVariableInText(graph, node, data.str, newReplacableEdges)
+          val (newStr, extraEdges) = replaceVariableInText(graph, node, data.str, newResolvableEdges)
           addEdges ++= extraEdges
           data.updateStr(newStr).fold(node)(data => node.copy(data = data))
         case _ => node
@@ -339,6 +353,10 @@ object GraphChangesAutomation {
       case node => node
     }
 
+    // is touched means that the newNode was actually automated. We might call
+    // this method with a list of templateNodes that all have an edge
+    // ReferencesTemplate. Then newNode was not actually automated, but only a
+    // subtree of newNodeq
     val isTouched = alreadyExistingNodes.contains(newNode.id)
     (isTouched, GraphChanges(addNodes = addAndEditNodes, addEdges = addEdges.result()).consistent)
   }
@@ -381,7 +399,7 @@ object GraphChangesAutomation {
             def addTemplateIdx(targetIdx: Int): Unit = graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
               val templateNodeIdx = graph.edgesIdx.b(automatedEdgeIdx)
               val templateNode = graph.nodes(templateNodeIdx).as[Node.Content]
-              def hasReferencedTemplate = graph.referencesTemplateEdgeIdx.sliceNonEmpty(templateNodeIdx)
+              def hasReferencedTemplate = graph.referencesTemplateEdgeIdx.exists(templateNodeIdx)(_
               if (templateNode.role == childNode.role || hasReferencedTemplate) {
                 scribe.info(s"Found fitting template '$templateNode' for '$childNode'")
                 templateNodesIdx += templateNodeIdx
@@ -392,6 +410,8 @@ object GraphChangesAutomation {
 
             addTemplateIdx(parentIdx)
             if (parentNode.role == NodeRole.Stage) {
+              // special case: if the role of the parent is stage, we need to handle nested stages, so we do a dfs on the parents until we find a non stage.
+              // We want to apply automations of nested stages and therefore need to gather all templates from stage parents.
               dfs.foreachStopLocally(_(parentIdx), dfs.afterStart, graph.parentsIdx, { idx =>
                 val node = graph.nodes(idx)
                 if (node.role == NodeRole.Stage) {
