@@ -212,7 +212,7 @@ object GraphChangesAutomationUI {
             }
             val newNode = templateNode.copy(id = NodeId.fresh, data = newData)
             val changes = GraphChangesAutomation.copySubGraphOfNode(state.userId.now, state.rawGraph.now, newNode, templateNode)
-            sink.onNext(newNode -> changes)
+            sink.onNext(newNode -> (changes merge GraphChanges(addNodes = Array(newNode))))
             ()
           case _ => ()
         }
