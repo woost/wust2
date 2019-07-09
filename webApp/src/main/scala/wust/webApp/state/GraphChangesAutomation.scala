@@ -59,7 +59,7 @@ object GraphChangesAutomation {
       }
 
       val lastReferenceNodes = referenceNodesPath(n)
-      if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) "#NAME?"
+      if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) "#REF!"
       else {
         if (isMentionMode) {
           lastReferenceNodes.foreach { refNode =>
