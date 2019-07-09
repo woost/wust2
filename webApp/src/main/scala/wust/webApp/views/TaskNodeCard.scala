@@ -145,8 +145,9 @@ object TaskNodeCard {
       }
       def toggleDelete = {
         Rx {
+          val text = if (isDeletedNow()) "Recover" else "Archive"
           menuItem(
-            if (isDeletedNow()) "Recover" else "Archive", if (isDeletedNow()) "Recover" else "Archive", if (isDeletedNow()) Icons.undelete else Icons.delete,
+            text, text, if (isDeletedNow()) Icons.undelete else Icons.delete,
             onClick.stopPropagation foreach toggleDeleteClickAction()
           )
         }
