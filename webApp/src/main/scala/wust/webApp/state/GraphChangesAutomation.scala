@@ -409,7 +409,7 @@ object GraphChangesAutomation {
   // We get the current graph + the new graph change. For each new parent edge in the graph change,
   // we check if the parent has a template node. If the parent has a template node, we want to
   // append the subgraph (which is spanned from the template node) to the newly inserted child of the parent.
-  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges): GraphChanges = {
+  def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges, visitedAutomateParentChild: Set[(NodeId, NodeId)] = Set.empty): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
     case class CopyArgs(newNode: Node.Content, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)], childEdges: Array[Edge.Child]) {
@@ -431,9 +431,11 @@ object GraphChangesAutomation {
 
     val automatedNodes = mutable.HashSet[Node]()
 
+    val newAutomateParentChild = new mutable.HashSet[(NodeId, NodeId)]
+
     changes.addEdges.foreach {
 
-      case parent: Edge.Child if parent.data.deletedAt.isEmpty => // a new, undeleted parent edge
+      case parent: Edge.Child if parent.data.deletedAt.isEmpty && !visitedAutomateParentChild.contains((parent.parentId, parent.childId)) => // a new, undeleted parent edge
         scribe.info(s"Inspecting parent edge '$parent' for automation")
         graph.idToIdxFold[Unit](parent.parentId)(addEdges += parent) { parentIdx =>
           val (childNode, shouldAutomate) = {
@@ -446,6 +448,8 @@ object GraphChangesAutomation {
 
           if (!shouldAutomate) addEdges += parent // do not automate template nodes
           else {
+            newAutomateParentChild += (parent.parentId -> parent.childId)
+
             // if this is a stage, we want to apply automation to nested stages as well:
             var foundTemplateNode = false
             var forceKeepParent = false
@@ -521,11 +525,10 @@ object GraphChangesAutomation {
       )
     }
 
-    GraphChanges.from(
-      addNodes = addNodes,
-      addEdges = addEdges,
-      delEdges = delEdges,
-    )
+    val newChanges = GraphChanges.from(addNodes = addNodes, addEdges = addEdges, delEdges = delEdges)
+    // recursive if they were automation, we might need to do another one based on the automated changes.
+    if (automatedNodes.nonEmpty) enrich(userId, graph, viewConfig, newChanges, visitedAutomateParentChild ++ newAutomateParentChild)
+    else newChanges
   }
 
   def resyncWithTemplates(userId: UserId, graph: Graph, nodeId: NodeId): GraphChanges = graph.idToIdxFold(nodeId)(GraphChanges.empty) { nodeIdx =>
