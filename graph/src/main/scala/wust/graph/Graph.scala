@@ -737,6 +737,7 @@ final class GraphLookup(
   }
   def isPartiallyDeleted(nodeId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => parentEdgeIdx(nodeIdx).exists{ edgeIdx => edges(edgeIdx).as[Edge.Child].data.deletedAt.fold(false)(_ isBefore buildNow) })
 
+  def isDeletedNowEdge(edge: Edge.Child, now: EpochMilli = EpochMilli.now): Boolean = edge.data.deletedAt.exists(_ isBefore now)
   @inline def isDeletedNowIdx(nodeIdx: Int, parentIdx: Int): Boolean = !notDeletedChildrenIdx.contains(parentIdx)(nodeIdx)
   def isDeletedNowIdx(nodeIdx: Int, parentIndices: Iterable[Int]): Boolean = parentIndices.nonEmpty && parentIndices.forall(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx))
   def isDeletedNow(nodeId: NodeId, parentId: NodeId): Boolean = idToIdxFold(nodeId)(false)(nodeIdx => idToIdxFold(parentId)(false)(parentIdx => isDeletedNowIdx(nodeIdx, parentIdx)))
