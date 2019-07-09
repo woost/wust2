@@ -174,6 +174,10 @@ object KanbanView {
 
     val canWrite = NodePermission.canWrite( nodeId)
 
+    val isDeletedNow = Rx {
+      val g = GlobalState.rawGraph()
+      g.isDeletedNow(nodeId, parentId = traverseState.parentId)
+    }
     val buttonBar = div(
       cls := "buttonbar",
       VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
@@ -193,12 +197,14 @@ object KanbanView {
           VDomModifier.ifTrue(canWrite())(
             div(div(cls := "fa-fw", Icons.edit), onClick.stopPropagation(true) --> editable, cursor.pointer, UI.tooltip("bottom center") := "Edit"),
             div(
-              div(cls := "fa-fw", Icons.delete),
+              div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
               onClick.stopPropagation foreach {
-                GlobalState.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId)))
-                selectedNodeIds.update(_ - nodeId)
+                val deleteChanges = if (isDeletedNow.now) GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId)) else GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
+                GlobalState.eventProcessor.changes.onNext(deleteChanges)
+                if (!isDeletedNow.now) selectedNodeIds.update(_ - nodeId)
               },
-              cursor.pointer, UI.tooltip("bottom center") := "Archive"
+              cursor.pointer,
+              UI.tooltip("bottom center") := (if (isDeletedNow()) "Recover" else "Archive")
             )
           ),
           //          div(div(cls := "fa-fw", Icons.zoom), onClick.stopPropagation(Page(nodeId)) --> GlobalState.page, cursor.pointer, UI.tooltip("bottom center") := "Zoom in"),
