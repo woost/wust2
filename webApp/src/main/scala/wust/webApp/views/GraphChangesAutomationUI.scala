@@ -31,8 +31,6 @@ object GraphChangesAutomationUI {
       }
     }
 
-    val selectedTemplate = Var[Option[FocusPreference]](None)
-
     val newTemplateButton = button(
       cls := "ui button",
       cursor.pointer,
@@ -46,6 +44,9 @@ object GraphChangesAutomationUI {
     val templatesRx = Rx {
       GlobalState.graph().templateNodes(GlobalState.graph().idToIdxOrThrow(focusedId))
     }
+
+    // close the current sidebar, because we are reusing it here.
+    GlobalState.rightSidebarNode() = None
 
     val description: VDomModifier = div(
       Styles.flex,
@@ -105,7 +106,7 @@ object GraphChangesAutomationUI {
                       delEdges = Array(Edge.Automated(focusedId, TemplateId(templateNode.id)))
                     )
                   },
-                  Sink.fromFunction(templateNode => selectedTemplate.update(_.filter(_.nodeId != templateNode.id)))
+                  Sink.fromFunction(templateNode => GlobalState.rightSidebarNode.update(_.filter(_.nodeId != templateNode.id)))
                 )
               )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
@@ -142,7 +143,7 @@ object GraphChangesAutomationUI {
                     ),
 
                     DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
-                    Components.sidebarNodeFocusMod(selectedTemplate, templateNode.id),
+                    Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, templateNode.id),
                   ).prepend(
                     b(color.gray, templateNode.role.toString)
                   )
@@ -161,9 +162,8 @@ object GraphChangesAutomationUI {
 
       position.relative, // needed for right sidebar
       RightSidebar(
-        
-        Rx { selectedTemplate() },
-        nodeId => selectedTemplate() = nodeId.map(FocusPreference(_)),
+        Rx { GlobalState.rightSidebarNode() },
+        nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)),
         viewRender,
         openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))
       ) // overwrite left-margin of overlay sidebar in mobile
