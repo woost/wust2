@@ -128,6 +128,22 @@ package object dfs {
     )
   }
 
+  // @inline inlines lambda parameters
+  @inline def withManualSuccessorsStopLocally(
+    starts: (Int => Unit) => Unit,
+    size: Int,
+    successors: Int => (Int => Unit) => Unit,
+    continue: Int => Boolean
+  ): Unit = {
+    flatland.depthFirstSearchGeneric[Boolean](
+      vertexCount = size,
+      foreachSuccessor = (idx, f) => successors(idx)(f),
+      init = (stack, _) => starts(stack.push),
+      processVertex = continue,
+      advanceGuard = (aggResult, advance) => if (aggResult) advance()
+    )
+  }
+
   @deprecated("This is the old, slow version of DFS", "")
   def withStartInCycleDetection[V](start: V, continue: V => Iterable[V]) = new Iterable[V] {
     private var _startInvolvedInCycle = false
