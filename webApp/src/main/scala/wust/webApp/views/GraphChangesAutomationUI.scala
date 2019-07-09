@@ -68,8 +68,8 @@ object GraphChangesAutomationUI {
             if (templates.isEmpty) b("This node is currently not automated.", alignSelf.flexStart)
             else VDomModifier(
               div(
-                b("Active automation templates:"),
-                div(fontSize.xSmall, "Each will be applied to every child of this node."),
+                b("This node has active automation templates:"),
+                div(fontSize.xSmall, "Each will be applied to every new child of this node."),
                 marginBottom := "10px",
               ),
 
@@ -149,24 +149,15 @@ object GraphChangesAutomationUI {
 
                       DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
                       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, templateNode.id),
-
-                      Rx {
-                        VDomModifier.ifNot(isChildOfTemplate())(i(fontSize.xxSmall, color.gray, "* Template is not a child of the automated node." )),
-                      }
                     ).prepend(
                       b(color.gray, templateNode.role.toString)
                     ),
 
-                    button(
-                      margin := "2px",
-                      cls := "ui button mini compact basic",
-                      fontSize.xSmall,
-                      Rx {
-                        if (isChildOfTemplate()) "Remove as child from automated node" else "Add as child to automated node"
-                      },
-                      onClick.stopPropagation.mapTo {
+                    div(
+                      margin := "2px 10px",
+                      UI.checkboxEmitter(span(fontSize.xSmall, "Add template as child of this node", UI.popup := "If you check this box, this template will make any matched node a child of this focused node. If not checked, the template will not change the hierarchy of the matched node."), isChildOfTemplate).map { addAsChild =>
                         val edges = Array[Edge](Edge.Child(ParentId(focusedId), ChildId(templateNode.id)))
-                        if (isChildOfTemplate.now) GraphChanges(delEdges = edges) else GraphChanges(addEdges = edges)
+                        if (addAsChild) GraphChanges(addEdges = edges) else GraphChanges(delEdges = edges)
                       } --> GlobalState.eventProcessor.changes
                     )
                   )
