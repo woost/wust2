@@ -69,7 +69,7 @@ object Components {
   def displayPlaceholder(data: NodeData.Placeholder) = span(
     color := "#CD5C5C	",
     freeSolid.faExclamation,
-    i(marginLeft := "5px", "TODO")
+    i(marginLeft := "0.25em", "missing")
   )
 
   def renderNodeData(node: Node, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = node.data match {
