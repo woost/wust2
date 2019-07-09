@@ -152,8 +152,6 @@ object GraphChangesAutomation {
     // template node ids to existing nodes that are already part of newNode.
     val alreadyExistingNodes = new mutable.HashMap[NodeId, Node]
 
-    alreadyExistingNodes += (newNode.id -> newNode)
-
     // all nodes within the template node graph, that should be replaced by new
     // nodes. one template can yield multiple nodes. the map maps template node
     // ids to its counterparts in the newNode graphq
@@ -227,6 +225,7 @@ object GraphChangesAutomation {
         val interfaceIdx = graph.edgesIdx.b(edgeIdx)
         val interfaceId = graph.nodeIds(interfaceIdx)
         alreadyExistingNodes += interfaceId -> descendant
+        if (newNode.id == descendant.id) alreadyExistingNodes += newNode.id -> newNode
       }
     }))
 
@@ -252,6 +251,7 @@ object GraphChangesAutomation {
             if (templateNode.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
               referencedTemplateIds += templateNode.id
               addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id))
+              alreadyExistingNodes += newNode.id -> newNode
               alreadyExistingNodes += (templateNode.id -> newNode)
               updateReplacedNodes(templateNode.id, newNode)
               applyTemplateToNode(newNode = newNode, templateNode = templateNode)
