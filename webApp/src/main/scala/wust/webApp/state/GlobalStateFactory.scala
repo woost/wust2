@@ -104,19 +104,13 @@ object GlobalStateFactory {
         graph.idToIdxFold(parentId)(graph) { pageIdx =>
           def anyPageParentIsPinned = graph.anyAncestorOrSelfIsPinned(Array(pageIdx), user.id)
           def pageIsInvited = userIdx.fold(false)(userIdx => graph.inviteNodeIdx.contains(userIdx)(pageIdx))
-          def userIsMemberOfPage: Boolean = userIdx.fold(false)(userIdx => graph.membershipEdgeForNodeIdx.exists(pageIdx)(edgeIdx => graph.edgesIdx.b(edgeIdx) == userIdx))
-
-          val memberChanges = if (!userIsMemberOfPage) {
-            GraphChanges.connect(Edge.Member)(parentId, EdgeData.Member(AccessLevel.ReadWrite), user.id)
-          } else GraphChanges.empty
 
           val edgeChanges = if (!anyPageParentIsPinned && !pageIsInvited) {
             GraphChanges.connect(Edge.Notify)(parentId, user.id)
               .merge(GraphChanges.connect(Edge.Pinned)(parentId, user.id))
-              .merge(GraphChanges.disconnect(Edge.Invite)(parentId, user.id))
           } else GraphChanges.empty
 
-          val allChanges = memberChanges merge edgeChanges
+          val allChanges = edgeChanges
           if (allChanges.nonEmpty) {
             eventProcessor.changes.onNext(allChanges)
             graph.applyChanges(allChanges)
