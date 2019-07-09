@@ -37,7 +37,7 @@ object GraphChangesAutomationUI {
       cursor.pointer,
 
       onClick.mapTo {
-        val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s": ${StringOps.trimToMaxLength(node.str, 20)}")
+        val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s" in: ${StringOps.trimToMaxLength(node.str, 20)}")
         val templateNode = Node.MarkdownTask("Template" + name)
         GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
       } --> GlobalState.eventProcessor.changes,
