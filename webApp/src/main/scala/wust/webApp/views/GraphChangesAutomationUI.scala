@@ -16,6 +16,7 @@ import wust.webApp.dragdrop.DragItem
 import wust.webApp.state.{FocusPreference, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.Components._
 import wust.webUtil.Elements
+import wust.util.StringOps
 
 import scala.collection.breakOut
 
@@ -111,42 +112,63 @@ object GraphChangesAutomationUI {
                 )
               )({ templateNode =>
                   val propertySingle = PropertyData.Single(graph, graph.idToIdxOrThrow(templateNode.id))
+                  val isChildOfTemplate = Rx {
+                    val g = GlobalState.rawGraph.now
+                    g.parentsContains(templateNode.id)(focusedId)
+                  }
 
-                  Components.nodeCard( templateNode, maxLength = Some(100)).apply(
-                    padding := "3px",
-                    width := "200px",
-                    div(
-                      Styles.flex,
-                      flexWrap.wrap,
+                  div(
+                    Components.nodeCard(templateNode, maxLength = Some(100)).apply(
+                      padding := "3px",
+                      width := "200px",
+                      div(
+                        Styles.flex,
+                        flexWrap.wrap,
 
-                      propertySingle.info.tags.map { tag =>
-                        Components.removableNodeTag( tag, taggedNodeId = templateNode.id)
-                      },
+                        propertySingle.info.tags.map { tag =>
+                          Components.removableNodeTag( tag, taggedNodeId = templateNode.id)
+                        },
 
-                      propertySingle.properties.map { property =>
-                        property.values.map { value =>
-                          Components.removableNodeCardProperty( value.edge, value.node)
-                        }
-                      },
+                        propertySingle.properties.map { property =>
+                          property.values.map { value =>
+                            Components.removableNodeCardProperty( value.edge, value.node)
+                          }
+                        },
 
-                      {
-                        val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
-                          Components.removableUserAvatar( user, templateNode.id)
-                        }(breakOut)
+                        {
+                          val users: List[VNode] = propertySingle.info.assignedUsers.map { user =>
+                            Components.removableUserAvatar( user, templateNode.id)
+                          }(breakOut)
 
-                        users match {
-                          case head :: tail => head.apply(marginLeft := "auto") :: tail
-                          case Nil => Nil
-                        }
-                      },
+                          users match {
+                            case head :: tail => head.apply(marginLeft := "auto") :: tail
+                            case Nil => Nil
+                          }
+                        },
+                      ),
 
-                      GlobalState.rawGraph.map(g => VDomModifier.ifNot(g.parentsContains(templateNode.id)(focusedId))(i(color.gray, " * Template is not a direct child of the current node." ))),
+                      DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
+                      Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, templateNode.id),
+
+                      Rx {
+                        VDomModifier.ifNot(isChildOfTemplate())(i(fontSize.xxSmall, color.gray, "* Template is not a child of the automated node." )),
+                      }
+                    ).prepend(
+                      b(color.gray, templateNode.role.toString)
                     ),
 
-                    DragItem.fromNodeRole(templateNode.id, templateNode.role).map(dragItem => DragComponents.drag(target = dragItem)),
-                    Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, templateNode.id),
-                  ).prepend(
-                    b(color.gray, templateNode.role.toString)
+                    button(
+                      margin := "2px",
+                      cls := "ui button mini compact basic",
+                      fontSize.xSmall,
+                      Rx {
+                        if (isChildOfTemplate()) "Remove as child from automated node" else "Add as child to automated node"
+                      },
+                      onClick.stopPropagation.mapTo {
+                        val edges = Array[Edge](Edge.Child(ParentId(focusedId), ChildId(templateNode.id)))
+                        if (isChildOfTemplate.now) GraphChanges(delEdges = edges) else GraphChanges(addEdges = edges)
+                      } --> GlobalState.eventProcessor.changes
+                    )
                   )
               }),
 
