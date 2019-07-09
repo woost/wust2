@@ -42,17 +42,16 @@ object PageHeader {
     val channelTitle = Rx {
       val node = pageNode()
       div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText( _), projectWithIcon = false),
+        Components.renderNodeCardMod(node, node => Components.renderAsOneLineText(node.renderNode), projectWithIcon = false),
         cls := "pageheader-channeltitle",
         DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
         Components.showHoveredNode( node.id),
         div(
           UnreadComponents.readObserver(
-            
             node.id,
             labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
-          ), 
+          ),
           onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
           float.right,
           alignSelf.center,
@@ -92,7 +91,7 @@ object PageHeader {
     val breadCrumbs = Rx{ 
       VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents())(
         BreadCrumbs(flexShrink := 1, marginRight := "10px")
-      ) 
+      )
     }
 
     VDomModifier(
@@ -155,7 +154,15 @@ object PageHeader {
       //TODO we should use the permission system here and/or share code with the settings menu function
       channelId == GlobalState.userId()
     }
-    val isBookmarked = PageSettingsMenu.nodeIsBookmarked( channelId)
+    val nodeIdx = Rx { GlobalState.rawGraph().idToIdxOrThrow(channelId) }
+    val userIdx = Rx { GlobalState.rawGraph().idToIdxOrThrow(GlobalState.userId()) }
+    val isBookmarked = Rx {
+      GlobalState.rawGraph().pinnedNodeIdx.contains(userIdx())(nodeIdx())
+    }
+    val isJoined = Rx {
+      val graph = GlobalState.rawGraph()
+      graph.joinedEdgeIdx.exists(userIdx())(edgeIdx => graph.edgesIdx.b(edgeIdx) == nodeIdx())
+    }
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 

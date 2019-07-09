@@ -18,6 +18,8 @@ import wust.css.Styles
 import scala.concurrent.duration._
 import scala.scalajs.js
 
+case class RenderNode(renderNode: Node, originalNode: Node)
+
 object EditableContent {
   private val currentlyEditingSubject = PublishSubject[Boolean]
   def currentlyEditing: Observable[Boolean] = currentlyEditingSubject
@@ -123,8 +125,8 @@ object EditableContent {
     ))
   }
 
-  @inline def editorOrRender[T: EditElementParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => editorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
-  @inline def inlineEditorOrRender[T: EditStringParser: ValueStringifier](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => inlineEditorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
+  @inline def editorOrRender[T: EditElementParser: ValueStringifier](current: T, original: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => editorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
+  @inline def inlineEditorOrRender[T: EditStringParser: ValueStringifier](current: T, original: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => inlineEditorHandler(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode)))
   @inline def customOrRender[T](current: T, editMode: Var[Boolean], renderFn: Ctx.Owner => T => VDomModifier, inputFn: Ctx.Owner => CommonEditHandler[T] => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[T], VDomModifier] = editOrRender[T](current, editMode, renderFn, implicit ctx => commonEditStructure(Some(current), _, config, handle = handleEditInteractionInOrRender[T](editMode))(inputFn(ctx)))
 
   def ofNode(node: Node, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
@@ -135,10 +137,10 @@ object EditableContent {
     }
   }
 
-  def ofNodeOrRender(node: Node, editMode: Var[Boolean], renderFn: Ctx.Owner => Node => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
-    EditStringParser.forNode(node).map { implicit parser =>
+  def ofNodeOrRender(node: RenderNode, editMode: Var[Boolean], renderFn: Ctx.Owner => Node => VDomModifier, config: Config = Config.default)(implicit ctx: Ctx.Owner): EmitterBuilder[EditInteraction[Node], VDomModifier] = EmitterBuilder.ofModifier[EditInteraction[Node]] { action =>
+    EditStringParser.forNode(node.originalNode).map { implicit parser =>
       inlineEditorOrRender[Node](node, editMode, renderFn, config) --> action
-    } orElse EditElementParser.forNode(node).map { implicit parser =>
+    } orElse EditElementParser.forNode(node.orginalNode).map { implicit parser =>
       editorOrRender[Node](node, editMode, renderFn, config) --> action
     }
   }
@@ -229,10 +231,11 @@ object EditableContent {
     VDomModifier(
       emitter(currentVar) --> action,
 
+      "PENOS",
       Rx {
         //components are keyed, becasue otherwise setting editMode to false does not reliably cancel editRender (happens in table with search-and-select of reference node)
-        if(editMode()) VDomModifier(inputFn(ctx)(currentVar), keyed)
-        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(ctx)(current) }.prepend(renderFn(ctx)(current)), keyed)
+        if(editMode()) VDomModifier(inputFn(ctx)(currentVar), keyed, "FOO")
+        else VDomModifier(currentVar.collect { case EditInteraction.Input(current) => renderFn(ctx)(current) }.prepend(renderFn(ctx)(current)), keyed, "BAR")
       },
     )
   }

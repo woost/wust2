@@ -167,7 +167,7 @@ object DashboardView {
       cls := "node channel-line",
 
       DragComponents.drag(DragItem.Project(project.id)),
-      renderProject(project, renderNode = node => renderAsOneLineText( node).apply(cls := "channel-name"), withIcon = true),
+      renderProject(project, renderNode = node => renderAsOneLineText(node.renderNode).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,
       onClick foreach {

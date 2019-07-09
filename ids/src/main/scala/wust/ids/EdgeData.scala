@@ -27,6 +27,9 @@ object EdgeData {
   final case class Mention(mentionName: String) extends Named with EdgeData
   object Mention extends Named
 
+  final case class Joined(timestamp: EpochMilli) extends Named with EdgeData
+  object Joined extends Named
+
   final case class Child(deletedAt: Option[EpochMilli], ordering: BigDecimal) extends Named with EdgeData {
     override def toString: String = s"Child(${deletedAt.map(_.humanReadable)}, $ordering)"
   }

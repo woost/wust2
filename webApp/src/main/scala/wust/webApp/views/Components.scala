@@ -113,7 +113,7 @@ object Components {
   }
 
   def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true): VNode = {
-    renderNodeCard(node, contentInject = renderAsOneLineText( _), projectWithIcon = projectWithIcon)
+    renderNodeCard(node, contentInject = node => renderAsOneLineText(node.renderNode), projectWithIcon = projectWithIcon)
   }
 
   def markdownVNode(nodeId: NodeId, rawStr: String) = {
@@ -401,7 +401,7 @@ object Components {
       }, pageOnClick)
     }
 
-    def renderProject(node: Node, renderNode: Node => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {
+    def renderProject(node: Node, renderNode: RenderNode => VDomModifier, withIcon: Boolean = false, openFolder: Boolean = false) = {
       if(withIcon) {
         val nodeWithoutFirstEmoji = node match {
           case n@Node.Content(_, editable: NodeData.EditableText, _, _, _) =>
@@ -429,15 +429,15 @@ object Components {
           Styles.flex,
           alignItems.baseline,
           iconModifier.apply(marginRight := "0.1em"),
-          renderNode(nodeWithoutFirstEmoji),
+          renderNode(RenderNode(nodeWithoutFirstEmoji, node))
         )
       } else {
-        renderNode(node),
+        renderNode(RenderNode(node, node)),
       }
     }
 
-    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
-      def contentNode(node: Node) = div(
+    def renderNodeCardMod(node: Node, contentInject: RenderNode => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
+      def contentNode(node: RenderNode) = div(
         cls := "nodecard-content",
         contentInject(node)
       )
@@ -454,18 +454,18 @@ object Components {
             cls := "tag colorful",
             cls := "nodecard",
             backgroundColor := tagColor(node.id).toHex,
-            contentNode(node),
+            contentNode(RenderNode(node, node)),
           )
           case node => VDomModifier(
             cls := "node",
             cls := "nodecard",
-            contentNode(node)
+            contentNode(RenderNode(node, node)),
           )
         },
       )
     }
 
-    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VNode = {
+    def renderNodeCard(node: Node, contentInject: RenderNode => VDomModifier, projectWithIcon: Boolean = true): VNode = {
       div(
         keyed(node.id),
         renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
@@ -474,20 +474,20 @@ object Components {
     def nodeCardMod(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VDomModifier = {
       renderNodeCardMod(
         node,
-        contentInject = node => VDomModifier(renderNodeData( node, maxLength).apply(nodeInject), contentInject)
+        contentInject = node => VDomModifier(renderNodeData(node.renderNode, maxLength).apply(nodeInject), contentInject)
       )
     }
     def nodeCard(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
-        contentInject = node => VDomModifier(renderNodeData( node, maxLength).apply(nodeInject), contentInject),
+        contentInject = node => VDomModifier(renderNodeData(node.renderNode, maxLength).apply(nodeInject), contentInject),
         projectWithIcon = projectWithIcon
       )
     }
     def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
       renderNodeCard(
         node,
-        contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
+        contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.renderNode.str, maxLength), nodeInject), contentInject)
       )
     }
     def nodeCardEditable(node: Node, editMode: Var[Boolean], contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, prependInject: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
@@ -495,7 +495,7 @@ object Components {
         node,
         contentInject = node => VDomModifier(
           prependInject,
-          editableNode( node, editMode, maxLength).apply(nodeInject),
+          editableNode(node, editMode, maxLength).apply(nodeInject),
           contentInject
         ),
       ).apply(
@@ -509,7 +509,7 @@ object Components {
       node,
       contentInject = node => VDomModifier(
         prependInject,
-        editableNodeOnClick( node, maxLength).apply(nodeInject),
+        editableNodeOnClick(node, maxLength).apply(nodeInject),
         contentInject
       ),
     ).apply(
@@ -592,15 +592,14 @@ object Components {
     }
 
     def editableNodeOnClick(
-      
-      node: Node,
+      node: RenderNode,
       maxLength: Option[Int] = None,
       editMode: Var[Boolean] = Var(false),
       config: EditableContent.Config = EditableContent.Config.cancelOnError
     )(
       implicit ctx: Ctx.Owner
     ): VNode = {
-      editableNode( node, editMode, maxLength, config)(ctx)(
+      editableNode(node, editMode, maxLength, config)(ctx)(
         onClick.stopPropagation foreach {
           if(!editMode.now) {
             editMode() = true
@@ -623,15 +622,15 @@ object Components {
       )
     }
 
-    def editableNode(node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
+    def editableNode(node: RenderNode, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes,
+        EditableContent.ofNodeOrRender(node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes,
       )
     }
 
     def editablePropertyNode(node: Node, edge: Edge.LabeledProperty, editMode: Var[Boolean], nonPropertyModifier: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
 
-      def contentEditor = EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
+      def contentEditor = EditableContent.ofNodeOrRender(node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes
 
       def refEditor = EditableContent.customOrRender[Node](node, editMode,
         implicit ctx => node => nodeCard( node, maxLength = maxLength).apply(Styles.wordWrap, nonPropertyModifier),

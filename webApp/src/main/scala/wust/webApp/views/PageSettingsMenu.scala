@@ -37,16 +37,17 @@ object PageSettingsMenu {
     ()
   }
 
-  def nodeIsBookmarked(channelId: NodeId)(implicit ctx: Ctx.Owner) = Rx {
-    val g = GlobalState.graph()
-    val channelIdx = g.idToIdxOrThrow(channelId)
-    val userIdx = g.idToIdxOrThrow(GlobalState.userId())
-    GlobalState.graph().pinnedNodeIdx(userIdx).contains(channelIdx)
-  }
-
   def sidebarConfig(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
     def sidebarItems: List[VDomModifier] = {
-      val isBookmarked = nodeIsBookmarked( channelId)
+      val nodeIdx = Rx { GlobalState.rawGraph().idToIdxOrThrow(channelId) }
+      val userIdx = Rx { GlobalState.rawGraph().idToIdxOrThrow(GlobalState.userId()) }
+      val isBookmarked = Rx {
+        GlobalState.rawGraph().pinnedNodeIdx.contains(userIdx())(nodeIdx())
+      }
+      val isJoined = Rx {
+        val graph = GlobalState.rawGraph()
+        graph.joinedEdgeIdx.exists(userIdx())(edgeIdx => graph.edgesIdx.b(edgeIdx) == nodeIdx())
+      }
 
       val channelAsNode: Rx[Option[Node]] = Rx {
         GlobalState.graph().nodesById(channelId)
@@ -64,17 +65,33 @@ object PageSettingsMenu {
         }
       }
 
-      val leaveItem:VDomModifier = Rx {
+      val bookmarkItem:VDomModifier = Rx {
         (channelIsContent()).ifTrue[VDomModifier](a(
           cls := "item",
           cursor.pointer,
           if (isBookmarked()) VDomModifier(
-            Elements.icon(Icons.signOut),
+            Elements.icon(Icons.unpin),
             span("Unpin from sidebar"),
             onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
           ) else VDomModifier(
             Elements.icon(Icons.pin),
             span("Pin to sidebar"),
+            onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
+          )
+        ))
+      }
+
+      val joinItem:VDomModifier = Rx {
+        (channelIsContent()).ifTrue[VDomModifier](a(
+          cls := "item",
+          cursor.pointer,
+          if (isJoined()) VDomModifier(
+            Elements.icon(Icons.unjoin),
+            span("Leave channel"),
+            onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
+          ) else VDomModifier(
+            Elements.icon(Icons.join),
+            span("Join channel"),
             onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
           )
         ))
@@ -140,7 +157,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, bookmarkItem, joinItem, deleteItem)
     }
 
     GenericSidebar.SidebarConfig(

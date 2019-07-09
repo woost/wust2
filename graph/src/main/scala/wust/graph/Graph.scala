@@ -242,6 +242,7 @@ final class GraphLookup(
   private val derivedFromTemplateDegree = new Array[Int](n)
   private val referencesTemplateDegree = new Array[Int](n)
   private val mentionsDegree = new Array[Int](n)
+  private val joinedDegree = new Array[Int](n)
 
   private val buildNow = EpochMilli.now
 
@@ -323,6 +324,8 @@ final class GraphLookup(
             referencesTemplateDegree(sourceIdx) += 1
           case _: Edge.Mention =>
             mentionsDegree(sourceIdx) += 1
+          case _: Edge.Joined =>
+            joinedDegree(sourceIdx) += 1
           case _: Edge.Read =>
             readDegree(sourceIdx) += 1
           case _ =>
@@ -364,6 +367,7 @@ final class GraphLookup(
   private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
   private val referencesTemplateEdgeIdxBuilder = NestedArrayInt.builder(referencesTemplateDegree)
   private val mentionsEdgeIdxBuilder = NestedArrayInt.builder(mentionsDegree)
+  private val joinedEdgeIdxBuilder = NestedArrayInt.builder(joinedDegree)
 
   consistentEdges.foreach { edgeIdx =>
     val sourceIdx = edgesIdx.a(edgeIdx)
@@ -446,6 +450,8 @@ final class GraphLookup(
         referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _: Edge.Mention =>
         mentionsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+      case _: Edge.Joined =>
+        joinedEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _: Edge.Read =>
         readEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _ =>
@@ -485,6 +491,7 @@ final class GraphLookup(
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
   val referencesTemplateEdgeIdx: NestedArrayInt = referencesTemplateEdgeIdxBuilder.result()
   val mentionsEdgeIdx: NestedArrayInt = mentionsEdgeIdxBuilder.result()
+  val joinedEdgeIdx: NestedArrayInt = joinedEdgeIdxBuilder.result()
 
   @inline def isExpanded(userId: UserId, nodeId: NodeId): Option[Boolean] = idToIdx(nodeId).flatMap(isExpanded(userId, _))
   @inline def isExpanded(userId: UserId, nodeIdx: Int): Option[Boolean] = expandedEdgeIdx.collectFirst(nodeIdx) {

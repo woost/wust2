@@ -55,8 +55,13 @@ object Edge {
     def level = data.level
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
+
   final case class Notify(nodeId: NodeId, userId: UserId) extends Edge.User {
     def data = EdgeData.Notify
+    def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
+  }
+
+  final case class Joined(nodeId: NodeId, data: EdgeData.Joined, userId: UserId) extends Edge.User {
     def copyId(sourceId: NodeId, targetId: NodeId) = copy(nodeId = sourceId, userId = UserId(targetId))
   }
 
@@ -123,6 +128,7 @@ object Edge {
     case data: EdgeData.Author              => new Edge.Author(sourceId, data, UserId(targetId))
     case data: EdgeData.Member              => new Edge.Member(sourceId, data, UserId(targetId))
     case data: EdgeData.Read                => new Edge.Read(sourceId, data, UserId(targetId))
+    case data: EdgeData.Joined              => new Edge.Joined(sourceId, data, UserId(targetId))
 
     case EdgeData.Automated                 => new Edge.Automated(sourceId, TemplateId(targetId))
     case EdgeData.ReferencesTemplate        => new Edge.ReferencesTemplate(sourceId, TemplateId(targetId))

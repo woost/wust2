@@ -98,8 +98,10 @@ object Icons {
   val convertItem: IconDefinition = freeSolid.faExchangeAlt
   val mentionIn: IconDefinition = freeSolid.faCopy
   val copy: IconDefinition = freeSolid.faCopy
-  val pin: IconDefinition = freeSolid.faThumbtack
-  val signOut: IconDefinition =  freeSolid.faSignOutAlt
+  val pin: IconDefinition = freeSolid.faBookmark
+  val unpin: IconDefinition = freeRegular.faBookmark
+  val join: IconDefinition =  freeSolid.faSignInAlt
+  val unjoin: IconDefinition =  freeSolid.faSignOutAlt
   val menu: IconDefinition = freeSolid.faCog
 
   val share: IconDefinition = freeSolid.faShareAlt
