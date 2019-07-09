@@ -265,14 +265,18 @@ object GraphChangesAutomation {
                 updateReplacedNodes(descendant.id, implementationNode)
                 true
               } else false
-            case None =>
-              val copyNode = copyAndTransformNode(descendant)
-              addNodes += copyNode
-              addNodeIds += copyNode.id
-              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-              alreadyExistingNodes += (descendant.id -> copyNode)
-              updateReplacedNodes(descendant.id, copyNode)
-              true
+            case None => 
+              // if this is a toplevel template node, we will go down this node later.
+              if (templateNodesIdx.exists(idx => graph.nodeIds(idx) == descendant.id)) false
+              else {
+                val copyNode = copyAndTransformNode(descendant)
+                addNodes += copyNode
+                addNodeIds += copyNode.id
+                addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                alreadyExistingNodes += (descendant.id -> copyNode)
+                updateReplacedNodes(descendant.id, copyNode)
+                true
+              }
           }
         } else { // we have template references
           referencingNodeIds += descendant.id
