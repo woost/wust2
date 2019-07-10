@@ -37,8 +37,6 @@ object Main {
 
     GlobalStateFactory.init()
 
-    implicit val ctx: Ctx.Owner = Ctx.Owner.safe()    
-
     DevOnly { enableEventLogging() }
     SortableEvents.init()
 
