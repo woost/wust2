@@ -152,6 +152,37 @@ object GraphChangesAutomation {
     // template node ids to existing nodes that are already part of newNode.
     val alreadyExistingNodes = new mutable.HashMap[NodeId, Node]
 
+    // all potentially automated stages that already exists. The map maps
+    // parents node ids and their stage-name to an existing stage that is
+    // already part of newNode.
+    val alreadyExistingStages = new mutable.HashMap[(NodeId, String), Node]
+
+    def addAlreadyExistingStage(nodeIdx: Int): Unit = {
+      val node = graph.nodes(nodeIdx)
+      if (node.role == NodeRole.Stage) {
+        graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
+          alreadyExistingStages += (graph.nodeIds(parentIdx), node.str) -> node
+        }
+      }
+    }
+
+    def getAlreadyExistingNode(nodeIdx: Int): Option[Node] = {
+      val node = graph.nodes(nodeIdx)
+      val result = alreadyExistingNodes.get(node.id)
+      if (result.isDefined) return result
+
+      if (node.role == NodeRole.Stage) {
+        graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
+          alreadyExistingNodes.get(graph.nodeIds(parentIdx)).foreach { existingParentNode =>
+            val result = alreadyExistingStages.get(existingParentNode.id -> node.str)
+            if (result.isDefined) return result
+          }
+        }
+      }
+
+      None
+    }
+
     // all nodes within the template node graph, that should be replaced by new
     // nodes. one template can yield multiple nodes. the map maps template node
     // ids to its counterparts in the newNode graphq
@@ -219,14 +250,14 @@ object GraphChangesAutomation {
     // copied in the previous automation run.
     newNodeIdx.foreach(newNodeIdx => dfs.withManualSuccessors(_(newNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(idx, f), { descendantIdx =>
       val descendant = graph.nodes(descendantIdx).as[Node.Content]
-      var addedSomething = false
       graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
-        addedSomething = true
         val interfaceIdx = graph.edgesIdx.b(edgeIdx)
         val interfaceId = graph.nodeIds(interfaceIdx)
         alreadyExistingNodes += interfaceId -> descendant
         if (newNode.id == descendant.id) alreadyExistingNodes += newNode.id -> newNode
       }
+
+      addAlreadyExistingStage(descendantIdx)
     }))
 
     // Get all descendants of the templateNode. For each descendant, we check
@@ -257,15 +288,14 @@ object GraphChangesAutomation {
               applyTemplateToNode(newNode = newNode, templateNode = templateNode)
               true
             } else false
-          } else alreadyExistingNodes.get(descendant.id) match { // this is not the template node, search for already existing node.
+          } else getAlreadyExistingNode(descendantIdx) match { // this is not the template node, search for already existing node.
             case Some(implementationNode) =>
               if (implementationNode.id != descendant.id) {
                 addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                alreadyExistingNodes += (descendant.id -> implementationNode)
                 updateReplacedNodes(descendant.id, implementationNode)
                 true
               } else false
-            case None => 
+            case None =>
               // if this is a toplevel template node, we will go down this node later.
               if (templateNodesIdx.exists(idx => graph.nodeIds(idx) == descendant.id)) false
               else {
@@ -285,7 +315,7 @@ object GraphChangesAutomation {
             referencedTemplateIds += descendantReference.id
 
             // check if the descendantRefence already has a counterpart in the newNode graph
-            alreadyExistingNodes.get(descendantReference.id) match {
+            getAlreadyExistingNode(descendantReferenceIdx) match {
               case Some(implementationNode) =>
                 if (implementationNode.id != descendant.id) { // guard against a self-loop, because this somehow happened once and makes no sense. TODO: we should be able to remove this, but needs thorough testing.
                   addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))

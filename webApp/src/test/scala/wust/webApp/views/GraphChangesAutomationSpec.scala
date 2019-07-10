@@ -319,6 +319,125 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
   }
 
+  "reference node with not-reusing task of same name" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val task1 = newNodeContent("task", NodeRole.Task)
+    val task2 = newNodeContent("task", NodeRole.Task)
+    val taskNode = newNodeContent("task-node", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, task1, task2, templateNode1, taskNode
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(task1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(task2.id)),
+        Edge.Child(ParentId(task2.id), defaultChildData, ChildId(taskNode.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(task2), copyNode(taskNode)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(copyNodeId(task2.id)), defaultChildData, ChildId(copyNodeId(taskNode.id))),
+      Edge.Child(ParentId(node1.id), defaultChildData, ChildId(copyNodeId(task2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+      Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(taskNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(taskNode.id)),
+      Edge.DerivedFromTemplate(copyNodeId(task2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(task2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node with reusing stage of same name" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val stage1 = newNodeContent("stage", NodeRole.Stage)
+    val stage2 = newNodeContent("stage", NodeRole.Stage)
+    val stageNode = newNodeContent("stage-node", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, stage1, stage2, templateNode1, stageNode
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(stage1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(stage2.id)),
+        Edge.Child(ParentId(stage2.id), defaultChildData, ChildId(stageNode.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(stageNode)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(stage1.id), defaultChildData, ChildId(copyNodeId(stageNode.id))),
+      Edge.Child(ParentId(node1.id), defaultChildData, ChildId(stage1.id)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+      Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(stageNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(stageNode.id)),
+      Edge.DerivedFromTemplate(stage1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(stage2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node with reusing stage of same name as direct child" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val stage1 = newNodeContent("stage", NodeRole.Stage)
+    val stage2 = newNodeContent("stage", NodeRole.Stage)
+    val stageNode = newNodeContent("stage-node", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, stage1, stage2, stageNode
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(stage1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(stage2.id)),
+        Edge.Child(ParentId(stage2.id), defaultChildData, ChildId(stageNode.id)),
+        Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(stageNode)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(stage1.id), defaultChildData, ChildId(copyNodeId(stageNode.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(stage1.id)),
+      Edge.DerivedFromTemplate(copyNodeId(stageNode.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(stageNode.id)),
+      Edge.DerivedFromTemplate(stage1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(stage2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
   "properties of template" in {
     val newNode = newNodeContent("new-node", NodeRole.Task)
     val templateNode = newNodeContent("template", NodeRole.Task)
