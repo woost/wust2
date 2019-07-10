@@ -197,7 +197,14 @@ object GraphChanges {
       NodeMeta(accessLevel = NodeAccess.Inherited),
       views = views
     )
-    GraphChanges(addNodes = Array(post), addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId), Edge.Member(nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId)))
+    GraphChanges(
+      addNodes = Array(post),
+      addEdges = Array(
+        Edge.Pinned(nodeId, userId),
+        Edge.Notify(nodeId, userId),
+        Edge.Member(nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId)
+      )
+    )
   }
 
   def pin(nodeId:NodeId, userId: UserId) = GraphChanges.connect(Edge.Pinned)(nodeId, userId)
