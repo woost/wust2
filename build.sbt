@@ -235,6 +235,11 @@ lazy val root = project
       "devf",
       "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
+    addCommandAlias(
+      // same as devf, but with ~compile before doing anything
+      "ccdevf",
+      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; ~compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
+    ),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
     // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.6"),
 
