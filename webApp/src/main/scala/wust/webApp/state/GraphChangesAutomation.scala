@@ -477,7 +477,7 @@ object GraphChangesAutomation {
 
           if (!shouldAutomate) addEdges += parent // do not automate template nodes
           else {
-            newAutomateParentChild += graph.nodesByIdOrThrow(parent.parentId)
+            newAutomateParentChild += parent.parentId
 
             // if this is a stage, we want to apply automation to nested stages as well:
             var foundTemplateNode = false
@@ -556,7 +556,7 @@ object GraphChangesAutomation {
 
     val newChanges = GraphChanges.from(addNodes = addNodes, addEdges = addEdges, delEdges = delEdges)
     // recursive if they were automation, we might need to do another one based on the automated changes.
-    if (automatedNodes.nonEmpty) enrich(userId, graph, viewConfig, newChanges, visitedAutomateParent ++ newAutomateParentChild.map(_.id))
+    if (automatedNodes.nonEmpty) enrich(userId, graph, viewConfig, newChanges, visitedAutomateParent ++ newAutomateParentChild)
     else newChanges
   }
 
