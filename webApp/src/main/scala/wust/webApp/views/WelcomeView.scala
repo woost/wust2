@@ -11,6 +11,8 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.outwatchHelpers._
+import wust.graph.GraphChanges
+import wust.ids.NodeId
 
 object WelcomeView {
 
@@ -67,7 +69,28 @@ object WelcomeView {
                   onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") }), ".")
               )
             )
-          }
+          },
+          div(
+            cls := "ui segment",
+            maxWidth := "80ex",
+            marginTop := "50px",
+            marginBottom := "50px",
+            h3("Find out what's so great about Woost"),
+            p(
+              "You can explore Woost yourself, be guided by a tutorial.",
+            ),
+            button(cls := "ui primary button", "Create example content to play with",
+              onClick.stopPropagation.foreach { _ =>
+                var changes = GraphChanges.empty
+
+                val newProjectId = NodeId.fresh()
+                changes = changes merge GraphChanges.newProject(newProjectId, GlobalState.userId.now, "Click me to rename")
+
+
+                GlobalState.submitChanges(changes)
+                GlobalState.focus(newProjectId, needsGet = false)
+              })
+          )
         )
       ),
       Rx {
