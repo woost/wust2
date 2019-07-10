@@ -62,7 +62,7 @@ object Main {
             cls := "result", //we need this class for semantic ui to work,
             div(cls := "title", display.none, result.title), // needed for semantic ui to map the html element back to the SearchSourceEntry
             padding := "4px",
-            views.Components.nodeCardAsOneLineText( node, projectWithIcon = true).prepend(
+            views.Components.nodeCardAsOneLineText( node, projectWithIcon = true)(Ctx.Owner.Unsafe).prepend(
               cursor.pointer,
               Styles.flex,
               alignItems.center

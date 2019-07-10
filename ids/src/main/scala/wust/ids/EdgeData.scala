@@ -40,7 +40,15 @@ object EdgeData {
   final case class DerivedFromTemplate(timestamp: EpochMilli) extends Named with EdgeData
   object DerivedFromTemplate extends Named
 
-  case object ReferencesTemplate extends Named with EdgeData
+  case class ReferencesTemplate(isCreate: Boolean = false, isRename: Boolean = false) extends Named with EdgeData {
+    import scala.collection.mutable
+    def modifierStrings: Seq[String] = {
+      val referenceModifiers = mutable.ArrayBuffer[String]()
+      if (isCreate) referenceModifiers += "copy"
+      if (isRename) referenceModifiers += "rename"
+      referenceModifiers
+    }
+  }
 
   sealed trait PropertyKey
   case object Assigned extends Named with EdgeData with PropertyKey

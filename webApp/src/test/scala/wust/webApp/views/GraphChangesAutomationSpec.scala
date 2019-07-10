@@ -5,6 +5,8 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.state.GraphChangesAutomation
 
+import scala.collection.breakOut
+
 
 class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
   def randomPositiveInt() = {
@@ -105,10 +107,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges must contain theSameElementsAs Array(
-      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
-      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
-    )
+    changes.addEdges mustEqual Array.empty
   }
 
   "template loop" in {
@@ -157,10 +156,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges must contain theSameElementsAs Array(
-      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
-      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
-    )
+    changes.addEdges mustEqual Array.empty
   }
 
   "new node inside template" in {
@@ -180,10 +176,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
     changes.addNodes mustEqual Array.empty
     changes.delEdges mustEqual Array.empty
-    changes.addEdges must contain theSameElementsAs Array(
-      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(newNode.id)),
-      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
-    )
+    changes.addEdges mustEqual Array.empty
   }
 
   "user inside template" in {
@@ -262,7 +255,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
         Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
         Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
-        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode1.id)),
       )
     )
 
@@ -276,6 +269,120 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.Child(ParentId(node1.id), defaultChildData, ChildId(copyNodeId(childNode2.id))),
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
       Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node inside template with rename" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1 = newNodeContent("child1", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, childNode1, childNode2, templateNode1
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(isRename = true), TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      node2.copy(id = node1.id), copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(node1.id), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+      Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node inside template with create" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1 = newNodeContent("child1", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, childNode1, childNode2, templateNode1
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(node1), copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(copyNodeId(node1.id)), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node1.id))),
+      Edge.DerivedFromTemplate(copyNodeId(node1.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node inside template with create and rename" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1 = newNodeContent("child1", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode1 = newNodeContent("template-node1", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, childNode1, childNode2, templateNode1
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(isCreate = true, isRename = true), TemplateId(templateNode1.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(node2.copy(id = node1.id)), copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(copyNodeId(node1.id)), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node1.id))),
+      Edge.DerivedFromTemplate(copyNodeId(node1.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
       Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
       Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
@@ -300,7 +407,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
         Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
         Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode0.id)),
-        Edge.ReferencesTemplate(templateNode.id, TemplateId(templateNode0.id)),
+        Edge.ReferencesTemplate(templateNode.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode0.id)),
       )
     )
 
@@ -340,7 +447,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         Edge.Child(ParentId(node2.id), defaultChildData, ChildId(task2.id)),
         Edge.Child(ParentId(task2.id), defaultChildData, ChildId(taskNode.id)),
         Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
-        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode1.id)),
       )
     )
 
@@ -382,7 +489,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
         Edge.Child(ParentId(node2.id), defaultChildData, ChildId(stage2.id)),
         Edge.Child(ParentId(stage2.id), defaultChildData, ChildId(stageNode.id)),
         Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1.id)),
-        Edge.ReferencesTemplate(node2.id, TemplateId(templateNode1.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode1.id)),
       )
     )
 

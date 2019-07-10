@@ -229,13 +229,6 @@ object RightSidebar {
       ),
 
       nodeAuthor( focusPref.nodeId),
-
-      div(
-        Styles.flex,
-        alignItems.center,
-
-        Components.automatedNodesOfNode( focusPref.nodeId),
-      ),
     )
   }
 
@@ -310,26 +303,34 @@ object RightSidebar {
       graph.selfOrParentIsAutomationTemplate(nodeIdx)
     }
 
+    val isCreateReference = Var(false)
+    val isRenameReference = Var(false)
+
     addFieldMode.map {
       case AddProperty.CustomField =>
         ItemProperties.managePropertiesInline(
-          
           ItemProperties.Target.Node(focusPref.nodeId)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.EdgeReference(title, create) =>
         ItemProperties.managePropertiesInline(
-          
           ItemProperties.Target.Node(focusPref.nodeId),
-          ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Ref), hidePrefilledType = true, filterRefCompletion = { node =>
-            val graph = GlobalState.rawGraph.now
-            graph.idToIdxFold(node.id)(false)(graph.selfOrParentIsAutomationTemplate(_))
-          }),
+          ItemProperties.TypeConfig(
+            prefilledType = Some(NodeTypeSelection.Ref),
+            hidePrefilledType = true,
+            filterRefCompletion = { node =>
+              val graph = GlobalState.rawGraph.now
+              node.id != focusPref.nodeId && graph.idToIdxFold(node.id)(false)(graph.selfOrParentIsAutomationTemplate(_))
+            },
+            customOptions = Some(VDomModifier(
+              UI.checkbox("Create a new node from the reference", isCreateReference),
+              UI.checkbox("Rename existing node (original content in `${woost.reference}`)", isRenameReference)
+            ))
+          ),
           ItemProperties.EdgeFactory.Plain(create),
           ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.DefinedField(title, key, tpe) =>
         ItemProperties.managePropertiesInline(
-          
           ItemProperties.Target.Node(focusPref.nodeId),
           ItemProperties.TypeConfig(prefilledType = Some(NodeTypeSelection.Data(tpe)), hidePrefilledType = true),
           ItemProperties.EdgeFactory.labeledProperty(key),
@@ -393,19 +394,20 @@ object RightSidebar {
           selfOrParentIsAutomationTemplate.map {
             case false => VDomModifier.empty
             case true =>
-              val referenceNodes = Rx {
+              val referenceEdges = Rx {
                 val graph = GlobalState.rawGraph()
                 val nodeIdx = graph.idToIdxOrThrow(focusPref.nodeId)
-                graph.referencesTemplateEdgeIdx.map(nodeIdx)(edgeIdx => graph.nodes(graph.edgesIdx.b(edgeIdx)))
+                graph.referencesTemplateEdgeIdx(nodeIdx)
               }
 
               def addButton = VDomModifier(
                 cursor.pointer,
-                onClick.stopPropagation(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, TemplateId(targetId)))) --> addFieldMode
+                onClick.stopPropagation.mapTo(AddProperty.EdgeReference("Add Reference Template", (sourceId, targetId) => Edge.ReferencesTemplate(sourceId, EdgeData.ReferencesTemplate(isCreate = isCreateReference.now, isRename = isRenameReference.now), TemplateId(targetId)))) --> addFieldMode
               )
               def deleteButton(referenceNodeId: NodeId) = VDomModifier(
                 cursor.pointer,
-                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
+                //TODO: just delete correct edge...
+                onClick.stopPropagation(GraphChanges(delEdges = Array(Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = false), TemplateId(referenceNodeId)), Edge.ReferencesTemplate(focusPref.nodeId, EdgeData.ReferencesTemplate(isCreate = true), TemplateId(referenceNodeId))))) --> GlobalState.eventProcessor.changes
               )
 
               div(
@@ -416,12 +418,20 @@ object RightSidebar {
 
                 b("Template Reference:", UI.popup := "Reference another template, such that the current node becomes the automation template for any existing node derived from the referenced template node."),
 
-                referenceNodes.map { nodes =>
+                Rx {
+                  val graph = GlobalState.rawGraph()
                   div(
-                    nodes.map { node =>
+                    referenceEdges().map { edgeIdx =>
+                      val edge = graph.edges(edgeIdx).as[Edge.ReferencesTemplate]
+                      val node = graph.nodes(graph.edgesIdx.b(edgeIdx))
+                      val referenceModifiers = edge.data.modifierStrings
+                      val referenceModifierString = if (referenceModifiers.isEmpty) "" else referenceModifiers.mkString(",") + ": "
                       div(
                         Styles.flex,
-                        Components.nodeCard( node, maxLength = Some(200)).apply(
+                        alignItems.center,
+                        justifyContent.flexEnd,
+                        VDomModifier.ifTrue(referenceModifiers.nonEmpty)(i(marginRight := "4px", s"${referenceModifiers.mkString(", ")}: ")),
+                        Components.nodeCard( node, maxLength = Some(100)).apply(
                           Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                         ),
                         div(padding := "2px", Icons.delete, deleteButton(node.id))

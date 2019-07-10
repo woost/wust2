@@ -33,7 +33,7 @@ import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
 import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState, InputMention}
 import wust.webApp.views.UploadComponents._
 
-import scala.collection.breakOut
+import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 
@@ -112,7 +112,7 @@ object Components {
     )
   }
 
-  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true): VNode = {
+  def nodeCardAsOneLineText(node: Node, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
     renderNodeCard(node, contentInject = renderAsOneLineText( _), projectWithIcon = projectWithIcon)
   }
 
@@ -436,10 +436,14 @@ object Components {
       }
     }
 
-    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VDomModifier = {
+    def renderNodeCardMod(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VDomModifier = {
+      def renderAutomatedNodes = automatedNodesOfNode(node.id)
       def contentNode(node: Node) = div(
         cls := "nodecard-content",
-        contentInject(node)
+        contentInject(node) match {
+          case node: VNode => node.apply(renderAutomatedNodes)
+          case mod => VDomModifier(mod, renderAutomatedNodes)
+        }
       )
 
       VDomModifier(
@@ -465,7 +469,7 @@ object Components {
       )
     }
 
-    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true): VNode = {
+    def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
       div(
         keyed(node.id),
         renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
@@ -484,7 +488,7 @@ object Components {
         projectWithIcon = projectWithIcon
       )
     }
-    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None): VNode = {
+    def nodeCardWithoutRender(node: Node, contentInject: VDomModifier = VDomModifier.empty, nodeInject: VDomModifier = VDomModifier.empty, maxLength: Option[Int] = None)(implicit ctx: Ctx.Owner): VNode = {
       renderNodeCard(
         node,
         contentInject = node => VDomModifier(p(StringOps.trimToMaxLength(node.str, maxLength), nodeInject), contentInject)
@@ -813,21 +817,81 @@ object Components {
   }
 
   def automatedNodesOfNode(nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
-    val automatedNodes: Rx[Seq[Node]] = Rx {
+    val automationInfo: Rx[(Either[Boolean, Seq[(Node, Node)]], Seq[(EdgeData.ReferencesTemplate, Node)])] = Rx {
       val graph = GlobalState.rawGraph()
-      graph.idToIdxFold(nodeId)(Seq.empty[Node])(graph.automatedNodes)
+      graph.idToIdxFold[(Either[Boolean, Seq[(Node, Node)]], Seq[(EdgeData.ReferencesTemplate, Node)])](nodeId)(Left(false) -> Seq.empty) { nodeIdx =>
+        val references: Seq[(EdgeData.ReferencesTemplate, Node)] = graph.referencesTemplateEdgeIdx.map(nodeIdx) { edgeIdx =>
+          graph.edges(edgeIdx).as[Edge.ReferencesTemplate].data -> graph.nodes(graph.edgesIdx.b(edgeIdx))
+        }
+        val nodes: Seq[(Node, Node)] = graph.automatedEdgeReverseIdx.flatMap(nodeIdx) { edgeIdx =>
+          val automatedNodeIdx = graph.edgesIdx.a(edgeIdx)
+          graph.workspacesForParent(automatedNodeIdx).map { workspaceIdx =>
+            (graph.nodes(automatedNodeIdx), graph.nodes(workspaceIdx))
+          }
+        }
+        if (nodes.isEmpty) Left(graph.selfOrParentIsAutomationTemplate(nodeIdx)) -> references
+        else Right(nodes) -> references
+      }
     }
 
     Rx {
-      if (automatedNodes().isEmpty) VDomModifier.empty
-      else VDomModifier(
-        automatedNodes().map { node =>
-          div(
-            div(background := "repeating-linear-gradient(45deg, yellow, yellow 6px, black 6px, black 12px)", height := "3px"),
-            UI.tooltip("bottom center") := "This node is an active automation template")
-            Components.nodeTag( node, pageOnClick = false, dragOptions = _ => VDomModifier.empty).prepend(renderFontAwesomeIcon(Icons.automate).apply(marginLeft := "3px", marginRight := "3px")
-          )
-        }
+      val autoInfo = automationInfo()
+
+      def renderAutomatedNodes = autoInfo._1 match {
+        case Left(true) => div(
+          marginLeft := "2px",
+          Icons.automate,
+          UI.popup("bottom center") := s"This node is part of an automation template",
+        )
+        case Right(automatedNodes) if automatedNodes.nonEmpty => VDomModifier(
+          automatedNodes.map { case (node, workspace) =>
+            div(
+              marginLeft := "2px",
+              borderRadius := "2px",
+              UI.popup("bottom center") := s"This node is an active automation template for: ${StringOps.trimToMaxLength(node.str, 30)}",
+              fontSize.xSmall,
+              Icons.automate,
+              cursor.pointer,
+              backgroundColor := tagColor(node.id).toHex,
+              onClick.stopPropagation.foreach {
+                GlobalState.focus(workspace.id)
+              }
+            )
+          }
+        )
+        case _ => VDomModifier.empty
+      }
+
+      def renderTemplateReferences = autoInfo._2 match {
+        case references if references.nonEmpty => VDomModifier(
+          references.map { case (edgeData, node) =>
+            val referenceModifiers = edgeData.modifierStrings
+            val referenceModifierString = if (referenceModifiers.isEmpty) "" else "(" + referenceModifiers.mkString(", ") + ")"
+
+            div(
+              marginLeft := "2px",
+              Styles.flex,
+              alignItems.center,
+              fontSize.xSmall,
+              Icons.templateReference,
+              renderAsOneLineText(node).apply(maxWidth := "150px"),
+              UI.popup("bottom center") := s"This node has a template reference$referenceModifierString",
+            )
+          }
+        )
+        case _ => VDomModifier.empty
+      }
+
+      div(
+        overflow.hidden,
+        Styles.flex,
+        alignItems.center,
+        float.right,
+        maxWidth := "200px",
+        flexWrap.wrap,
+        marginLeft := "4px",
+        renderAutomatedNodes,
+        renderTemplateReferences,
       )
     }
   }

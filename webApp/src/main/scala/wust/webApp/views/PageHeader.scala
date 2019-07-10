@@ -49,7 +49,6 @@ object PageHeader {
         Components.showHoveredNode( node.id),
         div(
           UnreadComponents.readObserver(
-            
             node.id,
             labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
           ), 
@@ -140,7 +139,6 @@ object PageHeader {
           div(
             Styles.flex,
             alignItems.center,
-            Components.automatedNodesOfNode( pageNodeId),
             channelMembersList,
 
             menuItems( pageNodeId)

@@ -48,7 +48,7 @@ object ItemProperties {
     @inline def labeledProperty(key: String): Property = labeledProperty(key, false)
     def labeledProperty(key: String, showOnCard: Boolean): Property = Property(key, showOnCard, (sourceId, key, showOnCard, targetId) => Edge.LabeledProperty(sourceId, EdgeData.LabeledProperty(key, showOnCard), PropertyId(targetId)))
   }
-  final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, filterRefCompletion: Node => Boolean = _ => true)
+  final case class TypeConfig(prefilledType: Option[NodeTypeSelection] = Some(NodeTypeSelection.Data(NodeData.Markdown.tpe)), hidePrefilledType: Boolean = false, filterRefCompletion: Node => Boolean = _ => true, customOptions: Option[VDomModifier] = None)
   object TypeConfig {
     @inline def default = TypeConfig()
   }
@@ -175,7 +175,7 @@ object ItemProperties {
           )
           case true => VDomModifier.empty
         },
-        div(
+        config.customOptions getOrElse div(
           cls := "field",
           Styles.flex,
           flexWrap.wrap,

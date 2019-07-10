@@ -240,6 +240,7 @@ final class GraphLookup(
   private val automatedDegree = new Array[Int](n)
   private val automatedReverseDegree = new Array[Int](n)
   private val derivedFromTemplateDegree = new Array[Int](n)
+  private val derivedFromTemplateReverseDegree = new Array[Int](n)
   private val referencesTemplateDegree = new Array[Int](n)
   private val mentionsDegree = new Array[Int](n)
 
@@ -319,6 +320,7 @@ final class GraphLookup(
             automatedReverseDegree(targetIdx) += 1
           case _: Edge.DerivedFromTemplate =>
             derivedFromTemplateDegree(sourceIdx) += 1
+            derivedFromTemplateReverseDegree(targetIdx) += 1
           case _: Edge.ReferencesTemplate =>
             referencesTemplateDegree(sourceIdx) += 1
           case _: Edge.Mention =>
@@ -362,6 +364,7 @@ final class GraphLookup(
   private val automatedEdgeIdxBuilder = NestedArrayInt.builder(automatedDegree)
   private val automatedEdgeReverseIdxBuilder = NestedArrayInt.builder(automatedReverseDegree)
   private val derivedFromTemplateEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateDegree)
+  private val derivedFromTemplateReverseEdgeIdxBuilder = NestedArrayInt.builder(derivedFromTemplateReverseDegree)
   private val referencesTemplateEdgeIdxBuilder = NestedArrayInt.builder(referencesTemplateDegree)
   private val mentionsEdgeIdxBuilder = NestedArrayInt.builder(mentionsDegree)
 
@@ -442,6 +445,7 @@ final class GraphLookup(
         automatedEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.DerivedFromTemplate =>
         derivedFromTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        derivedFromTemplateReverseEdgeIdxBuilder.add(targetIdx, edgeIdx)
       case _: Edge.ReferencesTemplate =>
         referencesTemplateEdgeIdxBuilder.add(sourceIdx, edgeIdx)
       case _: Edge.Mention =>
@@ -483,6 +487,7 @@ final class GraphLookup(
   val automatedEdgeIdx: NestedArrayInt = automatedEdgeIdxBuilder.result()
   val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
+  val derivedFromTemplateEdgeReverseIdx: NestedArrayInt = derivedFromTemplateReverseEdgeIdxBuilder.result()
   val referencesTemplateEdgeIdx: NestedArrayInt = referencesTemplateEdgeIdxBuilder.result()
   val mentionsEdgeIdx: NestedArrayInt = mentionsEdgeIdxBuilder.result()
 

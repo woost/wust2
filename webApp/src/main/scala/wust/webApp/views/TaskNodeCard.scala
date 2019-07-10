@@ -206,7 +206,6 @@ object TaskNodeCard {
       Styles.flex,
       flexWrap.wrap,
 
-      Components.automatedNodesOfNode( nodeId),
       Rx {
         if (propertySingleEmpty()) VDomModifier.empty
         else VDomModifier(
@@ -494,7 +493,6 @@ object TaskNodeCard {
       Styles.flex,
       flexWrap.wrap,
 
-      Components.automatedNodesOfNode( node.id),
       propertySingle.map { propertySingle =>
         VDomModifier(
           VDomModifier.ifTrue(!inOneLine)(
@@ -582,7 +580,6 @@ object TaskNodeCard {
     )
 
     Components.nodeCard(
-      
       node,
       maxLength = Some(maxLength),
       contentInject = VDomModifier(
