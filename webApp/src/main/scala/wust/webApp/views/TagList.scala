@@ -91,7 +91,7 @@ object TagList {
     }
 
     def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag( tag, viewRender, tagModifier = removableTagMod(() =>
-      GlobalState.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
+      GlobalState.submitChanges(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
     ), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
     def renderTagTree(parentId: NodeId, trees:Seq[Tree])(implicit ctx: Ctx.Owner): VDomModifier = trees.map {
@@ -154,7 +154,7 @@ object TagList {
       val createdNode = Node.MarkdownTag(sub.text)
       val change = GraphChanges.addNodeWithParent(createdNode, ParentId(parentId) :: Nil)
 
-      GlobalState.eventProcessor.changes.onNext(change merge sub.changes(createdNode.id))
+      GlobalState.submitChanges(change merge sub.changes(createdNode.id))
     }
 
     def blurAction(v:String): Unit = {

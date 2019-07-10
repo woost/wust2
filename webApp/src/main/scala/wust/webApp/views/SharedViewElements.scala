@@ -327,7 +327,7 @@ object SharedViewElements {
             ),
             ifCanWrite(deleteButton(
               onClick foreach {
-                GlobalState.eventProcessor.changes.onNext(GraphChanges.delete(ChildId(nodeId), directParentIds))
+                GlobalState.submitChanges(GraphChanges.delete(ChildId(nodeId), directParentIds))
                 selectedNodes.update(_.filterNot(_.nodeId == nodeId))
               },
             )),
@@ -392,7 +392,7 @@ object SharedViewElements {
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      GlobalState.eventProcessor.changes.onNext(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
+      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
       GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
       selectedViews() = Seq.empty
 

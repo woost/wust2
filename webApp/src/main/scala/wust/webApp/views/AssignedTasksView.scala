@@ -67,7 +67,7 @@ object AssignedTasksView  {
         )
       )
 
-      GlobalState.eventProcessor.changes.onNext(changes merge sub.changes(newTask.id))
+      GlobalState.submitChanges(changes merge sub.changes(newTask.id))
     }
 
     div(

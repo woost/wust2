@@ -31,7 +31,7 @@ object MembersModal {
         Edge.Invite(node.id, userId),
         Edge.Member(node.id, EdgeData.Member(AccessLevel.ReadWrite), userId)
       ))
-      GlobalState.eventProcessor.changes.onNext(change)
+      GlobalState.submitChanges(change)
       clear.onNext(())
     }
     def handleAddMember(email: String)(implicit ctx: Ctx.Owner): Unit = {
@@ -78,7 +78,7 @@ object MembersModal {
       }
 
       val change: GraphChanges = GraphChanges(delEdges = Array(membership))
-      GlobalState.eventProcessor.changes.onNext(change)
+      GlobalState.submitChanges(change)
     }
 
     def description(implicit ctx: Ctx.Owner) = {

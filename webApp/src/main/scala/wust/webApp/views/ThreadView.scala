@@ -311,7 +311,7 @@ object ThreadView {
       val addNodeChange = GraphChanges.addNodeWithParent(createdNode, ParentId(nodeId) :: Nil) merge sub.changes(createdNode.id)
       val expandChange = if(!graph.isExpanded(user.id, nodeId).getOrElse(false)) GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), user.id) else GraphChanges.empty
       val changes = addNodeChange merge expandChange
-      GlobalState.eventProcessor.changes.onNext(changes)
+      GlobalState.submitChanges(changes)
     } else Future.successful(Continue)
 
     InputRow(
@@ -401,7 +401,7 @@ object ThreadView {
       val basicNode = Node.MarkdownMessage(sub.text)
       val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(focusState.focusedId)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
-        case None => GlobalState.eventProcessor.changes.onNext(basicGraphChanges)
+        case None => GlobalState.submitChanges(basicGraphChanges)
         case Some(uploadFile) => AWS.uploadFileAndCreateNode( uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
       }
 

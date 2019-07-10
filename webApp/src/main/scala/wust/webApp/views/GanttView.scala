@@ -93,7 +93,7 @@ object GanttView {
         submitAction = { sub =>
           val newNode = Node.MarkdownTask(sub.text)
           val changes = GraphChanges.addNodesWithParents(newNode :: Nil, GlobalState.page.now.parentId.map(ParentId(_))) merge sub.changes(newNode.id)
-          GlobalState.eventProcessor.changes.onNext(changes)
+          GlobalState.submitChanges(changes)
         },
         placeholder = Placeholder.newTask,
         showMarkdownHelp = true

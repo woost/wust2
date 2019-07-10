@@ -149,7 +149,7 @@ object DashboardView {
   private def renderSubproject(graph: Graph, focusState: FocusState, project: Node,
                                editMode: Rx.Dynamic[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
-    val dispatch = GlobalState.eventProcessor.changes.onNext _
+    val dispatch = GlobalState.submitChanges _
     val deletionBtn = if(isDeleted) {
       Components.unremovableTagMod(() =>
         dispatch(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
@@ -192,7 +192,7 @@ object DashboardView {
         val newProjectNode = Node.MarkdownProject(sub.text)
         GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusState.focusedId)) merge sub.changes(newProjectNode.id)
       }
-      GlobalState.eventProcessor.changes.onNext(change)
+      GlobalState.submitChanges(change)
     }
 
     def blurAction(v:String) = {

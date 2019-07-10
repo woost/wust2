@@ -187,7 +187,7 @@ object RightSidebar {
           Icons.delete,
           buttonMods,
           onClick.stopPropagation.foreach { _ =>
-            GlobalState.eventProcessor.changes.onNext(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
+            GlobalState.submitChanges(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
             parentIdAction(None)
           },
         )
@@ -282,7 +282,7 @@ object RightSidebar {
       val createdNode = Node.MarkdownTag(str)
       val change = GraphChanges.addNodeWithParent(createdNode, ParentId(GlobalState.page.now.parentId)) merge
         GraphChanges.connect(Edge.Child)(ParentId(createdNode.id), ChildId(focusPref.nodeId))
-      GlobalState.eventProcessor.changes.onNext(change)
+      GlobalState.submitChanges(change)
       true
     }
 
@@ -436,7 +436,7 @@ object RightSidebar {
         renderSplit(
           left = VDomModifier(
             searchInput("Add Tag", filter = _.role == NodeRole.Tag, createNew = createNewTag(_), showNotFound = false).foreach { tagId =>
-              GlobalState.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
+              GlobalState.submitChanges(GraphChanges.connect(Edge.Child)(ParentId(tagId), ChildId(focusPref.nodeId)))
             }
           ),
           right = VDomModifier(
@@ -453,7 +453,7 @@ object RightSidebar {
         renderSplit(
           left = VDomModifier(
             searchInput("Assign User", filter = _.data.isInstanceOf[NodeData.User]).foreach { userId =>
-              GlobalState.eventProcessor.changes.onNext(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
+              GlobalState.submitChanges(GraphChanges.connect(Edge.Assigned)(focusPref.nodeId, UserId(userId)))
             }
           ),
           right = VDomModifier(

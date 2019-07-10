@@ -120,7 +120,7 @@ object DevView {
             val newPosts =
               List.fill(count)(Node.MarkdownMessage(rSentence))
             val changes = GraphChanges.addNodesWithParents(newPosts, GlobalState.page.now.parentId.map(ParentId(_)))
-            GlobalState.eventProcessor.changes.onNext(changes)
+            GlobalState.submitChanges(changes)
           }
 
           div(
@@ -160,7 +160,7 @@ object DevView {
                 selected += randomConnection
               }
 
-              GlobalState.eventProcessor.changes.onNext(GraphChanges.from(addEdges = selected))
+              GlobalState.submitChanges(GraphChanges.from(addEdges = selected))
             }
           }
 

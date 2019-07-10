@@ -39,7 +39,7 @@ object PostCreationMenu {
         if(content.nonEmpty) {
           val author = GlobalState.user.now
           val changes = GraphChanges.addNodeWithParent(Node.MarkdownTask(content), ParentId(focusState.focusedId))
-          GlobalState.eventProcessor.changes.onNext(changes)
+          GlobalState.submitChanges(changes)
         }
 
         // TODO: move created post below menu (not working yet)

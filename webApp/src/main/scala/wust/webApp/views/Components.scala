@@ -164,7 +164,7 @@ object Components {
                   Edge.Member(nodeId = nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId = dmUserId)
                 ))
 
-              GlobalState.eventProcessor.changes.onNext(change)
+              GlobalState.submitChanges(change)
               GlobalState.urlConfig.update(_.focus(Page(nodeId), View.Conversation, needsGet = false))
               ()
           }
@@ -354,7 +354,7 @@ object Components {
 
   def removableNodeCardProperty(key: Edge.LabeledProperty, propertyNode: Node, pageOnClick:Boolean = false)(implicit ctx: Ctx.Owner): VNode = {
     removableNodeCardPropertyCustom( key, propertyNode, () => {
-      GlobalState.eventProcessor.changes.onNext(
+      GlobalState.submitChanges(
         GraphChanges(delEdges = Array(key))
       )
     }, pageOnClick)
@@ -363,7 +363,7 @@ object Components {
 
     def removableAssignedUser(user: Node.User, assignedNodeId: NodeId): VNode = {
       renderUser(user).apply(
-        removableTagMod(() => GlobalState.eventProcessor.changes.onNext(GraphChanges.disconnect(Edge.Assigned)(assignedNodeId, user.id)))
+        removableTagMod(() => GlobalState.submitChanges(GraphChanges.disconnect(Edge.Assigned)(assignedNodeId, user.id)))
       )
     }
 
@@ -395,7 +395,7 @@ object Components {
 
     def removableNodeTag(tag: Node, taggedNodeId: NodeId, pageOnClick:Boolean = false): VNode = {
       removableNodeTagCustom(tag, () => {
-        GlobalState.eventProcessor.changes.onNext(
+        GlobalState.submitChanges(
           GraphChanges.disconnect(Edge.Child)(Array(ParentId(tag.id)), ChildId(taggedNodeId))
         )
       }, pageOnClick)
@@ -549,11 +549,11 @@ object Components {
                 }
                 val stageParents = graph.parentsIdx(graph.idToIdxOrThrow(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
                 val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
-                GlobalState.eventProcessor.changes.onNext(changes)
+                GlobalState.submitChanges(changes)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node for every workspace exists
                 val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
-                GlobalState.eventProcessor.changes.onNext(changes)
+                GlobalState.submitChanges(changes)
               }
             }
 

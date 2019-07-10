@@ -497,7 +497,7 @@ object ChatView {
       val basicNode = Node.MarkdownMessage(sub.text)
       val basicGraphChanges = GraphChanges.addNodeWithParent(basicNode, ParentId(replyNodes)) merge sub.changes(basicNode.id)
       fileUploadHandler.now match {
-        case None             => GlobalState.eventProcessor.changes.onNext(basicGraphChanges)
+        case None             => GlobalState.submitChanges(basicGraphChanges)
         case Some(uploadFile) => AWS.uploadFileAndCreateNode( uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
       }
 

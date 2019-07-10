@@ -88,7 +88,7 @@ object PageSettingsMenu {
             Elements.icon(Icons.delete),
             span("Archive at all places"),
             onClick.stopPropagation foreach {
-              GlobalState.eventProcessor.changes.onNext(
+              GlobalState.submitChanges(
                 GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).map(ParentId(_))(breakOut))
                   .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id))
               )
@@ -101,7 +101,7 @@ object PageSettingsMenu {
       val copyItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
           GraphChangesAutomationUI.copyNodeItem( channel.id).foreach({ case (node, changes) =>
-            GlobalState.eventProcessor.changes.onNext(changes)
+            GlobalState.submitChanges(changes)
             UI.toast("Successfully copied node, click to focus", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success, click = () => GlobalState.urlConfig.update(_.focus(Page(node.id), needsGet = false)))
           }: ((Node.Content, GraphChanges)) => Unit)
         })
@@ -113,7 +113,7 @@ object PageSettingsMenu {
           VDomModifier.ifTrue(hasTemplates)(
             GraphChangesAutomationUI.resyncWithTemplatesItem( channel.id).foreach { changes =>
               UI.toast("Successfully synced with templates", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
-              GlobalState.eventProcessor.changes.onNext(changes)
+              GlobalState.submitChanges(changes)
             }
           )
         })
@@ -166,7 +166,7 @@ object PageSettingsMenu {
         case channel: Node.Content =>
           if (channel.meta.accessLevel != NodeAccess.ReadWrite) {
             val changes = GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = NodeAccess.ReadWrite)))
-            GlobalState.eventProcessor.changes.onNext(changes)
+            GlobalState.submitChanges(changes)
             UI.toast(s"${StringOps.trimToMaxLength(channel.str, 10)} is now public")
           }
         case _ => ()

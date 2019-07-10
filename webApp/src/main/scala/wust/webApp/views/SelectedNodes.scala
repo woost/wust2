@@ -94,7 +94,7 @@ object SelectedNodes {
           else
             selectedNodesList.foldLeft(GraphChanges.empty)((c, t) => c merge GraphChanges.delete(ChildId(t.nodeId), t.directParentIds.map(ParentId(_))))
 
-        GlobalState.eventProcessor.changes.onNext(changes)
+        GlobalState.submitChanges(changes)
         selectedNodes() = Set.empty[T]
       }
     )

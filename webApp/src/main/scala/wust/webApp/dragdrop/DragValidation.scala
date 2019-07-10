@@ -69,7 +69,7 @@ object DragValidation {
             if (!wouldCreateContainmentCycle(payload.nodeIds, Seq(overContainer.parentId), GlobalState.graph.now)) {
               // target is null, since sort actions do not look at the target. The target moves away automatically.
               val successful = sortAction.runWith { calculateChange =>
-                GlobalState.eventProcessor.changes.onNext(calculateChange(e, GlobalState.graph.now, GlobalState.user.now.id))
+                GlobalState.submitChanges(calculateChange(e, GlobalState.graph.now, GlobalState.user.now.id))
               }((payload, sourceContainer, overContainer, ctrl, shift))
 
               if (successful) {
@@ -116,7 +116,7 @@ object DragValidation {
       case (JSDefined(payload), JSDefined(target)) =>
         if (!wouldCreateContainmentCycle(payload.nodeIds, target.nodeIds, GlobalState.graph.now)) {
           val successful = dragAction.runWith { calculateChange =>
-            GlobalState.eventProcessor.changes.onNext(calculateChange(GlobalState.rawGraph.now, GlobalState.user.now.id))
+            GlobalState.submitChanges(calculateChange(GlobalState.rawGraph.now, GlobalState.user.now.id))
           }((payload, target, ctrl, shift))
 
           if (successful) {

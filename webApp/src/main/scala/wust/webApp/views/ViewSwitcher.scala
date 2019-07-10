@@ -293,7 +293,7 @@ object ViewSwitcher {
         viewAction(newView)
       }
 
-      GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+      GlobalState.submitChanges(GraphChanges.addNode(newNode))
     }
   }
   private def removeView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], view: View.Visible): Unit = {
@@ -314,7 +314,7 @@ object ViewSwitcher {
       viewAction(newView)
     }
 
-    GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+    GlobalState.submitChanges(GraphChanges.addNode(newNode))
   }
   private def addNewView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], existingViews: Rx.Dynamic[List[View.Visible]], newView: View.Visible): Unit = {
     if(viewDefs.contains(newView)) { // only allow defined views
@@ -328,7 +328,7 @@ object ViewSwitcher {
           case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
         }
 
-        GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(newNode))
+        GlobalState.submitChanges(GraphChanges.addNode(newNode))
       }
 
       if(viewRx.now != newView) {

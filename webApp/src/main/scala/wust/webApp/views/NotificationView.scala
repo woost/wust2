@@ -295,7 +295,7 @@ object NotificationView {
                                 addEdges = Array(Edge.Read(node.id, EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))
                               )
 
-                              GlobalState.eventProcessor.changes.onNext(changes)
+                              GlobalState.submitChanges(changes)
                               ()
                             }
                           )
@@ -439,7 +439,7 @@ object NotificationView {
             .map(nodeIdx => Edge.Read(GlobalState.graph.now.nodeIds(nodeIdx), EdgeData.Read(EpochMilli.now), GlobalState.user.now.id))(breakOut)
         )
 
-        GlobalState.eventProcessor.changes.onNext(changes)
+        GlobalState.submitChanges(changes)
         ()
       }
     )

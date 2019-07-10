@@ -200,7 +200,7 @@ object KanbanView {
               div(cls := "fa-fw", if (isDeletedNow()) Icons.undelete else Icons.delete),
               onClick.stopPropagation foreach {
                 val deleteChanges = if (isDeletedNow.now) GraphChanges.undelete(ChildId(nodeId), ParentId(traverseState.parentId)) else GraphChanges.delete(ChildId(nodeId), ParentId(traverseState.parentId))
-                GlobalState.eventProcessor.changes.onNext(deleteChanges)
+                GlobalState.submitChanges(deleteChanges)
                 if (!isDeletedNow.now) selectedNodeIds.update(_ - nodeId)
               },
               cursor.pointer,
@@ -301,7 +301,7 @@ object KanbanView {
       val addNode = GraphChanges.addNodeWithParent(createdNode, (workspaces :+ ParentId(nodeId)).distinct)
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
 
-      GlobalState.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
+      GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     def blurAction(v:String): Unit = {
@@ -341,7 +341,7 @@ object KanbanView {
         val newStageNode = Node.MarkdownStage(sub.text)
         GraphChanges.addNodeWithParent(newStageNode, ParentId(focusState.focusedId)) merge sub.changes(newStageNode.id)
       }
-      GlobalState.eventProcessor.changes.onNext(change)
+      GlobalState.submitChanges(change)
       //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again
     }
 

@@ -117,7 +117,7 @@ object AWS {
     val observableChanges = observableNodeData.map(data => toGraphChanges(initialNode.copy(data = data)))
 
     GlobalState.eventProcessor.localEvents.onNext(ApiEvent.NewGraphChanges.forPrivate(GlobalState.user.now.toNode, initialChanges.withAuthor(GlobalState.user.now.id)))
-    observableChanges.runToFuture.flatMap { e => GlobalState.eventProcessor.changes.onNext(e).map(_ => ()) }
+    observableChanges.runToFuture.flatMap { e => GlobalState.submitChanges(e).map(_ => ()) }
   }
 
   def uploadFileAndCreateNodeData(uploadFile: AWS.UploadableFile): Task[NodeData.File] = {

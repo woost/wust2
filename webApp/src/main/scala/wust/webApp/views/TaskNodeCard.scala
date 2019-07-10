@@ -140,7 +140,7 @@ object TaskNodeCard {
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
         val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(nodeId), ParentId(traverseState.parentId))
-        GlobalState.eventProcessor.changes.onNext(changes)
+        GlobalState.submitChanges(changes)
         selectedNodeIds.update(_ - nodeId)
       }
       def toggleDelete = {
@@ -433,7 +433,7 @@ object TaskNodeCard {
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(node.id), ParentId(focusState.focusedId))
 
         val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(node.id), ParentId(parentId))
-        GlobalState.eventProcessor.changes.onNext(changes)
+        GlobalState.submitChanges(changes)
         selectedNodeIds.update(_ - node.id)
       }
       def toggleDelete = {

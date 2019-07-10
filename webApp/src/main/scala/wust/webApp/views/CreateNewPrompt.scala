@@ -43,11 +43,11 @@ object CreateNewPrompt {
 
       val ack = if (addToChannels.now) {
         val channelChanges = GraphChanges.connect(Edge.Pinned)(newNode.id, GlobalState.user.now.id)
-        val ack = GlobalState.eventProcessor.changes.onNext(changes merge channelChanges)
+        val ack = GlobalState.submitChanges(changes merge channelChanges)
         GlobalState.urlConfig.update(_.focus(Page(newNode.id), needsGet = false))
         ack
       } else {
-        val ack = GlobalState.eventProcessor.changes.onNext(changes)
+        val ack = GlobalState.submitChanges(changes)
         def newViewConfig = nodeRole.now match {
           case NodeRole.Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
           case NodeRole.Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)

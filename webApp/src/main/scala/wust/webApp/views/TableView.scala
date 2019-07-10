@@ -89,7 +89,7 @@ object TableView {
         div(
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
-              GlobalState.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
+              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
             }
           }
         ),
@@ -292,7 +292,7 @@ object TableView {
                 " Delete",
                 onClick.stopPropagation.foreach {
                   if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                    GlobalState.eventProcessor.changes.onNext(GraphChanges(delEdges = edges.map(e => e)))
+                    GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)))
                   }
                   ()
                 },
@@ -314,7 +314,7 @@ object TableView {
           sort() = None // reset sorting again, so the new node appears at the bottom :)
           val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
           val addTags = ViewFilter.addCurrentlyFilteredTags( newNode.id)
-          GlobalState.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(newNode.id))
+          GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
 
           ()
         }

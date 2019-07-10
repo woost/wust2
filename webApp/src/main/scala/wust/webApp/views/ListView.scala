@@ -251,7 +251,7 @@ object ListView {
       val createdNode = Node.MarkdownTask(sub.text)
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
-      GlobalState.eventProcessor.changes.onNext(addNode merge addTags merge sub.changes(createdNode.id))
+      GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
     }
 
     div(

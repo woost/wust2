@@ -100,7 +100,7 @@ object GraphView {
     
     changes match {
       case Some(changes) => 
-        GlobalState.eventProcessor.changes.onNext(changes)
+        GlobalState.submitChanges(changes)
         true
       case None => false
     } 

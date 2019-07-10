@@ -46,7 +46,7 @@ object NotesView {
         submitAction = { sub =>
           val newNode = Node.MarkdownNote(sub.text)
           val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
-          GlobalState.eventProcessor.changes.onNext(changes)
+          GlobalState.submitChanges(changes)
         },
         submitOnEnter = false,
         showSubmitIcon = true,
@@ -100,7 +100,7 @@ object NotesView {
               case true => GraphChanges.undelete(ChildId(node.id), ParentId(parentId))
               case false => GraphChanges.delete(ChildId(node.id), ParentId(parentId))
             }
-            GlobalState.eventProcessor.changes.onNext(changes)
+            GlobalState.submitChanges(changes)
             ()
           }
         )

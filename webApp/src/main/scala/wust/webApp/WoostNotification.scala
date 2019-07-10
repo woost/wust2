@@ -69,7 +69,7 @@ object WoostNotification {
           title := "Notifications are currently disabled. Click to enable.",
           onClick foreach {
             Notifications.requestPermissionsAndSubscribe {
-              if(notification.changesOnSuccessPrompt) GlobalState.eventProcessor.changes.onNext(notification.changes)
+              if(notification.changesOnSuccessPrompt) GlobalState.submitChanges(notification.changes)
             }
           },
         )

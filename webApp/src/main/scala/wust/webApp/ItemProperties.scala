@@ -222,7 +222,7 @@ object ItemProperties {
           case Target.Node(nodeId) => addProperty(nodeId)
         }
 
-        GlobalState.eventProcessor.changes.onNext(changes) foreach { _ => clear.onNext (()) }
+        GlobalState.submitChanges(changes) foreach { _ => clear.onNext (()) }
       }
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {

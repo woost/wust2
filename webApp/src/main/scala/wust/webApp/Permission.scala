@@ -79,7 +79,7 @@ object Permission {
             },
             active = channel.meta.accessLevel == item.access,
             clickAction = { () =>
-              GlobalState.eventProcessor.changes.onNext(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
+              GlobalState.submitChanges(GraphChanges.addNode(channel.copy(meta = channel.meta.copy(accessLevel = item.access))))
               Analytics.sendEvent("pageheader", "changepermission", item.access.str)
             }
           )
