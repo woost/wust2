@@ -163,6 +163,7 @@ object GraphChanges {
 
   def addMarkdownMessage(string: String): GraphChanges = addNode(Node.MarkdownMessage(string))
   def addMarkdownTask(string: String): GraphChanges = addNode(Node.MarkdownTask(string))
+  def addMarkdownTask(string: String, parentId:ParentId): GraphChanges = addNodeWithParent(Node.MarkdownTask(string), parentId)
 
   def addNode(content: NodeData.Content, role: NodeRole) = GraphChanges(addNodes = Array(Node.Content(content, role)))
   def addNode(node: Node) = GraphChanges(addNodes = Array(node))

@@ -7,12 +7,12 @@ import wust.css.Styles
 import wust.facades.googleanalytics.Analytics
 import wust.ids.View
 import wust.util._
-import wust.webApp.state.{GlobalState, ScreenSize}
+import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.outwatchHelpers._
 import wust.graph.GraphChanges
-import wust.ids.NodeId
+import wust.ids._
 
 object WelcomeView {
 
@@ -82,10 +82,23 @@ object WelcomeView {
             button(cls := "ui primary button", "Create example content to play with",
               onClick.stopPropagation.foreach { _ =>
                 var changes = GraphChanges.empty
+                def addChange(newChanges: GraphChanges): Unit = {
+                  changes = changes merge newChanges
+                }
 
                 val newProjectId = NodeId.fresh()
-                changes = changes merge GraphChanges.newProject(newProjectId, GlobalState.userId.now, "Click me to rename")
+                addChange(GraphChanges.newProject(newProjectId, GlobalState.userId.now, "Click me to rename", views = Some(List(View.List))))
+                // checklist items are added in reverse order
 
+                val expanded = GraphChanges.addMarkdownTask("click the + on the right or the progress-bar to expand this task", ParentId(newProjectId))
+                val expandedId = expanded.addNodes.head.id
+                addChange(expanded)
+                addChange(GraphChanges.addMarkdownTask("create a new sub-subtask (expand a subtask first). Tasks can be nested arbitrarily.", ParentId(expandedId)))
+                addChange(GraphChanges.addMarkdownTask("create a new subtask", ParentId(expandedId)))
+                addChange(GraphChanges.addMarkdownTask("check this subtask", ParentId(expandedId)))
+
+                addChange(GraphChanges.addMarkdownTask("drag me to change order", ParentId(newProjectId)))
+                addChange(GraphChanges.addMarkdownTask("check me", ParentId(newProjectId)))
 
                 GlobalState.submitChanges(changes)
                 GlobalState.focus(newProjectId, needsGet = false)
@@ -101,7 +114,7 @@ object WelcomeView {
               Styles.flex,
               alignItems.center,
               justifyContent.spaceAround,
-              AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
+              AuthControls.authStatus(buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
             )
           )
         )
