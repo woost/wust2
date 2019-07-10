@@ -429,7 +429,6 @@ object GraphChangesAutomation {
       val isTouched = alreadyExistingNodes.contains(newNode.id)
       (isTouched, GraphChanges(addNodes = addAndEditNodes, addEdges = allAddEdges).consistent)
     } else {
-      dom.window.alert("We are very sorry, we cannot apply this automation. There was a bug!")
       scribe.warn("Cannot apply automation, BUG!")
       (false, GraphChanges.empty)
     }
