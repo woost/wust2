@@ -80,53 +80,19 @@ object PageSettingsMenu {
         ))
       }
 
-      val hasNotDeletedParents = Rx {
-        val graph = GlobalState.rawGraph()
-        val idx = graph.idToIdxOrThrow(channelId)
-        graph.notDeletedParentsIdx.sliceNonEmpty(idx)
-      }
-      val hasDeletedParents = Rx {
-        val graph = GlobalState.rawGraph()
-        val idx = graph.idToIdxOrThrow(channelId)
-        graph.parentsIdx.sliceLength(idx) != graph.notDeletedParentsIdx.sliceLength(idx)
-      }
-      val archiveItem = Rx {
+      val deleteItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
           a(
             cursor.pointer,
             cls := "item",
-            if (hasNotDeletedParents()) VDomModifier(
-              Elements.icon(Icons.delete),
-              span("Archive at all places"),
-            ) else VDomModifier(
-              Elements.icon(Icons.undelete),
-              span("Unarchive at all places"),
-            ),
-            onClick.stopPropagation foreach {
-              val graph = GlobalState.rawGraph.now
-              val (actionText, deleteChanges) =
-                if (hasNotDeletedParents.now) ("Archived", GraphChanges.delete(ChildId(channelId), graph.parents(channelId).map(ParentId(_))(breakOut)).merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)))
-                else ("Unarchived", GraphChanges.undelete(ChildId(channelId), graph.notDeletedParents(channelId).map(ParentId(_))(breakOut)))
-              GlobalState.eventProcessor.changes.onNext(deleteChanges)
-              UI.toast(s"$actionText '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
-            }
-          )
-        })
-      }
-      val deleteItem = Rx {
-        VDomModifier.ifTrue(hasDeletedParents() && canWrite())(channelAsContent().map { channel =>
-          a(
-            cursor.pointer,
-            cls := "item",
-            color.red,
             Elements.icon(Icons.delete),
-            span("Delete all archives"),
+            span("Archive at all places"),
             onClick.stopPropagation foreach {
-              val graph = GlobalState.rawGraph.now
-              val channelIdx = graph.idToIdxOrThrow(channelId)
-              val deleteChanges = GraphChanges(delEdges = graph.parentEdgeIdx.collect(channelIdx) { case edgeIdx if graph.isDeletedNowEdge(graph.edges(edgeIdx).as[Edge.Child]) => graph.edges(edgeIdx) }).merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id))
-              GlobalState.eventProcessor.changes.onNext(deleteChanges)
-              UI.toast(s"Deleted '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
+              GlobalState.eventProcessor.changes.onNext(
+                GraphChanges.delete(ChildId(channelId), GlobalState.graph.now.parents(channelId).map(ParentId(_))(breakOut))
+                  .merge(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id))
+              )
+              UI.toast(s"Archived '${ StringOps.trimToMaxLength(channel.str, 10) }' at all places", level = UI.ToastLevel.Success)
             }
           )
         })
@@ -174,7 +140,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, archiveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, deleteItem)
     }
 
     GenericSidebar.SidebarConfig(
