@@ -460,7 +460,7 @@ object GraphChangesAutomation {
 
     val automatedNodes = mutable.HashSet[Node]()
 
-    val newAutomateParentChild = new mutable.HashSet[Node]
+    val newAutomateParentChild = new mutable.HashSet[NodeId]
 
     changes.addEdges.foreach {
 
