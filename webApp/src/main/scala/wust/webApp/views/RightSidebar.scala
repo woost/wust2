@@ -177,7 +177,7 @@ object RightSidebar {
       Icons.zoom,
       buttonMods,
       onClick.foreach {
-        GlobalState.urlConfig.update(_.focus(Page(focusPref.nodeId)))
+        GlobalState.focus(focusPref.nodeId)
       }
     )
 

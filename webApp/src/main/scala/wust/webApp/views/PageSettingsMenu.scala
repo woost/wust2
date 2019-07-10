@@ -102,7 +102,7 @@ object PageSettingsMenu {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
           GraphChangesAutomationUI.copyNodeItem( channel.id).foreach({ case (node, changes) =>
             GlobalState.submitChanges(changes)
-            UI.toast("Successfully copied node, click to focus", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success, click = () => GlobalState.urlConfig.update(_.focus(Page(node.id), needsGet = false)))
+            UI.toast("Successfully copied node, click to focus", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success, click = () => GlobalState.focus(node.id, needsGet = false))
           }: ((Node.Content, GraphChanges)) => Unit)
         })
       }

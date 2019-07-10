@@ -416,7 +416,7 @@ object ChatView {
               ),
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
-                GlobalState.urlConfig.update(_.focus(Page(node.id)))
+                GlobalState.focus(node.id)
                 selectedNodes() = Set.empty[SelectedNode]
               }, cursor.pointer),
               pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },

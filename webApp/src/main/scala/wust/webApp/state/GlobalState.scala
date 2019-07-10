@@ -162,6 +162,10 @@ object GlobalState {
   val pageWithoutReload: Rx[Page] = viewConfig.map(_.page)
   val pageNotFound: Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
+  def focus(nodeId: NodeId, needsGet: Boolean = true) = {
+    urlConfig.update(_.focus(Page(nodeId), needsGet = needsGet))
+  }
+
   val pageHasNotDeletedParents = Rx {
     page().parentId.exists(rawGraph().hasNotDeletedParents)
   }
@@ -218,6 +222,6 @@ object GlobalState {
   val isAnyFilterActive: Rx[Boolean] = Rx { graphTransformations().length != 2 || defaultTransformations.exists(t => !graphTransformations().contains(t)) }
 
   def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
-    FocusState(viewConfig.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => urlConfig.update(_.focus(Page(nodeId))))
+    FocusState(viewConfig.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => focus(nodeId))
   }
 }

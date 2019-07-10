@@ -297,7 +297,7 @@ object TaskNodeCard {
     VDomModifier(
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, nodeId),
       onDblClick.stopPropagation.foreach{ _ =>
-        GlobalState.urlConfig.update(_.focus(Page(nodeId)))
+        GlobalState.focus(nodeId)
       },
       Components.showHoveredNode( nodeId),
       UnreadComponents.readObserver( nodeId, marginTop := "7px"),

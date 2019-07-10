@@ -181,7 +181,7 @@ object Components {
       injected,
       backgroundColor := tagColor(tag.id).toHex,
       if(pageOnClick) onClick foreach { e =>
-        GlobalState.urlConfig.update(_.focus(Page(tag.id)))
+        GlobalState.focus(tag.id)
         e.stopPropagation()
       } else cursor.default,
     )
@@ -569,7 +569,7 @@ object Components {
         Icons.zoom,
         cursor.pointer,
         onClick.stopPropagation.foreach {
-          GlobalState.urlConfig.update(_.focus(Page(nodeId)))
+          GlobalState.focus(nodeId)
           ()
         }
       )

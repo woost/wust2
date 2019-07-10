@@ -463,7 +463,7 @@ object LeftSidebar {
 
   private def onChannelClick(nodeId: NodeId) = VDomModifier(
     onClickPreventDefaultExceptCtrl {
-      GlobalState.urlConfig.update(_.focus(Page(nodeId)))
+      GlobalState.focus(nodeId)
       ()
     }
   )
