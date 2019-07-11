@@ -1,4 +1,4 @@
-package wust.webApp.state
+package wust.webApp.state.graphstate
 
 import rx._
 import flatland._
@@ -14,7 +14,7 @@ import scala.collection.{ breakOut, immutable, mutable }
 //TODO: idempotence
 //TODO: commutativity (e.g. store edges without loaded nodes until the nodes appear)
 
-class GraphState(initialGraph: Graph) {
+final class GraphState(initialGraph: Graph) {
   import initialGraph.{ nodes, edges }
   val nodeState = NodeState(initialGraph.nodes)
   val edgeState = EdgeState(initialGraph.edges)
@@ -250,8 +250,8 @@ class GraphState(initialGraph: Graph) {
   // val outgoingEdgeIdx: NestedArrayInt = outgoingEdgeIdxBuilder.result()
   // val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   // val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
-  val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
-  val childrenIdx: NestedArrayInt = childrenIdxBuilder.result()
+  val readEdgeIdx: NestedArrayIntValues = readEdgeIdxBuilder.result()
+  val childrenIdx: NestedArrayIntValues = childrenIdxBuilder.result()
   // val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
   // val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
   // val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
@@ -320,162 +320,15 @@ class GraphState(initialGraph: Graph) {
   }
 }
 
-object NodeState {
-  def apply(graphNodes: Array[Node]) = {
-    val nodes = mutable.ArrayBuffer.empty[Node]
-    val idToIdxHashMap = mutable.HashMap.empty[NodeId, Int]
-    idToIdxHashMap.sizeHint(graphNodes.length)
 
-    graphNodes.foreachIndexAndElement { (idx, node) =>
-      val nodeId = node.id
-      nodes += node
-      idToIdxHashMap(nodeId) = idx
-    }
-    new NodeState(nodes, idToIdxHashMap)
-  }
-}
-
-class NodeState private (
-  val nodesNow: mutable.ArrayBuffer[Node],
-  val idToIdxHashMap: mutable.HashMap[NodeId, Int]
-) {
-  val nodesRx: mutable.ArrayBuffer[Var[Node]] = nodesNow.map(Var(_))
-
-  @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
-    idToIdxHashMap.get(id) match {
-      case Some(idx) => f(idx)
-      case None      => default
-    }
-  }
-  @inline def idToIdxForeach[U](id: NodeId)(f: Int => U): Unit = idToIdxFold(id)(())(f(_))
-  @inline def idToIdxMap[T](id: NodeId)(f: Int => T): Option[T] = idToIdxFold(id)(Option.empty[T])(idx => Some(f(idx)))
-  @inline def idToIdxOrThrow(nodeId: NodeId): Int = idToIdxHashMap(nodeId)
-  def idToIdx(nodeId: NodeId): Option[Int] = idToIdxFold[Option[Int]](nodeId)(None)(Some(_))
-  def nodesByIdOrThrow(nodeId: NodeId): Node = nodesNow(idToIdxOrThrow(nodeId))
-  def nodesById(nodeId: NodeId): Option[Node] = idToIdxFold[Option[Node]](nodeId)(None)(idx => Some(nodesNow(idx)))
-
-  def update(changes: GraphChanges): LayerChanges = {
-    // register new and updated nodes
-
-    var addIdx = 0 // counts the number of newly added nodes
-    changes.addNodes.foreachElement { node =>
-      val nodeId = node.id
-      idToIdxFold(nodeId){
-        // add new node and update idToIdxHashMap
-        val newIdx = nodesNow.length
-        nodesNow += node
-        nodesRx += Var(node)
-        idToIdxHashMap(nodeId) = newIdx
-        addIdx += 1
-      }{ idx =>
-        // already exists, update node
-        nodesNow(idx) = node
-        nodesRx(idx)() = node
-      }
-    }
-
-    assert(nodesNow.length == idToIdxHashMap.size)
-    assert(nodesNow.length == nodesRx.length)
-    LayerChanges(addIdx, changes.addEdges, changes.delEdges)
-  }
-}
-
-class EdgeState private (
-  val edgesNow: mutable.ArrayBuffer[Edge],
-  val idToIdxHashMap: mutable.HashMap[(NodeId, NodeId), Int]
-) {
-  val edgesRx: mutable.ArrayBuffer[Var[Edge]] = edgesNow.map(Var(_))
-  def update(changes: GraphChanges): Unit = {
-    // register new and updated edges
-
-    changes.addEdges.foreachElement { edge =>
-      val key = edge.sourceId -> edge.targetId
-
-      idToIdxHashMap.get(key) match {
-        case Some(idx) =>
-          edgesNow(idx) = edge
-          edgesRx(idx)() = edge
-        case None =>
-          val newIdx = edgesNow.length
-          edgesNow += edge
-          edgesRx += Var(edge)
-          idToIdxHashMap(key) = newIdx
-      }
-
-      assert(edgesNow.length == idToIdxHashMap.size)
-    }
-  }
-}
-
-final case class LayerChanges(
-  addIdx: Int,
-  addEdges: Array[Edge] = Array.empty,
-  delEdges: Array[Edge] = Array.empty
-)
-
-abstract class LayerState {
-  var lookupNow: NestedArrayInt
-  val lookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = lookupNow.map(slice => Var(slice.toArray))(breakOut)
-
-  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
-
-  def update(nodeState: NodeState, changes: LayerChanges): Unit = {
-    val affectedSourceNodes = new mutable.ArrayBuffer[Int]
-    val addElemBuilder = new mutable.ArrayBuilder.ofInt
-    changes.addEdges.foreach {
-      ifMyEdge { (sourceId, targetId) =>
-        nodeState.idToIdxForeach(sourceId) { sourceIdx =>
-          nodeState.idToIdxForeach(targetId) { targetIdx =>
-            addElemBuilder += sourceIdx
-            addElemBuilder += targetIdx
-            affectedSourceNodes += sourceIdx
-          }
-        }
-      }
-    }
-    val addElem = new InterleavedArrayInt(addElemBuilder.result())
-
-    val delElemBuilder = new mutable.ArrayBuilder.ofInt
-    changes.delEdges.foreach {
-      ifMyEdge { (sourceId, targetId) =>
-        nodeState.idToIdxForeach(sourceId) { sourceIdx =>
-          nodeState.idToIdxForeach(targetId) { targetIdx =>
-            delElemBuilder += sourceIdx
-            delElemBuilder += lookupNow.indexOf(sourceIdx)(targetIdx) // Remove the first occurence of the sourceId/targetId combination
-            affectedSourceNodes += sourceIdx
-          }
-        }
-      }
-    }
-    val delElem = new InterleavedArrayInt(delElemBuilder.result())
-
-    // NestedArray.changed() parameters:
-    // addIdx: Int, // how many nodes are added
-    // addElem: InterleavedArrayInt // Array[idx -> elem]
-    // delElem: InterleavedArrayInt // Array[idx -> position]
-    // if (scala.scalajs.LinkingInfo.developmentMode)
-    //   lookupNow = lookupNow.changedWithAssertions(changes.addIdx, addElem, delElem)
-    // else
-      lookupNow = lookupNow.changed(changes.addIdx, addElem, delElem)
-
-    loop(changes.addIdx) { _ =>
-      lookupRx += Var(new Array[Int](0))
-    }
-
-    affectedSourceNodes.foreachElement { idx =>
-      lookupRx(idx)() = lookupNow(idx).toArray
-    }
-  }
-}
-
-final class ChildrenLayer(var lookupNow: NestedArrayInt) extends LayerState {
+final class ChildrenLayer(var lookupNow: NestedArrayIntValues) extends LayerState {
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
     case edge: Edge.Child => code(edge.parentId, edge.childId)
     case _                =>
   }
 }
 
-final class ReadLayer(var lookupNow: NestedArrayInt) extends LayerState {
+final class ReadLayer(var lookupNow: NestedArrayIntValues) extends LayerState {
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
     case edge: Edge.Read => code(edge.nodeId, edge.userId)
     case _               =>

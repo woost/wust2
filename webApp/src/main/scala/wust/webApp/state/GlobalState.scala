@@ -2,6 +2,7 @@ package wust.webApp.state
 
 import scala.util.Try
 import com.github.ghik.silencer.silent
+import graphstate.GraphState
 import acyclic.file
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
