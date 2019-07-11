@@ -22,9 +22,13 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
 
   val defaultChildData = EdgeData.Child(deletedAt = None, ordering = BigDecimal(0))
 
-  def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNode: Node.Content) = GraphChangesAutomation.copySubGraphOfNode(
-    UserId(freshNodeId()), graph, newNode, Array(graph.idToIdxOrThrow(templateNode.id)), newId = copyNodeId(_), copyTime = copyTime
-  )
+  def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNode: Node.Content): GraphChanges = copySubGraphOfNode(graph, newNode, Seq(templateNode))
+  def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNodes: Seq[Node.Content]): GraphChanges = {
+    val newIdMap = scala.collection.mutable.HashMap[NodeId, Int]()
+    GraphChangesAutomation.copySubGraphOfNode(
+      UserId(freshNodeId()), graph, newNode, templateNodes.map(node => graph.idToIdxOrThrow(node.id))(breakOut), newId = copyNodeId(_), copyTime = copyTime
+    )
+  }
 
   "empty template node" in {
     val newNode = newNodeContent("new-node", NodeRole.Task)
@@ -383,6 +387,54 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
       Edge.Child(ParentId(copyNodeId(node1.id)), defaultChildData, ChildId(copyNodeId(childNode2.id))),
       Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(copyNodeId(node1.id))),
       Edge.DerivedFromTemplate(copyNodeId(node1.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "reference node inside template with multiple targets" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1a = newNodeContent("node1a", NodeRole.Task)
+    val node1b = newNodeContent("node1b", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1a = newNodeContent("child1a", NodeRole.Task)
+    val childNode1b = newNodeContent("child1b", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode1a = newNodeContent("template-node1a", NodeRole.Task)
+    val templateNode1b = newNodeContent("template-node1b", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1a, node1b, node2, childNode1a, childNode1b, childNode2, templateNode1a, templateNode1b
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1a.id)),
+        Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1b.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1a.id), defaultChildData, ChildId(childNode1a.id)),
+        Edge.Child(ParentId(node1b.id), defaultChildData, ChildId(childNode1b.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1a.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1a.id)),
+        Edge.DerivedFromTemplate(node1b.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode1b.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode1a.id)),
+        Edge.ReferencesTemplate(node2.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode1b.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(node1a.id), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(node1b.id), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1a.id)),
+      Edge.Child(ParentId(newNode.id), defaultChildData, ChildId(node1b.id)),
+      Edge.DerivedFromTemplate(node1a.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(node1b.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
       Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
       Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
     )
