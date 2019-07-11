@@ -82,26 +82,64 @@ object WelcomeView {
             button(cls := "ui primary button", "Create example content to play with",
               onClick.stopPropagation.foreach { _ =>
                 var changes = GraphChanges.empty
-                def addChange(newChanges: GraphChanges): Unit = {
+                def addGraphChange(newChanges: GraphChanges): Unit = {
                   changes = changes merge newChanges
                 }
 
-                val newProjectId = NodeId.fresh()
-                addChange(GraphChanges.newProject(newProjectId, GlobalState.userId.now, "Click me to rename", views = Some(List(View.List))))
-                // checklist items are added in reverse order
+                sealed trait Node {
+                  def name: String
+                  val children: List[Node]
+                  val views: Option[List[View.Visible]]
+                }
+                case class Project(name: String, views: Option[List[View.Visible]] = None, children: List[Node] = Nil) extends Node
+                case class Task(name: String, views: Option[List[View.Visible]] = None, children: List[Node] = Nil) extends Node
 
-                val expanded = GraphChanges.addMarkdownTask("click the + on the right or the progress-bar to expand this task", ParentId(newProjectId))
-                val expandedId = expanded.addNodes.head.id
-                addChange(expanded)
-                addChange(GraphChanges.addMarkdownTask("create a new sub-subtask (expand a subtask first). Tasks can be nested arbitrarily.", ParentId(expandedId)))
-                addChange(GraphChanges.addMarkdownTask("create a new subtask", ParentId(expandedId)))
-                addChange(GraphChanges.addMarkdownTask("check this subtask", ParentId(expandedId)))
+                def addChange(node: Node, parentId: Option[NodeId] = None): NodeId = {
+                  println(s"adding $node, parent: $parentId")
+                  val nodeId = NodeId.fresh()
+                  node match {
+                    case Project(name, views, _) => addGraphChange(GraphChanges.newProject(nodeId, GlobalState.userId.now, name, views = views))
+                    case Task(name, views, _)    => 
+                      println(GraphChanges.addNodeWithParent(wust.graph.Node.MarkdownTask(name), parentId.map(ParentId(_))))
+                      addGraphChange(GraphChanges.addNodeWithParent(wust.graph.Node.MarkdownTask(name), parentId.map(ParentId(_))))
+                  }
+                  node.children.reverse.foreach(node => addChange(node, Some(ParentId(nodeId))))
+                  nodeId
+                }
 
-                addChange(GraphChanges.addMarkdownTask("drag me to change order", ParentId(newProjectId)))
-                addChange(GraphChanges.addMarkdownTask("check me", ParentId(newProjectId)))
+                val checklistId = addChange(
+                  Project(
+                    "Click me to rename",
+                    views = Some(List(View.List)),
+                    children = List(
+                      Task("check me"),
+                      Task("drag me to change order"),
+                      Task(
+                        "click the + on the right or the progress-bar to expand this task",
+                        children = List(
+                          Task("check this subtask"),
+                        )
+                      ),
+                    )
+                  )
+                )
+
+                // val newProjectId = NodeId.fresh()
+                // addChange(GraphChanges.newProject(newProjectId, GlobalState.userId.now, "Click me to rename", views = Some(List(View.List))))
+                // // checklist items are added in reverse order
+
+                // val expanded = GraphChanges.addMarkdownTask("click the + on the right or the progress-bar to expand this task", ParentId(newProjectId))
+                // val expandedId = expanded.addNodes.head.id
+                // addChange(expanded)
+                // addChange(GraphChanges.addMarkdownTask("create a new sub-subtask (expand a subtask first). Tasks can be nested as you want.", ParentId(expandedId)))
+                // addChange(GraphChanges.addMarkdownTask("create a new subtask", ParentId(expandedId)))
+                // addChange(GraphChanges.addMarkdownTask("check this subtask", ParentId(expandedId)))
+
+                // addChange(GraphChanges.addMarkdownTask("drag me to change order", ParentId(newProjectId)))
+                // addChange(GraphChanges.addMarkdownTask("check me", ParentId(newProjectId)))
 
                 GlobalState.submitChanges(changes)
-                GlobalState.focus(newProjectId, needsGet = false)
+                GlobalState.focus(checklistId, needsGet = false)
               })
           )
         )
