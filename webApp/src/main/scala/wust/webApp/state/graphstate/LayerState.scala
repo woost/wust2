@@ -19,14 +19,16 @@ final case class LayerChanges(
 
 abstract class LayerState {
   var lookupNow: NestedArrayIntValues
+  // var revLookupNow: NestedArrayIntValues
   val lookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = lookupNow.map(slice => Var(slice.toArray))(breakOut)
+  // val revLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = revLookupNow.map(slice => Var(slice.toArray))(breakOut)
 
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
 
   def update(nodeState: NodeState, changes: LayerChanges): Unit = {
     val affectedSourceNodes = new mutable.ArrayBuffer[Int]
     val addElemBuilder = new mutable.ArrayBuilder.ofInt
-    changes.addEdges.foreach {
+    changes.addEdges.foreachElement { 
       ifMyEdge { (sourceId, targetId) =>
         nodeState.idToIdxForeach(sourceId) { sourceIdx =>
           nodeState.idToIdxForeach(targetId) { targetIdx =>

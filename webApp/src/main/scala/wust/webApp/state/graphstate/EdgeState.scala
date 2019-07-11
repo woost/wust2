@@ -32,6 +32,9 @@ final class EdgeState private (
   val idToIdxHashMap: mutable.HashMap[(NodeId, NodeId), Int]
 ) {
   val edgesRx: mutable.ArrayBuffer[Var[Edge]] = edgesNow.map(Var(_))
+
+  @inline def idToIdxOrThrow(endPoints: (NodeId, NodeId)): Int = idToIdxHashMap(endPoints)
+
   def update(changes: GraphChanges): Unit = {
     // register new and updated edges
 
