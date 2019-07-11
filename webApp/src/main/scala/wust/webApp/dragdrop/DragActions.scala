@@ -35,7 +35,7 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, into)
           def addTargetWorkspace = if (from.workspace != into.workspace) GraphChanges.connect(Edge.Child)(ParentId(into.workspace), ChildId(payload.nodeId)) else GraphChanges.empty
-          def disconnectSourceColumn = if (addTargetColumn.isEmpty) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
+          def disconnectSourceColumn = if (addTargetColumn.isEmpty || from.nodeId == into.nodeId) GraphChanges.empty else GraphChanges.disconnect(Edge.Child)(ParentId(from.nodeId), ChildId(payload.nodeId))
           def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
