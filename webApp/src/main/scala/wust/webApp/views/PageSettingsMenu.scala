@@ -107,17 +107,18 @@ object PageSettingsMenu {
         })
       }
 
-      val resyncWithTemplatesItem = Rx {
-        VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
-          val hasTemplates = GlobalState.rawGraph().idToIdxFold(channel.id)(false)(channelIdx => GlobalState.rawGraph().derivedFromTemplateEdgeIdx.sliceNonEmpty(channelIdx))
-          VDomModifier.ifTrue(hasTemplates)(
-            GraphChangesAutomationUI.resyncWithTemplatesItem( channel.id).foreach { changes =>
-              UI.toast("Successfully synced with templates", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
-              GlobalState.submitChanges(changes)
-            }
-          )
-        })
-      }
+      //TODO: Not safe...
+      // val resyncWithTemplatesItem = Rx {
+      //   VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
+      //     val hasTemplates = GlobalState.rawGraph().idToIdxFold(channel.id)(false)(channelIdx => GlobalState.rawGraph().derivedFromTemplateEdgeIdx.sliceNonEmpty(channelIdx))
+      //     VDomModifier.ifTrue(hasTemplates)(
+      //       GraphChangesAutomationUI.resyncWithTemplatesItem( channel.id).foreach { changes =>
+      //         UI.toast("Successfully synced with templates", StringOps.trimToMaxLength(channel.str, 50), level = UI.ToastLevel.Success)
+      //         GlobalState.submitChanges(changes)
+      //       }
+      //     )
+      //   })
+      // }
 
       val importItem = Rx {
         VDomModifier.ifTrue(canWrite())(channelAsContent().map { channel =>
@@ -140,7 +141,7 @@ object PageSettingsMenu {
         channelAsContent().map(WoostNotification.generateNotificationItem( GlobalState.permissionState(), GlobalState.graph(), GlobalState.user().toNode, _))
       }
 
-      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, resyncWithTemplatesItem, leaveItem, deleteItem)
+      List[VDomModifier](notificationItem, searchItem, addMemberItem, shareItem, importItem, permissionItem, nodeRoleItem, copyItem, /*resyncWithTemplatesItem, */ leaveItem, deleteItem)
     }
 
     GenericSidebar.SidebarConfig(
