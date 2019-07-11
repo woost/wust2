@@ -44,7 +44,7 @@ object EdgeData {
     import scala.collection.mutable
     def modifierStrings: Seq[String] = {
       val referenceModifiers = mutable.ArrayBuffer[String]()
-      if (isCreate) referenceModifiers += "copy"
+      if (isCreate) referenceModifiers += "create"
       if (isRename) referenceModifiers += "rename"
       referenceModifiers
     }
