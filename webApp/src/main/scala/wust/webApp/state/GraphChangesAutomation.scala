@@ -426,7 +426,7 @@ object GraphChangesAutomation {
       // this method with a list of templateNodes that all have an edge
       // ReferencesTemplate. Then newNode was not actually automated, but only a
       // subtree of newNodeq
-      val isTouched = alreadyExistingNodes.contains(newNode.id)
+      val isTouched = addNodeIds.contains(newNode.id)
       (isTouched, GraphChanges(addNodes = addAndEditNodes, addEdges = allAddEdges).consistent)
     } else {
       scribe.warn("Cannot apply automation, BUG!")
