@@ -240,7 +240,7 @@ object GraphChangesAutomationUI {
   def resyncWithTemplatesItem(nodeId: NodeId)(implicit ctx: Ctx.Owner): EmitterBuilder[GraphChanges, VDomModifier] = EmitterBuilder.ofModifier { sink =>
     a(
       cls := "item",
-      Elements.icon(Icons.sync),
+      Elements.icon(Icons.resync),
       span("Re-Sync with templates"),
       cursor.pointer,
       onClick.foreach {

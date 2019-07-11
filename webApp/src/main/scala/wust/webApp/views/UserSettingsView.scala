@@ -387,7 +387,7 @@ object UserSettingsView {
           justifyContent.center,
           fontSize := "25px",
           WoostLogoComponents.woostIcon(marginRight := "10px"),
-          (Icons.sync: VNode) (marginRight := "10px"),
+          (Icons.exchange: VNode) (marginRight := "10px"),
           (icon: VNode),
           marginBottom := "5px",
         ),

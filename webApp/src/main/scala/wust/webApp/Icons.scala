@@ -6,7 +6,8 @@ object Icons {
 
   val help: IconDefinition = freeSolid.faQuestion
   val ellipsisV: IconDefinition = freeSolid.faEllipsisV
-  val sync: IconDefinition = freeSolid.faExchangeAlt
+  val exchange: IconDefinition = freeSolid.faExchangeAlt
+  val resync: IconDefinition = freeSolid.faRetweet
   val plugin: IconDefinition = freeSolid.faPuzzlePiece
   val slack: IconDefinition  = freeBrands.faSlack
 
