@@ -340,15 +340,12 @@ object GraphChangesAutomation {
                 if (implementationNode.id != descendant.id) { // guard against a self-loop, because this somehow happened once and makes no sense. TODO: we should be able to remove this, but needs thorough testing.
                   if (descendantReferenceEdge.data.isCreate) { //create should only be done once, copy onlf it our own template is not defined
                     getAlreadyExistingNodes(descendantIdx) match {
-                      case Some(alreadyCopiedDescendants) => alreadyCopiedDescendants.foreach { alreadyCopiedDescendant =>
-                        if (alreadyCopiedDescendant.id == implementationNode.id) {
-                          addEdges += Edge.DerivedFromTemplate(nodeId = alreadyCopiedDescendant.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                          updateAlreadyExistingNodes(descendant.id, alreadyCopiedDescendant)
-                          updateReplacedNodes(descendant.id, alreadyCopiedDescendant)
-                          applyTemplateToNode(newNode = alreadyCopiedDescendant, templateNode = descendant)
-                        }
-                      }
-                      case None =>
+                      case Some(alreadyCopiedDescendants) if alreadyCopiedDescendants.exists(_.id == implementationNode.id) =>
+                        addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                        updateAlreadyExistingNodes(descendant.id, implementationNode)
+                        updateReplacedNodes(descendant.id, implementationNode)
+                        applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
+                      case _ =>
                         val copyNode = copyAndTransformNode(implementationNode.as[Node.Content])
                         addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                         updateAlreadyExistingNodes(descendant.id, copyNode)
