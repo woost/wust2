@@ -451,8 +451,10 @@ object GraphChangesAutomation {
     // Go through all edges and create new edges pointing to the replacedNodes, so
     // that we copy the edge structure that the template node had.
     graph.edges.foreach {
+      //TODO: we might need them if we want to copy automations..., need to figure out which ones are from this template and which ones are from the others...
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case _: Edge.ReferencesTemplate                                     => () // do not copy reference info, we only want this on the template node
+
       case edge: Edge.Automated if referencedTemplateIds.contains(edge.templateNodeId) || referencingNodeIds.contains(edge.templateNodeId) => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodesIdx.exists(idx => graph.nodeIds(idx) == edge.childId) && ignoreParents(edge.parentId) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
       case edge: Edge.Author if referencedTemplateIds.contains(edge.nodeId) || referencingNodeIds.contains(edge.nodeId)            => () // do not copy author of template itself
