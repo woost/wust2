@@ -662,6 +662,61 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
   }
 
+  "neutral properties with same name" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val neutralNode1 = newNodeContent("neutral1", NodeRole.Neutral)
+    val neutralNode2 = newNodeContent("neutral2", NodeRole.Neutral)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, neutralNode1, neutralNode2
+      ),
+
+      edges = Array(
+        Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("copy", showOnCard = false), PropertyId(neutralNode1.id)),
+        Edge.LabeledProperty(templateNode.id, EdgeData.LabeledProperty("copy", showOnCard = true), PropertyId(neutralNode2.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      neutralNode2.copy(id = neutralNode1.id)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("copy", showOnCard = true), PropertyId(neutralNode1.id)),
+      Edge.DerivedFromTemplate(neutralNode1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(neutralNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
+  "linked properties with same name" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val linkNode1 = newNodeContent("link1", NodeRole.Task)
+    val linkNode2 = newNodeContent("link2", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, linkNode1, linkNode2
+      ),
+
+      edges = Array(
+        Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("link", showOnCard = false), PropertyId(linkNode1.id)),
+        Edge.LabeledProperty(templateNode.id, EdgeData.LabeledProperty("link", showOnCard = true), PropertyId(linkNode2.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes mustEqual Array.empty
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.LabeledProperty(newNode.id, EdgeData.LabeledProperty("link", showOnCard = true), PropertyId(linkNode2.id)),
+      Edge.DerivedFromTemplate(newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
   "parents of template" in {
     val newNode = newNodeContent("new-node", NodeRole.Task)
     val templateNode = newNodeContent("template", NodeRole.Task)

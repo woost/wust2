@@ -23,6 +23,11 @@ object GraphChangesAutomation {
 
     val extraEdges = Array.newBuilder[Edge]
 
+    sealed trait CommandMode
+    case object CommandSelection extends CommandMode
+    case object FieldLookup extends CommandMode
+    case object FieldReverseLookup extends CommandMode
+
     val newStr = templateVariableRegex.replaceAllIn(templateText, { m =>
       val modifier = m.group(1)
       val isMentionMode = modifier == "@"
@@ -30,35 +35,44 @@ object GraphChangesAutomation {
       val n = propertyNames.length
       var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
       referenceNodesPath(0) = Array(node)
-      var isCommandMode = true
+      var commandMode: CommandMode = CommandSelection
       var i = 0
       var done = false
       while (!done && i < n) {
         val propertyName = propertyNames(i)
-        if (isCommandMode) propertyName match {
-          case "myself" =>
-            if (i == 0) referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
-            else done = true
-          case "reference" =>
-            referenceNodesPath(i + 1) = referenceNodesPath(i)
-          case "field" =>
-            referenceNodesPath(i + 1) = referenceNodesPath(i)
-            isCommandMode = false
-          case "parent" =>
-            val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges)
+        commandMode match {
+
+          case CommandSelection => propertyName match {
+            case "myself" | "yourself" =>
+              if (i == 0) referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
+              else done = true
+            case "reference" =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
+            case "field" =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
+              commandMode = FieldLookup
+            case "reverseField" =>
+              val references = lookupPropertyReverseVariable(graph, referenceNodesPath(i), newEdges)
+              if (references.isEmpty) done = true
+              else referenceNodesPath(i + 1) = references
+            case "parent" =>
+              val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges)
+              if (references.isEmpty) done = true
+              else referenceNodesPath(i + 1) = references
+            case "assignee" =>
+              val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges)
+              if (references.isEmpty) done = true
+              else referenceNodesPath(i + 1) = references
+            case _ =>
+              done = true
+          }
+
+          case FieldLookup =>
+            val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges)
             if (references.isEmpty) done = true
             else referenceNodesPath(i + 1) = references
-          case "assignee" =>
-            val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges)
-            if (references.isEmpty) done = true
-            else referenceNodesPath(i + 1) = references
-          case _ =>
-            done = true
-        } else {
-          val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges)
-          if (references.isEmpty) done = true
-          else referenceNodesPath(i + 1) = references
-          isCommandMode = true
+            commandMode = CommandSelection
+
         }
 
         i += 1
@@ -125,6 +139,30 @@ object GraphChangesAutomation {
     arr.result.distinct
   }
 
+  def lookupPropertyReverseVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+    val arr = Array.newBuilder[Node]
+
+    @inline def add(node: Node): Unit = arr += node
+
+    //TODO: more efficient...
+    newEdges.foreach { case (sourceId, edges) =>
+      edges.foreach {
+        case (edge: Edge.LabeledProperty, node) if nodes.exists(_.id == node.id) => graph.nodesById(sourceId).foreach(add(_))
+        case (_, _) => ()
+      }
+    }
+
+    nodes.foreach { node =>
+      graph.idToIdxForeach(node.id) { nodeIdx =>
+        graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+          add(graph.nodes(graph.edgesIdx.a(edgeIdx)))
+        }
+      }
+    }
+
+    arr.result.distinct
+  }
+
   def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
@@ -168,12 +206,23 @@ object GraphChangesAutomation {
     // already part of newNode.
     val alreadyExistingStages = new mutable.HashMap[(NodeId, String), Node]
 
-    def addAlreadyExistingStage(nodeIdx: Int): Unit = {
+    // all potentially automated neutral properties that already exist. The map maps
+    // parents node ids and their property name to an existing stage that is
+    // already part of newNode.
+    val alreadyExistingNeutrals = new mutable.HashMap[(NodeId, String), Node]
+
+    def addAlreadyExistingByName(nodeIdx: Int): Unit = {
       val node = graph.nodes(nodeIdx)
-      if (node.role == NodeRole.Stage) {
-        graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
+      node.role match {
+        case NodeRole.Stage => graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
           alreadyExistingStages += (graph.nodeIds(parentIdx), node.str) -> node
         }
+        case NodeRole.Neutral => graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+          val nodeWithFieldIdx = graph.edgesIdx.a(edgeIdx)
+          alreadyExistingNeutrals += (graph.nodeIds(nodeWithFieldIdx), edge.data.key) -> node
+        }
+        case _ => ()
       }
     }
 
@@ -182,8 +231,8 @@ object GraphChangesAutomation {
       val result = alreadyExistingNodes.get(node.id)
       if (result.isDefined) return result
 
-      if (node.role == NodeRole.Stage) {
-        graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
+      node.role match {
+        case NodeRole.Stage => graph.notDeletedParentsIdx.foreachElement(nodeIdx) { parentIdx =>
           alreadyExistingNodes.get(graph.nodeIds(parentIdx)).foreach(_.foreach { existingParentNode =>
             alreadyExistingStages.get(existingParentNode.id -> node.str) match {
               case Some(result) => return Some(Seq(result))
@@ -191,6 +240,17 @@ object GraphChangesAutomation {
             }
           })
         }
+        case NodeRole.Neutral => graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+          val edge = graph.edges(edgeIdx).as[Edge.LabeledProperty]
+          val nodeWithFieldIdx = graph.edgesIdx.a(edgeIdx)
+          alreadyExistingNodes.get(graph.nodeIds(nodeWithFieldIdx)).foreach(_.foreach { existingNodeWithField =>
+            alreadyExistingNeutrals.get(existingNodeWithField.id -> edge.data.key) match {
+              case Some(result) => return Some(Seq(result))
+              case None => ()
+            }
+          })
+        }
+        case _ => ()
       }
 
       None
@@ -209,7 +269,7 @@ object GraphChangesAutomation {
     // all nodes that reference a template, reverse set of referencedTemplates
     val referencingNodeIds = new mutable.HashSet[NodeId]
     // all nodes we are adding
-    val plannedAddNodes = Array.newBuilder[(Node, Node, String)]
+    val plannedAddNodes = Array.newBuilder[(Node, Node, NodeData)]
     // all node ids we want to copy (subset of plannedAddNodes._2)
     val copyNodeIds = new mutable.HashSet[NodeId]
     // all edges we are adding
@@ -218,26 +278,22 @@ object GraphChangesAutomation {
     var newNodeIsTouched = false
 
     // how to apply a template to an existing node
-    def applyTemplateToNode(newNode: Node, templateNode: Node, useTemplateString: Boolean = false): Unit = newNode match {
+    def applyTemplateToNode(newNode: Node, templateNode: Node, useTemplateData: Boolean = false): Unit = newNode match {
       // add defined views of template to new node
       case newNode: Node.Content =>
         val newView = if (templateNode.views.isDefined) templateNode.views else newNode.views
         val newRole = templateNode.role
         val updatedNewNode = newNode.copy(role = newRole, views = templateNode.views)
-        val templateStr = if (useTemplateString) templateNode.str else updatedNewNode.str
-        plannedAddNodes += ((newNode, updatedNewNode, templateStr))
+        val templateData = if (useTemplateData) templateNode.data else updatedNewNode.data
+        plannedAddNodes += ((newNode, updatedNewNode, templateData))
       case _ => ()
     }
 
     // how to create a node from a template
     def copyAndTransformNode(node: Node.Content): Node.Content = {
       val newNodeId = newId(node.id)
-      val newData = node.data match {
-        case NodeData.RelativeDate(duration) => NodeData.DateTime(DateTimeMilli(copyTime plus duration))
-        case data => data
-      }
-      val copyNode = node.copy(id = newNodeId, data = newData)
-      plannedAddNodes += ((copyNode, copyNode, copyNode.str))
+      val copyNode = node.copy(id = newNodeId)
+      plannedAddNodes += ((copyNode, copyNode, copyNode.data))
       copyNodeIds += copyNode.id
       copyNode
     }
@@ -273,7 +329,7 @@ object GraphChangesAutomation {
         if (newNode.id == descendant.id) updateAlreadyExistingNodes(newNode.id, newNode)
       }
 
-      addAlreadyExistingStage(descendantIdx)
+      addAlreadyExistingByName(descendantIdx)
     }))
 
     // Get all descendants of the templateNode. For each descendant, we check
@@ -310,7 +366,8 @@ object GraphChangesAutomation {
               if (implementationNode.id != descendant.id) {
                 addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                 updateReplacedNodes(descendant.id, implementationNode)
-                applyTemplateToNode(newNode = newNode, templateNode = templateNode)
+                val useTemplateData = descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
+                applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = useTemplateData)
                 true
               } else false
             }
@@ -350,17 +407,17 @@ object GraphChangesAutomation {
                         addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                         updateAlreadyExistingNodes(descendant.id, copyNode)
                         updateReplacedNodes(descendant.id, copyNode)
-                        applyTemplateToNode(newNode = copyNode, templateNode = descendant, useTemplateString = descendantReferenceEdge.data.isRename)
+                        applyTemplateToNode(newNode = copyNode, templateNode = descendant, useTemplateData = descendantReferenceEdge.data.isRename)
                     }
                   } else {
-                    val canUseTemplateString = getAlreadyExistingNodes(descendantIdx) match {
+                    val canUseTemplateData = getAlreadyExistingNodes(descendantIdx) match {
                       case Some(alreadyReferencedDescendants) => !alreadyReferencedDescendants.exists(_.id == implementationNode.id)
                       case _ => true
                     }
                     addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
                     updateAlreadyExistingNodes(descendant.id, implementationNode)
                     updateReplacedNodes(descendant.id, implementationNode)
-                    applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateString = canUseTemplateString && descendantReferenceEdge.data.isRename)
+                    applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = canUseTemplateData && descendantReferenceEdge.data.isRename)
                   }
 
                   true
@@ -428,26 +485,43 @@ object GraphChangesAutomation {
         }
     }
 
+    // track validness of changes
+    var isValid = true
+
     // for all added nodes, we are resolving variables in the content, we can
     // only do so after knowing all new edges
     val addAndEditNodes = Array.newBuilder[Node]
     plannedAddNodes.result().foreach {
-      case (oldNode: Node.Content, node: Node.Content, templateStr) => node.data match {
-        case data: NodeData.EditableText =>
-          val (newStr, extraEdges) = replaceVariableInText(userId, graph, node, templateStr, newResolvableEdges)
-          addEdges ++= extraEdges
-          val newNode = data.updateStr(newStr).fold(node)(data => node.copy(data = data))
-          if (copyNodeIds.contains(newNode.id) || oldNode != newNode) {
-            addAndEditNodes += newNode
-          }
-        case _ => addAndEditNodes += node
-      }
-      case (_, node, _) => addAndEditNodes += node
+      case (oldNode: Node.Content, node: Node.Content, templateData) =>
+        val newData = templateData match {
+
+          case data: NodeData.EditableText =>
+            val (newStr, extraEdges) = replaceVariableInText(userId, graph, node, data.str, newResolvableEdges)
+            data.updateStr(newStr) match {
+              case Some(newData) =>
+                addEdges ++= extraEdges
+                newData
+              case None => data
+            }
+
+          case NodeData.RelativeDate(duration) => NodeData.DateTime(DateTimeMilli(copyTime plus duration))
+
+          case data: NodeData.Content => data
+
+          case _ => node.data
+        }
+
+        val newNode = node.copy(data = newData)
+        if (copyNodeIds.contains(newNode.id) || oldNode != newNode) {
+          addAndEditNodes += newNode
+        }
+      case (_, node, _) =>
+        isValid = false
+        scribe.warn(s"Invalid node created during automation, we should only create content nodes: $node")
     }
 
     // sanity check that we do not append things to the templates, we never want this. if this happened, our automation has a bug.
     val allAddEdges = addEdges.result()
-    var isValid = true
     allAddEdges.foreach {
       case edge: Edge.DerivedFromTemplate =>
         if (edge.sourceId == edge.targetId ||
