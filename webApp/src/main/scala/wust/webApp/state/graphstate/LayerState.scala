@@ -18,10 +18,11 @@ final case class LayerChanges(
 )
 
 abstract class LayerState {
-  var lookupNow: NestedArrayIntValues
-  // var revLookupNow: NestedArrayIntValues
-  val lookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = lookupNow.map(slice => Var(slice.toArray))(breakOut)
-  // val revLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = revLookupNow.map(slice => Var(slice.toArray))(breakOut)
+  var lookupNow: NestedArrayIntValues = NestedArrayInt.empty
+  var revLookupNow: NestedArrayIntValues = NestedArrayInt.empty
+  val lookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
+  val revLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
+
 
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
 

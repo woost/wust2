@@ -12,24 +12,17 @@ import wust.util.time.time
 import scala.collection.{ breakOut, immutable, mutable }
 
 object NodeState {
-  def apply(graphNodes: Array[Node]) = {
-    val nodes = mutable.ArrayBuffer.empty[Node]
-    val idToIdxHashMap = mutable.HashMap.empty[NodeId, Int]
-    idToIdxHashMap.sizeHint(graphNodes.length)
-
-    graphNodes.foreachIndexAndElement { (idx, node) =>
-      nodes += node
-      idToIdxHashMap(node.id) = idx
-    }
-    new NodeState(nodes, idToIdxHashMap)
+  def apply(nodes: Array[Node]):NodeState = {
+    val nodeState = new NodeState
+    nodeState.update(GraphChanges(addNodes = nodes))
+    nodeState
   }
 }
 
-final class NodeState private (
-  val nodesNow: mutable.ArrayBuffer[Node],
-  val idToIdxHashMap: mutable.HashMap[NodeId, Int]
-) {
-  val nodesRx: mutable.ArrayBuffer[Var[Node]] = nodesNow.map(Var(_))
+final class NodeState {
+  val nodesNow: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty
+  val idToIdxHashMap: mutable.HashMap[NodeId, Int] = mutable.HashMap.empty
+  val nodesRx: mutable.ArrayBuffer[Var[Node]] = mutable.ArrayBuffer.empty
 
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
     idToIdxHashMap.get(id) match {

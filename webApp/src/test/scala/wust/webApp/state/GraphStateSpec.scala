@@ -4,7 +4,7 @@ import org.scalatest._
 import wust.graph._
 import wust.ids._
 
-class IncrementalReactiveGraphSpec extends FreeSpec with MustMatchers {
+class GraphStateSpec extends FreeSpec with MustMatchers {
   def parent(childId:Cuid, parentId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
   def child(parentId:Cuid, childId:Cuid) = Edge.Child(ParentId(NodeId(parentId)), ChildId(NodeId(childId)))
   def user(id:Cuid) = Node.User(UserId(NodeId(id)), NodeData.User(id.toString, false, 0), NodeMeta.User)

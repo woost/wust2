@@ -12,26 +12,19 @@ import wust.util.time.time
 import scala.collection.{ breakOut, immutable, mutable }
 
 object EdgeState {
-  def apply(graphEdges: Array[Edge]) = {
-    val edges = mutable.ArrayBuffer.empty[Edge]
-    val idToIdxHashMap = mutable.HashMap.empty[(NodeId, NodeId), Int]
-    idToIdxHashMap.sizeHint(graphEdges.length)
-
-    graphEdges.foreachIndexAndElement { (idx, edge) =>
-      edges += edge
-      idToIdxHashMap(edgeKey(edge)) = idx
-    }
-    new EdgeState(edges, idToIdxHashMap)
-  }
-
   @inline def edgeKey(edge: Edge): (NodeId, NodeId) = edge.sourceId -> edge.targetId
+
+  def apply(edges: Array[Edge]):EdgeState = {
+    val edgeState = new EdgeState
+    edgeState.update(GraphChanges(addEdges = edges))
+    edgeState
+  }
 }
 
-final class EdgeState private (
-  val edgesNow: mutable.ArrayBuffer[Edge],
-  val idToIdxHashMap: mutable.HashMap[(NodeId, NodeId), Int]
-) {
-  val edgesRx: mutable.ArrayBuffer[Var[Edge]] = edgesNow.map(Var(_))
+final class EdgeState {
+  val edgesNow: mutable.ArrayBuffer[Edge] = mutable.ArrayBuffer.empty
+  val idToIdxHashMap: mutable.HashMap[(NodeId, NodeId), Int] = mutable.HashMap.empty
+  val edgesRx: mutable.ArrayBuffer[Var[Edge]] = mutable.ArrayBuffer.empty
 
   @inline def idToIdxOrThrow(endPoints: (NodeId, NodeId)): Int = idToIdxHashMap(endPoints)
 
