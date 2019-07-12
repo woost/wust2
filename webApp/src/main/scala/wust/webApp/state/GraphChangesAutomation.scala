@@ -357,7 +357,7 @@ object GraphChangesAutomation {
                     }
                   } else {
                     val canUseTemplateString = getAlreadyExistingNodes(descendantIdx) match {
-                      case Some(alreadyReferencedDescendants) => alreadyReferencedDescendants.exists(_.id == implementationNode.id)
+                      case Some(alreadyReferencedDescendants) => !alreadyReferencedDescendants.exists(_.id == implementationNode.id)
                       case _ => true
                     }
                     addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
