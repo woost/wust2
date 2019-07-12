@@ -613,6 +613,9 @@ object SharedViewElements {
   }
 
   def nodeUrl(nodeId: NodeId)(implicit ctx: Ctx.Owner):Rx[String] = Rx {
-    UrlConfigWriter.toUrlRoute(GlobalState.urlConfig().copy(pageChange = PageChange(page = Page(Some(nodeId))))).hash.fold("#")("#" + _)
+    UrlConfigWriter.toUrlRoute(GlobalState.urlConfig().copy(
+      view = None,
+      pageChange = PageChange(page = Page(Some(nodeId))),
+    )).hash.fold("#")("#" + _)
   }
 }
