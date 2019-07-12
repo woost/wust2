@@ -15,21 +15,41 @@ class GraphStateSpec extends FreeSpec with MustMatchers {
   "GraphState factory" in {
     val graph = Graph(
       nodes = Array("A", "B", "C", "D", "E", "F"),
-      edges = Array(child("B", "C"), child("B", "D"), child("E", "F"), child("F", "E"))
+      edges = Array(child("B", "C"), child("B", "D"), child("F", "E"), child("E", "F"))
     )
 
     val graphState = new GraphState(graph)
     import graphState.{nodeState, children}
 
-    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List())
+    println(children.lookupNow)
+
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C", "D"))
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
 
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C", "D"))
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
+
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
+
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
   }
 
   "GraphState add nodes" in {
@@ -44,15 +64,35 @@ class GraphStateSpec extends FreeSpec with MustMatchers {
 
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C", "D"))
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
 
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C", "D"))
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("B":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("D":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("F"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("E"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
   }
 
   "GraphState add edge" in {
@@ -65,12 +105,26 @@ class GraphStateSpec extends FreeSpec with MustMatchers {
     import graphState.{nodeState, children}
 
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B"))
 
     graphState.update(GraphChanges(addEdges = Array(child("A", "C"))))
 
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C"))
+    assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("C"))
+    assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B", "A"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("A":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("C":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("B", "A"))
   }
 
   "GraphState add nodes with edge" in {
@@ -85,6 +139,8 @@ class GraphStateSpec extends FreeSpec with MustMatchers {
     graphState.update(GraphChanges(addNodes = Array("G","H"), addEdges = Array(child("G", "H"))))
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("H"))
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("G":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("H"))
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("H":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("G"))
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("H":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]("G"))
   }
 
   "GraphState delete edge" in {
@@ -99,6 +155,8 @@ class GraphStateSpec extends FreeSpec with MustMatchers {
     graphState.update(GraphChanges(delEdges = Array(child("E", "F"))))
     assert(children.lookupNow(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
     assert(children.lookupRx(nodeState.idToIdxOrThrow(NodeId("E":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupNow(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
+    assert(children.revLookupRx(nodeState.idToIdxOrThrow(NodeId("F":Cuid))).now.map(idx => nodeState.nodesNow(idx).id).toList == List[Cuid]())
   }
 
   //TODO: delete for author LabeledProperty edges, where edges can have the same source/target combination

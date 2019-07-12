@@ -281,7 +281,7 @@ final class GraphState(initialGraph: Graph) {
 
 
   val children = new ChildrenLayer
-  val read = new ChildrenLayer
+  // val read = new ChildrenLayer
 
   update(GraphChanges(addNodes = initialGraph.nodes, addEdges = initialGraph.edges))
 
@@ -290,7 +290,7 @@ final class GraphState(initialGraph: Graph) {
       edgeState.update(changes)
       val layerChanges = nodeState.update(changes)
       children.update(nodeState, layerChanges)
-      read.update(nodeState, layerChanges)
+      // read.update(nodeState, layerChanges)
     }
   }
 }
@@ -303,9 +303,9 @@ final class ChildrenLayer extends LayerState {
   }
 }
 
-final class ReadLayer extends LayerState {
-  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
-    case edge: Edge.Read => code(edge.nodeId, edge.userId)
-    case _               =>
-  }
-}
+// final class ReadLayer extends LayerState {
+//   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
+//     case edge: Edge.Read => code(edge.nodeId, edge.userId)
+//     case _               =>
+//   }
+// }
