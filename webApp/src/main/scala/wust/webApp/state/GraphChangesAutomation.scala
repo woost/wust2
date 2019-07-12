@@ -26,7 +26,6 @@ object GraphChangesAutomation {
     sealed trait CommandMode
     case object CommandSelection extends CommandMode
     case object FieldLookup extends CommandMode
-    case object FieldReverseLookup extends CommandMode
 
     val newStr = templateVariableRegex.replaceAllIn(templateText, { m =>
       val modifier = m.group(1)
@@ -38,6 +37,7 @@ object GraphChangesAutomation {
       var commandMode: CommandMode = CommandSelection
       var i = 0
       var done = false
+      var hasError = false
       while (!done && i < n) {
         val propertyName = propertyNames(i)
         commandMode match {
@@ -65,6 +65,7 @@ object GraphChangesAutomation {
               else referenceNodesPath(i + 1) = references
             case _ =>
               done = true
+              hasError = true
           }
 
           case FieldLookup =>
@@ -78,11 +79,13 @@ object GraphChangesAutomation {
         i += 1
       }
 
-      def errorString = "#REF!"
+      def syntaxError = "#NAME?"
+      def missingValueError = "#REF!"
       val lastReferenceNodes = referenceNodesPath(n)
-      if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) errorString
+      if (hasError) syntaxError
+      else if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) missingValueError
       else {
-        def sanitizeFinalString(str: String) = templateVariableRegex.replaceAllIn(str, errorString)
+        def sanitizeFinalString(str: String) = templateVariableRegex.replaceAllIn(str, missingValueError)
         if (isMentionMode) {
           lastReferenceNodes.foreach { refNode =>
             extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
