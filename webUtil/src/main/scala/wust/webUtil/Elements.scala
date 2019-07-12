@@ -298,7 +298,7 @@ object Elements {
 
   val durationInputMod = VDomModifier(
     tpe := "text",
-    placeholder := "1y 2h 3m 4s, ...",
+    placeholder := "1y 1mo 1w 1d 2h 3m 4s ...",
   )
 
   val textInputMod = VDomModifier(
