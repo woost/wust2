@@ -149,8 +149,8 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodesIdx, ignoreParents, newId, copyTime)._2
-  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): (Boolean, GraphChanges) = if (templateNodesIdx.isEmpty) (false, GraphChanges.empty) else {
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodesIdx, ignoreParents, newId, copyTime)._2
+  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): (Boolean, GraphChanges) = if (templateNodesIdx.isEmpty) (false, GraphChanges.empty) else {
     scribe.info(s"Copying sub graph of node $newNode")
 
     val newNodeIdx = graph.idToIdx(newNode.id)
@@ -397,7 +397,7 @@ object GraphChangesAutomation {
       case _: Edge.DerivedFromTemplate                                    => () // do not copy derived info, we get new derive infos for new nodes
       case _: Edge.ReferencesTemplate                                     => () // do not copy reference info, we only want this on the template node
       case edge: Edge.Automated if referencedTemplateIds.contains(edge.templateNodeId) || referencingNodeIds.contains(edge.templateNodeId) => () // do not copy automation edges of template, otherwise the newNode would become a template.
-      case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodesIdx.exists(idx => graph.nodeIds(idx) == edge.childId && ignoreParents((idx, edge.parentId))) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
+      case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodesIdx.exists(idx => graph.nodeIds(idx) == edge.childId) && ignoreParents(edge.parentId) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
       case edge: Edge.Author if referencedTemplateIds.contains(edge.nodeId) || referencingNodeIds.contains(edge.nodeId)            => () // do not copy author of template itself
       case edge: Edge.Read if referencedTemplateIds.contains(edge.nodeId) || referencingNodeIds.contains(edge.nodeId)              => () // do not copy read of template itself
       case edge: Edge.Author                                              => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
@@ -491,7 +491,7 @@ object GraphChangesAutomation {
   def enrich(userId: UserId, graph: Graph, viewConfig: Var[UrlConfig], changes: GraphChanges, visitedAutomateParent: Set[NodeId] = Set.empty): GraphChanges = {
     scribe.info("Check for automation enrichment of graphchanges: " + changes.toPrettyString(graph))
 
-    case class CopyArgs(newNode: Node.Content, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[(Int, NodeId)], childEdges: Array[Edge.Child]) {
+    case class CopyArgs(newNode: Node.Content, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId], childEdges: Array[Edge.Child]) {
       def merge(args: CopyArgs) = {
         require(args.newNode == newNode, "CopyArgs can only be merged for the same newNode")
         CopyArgs(newNode, (templateNodesIdx ++ args.templateNodesIdx).distinct, ignoreParents ++ args.ignoreParents, (childEdges ++ args.childEdges).distinct)
@@ -532,7 +532,7 @@ object GraphChangesAutomation {
             // if this is a stage, we want to apply automation to nested stages as well:
             var foundTemplateNode = false
             var forceKeepParent = false
-            val ignoreParents = mutable.HashSet[(Int, NodeId)]()
+            val ignoreParents = mutable.HashSet[NodeId]()
             val templateNodesIdx = Array.newBuilder[Int]
             val parentNode = graph.nodes(parentIdx)
             def addTemplateIdx(targetIdx: Int): Unit = graph.automatedEdgeIdx.foreachElement(targetIdx) { automatedEdgeIdx =>
@@ -555,7 +555,7 @@ object GraphChangesAutomation {
                 val node = graph.nodes(idx)
                 if (node.role == NodeRole.Stage) {
                   addTemplateIdx(idx)
-                  ignoreParents += (idx -> node.id)
+                  ignoreParents += node.id
                   true
                 } else false
               })
