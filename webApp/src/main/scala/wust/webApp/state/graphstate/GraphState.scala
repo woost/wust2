@@ -17,9 +17,8 @@ import scala.collection.{ breakOut, immutable, mutable }
 final class GraphState(initialGraph: Graph) {
   import initialGraph.{ nodes, edges }
   val nodeState = new NodeState
-  val edgeState = new EdgeState
+  val edgeState = new EdgeState(nodeState)
   // import nodeState.idToIdxForeach
-
 
   // val n = initialGraph.size
   // private val consistentEdges = ArraySet.create(edges.length)
@@ -279,24 +278,22 @@ final class GraphState(initialGraph: Graph) {
   // val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   // val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
 
-
-  val children = new ChildrenLayer
+  val children = new ChildrenLayer(edgeState)
   // val read = new ChildrenLayer
 
   update(GraphChanges(addNodes = initialGraph.nodes, addEdges = initialGraph.edges))
 
   def update(changes: GraphChanges) = {
     time("graphstate") {
-      edgeState.update(changes)
       val layerChanges = nodeState.update(changes)
-      children.update(nodeState, layerChanges)
+      edgeState.update(changes)
+      children.update(layerChanges)
       // read.update(nodeState, layerChanges)
     }
   }
 }
 
-
-final class ChildrenLayer extends LayerState {
+final class ChildrenLayer(val edgeState: EdgeState) extends LayerState {
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
     case edge: Edge.Child => code(edge.parentId, edge.childId)
     case _                =>

@@ -163,6 +163,20 @@ networking.firewall.allowedTCPPorts = [ 12345 ];
 
 The images are automatically published to docker.woost.space once a day from `master`.
 
+# nodejs Stack traces in tests
+
+TODO: Why is this not working?
+
+```bash
+npm install source-map-support
+```
+
+then run tests using
+
+```
+SOURCEMAPS=true start nsbt
+```
+
 # Deployment
 Requirements:
 * docker

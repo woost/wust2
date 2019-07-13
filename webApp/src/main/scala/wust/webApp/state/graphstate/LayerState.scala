@@ -18,45 +18,54 @@ final case class LayerChanges(
 )
 
 abstract class LayerState {
-  var lookupNow: NestedArrayIntValues = NestedArrayInt.empty
-  var revLookupNow: NestedArrayIntValues = NestedArrayInt.empty
-  val lookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
-  val revLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
+  // val nodeState: NodeState
+  val edgeState: EdgeState
 
+  import edgeState.edgesIdxNow
+
+  var edgeLookupNow: NestedArrayIntValues = NestedArrayInt.empty
+  var edgeRevLookupNow: NestedArrayIntValues = NestedArrayInt.empty
+  val edgeLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
+  val edgeRevLookupRx: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
+
+  var lookupNow: NestedArrayIntMapped = edgeLookupNow.viewMapInt(edgesIdxNow.right)
+  var revLookupNow: NestedArrayIntMapped = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
+  def lookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeLookupRx(idx).map(_.map(edgesIdxNow.right))
+  def revLookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeRevLookupRx(idx).map(_.map(edgesIdxNow.left))
 
   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
 
-  def update(nodeState: NodeState, changes: LayerChanges): Unit = {
+  def update(changes: LayerChanges): Unit = {
     val affectedSourceNodes = new mutable.ArrayBuffer[Int]
     val affectedTargetNodes = new mutable.ArrayBuffer[Int]
-    val addElemBuilder = new mutable.ArrayBuilder.ofRef[(Int,Int)]
-    val addRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int,Int)]
-    changes.addEdges.foreachElement { 
+    val addElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
+    val addRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
+    changes.addEdges.foreachElement {
       ifMyEdge { (sourceId, targetId) =>
-        nodeState.idToIdxForeach(sourceId) { sourceIdx =>
-          nodeState.idToIdxForeach(targetId) { targetIdx =>
-            addElemBuilder += sourceIdx -> targetIdx
-            addRevElemBuilder += targetIdx -> sourceIdx
-            affectedSourceNodes += sourceIdx
-            affectedTargetNodes += targetIdx
-          }
+        edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
+          val sourceIdx = edgesIdxNow.left(edgeIdx)
+          val targetIdx = edgesIdxNow.right(edgeIdx)
+          addElemBuilder += sourceIdx -> edgeIdx
+          addRevElemBuilder += targetIdx -> edgeIdx
+          affectedSourceNodes += sourceIdx
+          affectedTargetNodes += targetIdx
         }
       }
     }
     val addElem = InterleavedArrayInt(addElemBuilder.result().sortBy(_._1)) //TODO: performance: build InterleavedArray directly to avoid tuples and reiteration in InterleavedArrayInt.apply, but how to sort? Put two ints into one long?
     val addRevElem = InterleavedArrayInt(addRevElemBuilder.result().sortBy(_._1))
 
-    val delElemBuilder = new mutable.ArrayBuilder.ofRef[(Int,Int)]
-    val delRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int,Int)]
+    val delElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
+    val delRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
     changes.delEdges.foreach {
       ifMyEdge { (sourceId, targetId) =>
-        nodeState.idToIdxForeach(sourceId) { sourceIdx =>
-          nodeState.idToIdxForeach(targetId) { targetIdx =>
-            delElemBuilder += sourceIdx -> lookupNow.indexOf(sourceIdx)(targetIdx) // Remove the first occurence of the sourceId/targetId combination
-            delRevElemBuilder += targetIdx -> lookupNow.indexOf(targetIdx)(sourceIdx) // Remove the first occurence of the sourceId/targetId combination
-            affectedSourceNodes += sourceIdx
-            affectedTargetNodes += targetIdx
-          }
+        edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
+          val sourceIdx = edgesIdxNow.left(edgeIdx)
+          val targetIdx = edgesIdxNow.right(edgeIdx)
+          delElemBuilder += sourceIdx -> lookupNow.indexOf(sourceIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
+          delRevElemBuilder += targetIdx -> lookupNow.indexOf(targetIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
+          affectedSourceNodes += sourceIdx
+          affectedTargetNodes += targetIdx
         }
       }
     }
@@ -68,24 +77,26 @@ abstract class LayerState {
     // addElem: InterleavedArrayInt // Array[idx -> elem]
     // delElem: InterleavedArrayInt // Array[idx -> position]
     if (scala.scalajs.LinkingInfo.developmentMode) {
-      lookupNow = lookupNow.changedWithAssertions(changes.addIdx, addElem, delElem)
-      revLookupNow = revLookupNow.changedWithAssertions(changes.addIdx, addRevElem, delRevElem)
-    }
-    else {
-      lookupNow = lookupNow.changed(changes.addIdx, addElem, delElem)
-      revLookupNow = revLookupNow.changed(changes.addIdx, addRevElem, delRevElem)
+      edgeLookupNow = edgeLookupNow.changedWithAssertions(changes.addIdx, addElem, delElem)
+      edgeRevLookupNow = edgeRevLookupNow.changedWithAssertions(changes.addIdx, addRevElem, delRevElem)
+    } else {
+      edgeLookupNow = edgeLookupNow.changed(changes.addIdx, addElem, delElem)
+      edgeRevLookupNow = edgeRevLookupNow.changed(changes.addIdx, addRevElem, delRevElem)
     }
 
+    lookupNow = edgeLookupNow.viewMapInt(edgesIdxNow.right)
+    revLookupNow = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
+
     loop(changes.addIdx) { _ =>
-      lookupRx += Var(new Array[Int](0))
-      revLookupRx += Var(new Array[Int](0))
+      edgeLookupRx += Var(new Array[Int](0))
+      edgeRevLookupRx += Var(new Array[Int](0))
     }
 
     affectedSourceNodes.foreachElement { idx =>
-      lookupRx(idx)() = lookupNow(idx).toArray
+      edgeLookupRx(idx)() = edgeLookupNow(idx).toArray
     }
     affectedTargetNodes.foreachElement { idx =>
-      revLookupRx(idx)() = revLookupNow(idx).toArray
+      edgeRevLookupRx(idx)() = edgeRevLookupNow(idx).toArray
     }
   }
 }
