@@ -114,10 +114,9 @@
   resolved "https://registry.yarnpkg.com/@types/q/-/q-1.5.2.tgz#690a1475b84f2a884fd07cd797c00f5f31356ea8"
   integrity sha512-ce5d3q03Ex0sy4R14722Rmt6MT07Ua+k4FwDfdcToYJcMKNtRVQvJ6JCAPdAmAnbRb6CsX6aYb9m96NGod9uTw==
 
-"@wasm-tool/wasm-pack-plugin@1.0.0":
+"@wasm-tool/wasm-pack-plugin@git://github.com/fdietze/wasm-pack-plugin.git#6fce19f":
   version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@wasm-tool/wasm-pack-plugin/-/wasm-pack-plugin-1.0.0.tgz#b86d7f436ab304306cd22a76ff8513209bf09865"
-  integrity sha512-8Z0rGItT0sMSj2gDQT6ws2pxbwVQzXmfaeArcQdh+AUQK0zjpbBBreIs9aEQS4G+2XnvDwUbuibj/C2ezAFXyQ==
+  resolved "git://github.com/fdietze/wasm-pack-plugin.git#6fce19f598c1ba328d71febd6e46827b7536404f"
   dependencies:
     chalk "^2.4.1"
     command-exists "^1.2.7"
@@ -7544,9 +7543,9 @@ slide@^1.1.5:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-"snabbdom@git://github.com/cornerman/snabbdom.git#semver:0.7.3":
-  version "0.7.3"
-  resolved "git://github.com/cornerman/snabbdom.git#464535dc487f551a1ba48004a47038bf78b5ce1f"
+"snabbdom@git://github.com/cornerman/snabbdom.git#semver:0.7.4":
+  version "0.7.4"
+  resolved "git://github.com/cornerman/snabbdom.git#2814da5d929d432b9c3fc5ecf91ca03c72e17bbe"
 
 snapdragon-node@^2.0.1:
   version "2.1.1"
