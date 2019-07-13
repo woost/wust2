@@ -31,6 +31,8 @@ import scala.scalajs.{LinkingInfo, js}
 object Main {
 
   def main(args: Array[String]): Unit = {
+    wasm.crate.run()
+
     Logging.setup()
 
     setupDom()

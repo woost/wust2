@@ -4,6 +4,10 @@ const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("html-webpack-plugin");
 const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
+const WasmPackPlugin = require("@wasm-tool/wasm-pack-plugin");
+
+const childProcess = require('child_process');
+
 const Path = require('path');
 
 const commons = require('./webpack.base.common.js');
@@ -42,7 +46,16 @@ module.exports.plugins.push(new HtmlPlugin({
     favicon: Path.join(dirs.assets, 'favicon.ico'),
     showErrors: true
 }));
-module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }))
+module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }));
+
+// console.warn(Path.resolve(dirs.project, "crate"))
+// childProcess.spawn("wasm-pack", ["build"], {stdio: [process.stdin, process.stdout, process.stderr], cwd: Path.resolve(dirs.project, "crate")});
+// console.warn("-------");
+module.exports.plugins.push(new WasmPackPlugin({
+      crateDirectory: Path.resolve(dirs.project, "crate"),
+      // WasmPackPlugin defaults to compiling in "dev" profile. To change that, use forceMode: 'release':
+      // forceMode: 'release'
+    }));
 
 ////////////////////////////////////////
 // dev server

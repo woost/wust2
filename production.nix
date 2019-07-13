@@ -14,12 +14,22 @@ in
       nodejs-11_x yarn
       # phantomjs
       # gnumake gcc # required for some weird npm things
+
+      # for rust & wasm
+      openssl
+      rustup
     ];
 
     installPhase= ''
     '';
 
     shellHook=''
+    export OPENSSL_DIR="${pkgs.openssl.dev}"
+    export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
+    rustup toolchain install nightly
+    rustup default nightly
+    cargo install wasm-pack || true
+
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."
     echo Now run ./start sbt
