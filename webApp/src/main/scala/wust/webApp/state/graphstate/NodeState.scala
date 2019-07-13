@@ -1,5 +1,6 @@
 package wust.webApp.state.graphstate
 
+import acyclic.file
 import rx._
 import flatland._
 import wust.ids._
@@ -62,4 +63,10 @@ final class NodeState {
     LayerChanges(addIdx, changes.addEdges, changes.delEdges)
   }
 }
+
+final case class LayerChanges(
+  addIdx: Int,
+  addEdges: Array[Edge] = Array.empty,
+  delEdges: Array[Edge] = Array.empty
+)
 

@@ -1,5 +1,6 @@
 package wust.webApp.state.graphstate
 
+import acyclic.file
 import rx._
 import flatland._
 import wust.ids._
@@ -279,7 +280,7 @@ final class GraphState(initialGraph: Graph) {
   // val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
 
   val children = new ChildrenLayer(edgeState)
-  // val read = new ChildrenLayer
+  val read = new ReadLayer(edgeState)
 
   update(GraphChanges(addNodes = initialGraph.nodes, addEdges = initialGraph.edges))
 
@@ -287,8 +288,9 @@ final class GraphState(initialGraph: Graph) {
     time("graphstate") {
       val layerChanges = nodeState.update(changes)
       edgeState.update(changes)
+
       children.update(layerChanges)
-      // read.update(nodeState, layerChanges)
+      read.update(layerChanges)
     }
   }
 }
@@ -300,9 +302,9 @@ final class ChildrenLayer(val edgeState: EdgeState) extends LayerState {
   }
 }
 
-// final class ReadLayer extends LayerState {
-//   @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
-//     case edge: Edge.Read => code(edge.nodeId, edge.userId)
-//     case _               =>
-//   }
-// }
+final class ReadLayer(val edgeState: EdgeState) extends LayerState {
+  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
+    case edge: Edge.Read => code(edge.nodeId, edge.userId)
+    case _                =>
+  }
+}

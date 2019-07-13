@@ -1,5 +1,6 @@
 package wust.webApp.state.graphstate
 
+import acyclic.file
 import rx._
 import flatland._
 import wust.ids._
@@ -14,7 +15,7 @@ import scala.collection.{ breakOut, immutable, mutable }
 object EdgeState {
   @inline def edgeKey(edge: Edge): (NodeId, NodeId) = edge.sourceId -> edge.targetId
 
-  def apply(nodeState:NodeState, edges: Array[Edge]): EdgeState = {
+  def apply(nodeState: NodeState, edges: Array[Edge]): EdgeState = {
     val edgeState = new EdgeState(nodeState)
     edgeState.update(GraphChanges(addEdges = edges))
     edgeState
@@ -42,7 +43,7 @@ final class EdgeState(nodeState: NodeState) {
   def update(changes: GraphChanges): Unit = {
     // register new and updated edges
 
-    val addEdgeIdxBuilder = new mutable.ArrayBuilder.ofInt
+    val addEdgeIdxBuilder = InterleavedArrayInt.builder
     changes.addEdges.foreachElement { edge =>
       val key = EdgeState.edgeKey(edge)
 
@@ -57,8 +58,7 @@ final class EdgeState(nodeState: NodeState) {
           idToIdxHashMap(key) = newIdx
           nodeState.idToIdxForeach(edge.sourceId){ sourceIdx =>
             nodeState.idToIdxForeach(edge.targetId){ targetIdx =>
-              addEdgeIdxBuilder += sourceIdx
-              addEdgeIdxBuilder += targetIdx
+              addEdgeIdxBuilder.add(sourceIdx, targetIdx)
             }
           }
       }
@@ -66,7 +66,7 @@ final class EdgeState(nodeState: NodeState) {
       assert(edgesNow.length == idToIdxHashMap.size)
     }
 
-    edgesIdxNow = new InterleavedArrayInt(edgesIdxNow.interleaved ++ addEdgeIdxBuilder.result)
+    edgesIdxNow = new InterleavedArrayInt(edgesIdxNow.interleaved ++ addEdgeIdxBuilder.result().interleaved)
     assert(edgesRx.size == edgesNow.size)
     assert(edgesIdxNow.elementCount == edgesNow.size)
   }
