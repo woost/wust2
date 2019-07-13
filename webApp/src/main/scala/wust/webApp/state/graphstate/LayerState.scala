@@ -1,5 +1,6 @@
 package wust.webApp.state.graphstate
 
+import scala.reflect.ClassTag
 import scala.scalajs.js.JSConverters._
 import acyclic.file
 import rx._
@@ -37,7 +38,7 @@ import scala.scalajs.js.WrappedArray
   }
 }
 
-@inline final class InterleavedJSArrayIntBuilder {
+final class InterleavedJSArrayIntBuilder {
   @inline private def extractHi(l: Long): Int = (l >> 32).toInt
   @inline private def extractLo(l: Long): Int = l.toInt
   @inline private def combineToLong(a: Int, b: Int): Long = ((a.toLong) << 32) | (b & 0xffffffffL)
@@ -51,10 +52,7 @@ import scala.scalajs.js.WrappedArray
   @inline def result() = self
 }
 
-abstract class LayerState {
-  // val nodeState: NodeState
-  val edgeState: EdgeState
-
+final class LayerState(val edgeState: EdgeState) {
   import edgeState.edgesIdxNow
 
   var edgeLookupNow: NestedArrayIntValues = NestedArrayInt.empty
@@ -67,90 +65,94 @@ abstract class LayerState {
   def lookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeLookupRx(idx).map(_.map(edgesIdxNow.right))
   def revLookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeRevLookupRx(idx).map(_.map(edgesIdxNow.left))
 
-  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
+  @inline def update(changes: LayerChanges, accept: Edge => Boolean): Unit = {
+    // time("graphstate:update") {
+    val affectedSourceNodes = new mutable.ArrayBuilder.ofInt
+    val affectedTargetNodes = new mutable.ArrayBuilder.ofInt
+    val addElemBuilder = new InterleavedJSArrayIntBuilder
+    val addRevElemBuilder = new InterleavedJSArrayIntBuilder
+    time("graphstate:update:addEdges") {
+      changes.addEdges.foreachElement { edge =>
+        if (accept(edge)) {
+          val sourceId = edge.sourceId
+          val targetId = edge.targetId
 
-  def update(changes: LayerChanges): Unit = {
-    time("graphstate:update") {
-      val affectedSourceNodes = new mutable.ArrayBuffer[Int]
-      val affectedTargetNodes = new mutable.ArrayBuffer[Int]
-      val addElemBuilder = new InterleavedJSArrayIntBuilder
-      val addRevElemBuilder = new InterleavedJSArrayIntBuilder
-      time("graphstate:update:addEdges") {
-        changes.addEdges.foreachElement {
-          ifMyEdge { (sourceId, targetId) =>
-            edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
-              val sourceIdx = edgesIdxNow.left(edgeIdx)
-              val targetIdx = edgesIdxNow.right(edgeIdx)
-              addElemBuilder.add(sourceIdx, edgeIdx)
-              addRevElemBuilder.add(targetIdx, edgeIdx)
-              affectedSourceNodes += sourceIdx
-              affectedTargetNodes += targetIdx
-            }
+          edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
+            val sourceIdx = edgesIdxNow.left(edgeIdx)
+            val targetIdx = edgesIdxNow.right(edgeIdx)
+            addElemBuilder.add(sourceIdx, edgeIdx)
+            addRevElemBuilder.add(targetIdx, edgeIdx)
+            affectedSourceNodes += sourceIdx
+            affectedTargetNodes += targetIdx
           }
-        }
-      }
-      val addElem = time("graphstate:update:addElem") {
-        val interleavedLong = addElemBuilder.result()
-        // use native js Array.sort with compare function for long (faster than scala.util.Sorting.quickSort or java.util.Arrays.sort)
-        interleavedLong.sort(_ compare _)
-        new InterleavedArrayInt(interleavedLong.toArray) // TODO: is there a way to avoid copying? Either convert js.Array to scala array or call js.Array.sort on scala Array?
-      }
-      val addRevElem = time("graphstate:update:addRevElem") {
-        val interleavedLong = addRevElemBuilder.result()
-        // use native js Array.sort with compare function for long (faster than scala.util.Sorting.quickSort or java.util.Arrays.sort)
-        interleavedLong.sort(_ compare _)
-        new InterleavedArrayInt(interleavedLong.toArray) // TODO: is there a way to avoid copying? Either convert js.Array to scala array or call js.Array.sort on scala Array?
-      }
-
-      val delElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
-      val delRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
-      time("graphstate:update:delEdges") {
-        changes.delEdges.foreach {
-          ifMyEdge { (sourceId, targetId) =>
-            edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
-              val sourceIdx = edgesIdxNow.left(edgeIdx)
-              val targetIdx = edgesIdxNow.right(edgeIdx)
-              delElemBuilder += sourceIdx -> lookupNow.indexOf(sourceIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
-              delRevElemBuilder += targetIdx -> lookupNow.indexOf(targetIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
-              affectedSourceNodes += sourceIdx
-              affectedTargetNodes += targetIdx
-            }
-          }
-        }
-      }
-      val delElem = time("graphstate:update:delElem") { InterleavedArrayInt(delElemBuilder.result().sortBy(_._1)) }
-      val delRevElem = time("graphstate:update:delRevElem") { InterleavedArrayInt(delRevElemBuilder.result().sortBy(_._1)) }
-
-      time("graphstate:update:change") {
-        // NestedArray.changed() parameters:
-        // addIdx: Int, // how many nodes are added
-        // addElem: InterleavedArrayInt // Array[idx -> elem]
-        // delElem: InterleavedArrayInt // Array[idx -> position]
-        if (scala.scalajs.LinkingInfo.developmentMode) {
-          edgeLookupNow = edgeLookupNow.changedWithAssertions(changes.addIdx, addElem, delElem)
-          edgeRevLookupNow = edgeRevLookupNow.changedWithAssertions(changes.addIdx, addRevElem, delRevElem)
-        } else {
-          edgeLookupNow = edgeLookupNow.changed(changes.addIdx, addElem, delElem)
-          edgeRevLookupNow = edgeRevLookupNow.changed(changes.addIdx, addRevElem, delRevElem)
-        }
-      }
-
-      time("graphstate:update:update-rx") {
-        lookupNow = edgeLookupNow.viewMapInt(edgesIdxNow.right)
-        revLookupNow = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
-
-        loop(changes.addIdx) { _ =>
-          edgeLookupRx.grow()
-          edgeRevLookupRx.grow()
-        }
-
-        affectedSourceNodes.foreachElement { idx =>
-          edgeLookupRx(idx) = edgeLookupNow(idx)
-        }
-        affectedTargetNodes.foreachElement { idx =>
-          edgeRevLookupRx(idx) = edgeRevLookupNow(idx)
         }
       }
     }
+    val addElem = time("graphstate:update:addElem") {
+      val interleavedLong = addElemBuilder.result()
+      // use native js Array.sort with compare function for long (faster than scala.util.Sorting.quickSort or java.util.Arrays.sort)
+      interleavedLong.sort(_ compare _)
+      new InterleavedArrayInt(interleavedLong.toArray) // TODO: is there a way to avoid copying? Either convert js.Array to scala array or call js.Array.sort on scala Array?
+    }
+    val addRevElem = time("graphstate:update:addRevElem") {
+      val interleavedLong = addRevElemBuilder.result()
+      // use native js Array.sort with compare function for long (faster than scala.util.Sorting.quickSort or java.util.Arrays.sort)
+      interleavedLong.sort(_ compare _)
+      new InterleavedArrayInt(interleavedLong.toArray) // TODO: is there a way to avoid copying? Either convert js.Array to scala array or call js.Array.sort on scala Array?
+    }
+
+    val delElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
+    val delRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
+    time("graphstate:update:delEdges") {
+      changes.delEdges.foreach { edge =>
+        if (accept(edge)) {
+          val sourceId = edge.sourceId
+          val targetId = edge.targetId
+
+          edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
+            val sourceIdx = edgesIdxNow.left(edgeIdx)
+            val targetIdx = edgesIdxNow.right(edgeIdx)
+            delElemBuilder += sourceIdx -> lookupNow.indexOf(sourceIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
+            delRevElemBuilder += targetIdx -> lookupNow.indexOf(targetIdx)(edgeIdx) // Remove the first occurence of the sourceId/targetId combination
+            affectedSourceNodes += sourceIdx
+            affectedTargetNodes += targetIdx
+          }
+        }
+      }
+    }
+    val delElem = time("graphstate:update:delElem") { InterleavedArrayInt(delElemBuilder.result().sortBy(_._1)) }
+    val delRevElem = time("graphstate:update:delRevElem") { InterleavedArrayInt(delRevElemBuilder.result().sortBy(_._1)) }
+
+    time("graphstate:update:change") {
+      // NestedArray.changed() parameters:
+      // addIdx: Int, // how many nodes are added
+      // addElem: InterleavedArrayInt // Array[idx -> elem]
+      // delElem: InterleavedArrayInt // Array[idx -> position]
+      if (scala.scalajs.LinkingInfo.developmentMode) {
+        edgeLookupNow = edgeLookupNow.changedWithAssertions(changes.addIdx, addElem, delElem)
+        edgeRevLookupNow = edgeRevLookupNow.changedWithAssertions(changes.addIdx, addRevElem, delRevElem)
+      } else {
+        edgeLookupNow = edgeLookupNow.changed(changes.addIdx, addElem, delElem)
+        edgeRevLookupNow = edgeRevLookupNow.changed(changes.addIdx, addRevElem, delRevElem)
+      }
+    }
+
+    time("graphstate:update:update-rx") {
+      lookupNow = edgeLookupNow.viewMapInt(edgesIdxNow.right)
+      revLookupNow = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
+
+      loop(changes.addIdx) { _ =>
+        edgeLookupRx.grow()
+        edgeRevLookupRx.grow()
+      }
+
+      affectedSourceNodes.result().foreachElement { idx =>
+        edgeLookupRx(idx) = edgeLookupNow(idx)
+      }
+      affectedTargetNodes.result().foreachElement { idx =>
+        edgeRevLookupRx(idx) = edgeRevLookupNow(idx)
+      }
+    }
+    // }
   }
 }

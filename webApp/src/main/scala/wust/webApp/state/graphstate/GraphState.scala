@@ -279,8 +279,8 @@ final class GraphState(initialGraph: Graph) {
   // val automatedEdgeReverseIdx: NestedArrayInt = automatedEdgeReverseIdxBuilder.result()
   // val derivedFromTemplateEdgeIdx: NestedArrayInt = derivedFromTemplateEdgeIdxBuilder.result()
 
-  val children = new ChildrenLayer(edgeState)
-  val read = new ReadLayer(edgeState)
+  val children = new LayerState(edgeState)
+  val read = new LayerState(edgeState)
 
   update(GraphChanges(addNodes = initialGraph.nodes, addEdges = initialGraph.edges))
 
@@ -289,22 +289,8 @@ final class GraphState(initialGraph: Graph) {
       val layerChanges = nodeState.update(changes)
       edgeState.update(changes)
 
-      children.update(layerChanges)
-      read.update(layerChanges)
+      children.update(layerChanges, _.isInstanceOf[Edge.Child])
+      read.update(layerChanges, _.isInstanceOf[Edge.Read])
     }
-  }
-}
-
-final class ChildrenLayer(val edgeState: EdgeState) extends LayerState {
-  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
-    case edge: Edge.Child => code(edge.parentId, edge.childId)
-    case _                =>
-  }
-}
-
-final class ReadLayer(val edgeState: EdgeState) extends LayerState {
-  @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit] = {
-    case edge: Edge.Read => code(edge.nodeId, edge.userId)
-    case _                =>
   }
 }
