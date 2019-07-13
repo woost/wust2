@@ -17,6 +17,7 @@ in
 
       # for rust & wasm
       openssl
+      wasm-pack
       rustup
     ];
 
@@ -24,11 +25,11 @@ in
     '';
 
     shellHook=''
-    export OPENSSL_DIR="${pkgs.openssl.dev}"
-    export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
-    rustup toolchain install nightly
-    rustup default nightly
-    cargo install wasm-pack || true
+    # export OPENSSL_DIR="${pkgs.openssl.dev}"
+    # export OPENSSL_LIB_DIR="${pkgs.openssl.out}/lib"
+    # rustup toolchain install nightly
+    # rustup default nightly
+    # cargo install wasm-pack || true
 
     echo --- Welcome to woost! ---
     echo "Make sure you have the docker service running and added your user to the group 'docker'."

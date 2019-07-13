@@ -174,7 +174,7 @@ object Deps {
         "workbox-webpack-plugin" -> "4.3.1" ::
         "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
         "cssnano" -> "4.1.10" ::
-        "@wasm-tool/wasm-pack-plugin" -> "0.2.7" ::
+        "@wasm-tool/wasm-pack-plugin" -> "1.0.0" ::
         // "@wasm-tool/wasm-pack-plugin" -> "git://github.com/fdietze/wasm-pack-plugin.git#59c09b2" ::
         // "@wasm-tool/wasm-pack-plugin" -> "file:/home/felix/projects/wasm-pack-plugin" ::
         Nil
