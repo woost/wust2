@@ -52,7 +52,7 @@ final class InterleavedJSArrayIntBuilder {
   @inline def result() = self
 }
 
-final class LayerState(val edgeState: EdgeState) {
+final class LayerState(val edgeState: EdgeState, ifMyEdge: ((NodeId, NodeId) => Unit) => (Edge => Unit)) {
   import edgeState.edgesIdxNow
 
   var edgeLookupNow: NestedArrayIntValues = NestedArrayInt.empty
@@ -65,18 +65,16 @@ final class LayerState(val edgeState: EdgeState) {
   def lookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeLookupRx(idx).map(_.map(edgesIdxNow.right))
   def revLookupRx(idx: Int)(implicit ctx: Ctx.Owner) = edgeRevLookupRx(idx).map(_.map(edgesIdxNow.left))
 
-  @inline def update(changes: LayerChanges, accept: Edge => Boolean): Unit = {
+  // @inline def ifMyEdge(code: (NodeId, NodeId) => Unit): PartialFunction[Edge, Unit]
+  @inline def update(changes: LayerChanges): Unit = {
     // time("graphstate:update") {
     val affectedSourceNodes = new mutable.ArrayBuilder.ofInt
     val affectedTargetNodes = new mutable.ArrayBuilder.ofInt
     val addElemBuilder = new InterleavedJSArrayIntBuilder
     val addRevElemBuilder = new InterleavedJSArrayIntBuilder
     time("graphstate:update:addEdges") {
-      changes.addEdges.foreachElement { edge =>
-        if (accept(edge)) {
-          val sourceId = edge.sourceId
-          val targetId = edge.targetId
-
+      changes.addEdges.foreachElement {
+        ifMyEdge { (sourceId, targetId) =>
           edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
             val sourceIdx = edgesIdxNow.left(edgeIdx)
             val targetIdx = edgesIdxNow.right(edgeIdx)
@@ -104,11 +102,8 @@ final class LayerState(val edgeState: EdgeState) {
     val delElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
     val delRevElemBuilder = new mutable.ArrayBuilder.ofRef[(Int, Int)]
     time("graphstate:update:delEdges") {
-      changes.delEdges.foreach { edge =>
-        if (accept(edge)) {
-          val sourceId = edge.sourceId
-          val targetId = edge.targetId
-
+      changes.delEdges.foreach {
+        ifMyEdge { (sourceId, targetId) =>
           edgeState.idToIdxForeach(sourceId -> targetId) { edgeIdx =>
             val sourceIdx = edgesIdxNow.left(edgeIdx)
             val targetIdx = edgesIdxNow.right(edgeIdx)
