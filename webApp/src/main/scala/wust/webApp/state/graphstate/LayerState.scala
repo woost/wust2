@@ -21,9 +21,9 @@ import scala.scalajs.js.WrappedArray
 
   @inline def grow(): Unit = { self += null }
 
-  @inline def update(idx: Int, value: ArraySliceInt): Unit = {
+  @inline def updateFrom(idx: Int, lookup: NestedArrayInt): Unit = {
     if (self(idx) != null) {
-      self(idx)() = value.toArray
+      self(idx)() = lookup(idx).toArray
     }
   }
 
@@ -142,10 +142,10 @@ final class LayerState(val edgeState: EdgeState, ifMyEdge: ((NodeId, NodeId) => 
       }
 
       affectedSourceNodes.result().foreachElement { idx =>
-        edgeLookupRx(idx) = edgeLookupNow(idx)
+        edgeLookupRx.updateFrom(idx, edgeLookupNow)
       }
       affectedTargetNodes.result().foreachElement { idx =>
-        edgeRevLookupRx(idx) = edgeRevLookupNow(idx)
+        edgeRevLookupRx.updateFrom(idx, edgeRevLookupNow)
       }
     }
     // }
