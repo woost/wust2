@@ -38,14 +38,27 @@ object GraphChangesAutomation {
       var i = 0
       var done = false
       var hasError = false
+      var nodeToString: Node => String = node => node.str
       while (!done && i < n) {
         val propertyName = propertyNames(i)
         commandMode match {
 
           case CommandSelection => propertyName match {
             case "myself" | "yourself" =>
-              if (i == 0) referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
-              else done = true
+              if (i == 0) {
+                referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
+              } else {
+                done = true
+                hasError = true
+              }
+            case "id" =>
+              if (i == n - 1) {
+                referenceNodesPath(i + 1) = referenceNodesPath(i)
+                nodeToString = node => node.id.toBase58
+              } else {
+                done = true
+                hasError = true
+              }
             case "original" =>
               referenceNodesPath(i + 1) = referenceNodesPath(i)
             case "reference" =>
@@ -93,9 +106,9 @@ object GraphChangesAutomation {
           lastReferenceNodes.foreach { refNode =>
             extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
           }
-          lastReferenceNodes.map(n => "@" + sanitizeFinalString(n.str)).mkString(" ")
+          lastReferenceNodes.map(n => "@" + sanitizeFinalString(nodeToString(n))).mkString(" ")
         } else {
-          lastReferenceNodes.map(n => sanitizeFinalString(n.str)).mkString(", ")
+          lastReferenceNodes.map(n => sanitizeFinalString(nodeToString(n))).mkString(", ")
         }
       }
     })

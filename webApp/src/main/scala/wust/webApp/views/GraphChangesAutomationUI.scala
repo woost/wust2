@@ -129,11 +129,12 @@ object GraphChangesAutomationUI {
                   li(i("${woost.field.<name>}"), " A custom field of this node, where the key is the name of the property."),
                   li(i("${woost.reverseField}"), " Points from a custom field to the owner of this field. Reverse direction of field."),
                   li(i("${woost.assignee}"), " Reference the assigend user of this node."),
+                  li(i("${woost.id}"), " Get the id of the current node."),
                   li(i("${woost.original}"), " Reference the current node before renaming."),
                   li(i("${woost.myself}"), " The currently logged-in user. That is you!"),
                 ),
 
-                p("Each variable is resolved relative to the position of the node which uses this variables at the time the automation runs. You can combine variables to reference nodes via a whole path. For example: ${woost.parent.field.name}, ${woost.reverseField.parent}, or ${woost.parent.parent}.")
+                p("Each variable is resolved relative to the position of the node which uses this variables at the time the automation runs. You can combine variables to reference nodes via a whole path. For example: ${woost.parent.field.name}, ${woost.reverseField.parent}, ${woost.parent.parent}, ${woost.parent.id}.")
               )
               case false => VDomModifier.empty
             },
