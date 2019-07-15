@@ -457,14 +457,8 @@ object GraphChangesAutomation {
 
       case edge: Edge.Automated if referencedTemplateIds.contains(edge.templateNodeId) || referencingNodeIds.contains(edge.templateNodeId) => () // do not copy automation edges of template, otherwise the newNode would become a template.
       case edge: Edge.Child if edge.data.deletedAt.exists(EpochMilli.now.isAfter) && !referencingNodeIds.contains(edge.childId) || templateNodesIdx.exists(idx => graph.nodeIds(idx) == edge.childId) && ignoreParents(edge.parentId) => () // do not copy deleted parent edges except when we delete a referenced template, do not copy child edges for ignore parents. This for special cases where we just want to copy the node but not where it is located.
-      case edge: Edge.Author if referencedTemplateIds.contains(edge.nodeId) || referencingNodeIds.contains(edge.nodeId)            => () // do not copy author of template itself
-      case edge: Edge.Read if referencedTemplateIds.contains(edge.nodeId) || referencingNodeIds.contains(edge.nodeId)              => () // do not copy read of template itself
-      case edge: Edge.Author                                              => // need to keep date of authorship, but change author. We will have an author edge for every change that was done to this node
-        // replace node ids to point to our copied nodes
-        replacedNodes.get(edge.nodeId).foreach(_ foreach { // already existing nodes are not newly added, therefore do not add a
-          case newSource if copyNodeIds.contains(newSource.id) => addEdges += edge.copy(nodeId = newSource.id, userId = userId)
-          case _ => ()
-        })
+      case edge: Edge.Author            => () // do not copy author edges
+      case edge: Edge.Read              => () // do not copy read edges
       case edge                                                           =>
 
         // replace node ids to point to our copied nodes
