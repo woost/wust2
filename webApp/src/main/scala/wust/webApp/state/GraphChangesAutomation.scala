@@ -190,8 +190,8 @@ object GraphChangesAutomation {
 
   // copy the whole subgraph of the templateNode and append it to newNode.
   // templateNode is a placeholder and we want make changes such newNode looks like a copy of templateNode.
-  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): GraphChanges = copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodesIdx, ignoreParents, newId, copyTime)._2
-  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now): (Boolean, GraphChanges) = if (templateNodesIdx.isEmpty) (false, GraphChanges.empty) else {
+  def copySubGraphOfNode(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true): GraphChanges = copySubGraphOfNodeWithIsTouched(userId, graph, newNode, templateNodesIdx, ignoreParents, newId, copyTime, toastEnabled)._2
+  def copySubGraphOfNodeWithIsTouched(userId: UserId, graph: Graph, newNode: Node, templateNodesIdx: Array[Int], ignoreParents: mutable.HashSet[NodeId] = mutable.HashSet.empty, newId: NodeId => NodeId = _ => NodeId.fresh, copyTime: EpochMilli = EpochMilli.now, toastEnabled: Boolean = true): (Boolean, GraphChanges) = if (templateNodesIdx.isEmpty) (false, GraphChanges.empty) else {
     scribe.info(s"Copying sub graph of node $newNode")
 
     val newNodeIdx = graph.idToIdx(newNode.id)
@@ -556,7 +556,7 @@ object GraphChangesAutomation {
       (newNodeIsTouched, GraphChanges(addNodes = addAndEditNodes.result, addEdges = allAddEdges).consistent)
     } else {
       scribe.warn("Cannot apply automation, BUG!")
-      UI.toast("Sorry, one your automations could not be run", "Automation Error", level = UI.ToastLevel.Error)
+      if (toastEnabled) UI.toast("Sorry, one your automations could not be run", "Automation Error", level = UI.ToastLevel.Error)
       (false, GraphChanges.empty)
     }
   }

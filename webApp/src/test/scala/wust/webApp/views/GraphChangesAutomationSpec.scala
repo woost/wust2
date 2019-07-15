@@ -26,7 +26,7 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
   def copySubGraphOfNode(graph: Graph, newNode: Node.Content, templateNodes: Seq[Node.Content]): GraphChanges = {
     val newIdMap = scala.collection.mutable.HashMap[NodeId, Int]()
     GraphChangesAutomation.copySubGraphOfNode(
-      UserId(freshNodeId()), graph, newNode, templateNodes.map(node => graph.idToIdxOrThrow(node.id))(breakOut), newId = copyNodeId(_), copyTime = copyTime
+      UserId(freshNodeId()), graph, newNode, templateNodes.map(node => graph.idToIdxOrThrow(node.id))(breakOut), newId = copyNodeId(_), copyTime = copyTime, toastEnabled = false
     )
   }
 
