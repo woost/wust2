@@ -26,7 +26,7 @@ final class EdgeState(nodeState: NodeState) {
 
   val edgesNow: mutable.ArrayBuffer[Edge] = mutable.ArrayBuffer.empty
   val idToIdxHashMap: mutable.HashMap[(NodeId, NodeId), Int] = mutable.HashMap.empty
-  val edgesRx: mutable.ArrayBuffer[Var[Edge]] = mutable.ArrayBuffer.empty
+  val edgesRx = new LazyReactiveCollection[Edge](getCurrent = idx => edgesNow(idx))
   var edgesIdxNow: InterleavedArrayInt = InterleavedArrayInt.empty
 
   @inline def idToIdxFold[T](endPoints: (NodeId, NodeId))(default: => T)(f: Int => T): T = {
@@ -54,7 +54,7 @@ final class EdgeState(nodeState: NodeState) {
       idToIdxFold(key){
         val newIdx = edgesNow.length
         edgesNow += edge
-        edgesRx += Var(edge)
+        edgesRx.grow()
         idToIdxHashMap(key) = newIdx
         nodeState.idToIdxForeach(edge.sourceId){ sourceIdx =>
           nodeState.idToIdxForeach(edge.targetId){ targetIdx =>
@@ -63,14 +63,16 @@ final class EdgeState(nodeState: NodeState) {
         }
       }{ idx =>
         edgesNow(idx) = edge
-        edgesRx(idx)() = edge //TODO: LazyReactiveWrapper
+        edgesRx(idx)() = edge
       }
     }
 
     assert(edgesNow.length == idToIdxHashMap.size)
 
+    time("graphstate:edgestate:updateInterleaved") {
     edgesIdxNow = new InterleavedArrayInt(edgesIdxNow.interleaved ++ addEdgeIdxBuilder.result().interleaved)
-    assert(edgesRx.size == edgesNow.size)
-    assert(edgesIdxNow.elementCount == edgesNow.size)
+    }
+    assert(edgesRx.length == edgesNow.length)
+    assert(edgesIdxNow.elementCount == edgesNow.length)
   }
 }

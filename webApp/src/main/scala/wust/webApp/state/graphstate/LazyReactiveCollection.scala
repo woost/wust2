@@ -19,11 +19,13 @@ import scala.scalajs.js.WrappedArray
 @inline final class LazyReactiveCollection[T](getCurrent: Int => T) {
   val self: mutable.ArrayBuffer[Var[T]] = mutable.ArrayBuffer.empty
 
-  @inline def willBeIncreasedByHint(n:Int) = self.sizeHint(self.length + n)
+  @inline def length = self.length
+
+  @inline def sizeHint(n:Int) = self.sizeHint(n)
 
   @inline def grow(): Unit = { self += null }
 
-  @inline def updateFrom(idx: Int, lookup: NestedArrayInt): Unit = {
+  @inline def refresh(idx: Int): Unit = {
     if (self(idx) != null) {
       self(idx)() = getCurrent(idx)
     }

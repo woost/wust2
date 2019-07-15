@@ -114,18 +114,18 @@ final class LayerState(val edgeState: EdgeState, ifMyEdge: ((NodeId, NodeId) => 
       lookupNow = edgeLookupNow.viewMapInt(edgesIdxNow.right)
       revLookupNow = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
 
-      edgeLookupRx.willBeIncreasedByHint(changes.addIdx)
-      edgeRevLookupRx.willBeIncreasedByHint(changes.addIdx)
+      edgeLookupRx.sizeHint(edgeLookupRx.length + changes.addIdx)
+      edgeRevLookupRx.sizeHint(edgeRevLookupRx.length + changes.addIdx)
       loop(changes.addIdx) { _ =>
         edgeLookupRx.grow()
         edgeRevLookupRx.grow()
       }
 
       affectedSourceNodes.result().foreachElement { sourceNodeIdx =>
-        edgeLookupRx.updateFrom(sourceNodeIdx, edgeLookupNow)
+        edgeLookupRx.refresh(sourceNodeIdx)
       }
       affectedTargetNodes.result().foreachElement { targetNodeIdx =>
-        edgeRevLookupRx.updateFrom(targetNodeIdx, edgeRevLookupNow)
+        edgeRevLookupRx.refresh(targetNodeIdx)
       }
     }
     // }
