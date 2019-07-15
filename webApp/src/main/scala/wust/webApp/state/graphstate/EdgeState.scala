@@ -42,29 +42,32 @@ final class EdgeState(nodeState: NodeState) {
 
   def update(changes: GraphChanges): Unit = {
     // register new and updated edges
+    
+    edgesNow.sizeHint(edgesNow.length + changes.addEdges.length)
+    edgesRx.sizeHint(edgesRx.length + changes.addEdges.length)
+    idToIdxHashMap.sizeHint(idToIdxHashMap.size + changes.addEdges.length)
 
     val addEdgeIdxBuilder = InterleavedArrayInt.builder
     changes.addEdges.foreachElement { edge =>
       val key = EdgeState.edgeKey(edge)
 
-      idToIdxHashMap.get(key) match {
-        case Some(idx) =>
-          edgesNow(idx) = edge
-          edgesRx(idx)() = edge
-        case None =>
-          val newIdx = edgesNow.length
-          edgesNow += edge
-          edgesRx += Var(edge)
-          idToIdxHashMap(key) = newIdx
-          nodeState.idToIdxForeach(edge.sourceId){ sourceIdx =>
-            nodeState.idToIdxForeach(edge.targetId){ targetIdx =>
-              addEdgeIdxBuilder.add(sourceIdx, targetIdx)
-            }
+      idToIdxFold(key){
+        val newIdx = edgesNow.length
+        edgesNow += edge
+        edgesRx += Var(edge)
+        idToIdxHashMap(key) = newIdx
+        nodeState.idToIdxForeach(edge.sourceId){ sourceIdx =>
+          nodeState.idToIdxForeach(edge.targetId){ targetIdx =>
+            addEdgeIdxBuilder.add(sourceIdx, targetIdx)
           }
+        }
+      }{ idx =>
+        edgesNow(idx) = edge
+        edgesRx(idx)() = edge //TODO: LazyReactiveWrapper
       }
-
-      assert(edgesNow.length == idToIdxHashMap.size)
     }
+
+    assert(edgesNow.length == idToIdxHashMap.size)
 
     edgesIdxNow = new InterleavedArrayInt(edgesIdxNow.interleaved ++ addEdgeIdxBuilder.result().interleaved)
     assert(edgesRx.size == edgesNow.size)

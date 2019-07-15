@@ -21,9 +21,9 @@ object NodeState {
 }
 
 final class NodeState {
-  val nodesNow: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty
+  val nodesNow: mutable.ArrayBuffer[Node] = mutable.ArrayBuffer.empty // faster than js.Array
   val idToIdxHashMap: mutable.HashMap[NodeId, Int] = mutable.HashMap.empty
-  val nodesRx: mutable.ArrayBuffer[Var[Node]] = mutable.ArrayBuffer.empty
+  val nodesRx: mutable.ArrayBuffer[Var[Node]] = mutable.ArrayBuffer.empty // faster than js.Array
 
   @inline def idToIdxFold[T](id: NodeId)(default: => T)(f: Int => T): T = {
     idToIdxHashMap.get(id) match {
@@ -42,6 +42,12 @@ final class NodeState {
     // register new and updated nodes
 
     var addIdx = 0 // counts the number of newly added nodes
+
+    // sizehints didn't make it faster...
+    // nodesNow.sizeHint(nodesNow.length + changes.addNodes.length)
+    // nodesRx.sizeHint(nodesRx.length + changes.addNodes.length)
+    // idToIdxHashMap.sizeHint(idToIdxHashMap.size + changes.addNodes.length)
+
     changes.addNodes.foreachElement { node =>
       val nodeId = node.id
       idToIdxFold(nodeId){
@@ -54,7 +60,7 @@ final class NodeState {
       }{ idx =>
         // already exists, update node
         nodesNow(idx) = node
-        nodesRx(idx)() = node
+        nodesRx(idx)() = node //TODO: LazyReactiveWrapper
       }
     }
 

@@ -19,6 +19,8 @@ import scala.scalajs.js.WrappedArray
 @inline final class LazyReactiveWrapper(now: => NestedArrayIntValues) {
   val self: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
 
+  @inline def willBeIncreasedByHint(n:Int) = self.sizeHint(self.length + n)
+
   @inline def grow(): Unit = { self += null }
 
   @inline def updateFrom(idx: Int, lookup: NestedArrayInt): Unit = {
@@ -136,16 +138,18 @@ final class LayerState(val edgeState: EdgeState, ifMyEdge: ((NodeId, NodeId) => 
       lookupNow = edgeLookupNow.viewMapInt(edgesIdxNow.right)
       revLookupNow = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
 
+      edgeLookupRx.willBeIncreasedByHint(changes.addIdx)
+      edgeRevLookupRx.willBeIncreasedByHint(changes.addIdx)
       loop(changes.addIdx) { _ =>
         edgeLookupRx.grow()
         edgeRevLookupRx.grow()
       }
 
-      affectedSourceNodes.result().foreachElement { idx =>
-        edgeLookupRx.updateFrom(idx, edgeLookupNow)
+      affectedSourceNodes.result().foreachElement { sourceNodeIdx =>
+        edgeLookupRx.updateFrom(sourceNodeIdx, edgeLookupNow)
       }
-      affectedTargetNodes.result().foreachElement { idx =>
-        edgeRevLookupRx.updateFrom(idx, edgeRevLookupNow)
+      affectedTargetNodes.result().foreachElement { targetNodeIdx =>
+        edgeRevLookupRx.updateFrom(targetNodeIdx, edgeRevLookupNow)
       }
     }
     // }

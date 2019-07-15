@@ -28,8 +28,8 @@ final class GraphState(initialGraph: Graph) {
 
   def update(changes: GraphChanges) = {
     time("graphstate") {
-      val layerChanges = nodeState.update(changes)
-      edgeState.update(changes)
+      val layerChanges = time("graphstate:nodestate") {nodeState.update(changes)}
+      time("graphstate:edgestate") {edgeState.update(changes)}
 
       children.update(layerChanges)
       read.update(layerChanges)
