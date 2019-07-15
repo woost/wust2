@@ -129,7 +129,7 @@ object GraphChangesAutomationUI {
                   li(i("${woost.field.<name>}"), " A custom field of this node, where the key is the name of the property."),
                   li(i("${woost.reverseField}"), " Points from a custom field to the owner of this field. Reverse direction of field."),
                   li(i("${woost.assignee}"), " Reference the assigend user of this node."),
-                  li(i("${woost.reference}"), " Reference the current node before renaming."),
+                  li(i("${woost.original}"), " Reference the current node before renaming."),
                   li(i("${woost.myself}"), " The currently logged-in user. That is you!"),
                 ),
 

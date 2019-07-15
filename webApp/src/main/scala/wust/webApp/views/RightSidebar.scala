@@ -323,7 +323,7 @@ object RightSidebar {
             },
             customOptions = Some(VDomModifier(
               UI.checkbox("Create a new node from the reference", isCreateReference),
-              UI.checkbox("Rename existing node (original content in `${woost.reference}`)", isRenameReference)
+              UI.checkbox("Rename existing node (original content in `${woost.original}`)", isRenameReference)
             ))
           ),
           ItemProperties.EdgeFactory.Plain(create),

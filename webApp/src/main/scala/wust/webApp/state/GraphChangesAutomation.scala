@@ -46,7 +46,10 @@ object GraphChangesAutomation {
             case "myself" | "yourself" =>
               if (i == 0) referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
               else done = true
+            case "original" =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
             case "reference" =>
+              UI.toast("Please use ${woost.original} instead of ${woost.reference}", "Deprecated Variable", level = UI.ToastLevel.Warning)
               referenceNodesPath(i + 1) = referenceNodesPath(i)
             case "field" =>
               referenceNodesPath(i + 1) = referenceNodesPath(i)
