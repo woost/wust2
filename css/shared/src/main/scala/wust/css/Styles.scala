@@ -461,10 +461,10 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.pointer.important, // overwrites cursor from .draggable
     borderRadius(2 px),
     padding(1 px, 0 px, 1 px, 5 px),
+  )
 
-    &("a, a:link, a:hover, a:visited") - (
-      color(Color(Colors.fgColor))
-    ),
+  "a.channel-line" - (
+    color(Color(Colors.fgColor))
   )
 
   ".channel-name"  - (
