@@ -16,30 +16,6 @@ import scala.scalajs.js
 import scala.collection.{ breakOut, immutable, mutable }
 import scala.scalajs.js.WrappedArray
 
-@inline final class LazyReactiveWrapper(now: => NestedArrayIntValues) {
-  val self: mutable.ArrayBuffer[Var[Array[Int]]] = mutable.ArrayBuffer.empty
-
-  @inline def willBeIncreasedByHint(n:Int) = self.sizeHint(self.length + n)
-
-  @inline def grow(): Unit = { self += null }
-
-  @inline def updateFrom(idx: Int, lookup: NestedArrayInt): Unit = {
-    if (self(idx) != null) {
-      self(idx)() = lookup(idx).toArray
-    }
-  }
-
-  @inline def apply(idx: Int): Var[Array[Int]] = {
-    if (self(idx) == null) {
-      val value = Var(now(idx).toArray)
-      self(idx) = value
-      value
-    } else {
-      self(idx)
-    }
-  }
-}
-
 final class InterleavedJSArrayIntBuilder {
   @inline private def extractHi(l: Long): Int = (l >> 32).toInt
   @inline private def extractLo(l: Long): Int = l.toInt
@@ -59,8 +35,8 @@ final class LayerState(val edgeState: EdgeState, ifMyEdge: ((NodeId, NodeId) => 
 
   var edgeLookupNow: NestedArrayIntValues = NestedArrayInt.empty
   var edgeRevLookupNow: NestedArrayIntValues = NestedArrayInt.empty
-  val edgeLookupRx = new LazyReactiveWrapper(edgeLookupNow)
-  val edgeRevLookupRx = new LazyReactiveWrapper(edgeRevLookupNow)
+  val edgeLookupRx = new LazyReactiveCollection[Array[Int]](getCurrent = idx => edgeLookupNow(idx).toArray)
+  val edgeRevLookupRx = new LazyReactiveCollection[Array[Int]](getCurrent = idx => edgeRevLookupNow(idx).toArray)
 
   var lookupNow: NestedArrayIntMapped = edgeLookupNow.viewMapInt(edgesIdxNow.right)
   var revLookupNow: NestedArrayIntMapped = edgeRevLookupNow.viewMapInt(edgesIdxNow.left)
