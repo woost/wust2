@@ -570,7 +570,7 @@ object GraphChangesAutomation {
       (newNodeIsTouched, GraphChanges(addNodes = addAndEditNodes.result, addEdges = allAddEdges).consistent)
     } else {
       scribe.warn("Cannot apply automation, BUG!")
-      if (toastEnabled) UI.toast("Sorry, one your automations could not be run", "Automation Error", level = UI.ToastLevel.Error)
+      if (toastEnabled) UI.toast("Sorry, one of your automations could not be run", "Automation Error", level = UI.ToastLevel.Error)
       (false, GraphChanges.empty)
     }
   }
