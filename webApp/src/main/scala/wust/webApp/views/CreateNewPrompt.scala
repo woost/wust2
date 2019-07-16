@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import monix.reactive.subjects.PublishSubject
 import cats.effect.IO
 import colorado.{ Color, RGB }
 import wust.facades.fomanticui.DropdownEntry
@@ -22,15 +23,25 @@ import wust.webApp.views.Components._
 import scala.concurrent.Future
 import wust.webApp.Icons
 import wust.sdk.Colors
+import shapeless.Select
+import wust.util.macros.SubObjects
 
 object CreateNewPrompt {
 
-  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: NodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
-    val parentNodes = Var[List[ParentId]](Nil)
-    val childNodes = Var[List[ChildId]](Nil)
-    val nodeRole = Var[NodeRole](defaultNodeRole)
+  sealed trait SelectableNodeRole
+  object SelectableNodeRole {
+    case object Message extends SelectableNodeRole
+    case object Task extends SelectableNodeRole
+    case object Note extends SelectableNodeRole
+    case object Project extends SelectableNodeRole
+    val list: Array[SelectableNodeRole] = SubObjects.all[SelectableNodeRole]
+  }
+  import SelectableNodeRole._
+
+  def apply(show: Observable[Boolean], defaultAddToChannels: Boolean, defaultNodeRole: SelectableNodeRole)(implicit ctx: Ctx.Owner): VDomModifier = IO {
     val parentNodes = Var[Vector[ParentId]](Vector.empty)
     val childNodes = Var[Vector[ChildId]](Vector.empty)
+    val nodeRole = Var[SelectableNodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
     val triggerSubmit = PublishSubject[Unit]
@@ -38,7 +49,21 @@ object CreateNewPrompt {
     def newMessage(sub: InputRow.Submission): Future[Ack] = {
       val parents: Vector[ParentId] = if (parentNodes.now.isEmpty) Vector(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
 
-      val newNode = Node.Content(NodeData.Markdown(sub.text), nodeRole.now, NodeMeta(nodeAccess.now))
+      GlobalState.clearSelectedNodes()
+
+      val newNodeViews: List[View.Visible] = nodeRole.now match {
+        case Message => List(View.Chat)
+        case Task    => List(View.List, View.Chat)
+        case Note    => List(View.Content, View.Chat)
+        case Project => List(View.Dashboard, View.Chat)
+      }
+      val newNodeRole: NodeRole = nodeRole.now match {
+        case Message => NodeRole.Message
+        case Task    => NodeRole.Task
+        case Note    => NodeRole.Note
+        case Project => NodeRole.Project
+      }
+      val newNode = Node.Content(NodeId.fresh, NodeData.Markdown(sub.text), newNodeRole, NodeMeta(nodeAccess.now), views = Some(newNodeViews))
       val changes =
         GraphChanges.addNodeWithParent(newNode, parents) merge
           GraphChanges.addToParent(childNodes.now, ParentId(newNode.id)) merge
@@ -52,9 +77,9 @@ object CreateNewPrompt {
       } else {
         val ack = GlobalState.submitChanges(changes)
         def newViewConfig = nodeRole.now match {
-          case NodeRole.Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
-          case NodeRole.Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
-          case NodeRole.Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
+          case Message => GlobalState.urlConfig.now.focus(Page(parents.head), View.Conversation)
+          case Task    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Tasks)
+          case Note    => GlobalState.urlConfig.now.focus(Page(parents.head), View.Content)
         }
         UI.toast(s"Created new ${nodeRole.now}: ${StringOps.trimToMaxLength(newNode.str, 10)}", click = () => GlobalState.urlConfig() = newViewConfig, level = UI.ToastLevel.Success)
         ack
@@ -119,16 +144,17 @@ object CreateNewPrompt {
     val roleSelection = div(
       cls := "ui basic buttons",
       Rx {
-        def roleButton(title: String, icon: IconLookup, role: NodeRole): VDomModifier = div(
+        def roleButton(title: String, icon: IconLookup, role: SelectableNodeRole): VDomModifier = div(
           cls := "ui button",
           icon, " ", title,
           (nodeRole() == role).ifTrue[VDomModifier](cls := "active"),
           onClick(role) --> nodeRole
         )
         VDomModifier(
-          roleButton("Task", Icons.task, NodeRole.Task),
-          roleButton("Message", Icons.message, NodeRole.Message),
-          roleButton("Note", Icons.note, NodeRole.Note)
+          roleButton("Task", Icons.task, Task),
+          roleButton("Message", Icons.message, Message),
+          roleButton("Note", Icons.note, Note),
+          roleButton("Project", Icons.project, Project)
         )
       },
     )
@@ -240,7 +266,9 @@ object CreateNewPrompt {
           GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
           ))))
-        } else GlobalState.uiModalClose.onNext(())
+        } else {
+          GlobalState.uiModalClose.onNext(())
+        }
       }
     )
   }

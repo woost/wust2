@@ -13,8 +13,6 @@ object Topbar {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
-        // wust.webApp.DevOnly(SharedViewElements.createNewButton.apply(marginRight := "10px", Styles.flexStatic)),
-
         AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic, color.black),
         FeedbackForm(ctx)(Styles.flexStatic),
         AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
