@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import com.github.ghik.silencer.silent
 import acyclic.file
 import monix.reactive.Observable
 import monix.reactive.subjects.PublishSubject
@@ -101,6 +102,7 @@ object GlobalState {
   val uiModalConfig: PublishSubject[Ownable[ModalConfig]] = PublishSubject()
   val uiModalClose: PublishSubject[Unit] = PublishSubject()
 
+  @silent("deprecated")
   val rawGraph: Rx[Graph] = {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
 
@@ -175,10 +177,10 @@ object GlobalState {
     selectedNodes().filter(data => GlobalState.graph().lookup.contains(data.nodeId))
   }
 
-  def clearSelectedNodes():Unit = { selectedNodes() = Vector.empty }
-  def addSelectedNode(selectedNode: SelectedNode):Unit = { selectedNodes.update(_ :+ selectedNode) }
-  def removeSelectedNode(nodeId: NodeId):Unit = { selectedNodes.update(_.filterNot(_.nodeId == nodeId)) }
-  def toggleSelectedNode(selectedNode: SelectedNode):Unit = {
+  def clearSelectedNodes(): Unit = { selectedNodes() = Vector.empty }
+  def addSelectedNode(selectedNode: SelectedNode): Unit = { selectedNodes.update(_ :+ selectedNode) }
+  def removeSelectedNode(nodeId: NodeId): Unit = { selectedNodes.update(_.filterNot(_.nodeId == nodeId)) }
+  def toggleSelectedNode(selectedNode: SelectedNode): Unit = {
     if (selectedNodes.now.exists(_.nodeId == selectedNode.nodeId)) removeSelectedNode(selectedNode.nodeId)
     else addSelectedNode(selectedNode)
   }

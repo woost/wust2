@@ -132,7 +132,7 @@ object FeedbackForm {
     )
   }
 
-  def initCrisp: Unit = {
+  def initCrisp(): Unit = {
     GlobalState.user.now match {
       case user: Implicit =>
         crisp.push(js.Array("set", "user:nickname", js.Array(user.name)))
