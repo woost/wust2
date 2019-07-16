@@ -104,14 +104,16 @@ object ViewSwitcher {
 
   //TODO FocusState?
   @inline def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    apply( channelId, GlobalState.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => GlobalState.urlConfig.update(_.focus(view)))
+    apply(channelId, GlobalState.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => GlobalState.urlConfig.update(_.focus(view)))
   }
   @inline def apply(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier( channelId, viewRx, viewAction, initialView) })
+    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, viewRx, viewAction, initialView) })
   }
 
   def selectForm(channelId: NodeId): VNode = {
-    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx => selector( channelId, GlobalState.view, view => GlobalState.urlConfig.update(_.focus(view)), None, Observer.empty) })
+    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
+      selector(channelId, GlobalState.view, view => GlobalState.urlConfig.update(_.focus(view)), None, Observer.empty)
+    })
   }
 
   private def modifier(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -124,7 +126,7 @@ object ViewSwitcher {
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-          selector( channelId, viewRx, viewAction, initialView, closeDropdown)
+          selector(channelId, viewRx, viewAction, initialView, closeDropdown)
         ), close = closeDropdown, dropdownModifier = cls := "top left")
       )
     })
@@ -147,13 +149,16 @@ object ViewSwitcher {
 
         def bestView = graph.nodesById(channelId).flatMap(ViewHeuristic.bestView(graph, _, user.id)).getOrElse(View.Empty)
 
-        val (numMsg, numTasks, numFiles) = if (!BrowserDetect.isPhone) {
-          val nodeIdx = graph.idToIdxOrThrow(channelId)
+        val nodeIdx = graph.idToIdx(channelId)
+        val (numMsg, numTasks, numFiles) = (for {
+          nodeIdx <- nodeIdx
+          if !BrowserDetect.isPhone
+        } yield {
           val messageChildrenCount = graph.messageChildrenIdx.sliceLength(nodeIdx)
           val taskChildrenCount = graph.taskChildrenIdx.sliceLength(nodeIdx)
           val filesCount = graph.pageFilesIdx(nodeIdx).length
           (messageChildrenCount, taskChildrenCount, filesCount)
-        } else (0, 0, 0)
+        }) getOrElse ((0, 0, 0))
 
         val parms = TabContextParms(
           currentView,
@@ -175,32 +180,33 @@ object ViewSwitcher {
   }
 
   private def selector(
-    
     channelId: NodeId,
     viewRx: Rx[View.Visible],
     viewAction: View => Unit,
     initialView: Option[View.Visible],
     done: Observer[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
-    val nodeRx = Rx {
-      GlobalState.graph().nodesByIdOrThrow(channelId)
-    }
 
+    val nodeRx = Rx {
+      GlobalState.graph().nodesById(channelId)
+    }
     val existingViews = Rx {
       val node = nodeRx()
-      node.views match {
-        case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.user().id).toList
-        case Some(views) => views
+      node.fold(List.empty[View.Visible]) { node =>
+        node.views match {
+          case None        => ViewHeuristic.bestView(GlobalState.graph(), node, GlobalState.user().id).toList
+          case Some(views) => views
+        }
       }
     }
 
     val hasViews = Rx {
-      nodeRx().views.isDefined
+      nodeRx().fold(false)(_.views.isDefined)
     }
 
     //TODO rewrite this in a less sideeffecting way
-    viewRx.triggerLater { view => addNewView( viewRx, viewAction, done, nodeRx, existingViews, view) }
-    initialView.foreach(addNewView( viewRx, viewAction, done, nodeRx, existingViews, _))
+    viewRx.triggerLater { view => addNewView(viewRx, viewAction, done, nodeRx, existingViews, view) }
+    initialView.foreach(addNewView(viewRx, viewAction, done, nodeRx, existingViews, _))
 
     VDomModifier(
       div(
@@ -223,7 +229,7 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               Elements.icon(info.icon),
               view.toString,
-              onClick.stopPropagation.foreach(addNewView( viewRx, viewAction, done, nodeRx, existingViews, view)),
+              onClick.stopPropagation.foreach(addNewView(viewRx, viewAction, done, nodeRx, existingViews, view)),
               cursor.pointer
             )
           }
@@ -246,7 +252,7 @@ object ViewSwitcher {
         Rx {
           val currentViews = existingViews()
           if (currentViews.isEmpty) div("Nothing, yet.")
-          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView( viewRx, viewAction, done, nodeRx, _))) { view =>
+          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView(viewRx, viewAction, done, nodeRx, _))) { view =>
             val info = viewToTabInfo(view, 0, 0, 0)
             VDomModifier(
               marginTop := "8px",
@@ -272,67 +278,73 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               "Reset to default",
               cursor.pointer,
-              onClick.stopPropagation.foreach { resetView( viewRx, viewAction, done, nodeRx) }
+              onClick.stopPropagation.foreach { resetView(viewRx, viewAction, done, nodeRx) }
             )
           )
         }
       )
     )
   }
-  private def resetView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node]): Unit = {
+  private def resetView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]]): Unit = {
     done.onNext(())
     val node = nodeRx.now
-    if(node.views.isDefined) {
+    node.foreach { node =>
+      if (node.views.isDefined) {
+        val newNode = node match {
+          case n: Node.Content => n.copy(views = None)
+          case n: Node.User    => n.copy(views = None)
+        }
+
+        val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
+        if (viewRx.now != newView) {
+          viewAction(newView)
+        }
+
+        GlobalState.submitChanges(GraphChanges.addNode(newNode))
+      }
+    }
+  }
+  private def removeView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
+    done.onNext(())
+    val node = nodeRx.now
+    node.foreach { node =>
+      val currentViews = node.views.getOrElse(Nil)
+      val filteredViews = currentViews.filterNot(_ == view)
       val newNode = node match {
-        case n: Node.Content => n.copy(views = None)
-        case n: Node.User    => n.copy(views = None)
+        case n: Node.Content => n.copy(views = Some(filteredViews))
+        case n: Node.User    => n.copy(views = Some(filteredViews))
       }
 
-      val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
-      if(viewRx.now != newView) {
+      //switch to remaining view
+      if (viewRx.now == view) {
+        val currPosition = currentViews.indexWhere(_ == view)
+        val nextPosition = currPosition - 1
+        val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
         viewAction(newView)
       }
 
       GlobalState.submitChanges(GraphChanges.addNode(newNode))
     }
   }
-  private def removeView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], view: View.Visible): Unit = {
-    done.onNext(())
-    val node = nodeRx.now
-    val currentViews = node.views.getOrElse(Nil)
-    val filteredViews = currentViews.filterNot(_ == view)
-    val newNode = node match {
-      case n: Node.Content => n.copy(views = Some(filteredViews))
-      case n: Node.User    => n.copy(views = Some(filteredViews))
-    }
-
-    //switch to remaining view
-    if(viewRx.now == view) {
-      val currPosition = currentViews.indexWhere(_ == view)
-      val nextPosition = currPosition - 1
-      val newView = if(nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
-      viewAction(newView)
-    }
-
-    GlobalState.submitChanges(GraphChanges.addNode(newNode))
-  }
-  private def addNewView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx.Dynamic[Node], existingViews: Rx.Dynamic[List[View.Visible]], newView: View.Visible): Unit = {
-    if(viewDefs.contains(newView)) { // only allow defined views
+  private def addNewView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+    if (viewDefs.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
-      val currentViews = existingViews.now
+      node.foreach { node =>
+        val currentViews = existingViews.now
 
-      if(!currentViews.contains(newView)) {
-        val newNode = node match {
-          case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
-          case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+        if (!currentViews.contains(newView)) {
+          val newNode = node match {
+            case n: Node.Content => n.copy(views = Some(currentViews :+ newView))
+            case n: Node.User    => n.copy(views = Some(currentViews :+ newView))
+          }
+
+          GlobalState.submitChanges(GraphChanges.addNode(newNode))
         }
 
-        GlobalState.submitChanges(GraphChanges.addNode(newNode))
-      }
-
-      if(viewRx.now != newView) {
-        viewAction(newView)
+        if (viewRx.now != newView) {
+          viewAction(newView)
+        }
       }
     }
   }

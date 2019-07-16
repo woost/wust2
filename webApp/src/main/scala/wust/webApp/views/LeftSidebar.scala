@@ -254,7 +254,7 @@ object LeftSidebar {
     val nodeId = traverseState.parentId
     val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
     val node = Rx {
-      GlobalState.rawGraph().nodesByIdOrThrow(nodeId)
+      GlobalState.rawGraph().nodesById(nodeId)
     }
 
     val permissionLevel = Rx {
@@ -280,7 +280,7 @@ object LeftSidebar {
               color := Colors.sidebarBg,
               backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
             ),
-            renderProject(node(), renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected()),
+          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())),
           )
         },
 
