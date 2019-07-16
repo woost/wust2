@@ -383,6 +383,9 @@ object CommonStyles extends StyleSheet.Standalone {
     backgroundColor(Color(Colors.contentBg)),
   )
 
+  ".create-new-prompt.ui.modal > .close" - (
+    color(Color(Colors.fgColor))
+  )
 
 
   ".sidebar" - (
