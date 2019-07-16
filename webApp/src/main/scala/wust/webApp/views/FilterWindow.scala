@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.css.Styles
 import outwatch.dom.{VDomModifier, _}
 import outwatch.dom.dsl._
 import rx.{Ctx, Rx}
@@ -65,13 +66,19 @@ object FilterWindow {
               )
             }
           ),
-          div(
+        div(
+          Styles.flex,
+          justifyContent.flexEnd,
+          button(
+            marginTop := "20px",
+            cls := "ui compact basic button",
             cursor.pointer,
             Elements.icon(Icons.noFilter),
-            span("Reset ALL filters"),
+            span("Reset all filters"),
             onClick(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
             onClick foreach { Analytics.sendEvent("filter", "reset") },
           )
+        )
         )
       }
     )
