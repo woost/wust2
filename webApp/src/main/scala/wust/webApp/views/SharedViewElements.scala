@@ -167,7 +167,6 @@ object SharedViewElements {
   }
 
   def renderMessage(
-    
     nodeId: NodeId,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],

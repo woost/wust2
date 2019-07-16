@@ -523,14 +523,17 @@ object Components {
 
     def taskCheckbox( node:Node, directParentIds:Iterable[NodeId])(implicit ctx: Ctx.Owner):VNode = {
       val isChecked:Rx[Boolean] = Rx {
-        val graph = GlobalState.graph()
-        val nodeIdx = graph.idToIdxOrThrow(node.id)
-        @inline def nodeIsDoneInParent(parentId:NodeId) = {
-          val parentIdx = graph.idToIdxOrThrow(parentId)
-          val workspaces = graph.workspacesForParent(parentIdx)
-          graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
+        if(directParentIds.isEmpty) false
+        else {
+          val graph = GlobalState.graph()
+          val nodeIdx = graph.idToIdxOrThrow(node.id)
+          @inline def nodeIsDoneInParent(parentId:NodeId) = {
+            val parentIdx = graph.idToIdxOrThrow(parentId)
+            val workspaces = graph.workspacesForParent(parentIdx)
+            graph.isDoneInAllWorkspaces(nodeIdx, workspaces)
+          }
+          directParentIds.forall(nodeIsDoneInParent)
         }
-        directParentIds.forall(nodeIsDoneInParent)
       }
 
       div(
@@ -538,6 +541,7 @@ object Components {
         input(
           tpe := "checkbox",
           checked <-- isChecked,
+          VDomModifier.ifTrue(directParentIds.isEmpty)(disabled := true),
           onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
           onChange.checked foreach { checking =>
             val graph = GlobalState.graph.now

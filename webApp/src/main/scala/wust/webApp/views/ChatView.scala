@@ -355,7 +355,7 @@ object ChatView {
   }
 
   private def renderParentMessage(
-    parentId: NodeId,
+    nodeId: NodeId,
     isDeletedNow: Boolean,
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: PublishSubject[Unit],
@@ -363,14 +363,19 @@ object ChatView {
   )(implicit ctx: Ctx.Owner) = {
     val authorAndCreated = Rx {
       val graph = GlobalState.graph()
-      graph.idToIdxFold(parentId)((Option.empty[Node.User], Option.empty[EpochMilli])) { parentIdx =>
-        (graph.authorsByIndex(parentIdx).headOption, Some(graph.nodeCreated(parentIdx)))
+      graph.idToIdxFold(nodeId)((Option.empty[Node.User], Option.empty[EpochMilli])) { nodeIdx =>
+        (graph.authorsByIndex(nodeIdx).headOption, Some(graph.nodeCreated(nodeIdx)))
       }
     }
 
-    val parent = Rx{
+    val node = Rx{
       val graph = GlobalState.graph()
-      graph.nodesById(parentId)
+      graph.nodesById(nodeId)
+    }
+
+    val parentIds = Rx {
+      val graph = GlobalState.graph()
+      graph.parents(nodeId)
     }
 
     div(
@@ -378,14 +383,14 @@ object ChatView {
       Rx {
         val tuple = authorAndCreated()
         val (author, creationEpochMillis) = tuple
-        parent().map(node =>
+        node().map(node =>
           div(
             keyed(node.id),
             chatMessageHeader( author)( padding := "2px"),
-            borderLeft := s"3px solid ${accentColor(parentId).toHex}",
+            borderLeft := s"3px solid ${accentColor(nodeId).toHex}",
             paddingRight := "5px",
             paddingBottom := "3px",
-            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(parentId)).toHex,
+            backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex,
             div(
               Styles.flex,
               paddingLeft := "0.5em",
@@ -395,16 +400,14 @@ object ChatView {
                 fontSize.smaller,
                 node.role match {
                   case NodeRole.Task => VDomModifier(
-                    Styles.flex,
-                    "Task: ",
-                    renderNodeData( node, maxLength = Some(100))
+                    renderMessage(nodeId, parentIds(), Rx(isDeletedNow) )
                   )
                   case _ => VDomModifier(
                     renderNodeData( node, maxLength = Some(100))
                   )
                 }
               ),
-              div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
+              div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(nodeId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
                 GlobalState.focus(node.id)
                 GlobalState.clearSelectedNodes()
@@ -431,7 +434,6 @@ object ChatView {
   )
 
   private def renderCurrentReply(
-    
     focusState: FocusState,
     inputFieldFocusTrigger: PublishSubject[Unit],
     currentReply: Var[Set[NodeId]],
