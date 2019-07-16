@@ -124,7 +124,7 @@ object KanbanView {
           VDomModifier.ifTrue(!BrowserDetect.isMobile)(cls := "autohide"),
           DragComponents.drag(DragItem.DisableDrag),
           Styles.flex,
-          GraphChangesAutomationUI.settingsButton( focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
+          GraphChangesAutomationUI.settingsButton(focusState.focusedId, focusState.focusedId, activeMod = visibility.visible, viewRender = viewRender),
         ),
       ),
       div(
@@ -134,7 +134,7 @@ object KanbanView {
         children.map { children =>
           VDomModifier(
             registerDragContainer( DragContainer.Kanban.Inbox(focusState.focusedId, children)),
-            children.map(nodeId => TaskNodeCard.renderThunk( focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true))
+            children.map(nodeId => TaskNodeCard.renderThunk(focusState, traverseState, nodeId, selectedNodeIds, compactChildren = true))
           )
         }
       ),
@@ -211,7 +211,7 @@ object KanbanView {
         )
       },
 
-      GraphChangesAutomationUI.settingsButton( nodeId, activeMod = visibility.visible, viewRender = viewRender),
+      GraphChangesAutomationUI.settingsButton(focusState.focusedId, nodeId, activeMod = visibility.visible, viewRender = viewRender),
     )
 
     val scrollHandler = new ScrollBottomHandler(initialScrollToBottom = false)

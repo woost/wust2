@@ -78,7 +78,6 @@ object TagList {
   }
 
   def plainList(
-    
     workspaceId: NodeId,
     viewRender: ViewRenderLike,
     newTagFieldActive: Var[Boolean] = Var(false)
@@ -90,7 +89,7 @@ object TagList {
       graph.tagChildrenIdx(workspaceIdx).map(tagIdx => graph.roleTree(root = tagIdx, NodeRole.Tag))
     }
 
-    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag( tag, viewRender, tagModifier = removableTagMod(() =>
+    def renderTag(parentId: NodeId, tag: Node) = checkboxNodeTag(workspaceId, tag, viewRender, tagModifier = removableTagMod(() =>
       GlobalState.submitChanges(GraphChanges.disconnect(Edge.Child)(ParentId(parentId), ChildId(tag.id)))
     ), dragOptions = id => DragComponents.drag(DragItem.Tag(id)), withAutomation = true)
 
@@ -115,7 +114,7 @@ object TagList {
   }
 
   def checkboxNodeTag(
-    
+    workspaceId: NodeId,
     tagNode: Node,
     viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
@@ -132,20 +131,18 @@ object TagList {
         Styles.flexStatic,
         cls := "ui checkbox",
         ViewFilter.addFilterCheckbox(
-          
           tagNode.str, // TODO: renderNodeData
           GraphOperation.OnlyTaggedWith(tagNode.id)
         ),
         label(), // needed for fomanticui
       ),
       nodeTag( tagNode, pageOnClick, dragOptions).apply(tagModifier),
-      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton( tagNode.id, activeMod = visibility.visible, viewRender = viewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
+      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton(workspaceId, tagNode.id, activeMod = visibility.visible, viewRender = viewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
     )
   }
 
 
   private def addTagField(
-    
     parentId: NodeId,
     workspaceId: NodeId,
     newTagFieldActive: Var[Boolean],

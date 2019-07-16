@@ -31,13 +31,13 @@ object TableView {
 
       Rx {
         val graph = GlobalState.graph()
-        table( graph, focusState.focusedId, roles, sort)
+        table( graph, focusState, roles, sort)
       }
     )
   }
 
-  def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
-    val focusedIdx = graph.idToIdxOrThrow(focusedId)
+  def table(graph: Graph, focusState: FocusState, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
+    val focusedIdx = graph.idToIdxOrThrow(focusState.focusedId)
 
     val globalEditMode = Var(Option.empty[(String, Array[Edge.LabeledProperty])])
 
@@ -238,8 +238,8 @@ object TableView {
                   val changes = changesf(templateNode.id) merge GraphChanges(
                     addNodes = Array(templateNode),
                     addEdges = Array(
-                      Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
-                      Edge.Automated(focusedId, templateNodeId = TemplateId(templateNode.id))
+                      Edge.Child(ParentId(focusState.focusedId), ChildId(templateNode.id)),
+                      Edge.Automated(focusState.focusedId, templateNodeId = TemplateId(templateNode.id))
                     )
                   )
                   // now we add these changes with the template node to a temporary graph, because ChangesAutomation needs the template node in the graph
@@ -254,7 +254,7 @@ object TableView {
                 padding := "10px",
                 div(
                   UI.toggle("Keep as default", keepPropertyAsDefault).apply(marginBottom := "5px"),
-                  // GraphChangesAutomationUI.settingsButton( focusedId).prepend(
+                  // GraphChangesAutomationUI.settingsButton(focusState.focusedId, focusState.focusedId).prepend(
                   //   span("Manage automations", textDecoration.underline, marginRight := "5px")
                   // ),
                   // i(
@@ -312,7 +312,7 @@ object TableView {
           val newNode = Node.Content(NodeData.Markdown(sub.text), targetRole)
 
           sort() = None // reset sorting again, so the new node appears at the bottom :)
-          val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusedId))
+          val addNode = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId))
           val addTags = ViewFilter.addCurrentlyFilteredTags( newNode.id)
           GlobalState.submitChanges(addNode merge addTags merge sub.changes(newNode.id))
 

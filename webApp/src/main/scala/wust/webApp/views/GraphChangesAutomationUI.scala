@@ -27,7 +27,7 @@ import scala.collection.breakOut
 object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
-  def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
+  def modalConfig(workspaceId: NodeId, focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
       GlobalState.rawGraph().nodesById(focusedId).map { node =>
         Modal.defaultHeader( node, "Automation", Icons.automate)
@@ -206,8 +206,11 @@ object GraphChangesAutomationUI {
                   div(
                     margin := "2px 10px",
                     UI.checkboxEmitter(span(fontSize.xSmall, "Add template as child of this node", UI.popup := "If you check this box, this template will make any matched node a child of this focused node. If not checked, the template will not change the hierarchy of the matched node."), isChildOfTemplate).map { addAsChild =>
+                      // if focusedid != workspaceid and focusedId is a stage, then we need to workaround the multiple parent structure of stage nodes. So we "archive" the edge to the workspaceid, so it gets automated away.
+                      val extraAddEdges = if (focusedId != workspaceId) GlobalState.graph.now.nodesById(focusedId).fold(Array.empty[Edge])(focusedNode => if (focusedNode.role == NodeRole.Stage) Array[Edge](Edge.Child.delete(ParentId(workspaceId), ChildId(templateNode.id))) else Array.empty[Edge]) else Array.empty[Edge]
+                      println("EXTRA " + extraAddEdges.toList)
                       val edges = Array[Edge](Edge.Child(ParentId(focusedId), ChildId(templateNode.id)))
-                      if (addAsChild) GraphChanges(addEdges = edges) else GraphChanges(delEdges = edges)
+                      if (addAsChild) GraphChanges(addEdges = edges ++ extraAddEdges) else GraphChanges(addEdges = extraAddEdges, delEdges = edges)
                     } --> GlobalState.eventProcessor.changes
                   )
                 )
@@ -236,7 +239,7 @@ object GraphChangesAutomationUI {
   }
 
   // a settings button for automation that opens the modal on click.
-  def settingsButton(focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsButton(workspaceId: NodeId, focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     div(
       i(cls := "fa-fw", Icons.automate),
@@ -255,7 +258,7 @@ object GraphChangesAutomationUI {
         )
       },
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig
+      onClick(Ownable(implicit ctx => modalConfig(workspaceId, focusedId, viewRender))) --> GlobalState.uiModalConfig
     )
   }
 
