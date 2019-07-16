@@ -110,7 +110,7 @@ object UI {
       position = "bottom right"
       title = _title
       message = msg
-      displayTime = if (autoclose) 10000 else 0
+      displayTime = if (autoclose) 5000 else 0
     })
   }
 
