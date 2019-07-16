@@ -72,8 +72,15 @@ object CreateNewPrompt {
           val g = GlobalState.graph()
           parentNodes().map(nodeId =>
             g.nodesById(nodeId).map { node =>
-              nodeCard( node).apply(padding := "2px", marginLeft := "5px")
-              // removableNodeTagCustom( tag, () => parentNodes.update(list => list.filter(_ != tag.id)))(padding := "2px")
+              nodeCard(
+                node,
+                contentInject = VDomModifier(
+                  Styles.flex,
+                  flexDirection.row,
+                  justifyContent.spaceBetween,
+                  span(freeSolid.faTimes, cursor.pointer, onClick.foreach { parentNodes.update(list => list.filter(_ != node.id)) }, opacity := 0.4, padding := "0 5px 0 10px")
+                )
+              ).apply(padding := "2px", marginLeft := "5px")
             })
         },
         div(
@@ -96,9 +103,9 @@ object CreateNewPrompt {
 
     def header(implicit ctx: Ctx.Owner) = div(
       "Create New",
-      // Styles.flex,
-      // flexWrap.wrap,
-      // alignItems.center,
+    // Styles.flex,
+    // flexWrap.wrap,
+    // alignItems.center,
 
     // backgroundColor <-- parentNodes.map[String](_.foldLeft[Color](RGB("#FFFFFF"))((c, id) => NodeColor.mixColors(c, NodeColor.eulerBgColor(id))).toHex),
 
@@ -126,7 +133,7 @@ object CreateNewPrompt {
     def description(implicit ctx: Ctx.Owner) = {
 
       VDomModifier(
-        InputRow ( focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
+        InputRow (focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
         div(
           Styles.flex,
           alignItems.center,
@@ -173,7 +180,7 @@ object CreateNewPrompt {
             val nodes = childNodes().flatMap { id =>
               GlobalState.graph().nodesById(id).map { node =>
                 nodeCard(
-                  
+
                   node,
                   contentInject = VDomModifier(
                     Styles.flex,
@@ -184,9 +191,9 @@ object CreateNewPrompt {
                   maxLength = Some(20),
                   projectWithIcon = true,
                 ).apply(
-                  marginBottom := "3px",
-                  padding := "3px" // like in `.chat-row .nodecard`
-                )
+                    marginBottom := "3px",
+                    padding := "3px" // like in `.chat-row .nodecard`
+                  )
               }
             }
 
@@ -214,8 +221,7 @@ object CreateNewPrompt {
           GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
           ))))
-        }
-        else GlobalState.uiModalClose.onNext(())
+        } else GlobalState.uiModalClose.onNext(())
       }
     )
   }
