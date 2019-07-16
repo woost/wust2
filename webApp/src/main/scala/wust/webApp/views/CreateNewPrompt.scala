@@ -182,8 +182,9 @@ object CreateNewPrompt {
           Styles.flex,
           alignItems.center,
           justifyContent.spaceBetween,
-          roleSelection,
-          targetNodeSelection,
+          flexWrap.wrap,
+          roleSelection(Styles.flexStatic, marginBottom := "5px"),
+          targetNodeSelection(Styles.flexStatic),
         ),
 
         div(
