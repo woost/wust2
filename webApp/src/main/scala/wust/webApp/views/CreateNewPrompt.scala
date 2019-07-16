@@ -31,6 +31,7 @@ object CreateNewPrompt {
     val nodeRole = Var[NodeRole](defaultNodeRole)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
+    val triggerSubmit = PublishSubject[Unit]
 
     def newMessage(sub: InputRow.Submission): Future[Ack] = {
       val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
@@ -130,10 +131,25 @@ object CreateNewPrompt {
       },
     )
 
+    val createButton = div(
+      marginTop := "20px",
+      button(
+        "Create",
+        cls := "ui violet button",
+        onClick.stopPropagation(()) --> triggerSubmit
+      )
+    )
+
     def description(implicit ctx: Ctx.Owner) = {
 
       VDomModifier(
-        InputRow (focusState = None, submitAction = newMessage, autoFocus = true, showMarkdownHelp = true).apply(marginBottom := "5px", width := "100%"),
+        InputRow (
+          focusState = None,
+          submitAction = newMessage,
+          autoFocus = true,
+          showMarkdownHelp = true,
+          triggerSubmit = triggerSubmit,
+        ).apply(marginBottom := "5px", width := "100%"),
         div(
           Styles.flex,
           alignItems.center,
@@ -197,15 +213,16 @@ object CreateNewPrompt {
               }
             }
 
-            if (nodes.isEmpty) VDomModifier.empty
-            else VDomModifier(
+            VDomModifier.ifTrue(nodes.nonEmpty)(
               div(
                 "Originated from conversation:",
               // span(marginLeft := "auto", freeSolid.faTimes, cursor.pointer, onClick(Nil) --> childNodes)
               ),
               nodes
             )
-          }
+          },
+
+          createButton(alignSelf.flexEnd)
         )
       )
     }
