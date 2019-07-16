@@ -18,12 +18,12 @@ object ViewHeuristic {
     case view: View.Visible => Some(view)
     case View.Tasks =>
       graph.idToIdx(parentId).map { parentIdx =>
-        val stageCount = graph.childrenIdx(parentIdx).count { childIdx =>
+        val hasStagesOtherThanDone = graph.childrenIdx(parentIdx).exists { childIdx =>
           val node = graph.nodes(childIdx)
           node.role == NodeRole.Stage && !graph.isDoneStage(node)
         }
 
-        if (stageCount > 0) View.Kanban else View.List
+        if (hasStagesOtherThanDone) View.Kanban else View.List
       }
     case View.Conversation => Some(View.Chat)
 
