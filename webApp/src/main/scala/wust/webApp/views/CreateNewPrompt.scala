@@ -78,7 +78,7 @@ object CreateNewPrompt {
                   Styles.flex,
                   flexDirection.row,
                   justifyContent.spaceBetween,
-                  span(freeSolid.faTimes, cursor.pointer, onClick.foreach { parentNodes.update(list => list.filter(_ != node.id)) }, opacity := 0.4, padding := "0 5px 0 10px")
+                  span(freeSolid.faTimes, cursor.pointer, onClick.foreach { parentNodes.update(list => list.filter(_ != node.id)) }, opacity := 0.4, paddingLeft := "10px")
                 )
               ).apply(padding := "2px", marginLeft := "5px")
             })
@@ -186,7 +186,7 @@ object CreateNewPrompt {
                     Styles.flex,
                     flexDirection.row,
                     justifyContent.spaceBetween,
-                    span(freeSolid.faTimes, cursor.pointer, onClick.mapTo(childNodes.now.filterNot(_ == node.id)) --> childNodes, opacity := 0.4, padding := "0 5px 0 10px")
+                    span(freeSolid.faTimes, cursor.pointer, onClick.mapTo(childNodes.now.filterNot(_ == node.id)) --> childNodes, opacity := 0.4, paddingLeft := "10px")
                   ),
                   maxLength = Some(20),
                   projectWithIcon = true,
