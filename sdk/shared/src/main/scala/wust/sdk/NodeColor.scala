@@ -9,7 +9,41 @@ import scala.collection.breakOut
 object NodeColor {
   def genericHue(seed: Any): Double = {
     val rnd = new scala.util.Random(new scala.util.Random(seed.hashCode).nextLong()) // else nextDouble is too predictable
-    rnd.nextDouble() * Math.PI * 2
+
+    // the hues between 1 and 1.8 look ugly (dark yellow)
+    // Color preview:
+    // div(
+    //  color.white,
+    //  Range.Double(1, 1.8, 0.1).map(hue =>
+    //      div(
+    //        border := "2px solid white",
+    //        margin := "30px",
+    //        height := "100px",
+    //        backgroundColor := BaseColors.pageBg.copy(h = hue).toHex,
+    //        h2("Interesting Title", hue)
+    //      )
+    //  )
+    // ),
+    //
+    // so we skip this interval
+    // 0                   2*PI
+    // |--------------------|
+    //      |----|
+    //       ugly
+    // 
+    // |----|----------|
+    //      ^
+    //     removed ugly interval here
+    //
+    // then pick random number of the shorter interval.
+    val skipRangeStart = 1.0
+    val skipRangeEnd = 1.8
+    val skipRangeSize = skipRangeEnd - skipRangeStart
+    val fullRangeSize = Math.PI*2
+    val selectedRangeSize = fullRangeSize - skipRangeSize
+    val random = rnd.nextDouble() * selectedRangeSize
+    if(random < skipRangeStart) random
+    else skipRangeSize + random
   }
 
   @inline def hue(id: NodeId): Double = genericHue(id)
