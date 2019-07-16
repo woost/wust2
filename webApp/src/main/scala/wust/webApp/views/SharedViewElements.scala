@@ -544,7 +544,8 @@ object SharedViewElements {
       ),
       modalModifier = VDomModifier(
         minWidth := "320px",
-        maxWidth := "400px"
+        maxWidth := "400px",
+        cls := "create-new-prompt",
       ),
       onClose = onClose
     )

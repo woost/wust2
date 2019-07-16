@@ -378,13 +378,13 @@ object CommonStyles extends StyleSheet.Standalone {
       )
   )
 
-  ".create-new-prompt.ui.modal > .header," +
-  ".create-new-prompt.ui.modal > .content" - (
-    backgroundColor(Color(Colors.contentBg)),
+  ".create-new-prompt.ui.modal > .header" - (
+    color.white,
+    backgroundColor(c"#6435C9"),
   )
 
-  ".create-new-prompt.ui.modal > .close" - (
-    color(Color(Colors.fgColor))
+  ".create-new-prompt.ui.modal > .content" - (
+    backgroundColor(Color(Colors.contentBg)),
   )
 
 
