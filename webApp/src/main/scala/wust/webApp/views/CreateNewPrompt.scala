@@ -29,12 +29,14 @@ object CreateNewPrompt {
     val parentNodes = Var[List[ParentId]](Nil)
     val childNodes = Var[List[ChildId]](Nil)
     val nodeRole = Var[NodeRole](defaultNodeRole)
+    val parentNodes = Var[Vector[ParentId]](Vector.empty)
+    val childNodes = Var[Vector[ChildId]](Vector.empty)
     val addToChannels = Var[Boolean](defaultAddToChannels)
     val nodeAccess = Var[NodeAccess](NodeAccess.Inherited)
     val triggerSubmit = PublishSubject[Unit]
 
     def newMessage(sub: InputRow.Submission): Future[Ack] = {
-      val parents: List[ParentId] = if (parentNodes.now.isEmpty) List(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
+      val parents: Vector[ParentId] = if (parentNodes.now.isEmpty) Vector(ParentId(GlobalState.user.now.id: NodeId)) else parentNodes.now
 
       val newNode = Node.Content(NodeData.Markdown(sub.text), nodeRole.now, NodeMeta(nodeAccess.now))
       val changes =
@@ -231,8 +233,8 @@ object CreateNewPrompt {
       emitter(show).foreach { show =>
         if (show) {
           Var.set(
-            parentNodes -> List(ParentId(GlobalState.page.now.parentId.getOrElse(GlobalState.user.now.id))),
-            childNodes -> ChildId(GlobalState.selectedNodes.now)
+            parentNodes -> Vector(ParentId(GlobalState.page.now.parentId.getOrElse(GlobalState.user.now.id))),
+            childNodes -> ChildId(GlobalState.selectedNodes.now.map(_.nodeId))
           )
 
           GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(

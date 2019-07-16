@@ -25,17 +25,13 @@ import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, ModalConfig, Ownable, UI}
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import GlobalState.SelectedNode
 
 import scala.collection.breakOut
 import scala.scalajs.js
 import monix.reactive.Observable
 
 object SharedViewElements {
-
-  trait SelectedNodeBase {
-    def nodeId: NodeId
-    def directParentIds: Iterable[NodeId]
-  }
 
   @inline def sortByCreated(nodes: js.Array[Int], graph: Graph): Unit = {
     nodes.sort { (a, b) =>
@@ -170,13 +166,12 @@ object SharedViewElements {
     }
   }
 
-  def renderMessage[SelectedNode <: SelectedNodeBase](
+  def renderMessage(
     
     nodeId: NodeId,
     directParentIds:Iterable[NodeId],
     isDeletedNow: Rx[Boolean],
     renderedMessageModifier:VDomModifier = VDomModifier.empty,
-    selectedNodes: Var[Set[SelectedNode]],
   )(implicit ctx: Ctx.Owner): Rx[Option[VDomModifier]] = {
 
     val node = Rx {
@@ -245,7 +240,7 @@ object SharedViewElements {
       node().map { node =>
         render(node, isDeletedNow()).apply(
           cursor.pointer,
-          VDomModifier.ifTrue(selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)),
+          VDomModifier.ifTrue(GlobalState.selectedNodes().isEmpty)(Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)),
           Components.showHoveredNode( node.id),
           UnreadComponents.readObserver( node.id)
         )
@@ -253,17 +248,17 @@ object SharedViewElements {
     }
   }
 
-  def messageDragOptions[SelectedNode <: SelectedNodeBase](nodeId: NodeId, selectedNodes: Var[Set[SelectedNode]])(implicit ctx: Ctx.Owner) = VDomModifier(
+  def messageDragOptions(nodeId: NodeId)(implicit ctx: Ctx.Owner) = VDomModifier(
     Rx {
       val graph = GlobalState.graph()
       graph.idToIdx(nodeId).map { nodeIdx =>
         val node = graph.nodes(nodeIdx)
-        val selection = selectedNodes()
+        val selection = GlobalState.selectedNodes()
         // payload is call by name, so it's always the current selectedNodeIds
         def payloadOverride:Option[() => DragPayload] = selection.find(_.nodeId == nodeId).map(_ => () => DragItem.SelectedNodes(selection.map(_.nodeId)(breakOut)))
         VDomModifier(
           nodeDragOptions(nodeId, node.role, withHandle = false, payloadOverride = payloadOverride),
-          DragComponents.onAfterPayloadWasDragged.foreach{ selectedNodes() = Set.empty[SelectedNode] }
+          DragComponents.onAfterPayloadWasDragged.foreach{ GlobalState.clearSelectedNodes() }
         )
       }
     },
@@ -285,7 +280,7 @@ object SharedViewElements {
     else drag(payload = payload(), target = target)
   }
 
-  def msgCheckbox[T <: SelectedNodeBase]( nodeId:NodeId, selectedNodes:Var[Set[T]], newSelectedNode: NodeId => T, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
+  def msgCheckbox( nodeId:NodeId, newSelectedNode: NodeId => SelectedNode, isSelected:Rx[Boolean])(implicit ctx: Ctx.Owner): VDomModifier =
     BrowserDetect.isMobile.ifFalse[VDomModifier] {
       div(
         cls := "ui nodeselection-checkbox checkbox fitted",
@@ -296,8 +291,8 @@ object SharedViewElements {
           tpe := "checkbox",
           checked <-- isSelected,
           onChange.checked foreach { checked =>
-            if(checked) selectedNodes.update(_ + newSelectedNode(nodeId))
-            else selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+            if(checked) GlobalState.addSelectedNode(newSelectedNode(nodeId))
+            else GlobalState.removeSelectedNode(nodeId)
           },
           onClick.stopPropagation --> Observer.empty, // fix safari event, that automatically clicks on the message row, which again would unselect the message
         ),
@@ -305,7 +300,7 @@ object SharedViewElements {
       )
     }
 
-  def msgControls[T <: SelectedNodeBase](nodeId: NodeId, directParentIds: Iterable[ParentId], selectedNodes: Var[Set[T]], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
+  def msgControls(nodeId: NodeId, directParentIds: Iterable[ParentId], isDeletedNow:Rx[Boolean], replyAction: => Unit)(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val canWrite = NodePermission.canWrite( nodeId)
 
@@ -328,7 +323,7 @@ object SharedViewElements {
             ifCanWrite(deleteButton(
               onClick foreach {
                 GlobalState.submitChanges(GraphChanges.delete(ChildId(nodeId), directParentIds))
-                selectedNodes.update(_.filterNot(_.nodeId == nodeId))
+                GlobalState.removeSelectedNode(nodeId)
               },
             )),
           )
@@ -354,7 +349,7 @@ object SharedViewElements {
     }
   }
 
-  def selectedNodeActions[T <: SelectedNodeBase](selectedNodes: Var[Set[T]], prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (List[T], Boolean) => List[VNode] = (selected, canWriteAll) => {
+  def selectedNodeActions(prependActions: Boolean => List[VNode] = _ => Nil, appendActions: Boolean => List[VNode] = _ => Nil)(implicit ctx: Ctx.Owner): (Vector[SelectedNode], Boolean) => List[VNode] = (selected, canWriteAll) => {
     val allSelectedNodesAreDeleted = Rx {
       val graph = GlobalState.graph()
       selected.forall(t => graph.isDeletedNow(t.nodeId, t.directParentIds))
@@ -362,7 +357,7 @@ object SharedViewElements {
 
     val middleActions =
       if (canWriteAll) List(
-        SelectedNodes.deleteAllButton[T]( selected, selectedNodes, allSelectedNodesAreDeleted)
+        SelectedNodes.deleteAllButton( selected, allSelectedNodesAreDeleted)
       ) else Nil
 
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
@@ -415,7 +410,7 @@ object SharedViewElements {
     )
   }
 
-  def createNewButton(addToChannels: Boolean = false, nodeRole: NodeRole = NodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
+  def createNewButton(addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = PublishSubject[Boolean]()
 
     div(

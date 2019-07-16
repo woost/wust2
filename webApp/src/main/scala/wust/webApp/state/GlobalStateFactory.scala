@@ -69,6 +69,7 @@ object GlobalStateFactory {
     page.triggerLater {
       closeAllOverlays()
       graphTransformations() = defaultTransformations
+      GlobalState.clearSelectedNodes()
     }
     view.map(_.isContent).triggerLater { isContent =>
       if (!isContent) {
@@ -156,7 +157,7 @@ object GlobalStateFactory {
         page()
         ()
       }
-      clearTrigger.foreach { _ => selectedNodes() = Nil }
+      clearTrigger.foreach { _ => clearSelectedNodes() }
     }
 
     GlobalState.auth.foreach { auth =>
@@ -288,5 +289,6 @@ object GlobalStateFactory {
     page.debug("page")
     view.debug("view")
     user.debug("auth")
+    selectedNodes.debug("selected")
   }
 }

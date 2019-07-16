@@ -23,6 +23,7 @@ import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
+import GlobalState.SelectedNode
 
 import scala.collection.mutable
 import scala.concurrent.Future
@@ -33,10 +34,7 @@ object ThreadView {
   //TODO: deselect after dragging
   //TODO: fix "remove tag" in cycles
 
-  final case class SelectedNode(nodeId:NodeId, directParentIds: Iterable[ParentId])(val showReplyField:Var[Boolean]) extends SelectedNodeBase
-
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val selectedNodes:Var[Set[SelectedNode]] = Var(Set.empty[SelectedNode])
 
     val scrollHandler = new ScrollBottomHandler
     val inputFieldFocusTrigger = PublishSubject[Unit]
@@ -52,26 +50,22 @@ object ThreadView {
       Styles.flex,
       flexDirection.column,
 
-      selectedNodesBar( selectedNodes, inputFieldFocusTrigger),
+      selectedNodesBar(inputFieldFocusTrigger),
       div(
         // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
-        chatHistory( focusState, selectedNodes, pageCounter, shouldLoadInfinite, scrollHandler),
+        chatHistory( focusState, pageCounter, shouldLoadInfinite, scrollHandler),
       ),
       chatInput( focusState, scrollHandler, inputFieldFocusTrigger)
     )
   }
 
   private def selectedNodesBar(
-    
-    selectedNodes: Var[Set[SelectedNode]],
     inputFieldFocusTrigger: PublishSubject[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
-    SelectedNodes[SelectedNode](
-      
-      selectedNodes,
-      selectedNodeActions( selectedNodes),
+    SelectedNodes(
+      selectedNodeActions(),
       (_, _) => Nil
     ).apply(
       position.absolute,
@@ -80,9 +74,7 @@ object ThreadView {
   )
 
   private def chatHistory(
-    
     focusState: FocusState,
-    selectedNodes: Var[Set[SelectedNode]],
     externalPageCounter: Observable[Int],
     shouldLoadInfinite: Var[Boolean],
     scrollHandler: ScrollBottomHandler,
@@ -112,7 +104,7 @@ object ThreadView {
         GlobalState.screenSize() // on screensize change, rerender whole chat history
         val pageCount = pageCounter()
 
-        renderThreadGroups( focusState, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), selectedNodes, true)
+        renderThreadGroups( focusState, messages().takeRight(pageCount), Set(ParentId(focusState.focusedId)), Set(focusState.focusedId), true)
       },
 
       emitter(externalPageCounter) foreach { pageCounter.update(c => Math.min(c + initialPageCounter, messages.now.length)) },
@@ -121,7 +113,7 @@ object ThreadView {
 
 
       // clicking on background deselects
-      onClick foreach { e => if(e.currentTarget == e.target) selectedNodes() = Set.empty[SelectedNode] },
+      onClick foreach { e => if(e.currentTarget == e.target) GlobalState.clearSelectedNodes() },
       scrollHandler.modifier,
     ),
   }
@@ -180,7 +172,7 @@ object ThreadView {
   }
 
 
-  private def renderThreadGroups(focusState: FocusState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
+  private def renderThreadGroups(focusState: FocusState, messages: js.Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false)(implicit ctx: Ctx.Data): VDomModifier = {
     val graph = GlobalState.graph()
     val groups = calculateThreadMessageGrouping(messages, graph)
 
@@ -188,22 +180,22 @@ object ThreadView {
       // large padding-top to have space for selectedNodes bar
       (isTopLevel && groups.nonEmpty).ifTrue[VDomModifier](padding := "50px 0px 5px 20px"),
       groups.map { group =>
-        thunkRxFun( focusState, graph, group, directParentIds, transitiveParentIds, selectedNodes, isTopLevel)
+        thunkRxFun( focusState, graph, group, directParentIds, transitiveParentIds, isTopLevel)
       },
     )
   }
 
-  private def thunkRxFun(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean = false): VDomModifier = {
+  private def thunkRxFun(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds: Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean = false): VDomModifier = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
     div.thunk(key)(nodeIds, GlobalState.screenSize.now)(Ownable { implicit ctx =>
-      thunkGroup( focusState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, selectedNodes = selectedNodes, isTopLevel = isTopLevel)
+      thunkGroup( focusState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, isTopLevel = isTopLevel)
     })
   }
 
-  private def thunkGroup(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], selectedNodes:Var[Set[SelectedNode]], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def thunkGroup(focusState: FocusState, groupGraph: Graph, group: Array[Int], directParentIds:Iterable[ParentId], transitiveParentIds: Set[NodeId], isTopLevel:Boolean)(implicit ctx: Ctx.Owner) = {
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
       val graph = GlobalState.graph()
@@ -236,7 +228,7 @@ object ThreadView {
             val inCycle = transitiveParentIds.contains(nodeId)
 
             if(inCycle)
-              renderMessageRow( nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
+              renderMessageRow( nodeId, directParentIds, isDeletedNow = isDeletedNow, showReplyField = showReplyField, isExpanded = Rx(false), inCycle = true)
             else {
               val isExpanded = Rx {
                 // we need to get the newest node content from the graph
@@ -250,10 +242,10 @@ object ThreadView {
               }
 
               VDomModifier(
-                renderMessageRow( nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
+                renderMessageRow( nodeId, directParentIds, isDeletedNow = isDeletedNow, isExpanded = isExpanded, showReplyField = showReplyField, inCycle = false),
                 Rx {
                   showExpandedThread().ifTrue[VDomModifier] {
-                    renderExpandedThread( focusState, transitiveParentIds, selectedNodes, nodeId, nodeIdList, showReplyField)
+                    renderExpandedThread( focusState, transitiveParentIds, nodeId, nodeIdList, showReplyField)
                   }
                 },
               )
@@ -264,7 +256,7 @@ object ThreadView {
     )
   }
 
-  private def renderExpandedThread(focusState: FocusState, transitiveParentIds: Set[NodeId], selectedNodes: Var[Set[SelectedNode]], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
+  private def renderExpandedThread(focusState: FocusState, transitiveParentIds: Set[NodeId], nodeId: NodeId, nodeIdList: List[ParentId], showReplyField: Var[Boolean])(implicit ctx: Ctx.Owner) = {
     val bgColor = BaseColors.pageBgLight.copy(h = NodeColor.hue(nodeId)).toHex
     VDomModifier(
       cls := "chat-expanded-thread",
@@ -280,7 +272,7 @@ object ThreadView {
           cls := "chat-thread-messages",
           width := "100%",
           Rx {
-            renderThreadGroups( focusState, calculateThreadMessages(nodeIdList, GlobalState.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId, selectedNodes = selectedNodes)
+            renderThreadGroups( focusState, calculateThreadMessages(nodeIdList, GlobalState.graph()), directParentIds = nodeIdList, transitiveParentIds = transitiveParentIds + nodeId)
           },
           Rx {
             if(showReplyField()) threadReplyField( focusState, nodeId, showReplyField)
@@ -332,10 +324,10 @@ object ThreadView {
     )
   }
 
-  private def renderMessageRow(nodeId: NodeId, directParentIds:Iterable[ParentId], selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(nodeId: NodeId, directParentIds:Iterable[ParentId], isDeletedNow: Rx[Boolean], showReplyField: Var[Boolean], isExpanded:Rx[Boolean], inCycle:Boolean)(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
-      selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
+      GlobalState.selectedNodes().exists(selected => selected.nodeId == nodeId && selected.directParentIds == directParentIds)
     }
 
     val renderedMessage = renderMessage(
@@ -352,19 +344,18 @@ object ThreadView {
         color := "#666",
         boxShadow := "0px 1px 0px 1px rgb(102, 102, 102, 0.45)",
       ),
-      messageDragOptions( nodeId, selectedNodes),
+      messageDragOptions( nodeId),
       ),
-      selectedNodes = selectedNodes
     )
-    val controls = msgControls( nodeId, directParentIds, selectedNodes, isDeletedNow = isDeletedNow, replyAction = showReplyField() = !showReplyField.now)
-    val checkbox = msgCheckbox( nodeId, selectedNodes, newSelectedNode = SelectedNode(_, directParentIds)(showReplyField), isSelected = isSelected)
+    val controls = msgControls( nodeId, directParentIds, isDeletedNow = isDeletedNow, replyAction = showReplyField() = !showReplyField.now)
+    val checkbox = msgCheckbox( nodeId, newSelectedNode = SelectedNode(_, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
-        if(longPressed) selectedNodes.update(_ + SelectedNode(nodeId, directParentIds)(showReplyField))
+        if(longPressed) GlobalState.addSelectedNode(SelectedNode(nodeId, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
-          val selectionModeActive = selectedNodes.now.nonEmpty
-          if(selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId, directParentIds)(showReplyField)))
+          val selectionModeActive = GlobalState.selectedNodes.now.nonEmpty
+          if(selectionModeActive) GlobalState.toggleSelectedNode(SelectedNode(nodeId, directParentIds))
         }
       }
     }

@@ -24,6 +24,7 @@ import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import GlobalState.SelectedNode
 
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
@@ -31,10 +32,7 @@ import scala.scalajs.js
 object ChatView {
   import SharedViewElements._
 
-  final case class SelectedNode(nodeId: NodeId)(val directParentIds: Iterable[NodeId]) extends SelectedNodeBase
-
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
-    val selectedNodes = Var(Set.empty[SelectedNode]) //TODO move up, initialize with GlobalState.selectednode. also in sync with threadview
 
     val scrollHandler = new ScrollBottomHandler
     val inputFieldFocusTrigger = PublishSubject[Unit]
@@ -53,16 +51,14 @@ object ChatView {
       Styles.flex,
       flexDirection.column,
 
-      selectedNodesBar( selectedNodes, currentReply, inputFieldFocusTrigger),
+      selectedNodesBar(currentReply, inputFieldFocusTrigger),
 
       div(
         // InfiniteScroll must stay outside ChatHistory (don't know why exactly...)
         InfiniteScroll.onInfiniteScrollUp(shouldLoadInfinite) --> pageCounter,
         chatHistory(
-          
           focusState,
           currentReply,
-          selectedNodes,
           scrollHandler,
           inputFieldFocusTrigger,
           pageCounter,
@@ -70,22 +66,18 @@ object ChatView {
         ),
       ),
       onGlobalEscape(Set.empty[NodeId]) --> currentReply,
-      renderCurrentReply( focusState, selectedNodes, inputFieldFocusTrigger, currentReply, pinReply),
+      renderCurrentReply( focusState, inputFieldFocusTrigger, currentReply, pinReply),
       chatInput( focusState, currentReply, pinReply, scrollHandler, inputFieldFocusTrigger)
     )
   }
 
   private def selectedNodesBar(
-    
-    selectedNodes: Var[Set[SelectedNode]],
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: PublishSubject[Unit],
   )(implicit ctx: Ctx.Owner) = VDomModifier (
     position.relative, // for absolute positioning of selectednodes
-    SelectedNodes[SelectedNode](
-      
-      selectedNodes,
-      selectedNodeActions[SelectedNode]( selectedNodes, prependActions = additionalNodeActions( selectedNodes, currentReply, inputFieldFocusTrigger)),
+    SelectedNodes(
+      selectedNodeActions(prependActions = additionalNodeActions(currentReply, inputFieldFocusTrigger)),
       (_, _) => Nil
       ).apply(
         position.absolute,
@@ -97,7 +89,7 @@ object ChatView {
     
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
-    selectedNodes: Var[Set[SelectedNode]],
+
     scrollHandler: ScrollBottomHandler,
     inputFieldFocusTrigger: PublishSubject[Unit],
     externalPageCounter: Observable[Int],
@@ -143,7 +135,7 @@ object ChatView {
             else padding := "50px 0px 5px 20px"
           ),
           groups.map { group =>
-            thunkRxFun( graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger)
+            thunkRxFun( graph, group, pageParentId, currentReply, inputFieldFocusTrigger)
           }
         )
       },
@@ -153,7 +145,7 @@ object ChatView {
 
       // clicking on background deselects
       onClick.onlyOwnEvents.foreach { e =>
-        selectedNodes() = Set.empty[SelectedNode]
+        GlobalState.clearSelectedNodes()
       },
       scrollHandler.modifier,
     )
@@ -220,7 +212,7 @@ object ChatView {
   }
 
 
-  private def thunkRxFun(graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
+  private def thunkRxFun(graph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit]): ThunkVNode = {
     // because of equals check in thunk, we implicitly generate a wrapped array
     val nodeIds: Seq[NodeId] = group.viewMap(graph.nodeIds)
     val key = nodeIds.head.toString
@@ -229,10 +221,10 @@ object ChatView {
 
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.viewMap(graph.nodeIds)
-    div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup( graph, group, pageParentId, currentReply, selectedNodes, inputFieldFocusTrigger = inputFieldFocusTrigger)))
+    div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup( graph, group, pageParentId, currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 
-  private def thunkGroup(groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], selectedNodes: Var[Set[SelectedNode]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def thunkGroup(groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     val groupHeadId = groupGraph.nodeIds(group(0))
     val author: Rx[Option[Node.User]] = Rx {
@@ -256,7 +248,7 @@ object ChatView {
       Styles.flex,
       flexWrap.wrap,
       commonParentsIdx.map { parentIdx =>
-        renderParentMessage( groupGraph.nodeIds(parentIdx), isDeletedNow = false, selectedNodes = selectedNodes, currentReply = currentReply, inputFieldFocusTrigger)
+        renderParentMessage( groupGraph.nodeIds(parentIdx), isDeletedNow = false, currentReply = currentReply, inputFieldFocusTrigger)
       }
     )
 
@@ -299,11 +291,11 @@ object ChatView {
                 // and statically calculate the parentIds and use inReplyGroup here.
                 // isDeletedNow on the other hand needs to be dynamically calculated.
                 val parentIdxs = groupGraph.parentsIdx(nodeIdx)
-                val parentIds: Set[NodeId] = parentIdxs.map(groupGraph.nodeIds)(breakOut)
+                val parentIds: Set[ParentId] = parentIdxs.map(idx => ParentId(groupGraph.nodeIds(idx)))(breakOut)
 
                 val isDeletedNow = GlobalState.graph.map(g => g.idToIdx(nodeId).exists(idx => g.isDeletedNowIdx(idx, g.parentsIdx(idx))))
 
-                renderMessageRow( pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, selectedNodes, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
+                renderMessageRow( pageParentId, nodeId, parentIds, inReplyGroup = inReplyGroup, isDeletedNow = isDeletedNow, currentReply = currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger, previousNodeId = previousNodeId)
               })
             },
           )
@@ -312,10 +304,10 @@ object ChatView {
     )
   }
 
-  private def renderMessageRow(pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[NodeId], inReplyGroup: Boolean, selectedNodes: Var[Set[SelectedNode]], isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
+  private def renderMessageRow(pageParentId: NodeId, nodeId: NodeId, directParentIds: Iterable[ParentId], inReplyGroup: Boolean, isDeletedNow: Rx[Boolean], currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit], previousNodeId: Option[NodeId])(implicit ctx: Ctx.Owner): VNode = {
 
     val isSelected = Rx {
-      selectedNodes().exists(_.nodeId == nodeId)
+      GlobalState.selectedNodes().exists(_.nodeId == nodeId)
     }
 
     def replyAction = {
@@ -332,16 +324,16 @@ object ChatView {
     }
     else VDomModifier.empty
 
-    val renderedMessage = renderMessage( nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions( nodeId, selectedNodes), selectedNodes = selectedNodes)
-    val controls = msgControls( nodeId, directParentIds.asInstanceOf[Iterable[ParentId]], selectedNodes, isDeletedNow = isDeletedNow, replyAction = replyAction)
-    val checkbox = msgCheckbox( nodeId, selectedNodes, newSelectedNode = SelectedNode(_)(directParentIds), isSelected = isSelected)
+    val renderedMessage = renderMessage( nodeId, directParentIds, isDeletedNow = isDeletedNow, renderedMessageModifier = messageDragOptions( nodeId))
+    val controls = msgControls( nodeId, directParentIds, isDeletedNow = isDeletedNow, replyAction = replyAction)
+    val checkbox = msgCheckbox( nodeId, newSelectedNode = SelectedNode(_, directParentIds), isSelected = isSelected)
     val selectByClickingOnRow = {
       onClickOrLongPress foreach { longPressed =>
-        if (longPressed) selectedNodes.update(_ + SelectedNode(nodeId)(directParentIds))
+        if (longPressed) GlobalState.addSelectedNode(SelectedNode(nodeId, directParentIds))
         else {
           // stopPropagation prevents deselecting by clicking on background
-          val selectionModeActive = selectedNodes.now.nonEmpty
-          if (selectionModeActive) selectedNodes.update(_.toggle(SelectedNode(nodeId)(directParentIds)))
+          val selectionModeActive = GlobalState.selectedNodes.now.nonEmpty
+          if (selectionModeActive) GlobalState.toggleSelectedNode(SelectedNode(nodeId, directParentIds))
         }
       }
     }
@@ -363,10 +355,8 @@ object ChatView {
   }
 
   private def renderParentMessage(
-    
     parentId: NodeId,
     isDeletedNow: Boolean,
-    selectedNodes: Var[Set[SelectedNode]],
     currentReply: Var[Set[NodeId]],
     inputFieldFocusTrigger: PublishSubject[Unit],
     pinReply: Option[Var[Boolean]] = None
@@ -417,7 +407,7 @@ object ChatView {
               div(cls := "fa-fw", freeSolid.faReply, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { currentReply.update(_ ++ Set(parentId)) }, cursor.pointer),
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
                 GlobalState.focus(node.id)
-                selectedNodes() = Set.empty[SelectedNode]
+                GlobalState.clearSelectedNodes()
               }, cursor.pointer),
               pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },
             )
@@ -428,11 +418,11 @@ object ChatView {
   }
 
   //TODO share code with threadview?
-  private def additionalNodeActions( selectedNodes: Var[Set[SelectedNode]], currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
+  private def additionalNodeActions(currentReply: Var[Set[NodeId]], inputFieldTriggerFocus: PublishSubject[Unit])(implicit ctx: Ctx.Owner): Boolean => List[VNode] = canWriteAll => List(
     replyButton(
       onClick foreach {
-        currentReply() = selectedNodes.now.map(_.nodeId)
-        selectedNodes() = Set.empty[SelectedNode]
+        currentReply() = GlobalState.selectedNodes.now.map(_.nodeId)(breakOut):Set[NodeId]
+        GlobalState.clearSelectedNodes()
         inputFieldTriggerFocus.onNext(Unit)
         ()
       }
@@ -443,7 +433,6 @@ object ChatView {
   private def renderCurrentReply(
     
     focusState: FocusState,
-    selectedNodes: Var[Set[SelectedNode]],
     inputFieldFocusTrigger: PublishSubject[Unit],
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean]
@@ -463,7 +452,7 @@ object ChatView {
             backgroundColor := BaseColors.pageBgLight.copy(h = NodeColor.hue(replyNodeId)).toHex,
             div(
               Styles.flex,
-              renderParentMessage( node.id, isDeletedNow, selectedNodes, currentReply, inputFieldFocusTrigger, Some(pinReply)),
+              renderParentMessage( node.id, isDeletedNow, currentReply, inputFieldFocusTrigger, Some(pinReply)),
               closeButton(
                 marginLeft.auto,
                 onTap foreach { currentReply.update(_ - replyNodeId) }

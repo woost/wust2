@@ -169,7 +169,19 @@ object GlobalState {
   val pageHasNotDeletedParents = Rx {
     page().parentId.exists(rawGraph().hasNotDeletedParents)
   }
-  val selectedNodes: Var[List[NodeId]] = Var(Nil)
+
+  final case class SelectedNode(nodeId: NodeId, directParentIds: Iterable[ParentId])
+  val selectedNodes: Var[Vector[SelectedNode]] = Var(Vector.empty[SelectedNode]).mapRead { selectedNodes =>
+    selectedNodes().filter(data => GlobalState.graph().lookup.contains(data.nodeId))
+  }
+
+  def clearSelectedNodes():Unit = { selectedNodes() = Vector.empty }
+  def addSelectedNode(selectedNode: SelectedNode):Unit = { selectedNodes.update(_ :+ selectedNode) }
+  def removeSelectedNode(nodeId: NodeId):Unit = { selectedNodes.update(_.filterNot(_.nodeId == nodeId)) }
+  def toggleSelectedNode(selectedNode: SelectedNode):Unit = {
+    if (selectedNodes.now.exists(_.nodeId == selectedNode.nodeId)) removeSelectedNode(selectedNode.nodeId)
+    else addSelectedNode(selectedNode)
+  }
 
   val addNodesInTransit: Rx[collection.Set[NodeId]] = {
     val changesAddNodes = eventProcessor.changesInTransit
