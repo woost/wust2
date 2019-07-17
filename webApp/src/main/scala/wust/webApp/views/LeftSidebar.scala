@@ -20,6 +20,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.Elements._
+import NewProjectPrompt._
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js

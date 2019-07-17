@@ -105,6 +105,21 @@ object View {
   val list: Array[View] = SubObjects.all[View]
   val contentList: Array[View] = list.filter(_.isContent)
 
+  val selectableList: Array[View.Visible] = Array(
+    View.Dashboard,
+    View.List,
+    View.Kanban,
+    View.Table(NodeRole.Task :: Nil),
+    View.Graph,
+    View.Chat,
+    View.Thread,
+    View.Content,
+    View.Files,
+  // View.Gantt,
+  // View.Topological,
+  )
+
+
   val map: BasicMap[String, List[String] => Option[View]] = {
     val map = BasicMap.ofString[List[String] => Option[View]]()
     list.foreach { v =>

@@ -22,7 +22,7 @@ import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
 import scala.reflect.ClassTag
 
 object ViewSwitcher {
-  private def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
+  def viewToTabInfo(view: View, numMsg: Int, numTasks: Int, numFiles: Int): TabInfo = view match {
     case View.Dashboard   => TabInfo(View.Dashboard, Icons.dashboard, "dashboard", 0)
     case View.Chat        => TabInfo(View.Chat, Icons.chat, "messages", numMsg)
     case View.Thread      => TabInfo(View.Thread, Icons.thread, "messages", numMsg)
@@ -35,70 +35,6 @@ object ViewSwitcher {
     case View.Gantt       => TabInfo(View.Gantt, Icons.gantt, "tasks", 0)
     case View.Topological => TabInfo(View.Topological, Icons.topological, "tasks", 0)
     case view             => TabInfo(view, freeSolid.faSquare, "", 0) //TODO complete icon definitions
-  }
-
-  private val viewDefs: Array[View.Visible] = Array(
-    View.Dashboard,
-    View.List,
-    View.Kanban,
-    View.Table(NodeRole.Task :: Nil),
-    View.Graph,
-    View.Chat,
-    View.Thread,
-    View.Content,
-    View.Files,
-  // View.Gantt,
-  // View.Topological,
-  )
-
-  def viewCheckboxes = multiCheckbox[View.Visible](
-    viewDefs,
-    view => span(
-      marginLeft := "4px",
-      viewToTabInfo(view, 0, 0, 0).icon,
-      span(marginLeft := "4px", view.toString)
-    ),
-  ).mapResult { modifier =>
-      VDomModifier(
-        width := "100%",
-        padding := "20px 10px",
-        h3("Select views:", marginBottom := "0px"),
-        div("(can be changed later)", fontSize.smaller, color.gray, marginBottom := "15px"),
-        modifier,
-      )
-    }
-
-  def multiCheckbox[T: ClassTag](checkboxes: Array[T], description: T => VDomModifier): EmitterBuilder[Seq[T], VDomModifier] = EmitterBuilder.ofModifier { sink =>
-    var checkedState = Array.fill(checkboxes.length)(false)
-    val changed = PublishSubject[Unit]
-
-    div(
-      Styles.flex,
-      flexDirection.column,
-      fontSize.larger,
-      checkboxes.mapWithIndex { (idx, value) =>
-        div(
-          marginLeft := "10px",
-          marginBottom := "10px",
-          label(
-            Styles.flex,
-            alignItems.center,
-            input(
-              tpe := "checkbox",
-              onChange.checked.foreach { checked =>
-                checkedState(idx) = checked
-                changed.onNext(())
-              },
-              onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
-              dsl.checked <-- changed.map(_ => checkedState(idx))
-            ),
-            description(value),
-            cursor.pointer,
-          )
-        )
-      },
-      emitter(changed).map(_ => checkedState.flatMapWithIndex { (idx, checked) => if (checked) Array(checkboxes(idx)) else Array.empty }: Seq[T]) --> sink,
-    )
   }
 
   //TODO FocusState?
@@ -224,7 +160,7 @@ object ViewSwitcher {
 
         Rx {
           val currentViews = existingViews()
-          val possibleViews = viewDefs.filterNot(currentViews.contains)
+          val possibleViews = View.selectableList.filterNot(currentViews.contains)
           possibleViews.map { view =>
             val info = viewToTabInfo(view, 0, 0, 0)
             div(
@@ -330,7 +266,7 @@ object ViewSwitcher {
     }
   }
   private def addNewView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
-    if (viewDefs.contains(newView)) { // only allow defined views
+    if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
       node.foreach { node =>

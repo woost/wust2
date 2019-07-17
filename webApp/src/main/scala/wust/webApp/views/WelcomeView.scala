@@ -11,6 +11,7 @@ import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.outwatchHelpers._
+import NewProjectPrompt._
 
 object WelcomeView {
 

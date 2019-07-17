@@ -362,53 +362,6 @@ object SharedViewElements {
     prependActions(canWriteAll) ::: middleActions ::: appendActions(canWriteAll)
   }
 
-  def newProjectButton(label: String = "New Project"): VNode = {
-    val selectedViews = Var[Seq[View.Visible]](Seq.empty)
-    val triggerSubmit = PublishSubject[Unit]
-    def body(implicit ctx: Ctx.Owner) = div(
-      color := "#333",
-      div("Emojis at the beginning of the name become the Project's icon. For Example ", b(":tomato: Shopping List")),
-      ViewSwitcher.viewCheckboxes --> selectedViews,
-      div("After creating, you can invite participants by clicking ", Icons.menu, " at the top right and then clicking ",  b("Members"), "."),
-      div(
-        marginTop := "20px",
-        Styles.flex,
-        justifyContent.flexEnd,
-        button(
-          "Create",
-          cls := "ui violet button",
-          onClick.stopPropagation(()) --> triggerSubmit
-        )
-      )
-    )
-
-    def newProject(sub: InputRow.Submission) = {
-      val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
-      val nodeId = NodeId.fresh
-      val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
-      GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
-      selectedViews() = Seq.empty
-
-      Ack.Continue
-    }
-
-    button(
-      cls := "ui button",
-      label,
-      onClickNewNamePrompt(
-        
-        header = "Create Project",
-        body = Ownable { implicit ctx => body },
-        placeholder = Placeholder("Name of the Project"),
-        showSubmitIcon = false,
-        triggerSubmit = triggerSubmit,
-        enableEmojiPicker = true
-      ).foreach(newProject(_)),
-      onClick.stopPropagation foreach { ev => ev.target.asInstanceOf[dom.html.Element].blur() },
-    )
-  }
-
   def createNewButton(addToChannels: Boolean = false, nodeRole: CreateNewPrompt.SelectableNodeRole = CreateNewPrompt.SelectableNodeRole.Task)(implicit ctx: Ctx.Owner): VNode = {
     val show = PublishSubject[Boolean]()
 
