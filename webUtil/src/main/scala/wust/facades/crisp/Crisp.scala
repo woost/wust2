@@ -7,5 +7,6 @@ import scala.scalajs.js.annotation._
 @JSGlobal("$crisp")
 object crisp extends js.Object {
   def push(options: js.Array[js.Any]): Unit = js.native
+  def is: js.UndefOr[js.Function1[String,Boolean]] = js.native
 }
 

@@ -42,11 +42,12 @@ import scala.scalajs.js.JSConverters._
 object Components {
   val implicitUserName = "Unregistered User"
 
-  val woostTeamEmailLink = 
+  def woostEmailLink(prefix:String = "team") = 
     VDomModifier(
       cls := "enable-text-selection",
-      a(href := "mailto:team@woost.space", "team@woost.space", Elements.safeTargetBlank)
+      a(href := s"mailto:$prefix@woost.space", s"$prefix@woost.space", Elements.safeTargetBlank)
     )
+  val woostTeamEmailLink = woostEmailLink("team")
 
   def displayUserName(user: NodeData.User): String = {
     if(user.isImplicit) {

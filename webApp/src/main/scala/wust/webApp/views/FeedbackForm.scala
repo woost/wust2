@@ -35,7 +35,9 @@ object FeedbackForm {
     val clear = Handler.unsafe[Unit].mapObservable(_ => "")
 
     val initialStatus = ""
-    val statusText = Var(initialStatus)
+    val statusText = Var[VDomModifier](initialStatus)
+
+    def crispIsLoaded = crisp.is != js.undefined
 
     var timeout: Option[Int] = None
     def submit(): Unit = {
@@ -43,6 +45,7 @@ object FeedbackForm {
         //         Client.api.feedback(ClientInfo(navigator.userAgent), feedbackText.now).onComplete { }
         Try{
           initCrisp
+          if (!crispIsLoaded) throw new Exception("Crisp chat not loaded. Is it blocked by a browser extension?")
           crisp.push(js.Array("do", "message:send", js.Array("text", feedbackText.now)))
         } match {
           case Success(()) =>
@@ -52,30 +55,50 @@ object FeedbackForm {
             clear.onNext(())
           case Failure(t) =>
             scribe.warn("Error sending feedback to backend", t)
-            statusText() = "Failed to send. Please try again or via email... "
+            statusText() = span(s"Failed to send message:", br, b(t.getMessage()), br, br, "Please try again or send us an email... ")
             timeout.foreach(clearTimeout)
-            timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
+          // timeout = Some(setTimeout(() => statusText() = initialStatus, 3000))
         }
       }
 
       Analytics.sendEvent("feedback", "submit")
     }
 
-    val feedbackForm = div(
-      fontSize.smaller,
-      cls := "enable-text-selection",
-      h3("How can we help you?"),
+    val feedbackForm = VDomModifier(
       div(
-        cls := "ui form",
-        textArea(
-          cls := "field",
-          onInput.value --> feedbackText,
-          value <-- clear,
-          rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
-          resize := "none",
-          placeholder := "Questions? Missing features? Suggestions? Something is not working? What do you like? What is annoying?"
-        )
+        fontSize.smaller,
+        cls := "enable-text-selection",
+        h3("How can we help you?"),
+        div(
+          cls := "ui form",
+          textArea(
+            cls := "field",
+            onInput.value --> feedbackText,
+            value <-- clear,
+            rows := 5, //TODO: auto expand textarea: https://codepen.io/vsync/pen/frudD
+            resize := "none",
+            placeholder := "Questions? Missing features? Suggestions? Something is not working? What do you like? What is annoying?"
+          )
+        ),
       ),
+      div(
+        marginTop := "5px",
+        marginBottom := "20px",
+        Styles.flex,
+        alignItems.center,
+        justifyContent.spaceBetween,
+
+        div(statusText, marginLeft.auto, marginRight.auto),
+        button(
+          Styles.flexStatic,
+          tpe := "button",
+          cls := "ui tiny blue button",
+          marginRight := "0",
+          "Send",
+          onClick foreach { submit() },
+        // onClick(false) --> showPopup,
+        ),
+      )
     )
 
     div(
@@ -96,6 +119,7 @@ object FeedbackForm {
       ),
       div(
         activeDisplay,
+        width := "280px",
         position.fixed, top := "35px", right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "100px" },
         zIndex := ZIndex.formOverlay,
         padding := "10px",
@@ -103,29 +127,11 @@ object FeedbackForm {
         cls := "shadow",
         backgroundColor := Colors.sidebarBg,
         color := "#333",
-        feedbackForm,
-        div(
-          marginTop := "5px",
-          marginBottom := "20px",
-          Styles.flex,
-          alignItems.center,
-          justifyContent.spaceBetween,
-
-          div(statusText, marginLeft.auto, marginRight.auto),
-          button(
-            Styles.flexStatic,
-            tpe := "button",
-            cls := "ui tiny blue button",
-            marginRight := "0",
-            "Send",
-            onClick foreach { submit() },
-          // onClick(false) --> showPopup,
-          ),
-        ),
-        div("Or write us an email: ", Components.woostTeamEmailLink, "."),
+        if (crispIsLoaded) feedbackForm else div(b("Crisp Chat"), " couldn't be started. It may be blocked by a browser extension.", marginBottom := "20px"),
+        div("You can also write us an email: ", Components.woostEmailLink(prefix="support"), "."),
 
         div(cls := "ui divider", marginTop := "30px"),
-        supportChatButton( showPopup),
+        supportChatButton(showPopup)(disabled := !crispIsLoaded),
         voteOnFeaturesButton,
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
@@ -152,7 +158,7 @@ object FeedbackForm {
     }
   }
 
-  def supportChatButton( showPopup: Var[Boolean]) = {
+  def supportChatButton(showPopup: Var[Boolean]) = {
     button(
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue tiny fluid button",
