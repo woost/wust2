@@ -19,11 +19,13 @@ import wust.webApp.state.{FocusPreference, GlobalState, GraphChangesAutomation}
 import wust.webApp.views.Components._
 import wust.webUtil.Elements
 import wust.util.StringOps
+import com.github.ghik.silencer.silent
 
 import scala.collection.breakOut
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
+@silent("possible missing interpolator")
 object GraphChangesAutomationUI {
 
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
