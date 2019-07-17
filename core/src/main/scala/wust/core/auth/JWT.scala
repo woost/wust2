@@ -27,6 +27,7 @@ class JWT(secret: String, tokenLifetime: Duration) {
   // real user.
   val implicitTokenLifeTimeSeconds = 1000 * 365 * 24 * 60 * 60 //1000 years, TODO: configure
   val emailVerificationTokenLifeTimeSeconds = 24 * 60 * 60 // 24 hours, TODO: configure
+  val passwordResetTokenLifeTimeSeconds = 1 * 60 * 60 // 1 hour, TODO: configure
   val redirectOAuthTokenLifeTimeSeconds = 5 * 60 // 5 minutes, TODO: configure
 
   private def generateClaim(custom: CustomClaim, userId: UserId, expires: Long) = {
@@ -86,6 +87,28 @@ class JWT(secret: String, tokenLifetime: Duration) {
     }
   }
 
+  def generatePasswordResetToken(user: AuthUser.Persisted): Authentication.Token = {
+    val thisTokenLifetimeSeconds: Long = passwordResetTokenLifeTimeSeconds
+    val expires = Instant.now.getEpochSecond + thisTokenLifetimeSeconds
+    val claim = generateClaim(CustomClaim.PasswordReset(user), user.id, expires)
+    val token = JwtCirce.encode(claim, secret, algorithm)
+    Authentication.Token(token)
+  }
+
+  def passwordResetUserFromToken(token: Authentication.Token): Option[AuthUser.Persisted] = {
+    JwtCirce.decode(token.string, secret, Seq(algorithm)).toOption.flatMap {
+      case claim if claim.isValid(issuer, audience) =>
+        for {
+          expires <- claim.expiration
+          verified <- parser.decode[CustomClaim](claim.content)
+            .right.toOption.collect { case CustomClaim.PasswordReset(user) => user }
+          subject <- claim.subject.flatMap(str => Cuid.fromBase58String(str).map(id => UserId(NodeId(id))).toOption)
+          if verified.user.id == subject
+        } yield verified
+      case _ => None
+    }
+  }
+
   def generateInvitationToken(user: AuthUser.Implicit): Authentication.Token = {
     val thisTokenLifetimeSeconds: Long = implicitTokenLifeTimeSeconds
 
@@ -137,6 +160,7 @@ object JWT {
   object CustomClaim {
     final case class UserAuth(user: AuthUser.Persisted) extends CustomClaim
     final case class Invitation(user: AuthUser.Implicit) extends CustomClaim
+    final case class PasswordReset(user: AuthUser.Persisted) extends CustomClaim
     final case class EmailVerify(userId: UserId, email: String) extends CustomClaim
     final case class OAuthClient(userId: UserId, serviceIdentifier: OAuthClientService) extends CustomClaim
 
