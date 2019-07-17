@@ -5,14 +5,14 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Elements, UI}
+import wust.webUtil.{ BrowserDetect, Elements, UI }
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
 import wust.util.collection._
 import wust.webApp.Permission
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FocusState, GlobalState, Placeholder}
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder }
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
@@ -23,8 +23,8 @@ import wust.webApp.views.DragComponents.registerDragContainer
 object DashboardView {
 
   final case class Settings(
-    val AlwaysShowNewSubprojectButton : Boolean = false,
-    val ForceEditModeOnEmptySubprojects : Boolean = true
+    val AlwaysShowNewSubprojectButton: Boolean = false,
+    val ForceEditModeOnEmptySubprojects: Boolean = true
   )
   val settings = Settings()
 
@@ -44,7 +44,7 @@ object DashboardView {
 
     val configWidgets = VDomModifier(
       Styles.flex,
-      UI.segment("Views", ViewSwitcher.selectForm( focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
     )
 
     val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
@@ -59,14 +59,14 @@ object DashboardView {
         cursor.pointer,
         UI.tooltip("top center") := (editMode() match {
           case false => "Activate edit mode"
-          case true => "Disable edit mode"
+          case true  => "Disable edit mode"
         })
-        )
+      )
     }
 
     val detailWidgets = VDomModifier(
       Styles.flex,
-      div(StatisticsView( focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
+      div(StatisticsView(focusState).apply(padding := "0px"), Styles.flexStatic, segmentMod),
 
       //TODO: renderSubprojects mit summary
       UI.segment(
@@ -74,9 +74,9 @@ object DashboardView {
           "Subprojects ",
           editModeSwitcher
         ),
-        VDomModifier(renderSubprojects( focusState, editMode), overflowX.auto)
+        VDomModifier(renderSubprojects(focusState, editMode), overflowX.auto)
       ).apply(Styles.flexStatic, segmentMod),
-      UI.segment("Tasks", AssignedTasksView( focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
+      UI.segment("Tasks", AssignedTasksView(focusState).apply(padding := "0px")).apply(Styles.flexStatic, segmentMod),
     )
 
     val dashboard = if (BrowserDetect.isMobile) VDomModifier(
@@ -85,7 +85,8 @@ object DashboardView {
 
       detailWidgets,
       configWidgets
-    ) else VDomModifier(
+    )
+    else VDomModifier(
       padding := "20px",
       Styles.flex,
 
@@ -112,8 +113,7 @@ object DashboardView {
   }
 
   /// Render all subprojects as a list
-  private def renderSubprojects(focusState: FocusState, editMode: Rx.Dynamic[Boolean])
-                               (implicit ctx: Ctx.Owner): VDomModifier = {
+  private def renderSubprojects(focusState: FocusState, editMode: Rx.Dynamic[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = {
 
     div(
       Styles.flex,
@@ -134,23 +134,26 @@ object DashboardView {
             li(
               Styles.flexStatic,
               listStyle := "none",
-              renderSubproject( GlobalState.graph(), focusState, projectInfo, editMode)
+              renderSubproject(GlobalState.graph(), focusState, projectInfo, editMode)
             )
           }
         },
         registerDragContainer
       ),
-      Rx{VDomModifier.ifTrue(settings.AlwaysShowNewSubprojectButton || editMode())(
-           newSubProjectButton( focusState))}
+      Rx{
+        VDomModifier.ifTrue(settings.AlwaysShowNewSubprojectButton || editMode())(
+          newSubProjectButton(focusState)
+        )
+      }
     )
   }
 
   /// Render the overview of a single (sub-) project
   private def renderSubproject(graph: Graph, focusState: FocusState, project: Node,
-                               editMode: Rx.Dynamic[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+    editMode: Rx.Dynamic[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     val isDeleted = graph.isDeletedNow(project.id, focusState.focusedId)
     val dispatch = GlobalState.submitChanges _
-    val deletionBtn = if(isDeleted) {
+    val deletionBtn = if (isDeleted) {
       Components.unremovableTagMod(() =>
         dispatch(GraphChanges.connect(Edge.Child)(ParentId(focusState.focusedId), ChildId(project.id))))
     } else {
@@ -167,7 +170,7 @@ object DashboardView {
       cls := "node channel-line",
 
       DragComponents.drag(DragItem.Project(project.id)),
-      renderProject(project, renderNode = node => renderAsOneLineText( node).apply(cls := "channel-name"), withIcon = true),
+      renderProject(project, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true),
 
       cursor.pointer,
       onClick foreach {
@@ -176,12 +179,11 @@ object DashboardView {
 
       permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em")),
 
-      Rx{VDomModifier.ifTrue(editMode())(deletionBtn)},
+      Rx{ VDomModifier.ifTrue(editMode())(deletionBtn) },
 
       VDomModifier.ifTrue(isDeleted)(cls := "node-deleted"),
     )
   }
-
 
   private def newSubProjectButton(focusState: FocusState)(implicit ctx: Ctx.Owner): VDomModifier = {
     val fieldActive = Var(false)
@@ -195,13 +197,13 @@ object DashboardView {
       GlobalState.submitChanges(change)
     }
 
-    def blurAction(v:String) = {
-      if(v.isEmpty) fieldActive() = false
+    def blurAction(v: String) = {
+      if (v.isEmpty) fieldActive() = false
     }
 
     VDomModifier(
       Rx {
-        if(fieldActive()) {
+        if (fieldActive()) {
           VDomModifier(
             InputRow(
               Some(focusState),
@@ -214,11 +216,10 @@ object DashboardView {
                 fontWeight.bold
               )
             ).apply(
-              margin := "0.5em"
-            )
+                margin := "0.5em"
+              )
           )
-        }
-        else button(
+        } else button(
           margin := "0.5em",
           onClick.stopPropagation(true) --> fieldActive,
           cursor.pointer,
