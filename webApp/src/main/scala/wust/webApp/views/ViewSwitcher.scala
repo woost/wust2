@@ -1,5 +1,8 @@
 package wust.webApp.views
 
+import cats.data.NonEmptyList
+import cats.syntax._
+import cats.implicits._
 import wust.css.{ Styles, ZIndex }
 import flatland._
 import fontAwesome._
@@ -150,7 +153,23 @@ object ViewSwitcher {
 
       // actions
       onClick.stopPropagation.foreach { e =>
-        currentView() = tabInfo.targetView
+        val clickedView = tabInfo.targetView.asInstanceOf[View.Visible]
+        if (e.ctrlKey) {
+          currentView.update{ oldView =>
+            oldView match {
+              case View.Empty => clickedView
+              case view: View.Visible if view == clickedView => View.Empty
+              case view: View.Tiled if view.views.toList.contains(clickedView) =>
+                if (view.views.toList.distinct.length == 1) View.Empty
+                else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
+              case view: View.Tiled   => view.copy(views = view.views :+ clickedView)
+              case view: View.Visible if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
+              case view => view
+            }
+          }
+        } else {
+          currentView() = clickedView
+        }
       },
 
       // content
