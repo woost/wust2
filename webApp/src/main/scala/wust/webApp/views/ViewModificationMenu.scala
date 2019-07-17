@@ -15,7 +15,6 @@ import wust.ids._
 import wust.sdk.Colors
 import wust.webApp._
 import wust.webApp.state._
-import wust.webApp.views.PageHeaderParts.{ TabInfo, singleTab }
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
 

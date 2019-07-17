@@ -142,7 +142,6 @@ object RightSidebar {
     VDomModifier(
       Rx {
         BreadCrumbs(
-          
           GlobalState.rawGraph(),
           GlobalState.user(),
           GlobalState.page().parentId,
