@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.css.{Styles, ZIndex}
 import flatland._
 import fontAwesome._
 import monix.reactive.Observer
@@ -8,15 +9,13 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
-import wust.css.{ Styles, ZIndex }
-import wust.facades.googleanalytics.Analytics
+import wust.css.Styles
 import wust.graph.{ GraphChanges, Node }
 import wust.ids._
 import wust.sdk.Colors
 import wust.webApp._
 import wust.webApp.state._
-import wust.webApp.views.Components._
-import wust.webApp.views.PageHeaderParts.{ TabContextParms, TabInfo, customTab, singleTab }
+import wust.webApp.views.PageHeaderParts.{ TabInfo, singleTab }
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
 
@@ -104,19 +103,31 @@ object ViewSwitcher {
 
   //TODO FocusState?
   @inline def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    apply(channelId, GlobalState.viewConfig.collect { case config if config.page.parentId.contains(channelId) => config.view }, view => GlobalState.urlConfig.update(_.focus(view)))
+    val currentView = Var[View](View.Empty)
+    GlobalState.viewConfig
+      .collect { case config if config.page.parentId.contains(channelId) => config.view }
+      .foreach { currentView() = _ }
+    currentView.foreach { view => GlobalState.urlConfig.update(_.focus(view)) }
+
+    apply(channelId, currentView)
   }
-  @inline def apply(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, viewRx, viewAction, initialView) })
+  @inline def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None): VNode = {
+    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
   }
 
-  def selectForm(channelId: NodeId): VNode = {
+  def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
+    val currentView = Var[View](View.Empty)
+    GlobalState.viewConfig
+      .collect { case config if config.page.parentId.contains(channelId) => config.view }
+      .foreach { currentView() = _ }
+    currentView.foreach { view => GlobalState.urlConfig.update(_.focus(view)) }
+
     div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
-      selector(channelId, GlobalState.view, view => GlobalState.urlConfig.update(_.focus(view)), None, Observer.empty)
+      selector(channelId, currentView, None, Observer.empty)
     })
   }
 
-  private def modifier(channelId: NodeId, viewRx: Rx[View.Visible], viewAction: View => Unit, initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
+  private def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
@@ -126,12 +137,16 @@ object ViewSwitcher {
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element
 
-          selector(channelId, viewRx, viewAction, initialView, closeDropdown)
+          selector(channelId, currentView, initialView, closeDropdown)
         ), close = closeDropdown, dropdownModifier = cls := "top left")
       )
     })
 
-    val addNewViewTab = customTab(addNewTabDropdown, zIndex := ZIndex.overlayLow)
+    val addNewViewTab = div(
+      cls := "viewswitcher-item",
+      addNewTabDropdown,
+      zIndex := ZIndex.overlayLow
+    )
 
     VDomModifier(
       marginLeft := "5px",
@@ -141,8 +156,6 @@ object ViewSwitcher {
       minWidth.auto,
 
       Rx {
-        val currentView = viewRx()
-        val pageStyle = PageStyle.ofNode(Some(channelId))
         val graph = GlobalState.graph()
         val channelNode = graph.nodesById(channelId)
         val user = GlobalState.user()
@@ -160,17 +173,8 @@ object ViewSwitcher {
           (messageChildrenCount, taskChildrenCount, filesCount)
         }) getOrElse ((0, 0, 0))
 
-        val parms = TabContextParms(
-          currentView,
-          pageStyle,
-          (targetView: View) => {
-            viewAction(targetView)
-            Analytics.sendEvent("viewswitcher", "switch", targetView.viewKey)
-          }
-        )
-
         val viewTabs = channelNode.flatMap(_.views).getOrElse(bestView :: Nil).map { view =>
-          singleTab(parms, viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
+          singleTab(currentView, viewToTabInfo(view, numMsg = numMsg, numTasks = numTasks, numFiles = numFiles))
         }
 
         viewTabs :+ addNewViewTab
@@ -181,8 +185,7 @@ object ViewSwitcher {
 
   private def selector(
     channelId: NodeId,
-    viewRx: Rx[View.Visible],
-    viewAction: View => Unit,
+    currentView: Var[View],
     initialView: Option[View.Visible],
     done: Observer[Unit]
   )(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -205,8 +208,8 @@ object ViewSwitcher {
     }
 
     //TODO rewrite this in a less sideeffecting way
-    viewRx.triggerLater { view => addNewView(viewRx, viewAction, done, nodeRx, existingViews, view) }
-    initialView.foreach(addNewView(viewRx, viewAction, done, nodeRx, existingViews, _))
+    currentView.triggerLater { view => addNewView(currentView, done, nodeRx, existingViews, view.asInstanceOf[View.Visible]) }
+    initialView.foreach(addNewView(currentView, done, nodeRx, existingViews, _))
 
     VDomModifier(
       div(
@@ -229,7 +232,7 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               Elements.icon(info.icon),
               view.toString,
-              onClick.stopPropagation.foreach(addNewView(viewRx, viewAction, done, nodeRx, existingViews, view)),
+              onClick.stopPropagation.foreach(addNewView(currentView, done, nodeRx, existingViews, view)),
               cursor.pointer
             )
           }
@@ -252,7 +255,7 @@ object ViewSwitcher {
         Rx {
           val currentViews = existingViews()
           if (currentViews.isEmpty) div("Nothing, yet.")
-          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView(viewRx, viewAction, done, nodeRx, _))) { view =>
+          else Components.removeableList(currentViews, removeSink = Sink.fromFunction(removeView(currentView, done, nodeRx, _))) { view =>
             val info = viewToTabInfo(view, 0, 0, 0)
             VDomModifier(
               marginTop := "8px",
@@ -262,7 +265,7 @@ object ViewSwitcher {
                 alignItems.center,
                 Elements.icon(info.icon),
                 view.toString,
-                onClick.stopPropagation.foreach { viewAction(view) },
+                onClick.stopPropagation.foreach { currentView() = view },
                 cursor.pointer,
               )
             )
@@ -278,14 +281,14 @@ object ViewSwitcher {
               cls := "ui button compact mini",
               "Reset to default",
               cursor.pointer,
-              onClick.stopPropagation.foreach { resetView(viewRx, viewAction, done, nodeRx) }
+              onClick.stopPropagation.foreach { resetView(currentView, done, nodeRx) }
             )
           )
         }
       )
     )
   }
-  private def resetView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]]): Unit = {
+  private def resetView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]]): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -296,15 +299,15 @@ object ViewSwitcher {
         }
 
         val newView = ViewHeuristic.bestView(GlobalState.graph.now, node, GlobalState.user.now.id).getOrElse(View.Empty)
-        if (viewRx.now != newView) {
-          viewAction(newView)
+        if (currentView.now != newView) {
+          currentView() = newView
         }
 
         GlobalState.submitChanges(GraphChanges.addNode(newNode))
       }
     }
   }
-  private def removeView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
+  private def removeView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], view: View.Visible): Unit = {
     done.onNext(())
     val node = nodeRx.now
     node.foreach { node =>
@@ -316,17 +319,17 @@ object ViewSwitcher {
       }
 
       //switch to remaining view
-      if (viewRx.now == view) {
+      if (currentView.now == view) {
         val currPosition = currentViews.indexWhere(_ == view)
         val nextPosition = currPosition - 1
         val newView = if (nextPosition < 0) filteredViews.headOption.getOrElse(View.Empty) else filteredViews(nextPosition)
-        viewAction(newView)
+        currentView() = newView
       }
 
       GlobalState.submitChanges(GraphChanges.addNode(newNode))
     }
   }
-  private def addNewView(viewRx: Rx[View.Visible], viewAction: View => Unit, done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+  private def addNewView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
     if (viewDefs.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
@@ -342,8 +345,8 @@ object ViewSwitcher {
           GlobalState.submitChanges(GraphChanges.addNode(newNode))
         }
 
-        if (viewRx.now != newView) {
-          viewAction(newView)
+        if (currentView.now != newView) {
+          currentView() = newView
         }
       }
     }

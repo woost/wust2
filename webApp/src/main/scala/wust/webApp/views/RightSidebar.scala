@@ -106,8 +106,7 @@ object RightSidebar {
   private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val graph = GlobalState.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
     val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
-    val viewVar = Var[View.Visible](initialView)
-    def viewAction(view: View): Unit = viewVar() = ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty)
+    val currentView:Var[View] = Var[View](initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
 
     VDomModifier(
       Styles.flex,
@@ -122,13 +121,13 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher( focusPref.nodeId, viewVar, viewAction, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        UnreadComponents.notificationsButton( focusPref.nodeId, modifiers = marginLeft := "10px") --> viewVar,
+        ViewSwitcher( focusPref.nodeId, currentView, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        UnreadComponents.notificationsButton( focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
       ),
 
       Rx {
-        val view = viewVar()
-        viewRender( FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction, nodeId => parentIdAction(Some(nodeId))), view).apply(
+        val view = currentView().asInstanceOf[View.Visible] // TODO: we really need a Var[View, View.Visible] for this. Write View in, get View.Visible out.
+        viewRender( FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction = currentView() = _, nodeId => parentIdAction(Some(nodeId))), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(

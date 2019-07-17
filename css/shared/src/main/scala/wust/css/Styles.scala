@@ -1466,7 +1466,7 @@ object CommonStyles extends StyleSheet.Standalone {
     color(Color(Colors.fgColor)),
   )
   ".viewswitcher-item.active" - (
-    // borderBottomColor set programatically to topic color
+    backgroundColor(Color(Colors.contentBg)),
   )
 
   ".viewswitcher-item.inactive" - (
