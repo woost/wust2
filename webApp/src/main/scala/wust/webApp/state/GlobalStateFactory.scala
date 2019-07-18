@@ -193,26 +193,33 @@ object GlobalStateFactory {
       var isFirstGraphRequest = true
       var prevPage: PageChange = null
       var prevUser: Node.User = null
+
       userAndPage.toObservable
-        .switchMap {
+        .filter {
           case (viewConfig, user) =>
-            val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
-            val observable: Observable[Graph] =
+            val result: Boolean =
               if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
-                Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
+                true
               } else if (prevPage == null || prevPage != viewConfig.pageChange) {
                 if (viewConfig.pageChange.needsGet && (!viewConfig.pageChange.page.isEmpty || isFirstGraphRequest)) {
-                  Observable.fromFuture(getNewGraph(viewConfig.pageChange.page))
-                } else Observable.empty
+                  true
+                } else {
+                  false
+                }
               } else {
-                Observable.empty
+                false
               }
 
             prevPage = viewConfig.pageChange
             prevUser = user
             isFirstGraphRequest = false
 
-            observable
+            result
+        }.switchMap {
+          case (viewConfig, user) =>
+            val currentTransitChanges = lastTransitChanges.fold(GraphChanges.empty)(_ merge _)
+            Observable
+              .fromFuture(getNewGraph(viewConfig.pageChange.page))
               .onErrorHandle(_ => Graph.empty)
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
