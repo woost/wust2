@@ -125,6 +125,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
     }
 
     def toObservable: Observable[T] = Observable.create[T](Unbounded) { observer =>
+      // transfer ownership from scala.rx to Monix. now Monix decides when the rx is killed.
       implicit val ctx = Ctx.Owner.Unsafe
       val obs = rx.foreach(observer.onNext)
       Cancelable(() => obs.kill())
