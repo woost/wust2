@@ -91,7 +91,6 @@ object KanbanView {
 
 
   private def renderInboxColumn(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     viewRender: ViewRenderLike,

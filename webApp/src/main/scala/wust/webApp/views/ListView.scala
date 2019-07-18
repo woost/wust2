@@ -23,7 +23,6 @@ object ListView {
     )
 
     fieldAndList(
-      
       focusState,
       TraverseState(focusState.focusedId),
       inOneLine = true,
@@ -37,7 +36,6 @@ object ListView {
   }
 
   def fieldAndList(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine: Boolean,
@@ -55,7 +53,6 @@ object ListView {
   }
 
   private def renderNodeCard(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -75,7 +72,6 @@ object ListView {
   }
 
   private def renderToplevelColumns(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine: Boolean,
@@ -99,7 +95,6 @@ object ListView {
   }
 
   private def renderInboxColumn(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine:Boolean,
