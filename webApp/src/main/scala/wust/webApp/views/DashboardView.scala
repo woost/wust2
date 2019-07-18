@@ -12,7 +12,7 @@ import wust.ids._
 import wust.util.collection._
 import wust.webApp.Permission
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder }
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder, EmojiReplacer }
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
@@ -33,7 +33,7 @@ object DashboardView {
   private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
     val pageParentIdx = graph.idToIdxOrThrow(focusedId)
     val directSubProjects = graph.projectChildrenIdx(pageParentIdx)
-    directSubProjects.viewMap(graph.nodes).sortBy(_.str)
+    directSubProjects.viewMap(graph.nodes).sortBy(n => EmojiReplacer.emojiAtBeginningRegex.replaceFirstIn(n.str, ""))
   }
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
