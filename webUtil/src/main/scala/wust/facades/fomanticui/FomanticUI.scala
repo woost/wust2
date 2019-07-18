@@ -99,9 +99,9 @@ trait ToastOptions extends js.Object {
   var `class`: js.UndefOr[String] = js.undefined
   var className : js.UndefOr[ToastClassNameOptions] = js.undefined
   var displayTime: js.UndefOr[Double | Int] = js.undefined
-  var showIcon: js.UndefOr[Boolean] = js.undefined
+  var showIcon: js.UndefOr[Boolean|String] = js.undefined
   var closeIcon: js.UndefOr[Boolean] = js.undefined
-  var showProgess: js.UndefOr[Boolean] = js.undefined
+  var showProgress: js.UndefOr[Boolean|String] = js.undefined
   var progressUp: js.UndefOr[Boolean] = js.undefined
   var compact: js.UndefOr[Boolean] = js.undefined
   var opacity: js.UndefOr[Double] = js.undefined
@@ -120,6 +120,7 @@ trait ToastOptions extends js.Object {
 trait ToastClassNameOptions extends js.Object {
   var toast: js.UndefOr[String] = js.undefined
   var title: js.UndefOr[String] = js.undefined
+  var progress: js.UndefOr[String] = js.undefined
 }
 
 trait ToastTransitionOptions extends js.Object {

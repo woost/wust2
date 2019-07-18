@@ -153,13 +153,13 @@ object AuthView {
       GlobalState.user() match {
         // User.Implicit user means, that the user already created content, else it would be User.Assumed.
         case AuthUser.Implicit(_, name, _) => UI.message(
-          msgType = "warning",
+          // msgType = "warning",
           header = Some("Discard created content?"),
           content = Some(VDomModifier(
             span("You already created content as an unregistered user. If you login or register, the content will be moved into your account. If you don't want to keep it you can "),
             a(
               href := "#",
-              color := "tomato",
+              color := "#de2d0e",
               marginLeft := "auto",
               "discard all content now",
               onClick.preventDefault foreach {
@@ -172,7 +172,10 @@ object AuthView {
               ),
             "."
           ))
-      )
+      ).apply(
+          backgroundColor := "#ffe3be",
+          boxShadow := "none",
+        )
         case _ => VDomModifier.empty
 
       }

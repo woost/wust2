@@ -130,23 +130,39 @@ object CommonStyles extends StyleSheet.Standalone {
   import dsl._
 
   ".ui.message.warning" - (
-    backgroundColor(c"#ffefd8"),
-    boxShadow := "0 0 0 1px #f0a200 inset, 0 0 0 0 transparent",
+    backgroundColor(c"#f79c2b"),
+    boxShadow := "none",
+    color.white,
+    &(".header") - (
+      color.white,
+    )
   )
 
   ".ui.message.info" - (
-    backgroundColor(c"#e5ffff"),
-    boxShadow := "0 0 0 1px #00b0d4 inset, 0 0 0 0 transparent",
+    backgroundColor(c"#44b3f3"),
+    boxShadow := "none",
+    color.white,
+    &(".header") - (
+      color.white,
+    )
   )
 
   ".ui.message.error" - (
-    backgroundColor(c"#ffe4e4"),
-    boxShadow := "0 0 0 1px #e03636 inset, 0 0 0 0 transparent",
+    backgroundColor(c"#e15666"),
+    boxShadow := "none",
+    color.white,
+    &(".header") - (
+      color.white,
+    )
   )
 
   ".ui.message.success" - (
-    backgroundColor(c"#f3ffd8"),
-    boxShadow := "0 0 0 1px #60c12d inset, 0 0 0 0 transparent",
+    backgroundColor(c"#00ad73"),
+    boxShadow := "none",
+    color.white,
+    &(".header") - (
+      color.white,
+    )
   )
 
   ".toast-container" - (

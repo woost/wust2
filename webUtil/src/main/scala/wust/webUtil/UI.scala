@@ -100,7 +100,15 @@ object UI {
     case object Warning extends ToastLevel { def value = "warning" }
     case object Error extends ToastLevel { def value = "error" }
   }
-  def toast(msg: String, title: js.UndefOr[String] = js.undefined, click: () => Unit = () => (), autoclose: Boolean = true, level: ToastLevel = ToastLevel.Info): Unit = {
+  def toast(
+    msg: String,
+    title: js.UndefOr[String] = js.undefined,
+    click: () => Unit = () => (),
+    autoclose: Boolean = true,
+    level: ToastLevel = ToastLevel.Info,
+    customIcon:Option[String] = None,
+    enableIcon:Boolean = true
+  ): Unit = {
     val _title = title
     import wust.facades.jquery.JQuery._
     `$`(dom.window.document.body).toast(new ToastOptions {
@@ -108,12 +116,16 @@ object UI {
       className = new ToastClassNameOptions {
         toast = "ui message"
         title = "ui header"
+        progress = "ui attached progress"
       }
       onClick = click: js.Function0[Unit]
       position = "bottom right"
       title = _title
       message = EmojiConvertor.replace_colons(escapeHtml(msg))
+      showIcon = if(enableIcon) customIcon match {case Some(faIconName) => faIconName; case None => true} else false
       displayTime = if (autoclose) 5000 else 0
+      showProgress = "bottom"
+      progressUp = false
     })
   }
 

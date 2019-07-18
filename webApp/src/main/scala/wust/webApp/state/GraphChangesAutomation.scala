@@ -692,6 +692,7 @@ object GraphChangesAutomation {
         StringOps.trimToMaxLength(childNode.str, 50),
         title = s"${ childNode.role } was automated:",
         // click = () => viewConfig.update(_.copy(pageChange = PageChange(Page(childNode.id))))
+        customIcon = Some("robot")
       )
     }
 
