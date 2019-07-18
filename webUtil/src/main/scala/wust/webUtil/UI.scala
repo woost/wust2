@@ -17,6 +17,9 @@ import wust.util.collection._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
 import monix.reactive.Observer
+import Elements.escapeHtml
+import wust.facades.emojijs.EmojiConvertor
+
 
 object UI {
   private val currentlyEditingSubject = PublishSubject[Boolean]
@@ -109,7 +112,7 @@ object UI {
       onClick = click: js.Function0[Unit]
       position = "bottom right"
       title = _title
-      message = msg
+      message = EmojiConvertor.replace_colons(escapeHtml(msg))
       displayTime = if (autoclose) 5000 else 0
     })
   }
