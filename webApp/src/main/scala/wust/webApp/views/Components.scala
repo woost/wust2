@@ -503,6 +503,7 @@ object Components {
           editableNode( node, editMode, maxLength).apply(nodeInject),
           contentInject
         ),
+        projectWithIcon = false,
       ).apply(
         Rx { editMode().ifTrue[VDomModifier](VDomModifier(boxShadow := "0px 0px 0px 2px  rgba(65,184,255, 1)")) },
       )
