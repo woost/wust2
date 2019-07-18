@@ -5,7 +5,8 @@ import scribe.format._
 import scribe.writer.ConsoleWriter
 
 object Logging {
-  val fileBaseName = FormatBlock.FileName.map(fileName => fileName.split('/').last)
+  //TODO: fix https://github.com/outr/scribe/issues/115
+  val fileBaseName = FormatBlock.FileName//.map(fileName => fileName.split('/').last)
   val logFormatter: Formatter = {
     if(DevOnly.isTrue)
       formatter"$message$newLine"

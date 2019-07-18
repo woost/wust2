@@ -58,7 +58,7 @@ private[sdk] trait NativeWustClient {
     serializer: Serializer[ClientMessage[PickleType], PickleType],
     deserializer: Deserializer[ServerMessage[PickleType, Event, ErrorType], PickleType]
   ): WsClient[PickleType, Task, Event, ErrorType, ClientException] = {
-    createWsClient[PickleType, Event, ErrorType](uri, config, new LogHandler[Task])
+    createWsClient[PickleType, Event, ErrorType](uri, config, LogHandler.empty[Task])
   }
 
   private def fromConnection[PickleType, Event, ErrorType](

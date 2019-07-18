@@ -22,7 +22,7 @@ object Deps {
   }
   val akka = new {
     private val version = "2.5.23"
-    private val httpVersion = "10.1.8"
+    private val httpVersion = "10.1.9"
     val http = dep("com.typesafe.akka" %% "akka-http" % httpVersion)
     val httpCore = dep("com.typesafe.akka" %% "akka-http-core" % httpVersion)
     val httpCirce = dep("de.heikoseeberger" %% "akka-http-circe" % "1.22.0")
@@ -47,7 +47,7 @@ object Deps {
   }
 
   // webApp
-  val scalaJsDom = dep("org.scala-js" %%% "scalajs-dom" % "0.9.6")
+  val scalaJsDom = dep("org.scala-js" %%% "scalajs-dom" % "0.9.7")
   val d3v4 = dep("com.github.fdietze" %% "scala-js-d3v4" % "e9ce7a9")
   // val d3v4 = dep("com.github.fdietze" %%% "scala-js-d3v4" % "master-SNAPSHOT")
   val fontawesome = dep("com.github.grburst" % "scala-js-fontawesome" % "d673579a18")
@@ -55,7 +55,7 @@ object Deps {
   // val scalarx = dep("com.lihaoyi" %%% "scalarx" % "0.4.0")
   val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "fc761c9")
   // val scalarx = dep("com.github.fdietze.duality" %%% "scalarx" % "94c6d80") // jitpack cannot handle the . in repo name scala.rx
-  val outwatch = dep("com.github.outwatch" % "outwatch" % "ee9ba95")
+  val outwatch = dep("com.github.outwatch" % "outwatch" % "5be1e2b")
   // val outwatch = dep("io.github.outwatch" %%% "outwatch" % "0.11.1-SNAPSHOT")
   val bench = dep("com.github.fdietze.bench" %%% "bench" % "e66a721")
   // val bench = dep("com.github.fdietze" %%% "bench" % "master-SNAPSHOT")
@@ -63,7 +63,7 @@ object Deps {
   // utility
   val scribe = new {
     val perfolation = dep("com.github.fdietze.perfolation" %%% "perfolation" % "6854947")
-    val core = dep("com.outr" %%% "scribe" % "2.6.0")
+    val core = dep("com.outr" %%% "scribe" % "2.7.8")
   }
   val pureconfig = dep("com.github.pureconfig" %% "pureconfig" % "0.9.2")
   val monocle = dep("com.github.julien-truffaut" %% "monocle-macro" % "1.5.1-cats")
@@ -71,7 +71,7 @@ object Deps {
   val sourcecode = dep("com.github.cornerman.sourcecode" %%% "sourcecode" % "998ee90c15")
   val cuid = dep("io.github.cornerman.scala-cuid" %%% "scala-cuid" % "9589781")
   val base58s = dep("io.github.fdietze.base58s" %%% "base58s" % "fbedca4")
-  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC2")
+  val monix = dep("io.monix" %%% "monix" % "3.0.0-RC3")
   val taggedTypes = dep("org.rudogma" %%% "supertagged" % "1.4")
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
@@ -93,7 +93,7 @@ object Deps {
 
   // rpc
   val covenant = new {
-    private val version = "39b34ac"
+    private val version = "ce03ac4"
     val core = dep("com.github.cornerman.covenant" %%% "covenant-core" % version)
     val ws = dep("com.github.cornerman.covenant" %%% "covenant-ws" % version)
     val http = dep("com.github.cornerman.covenant" %%% "covenant-http" % version)

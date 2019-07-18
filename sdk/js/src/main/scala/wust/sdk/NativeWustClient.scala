@@ -21,7 +21,7 @@ import scala.util.{Failure, Success}
 class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext) extends LogHandler[Future] {
   import covenant.core.util.LogHelper._
 
-  override def logRequest(path: List[String], arguments: Product, result: Future[_]): Unit = {
+  override def logRequest[T](path: List[String], arguments: Product, result: Future[T]): Future[T] = {
     val watch = StopWatch.started
 
     val randomHue = 0.75 * Math.PI + scala.util.Random
@@ -116,13 +116,15 @@ class BrowserLogHandler(apiError: Observer[Unit])(implicit ec: ExecutionContext)
         }
       }
     }
+
+    result
   }
 }
 
 private[sdk] trait NativeWustClient {
   def apply(location: String, apiError: Observer[Unit], enableRequestLogging: Boolean)(implicit ec: ExecutionContext): WustClientFactory[Future] = {
     val logger = if (enableRequestLogging) new BrowserLogHandler(apiError)
-    else new LogHandler[Future] //new DefaultLogHandler[Future](identity)
+    else LogHandler.empty[Future] //new DefaultLogHandler[Future](identity)
     new WustClientFactory(
       WsClient[ByteBuffer, ApiEvent, ApiError](location, WustClient.config, logger)
     )

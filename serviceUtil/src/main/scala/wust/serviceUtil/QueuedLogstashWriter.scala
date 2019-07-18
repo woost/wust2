@@ -17,6 +17,7 @@ import monix.execution.{Ack, Cancelable, Scheduler}
 import monix.reactive.subjects.ConcurrentSubject
 import perfolation._
 import scribe.writer.Writer
+import scribe.output.{LogOutput, EmptyOutput}
 import scribe.{LogRecord, MDC}
 
 import scala.collection.breakOut
@@ -58,7 +59,7 @@ class QueuedLogstashWriter(
     }
   }
 
-  override def write[M](record: LogRecord[M], output: String): Unit = {
+  override def write[M](record: LogRecord[M], output: LogOutput): Unit = {
     val logstashRecord = recordToLogstash(record)
     logSubject.onNext(logstashRecord)
   }
@@ -67,18 +68,18 @@ class QueuedLogstashWriter(
     val l = record.timeStamp
     val timestamp = s"${l.t.F}T${l.t.T}.${l.t.L}${l.t.z}"
     LogstashRecord(
-      message = record.message,
+      message = record.message.plainText,
       service = service,
       level = record.level.name,
       value = record.value,
-      throwable = record.throwable.map(LogRecord.throwable2String(None, _)),
+      throwable = record.throwable.map(LogRecord.throwable2LogOutput(EmptyOutput, _).plainText),
       fileName = record.fileName,
       className = record.className,
       methodName = record.methodName,
       lineNumber = record.line,
       thread = record.thread.getName,
       `@timestamp` = timestamp,
-      mdc = MDC.map
+      mdc = MDC.map.mapValues(_())
     )
   }
 
