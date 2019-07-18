@@ -127,7 +127,7 @@ object FeedbackForm {
         cls := "shadow",
         backgroundColor := Colors.sidebarBg,
         color := "#333",
-        if (crispIsLoaded) feedbackForm else div(b("Crisp Chat"), " couldn't be started. It may be blocked by a browser extension.", marginBottom := "20px"),
+        if (crispIsLoaded) feedbackForm else div(b("Crisp Chat"), " couldn't be started. It might be blocked by a browser extension.", marginBottom := "20px"),
         div("You can also write us an email: ", Components.woostEmailLink(prefix="support"), "."),
 
         div(cls := "ui divider", marginTop := "30px"),
