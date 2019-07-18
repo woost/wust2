@@ -45,7 +45,7 @@ object ViewSwitcher {
     GlobalState.viewConfig
       .collect { case config if config.page.parentId.contains(channelId) => config.view }
       .foreach { currentView() = _ }
-    currentView.foreach { view => GlobalState.urlConfig.update(_.focus(view)) }
+    currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
     apply(channelId, currentView)
   }
