@@ -73,9 +73,9 @@ object NotificationView {
                 div(
                   Styles.flex,
                   h3("What's new?"),
-                  markAllAsReadButton( "Mark everything as read", focusState.focusedId, graph, userId, renderTime)
+                  markAllAsReadButton("Mark everything as read", focusState.focusedId, graph, userId, renderTime)
                 ),
-                renderUnreadGroup( graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
+                renderUnreadGroup(graph, userId, unreadTreeNode, focusedId = focusState.focusedId, renderTime = renderTime, currentTime = currentTime, expanded, isToplevel = true)
               )
             case _ =>
               h3(
@@ -167,7 +167,7 @@ object NotificationView {
   }
 
   private def renderUnreadGroup(
-    
+
     graph: Graph,
     userId: UserId,
     unreadParentNodeInitial: UnreadNode,
@@ -188,7 +188,7 @@ object NotificationView {
     val parentId = graph.nodeIds(unreadParentNode.nodeIdx)
     val breadCrumbs = Rx {
       BreadCrumbs(
-        
+
         graph,
         GlobalState.user(),
         Some(focusedId),
@@ -235,7 +235,7 @@ object NotificationView {
           expandToggleButton,
           breadCrumbs,
           deepUnreadChildrenLabel,
-          markAllAsReadButton( "Mark all as read", parentId, graph, userId, renderTime)
+          markAllAsReadButton("Mark all as read", parentId, graph, userId, renderTime)
         )
       ),
       Rx {
@@ -245,6 +245,16 @@ object NotificationView {
             cls := "ui segment",
             marginTop := "0px", // remove semantic ui marginTop
             table(
+              // fix expanding of table with large content:
+              tableLayout.fixed,
+              width := "100%",
+
+              thead(tr(
+                th(),
+                th(),
+                th(width := "20px"),
+              )),
+
               unreadParentNode.children.map { unreadNode =>
                 graph.nodes(unreadNode.nodeIdx) match {
                   case node: Node.Content => // node is always Content
@@ -254,9 +264,8 @@ object NotificationView {
                       VDomModifier.ifTrue(unreadNode.newRevisions.nonEmpty)(
                         tr(
                           td(
-                            width := "400px",
                             VDomModifier.ifTrue(allSeen)(opacity := 0.5),
-                            nodeCard( node, maxLength = Some(150), projectWithIcon = true).apply(
+                            nodeCard(node, maxLength = Some(150), projectWithIcon = true).apply(
                               VDomModifier.ifTrue(deletedTime.isDefined)(cls := "node-deleted"),
                               Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id)
                             )
@@ -267,7 +276,6 @@ object NotificationView {
                           ),
 
                           td(
-                            width := "20px",
                             cursor.pointer,
 
                             //TODO: hack for having a better layout on mobile with this table
@@ -307,7 +315,7 @@ object NotificationView {
                             colSpan := 3,
                             paddingRight := "0px",
                             paddingLeft := "0px",
-                            renderUnreadGroup( graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
+                            renderUnreadGroup(graph, userId, unreadNode, focusedId = graph.nodeIds(unreadNode.nodeIdx), renderTime = renderTime, currentTime = currentTime, expanded = expanded)
                           )
                         )
                       }
@@ -432,6 +440,7 @@ object NotificationView {
       marginRight := "0px", // remove semantic ui button margin
       marginTop := "3px",
       marginBottom := "3px",
+      Styles.flexStatic,
 
       onClick.stopPropagation.foreach {
         val changes = GraphChanges(

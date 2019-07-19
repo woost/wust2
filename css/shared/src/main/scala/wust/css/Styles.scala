@@ -779,7 +779,6 @@ object CommonStyles extends StyleSheet.Standalone {
 
       &(".breadcrumbs") - (
         margin(5 px, 0 px),
-        maxWidth(50 %%),
 
         &(".divider") - (
           color(c"rgba(165, 165, 165, 0.78)")
