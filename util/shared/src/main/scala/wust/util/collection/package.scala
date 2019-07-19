@@ -14,7 +14,7 @@ package object collection {
 
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
 
-    def by[X](lens: T => X): scala.collection.Map[X, T] = {
+    @inline def by[X](lens: T => X): scala.collection.Map[X, T] = {
       val map = mutable.HashMap[X, T]()
       map.sizeHint(col.size)
       col.foreach { x =>
@@ -23,9 +23,18 @@ package object collection {
       map
     }
 
-    def distinctBy[X](lens: T => X): Repr[T] = col.filterNot {
+    @inline def histogram[X](lens: T => X = (x:T) => x):scala.collection.Map[X,Long] = {
+      val map = mutable.HashMap[X, Long]()
+      col.foreach { x =>
+        val key = lens(x)
+        map.update(key, map.getOrElse(key,0L) + 1)
+      }
+      map
+    }
+
+    @inline def distinctBy[X](lens: T => X): Repr[T] = col.filterNot {
       val seen = mutable.HashSet[X]()
-      elem: T => {
+      (elem: T) => {
         val id = lens(elem)
         val b = seen(id)
         seen += id
@@ -33,7 +42,7 @@ package object collection {
       }
     }
 
-    def foreachWithIndex[U](f: (Int, T) => U): Unit = {
+    @inline def foreachWithIndex[U](f: (Int, T) => U): Unit = {
       var counter = 0
       col.foreach { a =>
         val b = f(counter, a)
@@ -42,7 +51,7 @@ package object collection {
       }
     }
 
-    def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def mapWithIndex[B, That](f: (Int, T) => B)(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
       var counter = 0
       col.map[B, That] { a =>
         val b = f(counter, a)
@@ -51,7 +60,7 @@ package object collection {
       }
     }
 
-    def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
+    @inline def flatMapWithIndex[B, That](f: (Int, T) => GenTraversableOnce[B])(implicit bf: CanBuildFrom[Repr[T], B, That]): That = {
       var counter = 0
       col.flatMap[B, That] { a =>
         val b = f(counter, a)
