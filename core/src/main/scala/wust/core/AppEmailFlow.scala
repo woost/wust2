@@ -22,8 +22,8 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   private val emailSubject = PublishSubject[MailMessage]
 
-  private def appLink: String = {
-    s"https://${serverConfig.host}"
+  private def appLoginLink: String = {
+    s"https://${serverConfig.host}/#view=login"
   }
 
   private def generateMailVerificationLink(userId: UserId, email: String): String = {
@@ -71,7 +71,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |But don’t worry! You can use the following link to reset your password:
         |${secretLink}
         |
-        |This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the app: ${appLink}.
+        |This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the app: ${appLoginLink}.
         |
         |Thanks!
         |
@@ -88,7 +88,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>But don’t worry! You can use the following link to reset your password: <a href='$secretLink'>Reset Password</a></p>
         |
-        |<p>This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the <a href='$appLink'>app</a>.</p>
+        |<p>This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the <a href='$appLoginLink'>app</a>.</p>
         |
         |<p>Thanks!</p>
         |

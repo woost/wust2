@@ -18,7 +18,7 @@ import scala.util.{Failure, Success}
 class PasswordResetEndpoint(db: Db, jwt: JWT, config: ServerConfig) {
   import akka.http.scaladsl.server.Directives._
 
-  private val linkUrl = s"https://${config.host}/"
+  private val linkUrl = s"https://${config.host}/#view=login"
   private def link =  s"""<a href="$linkUrl">Go back to app</a>"""
   private def redirectSuccessMessage = redirect(Uri(linkUrl), StatusCodes.TemporaryRedirect)
   private def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot reset password. This token was already used or is invalid or expired. $link"))
