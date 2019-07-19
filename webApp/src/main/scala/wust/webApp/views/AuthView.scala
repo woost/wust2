@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import fontAwesome._
 import wust.facades.googleanalytics.Analytics
 import wust.facades.hotjar
 import monix.reactive.Observer
@@ -38,8 +39,10 @@ object AuthView {
       alternativeHeader: String,
       alternativeView: View,
       alternativeText: String,
-      autoCompletePassword: String
+      autoCompletePassword: String,
+      showPasswordReset: Boolean
   )(implicit ctx: Ctx.Owner): VNode = {
+    val forgotPasswordMode = Var(false)
     val errorMessageHandler = Handler.unsafe[String]
     var element: dom.html.Form = null
     def actionSink() = {
@@ -63,10 +66,23 @@ object AuthView {
         padding := "10px",
         maxWidth := "400px",
         form(
+          Styles.flex,
+          flexDirection.column,
+
           onDomMount foreach { e => element = e.asInstanceOf[dom.html.Form] },
           onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
 
-          h2(header),
+          h2( header),
+          forgotPasswordMode.map {
+            case false => VDomModifier.empty
+            case true => div(
+              Styles.flex,
+              justifyContent.spaceBetween,
+              h5("Enter your email address and we will send you a link to reset your password."),
+              div(freeSolid.faArrowLeft, padding := "10px", cursor.pointer, onClick.stopPropagation(false) --> forgotPasswordMode),
+            )
+          },
+
           needUserName.ifTrue[VDomModifier](div(
             cls := "ui fluid input",
             keyed,
@@ -82,6 +98,7 @@ object AuthView {
               onDomMount.asHtml --> inNextAnimationFrame { e => if(userValue.now.username.isEmpty) e.focus() }
             )
           )),
+
           div(
             cls := "ui fluid input",
             keyed,
@@ -96,38 +113,72 @@ object AuthView {
               onDomMount.asHtml --> inNextAnimationFrame { e => if(!needUserName || userValue.now.username.nonEmpty) e.focus() }
             )
           ),
-          div(
-            cls := "ui fluid input",
-            keyed,
-            input(
-              placeholder := "Password",
-              value <-- userValue.map(_.password),
-              tpe := "password",
-              required := true,
-              attr("autocomplete") := autoCompletePassword,
-              display.block,
-              margin := "auto",
-              onInput.value foreach { str => userValue.update(_.copy(password = str)) },
-              onEnter foreach actionSink(),
-              onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
+
+          forgotPasswordMode.map {
+            case true => VDomModifier.ifTrue(showPasswordReset)(
+              div(
+                disabled <-- userValue.map(_.email.isEmpty),
+                cls := "ui fluid button primary",
+                "Send Password Reset Mail",
+                cursor.pointer,
+                marginTop := "10px",
+                onClick.stopPropagation.foreach {
+                  if (FormValidator.reportValidity(element)) {
+                    Client.auth.resetPassword(userValue.now.email).foreach {
+                      case true =>
+                        UI.toast("Check your email for a link to reset your password", "Password Reset Mail", level = UI.ToastLevel.Success)
+                        forgotPasswordMode() = false
+                      case false =>
+                        UI.toast("Sorry, we cannot find this email address.", "Password Reset Mail", level = UI.ToastLevel.Warning)
+                    }
+                  }
+                }
+              )
             )
-          ),
-          discardContentMessage,
-          button(
-            cls := "ui fluid primary button",
-            submitText,
-            display.block,
-            margin := "auto",
-            marginTop := "5px",
-            onClick foreach actionSink()
-          ),
-          errorMessageHandler.map { errorMessage =>
-            div(
-              cls := "ui negative message",
-              div(cls := "header", s"$submitText failed"),
-              p(errorMessage)
+            case false => VDomModifier(
+              div(
+                cls := "ui fluid input",
+                keyed,
+                input(
+                  placeholder := "Password",
+                  value <-- userValue.map(_.password),
+                  tpe := "password",
+                  required := true,
+                  attr("autocomplete") := autoCompletePassword,
+                  display.block,
+                  margin := "auto",
+                  onInput.value foreach { str => userValue.update(_.copy(password = str)) },
+                  onEnter foreach actionSink(),
+                  onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
+                )
+              ),
+              VDomModifier.ifTrue(showPasswordReset)(b(
+                alignSelf.flexEnd,
+                margin := "4px",
+                textDecoration := "underline",
+                "Forgot password?",
+                cursor.pointer,
+                onClick.stopPropagation(true) --> forgotPasswordMode
+              )),
+              discardContentMessage,
+              button(
+                cls := "ui fluid primary button",
+                submitText,
+                display.block,
+                margin := "auto",
+                marginTop := "5px",
+                onClick foreach actionSink()
+              ),
+              errorMessageHandler.map { errorMessage =>
+                div(
+                  cls := "ui negative message",
+                  div(cls := "header", s"$submitText failed"),
+                  p(errorMessage)
+                )
+              },
             )
           },
+
           div(cls := "ui divider"),
           h3(alternativeHeader, textAlign := "center"),
           GlobalState.urlConfig.map { cfg =>
@@ -140,6 +191,7 @@ object AuthView {
               cursor.pointer
             )
           },
+
           h4("Having Problems with Login or Signup?", textAlign := "center", marginTop := "40px"),
           div("Please contact ", woostTeamEmailLink, textAlign := "center"),
           marginBottom := "20px",
@@ -202,7 +254,8 @@ object AuthView {
       alternativeHeader = "New to Woost?",
       alternativeView = View.Signup,
       alternativeText = "Create an account",
-      autoCompletePassword = "current-password"
+      autoCompletePassword = "current-password",
+      showPasswordReset = true
     )
   }
 
@@ -226,7 +279,8 @@ object AuthView {
       alternativeHeader = "Already have an account?",
       alternativeView = View.Login,
       alternativeText = "Login",
-      autoCompletePassword = "new-password"
+      autoCompletePassword = "new-password",
+      showPasswordReset = false
     )
   }
 }

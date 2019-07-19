@@ -13,20 +13,19 @@ import wust.db.{Data, Db}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
-class OAuthClientVerificationEndpoint(db: Db, jwt: JWT, config: ServerConfig, serviceLookup: OAuthClientServiceLookup) {
+class OAuthFlowEndpoint(db: Db, jwt: JWT, config: ServerConfig, serviceLookup: OAuthClientServiceLookup) {
   import akka.http.scaladsl.server.Directives._
 
-  def verify(token: Authentication.Token, code: String)(implicit ec: ExecutionContext, materializer: ActorMaterializer): Route = {
+  def connect(token: Authentication.Token, code: String)(implicit ec: ExecutionContext, materializer: ActorMaterializer): Route = {
     val linkUrl = s"https://${config.host}/#view=usersettings"
     def link =  s"""<a href="$linkUrl">Go back to app</a>"""
     def successMessage = redirect(Uri(linkUrl), StatusCodes.TemporaryRedirect)
     def invalidMessage = complete(HttpEntity(ContentTypes.`text/html(UTF-8)`, s"Cannot verify OAuth flow. This token was already used or is invalid or expired. $link"))
     def errorMessage = complete(StatusCodes.InternalServerError -> s"Sorry, we cannot verify the OAuth flow right now. Please try again later.")
 
-    scribe.info(s"Verifying OAuth Client callback: $token, $code")
+    scribe.info("Verifying OAuth Client callback")
     jwt.oAuthClientFromToken(token) match {
       case Some(activation) =>
-        scribe.error("Token is readable")
         serviceLookup.getAccessToken(activation.service, code) match {
           case Some(accessTokenFuture) =>
             onComplete(accessTokenFuture.flatMap(token => db.oAuthClients.create(Data.OAuthClient(activation.userId, service = activation.service, accessToken = token)))) {

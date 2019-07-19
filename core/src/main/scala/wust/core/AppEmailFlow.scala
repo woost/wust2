@@ -22,9 +22,17 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   private val emailSubject = PublishSubject[MailMessage]
 
-  private def generateRandomVerificationLink(userId: UserId, email: String): String = {
+  private def appLink: String = {
+    s"https://${serverConfig.host}"
+  }
+
+  private def generateMailVerificationLink(userId: UserId, email: String): String = {
     val token = jwt.generateEmailActivationToken(userId, email)
     s"https://core.${serverConfig.host}/${ServerPaths.emailVerify}?token=${token.string}"
+  }
+
+  private def passwordResetLink(token: Authentication.Token): String = {
+    s"https://core.${serverConfig.host}/${ServerPaths.passwordReset}?token=${token.string}"
   }
 
   private def workspaceLink(nodeId: NodeId, view: Option[View]):String = {
@@ -49,10 +57,53 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       |52070 Aachen
     """.stripMargin
 
+  private def passwordResetMailMessage(email: String, resetJwt: Authentication.Token): MailMessage = {
+    val recipient = MailRecipient(to = email :: Nil)
+    val subject = "Woost - Password Reset"
+    val secretLink = passwordResetLink(resetJwt)
+
+    val body =
+      s"""
+        |Hi there,
+        |
+        |we heard that you lost your Woost password. Sorry about that!       |
+        |
+        |But don’t worry! You can use the following link to reset your password:
+        |${secretLink}
+        |
+        |This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the app: ${appLink}.
+        |
+        |Thanks!
+        |
+        |$farewell
+        |
+        |$signature
+      """.stripMargin
+
+    val bodyHtml =
+      s"""
+        |<p>Hi there,</p>
+        |
+        |<p>we heard that you lost your Woost password. Sorry about that!</p>
+        |
+        |<p>But don’t worry! You can use the following link to reset your password: <a href='$secretLink'>Reset Password</a></p>
+        |
+        |<p>This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the <a href='$appLink'>app</a>.</p>
+        |
+        |<p>Thanks!</p>
+        |
+        |<p>$farewell</p>
+        |
+        |<p>$signature</p>
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
+  }
+
   private def verificationMailMessage(userId: UserId, email: String): MailMessage = {
     val recipient = MailRecipient(to = email :: Nil)
     val subject = "Woost - Please verify your email address"
-    val secretLink = generateRandomVerificationLink(userId, email)
+    val secretLink = generateMailVerificationLink(userId, email)
 
     val body =
       s"""
@@ -203,6 +254,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   def sendMentionNotification(email: String, authorName:String, authorEmail:String, mentionedIn: Seq[NodeId], node: Node.Content)(implicit ec: ExecutionContext): Unit = {
     val message = mentionMailMessage(email = email, mentionedIn = mentionedIn, authorName = authorName, authorEmail = authorEmail, node = node)
+    emailSubject.onNext(message)
+  }
+
+  def sendPasswordReset(email: String, resetJwt: Authentication.Token)(implicit ec: ExecutionContext): Unit = {
+    val message = passwordResetMailMessage(email = email, resetJwt = resetJwt)
     emailSubject.onNext(message)
   }
 

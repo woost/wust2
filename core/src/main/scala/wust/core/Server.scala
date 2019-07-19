@@ -15,7 +15,7 @@ import covenant.ws.AkkaWsRoute
 import monix.execution.Scheduler
 import mycelium.server.WebsocketServerConfig
 import sloth.Router
-import wust.api.{Api, AuthApi, Authentication, PushApi}
+import wust.api.{Api, AuthApi, Authentication, Password, PushApi}
 import wust.core.mail.MailService
 import wust.core.aws.{S3FileUploader, SESMailClient}
 import wust.core.pushnotifications.PushClients
@@ -71,8 +71,9 @@ object Server {
     val cancelable = emailFlow.start()
     val pushClients = config.pushNotification.map(PushClients.apply)
     val oAuthClientServiceLookup = new OAuthClientServiceLookup(jwt, config.server, pushClients)
-    val oAuthVerificationEndpoint = new OAuthClientVerificationEndpoint(db, jwt, config.server, oAuthClientServiceLookup)
+    val oAuthFlowEndpoint = new OAuthFlowEndpoint(db, jwt, config.server, oAuthClientServiceLookup)
     val emailVerificationEndpoint = new EmailVerificationEndpoint(db, jwt, config.server)
+    val passwordResetEndpoint = new  PasswordResetEndpoint(db, jwt, config.server)
     val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
     val graphChangesNotifier = new GraphChangesNotifier(db, emailFlow)
 
@@ -118,15 +119,23 @@ object Server {
     } ~ (path(ServerPaths.health) & get) {
       complete("ok")
     } ~ (path(ServerPaths.emailVerify) & get) { // needs
-      cors(corsSettings) {
-        parameters('token.as[String]) { token =>
-          emailVerificationEndpoint.verify(Authentication.Token(token))
+      parameters('token.as[String]) { token =>
+        emailVerificationEndpoint.verify(Authentication.Token(token))
+      }
+    } ~ path(ServerPaths.passwordReset) {
+      parameters('token.as[String]) { token =>
+        get {
+          passwordResetEndpoint.form(Authentication.Token(token))
+        } ~ post {
+          formFields('password.as[String]) { newPassword =>
+            passwordResetEndpoint.reset(Authentication.Token(token), Password(newPassword))
+          }
         }
       }
     } ~ (pathPrefix(ServerPaths.oauth) & get) {
       path(Remaining) { token =>
         parameters('code.as[String]) { code =>
-          oAuthVerificationEndpoint.verify(Authentication.Token(token), code)
+          oAuthFlowEndpoint.connect(Authentication.Token(token), code)
         }
       }
     }

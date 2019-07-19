@@ -393,6 +393,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(q).map(_.nonEmpty).recover { case _ => false }
     }
 
+    //TODO: we should bump the revision of the user to invalidate tokens after email changes.
     def updateUserEmail(userId: UserId, email: String)(implicit ec: ExecutionContext): Future[Boolean] = {
       val q = quote {
         query[UserDetail]
@@ -415,6 +416,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         (for{
          userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)))
+         user <- queryUser.filter(_.id == userDetail.userId)
+        } yield user).take(1)
+      ).map(_.headOption)
+    }
+
+    def getUserByVerifiedMail(email: String)(implicit ec: ExecutionContext): Future[Option[User]] = {
+      ctx.run(
+        (for{
+         userDetail <- query[UserDetail].filter(p => p.email.contains(lift(email)) && p.verified)
          user <- queryUser.filter(_.id == userDetail.userId)
         } yield user).take(1)
       ).map(_.headOption)
@@ -455,6 +465,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.nonEmpty)
     }
 
+    // this method is in integral part of our authentication checks. We have tokens which include a user.
+    // this method tries to find a user in the db that matches the given user from the token exactly.
+    // Same id (obviously), same revision (important! revision is bumped on pw changes), same implicit-state. (username may have changed).
     def checkIfEqualUserExists(user: SimpleUser)(implicit ec: ExecutionContext): Future[Option[User]] = {
       import user.data._
       ctx.run {

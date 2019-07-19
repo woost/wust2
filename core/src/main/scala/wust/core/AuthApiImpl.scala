@@ -20,6 +20,16 @@ class AuthApiImpl(dsl: GuardDsl, db: Db, jwt: JWT, emailFlow: AppEmailFlow, oAut
 
   private def isValidEmail(email: String) = email.contains("@")
 
+  def resetPassword(email: String): ApiFunction[Boolean] = Action { state =>
+    db.user.getUserByVerifiedMail(email).map {
+      case Some(user) =>
+        val resetToken = jwt.generatePasswordResetToken(user)
+        emailFlow.sendPasswordReset(email = email, resetJwt = resetToken)
+        Returns(true)
+      case None => Returns(false)
+    }
+  }
+
   def changePassword(password: Password): ApiFunction[Boolean] = Effect.requireRealUser { (state, user) =>
     val digest = passwordDigest(password)
     db.ctx.transaction { implicit ec =>
