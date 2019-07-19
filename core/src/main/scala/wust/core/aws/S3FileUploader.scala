@@ -45,6 +45,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
   def getFileUploadConfiguration(userId: UserId, fileKey: String, fileName: String, fileSize: Int, fileContentType: String): Task[FileUploadConfiguration] = {
     // SANITIZE user input, we use these strings in the json policy document for the signed post request to aws.
     // !!!!!really NEVER ever allow quotes or any possible encoding of breaking out of quotes in json!!!!!
+    // DO NOT ALLOW SINGLE OR DOUBLE QUOTES!!!!!!!!!
     requireSaneKey(fileKey)
     require(fileContentType.isEmpty || fileContentType.matches("^[\\w\\.+\\-]+/[\\w\\.+\\-]+$"), s"invalid file content type: $fileContentType") // allow only potential content types: "<word>/<word>"
     require(fileSize >= 0, s"File size must be greater than or equal to zero: $fileSize")
@@ -56,7 +57,8 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     // so we fall-back to providing no filename in the content-disposition header. file will then be named like the resource in the url (sha256 of content).
     // we still enforce attachment, which will make the browser download the content instead of opening it in a tab.
     // TODO: is this to defensive? what is a safe sanitizer for not-breaking out of json values?
-    val fileContentDisposition = if (fileName.matches("^[\\w\\.+\\-\\s()\\[\\],'?!¡¿ÄäÀàÁáÂâÃãÅåǍǎĄąĂăÆæĀāÇçĆćĈĉČčĎđĐďðÈèÉéÊêËëĚěĘęĖėĒēĜĝĢģĞğĤĥÌìÍíÎîÏïıĪīĮįĴĵĶķĹĺĻļŁłĽľÑñŃńŇňŅņÖöÒòÓóÔôÕõŐőØøŒœŔŕŘřẞßŚśŜŝŞşŠšȘșŤťŢţÞþȚțÜüÙùÚúÛûŰűŨũŲųŮůŪūŴŵÝýŸÿŶŷŹźŽžŻż]+$")) s"""attachment; filename="$fileName"""" else "attachment"
+    // DO NOT ALLOW SINGLE OR DOUBLE QUOTES!!!!!!!!!
+    val fileContentDisposition = if (fileName.matches("^[\\w\\.+\\-\\s()\\[\\],?!¡¿ÄäÀàÁáÂâÃãÅåǍǎĄąĂăÆæĀāÇçĆćĈĉČčĎđĐďðÈèÉéÊêËëĚěĘęĖėĒēĜĝĢģĞğĤĥÌìÍíÎîÏïıĪīĮįĴĵĶķĹĺĻļŁłĽľÑñŃńŇňŅņÖöÒòÓóÔôÕõŐőØøŒœŔŕŘřẞßŚśŜŝŞşŠšȘșŤťŢţÞþȚțÜüÙùÚúÛûŰűŨũŲųŮůŪūŴŵÝýŸÿŶŷŹźŽžŻż]+$")) s"""attachment; filename="$fileName"""" else "attachment"
 
     val keyPrefix = getKeyPrefixForUser(userId)
     val key = keyPrefix + "/" + fileKey
