@@ -61,7 +61,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |please verify your email address by clicking this link:
         |${secretLink}
         |
-        |This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail via ${userSettingsLink}.
+        |This link will be valid for ${jwt.LifeTimeSeconds.emailActivation / 60 / 60 } hours. If the link has expired, you can resend a new verification mail via ${userSettingsLink}.
         |
         |Thank you!
         |
@@ -76,7 +76,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>please verify your email address by clicking this link: <a href='$secretLink'>Verify your email address</a></p>
         |
-        |<p>This link will be valid for ${jwt.emailVerificationTokenLifeTimeSeconds / 60 / 60 } hours. If the link has expired, you can resend a new verification mail in your <a href='$userSettingsLink'>user settings</a>.</p>
+        |<p>This link will be valid for ${jwt.LifeTimeSeconds.emailActivation / 60 / 60 } hours. If the link has expired, you can resend a new verification mail in your <a href='$userSettingsLink'>user settings</a>.</p>
         |
         |<p>Thank you!</p>
         |
