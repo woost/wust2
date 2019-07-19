@@ -15,7 +15,7 @@ object UrlRouter {
     UrlRoute(search = locationSearch, hash = locationHash)
   }
 
-  def variable(implicit ctx: Ctx.Owner, ec: Scheduler): Var[UrlRoute] = {
+  def variable()(implicit ctx: Ctx.Owner, ec: Scheduler): Var[UrlRoute] = {
     val route = Var[UrlRoute](locationRoute)
     route.foreach { route =>
       if (route != locationRoute) {

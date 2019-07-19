@@ -61,7 +61,7 @@ object GlobalState {
   val leftSidebarOpen: Var[Boolean] = //TODO: replace with ADT Open/Closed
     Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
 
-  val urlConfig: Var[UrlConfig] = UrlRouter.variable.imap(UrlConfigParser.fromUrlRoute)(UrlConfigWriter.toUrlRoute)
+  val urlConfig: Var[UrlConfig] = UrlRouter.variable().imap(UrlConfigParser.fromUrlRoute)(UrlConfigWriter.toUrlRoute)
   val isOnline = Observable(
     Client.observable.connected.map(_ => true),
     Client.observable.closed.map(_ => false)
