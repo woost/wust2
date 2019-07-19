@@ -101,22 +101,24 @@ object FeedbackForm {
       )
     )
 
-    div(
-      div(
-        "Feedback/Support ", freeSolid.faCaretDown,
-        // like semantic-ui tiny button
-        fontSize := "0.85714286rem",
-        fontWeight := 700,
-        padding := ".58928571em 1.125em .58928571em",
-        cursor.pointer,
+    val toggleButton = div(
+      "Feedback/Support ", freeSolid.faCaretDown,
+      // like semantic-ui tiny button
+      fontSize := "0.85714286rem",
+      fontWeight := 700,
+      padding := ".58928571em 1.125em .58928571em",
+      cursor.pointer,
 
-        onClick.stopPropagation foreach {
-          Analytics.sendEvent("feedback", if (showPopup.now) "close" else "open")
-          showPopup.update(!_)
-        },
-        onGlobalEscape(false) --> showPopup,
-        onGlobalClick(false) --> showPopup,
-      ),
+      onClick.stopPropagation foreach {
+        Analytics.sendEvent("feedback", if (showPopup.now) "close" else "open")
+        showPopup.update(!_)
+      },
+      onGlobalEscape(false) --> showPopup,
+      onGlobalClick(false) --> showPopup,
+    )
+
+    div(
+      toggleButton,
       div(
         activeDisplay,
         width := "280px",
@@ -128,7 +130,7 @@ object FeedbackForm {
         backgroundColor := Colors.sidebarBg,
         color := "#333",
         if (crispIsLoaded) feedbackForm else div(b("Crisp Chat"), " couldn't be started. It might be blocked by a browser extension.", marginBottom := "20px"),
-        div("You can also write us an email: ", Components.woostEmailLink(prefix="support"), "."),
+        div("You can also write us an email: ", Components.woostEmailLink(prefix = "support"), "."),
 
         div(cls := "ui divider", marginTop := "30px"),
         supportChatButton(showPopup)(disabled := !crispIsLoaded),
