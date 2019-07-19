@@ -56,7 +56,7 @@ class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
     // so we fall-back to providing no filename in the content-disposition header. file will then be named like the resource in the url (sha256 of content).
     // we still enforce attachment, which will make the browser download the content instead of opening it in a tab.
     // TODO: is this to defensive? what is a safe sanitizer for not-breaking out of json values?
-    val fileContentDisposition = if (fileName.matches("^[\\w\\.+\\-\\s()\\[\\]]+$")) s"""attachment; filename="$fileName"""" else "attachment"
+    val fileContentDisposition = if (fileName.matches("^[\\w\\.+\\-\\s()\\[\\],'?!¡¿ÄäÀàÁáÂâÃãÅåǍǎĄąĂăÆæĀāÇçĆćĈĉČčĎđĐďðÈèÉéÊêËëĚěĘęĖėĒēĜĝĢģĞğĤĥÌìÍíÎîÏïıĪīĮįĴĵĶķĹĺĻļŁłĽľÑñŃńŇňŅņÖöÒòÓóÔôÕõŐőØøŒœŔŕŘřẞßŚśŜŝŞşŠšȘșŤťŢţÞþȚțÜüÙùÚúÛûŰűŨũŲųŮůŪūŴŵÝýŸÿŶŷŹźŽžŻż]+$")) s"""attachment; filename="$fileName"""" else "attachment"
 
     val keyPrefix = getKeyPrefixForUser(userId)
     val key = keyPrefix + "/" + fileKey
