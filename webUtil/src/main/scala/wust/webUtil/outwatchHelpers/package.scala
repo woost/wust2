@@ -164,9 +164,6 @@ package object outwatchHelpers extends KeyHash with RxInstances {
         console.asInstanceOf[js.Dynamic].groupEnd()
       }
     }
-
-    //TODO: add to scala-rx in an efficient macro
-    def collect[S](f: PartialFunction[T, S])(implicit ctx: Ctx.Owner): Rx[S] = rx.map(f.lift).filter(_.isDefined).map(_.get)
   }
 
   def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))

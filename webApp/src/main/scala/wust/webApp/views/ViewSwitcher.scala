@@ -43,8 +43,10 @@ object ViewSwitcher {
   def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val currentView = Var[View](View.Empty)
     GlobalState.viewConfig
-      .collect { case config if config.page.parentId.contains(channelId) => config.view }
-      .foreach { currentView() = _ }
+      .foreach({
+        case config if config.page.parentId.contains(channelId) => currentView() = config.view
+        case _ => ()
+      }: ViewConfig => Unit)
     currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
     apply(channelId, currentView)

@@ -24,9 +24,11 @@ object ViewModificationMenu {
   def selectForm(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     val currentView = Var[View](View.Empty)
     GlobalState.viewConfig
-      .collect { case config if config.page.parentId.contains(channelId) => config.view }
-      .foreach { currentView() = _ }
-    currentView.foreach { view => GlobalState.urlConfig.update(_.focus(view)) }
+      .foreach({
+        case config if config.page.parentId.contains(channelId) => currentView() = config.view
+        case _ => ()
+      }: ViewConfig => Unit)
+    currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
     div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
       selector(channelId, currentView, None, Observer.empty)
