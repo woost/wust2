@@ -57,6 +57,13 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       |52070 Aachen
     """.stripMargin
 
+  private val signatureHTML =
+    """
+      |Woost<br/>
+      |Jülicher Straße 72a<br/>
+      |52070 Aachen<br/>
+    """.stripMargin
+
   private def passwordResetMailMessage(email: String, resetJwt: Authentication.Token): MailMessage = {
     val recipient = MailRecipient(to = email :: Nil)
     val subject = "Woost - Password Reset"
@@ -94,7 +101,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>$farewell</p>
         |
-        |<p>$signature</p>
+        |<p>$signatureHTML</p>
       """.stripMargin
 
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
@@ -133,7 +140,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>$farewell</p>
         |
-        |<p>$signature</p>
+        |<p>$signatureHTML</p>
       """.stripMargin
 
     MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
@@ -189,7 +196,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>$farewell</p>
         |
-        |<p>$signature</p>
+        |<p>$signatureHTML</p>
       """.stripMargin
 
     MailMessage(recipient, subject = subject, fromPersonal = s"$inviterName via Woost", body = body, bodyHtml = Some(bodyHtml))
@@ -231,7 +238,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>$farewell</p>
         |
-        |<p>$signature</p>
+        |<p>$signatureHTML</p>
       """.stripMargin
 
     MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail))
