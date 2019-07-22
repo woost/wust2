@@ -66,7 +66,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
       s"""
         |Hi there,
         |
-        |we heard that you lost your Woost password. Sorry about that!       |
+        |we heard that you lost your Woost password. Sorry about that!
         |
         |But don’t worry! You can use the following link to reset your password:
         |${secretLink}
