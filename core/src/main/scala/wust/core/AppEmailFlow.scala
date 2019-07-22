@@ -78,7 +78,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |But don’t worry! You can use the following link to reset your password:
         |${secretLink}
         |
-        |This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the app: ${appLoginLink}.
+        |This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the App: ${appLoginLink}.
+        |
+        |If you did not request a password reset, no further action is required.
         |
         |Thanks!
         |
@@ -95,7 +97,9 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
         |
         |<p>But don’t worry! You can use the following link to reset your password: <a href='$secretLink'>Reset Password</a></p>
         |
-        |<p>This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the <a href='$appLoginLink'>app</a>.</p>
+        |<p>This link will be valid for ${jwt.LifeTimeSeconds.passwordReset / 60 } minutes. You can always get a new password-reset link in the <a href='$appLoginLink'>App</a>.</p>
+        |
+        |<p>If you did not request a password reset, no further action is required.</p>
         |
         |<p>Thanks!</p>
         |
