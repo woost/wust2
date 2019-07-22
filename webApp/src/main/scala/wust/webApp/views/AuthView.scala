@@ -31,6 +31,12 @@ object AuthView {
   private final case class UserValue(username: String = "", email: String = "", password: String = "")
   private val userValue = Var(UserValue())
 
+  sealed trait StatusMessage
+  object StatusMessage {
+    case class Success(header: String, msg: String) extends StatusMessage
+    case class Error(header: String, msg: String) extends StatusMessage
+  }
+
   def apply(
       header: String,
       submitText: String,
@@ -43,17 +49,17 @@ object AuthView {
       showPasswordReset: Boolean
   )(implicit ctx: Ctx.Owner): VNode = {
     val forgotPasswordMode = Var(false)
-    val errorMessageHandler = Handler.unsafe[String]
+    val errorMessageHandler = Handler.unsafe[StatusMessage]
     var element: dom.html.Form = null
     def actionSink() = {
       if (FormValidator.reportValidity(element)) submitAction(userValue.now).onComplete {
         case Success(None)        =>
           userValue() = UserValue()
           GlobalState.urlConfig.update(_.redirect)
-        case Success(Some(vnode)) =>
-          errorMessageHandler.onNext(vnode)
+        case Success(Some(error)) =>
+          errorMessageHandler.onNext(StatusMessage.Error(s"$submitText failed", error))
         case Failure(t)           =>
-          errorMessageHandler.onNext(s"Unexpected error: $t")
+          errorMessageHandler.onNext(StatusMessage.Error(s"$submitText failed", "Sorry, there was an unexpected error. Please try again later."))
       }
     }
 
@@ -72,14 +78,11 @@ object AuthView {
           onDomMount foreach { e => element = e.asInstanceOf[dom.html.Form] },
           onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
 
-          h2( header),
           forgotPasswordMode.map {
-            case false => VDomModifier.empty
-            case true => div(
-              Styles.flex,
-              justifyContent.spaceBetween,
-              h5("Enter your email address and we will send you a link to reset your password."),
-              div(freeSolid.faArrowLeft, padding := "10px", cursor.pointer, onClick.stopPropagation(false) --> forgotPasswordMode),
+            case false => h2(header)
+            case true => VDomModifier(
+              h2("Password Reset"),
+              h5("Enter your email address and we will send you a link to reset your password.")
             )
           },
 
@@ -115,26 +118,34 @@ object AuthView {
           ),
 
           forgotPasswordMode.map {
-            case true => VDomModifier.ifTrue(showPasswordReset)(
+            case true => VDomModifier.ifTrue(showPasswordReset)(div(
+              marginTop := "10px",
+              Styles.flex,
+              justifyContent.spaceBetween,
+              div(
+                cls := "ui button",
+                s"Go back to $submitText",
+                cursor.pointer,
+                onClick.stopPropagation(false) --> forgotPasswordMode
+              ),
               div(
                 disabled <-- userValue.map(_.email.isEmpty),
-                cls := "ui fluid button primary",
+                cls := "ui button primary",
                 "Send Password Reset Mail",
                 cursor.pointer,
-                marginTop := "10px",
                 onClick.stopPropagation.foreach {
                   if (FormValidator.reportValidity(element)) {
                     Client.auth.resetPassword(userValue.now.email).foreach {
                       case true =>
-                        UI.toast("Check your email for a link to reset your password", "Password Reset Mail", level = UI.ToastLevel.Success)
+                        errorMessageHandler.onNext(StatusMessage.Success("Password Reset Mail sent", "Check your email for a link to reset your password"))
                         forgotPasswordMode() = false
                       case false =>
-                        UI.toast("Sorry, we cannot find this email address.", "Password Reset Mail", level = UI.ToastLevel.Warning)
+                        errorMessageHandler.onNext(StatusMessage.Error("Password Reset Mail failed", "Sorry, we cannot find this email address."))
                     }
                   }
                 }
               )
-            )
+            ))
             case false => VDomModifier(
               div(
                 cls := "ui fluid input",
@@ -152,14 +163,6 @@ object AuthView {
                   onDomMount.asHtml --> inNextAnimationFrame { e => if((!needUserName || userValue.now.username.nonEmpty) && userValue.now.email.nonEmpty) e.focus() }
                 )
               ),
-              VDomModifier.ifTrue(showPasswordReset)(b(
-                alignSelf.flexEnd,
-                margin := "4px",
-                textDecoration := "underline",
-                "Forgot password?",
-                cursor.pointer,
-                onClick.stopPropagation(true) --> forgotPasswordMode
-              )),
               discardContentMessage,
               button(
                 cls := "ui fluid primary button",
@@ -169,13 +172,27 @@ object AuthView {
                 marginTop := "5px",
                 onClick foreach actionSink()
               ),
-              errorMessageHandler.map { errorMessage =>
-                div(
-                  cls := "ui negative message",
-                  div(cls := "header", s"$submitText failed"),
-                  p(errorMessage)
-                )
-              },
+              VDomModifier.ifTrue(showPasswordReset)(b(
+                alignSelf.flexEnd,
+                margin := "4px",
+                textDecoration := "underline",
+                "Forgot password?",
+                cursor.pointer,
+                onClick.stopPropagation(true) --> forgotPasswordMode
+              )),
+            )
+          },
+
+          errorMessageHandler.map {
+            case StatusMessage.Error(header, errorMessage) => div(
+              cls := "ui negative message",
+              div(cls := "header", header),
+              p(errorMessage)
+            )
+            case StatusMessage.Success(header, errorMessage) => div(
+              cls := "ui positive message",
+              div(cls := "header", header),
+              p(errorMessage)
             )
           },
 
