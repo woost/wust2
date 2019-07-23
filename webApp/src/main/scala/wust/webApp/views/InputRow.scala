@@ -35,7 +35,6 @@ object InputRow {
   case class Submission(text: String, changes: NodeId => GraphChanges)
 
   def apply(
-    
     focusState: Option[FocusState],
     submitAction: Submission => Unit,
     fileUploadHandler: Option[Var[Option[AWS.UploadableFile]]] = None,
@@ -288,7 +287,8 @@ object InputRow {
         top := "11px",
         fontSize := "16px",
         float.right,
-        onClick.stopPropagation(true) --> markdownHelpOpened,
+        cursor.pointer,
+        onClick.stopPropagation.foreach(markdownHelpOpened.update(!_)),
       )
     )
 
