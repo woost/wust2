@@ -34,9 +34,7 @@ object MainView {
 
         position.relative, // needed for mobile expanded sidebars
 
-        onMouseDown.foreach {
-          wdtEmojiBundle.close()
-        },
+        onMouseDown(()) --> GlobalState.mouseClickInMainView,
 
         LeftSidebar.apply(
           onMouseDown(None) --> GlobalState.rightSidebarNode,

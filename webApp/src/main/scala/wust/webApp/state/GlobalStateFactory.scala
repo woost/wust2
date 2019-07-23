@@ -47,6 +47,10 @@ object GlobalStateFactory {
     // on desktop, we have our custom emoji picker, which should be close when the rightsidebar is opened or closed.
     // or the modal is closed or opened
     if (!BrowserDetect.isMobile) {
+      mouseClickInMainView.foreach { _ =>
+        wdtEmojiBundle.close()
+      }
+
       rightSidebarNode.foreach { _ =>
         wdtEmojiBundle.close()
       }

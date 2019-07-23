@@ -54,6 +54,8 @@ object GlobalState {
     Client.currentAuth
   )
 
+  val mouseClickInMainView = PublishSubject[Unit]
+
   def submitChanges(changes: GraphChanges) = {
     eventProcessor.changes.onNext(changes)
   }

@@ -3,6 +3,7 @@ package wust.webApp.views
 import wust.facades.wdtEmojiBundle._
 import fontAwesome._
 import monix.reactive.Observable
+import monix.reactive.subjects.PublishSubject
 import org.scalajs.dom
 import org.scalajs.dom.window
 import outwatch.dom._
@@ -63,7 +64,22 @@ object InputRow {
     }.toObservable.dropWhile(_.isEmpty)
     else Observable.empty // drop starting sequence of empty values. only interested once share api defined.
 
-    val autoResizer = new TextAreaAutoResizer
+    val markdownHelpOpened = Var(false)
+    val markdownHelpModifiers = Var(VDomModifier.empty)
+    var currentTextArea: dom.html.TextArea = null
+
+    GlobalState.rightSidebarNode.triggerLater {
+      markdownHelpOpened() = false
+    }
+
+    val autoResizer = new TextAreaAutoResizer(callback = _ => {
+      val rect = currentTextArea.getBoundingClientRect()
+      val inTopHalf = rect.bottom <= dom.window.innerHeight / 2
+      markdownHelpModifiers() = {
+        if (inTopHalf) VDomModifier(top := rect.height + "px")
+        else VDomModifier(bottom := rect.height + "px")
+      }
+    })
     val collectedMentions = new mutable.HashMap[String, Node]
 
     val heightOptions = VDomModifier(
@@ -73,9 +89,10 @@ object InputRow {
       autoResizer.modifiers
     )
 
-    var currentTextArea: dom.html.TextArea = null
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {
       def handle() = {
+        markdownHelpOpened() = false
+
         val actualMentions = {
           val stringMentions = mentionsRegex.findAllIn(str).map(_.drop(1)).to[List]
           stringMentions.flatMap(str => collectedMentions.get(str).map(str -> _))
@@ -232,9 +249,38 @@ object InputRow {
         .stopPropagation foreach { submit() },
     )
 
+    val markdownHelpOverlay = VDomModifier.ifTrue(showMarkdownHelp)(
+      markdownHelpOpened.map {
+        case true => div(
+          padding := "4px",
+          position.absolute,
+          backgroundColor := "white",
+          borderRadius := "3px",
+          right := "0px",
+          markdownHelpModifiers,
+          Styles.flex,
+          flexDirection.column,
+          div(
+            alignSelf.flexEnd,
+            i(cls := "icon fa-fw", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation(false) --> markdownHelpOpened),
+          ),
+          div(
+            Elements.innerHTML := Elements.UnsafeHTML(markdownExampleTableHtml)
+          ),
+          a(
+            alignSelf.flexEnd,
+            "Learn more",
+            Elements.safeTargetBlank,
+            href := "https://commonmark.org/help"
+          )
+        )
+        case false => VDomModifier.empty
+      }
+    )
+
     val markdownHelp = VDomModifier.ifTrue(showMarkdownHelp)(
       position.relative,
-      a(
+      div(
         freeSolid.faFont,
         color := "#a0a8ab",
         position.absolute,
@@ -242,25 +288,26 @@ object InputRow {
         top := "11px",
         fontSize := "16px",
         float.right,
-        Elements.safeTargetBlank,
-        UI.tooltip("left center") := "You can use Markdown to format your text. Click for help.",
-        href := "https://commonmark.org/help"
+        onClick.stopPropagation(true) --> markdownHelpOpened,
       )
     )
 
     div(
       emitter(triggerFocus).foreach { currentTextArea.focus() },
       emitter(triggerSubmit).foreach { submit() },
-      Styles.flex,
 
+      Styles.flex,
       alignItems.center,
+
       form(
         VDomModifier.ifTrue(showSubmitIcon || fileUploadHandler.isDefined)(marginRight := "0"), // icons itself have marginLeft
         width := "100%",
         cls := "ui form",
+        markdownHelpOverlay,
 
         textArea(
-          onDomUpdate.foreach(autoResizer.trigger()),
+          onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
+          onDomUpdate.foreach { autoResizer.trigger() },
           maxHeight := "400px",
           cls := "field",
           cls := "inputrow",
@@ -271,7 +318,6 @@ object InputRow {
           immediatelyFocus,
           blurAction.map(onBlur.value foreach _),
           pageScrollFixForMobileKeyboard,
-          onDomMount foreach { e => currentTextArea = e.asInstanceOf[dom.html.TextArea] },
           emojiPicker,
           mentionsTribute.map { tribute =>
             VDomModifier(
@@ -293,4 +339,69 @@ object InputRow {
       onClick.stopPropagation --> Observer.empty, // prevents globalClick trigger (which e.g. closes emojiPicker - it doesn't even open it in the first place)
     )
   }
+
+  private val markdownExampleTableHtml = """
+<table cellspacing="10px">
+    <thead>
+        <tr>
+            <th>Markdown</th>
+            <th>Result</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>*Italic*</td>
+            <td><em>Italic</em></td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>**Bold**</td>
+            <td><strong>Bold</strong></td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>
+                # Heading 1
+            </td>
+            <td>
+                <h1>Heading 1</h1>
+            </td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>
+                ## Heading 2
+            </td>
+            <td>
+                <h2>Heading 2</h2>
+            </td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>
+                [Link](https://app.woost.space)
+            </td>
+            <td><a href="https://app.woost.space/">Link</a></td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>
+                ![Image](https://app.woost.space/favicon.ico)
+            </td>
+            <td>
+                <img src="https://app.woost.space/favicon.ico" alt="Markdown" width="36" height="36">
+            </td>
+        </tr>
+        <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
+        <tr>
+            <td>
+                `Inline code` with backticks
+                </td>
+            <td>
+                <code>Inline code</code> with backticks
+            </td>
+        </tr>
+    </tbody>
+</table>
+  """
 }

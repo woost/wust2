@@ -349,7 +349,7 @@ object Elements {
     ).emitterBuilder
   }
 
-  final class TextAreaAutoResizer {
+  final class TextAreaAutoResizer(callback: Int => Unit = (_:Int) => ()) {
     // https://stackoverflow.com/questions/454202/creating-a-textarea-with-auto-resize/25621277#25621277
     var elem:HTMLElement = _
     var lastScrollHeight: Int = 0
@@ -358,7 +358,9 @@ object Elements {
       if(lastScrollHeight != elem.scrollHeight) {
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
         lastScrollHeight = elem.scrollHeight
-        elem.style.height = s"${lastScrollHeight + 4}px" // 4 avoids a scrollbar
+        val newHeight = lastScrollHeight + 4 // 4 avoids a scrollbar
+        elem.style.height = newHeight + "px"
+        callback(newHeight)
       }
     }
 
@@ -367,7 +369,9 @@ object Elements {
         elem = textAreaElem
         elem.style.height = "auto" // fixes the behaviour of scrollHeight
         lastScrollHeight = elem.scrollHeight
-        elem.style.height = s"${lastScrollHeight + 4}px" // 4 avoids a scrollbar
+        val newHeight = lastScrollHeight + 4 // 4 avoids a scrollbar
+        elem.style.height = newHeight + "px"
+        callback(newHeight)
       },
       onInput.debounce(300 milliseconds).foreach { trigger() },
       onKeyDown.filter(e => e.keyCode == KeyCode.Enter).foreach{ trigger() },
