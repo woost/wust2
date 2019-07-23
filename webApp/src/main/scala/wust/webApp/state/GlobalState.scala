@@ -163,7 +163,6 @@ object GlobalState {
 
   val urlPage = urlConfig.map(_.pageChange.page)
   val page: Rx[Page] = viewConfig.map(_.page)
-  val pageWithoutReload: Rx[Page] = viewConfig.map(_.page)
   val pageNotFound: Rx[Boolean] = Rx{ !urlConfig().pageChange.page.parentId.forall(rawGraph().contains) }
 
   def focus(nodeId: NodeId, needsGet: Boolean = true) = {
