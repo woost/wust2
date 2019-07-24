@@ -90,7 +90,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     // send out push notifications
     if (graphChanges.nonEmpty) {
       val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
-        case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(node.role) => node.id -> node
+        case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) => node.id -> node
       }(breakOut)
       (for {
         parentNodeByChildId <- parentNodeByChildId(graphChanges)
