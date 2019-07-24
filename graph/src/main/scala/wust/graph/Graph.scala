@@ -554,6 +554,10 @@ final class GraphLookup(
     }
   }
 
+  def isAutomationTemplate(idx: Int): Boolean = {
+    automatedEdgeReverseIdx.sliceNonEmpty(idx)
+  }
+
   def selfOrParentIsAutomationTemplate(idx: Int): Boolean = {
     automatedEdgeReverseIdx.sliceNonEmpty(idx) || ancestorsIdxExists(idx)(parentIdx => automatedEdgeReverseIdx.sliceNonEmpty(parentIdx))
   }

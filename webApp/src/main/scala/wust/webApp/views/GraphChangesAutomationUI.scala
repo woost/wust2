@@ -47,6 +47,10 @@ object GraphChangesAutomationUI {
       } --> GlobalState.eventProcessor.changes,
     )
 
+    val reuseExistingTemplate = Components.searchInGraph(GlobalState.rawGraph, "Reuse an existing template", filter = node => GlobalState.rawGraph.now.isAutomationTemplate(GlobalState.rawGraph.now.idToIdxOrThrow(node.id))).map { nodeId =>
+      GraphChanges(addEdges = Array(Edge.Automated(focusedId, TemplateId(nodeId))))
+    } --> GlobalState.eventProcessor.changes
+
     val templatesRx = Rx {
       GlobalState.graph().templateNodes(GlobalState.graph().idToIdxOrThrow(focusedId))
     }
@@ -215,12 +219,24 @@ object GraphChangesAutomationUI {
                 )
             }),
 
-            newTemplateButton.apply(
-              "+ Create a new Automation Template",
-              alignSelf.flexStart,
-              cls := "compact mini",
-              margin := "30px 0 0 0"
-            ),
+            div(
+              width := "100%",
+              Styles.flex,
+              justifyContent.spaceBetween,
+              alignItems.center,
+              margin := "30px 0 0 0",
+
+              newTemplateButton.apply(
+                "+ Create a new Automation Template",
+                alignSelf.flexStart,
+                cls := "compact mini",
+              ),
+
+              div(
+                fontSize.small,
+                reuseExistingTemplate
+              )
+            )
           ),
         ),
       },
