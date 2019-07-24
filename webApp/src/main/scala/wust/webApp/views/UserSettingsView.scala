@@ -257,7 +257,8 @@ object UserSettingsView {
                   UI.toast(s"Send out verification email to '${email}'", level = UI.ToastLevel.Success)
                 }
               }
-            )
+            ),
+          ". If you have misspelled it, simply enter your correct email address in the field and press the button ", b("Change email"), " again."
           )
         )}))
         case Some(problem) => div(
