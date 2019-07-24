@@ -21,6 +21,8 @@ import scala.collection.{breakOut, mutable}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
+final case class NodeIdWithParent(nodeId: NodeId, parent: Data.Node)
+final case class NotificationData(userId: UserId, notifiedNodes: List[NodeIdWithParent], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushClients: Option[PushClients])(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
@@ -93,12 +95,16 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       (for {
         parentNodeByChildId <- parentNodeByChildId(graphChanges)
         notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
+        notificationsWithParent = notifications.flatMap { n =>
+          val newNotifiedNodes = n.notifiedNodes.flatMap { nodeId => parentNodeByChildId.get(nodeId).map(parent => NodeIdWithParent(nodeId, parent)) }
+          if (newNotifiedNodes.isEmpty) None else Some(NotificationData(n.userId, newNotifiedNodes, n.subscribedNodeId, n.subscribedNodeContent))
+        }
       } yield {
         webPushService.foreach { webPushService =>
-          sendWebPushNotifications(webPushService, author, addNodesByNodeId, parentNodeByChildId, notifications)
+          sendWebPushNotifications(webPushService, author, addNodesByNodeId, notificationsWithParent)
         }
         pushedClient.foreach { pushedClient =>
-          sendPushedNotifications(pushedClient, author, addNodesByNodeId, parentNodeByChildId, notifications)
+          sendPushedNotifications(pushedClient, author, addNodesByNodeId, notificationsWithParent)
         }
 
         ()
@@ -161,8 +167,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     pushService: WebPushService,
     author: Node.User,
     addNodesByNodeId: Map[NodeId, Node],
-    parentNodeByChildId: Map[NodeId, Data.Node],
-    notifications: List[NotifiedUsersRow]): Unit = {
+    notifications: List[NotificationData]): Unit = {
 
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
     val expiryStatusCodes = Set(
@@ -181,8 +186,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     parallelNotifications.tasksupport = new ExecutionContextTaskSupport(ec)
 
     val expiredSubscriptions: ParSeq[List[Future[List[Data.WebPushSubscription]]]] = parallelNotifications.map {
-      case NotifiedUsersRow(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
-        notifiedNodes.map { nodeId =>
+      case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
+        notifiedNodes.map { case NodeIdWithParent(nodeId, parent) =>
           val node = addNodesByNodeId(nodeId)
 
           val pushData = PushData(author.name,
@@ -190,8 +195,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             node.id.toBase58,
             subscribedNodeId.toBase58,
             subscribedNodeContent,
-            parentNodeByChildId.get(nodeId).map(_.id.toBase58),
-            parentNodeByChildId.get(nodeId).map(_.data.str),
+            Some(parent.id.toBase58),
+            Some(parent.data.str),
             EpochMilli.now.toString
           )
 
@@ -243,8 +248,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     pushedClient: PushedClient,
     author: Node.User,
     addNodesByNodeId: Map[NodeId, Node],
-    parentNodeByChildId: Map[NodeId, Data.Node],
-    notifications: List[NotifiedUsersRow]): Unit = {
+    notifications: List[NotificationData]): Unit = {
 
     val expiryStatusCodes = Set(
       404, 410, // expired
@@ -258,8 +262,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     parallelNotifications.tasksupport = new ExecutionContextTaskSupport(ec)
 
     val expiredSubscriptions: ParSeq[List[Future[List[Data.OAuthClient]]]] = parallelNotifications.map {
-      case NotifiedUsersRow(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
-        notifiedNodes.map { nodeId =>
+      case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
+        notifiedNodes.map { case NodeIdWithParent(nodeId, parent) =>
           val node = addNodesByNodeId(nodeId)
 
           val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(subscribedNodeContent, 50)}: ${ StringOps.trimToMaxLength(node.data.str.trim, 250) }"
