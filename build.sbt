@@ -26,7 +26,7 @@ lazy val commonSettings = Seq(
       Resolver.sonatypeRepo("releases") ::
       Nil,
   addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.10"),
-  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.0"),
+  addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1"),
   libraryDependencies ++=
     Deps.scribe.core.value ::
       Deps.scribe.perfolation.value ::
