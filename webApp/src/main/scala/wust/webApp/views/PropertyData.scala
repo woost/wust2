@@ -3,7 +3,6 @@ package wust.webApp.views
 import wust.graph.{Edge, Graph, Node}
 import wust.util.collection.BasicMap
 
-//TODO: We should not use Array here, because scala.rx cannot do equality on them (when streaming property data)
 //TODO: separate calculations into separate rx: rx for tags, stages, users, properties
 //TODO: use ids instead of nodes and listen to node changes in each rendered node
 object PropertyData {
@@ -11,9 +10,9 @@ object PropertyData {
   final case class PropertyValue(edge: Edge.LabeledProperty, node: Node.Content)
   final case class PropertyGroupValue(node: Node, values: List[PropertyValue])
   final case class SingleProperty(key: String, values: List[PropertyValue])
-  final case class GroupProperty(key: String, groups: Array[PropertyGroupValue])
+  final case class GroupProperty(key: String, groups: Seq[PropertyGroupValue])
 
-  final case class BasicInfo(node: Node, tags: Array[Node.Content], stages: Array[Node.Content], assignedUsers: Array[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Array[Node]) {
+  final case class BasicInfo(node: Node, tags: Seq[Node.Content], stages: Seq[Node.Content], assignedUsers: Seq[Node.User], propertyMap: BasicMap[String, List[PropertyValue]], reverseProperties: Seq[Node]) {
     def isEmpty = tags.isEmpty && assignedUsers.isEmpty && propertyMap.isEmpty
   }
   object BasicInfo {
@@ -41,7 +40,7 @@ object PropertyData {
     }
   }
 
-  final case class Single(info: BasicInfo, properties: Array[SingleProperty]) {
+  final case class Single(info: BasicInfo, properties: Seq[SingleProperty]) {
     def isEmpty = info.isEmpty && properties.isEmpty
   }
   object Single {
@@ -61,7 +60,7 @@ object PropertyData {
     }
   }
 
-  final case class Group(infos: Array[BasicInfo], properties: Array[GroupProperty])
+  final case class Group(infos: Seq[BasicInfo], properties: Seq[GroupProperty])
   object Group {
     def apply(graph: Graph, childrenIdxs: Array[Int]): Group = {
       val infos = childrenIdxs.map(BasicInfo(graph, _))

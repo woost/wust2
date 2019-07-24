@@ -39,7 +39,7 @@ object TableView {
   def table(graph: Graph, focusedId: NodeId, roles: List[NodeRole], sort: Var[Option[UI.ColumnSort]])(implicit ctx: Ctx.Owner): VDomModifier = {
     val focusedIdx = graph.idToIdxOrThrow(focusedId)
 
-    val globalEditMode = Var(Option.empty[(String, Array[Edge.LabeledProperty])])
+    val globalEditMode = Var(Option.empty[(String, Seq[Edge.LabeledProperty])])
 
     val targetRole = roles match {
       case head :: _ => head
@@ -68,7 +68,7 @@ object TableView {
       minWidth := "100px"
     )
 
-    def columnHeaderWithDelete(name: String, edges: Array[Edge.LabeledProperty]) = {
+    def columnHeaderWithDelete(name: String, edges: Seq[Edge.LabeledProperty]) = {
       val editMode = Var(false)
       var lastEditMode = false
       editMode.triggerLater { editMode =>
@@ -89,7 +89,7 @@ object TableView {
         div(
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
-              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))))
+              GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))(breakOut)))
             }
           }
         ),
@@ -292,7 +292,7 @@ object TableView {
                 " Delete",
                 onClick.stopPropagation.foreach {
                   if(dom.window.confirm(s"Do you really want to remove the column '$name' in all children?")) {
-                    GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)))
+                    GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)))
                   }
                   ()
                 },
