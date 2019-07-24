@@ -108,7 +108,7 @@ object Deps {
   val oAuthClient = dep("com.github.fdietze" % "akka-http-oauth2-client" % "cf77841")
 
   // database
-  val quill = dep("io.getquill" %% "quill-async-postgres" % "3.2.2")
+  val quill = dep("io.getquill" %% "quill-async-postgres" % "3.3.0")
 
   // interfaces
   //val github4s = dep("com.47deg" %% "github4s" % "0.17.0") // only temporarly here
