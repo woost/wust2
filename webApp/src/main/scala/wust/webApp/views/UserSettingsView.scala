@@ -247,7 +247,8 @@ object UserSettingsView {
         case None => VDomModifier(userDetail.map(_.collect { case UserDetail(userId, Some(email), false) => div(
           cls := "ui warning message",
           div(
-            cls := "header", s"Email address is unverified. Check your inbox for the verification email. Or ",
+            cls := "header",
+            s"Email address is unverified. Check your inbox for the verification email. Or ",
             a(
               href := "#",
               marginLeft := "auto",
@@ -258,7 +259,7 @@ object UserSettingsView {
                 }
               }
             ),
-          ". If you have misspelled it, simply enter your correct email address in the field and press the button ", b("Change email"), " again."
+            ". If you have misspelled it, simply enter your correct email address in the field and press the button ", b("Change email"), " again."
           )
         )}))
         case Some(problem) => div(
