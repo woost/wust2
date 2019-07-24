@@ -178,11 +178,13 @@ object UserSettingsView {
       div(
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
+        maxWidth := "400px",
         changeEmail( user)
       ),
       div(
         margin := "10px 30px 10px 0px",
         minWidth := "200px",
+        maxWidth := "400px",
         changePassword(user)
       )
     )
