@@ -321,19 +321,28 @@ object GraphChangesAutomation {
       copyNode
     }
 
+    @inline def shouldTraverseNeighbour(descendant: Node.Content, edge: Edge, followLinks: Boolean): Boolean = edge match {
+      case e: Edge.LabeledProperty => followLinks || descendant.role == NodeRole.Neutral // only follow neutral nodes, i.e. properties. Links are normal nodes with a proper node role.
+      case e: Edge.Child => e.data.deletedAt.forall(_ isAfter copyTime) || graph.idToIdxFold(e.childId)(false)(graph.referencesTemplateEdgeIdx.sliceNonEmpty(_)) // only follow not-deleted children except for refercing nodes that might want to delete the referenced node.
+      case _ => false
+    }
     @inline def manualSuccessorsSize = graph.contentsEdgeIdx.size
     @inline def manualSuccessors(followLinks: Boolean)(nodeIdx: Int, f: Int => Unit): Unit = {
       graph.contentsEdgeIdx.foreachElement(nodeIdx) { edgeIdx =>
         val descendantIdx = graph.edgesIdx.b(edgeIdx)
         graph.nodes(descendantIdx) match {
-          case descendant: Node.Content =>
-            val shouldContinue = graph.edges(edgeIdx) match {
-              case e: Edge.LabeledProperty => followLinks || descendant.role == NodeRole.Neutral // only follow neutral nodes, i.e. properties. Links are normal nodes with a proper node role.
-              case e: Edge.Child => e.data.deletedAt.forall(_ isAfter copyTime) || graph.idToIdxFold(e.childId)(false)(graph.referencesTemplateEdgeIdx.sliceNonEmpty(_)) // only follow not-deleted children except for refercing nodes that might want to delete the referenced node.
-              case _ => false
-            }
-            if (shouldContinue) f(descendantIdx)
-          case _ =>
+          case descendant: Node.Content => if (shouldTraverseNeighbour(descendant, graph.edges(edgeIdx), followLinks)) f(descendantIdx)
+          case _ => ()
+        }
+      }
+    }
+    @inline def manualPredecessorsSize = graph.contentsEdgeReverseIdx.size
+    @inline def manualPredecessors(nodeIdx: Int, f: Int => Unit): Unit = {
+      graph.contentsEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
+        val descendantIdx = graph.edgesIdx.a(edgeIdx)
+        graph.nodes(descendantIdx) match {
+          case descendant: Node.Content => if (shouldTraverseNeighbour(descendant, graph.edges(edgeIdx), followLinks = false)) f(descendantIdx)
+          case _ => ()
         }
       }
     }
@@ -343,17 +352,29 @@ object GraphChangesAutomation {
     // newNode was already automated with this template before. If it was, we
     // do not want to copy again in the automation but reuse the node that was
     // copied in the previous automation run.
-    newNodeIdx.foreach(newNodeIdx => dfs.withManualSuccessors(_(newNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(true)(idx, f), { descendantIdx =>
-      val descendant = graph.nodes(descendantIdx).as[Node.Content]
-      graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
-        val interfaceIdx = graph.edgesIdx.b(edgeIdx)
-        val interfaceId = graph.nodeIds(interfaceIdx)
-        updateAlreadyExistingNodes(interfaceId, descendant)
-        if (newNode.id == descendant.id) updateAlreadyExistingNodes(newNode.id, newNode)
-      }
+    newNodeIdx.foreach { newNodeIdx =>
+      dfs.withManualSuccessors(_(newNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(followLinks = true)(idx, f), { descendantIdx =>
+        val descendant = graph.nodes(descendantIdx).as[Node.Content]
+        graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
+          val interfaceIdx = graph.edgesIdx.b(edgeIdx)
+          val interfaceId = graph.nodeIds(interfaceIdx)
+          updateAlreadyExistingNodes(interfaceId, descendant)
+          if (newNode.id == descendant.id) updateAlreadyExistingNodes(newNode.id, newNode)
+        }
 
-      addAlreadyExistingByName(descendantIdx)
-    }))
+        addAlreadyExistingByName(descendantIdx)
+      })
+
+      dfs.withManualSuccessors(_(newNodeIdx), manualPredecessorsSize, idx => f => manualPredecessors(idx, f), { descendantIdx =>
+        val descendant = graph.nodes(descendantIdx).as[Node.Content]
+        graph.derivedFromTemplateEdgeIdx.foreachElement(descendantIdx) { edgeIdx =>
+          val interfaceIdx = graph.edgesIdx.b(edgeIdx)
+          val interfaceId = graph.nodeIds(interfaceIdx)
+          updateAlreadyExistingNodes(interfaceId, descendant)
+          if (newNode.id == descendant.id) updateAlreadyExistingNodes(newNode.id, newNode)
+        }
+      })
+    }
 
     // Get all descendants of the templateNode. For each descendant, we check
     // whether we already have an existing node implementing this template
@@ -366,7 +387,7 @@ object GraphChangesAutomation {
     templateNodesIdx.foreach { templateNodeIdx =>
       val templateNode = graph.nodes(templateNodeIdx)
       // do the dfs for this template node and copy/update/register all nodes that should be created and may already exists in newNode.
-      dfs.withManualSuccessorsStopLocally(_(templateNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(false)(idx, f), { descendantIdx =>
+      dfs.withManualSuccessorsStopLocally(_(templateNodeIdx), manualSuccessorsSize, idx => f => manualSuccessors(followLinks = false)(idx, f), { descendantIdx =>
         val descendant = graph.nodes(descendantIdx).as[Node.Content]
         val descendantReferences = graph.referencesTemplateEdgeIdx(descendantIdx)
 

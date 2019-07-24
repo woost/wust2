@@ -478,6 +478,44 @@ class GraphChangesAutomationSpec extends FreeSpec with MustMatchers {
     )
   }
 
+  "reference node to parent at top level" in {
+    val newNode = newNodeContent("new-node", NodeRole.Task)
+    val templateNode = newNodeContent("template", NodeRole.Task)
+    val node1 = newNodeContent("node1", NodeRole.Task)
+    val node2 = newNodeContent("node2", NodeRole.Task)
+    val childNode1 = newNodeContent("child1", NodeRole.Task)
+    val childNode2 = newNodeContent("child2", NodeRole.Task)
+    val templateNode0 = newNodeContent("template-node0", NodeRole.Task)
+    val graph = Graph(
+      nodes = Array(
+        templateNode, newNode, node1, node2, childNode1, childNode2, templateNode0
+      ),
+
+      edges = Array(
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(newNode.id)),
+        Edge.Child(ParentId(templateNode.id), defaultChildData, ChildId(node2.id)),
+        Edge.Child(ParentId(node1.id), defaultChildData, ChildId(childNode1.id)),
+        Edge.Child(ParentId(node2.id), defaultChildData, ChildId(childNode2.id)),
+        Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode0.id)),
+        Edge.ReferencesTemplate(templateNode.id, EdgeData.ReferencesTemplate(), TemplateId(templateNode0.id)),
+      )
+    )
+
+    val changes = copySubGraphOfNode(graph, newNode, templateNode)
+
+    changes.addNodes must contain theSameElementsAs Array(
+      copyNode(node2), copyNode(childNode2)
+    )
+    changes.delEdges mustEqual Array.empty
+    changes.addEdges must contain theSameElementsAs Array(
+      Edge.Child(ParentId(copyNodeId(node2.id)), defaultChildData, ChildId(copyNodeId(childNode2.id))),
+      Edge.Child(ParentId(node1.id), defaultChildData, ChildId(copyNodeId(node2.id))),
+      Edge.DerivedFromTemplate(copyNodeId(node2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(node2.id)),
+      Edge.DerivedFromTemplate(copyNodeId(childNode2.id), EdgeData.DerivedFromTemplate(copyTime), TemplateId(childNode2.id)),
+      Edge.DerivedFromTemplate(node1.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(templateNode.id)),
+    )
+  }
+
   "reference node with not-reusing task of same name" in {
     val newNode = newNodeContent("new-node", NodeRole.Task)
     val templateNode = newNodeContent("template", NodeRole.Task)

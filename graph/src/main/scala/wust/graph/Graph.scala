@@ -215,6 +215,7 @@ final class GraphLookup(
   private val outDegree = new Array[Int](n)
   private val parentsDegree = new Array[Int](n)
   private val contentsDegree = new Array[Int](n)
+  private val contentsEdgeReverseDegree = new Array[Int](n)
   private val accessEdgeReverseDegree = new Array[Int](n)
   private val readDegree = new Array[Int](n)
   private val childrenDegree = new Array[Int](n)
@@ -254,7 +255,9 @@ final class GraphLookup(
         edgesIdx.updateb(edgeIdx, targetIdx)
         outDegree(sourceIdx) += 1
         edge match {
-          case e: Edge.Content => contentsDegree(sourceIdx) += 1
+          case e: Edge.Content =>
+            contentsDegree(sourceIdx) += 1
+            contentsEdgeReverseDegree(targetIdx) += 1
           case _               =>
         }
         edge match {
@@ -337,6 +340,7 @@ final class GraphLookup(
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
+  private val contentsEdgeReverseIdxBuilder = NestedArrayInt.builder(contentsEdgeReverseDegree)
   private val accessEdgeReverseIdxBuilder = NestedArrayInt.builder(accessEdgeReverseDegree)
   private val readEdgeIdxBuilder = NestedArrayInt.builder(readDegree)
   private val childrenIdxBuilder = NestedArrayInt.builder(childrenDegree)
@@ -375,7 +379,9 @@ final class GraphLookup(
     outgoingEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
     edge match {
-      case e: Edge.Content => contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+      case e: Edge.Content =>
+        contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
+        contentsEdgeReverseIdxBuilder.add(targetIdx, edgeIdx)
       case _               =>
     }
 
@@ -464,6 +470,7 @@ final class GraphLookup(
   val childEdgeIdx: NestedArrayInt = childEdgeIdxBuilder.result()
   val accessEdgeReverseIdx: NestedArrayInt = accessEdgeReverseIdxBuilder.result()
   val contentsEdgeIdx: NestedArrayInt = contentsEdgeIdxBuilder.result()
+  val contentsEdgeReverseIdx: NestedArrayInt = contentsEdgeReverseIdxBuilder.result()
   val messageChildrenIdx: NestedArrayInt = messageChildrenIdxBuilder.result()
   val taskChildrenIdx: NestedArrayInt = taskChildrenIdxBuilder.result()
   val noteChildrenIdx: NestedArrayInt = noteChildrenIdxBuilder.result()
