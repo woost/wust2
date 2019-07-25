@@ -89,7 +89,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.headOption.map(_.toNode))
     }
 
-    def get(nodeIds: Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
+    def get(nodeIds: scala.collection.Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
       //TODO
       //ctx.run(query[Node].filter(p => liftQuery(nodeIds) contains p.id))
       val q = quote {
@@ -113,7 +113,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       )
     }
 
-    def getFileNodes(keys: Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
+    def getFileNodes(keys: scala.collection.Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
       ctx.run {
         query[NodeRaw].filter(node =>
           node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys.toList).contains(node.data->>"key")
