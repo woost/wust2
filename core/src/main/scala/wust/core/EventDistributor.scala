@@ -87,56 +87,55 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     author: Node.User,
     graphChanges: GraphChanges,
     origin: Option[NotifiableClient[ApiEvent, State]]
-  ): Unit = {
+  ): Unit = if (graphChanges.nonEmpty) {
     // send out notifications to websocket subscribers
-    if (graphChanges.nonEmpty) subscribers.foreach { client =>
-      if (origin.fold(true)(_ != client)) client.notify(state =>
+    subscribers.foreach { client =>
+      if (origin.forall(_ != client)) client.notify { state =>
         state.flatMap(getWebsocketNotifications(author, graphChanges))
-      )
+      }
     }
 
     //TODO: do not calcualte notified nodes twice, get notified users, then subscriptions/clients...
     // send out push notifications
-    if (graphChanges.nonEmpty) {
-      val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
-        case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) => node.id -> node
-      }(breakOut)
-      (for {
-        parentNodesByChildId <- parentNodesByChildId(graphChanges)
-        notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
-        notificationsWithParent = {
-          val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
-          notifications.foreach { n =>
-            val newNodeNotifications = mutable.ArrayBuffer[NewNodeNotification]()
-            val newNotifiedNodes = n.notifiedNodes.foreach { nodeId =>
-              parentNodesByChildId.get(nodeId).foreach { parents =>
-                parents.foreach { parent =>
-                  newNodeNotifications += NewNodeNotification(addNodesByNodeId(nodeId), parent)
-                }
+    val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
+      case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) => node.id -> node
+    }(breakOut)
+    (for {
+      parentNodesByChildId <- parentNodesByChildId(graphChanges)
+      notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
+      notificationsWithParent = {
+        val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
+        notifications.foreach { n =>
+          val newNodeNotifications = mutable.ArrayBuffer[NewNodeNotification]()
+          val newNotifiedNodes = n.notifiedNodes.foreach { nodeId =>
+            parentNodesByChildId.get(nodeId).foreach { parents =>
+              parents.foreach { parent =>
+                newNodeNotifications += NewNodeNotification(addNodesByNodeId(nodeId), parent)
               }
             }
-            if (newNodeNotifications.nonEmpty) {
-              val data = NotificationData(n.userId, newNodeNotifications, n.subscribedNodeId, n.subscribedNodeContent)
-              notificationsWithParent += data
-            }
           }
-
-          notificationsWithParent
-        }
-      } yield {
-        webPushService.foreach { webPushService =>
-          sendWebPushNotifications(webPushService, author, notificationsWithParent)
-        }
-        pushedClient.foreach { pushedClient =>
-          sendPushedNotifications(pushedClient, author, notificationsWithParent)
+          if (newNodeNotifications.nonEmpty) {
+            val data = NotificationData(n.userId, newNodeNotifications, n.subscribedNodeId, n.subscribedNodeContent)
+            notificationsWithParent += data
+          }
         }
 
-        ()
-      }).onComplete {
-        case Success(()) =>
-        case Failure(t) =>
-          scribe.error("Cannot send out push notifications", t)
+        notificationsWithParent
       }
+    } yield {
+
+      webPushService.foreach { webPushService =>
+        sendWebPushNotifications(webPushService, author, notificationsWithParent)
+      }
+      pushedClient.foreach { pushedClient =>
+        sendPushedNotifications(pushedClient, author, notificationsWithParent)
+      }
+
+      ()
+    }).onComplete {
+      case Success(()) =>
+      case Failure(t) =>
+        scribe.error("Cannot send out push notifications", t)
     }
   }
 
