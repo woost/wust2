@@ -42,18 +42,6 @@ function requestPromise(request) {
     });
 }
 
-var _db;
-function db() {
-    if (!_db) {
-        let openreq = indexedDB.open('woost', 1);
-        openreq.onupgradeneeded = () => {
-            openreq.result.createObjectStore('auth');
-        };
-        _db = requestPromise(openreq);
-    }
-    return _db;
-}
-
 function currentAuth() {
     return userAuth;
 }
