@@ -67,8 +67,8 @@ object ServiceWorker {
   }
 
   sealed trait WorkerMessage
-  final case class AuthMessage(token: Authentication.Token) extends WorkerMessage {
-  }
+  final case class AuthMessage(token: Authentication.Token) extends WorkerMessage
+  final case object DeAuthMessage extends WorkerMessage
   final case class Message(message: String) extends WorkerMessage
 
   def sendAuth(auth: Authentication): Unit = {
@@ -79,17 +79,18 @@ object ServiceWorker {
     implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
     implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]
 
-    scribe.info("Querying serviceworker")
+    scribe.info("Querying serviceworker for auth-sync")
     Navigator.serviceWorker.foreach { sw =>
-      auth match {
+      val activeServiceworker = sw.controller
+      if (activeServiceworker != null) auth match {
         case Authentication.Verified(_, _, token) =>
-          val activeServiceworker = sw.controller
-          if (activeServiceworker != null) {
-            scribe.info("Sending auth to serviceworker")
-            activeServiceworker.postMessage((AuthMessage(token): WorkerMessage).asJson.noSpaces);
-          } else scribe.info("No serviceworker found")
+          scribe.info("Sending auth to serviceworker")
+          activeServiceworker.postMessage((AuthMessage(token): WorkerMessage).asJson.noSpaces);
         case _ =>
-          scribe.info("No token available")
+          scribe.info("Sending de-auth to serviceworker")
+          activeServiceworker.postMessage((DeAuthMessage: WorkerMessage).asJson.noSpaces);
+      } else {
+        scribe.info("No serviceworker found")
       }
     }
   }

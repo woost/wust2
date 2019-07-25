@@ -183,6 +183,10 @@ self.addEventListener('message', e => {
             } else {
                 log("Current auth is still valid");
             }
+        } else if(messageObject.type === "DeAuthMessage") {
+            log("Received deauth message.");
+            userAuth = undefined
+            e.waitUntil(updateWebPushSubscriptionAndPersist());
         } else if(messageObject.type === "Message") {
             log("Received worker message.");
         } else {
