@@ -221,20 +221,21 @@ self.addEventListener('push', e => {
                 const nodeId = data.nodeId;
                 const parentId = data.parentId;
                 const subscribedId = data.subscribedId;
+                const description = data.description ? ` (${data.description})` : ""
                 const channelId = (!!parentId) ? parentId : subscribedId;
                 const outdated = (!!data.epoch) ? ((Date.now() - Number(data.epoch)) > 43200000) : false;
 
                 // 86400000 == 1 day (1000*60*60*24)
                 // 43200000 == 12h   (1000*60*60*12)
-                if (outdated || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
+                if (outdated || !data.content || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
                     log("Focused client or outdated push notification => ignoring push.");
                     return;
                 } else {
                     log("No focused client found.");
 
-                    const titleContent = (!!data.parentContent && !!parentId && parentId != subscribedId) ? `${data.subscribedContent} / ${data.parentContent}` : data.subscribedContent;
-                    const user = (data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
-                    const content = data.content ? `${user}: ${pushEmojis.replace_emoticons(data.content)}` : user;
+                    const titleContent = (!data.parentContent | !parentId | parentId == subscribedId) ? `${data.subscribedContent}${description}` : `${data.subscribedContent} / ${data.parentContent}${description}`;
+                    const user = (!data.username || data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
+                    const content = `${user}: ${pushEmojis.replace_emoticons(data.content)}`;
 
                     let options = {
                         body: content,
