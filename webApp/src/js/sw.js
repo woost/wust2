@@ -197,7 +197,12 @@ self.addEventListener('push', e => {
     log("ServiceWorker received push notification.");
 
     if(Notification.permission != "granted") {
-        log("ServiceWorker received but notifications are not granted, ignoring.");
+        log("Push received but notifications are not granted, ignoring.");
+        return;
+    }
+
+    if(!userAuth) {
+        log("Push received without user, ignoring.");
         return;
     }
 
