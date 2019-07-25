@@ -47,14 +47,6 @@ object LocalGraphUpdateEvent {
   def calculateReplacementChanges(graph: Graph, replaceNode: ApiEvent.ReplaceNode): GraphChanges = {
     import replaceNode.{ oldNodeId, newNode }
 
-    val newNodes = Array.newBuilder[Node]
-    newNodes += newNode
-    graph.nodes.foreach { n =>
-      if (n.id != oldNodeId && n.id != newNode.id) {
-        newNodes += n
-      }
-    }
-
     val addEdgesBuilder = Array.newBuilder[Edge]
     val delEdgesBuilder = Array.newBuilder[Edge]
     graph.edges.foreach { e =>
@@ -74,7 +66,7 @@ object LocalGraphUpdateEvent {
     }
 
     GraphChanges(
-      addNodes = newNodes.result(),
+      addNodes = Array(newNode),
       addEdges = addEdgesBuilder.result(),
       delEdges = delEdgesBuilder.result()
     )
