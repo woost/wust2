@@ -63,7 +63,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       infix"""can_access_node($userId, $nodeId)""".as[Boolean]
     }
 
-    def resolveMentionedNodesWithAccess(mentionedNodeIds: List[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
+    def resolveMentionedNodesWithAccess(mentionedNodeIds: scala.collection.Seq[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
       val q = quote {
         infix"""
           (
@@ -170,7 +170,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
 
   object notifications {
-    def notifiedUsersByNodes(nodesOfInterest: List[NodeId])(implicit ec: ExecutionContext): Future[List[NotifiedUsersRow]] = {
+    def notifiedUsersByNodes(nodesOfInterest: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[NotifiedUsersRow]] = {
       ctx.run(
         infix"select * from notified_users_by_nodeid(${lift(nodesOfInterest)})"
           .as[Query[NotifiedUsersRow]]
@@ -485,7 +485,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeViaUrlQuery(lift(userId), lift(nodeId))
     }
 
-    def inaccessibleNodes(userId: UserId, nodeIds: List[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
+    def inaccessibleNodes(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
       inaccessibleNodesQuery(lift(userId), lift(nodeIds.toList))
     }
 
@@ -498,7 +498,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       infix"select * from can_access_node_via_url($userId, $nodeId)".as[Boolean]
     }
 
-    private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: List[NodeId]) =>
+    private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
       infix"select * from inaccessible_nodes($userId, $nodeIds)".as[Seq[NodeId]]
     }
   }
