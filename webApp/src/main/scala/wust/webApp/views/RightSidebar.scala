@@ -11,6 +11,7 @@ import wust.ids._
 import wust.sdk.Colors
 import wust.webApp.state._
 import wust.webApp.views.Components._
+import wust.webUtil.Elements
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.{Icons, ItemProperties}
 import wust.webUtil.Elements._
@@ -185,8 +186,10 @@ object RightSidebar {
           Icons.delete,
           buttonMods,
           onClick.stopPropagation.foreach { _ =>
-            GlobalState.submitChanges(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
-            parentIdAction(None)
+            Elements.confirm("Delete this item?") {
+              GlobalState.submitChanges(GraphChanges.deleteFromGraph(ChildId(focusPref.nodeId), GlobalState.graph.now))
+              parentIdAction(None)
+            }
           },
         )
       )

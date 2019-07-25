@@ -442,4 +442,9 @@ object Elements {
     cls := "icon fa-fw",
     icon
   )
+
+  def confirm(message:String)(code: => Unit):Unit = {
+    if(dom.window.confirm(message))
+      code
+  }
 }

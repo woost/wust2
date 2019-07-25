@@ -14,7 +14,7 @@ import wust.webApp.dragdrop.{DragItem, DragPayload, DragTarget}
 import wust.webApp.state.{FocusPreference, FocusState, GlobalState, TraverseState}
 import wust.webApp.views.Components._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{BrowserDetect, Ownable, UI}
+import wust.webUtil.{BrowserDetect, Ownable, UI, Elements}
 
 object TaskNodeCard {
 
@@ -140,8 +140,16 @@ object TaskNodeCard {
         val removeFromWorkspaces = if (hasMultipleStagesInFocusedNode) GraphChanges.empty else deleteOrUndelete(ChildId(nodeId), ParentId(focusState.focusedId))
 
         val changes = removeFromWorkspaces merge deleteOrUndelete(ChildId(nodeId), ParentId(traverseState.parentId))
-        GlobalState.submitChanges(changes)
-        selectedNodeIds.update(_ - nodeId)
+
+        if(isDeletedNow.now) {
+          GlobalState.submitChanges(changes)
+          selectedNodeIds.update(_ - nodeId)
+        } else {
+          Elements.confirm("Delete this task?") {
+            GlobalState.submitChanges(changes)
+            selectedNodeIds.update(_ - nodeId)
+          }
+        }
       }
       def toggleDelete = {
         Rx {

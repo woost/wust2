@@ -321,8 +321,10 @@ object SharedViewElements {
             ),
             ifCanWrite(deleteButton(
               onClick foreach {
-                GlobalState.submitChanges(GraphChanges.delete(ChildId(nodeId), directParentIds))
-                GlobalState.removeSelectedNode(nodeId)
+                Elements.confirm("Delete this message?") {
+                  GlobalState.submitChanges(GraphChanges.delete(ChildId(nodeId), directParentIds))
+                  GlobalState.removeSelectedNode(nodeId)
+                }
               },
             )),
           )
