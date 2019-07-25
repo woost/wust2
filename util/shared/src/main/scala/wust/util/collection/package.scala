@@ -14,6 +14,21 @@ package object collection {
 
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
 
+    @inline def groupByForeach[K,B](f: ((K, B) => Unit) => T => Unit): scala.collection.Map[K, scala.collection.Seq[B]] = {
+      val map = mutable.HashMap[K, mutable.ArrayBuffer[B]]()
+      val add: (K, B) => Unit = { (k,b) =>
+        val buf = map.getOrElseUpdate(k, mutable.ArrayBuffer[B]())
+        buf += b
+        ()
+      }
+      col.foreach(f(add))
+      map
+    }
+
+    @inline def groupByCollect[K,B](f: PartialFunction[T, (K,B)]): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add =>
+      f.runWith { case (k,b) => add(k, b) }.andThen(_ => ())
+    }
+
     @inline def by[X](lens: T => X): scala.collection.Map[X, T] = {
       val map = mutable.HashMap[X, T]()
       map.sizeHint(col.size)
