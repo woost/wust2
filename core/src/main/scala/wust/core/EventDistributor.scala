@@ -20,9 +20,10 @@ import scala.collection.parallel.immutable.ParSeq
 import scala.collection.{breakOut, mutable}
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
+import DbConversions._
 
-final case class NodeIdWithParent(nodeId: NodeId, parent: Data.Node)
-final case class NotificationData(userId: UserId, notifiedNodes: List[NodeIdWithParent], subscribedNodeId: NodeId, subscribedNodeContent: String)
+final case class NodeWithParent(nodeId: Node, parent: Node)
+final case class NotificationData(userId: UserId, notifiedNodes: List[NodeWithParent], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushClients: Option[PushClients])(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
@@ -96,15 +97,15 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
         parentNodeByChildId <- parentNodeByChildId(graphChanges)
         notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
         notificationsWithParent = notifications.flatMap { n =>
-          val newNotifiedNodes = n.notifiedNodes.flatMap { nodeId => parentNodeByChildId.get(nodeId).map(parent => NodeIdWithParent(nodeId, parent)) }
+          val newNotifiedNodes = n.notifiedNodes.flatMap { nodeId => parentNodeByChildId.get(nodeId).map(parent => NodeWithParent(addNodesByNodeId(nodeId), parent)) }
           if (newNotifiedNodes.isEmpty) None else Some(NotificationData(n.userId, newNotifiedNodes, n.subscribedNodeId, n.subscribedNodeContent))
         }
       } yield {
         webPushService.foreach { webPushService =>
-          sendWebPushNotifications(webPushService, author, addNodesByNodeId, notificationsWithParent)
+          sendWebPushNotifications(webPushService, author, notificationsWithParent)
         }
         pushedClient.foreach { pushedClient =>
-          sendPushedNotifications(pushedClient, author, addNodesByNodeId, notificationsWithParent)
+          sendPushedNotifications(pushedClient, author, notificationsWithParent)
         }
 
         ()
@@ -166,7 +167,6 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   private def sendWebPushNotifications(
     pushService: WebPushService,
     author: Node.User,
-    addNodesByNodeId: Map[NodeId, Node],
     notifications: List[NotificationData]): Unit = {
 
     // see https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
@@ -187,9 +187,9 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
     val expiredSubscriptions: ParSeq[List[Future[List[Data.WebPushSubscription]]]] = parallelNotifications.map {
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
-        notifiedNodes.map { case NodeIdWithParent(nodeId, parent) =>
-          val node = addNodesByNodeId(nodeId)
+        notifiedNodes.map { case NodeWithParent(node, parent) =>
 
+          //TODO: we need to update this data-structure. parent is not an option anymore.
           val pushData = PushData(author.name,
             node.data.str.trim,
             node.id.toBase58,
@@ -247,7 +247,6 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   private def sendPushedNotifications(
     pushedClient: PushedClient,
     author: Node.User,
-    addNodesByNodeId: Map[NodeId, Node],
     notifications: List[NotificationData]): Unit = {
 
     val expiryStatusCodes = Set(
@@ -263,8 +262,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
     val expiredSubscriptions: ParSeq[List[Future[List[Data.OAuthClient]]]] = parallelNotifications.map {
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
-        notifiedNodes.map { case NodeIdWithParent(nodeId, parent) =>
-          val node = addNodesByNodeId(nodeId)
+        notifiedNodes.map { case NodeWithParent(node, parent) =>
 
           val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(subscribedNodeContent, 50)}: ${ StringOps.trimToMaxLength(node.data.str.trim, 250) }"
           val contentUrl = s"https://${ serverConfig.host }/#page=${ node.id.toBase58 }"
