@@ -83,7 +83,7 @@ function sendSubscriptionToBackend(subscription) {
 // TODO: check if permissions granted, otherwise we don't need this. in this
 // case the app will do this when request notification permissions.
 function updateWebPushSubscriptionAndPersist() {
-    log("Subscribing to web push.");
+    log("Trying to subscribe to web push.");
     if (userAuth) {
         getPublicKey().then(
             publicKey => publicKey.json().then (
@@ -168,7 +168,7 @@ var userAuth;
 
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
-    log("Trying to subscribe to webpush");
+    log("ServiceWorker activated");
     e.waitUntil(updateWebPushSubscriptionAndPersist());
 });
 
