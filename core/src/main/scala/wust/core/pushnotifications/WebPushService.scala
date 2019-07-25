@@ -10,7 +10,7 @@ import org.apache.http.impl.nio.client.HttpAsyncClients
 import wust.core.config.WebPushConfig
 import wust.db.Data
 
-import scala.concurrent.{Future, Promise}
+import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.Try
 
 /**
@@ -43,7 +43,7 @@ final case class PushData(username: String, content: String, nodeId: String, sub
   )
 }
 
-class WebPushService private(val config: WebPushConfig) {
+class WebPushService private(config: WebPushConfig) {
 
   private def base64UrlSafe(s: String) = s.replace("/", "_").replace("+", "-")
 
@@ -52,7 +52,7 @@ class WebPushService private(val config: WebPushConfig) {
 
   // we write our own version, because service.send is synchronous and service.sendAsync returns a stupid java-future.
   // so we do the same as sendAsync, but inject our own callback that completes a promise.
-  private def doSend(notification: webpush.Notification): Try[Future[HttpResponse]] = Try {
+  private def doSend(notification: webpush.Notification)(implicit ec: ExecutionContext): Future[HttpResponse] = Future {
     val httpPost = service.preparePost(notification)
     val closeableHttpAsyncClient = HttpAsyncClients.createSystem()
     closeableHttpAsyncClient.start()
@@ -76,9 +76,9 @@ class WebPushService private(val config: WebPushConfig) {
     })
 
     promise.future
-  }
+  }.flatten //2.13: Future.delegate
 
-  def send(sub: Data.WebPushSubscription, payload: String): Future[HttpResponse] = {
+  def send(sub: Data.WebPushSubscription, payload: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
     val notification = new webpush.Notification(
       sub.endpointUrl,
       base64UrlSafe(sub.p256dh),
@@ -87,10 +87,10 @@ class WebPushService private(val config: WebPushConfig) {
     )
 
     scribe.info(s"Sending push notification to ${sub}: $payload")
-    doSend(notification).toEither.fold(Future.failed, identity)
+    doSend(notification)
   }
 
-  def send(sub: Data.WebPushSubscription, payload: PushData): Future[HttpResponse] = {
+  def send(sub: Data.WebPushSubscription, payload: PushData)(implicit ec: ExecutionContext): Future[HttpResponse] = {
     import io.circe.generic.auto._
     import io.circe.syntax._
 
@@ -102,7 +102,7 @@ class WebPushService private(val config: WebPushConfig) {
     )
 
     scribe.info(s"Sending push notification to ${sub}: ${payload.content}")
-    doSend(notification).toEither.fold(Future.failed, identity)
+    doSend(notification)
   }
 }
 object WebPushService {
@@ -110,3 +110,4 @@ object WebPushService {
 
   def apply(c: WebPushConfig): WebPushService = new WebPushService(c)
 }
+

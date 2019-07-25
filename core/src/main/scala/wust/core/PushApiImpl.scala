@@ -4,13 +4,13 @@ import wust.api._
 import wust.core.DbConversions._
 import wust.core.Dsl._
 import wust.core.auth.JWT
-import wust.core.config.ServerConfig
+import wust.core.config.PushNotificationConfig
 import wust.core.pushnotifications.PushClients
 import wust.db.Db
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class PushApiImpl(dsl: GuardDsl, db: Db, pushClients: Option[PushClients])(implicit ec: ExecutionContext) extends PushApi[ApiFunction] {
+class PushApiImpl(dsl: GuardDsl, db: Db, pushConfig: Option[PushNotificationConfig])(implicit ec: ExecutionContext) extends PushApi[ApiFunction] {
   import dsl._
 
   override def subscribeWebPush(subscription: WebPushSubscription): ApiFunction[Boolean] =
@@ -26,6 +26,6 @@ class PushApiImpl(dsl: GuardDsl, db: Db, pushClients: Option[PushClients])(impli
   }
 
   override def getPublicKey(): ApiFunction[Option[String]] = Action {
-    Future.successful(pushClients.flatMap(_.webPushService.map(_.config.keys.publicKey)))
+    Future.successful(pushConfig.flatMap(_.webPush.map(_.keys.publicKey)))
   }
 }

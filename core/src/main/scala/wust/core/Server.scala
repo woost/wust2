@@ -79,7 +79,7 @@ object Server {
 
     val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow, oAuthClientServiceLookup)
-    val pushImpl = new PushApiImpl(guardDsl, db, pushClients)
+    val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 
     val jsonRouter = Router[String, ApiFunction]
       .route[Api[ApiFunction]](apiImpl)
