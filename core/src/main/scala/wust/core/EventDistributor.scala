@@ -294,7 +294,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { notifiedNode =>
 
-          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.data.str, 50)}: ${ StringOps.trimToMaxLength(notifiedNode.node.data.str.trim, 250) }"
+          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.data.str, 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.node.data.str.trim, 250) }"
           val contentUrl = s"https://${ serverConfig.host }/#page=${ notifiedNode.node.id.toBase58 }"
 
           db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap { subscriptions =>
