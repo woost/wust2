@@ -42,10 +42,6 @@ function requestPromise(request) {
     });
 }
 
-function currentAuth() {
-    return userAuth;
-}
-
 function getPublicKey() {
     return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
@@ -54,7 +50,7 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
     body: JSON.stringify({ message: s })
 });
 
-function sendSubscriptionToBackend(subscription, currentAuth) {
+function sendSubscriptionToBackend(subscription) {
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
         logToBackend("Cannot send subscription to backend, subscription is empty.");
@@ -79,7 +75,7 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
         method: 'POST',
         body: JSON.stringify({ subscription: subscriptionObj }),
         headers: {
-            'Authorization': currentAuth
+            'Authorization': userAuth
         }
     });
 }
@@ -88,8 +84,7 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 // case the app will do this when request notification permissions.
 function updateWebPushSubscriptionAndPersist() {
     log("Subscribing to web push.");
-    let currentAuth = userAuth
-    if (currentAuth) {
+    if (userAuth) {
         getPublicKey().then(
             publicKey => publicKey.json().then (
                 publicKeyJson => {
@@ -107,7 +102,7 @@ function updateWebPushSubscriptionAndPersist() {
                                 }).then(
                                     sub => {
                                         log("Success. Sending subscription to backend.");
-                                        sendSubscriptionToBackend(sub, currentAuth);
+                                        sendSubscriptionToBackend(sub);
                                     },
                                     err => {
                                         error(`Subscribing failed with: ${err}.`);
