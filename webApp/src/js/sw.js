@@ -86,10 +86,10 @@ function sendSubscriptionToBackend(subscription, currentAuth) {
 
 // TODO: check if permissions granted, otherwise we don't need this. in this
 // case the app will do this when request notification permissions.
-function subscribeWebPushAndPersist() {
+function updateWebPushSubscriptionAndPersist() {
     log("Subscribing to web push.");
     let currentAuth = userAuth
-    if (typeof currentAuth !== 'undefined') {
+    if (currentAuth) {
         getPublicKey().then(
             publicKey => publicKey.json().then (
                 publicKeyJson => {
@@ -117,8 +117,10 @@ function subscribeWebPushAndPersist() {
                             });
                         });
                     } else {
-                        log("Cannot subscribe, no public key.");
-                        return Promise.reject("Cannot subscribe, no public key.");
+                        log("Cannot subscribe, no public key, Will unsubscribe.");
+                        return self.registration.pushManager.getSubscription().then(subscription => {
+                            subscription ? subscription.unsubscribe() : Promise.resolve(true);
+                        });
                     }
                 },
                 err => {
@@ -128,8 +130,10 @@ function subscribeWebPushAndPersist() {
             )
         );
     } else {
-        log("Cannot subscribe, no authentication.");
-        return Promise.reject("Cannot subscribe, no authentication.");
+        log("Cannot subscribe, no authentication. Will unsubscribe.");
+        return self.registration.pushManager.getSubscription().then(subscription => {
+            subscription ? subscription.unsubscribe() : Promise.resolve(true);
+        });
     }
 }
 
@@ -170,7 +174,7 @@ var userAuth;
 // subscribe to webpush on startup
 self.addEventListener('activate', e => {
     log("Trying to subscribe to webpush");
-    e.waitUntil(subscribeWebPushAndPersist());
+    e.waitUntil(updateWebPushSubscriptionAndPersist());
 });
 
 self.addEventListener('message', e => {
@@ -178,16 +182,17 @@ self.addEventListener('message', e => {
         const messageObject = JSON.parse(e.data);
         if(messageObject.type === "AuthMessage") {
             log("Received auth message.");
-            if((typeof userAuth === 'undefined') || (userAuth !== messageObject.token)) {
+            if(!userAuth || (userAuth !== messageObject.token)) {
                 userAuth = messageObject.token;
-                e.waitUntil(subscribeWebPushAndPersist());
+                e.waitUntil(updateWebPushSubscriptionAndPersist());
             } else {
                 log("Current auth is still valid");
             }
         } else if(messageObject.type === "Message") {
             log("Received worker message.");
-        } else
+        } else {
             log("Received unclassified message.");
+        }
     }
 });
 
@@ -320,7 +325,7 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('pushsubscriptionchange', e => {
     log("ServiceWorker received pushsubscriptionchange event.");
     // resubscribe and send new subscription to backend
-    e.waitUntil(subscribeWebPushAndPersist());
+    e.waitUntil(updateWebPushSubscriptionAndPersist());
 });
 
 // to test push renewal, trigger event manually:
