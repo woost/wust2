@@ -98,8 +98,8 @@ object Server {
     )
 
     val websiteOrigin = {
-      val protocol = if (config.server.host == "localhost") "http://" else "https://"
-      s"${protocol}${config.server.host}"
+      val (protocol,port) = if (config.server.host == "localhost") ("http://", ":12345") else ("https://", "")
+      s"${protocol}${config.server.host}${port}"
     }
     val corsSettings = CorsSettings.defaultSettings.withAllowedOrigins(HttpOriginRange(websiteOrigin))
 
