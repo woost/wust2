@@ -29,6 +29,11 @@ package object collection {
       f.runWith { case (k,b) => add(k, b) }.andThen(_ => ())
     }
 
+    @inline def groupByMap[K,B](f: T => (K,B)): scala.collection.Map[K, scala.collection.Seq[B]] = groupByForeach { add => t =>
+      val (a,b) = f(t)
+      add(a, b)
+    }
+
     @inline def by[X](lens: T => X): scala.collection.Map[X, T] = {
       val map = mutable.HashMap[X, T]()
       map.sizeHint(col.size)
