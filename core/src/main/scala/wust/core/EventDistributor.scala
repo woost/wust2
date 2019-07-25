@@ -13,6 +13,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.util.macros.InlineList
+import wust.util.collection._
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ExecutionContextTaskSupport
@@ -140,28 +141,15 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   }
 
   private def parentNodesByChildId(graphChanges: GraphChanges): Future[collection.Map[NodeId, collection.Seq[Node]]] = {
-    val childIdsByParentId = mutable.HashMap[NodeId, mutable.ArrayBuffer[NodeId]]()
-    graphChanges.addEdges.foreach {
-      case e: Edge.Child =>
-        val buf = childIdsByParentId.getOrElseUpdate(e.parentId, mutable.ArrayBuffer[NodeId]())
-        buf += e.childId
-      case _ => ()
-    }
-
+    val childIdsByParentId = graphChanges.addEdges.toSeq.groupByCollect[NodeId, NodeId] { case e: Edge.Child => e.parentId -> e.childId }
     if(childIdsByParentId.nonEmpty) {
       db.node.get(childIdsByParentId.keySet).map { parentNodes =>
-        val parentNodesByChildId = mutable.HashMap[NodeId, mutable.ArrayBuffer[Node]]()
-        parentNodes.foreach {
+        parentNodes.groupByForeach[NodeId, Node](add => {
           // only take relavant parent roles
           case parentNode if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(parentNode.role) =>
-            childIdsByParentId(parentNode.id).foreach { childId =>
-              val buf = parentNodesByChildId.getOrElseUpdate(childId, mutable.ArrayBuffer[Node]())
-              buf += forClient(parentNode)
-            }
+            parentNode.id -> childIdsByParentId(parentNode.id).foreach(childId => add(childId, forClient(parentNode)))
           case _ => ()
-        }
-
-        parentNodesByChildId
+        })
       }
     } else Future.successful(Map.empty[NodeId, Seq[Node]])
   }
