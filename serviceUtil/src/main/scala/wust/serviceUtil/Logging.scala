@@ -11,10 +11,9 @@ import scribe.writer._
 import scribe.writer.file.LogPath
 
 object Logging {
-  //TODO: fix https://github.com/outr/scribe/issues/115
-  val shortThreadName = threadName//.map(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
-  val shortLevel = level//.map(_.trim)
-  val fileBaseName = FormatBlock.FileName//.map(fileName => fileName.split('/').last)
+  val shortThreadName = threadName.mapPlain(_.replaceFirst("server-akka.actor.default-dispatcher-", ""))
+  val shortLevel = level.mapPlain(_.trim)
+  val fileBaseName = FormatBlock.FileName.mapPlain(fileName => fileName.split('/').last)
   val simpleFormatter =
     formatter"${scribe.format.time} $fileBaseName:${FormatBlock.LineNumber} - $message$newLine"
   val detailFormatter =
