@@ -4,7 +4,7 @@ workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
 // cache google fonts
 workbox.routing.registerRoute(
   new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
-  workbox.strategies.cacheFirst({
+  new workbox.strategies.CacheFirst({
     cacheName: 'google-fonts',
     plugins: [
       new workbox.expiration.Plugin({
