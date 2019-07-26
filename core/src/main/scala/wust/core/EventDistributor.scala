@@ -23,10 +23,21 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import DbConversions._
 
-final case class NewNodeNotification(node: Node, parent: Node) {
-  def description = s"New ${node.role}"
+sealed trait NotifiedNode {
+  def node: Node
+  def parent: Option[Node]
+  def description: String
 }
-final case class NotificationData(userId: UserId, notifiedNodes: collection.Seq[NewNodeNotification], subscribedNodeId: NodeId, subscribedNodeContent: String)
+object NotifiedNode {
+  final case class NewNode(node: Node, parent: Option[Node]) extends NotifiedNode {
+    def description = s"New ${node.role}"
+  }
+  final case class NewMention(node: Node, parent: Option[Node]) extends NotifiedNode {
+    def description = s"Mentioned in ${node.role}"
+  }
+}
+
+final case class NotificationData(userId: UserId, notifiedNodes: collection.Seq[NotifiedNode], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushClients: Option[PushClients])(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
@@ -98,25 +109,40 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
     //TODO: do not calcualte notified nodes twice, get notified users, then subscriptions/clients...
     // send out push notifications
+
     val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
-      case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) => node.id -> node
+      case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) =>
+        node.id -> node
     }(breakOut)
+
+    // we just treat any mentioned id as a userid, we will not find a corresponding user for node mentions.
+    val mentionsByNode: collection.Map[NodeId, collection.Seq[UserId]] = graphChanges.addEdges.toSeq.groupByCollect[NodeId, UserId] { case e: Edge.Mention =>
+      e.nodeId -> UserId(e.mentionedId)
+    }
+
+
     (for {
+      //TODO: parent nodes need to be access-checked per notified user!!
       parentNodesByChildId <- parentNodesByChildId(graphChanges)
-      notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toList)
+      notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toSeq)
       notificationsWithParent = {
         val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
         notifications.foreach { n =>
-          val newNodeNotifications = mutable.ArrayBuffer[NewNodeNotification]()
+          val notifiedNodes = mutable.ArrayBuffer[NotifiedNode]()
           val newNotifiedNodes = n.notifiedNodes.foreach { nodeId =>
-            parentNodesByChildId.get(nodeId).foreach { parents =>
-              parents.foreach { parent =>
-                newNodeNotifications += NewNodeNotification(addNodesByNodeId(nodeId), parent)
+            val parents = parentNodesByChildId.get(nodeId)
+            val parent = parents.flatMap(_.headOption) //TODO: this parent is not check for access!!!!!
+            addNodesByNodeId.get(nodeId).foreach { node =>
+              mentionsByNode.get(nodeId) match {
+                case Some(users) if users.contains(n.userId) =>
+                  notifiedNodes += NotifiedNode.NewNode(node, parent)
+                case _ =>
+                  notifiedNodes += NotifiedNode.NewNode(node, parent)
               }
             }
           }
-          if (newNodeNotifications.nonEmpty) {
-            val data = NotificationData(n.userId, newNodeNotifications, n.subscribedNodeId, n.subscribedNodeContent)
+          if (notifiedNodes.nonEmpty) {
+            val data = NotificationData(n.userId, notifiedNodes, n.subscribedNodeId, n.subscribedNodeContent)
             notificationsWithParent += data
           }
         }
@@ -224,8 +250,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             nodeId = notifiedNode.node.id.toBase58,
             subscribedId = subscribedNodeId.toBase58,
             subscribedContent = subscribedNodeContent,
-            parentId = Some(notifiedNode.parent.id.toBase58),
-            parentContent = Some(notifiedNode.parent.data.str),
+            parentId = notifiedNode.parent.map(_.id.toBase58),
+            parentContent = notifiedNode.parent.map(_.data.str),
             epoch = EpochMilli.now,
             description = notifiedNode.description
           )
@@ -294,8 +320,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { notifiedNode =>
 
-          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.data.str, 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.node.data.str.trim, 250) }"
-          val contentUrl = s"https://${ serverConfig.host }/#page=${ notifiedNode.node.id.toBase58 }"
+          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.fold(subscribedNodeContent)(_.data.str), 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.node.data.str.trim, 250) }"
+          val contentUrl = s"https://${ serverConfig.host }/#page=${ notifiedNode.parent.fold(subscribedNodeId)(_.id).toBase58 }"
 
           db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap { subscriptions =>
             val futureSeq = subscriptions.map { subscription =>
