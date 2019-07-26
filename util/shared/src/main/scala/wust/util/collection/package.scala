@@ -12,6 +12,7 @@ package object collection {
     set
   }
 
+
   implicit class RichCollection[T, Repr[_]](val col: IterableLike[T, Repr[T]]) extends AnyVal {
 
     @inline def groupByForeach[K,B](f: ((K, B) => Unit) => T => Unit): scala.collection.Map[K, scala.collection.Seq[B]] = {
@@ -127,6 +128,30 @@ package object collection {
     }
   }
 
+
+  def distinctBuilder[T, That[_]](implicit cb: CanBuildFrom[That[T], T, That[T]]): mutable.Builder[T, That[T]] = {
+    val set = mutable.HashSet[T]()
+    val builder = cb.apply()
+
+    new mutable.Builder[T, That[T]] {
+      def +=(elem: T) = {
+        if (!set.contains(elem)) {
+          set += elem
+          builder += elem
+        }
+        this
+      }
+
+      def clear(): Unit = {
+        set.clear()
+        builder.clear()
+      }
+
+      def result(): That[T] = {
+        builder.result()
+      }
+    }
+  }
 
   private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: CanBuildFrom[That, T, That]): That = {
     val actualLen = elements.size
