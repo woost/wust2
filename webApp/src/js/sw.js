@@ -206,7 +206,8 @@ self.addEventListener('push', e => {
     }
 
     if(!userAuth) {
-        log("Push received without user, ignoring.");
+        log("Push received without user, will unsubscribe and ignore.");
+        e.waitUntil(updateWebPushSubscriptionAndPersist())
         return;
     }
 
