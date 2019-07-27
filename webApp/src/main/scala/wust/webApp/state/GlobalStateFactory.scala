@@ -201,18 +201,12 @@ object GlobalStateFactory {
       userAndPage.toObservable
         .filter {
           case (viewConfig, user) =>
-            val result: Boolean =
-              if (prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit) {
-                true
-              } else if (prevPage == null || prevPage != viewConfig.pageChange) {
-                if (viewConfig.pageChange.needsGet && (!viewConfig.pageChange.page.isEmpty || isFirstGraphRequest)) {
-                  true
-                } else {
-                  false
-                }
-              } else {
-                false
-              }
+            @inline def userWasChanged = prevUser == null || prevUser.id != user.id || prevUser.data.isImplicit != user.data.isImplicit
+            @inline def pageWasChanged = prevPage == null || prevPage != viewConfig.pageChange
+            @inline def needsGet = viewConfig.pageChange.needsGet
+            @inline def pageChangeNonEmpty = viewConfig.pageChange.page.nonEmpty
+
+            val result = userWasChanged || (pageWasChanged && needsGet && (pageChangeNonEmpty || isFirstGraphRequest))
 
             prevPage = viewConfig.pageChange
             prevUser = user

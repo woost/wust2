@@ -4,7 +4,7 @@ import wust.ids._
 
 final case class Page(parentId: Option[NodeId]) {
   @inline def isEmpty: Boolean = parentId.isEmpty
-  @inline def isDefined: Boolean = parentId.isDefined
+  @inline def nonEmpty: Boolean = parentId.nonEmpty
 
   override def toString = {
     parentId match {
