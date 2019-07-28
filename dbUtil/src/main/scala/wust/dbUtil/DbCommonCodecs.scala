@@ -78,10 +78,6 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
     def < = ctx.quote((date: EpochMilli) => infix"$ldt < $date".as[Boolean])
     def <= = ctx.quote((date: EpochMilli) => infix"$ldt <= $date".as[Boolean])
   }
-  implicit class IngoreDuplicateKey[T](q: Insert[T]) {
-    //TODO: https://github.com/getquill/quill#postgres
-    def ignoreDuplicates = quote(infix"$q ON CONFLICT DO NOTHING".as[Insert[T]])
-  }
 
   implicit class JsonPostDataQuillOps(json: NodeData) {
     val ->> = ctx.quote((field: String) => infix"$json->>$field".as[String])
