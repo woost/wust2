@@ -7,6 +7,7 @@ import io.circe.syntax._
 import io.getquill._
 import wust.ids._
 import wust.ids.serialize.Circe._
+import java.time.LocalDateTime
 
 abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   import ctx._
@@ -51,8 +52,11 @@ abstract class DbCommonCodecs(val ctx: PostgresAsyncContext[LowerCase]) {
   implicit val encodingOAuthClientService: MappedEncoding[OAuthClientService, String] = MappedEncoding(_.identifier)
   implicit val decodingOAuthClientService: MappedEncoding[String, OAuthClientService] = MappedEncoding(str => OAuthClientService.fromString(str).getOrElse(throw new Exception(s"Cannot decode OAuthClientService: $str")))
 
-  implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] = MappedEncoding { d => new Date(d) }
-  implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] = MappedEncoding { d => EpochMilli(d.toInstant.toEpochMilli) }
+  // implicit val encodingEpochMilli: MappedEncoding[EpochMilli, Date] = MappedEncoding { d => new Date(d) }
+  // implicit val decodingEpochMilli: MappedEncoding[Date, EpochMilli] = MappedEncoding { d => EpochMilli(d.toInstant.toEpochMilli) }
+
+  // implicit val encodeEpochMilli: MappedEncoding[EpochMilli, LocalDateTime] = MappedEncoding { d => d.toLocalDateTime }
+  // implicit val decodingEpochMilli: MappedEncoding[LocalDateTime, EpochMilli] = MappedEncoding { d => EpochMilli.fromLocalDateTime(d) }
 
   implicit val encodingNodeAccessLevel: MappedEncoding[NodeAccess, Option[String]] =
     MappedEncoding {
