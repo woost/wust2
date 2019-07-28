@@ -1,6 +1,7 @@
 package wust
 
 import java.util.Date
+import java.time.{LocalDateTime, ZonedDateTime, ZoneOffset, Instant}
 
 import com.github.ghik.silencer.silent
 import supertagged._
@@ -21,7 +22,6 @@ package object ids {
     @inline def fromBase58String(str: String): Either[String, UserId] = NodeId.fromBase58String(str).map(apply(_))
   }
   type UserId = UserId.Type
-
 
   object ChildId extends OverTagged(NodeId) {
     @inline def fresh(): ChildId = apply(NodeId.fresh)
@@ -72,22 +72,30 @@ package object ids {
     @inline def day: Long = 24L * hour
     @inline def week: Long = 7L * day
 
-    @silent("deprecated") 
+    @silent("deprecated")
     def parse(str: String) = Try(Date.parse(str)).toOption.map(EpochMilli(_))
+
+    @inline def fromDate(d: Date): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
+    @inline def fromLocalDateTime(d: LocalDateTime): EpochMilli = EpochMilli(d.toInstant(ZoneOffset.UTC).toEpochMilli)
+    @inline def fromZonedDateTime(d: ZonedDateTime): EpochMilli = EpochMilli(d.toInstant.toEpochMilli)
 
     implicit class RichEpochMilli(val t: EpochMilli) extends AnyVal {
       @inline def <(that: EpochMilli): Boolean = t < that
       @inline def >(that: EpochMilli): Boolean = t > that
-      @inline def plus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) + (duration:Long))
-      @inline def minus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) - (duration:Long))
+      @inline def plus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) + (duration: Long))
+      @inline def minus(duration: DurationMilli): EpochMilli = EpochMilli((t: Long) - (duration: Long))
       @inline def isBefore(that: EpochMilli): Boolean = t < that
       @inline def isBeforeOrEqual(that: EpochMilli): Boolean = t <= that
       @inline def isAfter(that: EpochMilli): Boolean = t > that
       @inline def isAfterOrEqual(that: EpochMilli): Boolean = t >= that
-      @inline def newest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) max (that:Long))
-      @inline def oldest(that:EpochMilli):EpochMilli = EpochMilli((t:Long) min (that:Long))
+      @inline def newest(that: EpochMilli): EpochMilli = EpochMilli((t: Long) max (that: Long))
+      @inline def oldest(that: EpochMilli): EpochMilli = EpochMilli((t: Long) min (that: Long))
 
-      @silent("deprecated") 
+      @inline def toDate: Date = new Date(t)
+      @inline def toLocalDateTime: LocalDateTime = toZonedDateTime.toLocalDateTime
+      @inline def toZonedDateTime: ZonedDateTime = Instant.ofEpochMilli(t).atZone(ZoneOffset.UTC)
+
+      @silent("deprecated")
       def humanReadable: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -102,7 +110,7 @@ package object ids {
         f"$year%04d-$month%02d-$day%02d $hour%02d:$minute%02d:$second%02d"
       }
 
-      @silent("deprecated") 
+      @silent("deprecated")
       def isoDate: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
@@ -114,7 +122,7 @@ package object ids {
         f"$year%04d-$month%02d-$day%02d"
       }
 
-      @silent("deprecated") 
+      @silent("deprecated")
       def isoDateAndTime: String = {
         // java.util.Date is deprecated, but implemented in java and scalajs
         // and therefore a simple cross-compiling solution
