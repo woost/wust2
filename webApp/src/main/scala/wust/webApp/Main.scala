@@ -2,6 +2,7 @@ package wust.webApp
 
 import wust.facades.wdtEmojiBundle._
 import colorado.HCL
+import wust.facades.es6shim.ES6Shim
 import wust.facades.defaultPassiveEvents.DefaultPassiveEvents
 import wust.facades.intersectionObserver.IntersectionObserver
 import wust.facades.emojijs.EmojiConvertor
@@ -74,6 +75,7 @@ object Main {
   }
 
   private def setupDom(): Unit = {
+    setupES6Shim()
     setupDefaultPassiveEvents()
     setupIntersectionObserverPolyfill()
     setupSetImmediatePolyfill()
@@ -197,6 +199,10 @@ object Main {
   private def setupDefaultPassiveEvents():Unit = {
     // initialize default-passive-events for smoother scrolling
     DefaultPassiveEvents
+  }
+
+  private def setupES6Shim():Unit = {
+    ES6Shim
   }
 
   private def setupIntersectionObserverPolyfill():Unit = {
