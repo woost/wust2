@@ -26,7 +26,7 @@ class GraphChangesNotifier(db: Db, emailFlow: AppEmailFlow) {
       case Success(Some(userDetail)) if userDetail.verified => userDetail.email match {
         case Some(authorEmail) =>
           val mentionsBySourceId = mentions.groupBy(_.nodeId)
-          db.node.get(mentionsBySourceId.keySet).onComplete {
+          db.node.get(mentionsBySourceId.keys.toSeq).onComplete {
             case Success(nodes) =>
               val nodeMap: Map[NodeId, Node.Content] = nodes.map(forClient).collect { case n: Node.Content => n.id -> n }(breakOut)
               val groupedMentions = mentionsBySourceId.flatMap { case (nodeId, mentions) => nodeMap.get(nodeId).map(MentionsWithNode(mentions, _)) }(breakOut)

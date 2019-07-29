@@ -169,7 +169,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   private def parentNodesByChildId(graphChanges: GraphChanges): Future[collection.Map[NodeId, collection.Seq[Node]]] = {
     val childIdsByParentId = graphChanges.addEdges.toSeq.groupByCollect[NodeId, NodeId] { case e: Edge.Child => e.parentId -> e.childId }
     if(childIdsByParentId.nonEmpty) {
-      db.node.get(childIdsByParentId.keySet).map { parentNodes =>
+      db.node.get(childIdsByParentId.keys.toSeq).map { parentNodes =>
         parentNodes.groupByForeach[NodeId, Node](add => {
           // only take relavant parent roles
           case parentNode if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(parentNode.role) =>
@@ -182,7 +182,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
   private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
     state.auth.fold(Future.successful(List.empty[ApiEvent])) { auth =>
-      db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds)
+      db.notifications.updateNodesForConnectedUser(auth.user.id, graphChanges.involvedNodeIds.toSeq)
         .map { permittedNodeIds =>
           val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
             case e: Edge.User    => List(e.sourceId)

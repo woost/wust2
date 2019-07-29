@@ -89,12 +89,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }.map(_.headOption.map(_.toNode))
     }
 
-    def get(nodeIds: scala.collection.Set[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
+    def get(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[Node]] = {
       //TODO
       //ctx.run(query[Node].filter(p => liftQuery(nodeIds) contains p.id))
       val q = quote {
         infix"""
-          select node.* from unnest(${lift(nodeIds.toList)} :: uuid[]) inputNodeId join node on node.id = inputNodeId
+          select node.* from unnest(${lift(nodeIds)} :: uuid[]) inputNodeId join node on node.id = inputNodeId
         """.as[Query[NodeRaw]]
       }
 
@@ -113,10 +113,10 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       )
     }
 
-    def getFileNodes(keys: scala.collection.Set[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
+    def getFileNodes(keys: scala.collection.Seq[String])(implicit ec: ExecutionContext): Future[Seq[(NodeId, NodeData.File)]] = {
       ctx.run {
         query[NodeRaw].filter(node =>
-          node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys.toList).contains(node.data->>"key")
+          node.data.jsonType == lift(NodeData.File.tpe) && liftQuery(keys).contains(node.data->>"key")
         )
       }.map(_.map(n => n.id -> n.data.asInstanceOf[NodeData.File]))
     }
@@ -177,9 +177,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       )
     }
 
-    def updateNodesForConnectedUser(userId: UserId, nodeIds: scala.collection.Set[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
+    def updateNodesForConnectedUser(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
       ctx.run(
-        infix"select id from unnest(${lift(nodeIds.toList)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
+        infix"select id from unnest(${lift(nodeIds)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
       )
     }
 
@@ -206,7 +206,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def delete(subscription: WebPushSubscription)(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = delete(List(subscription))
     def delete(subscriptions: Seq[WebPushSubscription])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       ctx.run(
-        liftQuery(subscriptions.toList)
+        liftQuery(subscriptions)
           .foreach(s => query[WebPushSubscription].filter(_.id == s.id).delete)
       ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of webpush subscription deletes: ${touched.sum} <= ${subscriptions.size} - ${subscriptions.zip(touched)}"))
     }
@@ -215,7 +215,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def getSubscriptions(userIds: Seq[UserId])(implicit ec: ExecutionContext): Future[List[WebPushSubscription]] = {
       ctx.run {
         query[WebPushSubscription].filter(sub =>
-          liftQuery(userIds.toList) contains sub.userId
+          liftQuery(userIds) contains sub.userId
         )
       }
     }
@@ -241,7 +241,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       for {
         touched <- if(edges.nonEmpty) {
           ctx.run {
-            liftQuery(edges.toList).foreach(upsert(_))
+            liftQuery(edges).foreach(upsert(_))
           }
         } else Future.successful(Nil)
         // Ignored insert (on conflict do nothing) do not count as touched
@@ -262,7 +262,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       for {
         touched <- if(dbEdges.nonEmpty) {
           ctx.run {
-            liftQuery(dbEdges.toList).foreach { case (sourceId, tpe, key, targetId) =>
+            liftQuery(dbEdges).foreach { case (sourceId, tpe, key, targetId) =>
               query[Edge].filter(e => e.sourceId == sourceId && e.targetId == targetId && e.data.jsonType == tpe && infix"coalesce(${e.data}->>'key' = $key, true)".as[Boolean]).delete
             }
           }
@@ -486,7 +486,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def inaccessibleNodes(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
-      inaccessibleNodesQuery(lift(userId), lift(nodeIds.toList))
+      inaccessibleNodesQuery(lift(userId), lift(nodeIds))
     }
 
     private val canAccessNodeQuery = quote { (userId: UserId, nodeId: NodeId) =>
@@ -532,7 +532,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def get(userIds: Seq[UserId], service: OAuthClientService)(implicit ec:ExecutionContext): Future[List[OAuthClient]] = {
       ctx.run(
         query[OAuthClient]
-          .filter(client => liftQuery(userIds.toList).contains(client.userId) && client.service == lift(service))
+          .filter(client => liftQuery(userIds).contains(client.userId) && client.service == lift(service))
       )
     }
 
@@ -546,7 +546,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def delete(clients: Seq[OAuthClient])(implicit ec: TransactionalExecutionContext): Future[SuccessResult.type] = {
       ctx.run(
-        liftQuery(clients.toList)
+        liftQuery(clients)
           .foreach(s => query[OAuthClient].filter(client => client.userId == s.userId && client.service == s.service && client.accessToken == s.accessToken).delete)
       ).flatMap(touched => checkUnexpected(touched.forall(_ <= 1), s"Unexpected number of oauth client deletes: ${ touched.sum } <= ${ clients.size } - ${ clients.zip(touched) }"))
     }
