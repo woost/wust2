@@ -1205,7 +1205,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".kanbancolumn" - (
-    backgroundColor(c"#f5f5f5"),
+    backgroundColor(c"#edf0f2"),
     fontWeight.bold,
     borderRadius(kanbanColumnBorderRadius),
     Styles.flexStatic,
