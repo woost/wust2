@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import monix.reactive.Observer
 import wust.facades.googleanalytics.Analytics
 import fontAwesome.{freeSolid, _}
 import org.scalajs.dom
@@ -341,30 +342,46 @@ object LeftSidebar {
 
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
-          invites().map(nodeId => channelLine( TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), channelModifier = VDomModifier(
+          invites().map{ nodeId =>
+            channelLine( TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false),
+              channelModifier = VDomModifier(
                 flexGrow := 1, // push buttons to the right
-            div(
-              cls := "ui icon buttons",
-              margin := "2px 3px 2px auto",
-              button(
-                cls := "mini compact green ui button",
-                padding := "0.5em",
-                i(cls := "icon fa-fw", freeSolid.faCheck),
-                onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)), delEdges = Array(Edge.Invite(nodeId, userId)))) --> GlobalState.eventProcessor.changes,
-                onClick foreach { Analytics.sendEvent("pageheader", "accept-invite") }
-              ),
-              button(
-                cls := "mini compact ui button",
-                padding := "0.5em",
-                i(cls := "icon fa-fw", freeSolid.faTimes),
-                onClick.mapTo(GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))) --> GlobalState.eventProcessor.changes,
-                onClick foreach { Analytics.sendEvent("pageheader", "ignore-invite") }
+                div(
+                  cls := "ui icon buttons",
+                  margin := "2px 3px 2px auto",
+                  button(
+                    cls := "mini compact green ui button",
+                    padding := "0.5em",
+                    i(cls := "icon fa-fw", freeSolid.faCheck),
+                    onClick.stopPropagation.foreach {
+                      val changes = GraphChanges(
+                        addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)),
+                        delEdges = Array(Edge.Invite(nodeId, userId))
+                      )
+                      GlobalState.submitChanges(changes)
+                      Analytics.sendEvent("pageheader", "accept-invite")
+                    }
+                  ),
+                  button(
+                    cls := "mini compact ui button",
+                    padding := "0.5em",
+                    i(cls := "icon fa-fw", freeSolid.faTimes),
+                    onClick.stopPropagation.foreach { 
+                      //TODO: sadly a click here still triggers a channel-focus
+                      confirm("Ignore and delete invitation?") {
+                        val changes = GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))
+                        GlobalState.submitChanges(changes)
+                        Analytics.sendEvent("pageheader", "ignore-invite") 
+                      }
+                    }
+                  )
+                )
               )
+            ).apply(
+              paddingBottom := "1px",
+              paddingTop := "1px",
             )
-          )).apply(
-            paddingBottom := "1px",
-            paddingTop := "1px",
-          ))
+          }
         )
       }
     )
