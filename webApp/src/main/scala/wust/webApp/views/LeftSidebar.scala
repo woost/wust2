@@ -272,8 +272,6 @@ object LeftSidebar {
       ),
       a(
         href <-- nodeUrl(nodeId),
-        flexGrow := 1,
-        flexShrink := 0,
         cls := "channel-line",
         Rx {
           VDomModifier(
@@ -310,7 +308,7 @@ object LeftSidebar {
         }
 
         VDomModifier(
-          channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth),
+          channelLine( traverseState, userId, expanded = expanded, hasChildren = hasChildren, depth = depth, channelModifier = VDomModifier(flexGrow := 1, flexShrink := 0)),
           Rx {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
@@ -344,6 +342,7 @@ object LeftSidebar {
         VDomModifier.ifTrue(invites().nonEmpty)(
           UI.horizontalDivider("invitations"),
           invites().map(nodeId => channelLine( TraverseState(nodeId), userId, expanded = Var(false), hasChildren = Var(false), channelModifier = VDomModifier(
+                flexGrow := 1, // push buttons to the right
             div(
               cls := "ui icon buttons",
               margin := "2px 3px 2px auto",
