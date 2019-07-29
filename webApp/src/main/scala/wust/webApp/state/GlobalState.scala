@@ -23,8 +23,8 @@ import monix.eval.Task
 import monix.reactive.Observable
 import org.scalajs.dom
 import org.scalajs.dom.window
-import outwatch.dom.helpers.OutwatchTracing
 import rx._
+import outwatch.dom.dsl.events
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, UI }
 import wust.api.ApiEvent.ReplaceGraph
@@ -43,6 +43,8 @@ import scala.collection.{ breakOut, mutable }
 
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
+
+  val browserIsOnline: Observable[Boolean] = Observable(events.window.onOnline.map(_ => false), events.window.onOnline.map(_ => true)).merge
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
   val appUpdateIsAvailable: Observable[Unit] = if (!LinkingInfo.developmentMode) ServiceWorker.register() else Observable.empty

@@ -235,28 +235,23 @@ object GlobalStateFactory {
       }
     }
 
-    // trigger for updating the app and reloading. we drop 1 because we do not want to trigger for the initial state
-    // if update is available, a reload will be triggered at every page or view change
-    val appUpdateTrigger = Observable(page.toTailObservable, view.toTailObservable).merge
+    // force an update check if the backend is disconnect while the browser is online
+    val appUpdateTrigger: Observable[Any] = Observable(page.toTailObservable, view.toTailObservable).merge
+    val appUpdateCheckTrigger: Observable[Any] = Client.observable.closed.combineLatest(browserIsOnline).collect { case (_, true) => () }
 
-    // try to update serviceworker. We do this automatically every 60 minutes. If we do a navigation change like changing the page,
-    // we will check for an update immediately, but at max every 30 minutes.
-    val autoCheckUpdateInterval = 60.minutes
-    val maxCheckUpdateInterval = 30.minutes
-    appUpdateTrigger
-      .echoRepeated(autoCheckUpdateInterval)
-      .throttleFirst(maxCheckUpdateInterval)
-      .foreach { _ =>
-        Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
-          scribe.info("Requesting updating from SW.")
-          reg.update().toFuture.onComplete { res =>
-            scribe.info(s"Result of update request: ${if (res.isSuccess) "Success" else "Failure"}.")
-          }
-        }))
-      }
+    // trigger a download of the serviceworker to get a new version. throttle update trigger to 1 minute.
+    appUpdateCheckTrigger.throttleLast(1.minutes).foreach { _ =>
+      Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
+        scribe.info("Requesting updating from SW.")
+        reg.update().toFuture.onComplete { res =>
+          scribe.info(s"Result of update request: ${if (res.isSuccess) "Success" else "Failure"}.")
+        }
+      }))
+    }
 
     // if there is a page change and we got an sw update, we want to reload the page
-    appUpdateTrigger.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
+    // TODO: ask user to reload? because he might have unstored changes...
+    appUpdateTrigger.merge.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
       scribe.info("Going to reload page, due to SW update.")
       // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
       window.location.reload(flag = false)

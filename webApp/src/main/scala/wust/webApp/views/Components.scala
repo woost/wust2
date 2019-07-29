@@ -1023,5 +1023,5 @@ object Components {
 
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
-  def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload() })
+  def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload(flag = true) }) // true - reload without cache
 }
