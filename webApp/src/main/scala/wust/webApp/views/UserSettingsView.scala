@@ -410,7 +410,7 @@ object UserSettingsView {
         Analytics.sendEvent("slack", "enableplugin")
       },
       onClick foreach {
-        UI.toast("Thanks for your interest in the slack plugin. It will be available soon.")
+        UI.toast("Thanks for your interest in the slack plugin. We counted a vote for you to prioritize it.")
       }
     ),
     div(
