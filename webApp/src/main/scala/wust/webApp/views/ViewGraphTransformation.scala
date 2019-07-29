@@ -16,7 +16,13 @@ sealed trait ViewGraphTransformation{
 }
 
 object ViewGraphTransformation {
-  val allTransformations: Array[ViewGraphTransformation] = SubObjects.all[ViewGraphTransformation]
+  val availableTransformations: Array[ViewGraphTransformation] = Array(
+      ViewGraphTransformation.Deleted.excludeDeleted,
+      ViewGraphTransformation.Deleted.onlyDeleted,
+      ViewGraphTransformation.Assignments.onlyAssignedTo,
+      ViewGraphTransformation.Assignments.onlyNotAssigned,
+      ViewGraphTransformation.Automated.hideTemplates
+    )
 
   object Deleted {
     case object onlyDeleted extends ViewGraphTransformation {
