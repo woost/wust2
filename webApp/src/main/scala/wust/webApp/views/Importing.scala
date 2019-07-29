@@ -398,7 +398,7 @@ object Importing {
       span("Import"),
 
       dsl.cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig( focusedId))) --> GlobalState.uiModalConfig
+      onClick(Ownable(GlobalState.urlConfig)(implicit ctx => modalConfig( focusedId))) --> GlobalState.uiModalConfig
     )
   }
 }

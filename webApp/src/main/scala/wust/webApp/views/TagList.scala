@@ -46,13 +46,13 @@ object TagList {
       initialWidth = 200,
       initialHeight = 300,
       resizable = true,
-      titleModifier = Ownable(implicit ctx =>
+      titleModifier = Ownable.unsafe(implicit ctx =>
         Rx{VDomModifier(
           backgroundColor := GlobalState.pageStyle().pageBgColor,
           color.white,
         )}
       ),
-      bodyModifier = Ownable(implicit ctx => VDomModifier(
+      bodyModifier = Ownable.unsafe(implicit ctx => VDomModifier(
         overflowY.auto,
         Rx {
           val page = GlobalState.page()

@@ -516,7 +516,7 @@ object SharedViewElements {
     enableEmojiPicker: Boolean = false,
   ) = EmitterBuilder.ofModifier[InputRow.Submission] { sink =>
     VDomModifier(
-      onClick.stopPropagation(Ownable { implicit ctx => 
+      onClick.stopPropagation(Ownable.unsafe { implicit ctx => 
         newNamePromptModalConfig(
           sink,
           header,

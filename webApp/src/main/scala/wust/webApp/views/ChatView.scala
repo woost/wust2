@@ -221,7 +221,7 @@ object ChatView {
 
       InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(parentNode.role)
     }.viewMap(graph.nodeIds)
-    div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(implicit ctx => thunkGroup( graph, group, pageParentId, currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)))
+    div.thunk(key)(nodeIds, GlobalState.screenSize.now, commonParentIds, pageParentId)(Ownable(GlobalState.urlConfig)(implicit ctx => thunkGroup( graph, group, pageParentId, currentReply, inputFieldFocusTrigger = inputFieldFocusTrigger)))
   }
 
   private def thunkGroup(groupGraph: Graph, group: Array[Int], pageParentId: NodeId, currentReply: Var[Set[NodeId]], inputFieldFocusTrigger: PublishSubject[Unit])(implicit ctx: Ctx.Owner): VDomModifier = {
@@ -285,7 +285,7 @@ object ChatView {
               val previousNodeId = _previousNodeId
               _previousNodeId = Some(nodeId)
 
-              div.thunk(nodeId.toStringFast)(GlobalState.screenSize.now)(Ownable { implicit ctx =>
+              div.thunk(nodeId.toStringFast)(GlobalState.screenSize.now)(Ownable(GlobalState.urlConfig) { implicit ctx =>
                 // the parent ids of this node are a dependency of the thunk above us thunkRxFun
                 // therefore we know they will never change and we can use the groupGraph
                 // and statically calculate the parentIds and use inReplyGroup here.

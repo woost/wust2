@@ -165,7 +165,7 @@ object ListView {
     inOneLine:Boolean,
     isCompact: Boolean
   ): VNode = {
-    div.thunkStatic(nodeId.hashCode)(Ownable { implicit ctx =>
+    div.thunkStatic(nodeId.hashCode)(Ownable(GlobalState.urlConfig) { implicit ctx =>
       val isExpanded = Rx {
         val graph = GlobalState.graph()
         val user = GlobalState.user()

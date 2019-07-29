@@ -10,7 +10,7 @@ import wust.webUtil.outwatchHelpers._
 object Topbar {
 
   def apply: VNode = {
-    div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+    div.thunkStatic(uniqueKey)(Ownable.unsafe { implicit ctx =>
       VDomModifier(
         cls := "topbar",
         AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic, color.black),

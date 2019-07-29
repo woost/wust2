@@ -940,6 +940,7 @@ object Components {
     )
   )
 
+  //FIXME
   def menu(items: Seq[MenuItem], innerModifier: VDomModifier, outerModifier: VDomModifier): VNode = {
     div(
       paddingTop := "10px",
@@ -947,7 +948,7 @@ object Components {
 
       items.map { item =>
         div(
-          Ownable(implicit ctx => Rx {
+          Ownable.unsafe(implicit ctx => Rx {
             if(item.active()) VDomModifier(fontWeight.bold) else opacity := 0.4
           }),
           div(item.title),

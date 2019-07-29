@@ -80,7 +80,7 @@ object GenericSidebar {
     )
 
     // TODO make static again. currently not because outer subscriptions on the callsite do not like us not rerendering (looking at you: GraphChangesAutomationUI). MainView is fine with it.
-    div(config.flatMap(config => Ownable { implicit ctx =>
+    div(config.flatMap(config => Ownable.unsafe { implicit ctx =>
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay(config)
         else sidebarWithExpand(config),
@@ -100,7 +100,7 @@ object GenericSidebar {
       zIndex := ZIndex.uiSidebar,
 
       config.map[VDomModifier] { config =>
-        config.flatMap[VDomModifier](config => Ownable { implicit ctx =>
+        config.flatMap[VDomModifier](config => Ownable.unsafe { implicit ctx =>
           VDomModifier(
             emitter(globalClose.take(1)).useLatest(onDomMount.asJquery).foreach { e =>
               e.sidebar("hide")

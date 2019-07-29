@@ -23,7 +23,7 @@ import monix.reactive.Observer
 object PageHeader {
 
   def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
-    div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+    div.thunkStatic(uniqueKey)(Ownable.unsafe { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
         backgroundColor <-- GlobalState.pageStyle.map(_.pageBgColor),

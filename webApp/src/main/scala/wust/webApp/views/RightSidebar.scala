@@ -28,7 +28,7 @@ object RightSidebar {
 
     GenericSidebar.right(
       toggleVar,
-      config = Ownable { implicit ctx => GenericSidebar.Config(
+      config = Ownable.unsafe { implicit ctx => GenericSidebar.Config(
         openModifier = VDomModifier(focusedNodeId.map(_.map(content( _, parentIdAction, viewRender))), openModifier)
       )}
     )

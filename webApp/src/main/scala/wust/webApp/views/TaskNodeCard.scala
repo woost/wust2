@@ -73,7 +73,7 @@ object TaskNodeCard {
     compactChildren: Boolean = false,
     dragTarget: NodeId => DragTarget = DragItem.Task.apply,
     dragPayload: NodeId => DragPayload = DragItem.Task.apply,
-  ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable { implicit ctx =>
+  ): VNode = div.thunkStatic(nodeId.toStringFast)(Ownable(GlobalState.urlConfig) { implicit ctx =>
 
     val nodeIdx = GlobalState.graph.map(_.idToIdxOrThrow(nodeId))
     val parentIdx = GlobalState.graph.map(_.idToIdxOrThrow(traverseState.parentId))

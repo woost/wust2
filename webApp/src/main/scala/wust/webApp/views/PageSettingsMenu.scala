@@ -33,7 +33,7 @@ object PageSettingsMenu {
   def toggleSidebar(channelId: NodeId): Unit = {
     //TODO better way to check whether sidebar is currently active for toggling.
     if(dom.document.querySelectorAll(".pusher.dimmed").length > 0) GlobalState.uiSidebarClose.onNext(())
-    else GlobalState.uiSidebarConfig.onNext(Ownable(implicit ctx => sidebarConfig( channelId)))
+    else GlobalState.uiSidebarConfig.onNext(Ownable(GlobalState.page)(implicit ctx => sidebarConfig( channelId)))
     ()
   }
 
@@ -211,7 +211,7 @@ object PageSettingsMenu {
 
   private def searchModalButton(node: Node)(implicit ctx: Ctx.Owner): VNode = {
     SharedViewElements.searchButtonWithIcon(
-      onClick.stopPropagation(Ownable(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
+      onClick.stopPropagation(Ownable(GlobalState.page)(implicit ctx => SearchModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 
@@ -222,7 +222,7 @@ object PageSettingsMenu {
       Elements.icon(Icons.users),
       span("Members"),
 
-      onClick.stopPropagation(Ownable(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
+      onClick.stopPropagation(Ownable(GlobalState.page)(implicit ctx => MembersModal.config( node))) --> GlobalState.uiModalConfig
     )
   }
 

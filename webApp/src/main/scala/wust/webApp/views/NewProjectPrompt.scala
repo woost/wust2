@@ -72,7 +72,7 @@ object NewProjectPrompt {
       label,
       onClickNewNamePrompt(
         header = "Create Project",
-        body = Ownable { implicit ctx => body },
+        body = Ownable.unsafe { implicit ctx => body },
         placeholder = Placeholder("Name of the Project"),
         showSubmitIcon = false,
         triggerSubmit = triggerSubmit,

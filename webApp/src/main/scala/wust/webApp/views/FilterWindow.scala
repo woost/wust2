@@ -39,14 +39,14 @@ object FilterWindow {
       initialWidth = 260,
       initialHeight = 250,
       resizable = false,
-      titleModifier = Ownable(implicit ctx =>
+      titleModifier = Ownable.unsafe(implicit ctx =>
         Rx{VDomModifier(
           backgroundColor := GlobalState.pageStyle().pageBgColor,
           color.white,
         )}
       ),
 
-      bodyModifier = Ownable { implicit ctx =>
+      bodyModifier = Ownable.unsafe { implicit ctx =>
         VDomModifier(
           padding := "5px",
 

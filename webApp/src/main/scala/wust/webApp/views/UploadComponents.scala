@@ -80,7 +80,7 @@ object UploadComponents {
           case t if t.startsWith("image/") =>
             val image = img(alt := fileName, downloadUrl(src), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
-              GlobalState.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
+              GlobalState.uiModalConfig.onNext(Ownable.value(ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
             })
           //TODO pdf preview does not work with "content-disposition: attachment"-header
