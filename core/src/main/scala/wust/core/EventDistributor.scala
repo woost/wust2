@@ -62,11 +62,11 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   ): Unit = if (events.nonEmpty) Future {
     scribe.info(s"Event distributor (${ subscribers.size } clients): $events from $origin.")
 
-    val groupedEvents = events.collect { case a: ApiEvent.NewGraphChanges => a }.groupBy(_.user)
+    val groupedEvents = events.groupByCollect[Node.User, GraphChanges]  { case a: ApiEvent.NewGraphChanges => (a.user, a.changes) }
     val replacements = events.collect { case a: ApiEvent.ReplaceNode => a }
     groupedEvents.foreach { case (user, changes) =>
       // merge all changes together for this user
-      val mergedChanges = changes.foldLeft(GraphChanges.empty)(_ merge _.changes)
+      val mergedChanges = changes.foldLeft(GraphChanges.empty)(_ merge _)
 
       // the author might have changed his own name in this change
       val updatedUser = mergedChanges.addNodes.reverseIterator.collectFirst { case node: Node.User if node.id == user.id => node }
