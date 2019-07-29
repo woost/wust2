@@ -129,28 +129,8 @@ package object collection {
   }
 
 
-  def distinctBuilder[T, That[_]](implicit cb: CanBuildFrom[That[T], T, That[T]]): mutable.Builder[T, That[T]] = {
-    val set = mutable.HashSet[T]()
-    val builder = cb.apply()
-
-    new mutable.Builder[T, That[T]] {
-      def +=(elem: T) = {
-        if (!set.contains(elem)) {
-          set += elem
-          builder += elem
-        }
-        this
-      }
-
-      def clear(): Unit = {
-        set.clear()
-        builder.clear()
-      }
-
-      def result(): That[T] = {
-        builder.result()
-      }
-    }
+  def distinctBuilder[T, That[_]](implicit cb: CanBuildFrom[That[T], T, That[T]]): DistinctBuilder[T, That[T]] = {
+    new DistinctBuilder[T, That[T]](cb.apply())
   }
 
   private def leftPadWithBuilder[T, That](len: Int, fillElem: T, elements: IterableLike[T, That])(implicit cb: CanBuildFrom[That, T, That]): That = {
