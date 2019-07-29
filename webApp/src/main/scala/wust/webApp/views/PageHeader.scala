@@ -68,7 +68,7 @@ object PageHeader {
     }
 
     val channelMembersList = Rx {
-      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers( pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0")) // line-height:0 fixes vertical alignment, minimum fit one member
+      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers( pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0", maxWidth := "200px")) // line-height:0 fixes vertical alignment, minimum fit one member
     }
 
     val permissionLevel = Rx {

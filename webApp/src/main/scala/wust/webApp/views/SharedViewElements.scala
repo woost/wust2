@@ -533,8 +533,11 @@ object SharedViewElements {
   }
 
   def channelMembers(channelId: NodeId)(implicit ctx: Ctx.Owner) = {
+    val marginLeftPx = 2
+    val sizePx = 22
     div(
       Styles.flex,
+      minWidth := s"${(marginLeftPx+sizePx) * 1.5}px", // show at least 1.5 avatars
       cls := "tiny-scrollbar",
       overflowX.auto, // make scrollable for long member lists
       overflowY.hidden, // wtf firefox and chrome...
@@ -546,9 +549,9 @@ object SharedViewElements {
 
         members.map(user => div(
           Avatar.user(user.id)(
-            marginLeft := "2px",
-            width := "22px",
-            height := "22px",
+            marginLeft := s"${marginLeftPx}px",
+            width := s"${sizePx}px",
+            height := s"${sizePx}px",
             cls := "avatar",
             marginBottom := "2px",
           ),
