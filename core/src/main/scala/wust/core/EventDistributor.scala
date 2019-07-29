@@ -23,20 +23,21 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import DbConversions._
 
-sealed trait NotifiedNode {
-  def node: Node
-  def parent: Option[Node]
-  def description: String
+sealed trait NotifiedKind
+object NotifiedKind {
+  case object NewNode extends NotifiedKind
+  case object NewMention extends NotifiedKind
+  case object NewAssigned extends NotifiedKind
+  case object NewInvite extends NotifiedKind
 }
-object NotifiedNode {
-  final case class NewNode(node: Node, parent: Option[Node]) extends NotifiedNode {
-    def description = s"New ${node.role}"
-  }
-  final case class NewMention(node: Node, parent: Option[Node]) extends NotifiedNode {
-    def description = s"Mentioned in ${node.role}"
+final case class NotifiedNode(node: Node, parent: Option[Node], kind: NotifiedKind) {
+  def description = kind match {
+    case NotifiedKind.NewNode => s"New ${node.role}"
+    case NotifiedKind.NewMention => s"Mentioned in ${node.role}"
+    case NotifiedKind.NewAssigned => s"Assigned to ${node.role}"
+    case NotifiedKind.NewInvite => s"Invited in ${node.role}"
   }
 }
-
 final case class NotificationData(userId: UserId, notifiedNodes: collection.Seq[NotifiedNode], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
@@ -91,7 +92,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   ): Unit = {
     // send out notifications to websocket subscribers
     if (replacements.nonEmpty) subscribers.foreach { client =>
-      if (origin.fold(true)(_ != client)) client.notify(_ => Future.successful(replacements))
+      if (origin.forall(_ != client)) client.notify(_ => Future.successful(replacements))
     }
   }
 
@@ -103,6 +104,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     // send out notifications to websocket subscribers
     subscribers.foreach { client =>
       if (origin.forall(_ != client)) client.notify { state =>
+
         state.flatMap(getWebsocketNotifications(author, graphChanges))
       }
     }
@@ -110,34 +112,67 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     //TODO: do not calcualte notified nodes twice, get notified users, then subscriptions/clients...
     // send out push notifications
 
-    val addNodesByNodeId: Map[NodeId, Node] = graphChanges.addNodes.collect {
-      case node: Node.Content if InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role) =>
-        node.id -> node
-    }(breakOut)
+    val notifiedNodes = distinctBuilder[NodeId, Array]
+    val addNodesByNodeId = mutable.HashMap[NodeId, Node]()
+    val unknownNodeIds = distinctBuilder[NodeId, Array]
+    @inline def addPotentiallyUnknownNodeId(nodeId: NodeId) = if (!addNodesByNodeId.isDefinedAt(nodeId)) unknownNodeIds += nodeId
 
-    // we just treat any mentioned id as a userid, we will not find a corresponding user for node mentions.
-    val mentionsByNode: collection.Map[NodeId, collection.Seq[UserId]] = graphChanges.addEdges.toSeq.groupByCollect[NodeId, UserId] { case e: Edge.Mention =>
-      e.nodeId -> UserId(e.mentionedId)
+    graphChanges.addNodes.foreach { node =>
+      addNodesByNodeId(node.id) = node
+      if (InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role)) {
+        notifiedNodes += node.id
+      }
     }
 
+    // we just treat any mentioned id as a userid, we will not find a corresponding user for node mentions.
+    val mentionsByNode = groupByBuilder[NodeId, UserId]
+    val assignmentsByNode = groupByBuilder[NodeId, UserId]
+    val invitesByNode = groupByBuilder[NodeId, UserId]
+    graphChanges.addEdges.foreach {
+      case e: Edge.Mention =>
+        notifiedNodes += e.nodeId
+        mentionsByNode += e.nodeId -> UserId(e.mentionedId)
+        addPotentiallyUnknownNodeId(e.nodeId)
+      case e: Edge.Assigned =>
+        notifiedNodes += e.nodeId
+        assignmentsByNode += e.nodeId -> e.userId
+        addPotentiallyUnknownNodeId(e.nodeId)
+      case e: Edge.Invite =>
+        notifiedNodes += e.nodeId
+        invitesByNode += e.nodeId -> e.userId
+        addPotentiallyUnknownNodeId(e.nodeId)
+      case _ =>
+        ()
+    }
 
-    (for {
-      //TODO: parent nodes need to be access-checked per notified user!!
-      parentNodesByChildId <- parentNodesByChildId(graphChanges)
-      notifications <- db.notifications.notifiedUsersByNodes(addNodesByNodeId.keys.toSeq)
+    val parentIdsByChildId = graphChanges.addEdges.toSeq.groupByCollect[NodeId, NodeId] {
+      case e: Edge.Child if notifiedNodes.contains(e.childId) =>
+        addPotentiallyUnknownNodeId(e.parentId)
+        e.childId -> e.parentId
+    }
+
+    val sendOutNotifications = for {
+      nodeLookupFromDb <- lookupNodesByNodeId(unknownNodeIds.result)
+      nodeLookup = nodeLookupFromDb ++ addNodesByNodeId
+      notifications <- db.notifications.notifiedUsersByNodes(notifiedNodes.result())
       notificationsWithParent = {
         val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
         notifications.foreach { n =>
           val notifiedNodes = mutable.ArrayBuffer[NotifiedNode]()
           val newNotifiedNodes = n.notifiedNodes.foreach { nodeId =>
-            val parents = parentNodesByChildId.get(nodeId)
-            val parent = parents.flatMap(_.headOption) //TODO: this parent is not check for access!!!!!
-            addNodesByNodeId.get(nodeId).foreach { node =>
-              mentionsByNode.get(nodeId) match {
-                case Some(users) if users.contains(n.userId) =>
-                  notifiedNodes += NotifiedNode.NewNode(node, parent)
+            //TODO: parent nodes need to be access-checked per notified user!!
+            val parents = parentIdsByChildId.get(nodeId).map(_.flatMap(nodeLookup.get))
+            val parent = parents.flatMap(_.headOption) //TODO: this parent is only the first and not checked for access!!!!!
+            nodeLookup.get(nodeId).foreach { node =>
+              (assignmentsByNode.result.get(nodeId), mentionsByNode.result.get(nodeId), invitesByNode.result.get(nodeId)) match {
+                case (Some(users), _, _) if users.contains(n.userId) =>
+                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewAssigned)
+                case (_, Some(users), _) if users.contains(n.userId) =>
+                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewMention)
+                case (_, _, Some(users)) if users.contains(n.userId) =>
+                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewInvite)
                 case _ =>
-                  notifiedNodes += NotifiedNode.NewNode(node, parent)
+                  if (parent.nonEmpty) notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewNode)
               }
             }
           }
@@ -159,25 +194,24 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       }
 
       ()
-    }).onComplete {
-      case Success(()) =>
-      case Failure(t) =>
-        scribe.error("Cannot send out push notifications", t)
+    }
+
+    sendOutNotifications.onComplete {
+      case Success(()) => ()
+      case Failure(t) => scribe.error("Cannot send out push notifications", t)
     }
   }
 
-  private def parentNodesByChildId(graphChanges: GraphChanges): Future[collection.Map[NodeId, collection.Seq[Node]]] = {
-    val childIdsByParentId = graphChanges.addEdges.toSeq.groupByCollect[NodeId, NodeId] { case e: Edge.Child => e.parentId -> e.childId }
-    if(childIdsByParentId.nonEmpty) {
-      db.node.get(childIdsByParentId.keys.toSeq).map { parentNodes =>
-        parentNodes.groupByForeach[NodeId, Node](add => {
+  private def lookupNodesByNodeId(nodes: collection.Seq[NodeId]): Future[collection.Map[NodeId, Node]] = {
+    if(nodes.nonEmpty) {
+      db.node.get(nodes).map { nodes =>
+        nodes.collect {
           // only take relavant parent roles
-          case parentNode if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(parentNode.role) =>
-            parentNode.id -> childIdsByParentId(parentNode.id).foreach(childId => add(childId, forClient(parentNode)))
-          case _ => ()
-        })
+          case node if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(node.role) =>
+            node.id -> forClient(node)
+        }(breakOut)
       }
-    } else Future.successful(Map.empty[NodeId, Seq[Node]])
+    } else Future.successful(Map.empty[NodeId, Node])
   }
 
   private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
