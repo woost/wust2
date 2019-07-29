@@ -237,6 +237,11 @@ lazy val root = project
     ),
     addCommandAlias(
       // same as devf, but with ~compile before doing anything
+      "ccdev",
+      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; ~compile; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
+    ),
+    addCommandAlias(
+      // same as dev, but with ~compile before doing anything
       "ccdevf",
       "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; ~compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
