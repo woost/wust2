@@ -217,7 +217,7 @@ self.addEventListener('push', e => {
             includeUncontrolled: true
         }).then(windowClients => {
 
-            if (e.data) {
+            if (e.data && e.data.subscribedId) { // guard against a next version that might not contain subscribedId
                 const data = e.data.json();
                 const nodeId = data.nodeId;
                 const parentId = data.parentId;
