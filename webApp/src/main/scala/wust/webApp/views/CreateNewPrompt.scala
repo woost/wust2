@@ -264,7 +264,7 @@ object CreateNewPrompt {
             childNodes -> ChildId(GlobalState.selectedNodes.now.map(_.nodeId))
           )
 
-          GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
+          GlobalState.uiModalConfig.onNext(Ownable.unsafe(implicit ctx => ModalConfig(header = header, description = description, modalModifier = VDomModifier(
             cls := "create-new-prompt",
           ))))
         } else {

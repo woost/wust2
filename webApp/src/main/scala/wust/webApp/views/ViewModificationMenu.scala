@@ -30,7 +30,7 @@ object ViewModificationMenu {
       }: ViewConfig => Unit)
     currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
 
-    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable { implicit ctx =>
+    div.thunkStatic(uniqueKey(channelId.toStringFast))(Ownable(GlobalState.page) { implicit ctx =>
       selector(channelId, currentView, None, Observer.empty)
     })
   }

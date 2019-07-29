@@ -118,7 +118,7 @@ object InputRow {
               val userNode = user.toNode
               userNode.data.updateName(sub.text).map(data => GraphChanges.addNode(userNode.copy(data = data)) merge sub.changes(userNode.id))
             }
-            GlobalState.uiModalConfig.onNext(Ownable(implicit ctx => newNamePromptModalConfig( sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
+            GlobalState.uiModalConfig.onNext(Ownable.unsafe(implicit ctx => newNamePromptModalConfig( sink, "Give yourself a name, so others can recognize you.", placeholder = Placeholder(Components.implicitUserName), onClose = () => { handle(); true }, enableMentions = false)))
           case _ => handle()
         }
       } else {

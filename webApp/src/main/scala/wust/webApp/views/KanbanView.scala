@@ -142,14 +142,13 @@ object KanbanView {
   }
 
   private def renderColumn(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
     viewRender: ViewRenderLike,
     selectedNodeIds:Var[Set[NodeId]],
     isTopLevel: Boolean = false,
-  ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable { implicit ctx =>
+  ): VNode = div.thunk(nodeId.hashCode)(isTopLevel)(Ownable(GlobalState.urlConfig) { implicit ctx =>
     val editable = Var(false)
     val node = Rx {
       val graph = GlobalState.graph()

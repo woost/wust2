@@ -190,7 +190,7 @@ object ThreadView {
     val nodeIds: Seq[NodeId] = group.viewMap(groupGraph.nodeIds)
     val key = nodeIds.head.toString
 
-    div.thunk(key)(nodeIds, GlobalState.screenSize.now)(Ownable { implicit ctx =>
+    div.thunk(key)(nodeIds, GlobalState.screenSize.now)(Ownable(GlobalState.urlConfig) { implicit ctx =>
       thunkGroup( focusState, groupGraph, group, directParentIds = directParentIds, transitiveParentIds = transitiveParentIds, isTopLevel = isTopLevel)
     })
   }
@@ -218,7 +218,7 @@ object ThreadView {
         group.map { nodeIdx =>
           val nodeId = ParentId(groupGraph.nodeIds(nodeIdx))
 
-          div.thunk(nodeId.toStringFast)(GlobalState.screenSize.now)(Ownable { implicit ctx =>
+          div.thunk(nodeId.toStringFast)(GlobalState.screenSize.now)(Ownable(GlobalState.urlConfig) { implicit ctx =>
             val nodeIdList = nodeId :: Nil
 
             val showReplyField = Var(false)

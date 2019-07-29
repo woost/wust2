@@ -273,7 +273,7 @@ object GraphChangesAutomationUI {
         )
       },
       cursor.pointer,
-      onClick(Ownable(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig
+      onClick(Ownable(GlobalState.urlConfig)(implicit ctx => modalConfig( focusedId, viewRender))) --> GlobalState.uiModalConfig
     )
   }
 

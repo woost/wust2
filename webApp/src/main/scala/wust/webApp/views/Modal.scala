@@ -53,7 +53,7 @@ object Modal {
   def modal(config: Observable[Ownable[ModalConfig]], globalClose: Observable[Unit] with Observer[Unit]): VNode = div(
     cls := "ui modal",
     config.map[VDomModifier] { configRx =>
-      configRx.flatMap(config => Ownable { implicit ctx =>
+      configRx.flatMap(config => Ownable.unsafe { implicit ctx =>
         VDomModifier(
           key := scala.util.Random.nextInt, // force new elem on every render. fixes slowly rendering modal in firefox
           config.modalModifier,

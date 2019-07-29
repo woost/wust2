@@ -167,8 +167,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
 
   def createManualOwner(): Ctx.Owner = new Ctx.Owner(new Rx.Dynamic[Unit]((_,_) => (), None))
-  def withManualOwner(f: Ctx.Owner => VDomModifier): VDomModifier = {
-    val ctx = createManualOwner()
+  def withManualOwner(f: Ctx.Owner => VDomModifier, lifetime: Rx[Any]): VDomModifier = {
+    implicit val ctx = createManualOwner()
+    lifetime.triggerLater { ctx.contextualRx.kill() }
     VDomModifier(f(ctx), dsl.onDomUnmount foreach { ctx.contextualRx.kill() })
   }
 

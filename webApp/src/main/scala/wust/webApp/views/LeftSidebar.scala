@@ -34,7 +34,7 @@ object LeftSidebar {
 
     GenericSidebar.left(
       GlobalState.leftSidebarOpen,
-      config = Ownable { implicit ctx =>
+      config = Ownable.unsafe { implicit ctx =>
         val toplevelChannels = toplevelChannelsRx
         val invites = invitesRx
 
@@ -296,10 +296,10 @@ object LeftSidebar {
     )
   }
 
-  private def channels(toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channels(toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable.unsafe { implicit ctx =>
 
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable.unsafe { implicit ctx =>
         val children = Rx {
           val graph = GlobalState.rawGraph()
           findChildren(graph, traverseState)
@@ -371,7 +371,7 @@ object LeftSidebar {
     )
   }
 
-  private def channelIcons(toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def channelIcons(toplevelChannels: Rx[Seq[NodeId]], size: Int): VDomModifier = div.thunkStatic(uniqueKey)(Ownable.unsafe { implicit ctx =>
     val indentFactor = 3
     val maxDepth = 6
     val defaultPadding = CommonStyles.channelIconDefaultPadding
@@ -404,7 +404,7 @@ object LeftSidebar {
     }
 
     def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
+      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable.unsafe { implicit ctx =>
         val children = Rx {
           val graph = GlobalState.rawGraph()
           findChildren(graph, traverseState)

@@ -53,13 +53,13 @@ object ViewSwitcher {
   }
 
   def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None): VNode = {
-    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
+    div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable(GlobalState.page) { implicit ctx => modifier(channelId, currentView, initialView) })
   }
 
   def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
-    def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+    def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable(GlobalState.page) { implicit ctx =>
       VDomModifier(
         div(freeSolid.faPlus, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
         UI.dropdownMenu(VDomModifier(

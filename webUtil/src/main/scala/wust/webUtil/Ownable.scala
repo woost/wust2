@@ -4,14 +4,15 @@ import cats.Monad
 import outwatch.AsVDomModifier
 import rx._
 
-class Ownable[T](get: Ctx.Owner => T) extends (Ctx.Owner => T) {
+class Ownable[T](get: Ctx.Owner => T, val lifetime: Rx[Any]) extends (Ctx.Owner => T) {
   @inline final def apply(ctx: Ctx.Owner): T = get(ctx)
-  @inline final def map[R](f: T => R): Ownable[R] = Ownable(get andThen f)
-  @inline final def flatMap[R](f: T => Ownable[R]): Ownable[R] = Ownable(ctx => f(get(ctx))(ctx))
+  @inline final def map[R](f: T => R): Ownable[R] = new Ownable(get andThen f, lifetime)
+  @inline final def flatMap[R](f: T => Ownable[R]): Ownable[R] = new Ownable(ctx => f(get(ctx))(ctx), lifetime)
 }
 object Ownable {
-  @inline def apply[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get)
-  @inline def value[T](get: T): Ownable[T] = new Ownable[T](_ => get)
+  @inline def unsafe[T](get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get, Var(()))
+  @inline def apply[T](lifetime: Rx[Any])(get: Ctx.Owner => T): Ownable[T] = new Ownable[T](get, lifetime)
+  @inline def value[T](get: T): Ownable[T] = unsafe(_ => get)
 
   implicit object monad extends Monad[Ownable] {
     override def pure[A](x: A): Ownable[A] = Ownable.value(x)
@@ -26,5 +27,5 @@ object Ownable {
   // IMPORTANT: if you are using this in VNodes without a key, you are potentially fucked. so don't.
   // fucked in the sense of: if the dom element is unmounted and mounted again by snabbdom (which can happen),
   // then the owner is killed and can never be recovered. the element does not react to changes anymore
-  implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable(_))
+  implicit def asVDomModifier[T: AsVDomModifier]: AsVDomModifier[Ownable[T]] = ownable => outwatchHelpers.withManualOwner(ownable(_), ownable.lifetime)
 }
