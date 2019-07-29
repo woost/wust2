@@ -84,7 +84,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     publishReplacements(replacements, origin)
   }
 
-  //TODO do not send replacements to everybody, this leaks information. We use replacenodes primarily for merging users.
+  // we send replacements without a check, because they are normally only about users
+  //TODO we should not send replacements to everybody, this leaks information. We use replacenodes primarily for merging users.
   // checking whether a user is of interest for a client would need to check whether two users are somehow in one workspace together.
   private def publishReplacements(
     replacements: List[ApiEvent.ReplaceNode],
@@ -223,8 +224,6 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             case e: Edge.Content => List(e.sourceId, e.targetId)
           })
 
-          // we send replacements without a check, because they are normally only about users
-          // TODO: actually check whether we have access to the replaced nodes
           if(filteredChanges.isEmpty) Nil
           else NewGraphChanges.forPrivate(author, filteredChanges) :: Nil
         }
