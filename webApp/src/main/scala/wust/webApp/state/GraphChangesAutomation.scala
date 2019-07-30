@@ -698,7 +698,7 @@ object GraphChangesAutomation {
 
     val newChanges = GraphChanges.from(addNodes = addNodes, addEdges = addEdges, delEdges = delEdges)
     // recursive if they were automation, we might need to do another one based on the automated changes.
-    if (automatedNodes.nonEmpty) enrich(userId, graph, viewConfig, newChanges, visitedAutomateParent ++ newAutomateParentChild)
+    if (automatedNodes.nonEmpty) enrich(userId, graph.applyChanges(newChanges), viewConfig, newChanges, visitedAutomateParent ++ newAutomateParentChild)
     else newChanges
   }
 
