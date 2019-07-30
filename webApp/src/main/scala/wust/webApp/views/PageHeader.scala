@@ -55,7 +55,7 @@ object PageHeader {
           UnreadComponents.readObserver(
             node.id,
             labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
-          ), 
+          ),
           onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
           float.right,
           alignSelf.center,
@@ -63,22 +63,24 @@ object PageHeader {
       )
     }
 
-    val channelNotification = UnreadComponents.notificationsButton( pageNodeId, modifiers = VDomModifier(
-      marginLeft := "5px",
-    )).foreach(view => GlobalState.urlConfig.update(_.focus(view)))
+    val channelNotification = UnreadComponents
+      .notificationsButton( pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
+      .foreach(view => GlobalState.urlConfig.update(_.focus(view)))
 
     val hasBigScreen = Rx {
       GlobalState.screenSize() != ScreenSize.Small
     }
 
     val channelMembersList = Rx {
-      VDomModifier.ifTrue(hasBigScreen())(SharedViewElements.channelMembers( pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0", maxWidth := "200px")) // line-height:0 fixes vertical alignment, minimum fit one member
+      VDomModifier.ifTrue(hasBigScreen())(
+        // line-height:0 fixes vertical alignment, minimum fit one member
+        SharedViewElements.channelMembers(pageNodeId).apply(marginLeft := "5px", marginRight := "5px", lineHeight := "0", maxWidth := "200px")
+      )
     }
 
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), pageNodeId)
     }
-
 
     val filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
@@ -92,10 +94,10 @@ object PageHeader {
       )
     )
 
-    val breadCrumbs = Rx{ 
+    val breadCrumbs = Rx{
       VDomModifier.ifTrue(GlobalState.pageHasNotDeletedParents())(
         BreadCrumbs(flexShrink := 1, marginRight := "10px")
-      ) 
+      )
     }
 
     VDomModifier(
