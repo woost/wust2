@@ -34,6 +34,7 @@ object PageHeader {
 
   private def pageRow(pageNodeId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VDomModifier = {
 
+    val pageStyle = PageStyle.ofNode(pageNodeId)
     val pageNode = Rx {
       GlobalState.graph().nodesByIdOrThrow(pageNodeId)
     }
@@ -42,10 +43,14 @@ object PageHeader {
       val node = pageNode()
       div(
         Components.renderNodeCardMod(node, Components.renderAsOneLineText( _), projectWithIcon = false),
+        backgroundColor := pageStyle.pageBgColor,
+
         cls := "pageheader-channeltitle",
-        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
         Components.showHoveredNode( node.id),
+        registerDragContainer,
+        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+
         div(
           UnreadComponents.readObserver(
             node.id,
@@ -94,7 +99,7 @@ object PageHeader {
     }
 
     VDomModifier(
-      backgroundColor := PageStyle.ofNode(pageNodeId).pageBgColor,
+      backgroundColor := pageStyle.pageBgColor,
       div(
         Styles.flexStatic,
 

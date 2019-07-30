@@ -30,7 +30,7 @@ import wust.util.macros.InlineList
 import wust.webApp._
 import wust.webApp.dragdrop._
 import wust.webApp.jsdom.{IntersectionObserver, IntersectionObserverOptions}
-import wust.webApp.state.{EmojiReplacer, FocusPreference, GlobalState, InputMention}
+import wust.webApp.state.{PageStyle, EmojiReplacer, FocusPreference, GlobalState, InputMention}
 import wust.webApp.views.UploadComponents._
 
 import scala.collection.{breakOut, mutable}

@@ -292,7 +292,7 @@ object CommonStyles extends StyleSheet.Standalone {
     (boxShadow := "none").important,
   )
   ".pageheader-channeltitle.nodecard.project" - (
-    backgroundColor.transparent,
+    // backgroundcolor set in code dynamically to node color
     color.white,
   )
   ".pageheader-channeltitle.nodecard .nodecard-content" - (
