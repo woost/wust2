@@ -251,7 +251,7 @@ object GlobalStateFactory {
 
     // if there is a page change and we got an sw update, we want to reload the page
     // TODO: ask user to reload? because he might have unstored changes...
-    appUpdateTrigger.merge.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
+    appUpdateTrigger.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
       scribe.info("Going to reload page, due to SW update.")
       // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
       window.location.reload(flag = false)
