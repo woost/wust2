@@ -1,21 +1,57 @@
-// https://developers.google.com/web/tools/workbox/guides/precache-files/webpack
-workbox.precaching.precacheAndRoute(self.__precacheManifest || []);
+importScripts('/workbox-v4.3.1/workbox-sw.js');
+workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 
-// cache google fonts
 workbox.routing.registerRoute(
-  new RegExp('https://fonts.(?:googleapis|gstatic).com/(.*)'),
+  /\.(?:html)$/,
+  new workbox.strategies.NetworkFirst({
+    cacheName: 'html-resources',
+  })
+);
+
+workbox.routing.registerRoute(
+  /\.(?:js|css)$/,
   new workbox.strategies.CacheFirst({
-    cacheName: 'google-fonts',
+    cacheName: 'static-resources',
+  })
+);
+
+workbox.routing.registerRoute(
+  new RegExp('\\.(?:png|gif|jpg|jpeg|svg)$'),
+  new workbox.strategies.CacheFirst({
+    cacheName: 'images',
     plugins: [
       new workbox.expiration.Plugin({
-        maxEntries: 30,
-      }),
-      new workbox.cacheableResponse.Plugin({
-        statuses: [0, 200]
+        maxEntries: 50,
+        purgeOnQuotaError: true,
       }),
     ],
   }),
 );
+
+workbox.routing.registerRoute(
+  /^https:\/\/fonts\.googleapis\.com/,
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: 'google-fonts-stylesheets',
+  })
+);
+
+workbox.routing.registerRoute(
+  /^https:\/\/fonts\.gstatic\.com/,
+  new workbox.strategies.CacheFirst({
+    cacheName: 'google-fonts-webfonts',
+    plugins: [
+      new workbox.cacheableResponse.Plugin({
+        statuses: [0, 200],
+      }),
+      new workbox.expiration.Plugin({
+        maxAgeSeconds: 60 * 60 * 24 * 365,
+        maxEntries: 30,
+        purgeOnQuotaError: true,
+      }),
+    ],
+  })
+);
+
 
 // when a new serviceworker is available:
 // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting

@@ -7,7 +7,6 @@ import wust.facades.emojijs.EmojiConvertor
 import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
 import wust.facades.marked.Marked
-import wust.facades.woostConfig.WoostConfig
 import fontAwesome._
 import monix.execution.Cancelable
 import monix.reactive.{Observable, Observer}

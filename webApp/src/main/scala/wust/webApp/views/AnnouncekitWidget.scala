@@ -33,44 +33,13 @@ object AnnouncekitWidget {
 
   def widget(implicit ctx: Ctx.Owner) = {
     val unreadCount = Var(0)
-    val announcekitLoaded = Var(false)
-
-    ProductionOnly {
-      Try {
-        announcekit.push(new AnnouncekitOptions {
-          widget = s"https://announcekit.app/widget/$widgetId"
-          name = widgetId
-          version = 2
-          data = new AnnouncekitDataOptions {
-            user_id = GlobalState.userId.now.toUuid.toString
-            user_name = GlobalState.user.now.name
-          }
-        })
-
-        announcekit.on("widget-unread", { e =>
-          // Called when unread post count of specified widget has been updated
-          unreadCount() = e.unread.asInstanceOf[Int]
-        })
-
-        announcekitLoaded() = true
-      }
-    }
 
     a(
       "What's new? ",
       href := "https://announcekit.app/woost/announcements",
       safeTargetBlank,
-      ProductionOnly {
-        Rx {
-          VDomModifier.ifTrue(announcekitLoaded())(
-            onClick.preventDefault.foreach {
-              Try {
-                announcekit.asInstanceOf[js.Dynamic].selectDynamic(s"widget$$$widgetId").open()
-              }
-              ()
-            }
-          )
-        }
+      initAnounceKit(unreadCount) map { initF =>
+        onClick.preventDefault.foreach(initF()),
       },
       color.white,
       // like semantic-ui tiny button
@@ -79,10 +48,40 @@ object AnnouncekitWidget {
       padding := ".58928571em 1.125em .58928571em",
       cursor.pointer,
       Rx {
-        VDomModifier.ifTrue(unreadCount() > 0)(
+          VDomModifier.ifTrue(unreadCount() > 0)(
           freeSolid.faGift
         )
       }
     )
   }
+
+
+  private def initAnounceKit(unreadCount: Var[Int]): Option[() => Unit] = ProductionOnly {
+    Try {
+      announcekit.push(new AnnouncekitOptions {
+        widget = s"https://announcekit.app/widget/$widgetId"
+        name = widgetId
+        version = 2
+        data = new AnnouncekitDataOptions {
+          user_id = GlobalState.userId.now.toUuid.toString
+          user_name = GlobalState.user.now.name
+        }
+      })
+
+      announcekit.on("widget-unread", { e =>
+        // Called when unread post count of specified widget has been updated
+        unreadCount() = e.unread.asInstanceOf[Int]
+      })
+
+      { () =>
+        Try(
+          announcekit
+            .asInstanceOf[js.Dynamic]
+            .selectDynamic(s"widget$$$widgetId")
+            .open()
+        )
+        ()
+      }
+    }
+  }.flatMap(_.toOption)
 }

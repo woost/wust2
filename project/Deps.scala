@@ -128,7 +128,7 @@ object Deps {
   }
   val javaEmojis = dep("com.github.GRBurst" % "emoji-java" % "24b956c")
 
-  val webpackVersion = "4.34.0"
+  val webpackVersion = "4.38.0"
   val webpackDevServerVersion = "3.2.1"
 
   object npm {
@@ -167,12 +167,14 @@ object Deps {
         // "node-sass" -> "4.7.2" ::
         // "sass-loader" -> "6.0.7" ::
         "css-loader" -> "2.1.0" ::
+        "file-loader" -> "4.1.0" ::
+        "webpack-concat-plugin" -> "3.0.0" ::
+        "app-manifest-loader" -> "2.4.0" ::
         "style-loader" -> "0.23.1" ::
         "extract-text-webpack-plugin" -> "4.0.0-beta.0" ::
         "webpack-merge" -> "4.2.1" ::
         "copy-webpack-plugin" -> "5.0.0" ::
-        "workbox-webpack-plugin" -> "4.3.1" ::
-        "optimize-css-assets-webpack-plugin" -> "5.0.1" ::
+        "optimize-css-assets-webpack-plugin" -> "5.0.3" ::
         "cssnano" -> "4.1.10" ::
         Nil
   }

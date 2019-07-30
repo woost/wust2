@@ -6,7 +6,6 @@ import boopickle.Default._
 import chameleon.ext.boopickle._
 import covenant.http._
 import monix.reactive.subjects.PublishSubject
-import wust.facades.woostConfig.WoostConfig
 import org.scalajs.dom.window
 import rx._
 import wust.webUtil.outwatchHelpers._

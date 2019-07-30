@@ -17,7 +17,7 @@ import wust.graph._
 import wust.ids._
 import wust.util.StringOps
 import wust.util.collection._
-import wust.webApp.Icons
+import wust.webApp.{WoostConfig, Icons}
 import wust.webApp.jsdom.FileReaderOps
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
@@ -57,7 +57,7 @@ object Importing {
     def all(implicit ctx: Ctx.Owner): List[Source] = List(
 
       Source(
-        icon = img(src := "/trello.svg"),
+        icon = img(src := WoostConfig.value.urls.trelloIcon),
         title = "Trello",
         description = "Trello Board (JSON)",
         inputs = List(
@@ -75,7 +75,7 @@ object Importing {
       ),
 
       Source(
-        icon = img(src := "/wunderlist.png"),
+        icon = img(src := WoostConfig.value.urls.wunderlistIcon),
         title = "Wunderlist",
         description = "Wunderlist Export (JSON)",
         inputs = List(
@@ -88,7 +88,7 @@ object Importing {
       ),
 
       Source.withForm[String](
-        icon = img(src := "/meistertask.svg"),
+        icon = img(src := WoostConfig.value.urls.meistertaskIcon),
         title = "MeisterTask",
         description = "MeisterTask Project (CSV)",
         inputs = List(

@@ -34,7 +34,7 @@ import wust.sdk._
 import wust.util.StringOps
 import wust.webApp.jsdom.{ Navigator, ServiceWorker }
 import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
-import wust.webApp.{ Client, DevOnly }
+import wust.webApp.{ Client, DevOnly, WoostConfig }
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
@@ -47,7 +47,7 @@ object GlobalState {
   val browserIsOnline: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val appUpdateIsAvailable: Observable[Unit] = if (!LinkingInfo.developmentMode) ServiceWorker.register() else Observable.empty
+  val appUpdateIsAvailable: Observable[Unit] = if (true) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,

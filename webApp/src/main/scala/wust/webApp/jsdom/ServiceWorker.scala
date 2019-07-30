@@ -12,13 +12,13 @@ import scala.util.{Failure, Success, Try}
 
 object ServiceWorker {
 
-  def register(): Observable[Unit] = {
+  def register(location: String): Observable[Unit] = {
     val subject = PublishSubject[Unit]()
 
     Navigator.serviceWorker.foreach { sw =>
       // Use the window load event to keep the page load performant
       window.addEventListener("load", (_: Any) => {
-        Try(sw.register("sw.js")).toEither match {
+        Try(sw.register(location)).toEither match {
           case Right(registered) => registered.toFuture.onComplete {
             case Success(registration) =>
               scribe.info(s"SW successfully registered")

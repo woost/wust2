@@ -1,56 +1,51 @@
 const Webpack = require('webpack');
-const CopyPlugin = require("copy-webpack-plugin");
 const CleanPlugin = require("clean-webpack-plugin");
-const CompressionPlugin = require("compression-webpack-plugin");
-const zopfli = require("@gfx/zopfli");
-const BrotliPlugin = require('brotli-webpack-plugin');
 const ClosureCompilerPlugin = require("webpack-closure-compiler");
-// const SriPlugin = require("webpack-subresource-integrity");
 const HtmlPlugin = require("html-webpack-plugin");
-const HtmlIncludeAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
-const Path = require('path');
 const OptimizeCssAssetsPlugin = require('optimize-css-assets-webpack-plugin');
-
-// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
-// this file will automatically be picked up by webpack from that folder.
+const ConcatPlugin = require('webpack-concat-plugin');
+const CopyPlugin = require("copy-webpack-plugin");
+const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
+const uglifyJs = require("uglify-js")
+const Path = require('path');
 const { execSync } = require('child_process');
-// stderr is sent to stdout of parent process
-// you can set options.stdio if you want it to go elsewhere
-const rootFolder = Path.resolve(__dirname, '../../../../..');
-process.env._JAVA_OPTIONS = "-Xmx2G";
-execSync('cd ' + rootFolder + '; sbt cssJVM/run');
 
+// const SriPlugin = require("webpack-subresource-integrity");
+// const CompressionPlugin = require("compression-webpack-plugin");
+// const zopfli = require("@gfx/zopfli");
+// const BrotliPlugin = require('brotli-webpack-plugin');
+
+//[hash] - Returns the build hash. If any portion of the build changes, this changes as well.
+//[chunkhash] - Returns an entry chunk-specific hash. Each entry defined in the configuration receives a hash of its own. If any portion of the entry changes, the hash will change as well. [chunkhash] is more granular than [hash] by definition.
+//[contenthash] - Returns a hash generated based on content.
 
 const commons = require('./webpack.base.common.js');
-const dirs = commons.woost.dirs;
-const appName = commons.woost.appName;
-const cssFiles = commons.woost.cssFiles;
-const htmlTemplateFile = commons.woost.htmlTemplateFile;
-const staticIncludeAssets = commons.woost.staticIncludeAssets;
-const staticCopyAssets = commons.woost.staticCopyAssets;
-const versionString = commons.woost.versionString;
+const woost = commons.woost;
+woost.templateParameters.title = "Woost";
+const outputFileNamePattern = '[name].[chunkhash]';
+
 module.exports = commons.webpack;
-
-// set up output path
-module.exports.output.path = Path.join(__dirname, "dist");
-// module.exports.output.publicPath = "/";
-
-// copy some assets to dist folder
-//TODO entry and handle with loader (hash)
-function copyAssets(context) {
-    var patterns = [{ from: "**/*", to: module.exports.output.path }];
-    return new CopyPlugin(patterns, { context: context });
-}
-module.exports.plugins.push(copyAssets(dirs.assets));
-module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
-
-// file name pattern for outputs with hash
-const filenamePattern = '[name].[chunkhash]';
-module.exports.output.filename = filenamePattern + '.js';
-// module.exports.output.publicPath = "/assets/"
-
 module.exports.mode = 'production';
+module.exports.output.path = Path.join(__dirname, "dist");
+module.exports.output.filename = outputFileNamePattern + '.js';
+
+woost.files.css.forEach(file => module.exports.entry[woost.appName].push(file));
+module.exports.entry[woost.appName] = module.exports.entry[woost.appName].concat(woost.files.vendor.assets).concat(woost.files.assets);
+module.exports.optimization = {
+    // https://github.com/google/closure-compiler-js#webpack
+    minimize: false, // disable default uglifyJs
+
+    splitChunks: {
+        cacheGroups: {
+            dependencies: {
+                test: /[\\/]node_modules[\\/]/,
+                name: 'dependencies',
+                chunks: 'all'
+            }
+        }
+    }
+};
 
 ////////////////////////////////////////
 // clean
@@ -58,13 +53,16 @@ module.exports.mode = 'production';
 module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 
 ////////////////////////////////////////
+// generate css files from scalacss
+////////////////////////////////////////
+// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
+// this file will automatically be picked up by webpack from that folder.
+process.env._JAVA_OPTIONS = "-Xmx2G";
+execSync('cd ' + woost.dirs.root + '; sbt cssJVM/run');
+
+////////////////////////////////////////
 // closure compiler
 ////////////////////////////////////////
-// https://github.com/google/closure-compiler-js#webpack
-module.exports.optimization = {
-    minimize: false // disable default uglifyJs
-};
-
 process.env._JAVA_OPTIONS = "-Xmx2G";
 module.exports.plugins.push(new ClosureCompilerPlugin({
   compiler: {
@@ -80,40 +78,75 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 }));
 
 ////////////////////////////////////////
-// html template generate index.html
+// html template generate html files
 ////////////////////////////////////////
-//TODO does not trigger when only changing html template file
-module.exports.plugins.push(new HtmlPlugin({
-    versionString: versionString,
-    title: 'Woost',
-    template: htmlTemplateFile,
-    favicon: Path.join(dirs.assets, 'favicon.ico'),
-    minify: {
+woost.files.html.forEach(htmlFile => {
+    const addIndexHtml = function(audience, filename) {
+        woost.templateParameters.audience = audience;
+        module.exports.plugins.push(new HtmlPlugin({
+            templateParameters: woost.templateParametersFunction,
+            filename: filename,
+            template: htmlFile,
+            chunks: ["dependencies", woost.appName],
+            chunksSortMode: 'manual',
+            minify: minifyOpts
+        }));
+    }
+    const addOtherHtml = function() {
+        module.exports.plugins.push(new HtmlPlugin({
+            filename: Path.basename(htmlFile),
+            template: htmlFile,
+            chunks: [],
+            minify: minifyOpts,
+            inject: false
+        }));
+    }
+    const isIndexHtml = Path.basename(htmlFile) == "index.html";
+    const minifyOpts = {
         // https://github.com/kangax/html-minifier#options-quick-reference
         removeComments: true,
         collapseWhitespace: true,
         removeAttributeQuotes: true
-    },
-}));
+    };
 
-module.exports.plugins.push(new HtmlIncludeAssetsPlugin({
-    assets: staticIncludeAssets,
-    append: false
-}));
-
-
-////////////////////////////////////////
-// styles generated from scss
-////////////////////////////////////////
-//module.exports.entry[appName].push(Path.join(dirs.assets, "style.scss"));
-cssFiles.forEach(function (file) {
-    module.exports.entry[appName].push(file);
-});
-const extractSass = new ExtractTextPlugin({
-    filename: filenamePattern + '.css'
+    if (isIndexHtml) {
+        // for index html we generate two files, one for staging, one for app. with a staging audience to enable certain features.
+        addIndexHtml("app", "index.html");
+        addIndexHtml("staging", "staging.html");
+    } else {
+        addOtherHtml();
+    }
 });
 
-module.exports.plugins.push(extractSass);
+////////////////////////////////////////
+// merge vendor js files into one file
+////////////////////////////////////////
+module.exports.plugins.push(new ConcatPlugin({
+    uglify: true,
+    sourceMap: false,
+    injectType: 'prepend',
+    name: 'external',
+    fileName: '[name].[hash].js',
+    filesToConcat: woost.files.vendor.js
+}));
+
+////////////////////////////////////////
+// merge sw files into one file
+////////////////////////////////////////
+module.exports.plugins.push(new ConcatPlugin({
+    uglify: true,
+    sourceMap: false,
+    injectType: 'none',
+    name: 'sw',
+    fileName: '[name].[hash].js',
+    filesToConcat: woost.files.sw
+}));
+
+////////////////////////////////////////
+// bundle css files
+////////////////////////////////////////
+const extractCss = new ExtractTextPlugin({ filename: outputFileNamePattern + '.css' });
+module.exports.plugins.push(extractCss);
 module.exports.plugins.push(
     new OptimizeCssAssetsPlugin({
       assetNameRegExp: /\.css$/g,
@@ -126,17 +159,51 @@ module.exports.plugins.push(
 );
 // module.exports.module.rules.push({
 //     test: /style\.scss$/,
-//     use: extractSass.extract({
+//     use: extractCss.extract({
 //         use: [{ loader: "css-loader" }, { loader: "sass-loader" }],
 //     })
 // });
 module.exports.module.rules.push({
     test: /\.css$/,
-    use: extractSass.extract({
+    use: extractCss.extract({
         use: [{ loader: "css-loader" }],
     })
 });
 
+////////////////////////////////////////
+// copy workbox files to dist for serviceworker to include, no hashing, just the files.
+////////////////////////////////////////
+module.exports.plugins.push(new CopyPlugin(woost.files.vendor.workbox.map(f => { return { "from": f, "to": `${Path.basename(woost.dirs.workbox)}/` } })));
+
+////////////////////////////////////////
+// Copy fonts/icons/images to output path
+////////////////////////////////////////
+const fileLoader = {
+    loader: 'file-loader',
+    options: {
+        name: 'assets/[name].[contenthash].[ext]',
+    },
+};
+module.exports.module.rules.push({
+    test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
+    use: [ fileLoader ]
+});
+module.exports.module.rules.push({
+      test: /(\.webmanifest|browserconfig\.xml)$/,
+      use: [
+        fileLoader,
+        {
+            loader: "app-manifest-loader",
+            options: {
+                publicPath: "/"
+            }
+        }
+      ]
+});
+
+////////////////////////////////////////
+// Generate Sourcemaps
+////////////////////////////////////////
 if(process.env.SOURCEMAPS == 'true') {
     module.exports.devtool = "source-map"; // activate sourcemaps in production
 
@@ -157,21 +224,21 @@ if(process.env.SOURCEMAPS == 'true') {
 // }));
 
 ////////////////////////////////////////
-// compression
+// pre-compression of assets with brotli/zopfli
 ////////////////////////////////////////
-var compressFiles = /\.(js|map|css|html|svg)$/;
-module.exports.plugins.push(new CompressionPlugin({
-  test: compressFiles,
-  filename: "[path].gz[query]",
-  compressionOptions: {
-  },
-  algorithm(input, compressionOptions, callback) {
-      return zopfli.gzip(input, compressionOptions, callback);
-  },
-  minRatio: 1.0, // always compress
-}));
-module.exports.plugins.push(new BrotliPlugin({
-  test: compressFiles,
-  asset: '[path].br[query]',
-  minRatio: 1.0, // always compress
-}));
+// var compressFiles = /\.(js|map|css|html|svg)$/;
+// module.exports.plugins.push(new CompressionPlugin({
+//   test: compressFiles,
+//   filename: "[path].gz[query]",
+//   compressionOptions: {
+//   },
+//   algorithm(input, compressionOptions, callback) {
+//       return zopfli.gzip(input, compressionOptions, callback);
+//   },
+//   minRatio: 1.0, // always compress
+// }));
+// module.exports.plugins.push(new BrotliPlugin({
+//   test: compressFiles,
+//   asset: '[path].br[query]',
+//   minRatio: 1.0, // always compress
+// }));

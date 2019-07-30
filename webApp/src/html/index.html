@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <% if (htmlWebpackPlugin.options.minify) { %>
+    <% if (audience != "dev") { %>
     <!-- TODO: better detection for prod? -->
     <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -18,11 +18,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no"/>
     <meta name="robots" content="noindex">
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#6636b7">
+    <link rel="apple-touch-icon" sizes="180x180" href="/<%= require('../../assets/apple-touch-icon.png') %>">
+    <link rel="icon" type="image/png" sizes="32x32" href="/<%= require('../../assets/favicon-32x32.png') %>">
+    <link rel="icon" type="image/png" sizes="16x16" href="/<%= require('../../assets/favicon-16x16.png') %>">
+    <link rel="shortcut icon" href="/<%= require('../../assets/favicon.ico') %>">
+    <link rel="mask-icon" href="/<%= require('../../assets/safari-pinned-tab.svg') %>" color="#6636b7">
+    <% if (audience != "app") { %>
+        <link rel="manifest" href="/<%= require('../../assets/site.webmanifest') %>">
+    <% } else { %>
+        <link rel="manifest" href="/<%= require('../../assets/staging.webmanifest') %>">
+    <% } %>
+
     <meta name="apple-mobile-web-app-title" content="Woost">
     <meta name="application-name" content="Woost">
     <meta name="msapplication-TileColor" content="#6636b7">
@@ -30,11 +36,24 @@
 
     <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet" crossorigin="anonymous">
 
-    <title><%= htmlWebpackPlugin.options.title %></title>
+    <title><%= title %></title>
 
     <script>
         window.woostConfig = {
-            "versionString": "<%= htmlWebpackPlugin.options.versionString %>"
+            "versionString": "<%= versionString %>",
+            "audience": "<%= audience %>",
+            "urls": {
+                "emojiSheet": "/<%= require('../../target/scala-2.12/scalajs-bundler/main/node_modules/emoji-datasource-twitter/img/twitter/sheets/64.png') %>",
+                "emojiPickerSheet": "/<%= require('../../target/scala-2.12/scalajs-bundler/main/node_modules/wdt-emoji-bundle/sheets/sheet_twitter_64_indexed_128.png') %>",
+                "halfCircle": "/<%= require('../../assets/halfCircle.svg') %>",
+                "wunderlistIcon": "/<%= require('../../assets/wunderlist.png') %>",
+                "trelloIcon": "/<%= require('../../assets/trello.svg') %>",
+                "meistertaskIcon": "/<%= require('../../assets/meistertask.svg') %>",
+                <%
+                    let files = Object.keys(webpack.compilation.assets)
+                    let sw_file = files.find(file => file.startsWith("sw.") && file.endsWith(".js"))
+                %>"serviceworker": "/<%= sw_file %>"
+            },
         };
     </script>
 
@@ -48,7 +67,7 @@
   </head>
 
   <body>
-    <% if (htmlWebpackPlugin.options.minify) { %>
+    <% if (audience != "dev") { %>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-M2GCQLN"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -61,12 +80,12 @@
     <div id="sidebar-placeholder"></div>
     <div id="container"></div>
 
-    <% if (htmlWebpackPlugin.options.minify) { %>
+    <% if (audience != "dev") { %>
     <script async src="https://cdn.nolt.io/widgets.js"></script>
     <script>window.noltQueue=window.noltQueue||[];function nolt(){noltQueue.push(arguments)}</script>
     <% } %>
 
-    <% if (htmlWebpackPlugin.options.minify) { %>
+    <% if (audience != "dev") { %>
     <!-- announcekit sidebar widget -->
     <script>
       window.announcekit = (window.announcekit || { queue: [], on: function(n, x) { window.announcekit.queue.push([n, x]); }, push: function(x) { window.announcekit.queue.push(x); } });
@@ -78,7 +97,7 @@
 
     <!-- define crisp queue even in dev mode so we can detect if crisp was loaded or not (blocked by browser plugin) -->
     <script type="text/javascript">window.$crisp=[]; </script>
-    <% if (htmlWebpackPlugin.options.minify) { %>
+    <% if (audience != "dev") { %>
     <script type="text/javascript">
         window.CRISP_WEBSITE_ID="5ab5c700-31d3-490f-917c-83dfa10b8205";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
         $crisp.push(["do", "chat:hide"]);

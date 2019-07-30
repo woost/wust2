@@ -130,7 +130,7 @@ object Main {
 
   private def setupEmojis():Unit = {
     // setup emoji converter
-    EmojiConvertor.img_sets.twitter.sheet = "/emoji-datasource/sheet_twitter_64.png"
+    EmojiConvertor.img_sets.twitter.sheet = WoostConfig.value.urls.emojiSheet
     EmojiConvertor.img_sets.twitter.sheet_size = 64
     EmojiConvertor.img_set = "twitter"
     EmojiConvertor.use_sheet = true
@@ -146,7 +146,7 @@ object Main {
 
   private def setupEmojiPicker():Unit = {
     wdtEmojiBundle.defaults.emojiType = "twitter"
-    wdtEmojiBundle.defaults.emojiSheets.twitter = "/emoji-picker/sheets/sheet_twitter_64_indexed_128.png"
+    wdtEmojiBundle.defaults.emojiSheets.twitter = WoostConfig.value.urls.emojiPickerSheet
 
     // reposition hack, because picker only opens to the bottom (https://github.com/needim/wdt-emoji-bundle/blob/master/wdt-emoji-bundle.js#L230)
     val oldOpen = wdtEmojiBundle.asInstanceOf[js.Dynamic].openPicker.asInstanceOf[js.Function1[js.Any, js.Any]]

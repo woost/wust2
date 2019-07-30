@@ -12,6 +12,7 @@ import wust.api.AuthUser
 import wust.graph.{Graph, Page}
 import wust.ids._
 import wust.util._
+import wust.webApp.WoostConfig
 import wust.webApp.dragdrop._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.Components._
@@ -43,7 +44,7 @@ object BreadCrumbs {
     img(
       cls := "cycle-indicator",
       rotate.ifTrue[VDomModifier](transform := "rotate(180deg)"),
-      src:="halfCircle.svg",
+      src:= WoostConfig.value.urls.halfCircle
     )
   }
 

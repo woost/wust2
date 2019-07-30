@@ -13,7 +13,7 @@ version=${WUST_VERSION:-latest}
 # publish
 # Copy web assets to set bucket web assets under folder version, so cloudfront can serve them when switch to that version
 # TODO: default caching how long? 24h for now
-short_caching_assets=(index.html sw.js site.webmanifest staging.webmanifest)
+short_caching_assets=(index.html sw.js)
 aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=86400
 # set caching headers on some objects default caching is set in cloudformation deployment (or default 24h)
 # TODO: better solution? unique names? just lookup root object in cloudfront?

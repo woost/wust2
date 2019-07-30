@@ -161,12 +161,9 @@ lazy val webSettings = Seq(
   version in webpack := Deps.webpackVersion,
   version in startWebpackDevServer := Deps.webpackDevServerVersion,
   webpackResources := (baseDirectory.value / "webpack" ** "*.*"),
-  webpackConfigFile in fullOptJS := Some(
-    baseDirectory.value / "webpack" / "webpack.config.prod.js"
-  ),
+  webpackConfigFile in fullOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.prod.js"),
   webpackConfigFile in fastOptJS := Some(baseDirectory.value / "webpack" / "webpack.config.dev.js"),
-  webpackBundlingMode in fastOptJS := BundlingMode
-    .LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
+  webpackBundlingMode in fastOptJS := BundlingMode.LibraryOnly(), // https://scalacenter.github.io/scalajs-bundler/cookbook.html#performance
   webpackDevServerExtraArgs := Seq("--progress", "--color", "--public"),
   // when running the "dev" alias, after every fastOptJS compile all artifacts are copied into
   // a folder which is served and watched by the webpack devserver.

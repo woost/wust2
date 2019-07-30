@@ -1,60 +1,131 @@
 const Webpack = require('webpack');
 
-const CopyPlugin = require("copy-webpack-plugin");
 const HtmlPlugin = require("html-webpack-plugin");
-const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
 const ExtractTextPlugin = require("extract-text-webpack-plugin");
 const Path = require('path');
+const ConcatPlugin = require('webpack-concat-plugin');
+const CopyPlugin = require("copy-webpack-plugin");
+const HtmlAssetsPlugin = require("html-webpack-include-assets-plugin");
+const { execSync } = require('child_process');
 
 const commons = require('./webpack.base.common.js');
-const dirs = commons.woost.dirs;
-const appName = commons.woost.appName;
-const cssFolder = commons.woost.cssFolder;
-const cssFiles = commons.woost.cssFiles.filter(x => !x.endsWith('scalacss.css')); //filter out generated css file...
-const htmlTemplateFile = commons.woost.htmlTemplateFile;
-const staticIncludeAssets = commons.woost.staticIncludeAssets;
-const staticCopyAssets = commons.woost.staticCopyAssets;
-const versionString = commons.woost.versionString;
+const woost = commons.woost;
+woost.templateParameters.title = "dev";
+woost.templateParameters.audience = "dev";
+const outputFileNamePattern = '[name]';
+
 module.exports = commons.webpack;
-
 module.exports.mode = 'development';
-
 module.exports.output.path = Path.join(__dirname, "dev");
+// we need -library postfix, because the name for webapp-fastopt is already taken by the scala-js generated dev main file.
+// to avoid collision, we postfix the output pattern. sadly this applies for all chunks...
+module.exports.output.filename = outputFileNamePattern + '-library.js';
 
 ////////////////////////////////////////
-// add additional generated js files from libraryOnly bundlingmode
+// link node_modules into output folder so that it can be served via webpack dev server
+// the files are just included in the html.
 ////////////////////////////////////////
-const baseJsFile = appName + '.js';
-const loaderJsFile = appName + '-loader.js';
-//this would bundle all js files into one
-// module.exports.entry[appName].push('./' + baseJsFile);
-// module.exports.entry[appName].push('./' + loaderJsFile);
-module.exports.plugins.push(new CopyPlugin(staticCopyAssets));
-const extraAssets = staticIncludeAssets.concat([ loaderJsFile, baseJsFile ]).concat(cssFiles.map(function(f) { return Path.basename(f); }));
+execSync(`ln --force --symbolic ../node_modules ${module.exports.output.path}/node_modules`);
 
 ////////////////////////////////////////
-// html template generate index.html
+// add all files as entries of assets chunk (including js files from scala-js in dev mode)
 ////////////////////////////////////////
-module.exports.plugins.push(new HtmlPlugin({
-    versionString: versionString,
-    title: 'dev',
-    template: htmlTemplateFile,
-    favicon: Path.join(dirs.assets, 'favicon.ico'),
-    showErrors: true
+const scalaJsLoaderFile = Path.join(__dirname, woost.appName + '-loader.js');
+const scalaJsFile = Path.join(__dirname, woost.appName + '.js');
+const staticCopyFiles = [ scalaJsLoaderFile, scalaJsFile ];
+const staticIncludeFiles = woost.files.vendor.js;
+const cssFilesWithoutScalaCss = woost.files.css.filter(x => !x.endsWith('scalacss.css')) // scalacss file is not needed in dev, will be injected in code.
+module.exports.entry.assets = woost.files.vendor.assets.concat(cssFilesWithoutScalaCss).concat(woost.files.assets);
+
+////////////////////////////////////////
+// html template generate html files
+////////////////////////////////////////
+
+woost.files.html.forEach(htmlFile => {
+    const isIndexHtml = Path.basename(htmlFile) == "index.html";
+    if (isIndexHtml) {
+        module.exports.plugins.push(new HtmlPlugin({
+            templateParameters: woost.templateParametersFunction,
+            filename: "index.html",
+            template: htmlFile,
+            chunks: ["assets", woost.appName],
+            chunksSortMode: 'manual',
+            showErrors: true
+        }));
+    }
+});
+module.exports.plugins.push(new CopyPlugin(staticCopyFiles.map(f => { return { "from": f, "context": Path.dirname(f), "to": ''} })));
+module.exports.plugins.push(new HtmlAssetsPlugin({ assets: staticIncludeFiles.map(f => Path.relative(__dirname, f)), append: false }))
+module.exports.plugins.push(new HtmlAssetsPlugin({ assets: staticCopyFiles.map(f => Path.relative(__dirname, f)), append: true }))
+
+////////////////////////////////////////
+// merge sw files into one file
+////////////////////////////////////////
+
+module.exports.plugins.push(new ConcatPlugin({
+    uglify: false,
+    sourceMap: true,
+    injectType: 'none',
+    name: 'sw',
+    fileName: '[name].js',
+    filesToConcat: woost.files.sw
 }));
-module.exports.plugins.push(new HtmlAssetsPlugin({ assets: extraAssets, append: true }))
+
+////////////////////////////////////////
+// bundle css files
+////////////////////////////////////////
+const extractCss = new ExtractTextPlugin({ filename: outputFileNamePattern + '.css' });
+module.exports.plugins.push(extractCss);
+module.exports.module.rules.push({
+    test: /\.css$/,
+    use: extractCss.extract({
+        use: [{ loader: "css-loader" }],
+    })
+});
+
+////////////////////////////////////////
+// copy workbox files to dist for serviceworker to include, no hashing, just the files.
+////////////////////////////////////////
+module.exports.plugins.push(new CopyPlugin(woost.files.vendor.workbox.map(f => { return { "from": f, "to": `${Path.basename(woost.dirs.workbox)}/` } })));
+
+////////////////////////////////////////
+// Copy fonts/icons/images to output path
+////////////////////////////////////////
+const fileLoader = {
+    loader: 'file-loader',
+    options: {
+        name: '[path][name].[ext]',
+    },
+};
+module.exports.module.rules.push({
+    test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
+    use: [ fileLoader ]
+});
+module.exports.module.rules.push({
+      test: /(\.webmanifest|browserconfig\.xml)$/,
+      use: [
+        fileLoader,
+        {
+            loader: "app-manifest-loader",
+            options: {
+                publicPath: "/"
+            }
+        }
+      ]
+});
 
 ////////////////////////////////////////
 // dev server
 ////////////////////////////////////////
+if (!process.env.WUST_CORE_PORT) {
+    throw "Environment Variable 'WUST_CORE_PORT' is missing. You seem to be running `sbt` without `start sbt`. Have better luck next time and good luck from the javascript community, they are rooting for you.";
+}
 module.exports.devServer = {
     // https://webpack.js.org/configuration/dev-server
     port: process.env.WUST_PORT,
     contentBase: [
         module.exports.output.path,
-        dirs.assets,
-        cssFolder,
-        dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
+        woost.dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
     ],
     watchContentBase: true,
     open: false, // open page in browser
