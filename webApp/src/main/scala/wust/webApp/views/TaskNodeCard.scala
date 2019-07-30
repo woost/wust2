@@ -332,7 +332,8 @@ object TaskNodeCard {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
 
-      if (isDone) opacity := 0.6 else DragComponents.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
+      VDomModifier.ifTrue(isDone)(opacity := 0.6),
+      DragComponents.drag(payload = dragPayload(nodeId), target = dragTarget(nodeId)),
 
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
@@ -606,7 +607,8 @@ object TaskNodeCard {
       Rx {
         VDomModifier.ifTrue(isDeletedNow())(cls := "node-deleted")
       },
-      VDomModifier.ifNot(isDone)(DragComponents.drag(payload = dragPayload(node.id), target = dragTarget(node.id))),
+      DragComponents.drag(payload = dragPayload(node.id), target = dragTarget(node.id)),
+
       keyed(node.id.toStringFast),
       // fixes unecessary scrollbar, when card has assignment
       overflow.hidden,
