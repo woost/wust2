@@ -26,7 +26,6 @@ object PageHeader {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "pageheader",
-        backgroundColor <-- GlobalState.pageStyle.map(_.pageBgColor),
 
         GlobalState.page.map(_.parentId.map(pageRow( _, viewRender))),
       )
@@ -95,6 +94,7 @@ object PageHeader {
     }
 
     VDomModifier(
+      backgroundColor := PageStyle.ofNode(pageNodeId).pageBgColor,
       div(
         Styles.flexStatic,
 
