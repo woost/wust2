@@ -13,19 +13,16 @@ version=${WUST_VERSION:-latest}
 # publish
 # Copy web assets to set bucket web assets under folder version, so cloudfront can serve them when switch to that version
 # TODO: default caching how long? 24h for now
-aws s3 sync "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=86400
+short_caching_assets=(index.html sw.js site.webmanifest staging.webmanifest)
+aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=86400
 # set caching headers on some objects default caching is set in cloudformation deployment (or default 24h)
 # TODO: better solution? unique names? just lookup root object in cloudfront?
-function short_caching() {
-    local name="$1"
-    local s3_path="s3://$S3_BUCKET_WEB_ASSETS/$version/$name"
+for $asset in $short_caching_assets; do
+    s3_path="s3://$S3_BUCKET_WEB_ASSETS/$version/$asset"
     # cache for a minute
     aws s3 cp $s3_path $s3_path --metadata-directive REPLACE --cache-control max-age=60
-}
-short_caching "index.html"
-short_caching "sw.js"
-short_caching "site.webmanifest"
-short_caching "staging.webmanifest"
+done
+
 
 # publish docker images to our registry
 eval $(aws ecr get-login --no-include-email)
