@@ -3,6 +3,6 @@ set -e
 set -o pipefail
 
 # building with sbt needs around 2G, 300M Metaspace
-export _JAVA_OPTIONS="-Xmx4G"
+export _JAVA_OPTIONS="-Xmx6G"
 
 ./start test.integration

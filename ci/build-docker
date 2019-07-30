@@ -6,6 +6,6 @@ export CI=true # also set by ci server, but helps when running locally
 
 export SOURCEMAPS=false # for building production js assets with sourcemap
 
-export _JAVA_OPTIONS="-Xmx4G"
+export _JAVA_OPTIONS="-Xmx6G"
 
 sbt core/docker dbMigration/docker webApp/docker
