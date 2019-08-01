@@ -31,7 +31,7 @@ execSync(`ln --force --symbolic ../node_modules ${module.exports.output.path}/no
 ////////////////////////////////////////
 const scalaJsLoaderFile = Path.join(__dirname, woost.appName + '-loader.js');
 const scalaJsFile = Path.join(__dirname, woost.appName + '.js');
-const staticCopyFiles = [ scalaJsLoaderFile, scalaJsFile ];
+const staticCopyFiles = [ scalaJsLoaderFile ];
 const staticIncludeFiles = woost.files.vendor.js;
 const cssFilesWithoutScalaCss = woost.files.css.filter(x => !x.endsWith('scalacss.css')) // scalacss file is not needed in dev, will be injected in code.
 module.exports.entry.assets = woost.files.vendor.assets.concat(cssFilesWithoutScalaCss).concat(woost.files.assets);
@@ -58,7 +58,7 @@ woost.files.html.forEach(htmlFile => {
 });
 module.exports.plugins.push(new CopyPlugin(staticCopyFiles.map(f => { return { "from": f, "context": Path.dirname(f), "to": ''} })));
 module.exports.plugins.push(new HtmlAssetsPlugin({ assets: staticIncludeFiles.map(f => Path.relative(__dirname, f)), append: false }))
-module.exports.plugins.push(new HtmlAssetsPlugin({ assets: staticCopyFiles.map(f => Path.relative(__dirname, f)), append: true }))
+module.exports.plugins.push(new HtmlAssetsPlugin({ assets: staticCopyFiles.concat([scalaJsFile]).map(f => Path.relative(__dirname, f)), append: true }))
 
 ////////////////////////////////////////
 // merge sw files into one file
