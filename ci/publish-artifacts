@@ -11,7 +11,9 @@ web_assets_dir="./webApp/target/scala-2.12/scalajs-bundler/main/dist"
 version=${WUST_VERSION:-latest}
 
 # Copy web assets to repository bucket, so we can access this version in deployment
-short_caching_assets=(index.html staging.html error-404.html)
+#TODO TEMPORARY: get sw.<hash>.js and copy to sw.js. we want to serve it under this name as well for some time so old client with old update-mechanism still upgrade automatically
+cp $web_assets_dir/sw.*.js $web_assets_dir/sw.js
+short_caching_assets=(index.html staging.html error-404.html sw.js)
 # We copy with metadata that is the caching header. cache all assets except short-caching for 1 year
 aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=31536000
 for $asset in $short_caching_assets; do
