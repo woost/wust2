@@ -19,7 +19,7 @@ aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_
 for $asset in $short_caching_assets; do
     # short caching asset are only cached for a minute
     s3_path="s3://$S3_BUCKET_WEB_ASSETS/$version/$asset"
-    aws s3 cp $s3_path $s3_path --metadata-directive REPLACE --cache-control max-age=60
+    aws s3 cp $web_assets_dir/$asset $s3_path --metadata-directive REPLACE --cache-control max-age=60
 done
 
 
