@@ -42,16 +42,16 @@ object ServiceWorker {
         }
       })
 
-      // when a new serviceworker took over, reload the page
-      // Approach #2 from
-      // https://redfin.engineering/how-to-fix-the-refresh-button-when-using-service-workers-a8e27af6df68
-      var refreshing = false;
-      sw.addEventListener("controllerchange", { (_:Any) =>
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
-        }
-      })
+      // // when a new serviceworker took over, reload the page
+      // // Approach #2 from
+      // // https://redfin.engineering/how-to-fix-the-refresh-button-when-using-service-workers-a8e27af6df68
+      // var refreshing = false;
+      // sw.addEventListener("controllerchange", { (_:Any) =>
+      //   if (!refreshing) {
+      //     refreshing = true;
+      //     window.location.reload();
+      //   }
+      // })
     }
 
     /* Register crashes can occur when privacy settings are too strong for serviceworkers, e.g. in ff when
