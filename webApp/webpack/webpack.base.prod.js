@@ -20,6 +20,14 @@ const { execSync } = require('child_process');
 //[chunkhash] - Returns an entry chunk-specific hash. Each entry defined in the configuration receives a hash of its own. If any portion of the entry changes, the hash will change as well. [chunkhash] is more granular than [hash] by definition.
 //[contenthash] - Returns a hash generated based on content.
 
+////////////////////////////////////////
+// First step: generate css files from scalacss
+////////////////////////////////////////
+// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
+// this file will automatically be picked up by webpack from that folder.
+process.env._JAVA_OPTIONS = "-Xmx2G";
+execSync('cd ' + woost.dirs.root + '; sbt cssJVM/run');
+
 const commons = require('./webpack.base.common.js');
 const woost = commons.woost;
 woost.templateParameters.title = "Woost";
@@ -53,14 +61,6 @@ module.exports.optimization = {
 if (!process.env.WUST_PROD_DEVELOPMENT) {
     module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
 }
-
-////////////////////////////////////////
-// generate css files from scalacss
-////////////////////////////////////////
-// before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
-// this file will automatically be picked up by webpack from that folder.
-process.env._JAVA_OPTIONS = "-Xmx2G";
-execSync('cd ' + woost.dirs.root + '; sbt cssJVM/run');
 
 ////////////////////////////////////////
 // closure compiler
