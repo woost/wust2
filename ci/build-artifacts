@@ -6,4 +6,4 @@ export CI=true # also set by ci server, but helps when running locally
 
 export SOURCEMAPS=false # for building production js assets with sourcemap
 
-sbt core/docker dbMigration/docker webApp/docker
+sbt core/docker dbMigration/docker webApp/fullOptJS::webpack

@@ -4,6 +4,6 @@ set -e
 
 sbt clean
 
-ci/build-docker
+ci/build-artifacts
 
 ci/publish-docker $1

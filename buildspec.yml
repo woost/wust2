@@ -25,7 +25,7 @@ phases:
     commands:
       - echo Build started.
       - ci/build-unit-test
-      - ci/build-docker
+      - ci/build-artifacts
       - ci/test-postgres
       # - ci/test-integration
       - ci/publish-docker
