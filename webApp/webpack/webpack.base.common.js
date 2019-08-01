@@ -64,12 +64,10 @@ files.vendor = {
 
 const woostVersion = process.env.WUST_VERSION ? process.env.WUST_VERSION : "latest";
 
-const templateParameters = {
-    versionString: woostVersion,
-};
-const templateParametersFunction = (compilation, assets, assetTags, options) => {
+const templateParametersFunction = templateParameters => (compilation, assets, assetTags, options) => {
     return {
         ...templateParameters,
+        versionString: woostVersion,
         webpack: { compilation, assets, assetTags, options }
     };
 };
@@ -95,6 +93,6 @@ function setupDevServerProxy(config) {
 // export
 module.exports.webpack = webpack;
 module.exports.woost = {
-    appName, dirs, files, templateParameters, templateParametersFunction, setupDevServerProxy
+    appName, dirs, files, templateParametersFunction, setupDevServerProxy
 };
 

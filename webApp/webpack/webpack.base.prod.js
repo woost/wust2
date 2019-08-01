@@ -30,7 +30,6 @@ execSync('cd ' + Path.resolve(__dirname, '../../../../..') + '; sbt cssJVM/run')
 
 const commons = require('./webpack.base.common.js');
 const woost = commons.woost;
-woost.templateParameters.title = "Woost";
 const outputFileNamePattern = '[name].[chunkhash]';
 
 module.exports = commons.webpack;
@@ -84,9 +83,11 @@ module.exports.plugins.push(new ClosureCompilerPlugin({
 ////////////////////////////////////////
 woost.files.html.forEach(htmlFile => {
     const addIndexHtml = function(audience, filename) {
-        woost.templateParameters.audience = audience;
         module.exports.plugins.push(new HtmlPlugin({
-            templateParameters: woost.templateParametersFunction,
+            templateParameters: woost.templateParametersFunction({
+                title: "Woost",
+                audience: audience,
+            }),
             filename: filename,
             template: htmlFile,
             chunks: ["dependencies", woost.appName],

@@ -10,8 +10,6 @@ const { execSync } = require('child_process');
 
 const commons = require('./webpack.base.common.js');
 const woost = commons.woost;
-woost.templateParameters.title = "dev";
-woost.templateParameters.audience = "dev";
 const outputFileNamePattern = '[name]';
 
 module.exports = commons.webpack;
@@ -45,7 +43,10 @@ woost.files.html.forEach(htmlFile => {
     const isIndexHtml = Path.basename(htmlFile) == "index.html";
     if (isIndexHtml) {
         module.exports.plugins.push(new HtmlPlugin({
-            templateParameters: woost.templateParametersFunction,
+            templateParameters: woost.templateParametersFunction({
+                title: "dev",
+                audience: "dev"
+            }),
             filename: "index.html",
             template: htmlFile,
             chunks: ["assets", woost.appName],
