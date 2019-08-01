@@ -23,6 +23,7 @@ module.exports.output.filename = outputFileNamePattern + '-library.js';
 // link node_modules into output folder so that it can be served via webpack dev server
 // the files are just included in the html.
 ////////////////////////////////////////
+execSync(`mkdir -p ${module.exports.output.path}`);
 execSync(`ln --force --symbolic ../node_modules ${module.exports.output.path}/node_modules`);
 
 ////////////////////////////////////////
