@@ -51,7 +51,7 @@ object FilterWindow {
           padding := "5px",
 
           Components.verticalMenu(
-            ViewGraphTransformation.allTransformations.map { transformation =>
+            ViewGraphTransformation.availableTransformations.map { transformation =>
               Components.MenuItem(
                 title = VDomModifier(transformation.icon, marginLeft := "5px", marginRight := "5px"),
                 description = transformation.description,
