@@ -26,7 +26,7 @@ const { execSync } = require('child_process');
 // before doing anything, we run the cssJVM project, which generates a css file for all scalacss styles into: webApp/src/css/scalacss.css
 // this file will automatically be picked up by webpack from that folder.
 process.env._JAVA_OPTIONS = "-Xmx2G";
-execSync('cd ' + woost.dirs.root + '; sbt cssJVM/run');
+execSync('cd ' + Path.resolve(__dirname, '../../../../..') + '; sbt cssJVM/run');
 
 const commons = require('./webpack.base.common.js');
 const woost = commons.woost;
