@@ -13,7 +13,6 @@ import io.circe.parser._
 import io.circe.syntax._
 import io.circe.generic.auto._
 
-import com.vdurmont.emoji.EmojiParser
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 
@@ -53,7 +52,7 @@ class PushedClient private(val config: PushedConfig)(implicit system: ActorSyste
         FormData.BodyPart.Strict("app_secret", config.keys.appSecret),
         FormData.BodyPart.Strict("access_token", accessToken),
         FormData.BodyPart.Strict("target_type", "user"),
-        FormData.BodyPart.Strict("content", EmojiParser.parseToText(content)),
+        FormData.BodyPart.Strict("content", content),
         FormData.BodyPart.Strict("content_type", "url"),
         FormData.BodyPart.Strict("content_extra", url),
       ).toEntity

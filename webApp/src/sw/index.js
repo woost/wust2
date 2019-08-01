@@ -1,4 +1,4 @@
-importScripts('/workbox-v4.3.1/workbox-sw.js');
+require('/workbox-v4.3.1/workbox-sw.js');
 workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 
 workbox.routing.registerRoute(
@@ -190,16 +190,6 @@ const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api
 // log(`BaseUrl: ${baseUrl}.`);
 // log(`Origin: ${location.origin}.`);
 
-// Weird workaround since emoji requires global
-let global = {};
-importScripts('emoji.min.js');
-let pushEmojis = new global.EmojiConvertor();
-pushEmojis.init_env();
-pushEmojis.include_title = false;
-pushEmojis.allow_native = true;
-pushEmojis.wrap_native = false;
-pushEmojis.avoid_ms_emoji = true;
-pushEmojis.replace_mode = "unified";
 var userAuth;
 
 // subscribe to webpush on startup
@@ -272,7 +262,7 @@ self.addEventListener('push', e => {
 
                     const titleContent = (!data.parentContent | !parentId | parentId == subscribedId) ? `${data.subscribedContent}${description}` : `${data.subscribedContent} / ${data.parentContent}${description}`;
                     const user = (!data.username || data.username.indexOf('unregistered-user') !== -1) ? 'Unregistered User' : data.username;
-                    const content = `${user}: ${pushEmojis.replace_emoticons(data.content)}`;
+                    const content = `${user}: ${data.content}`;
 
                     let options = {
                         body: content,

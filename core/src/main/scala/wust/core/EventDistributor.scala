@@ -14,6 +14,7 @@ import wust.ids._
 import wust.util.StringOps
 import wust.util.macros.InlineList
 import wust.util.collection._
+import com.vdurmont.emoji.EmojiParser
 
 import scala.collection.JavaConverters._
 import scala.collection.parallel.ExecutionContextTaskSupport
@@ -31,6 +32,9 @@ object NotifiedKind {
   case object NewInvite extends NotifiedKind
 }
 final case class NotifiedNode(node: Node.Content, parent: Option[Node.Content], kind: NotifiedKind) {
+  val nodeContent = EmojiParser.parseToText(node.data.str.trim)
+  val parentContent = parent.map(n => EmojiParser.parseToText(n.data.str.trim))
+
   def description = kind match {
     case NotifiedKind.NewNode => s"New ${node.role}"
     case NotifiedKind.NewMention => s"Mentioned in ${node.role}"
@@ -180,7 +184,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             }
           }
           if (notifiedNodes.nonEmpty) {
-            val data = NotificationData(n.userId, notifiedNodes, n.subscribedNodeId, n.subscribedNodeContent)
+
+            val data = NotificationData(n.userId, notifiedNodes, n.subscribedNodeId, EmojiParser.parseToText(n.subscribedNodeContent))
             notificationsWithParent += data
           }
         }
@@ -287,12 +292,12 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
           val pushData = PushData(
             username = author.name,
-            content = notifiedNode.node.data.str.trim,
+            content = notifiedNode.nodeContent,
             nodeId = notifiedNode.node.id.toBase58,
             subscribedId = subscribedNodeId.toBase58,
             subscribedContent = subscribedNodeContent,
             parentId = notifiedNode.parent.map(_.id.toBase58),
-            parentContent = notifiedNode.parent.map(_.data.str),
+            parentContent = notifiedNode.parentContent,
             epoch = EpochMilli.now,
             description = notifiedNode.description
           )
@@ -361,7 +366,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { notifiedNode =>
 
-          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.fold(subscribedNodeContent)(_.data.str), 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.node.data.str.trim, 250) }"
+          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.fold(subscribedNodeContent)(_.data.str), 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.nodeContent, 250) }"
           val contentUrl = s"https://${ serverConfig.host }/#page=${ notifiedNode.parent.fold(subscribedNodeId)(_.id).toBase58 }"
 
           db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap { subscriptions =>
