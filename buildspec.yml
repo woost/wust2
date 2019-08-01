@@ -28,7 +28,7 @@ phases:
       - ci/build-artifacts
       - ci/test-postgres
       # - ci/test-integration
-      - ci/publish-docker
+      - ci/publish-artifacts
   post_build:
     commands:
       - echo Build completed.

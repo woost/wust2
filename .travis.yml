@@ -22,7 +22,7 @@ script:
 
 after_success:
     - set -e
-    - ci/publish-docker
+    - ci/publish-artifacts
     # - sbt coverageAggregate coveralls
     # - sbt coverageAggregate # Must be called separately for multi project projects (https://github.com/scoverage/sbt-scoverage#multi-project-reports)
     # - sbt coveralls #See https://github.com/scoverage/sbt-coveralls/issues/104

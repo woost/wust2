@@ -6,4 +6,4 @@ sbt clean
 
 ci/build-artifacts
 
-ci/publish-docker $1
+ci/publish-artifacts $1
