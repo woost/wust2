@@ -1,4 +1,4 @@
-require('/workbox-v4.3.1/workbox-sw.js');
+importScripts('/workbox-v4.3.1/workbox-sw.js');
 workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 
 workbox.routing.registerRoute(
