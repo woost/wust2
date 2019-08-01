@@ -118,29 +118,9 @@ function self() {
         filepath=${2-`date +"%F-%H-%M-%S-dev-postgres-backup.sql"`}
         postgres_core_command pg_dump --clean --if-exists -h localhost -U wust > "$filepath"
         ;;
-    pgdumpfromprod)
-        echo "downloading and dumping production database..."
-        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-production-postgres-backup.sql")
-        ;;
-    pgdumpfromstaging)
-        echo "downloading and dumping staging database..."
-        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust > $(date +"%F-%H-%M-%S-staging-postgres-backup.sql")
-        ;;
     pgrestore)
         postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
         postgres_core_psqlbatch -h localhost -U wust --file=- <$2
-        ;;
-    pgrestorefromprod)
-        echo "clearing local database..."
-        postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        echo "downloading production database and restoring in local database..."
-        ssh -C harald docker exec -i "woostappcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_psqlbatch -h localhost -U wust --file=-
-        ;;
-    pgrestorefromstaging)
-        echo "clearing local database..."
-        postgres_core_psqlbatch -h localhost -U wust -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
-        echo "downloading staging database and restoring in local database..."
-        ssh -C harald docker exec -i "wooststagingcore_postgres_1" pg_dump --clean --if-exists -h localhost -U wust | postgres_core_psqlbatch -h localhost -U wust --file=-
         ;;
     pgclean)
         export $env_postgres_secret $env_postgres_local
@@ -269,17 +249,6 @@ function self() {
             ;;
         esac
         ;;
-    prodlocal)
-        echo "to open production: (slash in the end is important)"
-        echo "http://localhost:12345/apps/web/"
-        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_github $env_wust_local $env_wust_local_connectivity $env_slack"
-        echo -e "- ENV: \e[1m\e[32m$env\e[0m"
-        export $env
-        sbt webApp/clean docker
-        docker_compose webApp dev up -d
-        docker_compose core dev up -d db-migration
-        sbt dev
-        ;;
     test)
         sbt docker
         sbt_with_args test
@@ -317,18 +286,12 @@ function self() {
     psql [options]
     pgcli [options]
     pgdump
-    pgdumpfromprod
-    pgdumpfromstaging
     pgrestore [file]
-    pgrestorefromprod
-    pgrestorefromstaging
     pgclean
 
     apps
     env
     migrate
-
-    prodlocal
 
     test
     test.postgres
