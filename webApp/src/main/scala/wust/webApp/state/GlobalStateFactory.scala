@@ -235,26 +235,18 @@ object GlobalStateFactory {
       }
     }
 
-    // force an update check if the backend is disconnect while the browser is online
-    val appUpdateTrigger: Observable[Any] = Observable(page.toTailObservable, view.toTailObservable).merge
-    val appUpdateCheckTrigger: Observable[Any] = Client.observable.closed.combineLatest(browserIsOnline).collect { case (_, true) => () }
+    // we know that an update is available if the client is offline but the browser is online. This happens, because
+    // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
+    val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.combineLatest(isBrowserOnlineObservable).collect { case (false, true) => () }
 
-    // trigger a download of the serviceworker to get a new version. throttle update trigger to 1 minute.
-    appUpdateCheckTrigger.throttleLast(1.minutes).foreach { _ =>
-      Navigator.serviceWorker.foreach(_.getRegistration().toFuture.foreach(_.foreach { reg =>
-        scribe.info("Requesting updating from SW.")
-        reg.update().toFuture.onComplete { res =>
-          scribe.info(s"Result of update request: ${if (res.isSuccess) "Success" else "Failure"}.")
+    // trigger a reload of the app if an appUpdateIsAvailble indicates an update.
+    appUpdateIsAvailable
+      .throttleLast(1.minutes)
+      .foreach { _ =>
+        // if we can access the health check of core.app.woost.space (without version in name). then we know for sure, we can update:
+        Client.backendIsOnline().foreach { isOnline =>
+          if (isOnline) window.location.reload(flag = true)
         }
-      }))
-    }
-
-    // if there is a page change and we got an sw update, we want to reload the page
-    // TODO: ask user to reload? because he might have unstored changes...
-    appUpdateTrigger.withLatestFrom(appUpdateIsAvailable)((_, _) => Unit).foreach { _ =>
-      scribe.info("Going to reload page, due to SW update.")
-      // if flag is true, page will be reloaded without cache. False means it may use the browser cache.
-      window.location.reload(flag = false)
     }
 
     Client.apiErrorSubject.foreach { _ =>

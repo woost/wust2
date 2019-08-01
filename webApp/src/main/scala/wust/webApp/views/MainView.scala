@@ -155,7 +155,7 @@ object MainView {
         marginTop := "20px",
 
         Rx {
-          if (GlobalState.isOnline())
+          if (GlobalState.isClientOnline())
             div(
               cls := "animated-late-fadein",
               span("Loading forever?", marginRight := "10px"),

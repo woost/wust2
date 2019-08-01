@@ -27,13 +27,33 @@ object Client {
   private val port = if (location.port.isEmpty) "" else ":" + location.port
   private val protocol = location.protocol
 
-  private val wustUrl = {
+  private def calculateWustUrl(withVersion: Boolean): String = {
     val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
 
     if (LinkingInfo.developmentMode)
       s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain
-    else
-      s"$socketProtocol//core-${WoostConfig.value.versionString.replace(".", "-")}.${hostname}$port/ws"
+    else {
+      val subdomain = if (withVersion) s"core-${WoostConfig.value.versionString.replace(".", "-")}" else "core"
+      s"$socketProtocol//$subdomain.$hostname$port/ws"
+    }
+  }
+
+  private val wustUrl = calculateWustUrl(withVersion = true)
+  private val wustUrlUnversioned = calculateWustUrl(withVersion = false)
+
+  def backendIsOnline(): Future[Boolean] = {
+    import org.scalajs.dom.raw.XMLHttpRequest
+    import scala.concurrent.Promise
+
+    val promise = Promise[Boolean]()
+    val xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = { _ =>
+        if (xmlHttp.readyState == 4) promise.trySuccess(xmlHttp.status == 200)
+    }
+    xmlHttp.open("GET", s"$wustUrlUnversioned/health", true);
+    xmlHttp.send(null);
+
+    promise.future
   }
 
   private val githubUrl = {

@@ -44,10 +44,13 @@ import scala.collection.{ breakOut, mutable }
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-  val browserIsOnline: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
+  val isBrowserOnlineObservable: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
+  val isClientOnlineObservable = Observable(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).merge
+  val isBrowserOnline = isClientOnlineObservable.unsafeToRx(true)
+  val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val appUpdateIsAvailable: Observable[Unit] = if (true) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
+  val serviceWorkerUpdateAvailable: Observable[Unit] = if (true) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
@@ -66,10 +69,6 @@ object GlobalState {
     Client.storage.sidebarOpen.imap(_ getOrElse !BrowserDetect.isMobile)(Some(_)) // expanded sidebar per default for desktop
 
   val urlConfig: Var[UrlConfig] = UrlRouter.variable().imap(UrlConfigParser.fromUrlRoute)(UrlConfigWriter.toUrlRoute)
-  val isOnline = Observable(
-    Client.observable.connected.map(_ => true),
-    Client.observable.closed.map(_ => false)
-  ).merge.unsafeToRx(true)
 
   val isLoading = Var(false)
 

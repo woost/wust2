@@ -53,7 +53,6 @@ object LeftSidebar {
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
               marginBottom := "10px",
             ),
-            // appUpdatePrompt.apply(Styles.flexStatic, alignSelf.center, marginTop.auto),
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginTop := "10px",
               marginBottom := "10px"
@@ -184,7 +183,7 @@ object LeftSidebar {
 
     val status = {
       val rx = Rx {
-        (GlobalState.isOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
+        (GlobalState.isClientOnline(), GlobalState.isSynced() && !GlobalState.isLoading())
       }
       //TODO: scala.rx debounce is not working correctly
       ValueObservable(rx.toTailObservable.debounce(300 milliseconds), rx.now)
@@ -200,13 +199,6 @@ object LeftSidebar {
 
     div(syncStatusIcon)
   }
-
-  def appUpdatePrompt(implicit ctx: Ctx.Owner) =
-    div(GlobalState.appUpdateIsAvailable.map { _ =>
-      button(cls := "tiny ui primary basic button", "Update App", onClick foreach {
-        window.location.reload(flag = false)
-      })
-    })
 
   // TODO: https://github.com/OutWatch/outwatch/issues/227
   val beforeInstallPromptEvents: Rx[Option[dom.Event]] = Rx.create(Option.empty[dom.Event]) {
