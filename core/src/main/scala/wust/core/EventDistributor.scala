@@ -30,7 +30,7 @@ object NotifiedKind {
   case object NewAssigned extends NotifiedKind
   case object NewInvite extends NotifiedKind
 }
-final case class NotifiedNode(node: Node, parent: Option[Node], kind: NotifiedKind) {
+final case class NotifiedNode(node: Node.Content, parent: Option[Node.Content], kind: NotifiedKind) {
   def description = kind match {
     case NotifiedKind.NewNode => s"New ${node.role}"
     case NotifiedKind.NewMention => s"Mentioned in ${node.role}"
@@ -114,15 +114,17 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     // send out push notifications
 
     val notifiedNodes = distinctBuilder[NodeId, Array]
-    val addNodesByNodeId = mutable.HashMap[NodeId, Node]()
+    val addNodesByNodeId = mutable.HashMap[NodeId, Node.Content]()
     val unknownNodeIds = distinctBuilder[NodeId, Array]
     @inline def addPotentiallyUnknownNodeId(nodeId: NodeId) = if (!addNodesByNodeId.isDefinedAt(nodeId)) unknownNodeIds += nodeId
 
-    graphChanges.addNodes.foreach { node =>
-      addNodesByNodeId(node.id) = node
-      if (InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role)) {
-        notifiedNodes += node.id
-      }
+    graphChanges.addNodes.foreach {
+      case node: Node.Content =>
+        addNodesByNodeId(node.id) = node
+        if (InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role)) {
+          notifiedNodes += node.id
+        }
+      case _ => ()
     }
 
     // we just treat any mentioned id as a userid, we will not find a corresponding user for node mentions.
@@ -203,16 +205,22 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     }
   }
 
-  private def lookupNodesByNodeId(nodes: collection.Seq[NodeId]): Future[collection.Map[NodeId, Node]] = {
+  private def lookupNodesByNodeId(nodes: collection.Seq[NodeId]): Future[collection.Map[NodeId, Node.Content]] = {
     if(nodes.nonEmpty) {
       db.node.get(nodes).map { nodes =>
-        nodes.collect {
+        val map = mutable.HashMap[NodeId, Node.Content]()
+        nodes.foreach { node =>
           // only take relavant parent roles
-          case node if InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(node.role) =>
-            node.id -> forClient(node)
-        }(breakOut)
+          if (InlineList.contains(NodeRole.Message, NodeRole.Task, NodeRole.Project, NodeRole.Note)(node.role)) {
+            forClient(node) match {
+              case node: Node.Content => map(node.id) = node
+              case _ => ()
+            }
+          }
+        }
+        map
       }
-    } else Future.successful(Map.empty[NodeId, Node])
+    } else Future.successful(Map.empty[NodeId, Node.Content])
   }
 
   private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges)(state: State): Future[List[ApiEvent]] = {
