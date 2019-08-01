@@ -1,16 +1,23 @@
 const glob = require("glob");
 const Path = require("path");
 const fs = require("fs");
+const { execSync } = require('child_process');
+
+const workboxVersion = "v4.3.1"
+const workboxUrl = `https://github.com/GoogleChrome/workbox/releases/download/${workboxVersion}/workbox-${workboxVersion}.tar.gz`
 
 // directories
 const dirs = {}
 dirs.project = Path.resolve(__dirname, '../../../..');
 dirs.root = Path.resolve(dirs.project, '..');
 dirs.assets = Path.join(dirs.project, 'assets');
-dirs.workbox = Path.join(dirs.project, 'workbox-v4.3.1');
+dirs.workbox = Path.join(dirs.project, `workbox-${workboxVersion}`);
 dirs.css = Path.join(dirs.project, 'src/css');
 dirs.html = Path.join(dirs.project, 'src/html');
 dirs.sw = Path.join(dirs.project, 'src/sw');
+
+// download workbox if not exists
+execSync(`[ ! -d ${dirs.workbox} ] && mkdir -p ${dirs.workbox} && wget ${workboxUrl} -O workbox.tar.gz && tar xvzf workbox.tar.gz -C ${dirs.workbox} || true`)
 
 // initialize module exports
 const webpack = require(Path.join(__dirname, 'scalajs.webpack.config'));
