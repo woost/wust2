@@ -10,16 +10,13 @@ S3_BUCKET_WEB_ASSETS="woost-${environment}-web-assets-repository"
 web_assets_dir="./webApp/target/scala-2.12/scalajs-bundler/main/dist"
 version=${WUST_VERSION:-latest}
 
-# publish
-# Copy web assets to set bucket web assets under folder version, so cloudfront can serve them when switch to that version
-# TODO: default caching how long? 24h for now
-short_caching_assets=(index.html sw.js)
-aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=86400
-# set caching headers on some objects default caching is set in cloudformation deployment (or default 24h)
-# TODO: better solution? unique names? just lookup root object in cloudfront?
+# Copy web assets to repository bucket, so we can access this version in deployment
+short_caching_assets=(index.html error-404.html)
+# We copy with metadata that is the caching header. cache all assets except short-caching for 1 year
+aws s3 sync $(printf " --exclude %s" "${short_caching_assets[@]}") "$web_assets_dir" "s3://$S3_BUCKET_WEB_ASSETS/$version/" --metadata-directive REPLACE --cache-control max-age=31536000
 for $asset in $short_caching_assets; do
+    # short caching asset are only cached for a minute
     s3_path="s3://$S3_BUCKET_WEB_ASSETS/$version/$asset"
-    # cache for a minute
     aws s3 cp $s3_path $s3_path --metadata-directive REPLACE --cache-control max-age=60
 done
 
