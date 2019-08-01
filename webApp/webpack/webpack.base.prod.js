@@ -50,7 +50,9 @@ module.exports.optimization = {
 ////////////////////////////////////////
 // clean
 ////////////////////////////////////////
-module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
+if (!process.env.WUST_PROD_DEVELOPMENT) {
+    module.exports.plugins.push(new CleanPlugin([ module.exports.output.path ]));
+}
 
 ////////////////////////////////////////
 // generate css files from scalacss
@@ -242,3 +244,33 @@ if(process.env.SOURCEMAPS == 'true') {
 //   asset: '[path].br[query]',
 //   minRatio: 1.0, // always compress
 // }));
+
+////////////////////////////////////////
+// dev server
+////////////////////////////////////////
+if (process.env.WUST_PROD_DEVELOPMENT) {
+    module.exports.devServer = {
+        // https://webpack.js.org/configuration/dev-server
+        port: process.env.WUST_PORT,
+        contentBase: [
+            module.exports.output.path,
+            woost.dirs.root // serve complete project for providing source-maps, needs to be ignored for watching
+        ],
+        watchContentBase: false,
+        open: false, // open page in browser
+        hot: false,
+        hotOnly: false, // only reload when build is sucessful
+        inline: false, // live reloading
+        overlay: false, // this breaks the compiled app-fastopt-library.js
+        host: "0.0.0.0", //TODO this is needed so that in dev docker containers can access devserver through docker bridge
+        allowedHosts: [ ".localhost" ],
+
+        //proxy websocket requests to app
+        proxy : [
+            woost.setupDevServerProxy({ /*subdomain: "core", */path: "ws", port: process.env.WUST_CORE_PORT, ws: true }),
+            woost.setupDevServerProxy({ /*subdomain: "core", */path: "api", port: process.env.WUST_CORE_PORT }),
+        ],
+        compress: (process.env.DEV_SERVER_COMPRESS == 'true')
+    };
+    // module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
+}

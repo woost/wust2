@@ -74,10 +74,27 @@ const templateParametersFunction = (compilation, assets, assetTags, options) => 
     };
 };
 
+function setupDevServerProxy(config) {
+    var ws = !!config.ws;
+    var protocol = config.ws ? "ws" : "http";
+    var url = protocol + "://localhost:" + config.port;
+    return {
+        ws: ws,
+        target: url,
+        path: config.path ? ('/' + config.path) : '/*',
+        pathRewrite: (config.path && config.pathRewrite) ? ({
+            ["^/" + config.path]: ""
+        }) : undefined,
+        bypass: config.subdomain ? (function (req, res, proxyOptions) {
+            if (req.headers.host.startsWith(config.subdomain + ".")) return true
+            else return req.path;
+        }) : undefined
+    };
+}
 
 // export
 module.exports.webpack = webpack;
 module.exports.woost = {
-    appName, dirs, files, templateParameters, templateParametersFunction
+    appName, dirs, files, templateParameters, templateParametersFunction, setupDevServerProxy
 };
 

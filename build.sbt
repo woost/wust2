@@ -88,8 +88,10 @@ lazy val commonSettings = Seq(
     Nil,
 
   scalacOptions ++= {
-    if (isDevRun.?.value.getOrElse(false)) Nil
-    else 
+    if (isDevRun.?.value.getOrElse(false))
+      "-Xcheckinit" ::
+      Nil
+    else
       // remove assertions from code in production
       "-Xdisable-assertions" ::
       // enable inlining (https://www.lightbend.com/blog/scala-inliner-optimizer)
@@ -214,11 +216,15 @@ lazy val root = project
     ),
     addCommandAlias(
       "devslack",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/compile; webApp/compile; slackApp/compile; webApp/fastOptJS::startWebpackDevServer; devslackwatch_; webApp/fastOptJS::stopWebpackDevServer; slackApp/reStop; core/reStop"
+      "; set every isDevRun := true; core/compile; webApp/compile; slackApp/compile; webApp/fastOptJS::startWebpackDevServer; devslackwatch_; webApp/fastOptJS::stopWebpackDevServer; slackApp/reStop; core/reStop"
     ),
     addCommandAlias(
       "dev",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
+      "; set every isDevRun := true; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
+    ),
+    addCommandAlias(
+      "prodlocal",
+      "; all core/compile webApp/fullOptJS::webpack; webApp/fullOptJS::startWebpackDevServer; prodwebwatch_; all webApp/fullOptJS::stopWebpackDevServer core/reStop"
     ),
     addCommandAlias(
       "devslackwatch_",
@@ -229,18 +235,22 @@ lazy val root = project
       "~; core/reStop; webApp/fastOptJS; webApp/copyFastOptJS; core/reStart"
     ),
     addCommandAlias(
+      "prodwebwatch_",
+      "~; core/reStop; webApp/fullOptJS::webpack; core/reStart"
+    ),
+    addCommandAlias(
       "devf",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
+      "; set every isDevRun := true; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
     addCommandAlias(
       // same as devf, but with ~compile before doing anything
       "ccdev",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; ~compile; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
+      "; set every isDevRun := true; ~compile; all core/compile webApp/fastOptJS::webpack; webApp/fastOptJS::startWebpackDevServer; devwebwatch_; all webApp/fastOptJS::stopWebpackDevServer core/reStop"
     ),
     addCommandAlias(
       // same as dev, but with ~compile before doing anything
       "ccdevf",
-      "; set every isDevRun := true; set scalacOptions += \"-Xcheckinit\"; ~compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
+      "; set every isDevRun := true; ~compile; core/reStart; project webApp; fastOptJS::startWebpackDevServer; devwatchandcopy; all fastOptJS::stopWebpackDevServer core/reStop; project root"
     ),
     addCommandAlias("devwatchandcopy", "~; fastOptJS; copyFastOptJS"),
     // addCommandAlias("deva", "; project androidApp; ++2.11.12; ~android:run; project root; ++2.12.6"),
@@ -248,19 +258,19 @@ lazy val root = project
     // addCommandAlias("compileAndroid", "; project androidApp; ++2.11.12; compile; project root; ++2.12.6"),
     addCommandAlias(
       "testJS",
-      "; set scalacOptions += \"-Xcheckinit\"; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"
+      "; utilJS/test; graphJS/test; sdkJS/test; apiJS/test; webApp/test"
     ),
     addCommandAlias(
       "testJSNonPure",
-      "; set scalacOptions += \"-Xcheckinit\"; sdkJS/test; webApp/test"
+      "; sdkJS/test; webApp/test"
     ),
     addCommandAlias(
       "testJSOpt",
-      "; set scalacOptions += \"-Xcheckinit\"; set scalaJSStage in Global := FullOptStage; testJS"
+      "; set scalaJSStage in Global := FullOptStage; testJS"
     ),
     addCommandAlias(
       "testJVM",
-      "; set scalacOptions += \"-Xcheckinit\"; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test"
+      "; utilJVM/test; graphJVM/test; sdkJVM/test; apiJVM/test; database/test; core/test"
     ),
     // Avoid watching files in root project
     // TODO: is there a simpler less error-prone way to write this?

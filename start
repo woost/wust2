@@ -249,6 +249,13 @@ function self() {
             ;;
         esac
         ;;
+    prodlocal)
+        #TODO: instead of export, use in sbt command: set webpackExtraArgs in (fullOptJS in webApp) := \"--env\" :: \"WUST_PROD_DEVELOPMENT=true\" :: Nil; 
+        env="$env_postgres_secret $env_wust_secret $env_postgres_local $env_wust_local $env_wust_local_connectivity $env_github $env_slack"
+        echo -e "\e[1m\e[32m$env\e[0m"
+        export $env WUST_PROD_DEVELOPMENT=true
+        sbt prodlocal
+        ;;
     test)
         sbt docker
         sbt_with_args test
@@ -292,6 +299,8 @@ function self() {
     apps
     env
     migrate
+
+    prodlocal
 
     test
     test.postgres

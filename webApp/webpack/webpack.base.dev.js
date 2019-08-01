@@ -139,31 +139,12 @@ module.exports.devServer = {
     //proxy websocket requests to app
     proxy : [
         //TODO: subdomain and path proxy?
-        setupProxy({ /*subdomain: "core", */path: "ws", port: process.env.WUST_CORE_PORT, ws: true }),
-        setupProxy({ /*subdomain: "core", */path: "api", port: process.env.WUST_CORE_PORT }),
-        setupProxy({ subdomain: "core", port: process.env.WUST_CORE_PORT }),
-        setupProxy({ subdomain: "github", port: process.env.WUST_GITHUB_PORT, pathRewrite: true }),
-        setupProxy({ subdomain: "slack", port: process.env.WUST_SLACK_PORT, pathRewrite: true }),
-        setupProxy({ path: "apps/web", port: process.env.WUST_WEB_PORT, pathRewrite: true })
+        woost.setupDevServerProxy({ /*subdomain: "core", */path: "ws", port: process.env.WUST_CORE_PORT, ws: true }),
+        woost.setupDevServerProxy({ /*subdomain: "core", */path: "api", port: process.env.WUST_CORE_PORT }),
+        woost.setupDevServerProxy({ subdomain: "core", port: process.env.WUST_CORE_PORT }),
+        woost.setupDevServerProxy({ subdomain: "github", port: process.env.WUST_GITHUB_PORT, pathRewrite: true }),
+        woost.setupDevServerProxy({ subdomain: "slack", port: process.env.WUST_SLACK_PORT, pathRewrite: true }),
     ],
     compress: (process.env.DEV_SERVER_COMPRESS == 'true')
 };
 // module.exports.plugins.push(new Webpack.HotModuleReplacementPlugin())
-
-function setupProxy(config) {
-    var ws = !!config.ws;
-    var protocol = config.ws ? "ws" : "http";
-    var url = protocol + "://localhost:" + config.port;
-    return {
-        ws: ws,
-        target: url,
-        path: config.path ? ('/' + config.path) : '/*',
-        pathRewrite: (config.path && config.pathRewrite) ? ({
-            ["^/" + config.path]: ""
-        }) : undefined,
-        bypass: config.subdomain ? (function (req, res, proxyOptions) {
-            if (req.headers.host.startsWith(config.subdomain + ".")) return true
-            else return req.path;
-        }) : undefined
-    };
-}
