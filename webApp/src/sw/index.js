@@ -53,16 +53,6 @@ workbox.routing.registerRoute(
 );
 
 
-// when a new serviceworker is available:
-// https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting
-// https://stackoverflow.com/questions/38168276/navigator-serviceworker-controller-is-null-until-page-refresh
-self.addEventListener('install', function(event) {
-    event.waitUntil(self.skipWaiting()); // Activate worker immediately
-});
-self.addEventListener('activate', function(event) {
-    event.waitUntil(self.clients.claim()); // Become available to all pages
-});
-
 /////////////////////////////////////////
 
 function wrapConsoleCall(funName) {
@@ -196,10 +186,21 @@ const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api
 
 var userAuth;
 
-// subscribe to webpush on startup
-self.addEventListener('activate', e => {
+// when a new serviceworker is available:
+// https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting
+// https://stackoverflow.com/questions/38168276/navigator-serviceworker-controller-is-null-until-page-refresh
+self.addEventListener('install', function(event) {
+    log("ServiceWorker installed");
+    // Activate worker immediately
+    self.skipWaiting();
+});
+self.addEventListener('activate', function(event) {
     log("ServiceWorker activated");
-    e.waitUntil(updateWebPushSubscriptionAndPersist());
+    // Become available to all pages
+    event.waitUntil(self.clients.claim().then(_ => {
+        //subscribe to webpush on startup
+        updateWebPushSubscriptionAndPersist()
+    }));
 });
 
 self.addEventListener('message', e => {
