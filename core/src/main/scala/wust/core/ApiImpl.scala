@@ -121,7 +121,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
 
 
   override def fileDownloadBaseUrl: ApiFunction[Option[StaticFileUrl]] = Action {
-    Future.successful(fileUploader.fold(Option.empty[StaticFileUrl])(_ => Some(s"https://files.${serverConfig.host}"))
+    Future.successful(fileUploader.fold(Option.empty[StaticFileUrl])(_ => Some(s"https://files.${serverConfig.host}")))
   }
   // only real users with email address can upload files
   override def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): ApiFunction[FileUploadConfiguration] = Action.requireRealUser { (_, user) =>
