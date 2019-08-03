@@ -98,17 +98,6 @@ object MainView {
         }
       },
 
-      //TODO: combine with second rx! but it does not work because it would not overlay everthing as it does now.
-      Rx {
-        VDomModifier.ifTrue(viewIsContent()) (
-          if (GlobalState.isLoading()) spaceFillingLoadingAnimation.apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
-          else if (GlobalState.pageNotFound()) PageNotFoundView.apply.apply(position.absolute, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
-          else VDomModifier.empty
-        )
-      },
-
-      // It is important that the view rendering is in a separate Rx.
-      // This avoids rerendering the whole view when only the screen-size changed
       div(
         cls := "main-viewrender",
         id := "main-viewrender",
@@ -124,13 +113,18 @@ object MainView {
           Rx {
             val viewConfig = GlobalState.viewConfig()
 
-            ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
-              Styles.growFull,
-              flexGrow := 1
-            ).prepend(
-                overflow.visible, // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
+            if (viewIsContent() && GlobalState.isLoading()) {
+              spaceFillingLoadingAnimation.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
+            } else if (viewIsContent() && GlobalState.pageNotFound()) {
+              PageNotFoundView.apply.apply(Styles.growFull, zIndex := ZIndex.loading, backgroundColor := Colors.contentBg)
+            } else {
+              ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
+                Styles.growFull,
+                flexGrow := 1
+              ).prepend(
+                  overflow.visible, // we set a default overflow. we cannot just set it from outside, because every view might have a differnt nested area that is scrollable. Example: Chat which has an input at the bottom and the above history is only scrollable.
               )
-            // we can now assume, that every page parentId is contained in the graph
+            }
           },
         ),
       ),
