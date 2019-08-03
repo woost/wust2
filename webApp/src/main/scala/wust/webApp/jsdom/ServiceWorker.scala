@@ -67,17 +67,20 @@ object ServiceWorker {
   }
 
   sealed trait WorkerMessage
+  object WorkerMessage {
+    import io.circe.generic.extras.semiauto._
+    import wust.api.serialize.Circe._ // das gibt die die config mit `{"type": "SubClassName", .... }`
+    implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
+    implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]
+  }
+
   final case class AuthMessage(token: Authentication.Token) extends WorkerMessage
   final case object DeAuthMessage extends WorkerMessage
   final case class Message(message: String) extends WorkerMessage
 
-  def sendAuth(auth: Authentication): Unit = {
-    import io.circe.generic.extras.semiauto._
-    import io.circe.syntax._
-    import wust.api.serialize.Circe._ // das gibt die die config mit `{"type": "SubClassName", .... }`
 
-    implicit val serviceWorkerMessageEncoder: Encoder[WorkerMessage] = deriveEncoder[WorkerMessage]
-    implicit val serviceWorkerMessageDecoder: Decoder[WorkerMessage] = deriveDecoder[WorkerMessage]
+  def sendAuth(auth: Authentication): Unit = {
+    import io.circe.syntax._
 
     scribe.info("Querying serviceworker for auth-sync")
     Navigator.serviceWorker.foreach { sw =>
