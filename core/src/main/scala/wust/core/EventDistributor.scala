@@ -47,7 +47,7 @@ final case class NotificationData(userId: UserId, notifiedNodes: collection.Seq[
 //TODO adhere to TOO MANY REQUESTS Retry-after header: https://developers.google.com/web/fundamentals/push-notifications/common-issues-and-reporting-bugs
 class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushClients: Option[PushClients])(implicit ec: ExecutionContext) extends EventDistributor[ApiEvent, State] {
 
-  private val subscribers = mutable.HashSet.empty[NotifiableClient[ApiEvent, State]]
+  private val subscribers = mutable.HashSet[NotifiableClient[ApiEvent, State]]()
   private val webPushService = pushClients.flatMap(_.webPushService)
   private val pushedClient = pushClients.flatMap(_.pushedClient)
 
@@ -118,23 +118,25 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     // send out push notifications
 
     val notifiedNodes = distinctBuilder[NodeId, Array]
-    val addNodesByNodeId = mutable.HashMap[NodeId, Node.Content]()
+    val allAddNodesByNodeId = mutable.HashMap[NodeId, Node.Content]()
     val unknownNodeIds = distinctBuilder[NodeId, Array]
-    @inline def addPotentiallyUnknownNodeId(nodeId: NodeId) = if (!addNodesByNodeId.isDefinedAt(nodeId)) unknownNodeIds += nodeId
+    @inline def addPotentiallyUnknownNodeId(nodeId: NodeId) = if (!allAddNodesByNodeId.isDefinedAt(nodeId)) unknownNodeIds += nodeId
 
+    val mentionsByNode = groupByBuilder[NodeId, UserId]
+    val assignmentsByNode = groupByBuilder[NodeId, UserId]
+    val invitesByNode = groupByBuilder[NodeId, UserId]
+    val newNodes = mutable.HashSet[NodeId]()
     graphChanges.addNodes.foreach {
       case node: Node.Content =>
-        addNodesByNodeId(node.id) = node
+        allAddNodesByNodeId(node.id) = node
         if (InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role)) {
+          newNodes += node.id
           notifiedNodes += node.id
         }
       case _ => ()
     }
 
     // we just treat any mentioned id as a userid, we will not find a corresponding user for node mentions.
-    val mentionsByNode = groupByBuilder[NodeId, UserId]
-    val assignmentsByNode = groupByBuilder[NodeId, UserId]
-    val invitesByNode = groupByBuilder[NodeId, UserId]
     graphChanges.addEdges.foreach {
       case e: Edge.Mention =>
         notifiedNodes += e.nodeId
@@ -160,7 +162,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
 
     val sendOutNotifications = for {
       nodeLookupFromDb <- lookupNodesByNodeId(unknownNodeIds.result)
-      nodeLookup = nodeLookupFromDb ++ addNodesByNodeId
+      nodeLookup = nodeLookupFromDb ++ allAddNodesByNodeId
       notifications <- db.notifications.notifiedUsersByNodes(notifiedNodes.result())
       notificationsWithParent = {
         val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
@@ -171,20 +173,15 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             val parents = parentIdsByChildId.get(nodeId).map(_.flatMap(nodeLookup.get))
             val parent = parents.flatMap(_.headOption) //TODO: this parent is only the first and not checked for access!!!!!
             nodeLookup.get(nodeId).foreach { node =>
-              (assignmentsByNode.result.get(nodeId), mentionsByNode.result.get(nodeId), invitesByNode.result.get(nodeId)) match {
-                case (Some(users), _, _) if users.contains(n.userId) =>
-                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewAssigned)
-                case (_, Some(users), _) if users.contains(n.userId) =>
-                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewMention)
-                case (_, _, Some(users)) if users.contains(n.userId) =>
-                  notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewInvite)
-                case _ =>
-                  if (parent.nonEmpty) notifiedNodes += NotifiedNode(node, parent, NotifiedKind.NewNode)
-              }
+              assignmentsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewAssigned } orElse
+                mentionsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewMention } orElse
+                invitesByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewMention } orElse
+                (if (newNodes.contains(nodeId) && parent.nonEmpty) Some(NotifiedKind.NewNode) else None) foreach { kind =>
+                  notifiedNodes += NotifiedNode(node, parent, kind)
+                }
             }
           }
           if (notifiedNodes.nonEmpty) {
-
             val data = NotificationData(n.userId, notifiedNodes, n.subscribedNodeId, EmojiParser.parseToText(n.subscribedNodeContent))
             notificationsWithParent += data
           }
