@@ -55,8 +55,12 @@ workbox.routing.registerRoute(
 
 // when a new serviceworker is available:
 // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting
-self.addEventListener('install', e => {
-    self.skipWaiting();
+// https://stackoverflow.com/questions/38168276/navigator-serviceworker-controller-is-null-until-page-refresh
+self.addEventListener('install', function(event) {
+    event.waitUntil(self.skipWaiting()); // Activate worker immediately
+});
+self.addEventListener('activate', function(event) {
+    event.waitUntil(self.clients.claim()); // Become available to all pages
 });
 
 /////////////////////////////////////////
