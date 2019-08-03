@@ -155,7 +155,6 @@ object GlobalStateFactory {
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
     authWithPrev.foreach {
       case (prev, auth) =>
-        println("GOG " + auth)
         if (prev != auth) {
           Client.storage.auth() = Some(auth)
         }
