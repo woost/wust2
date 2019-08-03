@@ -1,6 +1,20 @@
 importScripts('/workbox-v4.3.1/workbox-sw.js');
 workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 
+// globals
+const port = location.port ? ":" + location.port : '';
+const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
+const isDebug = location.hostname == "localhost"
+var userAuth;
+
+const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => console[funName].apply(console, ["[SW]"].concat(args)) : () => {}
+const log = wrapConsoleCall("log", isDebug);
+const warn = wrapConsoleCall("warn", true);
+const error = wrapConsoleCall("error", true);
+
+log("ServiceWorker starting!");
+
+// workbox settings
 workbox.routing.registerRoute(
   /\.(?:html)$/,
   new workbox.strategies.NetworkFirst({
@@ -52,18 +66,7 @@ workbox.routing.registerRoute(
   })
 );
 
-
 /////////////////////////////////////////
-
-function wrapConsoleCall(funName) {
-    return function() {
-        arguments[0] = "[SW] " + arguments[0];
-        return console[funName].apply(console, arguments);
-    };
-}
-const log = wrapConsoleCall("log");
-const warn = wrapConsoleCall("warn");
-const error = wrapConsoleCall("error");
 
 function requestPromise(request) {
     return new Promise((resolve, reject) => {
@@ -176,15 +179,6 @@ function focusedClient(windowClients, subscribedId, messageId) {
     }
     return clientIsFocused;
 }
-
-// startup
-log("ServiceWorker starting!");
-const port = location.port ? ":" + location.port : '';
-const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
-// log(`BaseUrl: ${baseUrl}.`);
-// log(`Origin: ${location.origin}.`);
-
-var userAuth;
 
 // when a new serviceworker is available:
 // https://developer.mozilla.org/en-US/docs/Web/API/ServiceWorkerGlobalScope/skipWaiting
