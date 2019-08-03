@@ -301,7 +301,7 @@ self.addEventListener('push', e => {
 
                         const title = (count > 1) ? `${titleContent} (${count} new messages).` : titleContent;
 
-                        return self.registration.showNotification(pushEmojis.replace_emoticons(title), options);
+                        return self.registration.showNotification(title, options);
                     });
                 }
             } else {
