@@ -124,7 +124,7 @@ object MainView {
           Rx {
             val viewConfig = GlobalState.viewConfig()
 
-            ViewRender( GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
+            ViewRender(GlobalState.toFocusState(viewConfig), viewConfig.view).apply(
               Styles.growFull,
               flexGrow := 1
             ).prepend(
