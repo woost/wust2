@@ -162,13 +162,13 @@ function updateWebPushSubscriptionAndPersist() {
     }
 }
 
-function focusedClient(windowClients, subscribedId, channelId, messageId) {
+function focusedClient(windowClients, subscribedId, messageId) {
     let clientIsFocused = false;
     for (let i = 0; i < windowClients.length; i++) {
         const windowClient = windowClients[i];
         if (windowClient.focused) {
             const url = windowClient.url;
-            if(url.indexOf(subscribedId) !== -1 || url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
+            if(url.indexOf(subscribedId) !== -1 || url.indexOf(messageId) !== -1) {
                 clientIsFocused = true;
                 break;
             }
@@ -254,12 +254,11 @@ self.addEventListener('push', e => {
                 const parentId = data.parentId;
                 const subscribedId = data.subscribedId;
                 const description = data.description ? ` (${data.description})` : ""
-                const channelId = (!!parentId) ? parentId : subscribedId;
                 const outdated = (!!data.epoch) ? ((Date.now() - Number(data.epoch)) > 43200000) : false;
 
                 // 86400000 == 1 day (1000*60*60*24)
                 // 43200000 == 12h   (1000*60*60*12)
-                if (outdated || !data.content || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
+                if (outdated || !data.content || focusedClient(windowClients, subscribedId, subscribedId, nodeId)) {
                     log("Focused client or outdated push notification => ignoring push.");
                     return;
                 } else if (data.version != 1) {
@@ -285,7 +284,7 @@ self.addEventListener('push', e => {
                         // ],
                         data: {
                             nodeId: nodeId,
-                            channelId: channelId,
+                            subscribedId: subscribedId,
                             msgCount: 1
                         },
                     };
@@ -332,7 +331,7 @@ self.addEventListener('notificationclick', e => {
 
             const ndata = e.notification.data;
             const messageId = ndata.nodeId;
-            const channelId = ndata.channelId;
+            const subscribedId = ndata.subscribedId;
             const baseLocation = "woost.space";
 
             for (const index in windowClients) {
@@ -340,7 +339,7 @@ self.addEventListener('notificationclick', e => {
                 const client = windowClients[index];
                 const url = client.url;
 
-                if (url.indexOf(channelId) !== -1 || url.indexOf(messageId) !== -1) {
+                if (url.indexOf(subscribedId) !== -1 || url.indexOf(messageId) !== -1) {
                     log("Found window that is already including node.");
 
                     return client.focus().then(function (client) { client.navigate(url); });
@@ -348,14 +347,14 @@ self.addEventListener('notificationclick', e => {
                     log("Found woost window => opening node.");
 
                     const exp = /(?!(page=))((([a-zA-z0-9]{22})[,:]?)+)/
-                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, channelId) : ("/#page=" + channelId);
+                    const newLocation = (url.search(exp) !== -1) ? url.replace(exp, subscribedId) : ("/#page=" + subscribedId);
                     return client.focus().then(function (client) { client.navigate(newLocation); });
                 }
             }
 
             log("No matching client found. Opening new window.");
 
-            return self.clients.openWindow("/#page=" + channelId).then(function (client) { client.focus(); });
+            return self.clients.openWindow("/#page=" + subscribedId).then(function (client) { client.focus(); });
 
         })
     );

@@ -31,9 +31,8 @@ object NotifiedKind {
   case object NewAssigned extends NotifiedKind
   case object NewInvite extends NotifiedKind
 }
-final case class NotifiedNode(node: Node.Content, parent: Option[Node.Content], kind: NotifiedKind) {
+final case class NotifiedNode(node: Node.Content, kind: NotifiedKind) {
   val nodeContent = EmojiParser.parseToText(node.data.str.trim)
-  val parentContent = parent.map(n => EmojiParser.parseToText(n.data.str.trim))
 
   def description = kind match {
     case NotifiedKind.NewNode => s"New ${node.role}"
@@ -125,12 +124,13 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     val mentionsByNode = groupByBuilder[NodeId, UserId]
     val assignmentsByNode = groupByBuilder[NodeId, UserId]
     val invitesByNode = groupByBuilder[NodeId, UserId]
-    val newNodes = mutable.HashSet[NodeId]()
+    val interestingNewNodes = mutable.HashSet[NodeId]()
+    val newChildIds = mutable.HashSet[NodeId]()
     graphChanges.addNodes.foreach {
       case node: Node.Content =>
         allAddNodesByNodeId(node.id) = node
         if (InlineList.contains(NodeRole.Message, NodeRole.Project)(node.role)) {
-          newNodes += node.id
+          interestingNewNodes += node.id
           notifiedNodes += node.id
         }
       case _ => ()
@@ -150,52 +150,45 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
         notifiedNodes += e.nodeId
         invitesByNode += e.nodeId -> e.userId
         addPotentiallyUnknownNodeId(e.nodeId)
+      case e: Edge.Child =>
+        newChildIds += e.childId
       case _ =>
         ()
-    }
-
-    val parentIdsByChildId = graphChanges.addEdges.toSeq.groupByCollect[NodeId, NodeId] {
-      case e: Edge.Child if notifiedNodes.contains(e.childId) =>
-        addPotentiallyUnknownNodeId(e.parentId)
-        e.childId -> e.parentId
     }
 
     val sendOutNotifications = for {
       nodeLookupFromDb <- lookupNodesByNodeId(unknownNodeIds.result)
       nodeLookup = nodeLookupFromDb ++ allAddNodesByNodeId
       notifications <- db.notifications.notifiedUsersByNodes(notifiedNodes.result())
-      notificationsWithParent = {
-        val notificationsWithParent = mutable.ArrayBuffer[NotificationData]()
+    } yield {
+      val notificationData = {
+        val notificationData = mutable.ArrayBuffer[NotificationData]()
         notifications.foreach { n =>
           val notifiedNodes = mutable.ArrayBuffer[NotifiedNode]()
           val newNotifiedNodes = n.notifiedNodes.foreach { nodeId =>
-            //TODO: parent nodes need to be access-checked per notified user!!
-            val parents = parentIdsByChildId.get(nodeId).map(_.flatMap(nodeLookup.get))
-            val parent = parents.flatMap(_.headOption) //TODO: this parent is only the first and not checked for access!!!!!
             nodeLookup.get(nodeId).foreach { node =>
               assignmentsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewAssigned } orElse
                 mentionsByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewMention } orElse
                 invitesByNode.result.get(nodeId).collect { case users if users.contains(n.userId) => NotifiedKind.NewMention } orElse
-                (if (newNodes.contains(nodeId) && parent.nonEmpty) Some(NotifiedKind.NewNode) else None) foreach { kind =>
-                  notifiedNodes += NotifiedNode(node, parent, kind)
+                (if (interestingNewNodes.contains(nodeId) && newChildIds.contains(nodeId)) Some(NotifiedKind.NewNode) else None) foreach { kind =>
+                  notifiedNodes += NotifiedNode(node, kind)
                 }
             }
           }
           if (notifiedNodes.nonEmpty) {
             val data = NotificationData(n.userId, notifiedNodes, n.subscribedNodeId, EmojiParser.parseToText(n.subscribedNodeContent))
-            notificationsWithParent += data
+            notificationData += data
           }
         }
 
-        notificationsWithParent
+        notificationData
       }
-    } yield {
 
       webPushService.foreach { webPushService =>
-        sendWebPushNotifications(webPushService, author, notificationsWithParent)
+        sendWebPushNotifications(webPushService, author, notificationData)
       }
       pushedClient.foreach { pushedClient =>
-        sendPushedNotifications(pushedClient, author, notificationsWithParent)
+        sendPushedNotifications(pushedClient, author, notificationData)
       }
 
       ()
@@ -293,8 +286,6 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
             nodeId = notifiedNode.node.id.toBase58,
             subscribedId = subscribedNodeId.toBase58,
             subscribedContent = subscribedNodeContent,
-            parentId = notifiedNode.parent.map(_.id.toBase58),
-            parentContent = notifiedNode.parentContent,
             epoch = EpochMilli.now,
             description = notifiedNode.description
           )
@@ -363,8 +354,8 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { notifiedNode =>
 
-          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${ StringOps.trimToMaxLength(notifiedNode.parent.fold(subscribedNodeContent)(_.data.str), 50)} (${notifiedNode.description}): ${ StringOps.trimToMaxLength(notifiedNode.nodeContent, 250) }"
-          val contentUrl = s"https://${ serverConfig.host }/#page=${ notifiedNode.parent.fold(subscribedNodeId)(_.id).toBase58 }"
+          val content = s"${ if (author.name.isEmpty) "Unregistered User" else author.name } in ${StringOps.trimToMaxLength(subscribedNodeContent, 50)} (${notifiedNode.description}): ${StringOps.trimToMaxLength(notifiedNode.nodeContent, 250) }"
+          val contentUrl = s"https://${ serverConfig.host }/#page=${subscribedNodeId.toBase58}"
 
           db.oAuthClients.get(userId, OAuthClientService.Pushed).flatMap { subscriptions =>
             val futureSeq = subscriptions.map { subscription =>

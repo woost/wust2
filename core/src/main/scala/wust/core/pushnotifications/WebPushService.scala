@@ -36,13 +36,12 @@ object VisiblePushData {
 //TODO: refactor this class, needs to be in sync with sw.js (also migrate for older sw.js).
 //TODO: parent is not an option anymore
 // the version specifies compatibility with the serviceworker. bump the version in serviceworker/index.js if bumped here. This should be changed if the structure of this document changes in a way that old sw cannot read it anymore.
-final case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, parentId: Option[String], parentContent: Option[String], epoch: Long, description: String, version: Int = 1) {
+final case class PushData(username: String, content: String, nodeId: String, subscribedId: String, subscribedContent: String, epoch: Long, description: String, version: Int = 1) {
   import wust.util.StringOps._
   def trimToSize: PushData = this.copy(
     username = trimToMaxLength(username, VisiblePushData.maxTitleLength),
     content = trimToMaxLength(content, VisiblePushData.maxContentLength),
     subscribedContent = trimToMaxLength(subscribedContent, VisiblePushData.maxTitleLength),
-    parentContent = parentContent.map(trimToMaxLength(_, VisiblePushData.maxTitleLength)),
   )
 }
 
