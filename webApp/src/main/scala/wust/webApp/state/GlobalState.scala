@@ -50,7 +50,7 @@ object GlobalState {
   val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val serviceWorkerUpdateAvailable: Observable[Unit] = if (true) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
+  val serviceWorkerUpdateAvailable: Observable[Unit] = if (!LinkingInfo.developmentMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
