@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import outwatch.dom.helpers.{ CustomEmitterBuilder, EmitterBuilder, PropBuilder, SyncEmitterBuilder }
 import cats.data.NonEmptyList
 import cats.syntax._
 import cats.implicits._
@@ -20,6 +21,7 @@ import wust.webApp._
 import wust.webApp.state._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, Elements, Ownable, UI }
+import cats.effect.IO
 
 import scala.reflect.ClassTag
 
@@ -40,16 +42,21 @@ object ViewSwitcher {
   }
 
   //TODO FocusState?
-  def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
-    val currentView = Var[View](View.Empty)
-    GlobalState.viewConfig
-      .foreach({
-        case config if config.page.parentId.contains(channelId) => currentView() = config.view
-        case _ => ()
-      }: ViewConfig => Unit)
-    currentView.triggerLater { view => GlobalState.urlConfig.update(_.focus(view)) }
+  def apply(channelId: NodeId)(implicit ctx: Ctx.Owner): CustomEmitterBuilder[View, VNode] = EmitterBuilder.ofNode[View] { viewSink =>
+    {
+      val currentView = Var[View](View.Empty)
+      GlobalState.viewConfig
+        .foreach({
+          case config if config.page.parentId.contains(channelId) => currentView() = config.view
+          case _ => ()
+        }: ViewConfig => Unit)
+      currentView.triggerLater { view =>
+        GlobalState.urlConfig.update(_.focus(view))
+        viewSink.onNext(view)
+      }
 
-    apply(channelId, currentView)
+      apply(channelId, currentView)
+    }
   }
 
   def apply(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible] = None): VNode = {
@@ -159,14 +166,14 @@ object ViewSwitcher {
         if (e.ctrlKey) {
           currentView.update{ oldView =>
             oldView match {
-              case View.Empty => clickedView
+              case View.Empty                                => clickedView
               case view: View.Visible if view == clickedView => View.Empty
               case view: View.Tiled if view.views.toList.contains(clickedView) =>
                 if (view.views.toList.distinct.length == 1) View.Empty
                 else view.copy(views = NonEmptyList.fromList(view.views.filterNot(_ == clickedView)).get)
-              case view: View.Tiled   => view.copy(views = view.views :+ clickedView)
+              case view: View.Tiled                          => view.copy(views = view.views :+ clickedView)
               case view: View.Visible if view != clickedView => View.Tiled(ViewOperator.Row, NonEmptyList.of(view, clickedView))
-              case view => view
+              case view                                      => view
             }
           }
         } else {

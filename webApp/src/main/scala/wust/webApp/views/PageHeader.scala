@@ -124,7 +124,7 @@ object PageHeader {
         alignItems.center,
         flexWrap := "wrap-reverse",
 
-        ViewSwitcher( pageNodeId).apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"),
+        ViewSwitcher( pageNodeId).mapResult(_.apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px")) --> Observer.empty,
         div(
           Styles.flex,
           justifyContent.spaceBetween,
