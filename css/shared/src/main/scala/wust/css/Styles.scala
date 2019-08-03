@@ -284,6 +284,7 @@ object CommonStyles extends StyleSheet.Standalone {
     lineHeight(1.4285 em), // semantic ui default line height
     marginBottom(0 px), // remove margin when title is in <p> (rendered my markdown)
     Styles.flex, // for notification count
+    color.white.important // overwriting .nodecard.node color
   )
 
   ".pageheader-channeltitle.nodecard" - (
