@@ -5,7 +5,7 @@ import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{ Ownable, UI }
 import wust.css.Styles
 import wust.ids._
 import wust.sdk.Colors
@@ -14,7 +14,7 @@ import wust.webApp._
 import wust.webApp.dragdrop.DragItem
 import wust.webApp.state._
 import wust.webApp.views.Components._
-import wust.webApp.views.DragComponents.{drag, registerDragContainer}
+import wust.webApp.views.DragComponents.{ drag, registerDragContainer }
 
 import scala.collection.breakOut
 import scala.scalajs.js
@@ -27,7 +27,7 @@ object PageHeader {
       VDomModifier(
         cls := "pageheader",
 
-        GlobalState.page.map(_.parentId.map(pageRow( _, viewRender))),
+        GlobalState.page.map(_.parentId.map(pageRow(_, viewRender))),
       )
     })
   }
@@ -42,12 +42,12 @@ object PageHeader {
     val channelTitle = Rx {
       val node = pageNode()
       div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText( _), projectWithIcon = false),
+        Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
         backgroundColor := pageStyle.pageBgColor,
 
         cls := "pageheader-channeltitle",
         Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
-        Components.showHoveredNode( node.id),
+        Components.showHoveredNode(node.id),
         registerDragContainer,
         DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
 
@@ -64,7 +64,7 @@ object PageHeader {
     }
 
     val channelNotification = UnreadComponents
-      .notificationsButton( pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
+      .notificationsButton(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
       .foreach(view => GlobalState.urlConfig.update(_.focus(view)))
 
     val hasBigScreen = Rx {
@@ -86,8 +86,8 @@ object PageHeader {
       ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
       MovableElement.withToggleSwitch(
         Seq(
-          FilterWindow.movableWindow( MovableElement.RightPosition(100, 200)),
-          TagList.movableWindow( viewRender, MovableElement.RightPosition(100, 400)),
+          FilterWindow.movableWindow(MovableElement.RightPosition(100, 200)),
+          TagList.movableWindow(viewRender, MovableElement.RightPosition(100, 400)),
         ),
         enabled = GlobalState.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
         resizeEvent = GlobalState.rightSidebarNode.toTailObservable.map(_ => ()),
@@ -108,12 +108,12 @@ object PageHeader {
         Styles.flex,
         alignItems.center,
 
-        breadCrumbs,
         Rx {
           VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+            breadCrumbs,
             AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic),
             FeedbackForm(ctx)(Styles.flexStatic),
-            AuthControls.authStatus( buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+            AuthControls.authStatus(buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
           )
         },
       ),
@@ -124,8 +124,13 @@ object PageHeader {
         alignItems.center,
         flexWrap := "wrap-reverse",
 
-        ViewSwitcher( pageNodeId).mapResult(_.apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px")) --> Observer.empty,
+        Rx {
+          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+            ViewSwitcher(pageNodeId).mapResult(_.apply(Styles.flexStatic, alignSelf.flexStart)) --> Observer.empty
+          )
+        },
         div(
+          marginLeft := "5px",
           Styles.flex,
           justifyContent.spaceBetween,
           flexGrow := 1,
@@ -140,15 +145,17 @@ object PageHeader {
             channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
-          Rx{ VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-            filterControls
-          )},
+          Rx{
+            VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+              filterControls
+            )
+          },
           div(
             Styles.flex,
             alignItems.center,
             channelMembersList,
 
-            menuItems( pageNodeId)
+            menuItems(pageNodeId)
           )
         ),
       )
@@ -160,13 +167,13 @@ object PageHeader {
       //TODO we should use the permission system here and/or share code with the settings menu function
       channelId == GlobalState.userId()
     }
-    val isBookmarked = PageSettingsMenu.nodeIsBookmarked( channelId)
+    val isBookmarked = PageSettingsMenu.nodeIsBookmarked(channelId)
 
     val buttonStyle = VDomModifier(Styles.flexStatic, cursor.pointer)
 
     val pinButton = Rx {
       val hideBookmarkButton = isSpecialNode() || isBookmarked()
-      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton( channelId).apply(
+      hideBookmarkButton.ifFalse[VDomModifier](PageSettingsMenu.addToChannelsButton(channelId).apply(
         cls := "mini",
         buttonStyle,
         marginRight := "5px"
@@ -175,7 +182,7 @@ object PageHeader {
 
     VDomModifier(
       pinButton,
-      PageSettingsMenu( channelId).apply(buttonStyle, fontSize := "20px"),
+      PageSettingsMenu(channelId).apply(buttonStyle, fontSize := "20px"),
     )
   }
 
