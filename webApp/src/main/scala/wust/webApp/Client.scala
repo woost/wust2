@@ -27,19 +27,27 @@ object Client {
   private val port = if (location.port.isEmpty) "" else ":" + location.port
   private val protocol = location.protocol
 
-  private def calculateWustUrl(withVersion: Boolean): String = {
+  private def calculateCoreUrl(withVersion: Boolean): String = {
     val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
 
     if (LinkingInfo.developmentMode)
-      s"$socketProtocol//${hostname}$port/ws" // allows to access the devserver without subdomain
+      s"$socketProtocol//$hostname$port/ws" // allows to access the devserver without subdomain
     else {
       val subdomain = if (withVersion) s"core-${WoostConfig.value.versionString.replace(".", "-")}" else "core"
       s"$socketProtocol//$subdomain.$hostname$port/ws"
     }
   }
 
-  private val wustUrl = calculateWustUrl(withVersion = true)
-  private val wustUrlUnversioned = calculateWustUrl(withVersion = false)
+  private def calculateFilesUrl(): Option[String] = {
+    if (LinkingInfo.developmentMode)
+      None
+    else
+      Some(s"${location.protocol}//files.$hostname/")
+  }
+
+  private val wustUrl = calculateCoreUrl(withVersion = true)
+  private val wustUrlUnversioned = calculateCoreUrl(withVersion = false)
+  val wustFilesUrl = calculateFilesUrl()
 
   def backendIsOnline(): Future[Boolean] = {
     import org.scalajs.dom.raw.XMLHttpRequest

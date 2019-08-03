@@ -9,6 +9,7 @@ import wust.api._
 import wust.core.DbConversions._
 import wust.core.Dsl._
 import wust.core.aws.S3FileUploader
+import wust.core.config.ServerConfig
 import wust.db.{Data, Db, SuccessResult}
 import wust.graph._
 import wust.ids._
@@ -17,7 +18,7 @@ import scala.collection.breakOut
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.control.NonFatal
 
-class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future], graphChangesNotifier: GraphChangesNotifier)(implicit ec: Scheduler) extends Api[ApiFunction] {
+class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serverConfig: ServerConfig, emailFlow: AppEmailFlow, changeGraphAuthorizer: ChangeGraphAuthorizer[Future], graphChangesNotifier: GraphChangesNotifier)(implicit ec: Scheduler) extends Api[ApiFunction] {
   import ApiEvent._
   import dsl._
 
@@ -120,7 +121,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], email
 
 
   override def fileDownloadBaseUrl: ApiFunction[Option[StaticFileUrl]] = Action {
-    fileUploader.fold(Task.pure(Option.empty[StaticFileUrl]))(_.getFileDownloadBaseUrl.map(Some(_))).runToFuture
+    Future.successful(fileUploader.fold(Option.empty[StaticFileUrl])(_ => Some(s"https://files.${serverConfig.host}"))
   }
   // only real users with email address can upload files
   override def fileUploadConfiguration(key: String, fileSize: Int, fileName: String, fileContentType: String): ApiFunction[FileUploadConfiguration] = Action.requireRealUser { (_, user) =>

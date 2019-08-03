@@ -65,7 +65,7 @@ object Server {
     val mailService = config.aws.flatMap(_.ses).fold(MailService(config.email)) { sesConfig =>
       MailService(sesConfig.settings, new SESMailClient(AppEmailFlow.teamEmailAddress, sesConfig))
     }
-    val fileUploader = config.aws.map(new S3FileUploader(_, config.server)) //TODO local file uploader stub for dev?
+    val fileUploader = config.aws.map(new S3FileUploader(_)) //TODO local file uploader stub for dev?
 
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
     val cancelable = emailFlow.start()
@@ -77,7 +77,7 @@ object Server {
     val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
     val graphChangesNotifier = new GraphChangesNotifier(db, emailFlow)
 
-    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
+    val apiImpl = new ApiImpl(guardDsl, db, fileUploader, config.server, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow, oAuthClientServiceLookup)
     val pushImpl = new PushApiImpl(guardDsl, db, config.pushNotification)
 

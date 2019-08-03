@@ -50,7 +50,7 @@ object GlobalState {
   val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
-  val serviceWorkerUpdateAvailable: Observable[Unit] = if (!LinkingInfo.developmentMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
+  val serviceWorkerUpdateAvailable: Observable[Unit] = if (true) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty
 
   val eventProcessor = EventProcessor(
     Client.observable.event,
@@ -73,8 +73,6 @@ object GlobalState {
   val isLoading = Var(false)
 
   val hasError = Var(false)
-
-  val fileDownloadBaseUrl = Var[Option[String]](None)
 
   val screenSize: Rx[ScreenSize] = outwatch.dom.dsl.events.window.onResize
     .debounce(0.2 second)

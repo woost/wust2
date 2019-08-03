@@ -10,24 +10,21 @@ import com.amazonaws.services.s3.model._
 import com.amazonaws.services.s3.{AmazonS3, AmazonS3Client}
 import monix.eval.Task
 import wust.api.{FileUploadConfiguration, StaticFileUrl}
-import wust.core.config.{AwsConfig, ServerConfig}
+import wust.core.config.AwsConfig
 import wust.ids.UserId
 
 import scala.collection.mutable
 
-class S3FileUploader(awsConfig: AwsConfig, serverConfig: ServerConfig) {
+class S3FileUploader(awsConfig: AwsConfig) {
   import FileUploadConfiguration._
 
   private val s3Client: AmazonS3 = AmazonS3Client.builder().withRegion(awsConfig.region).build()
 
-  private def cdnGetUrl = s"https://files.${serverConfig.host}"
   private def s3PostUrl(bucketName: String) = s"https://$bucketName.s3-${awsConfig.region}.amazonaws.com/"
 
   private def requireSaneKey(key: String): Unit = {
     require(key.matches("^[A-Fa-f0-9]+$"), "invalid file key") // our clients send the sha-256 of the content in hex. will be prefixed by hash of user-id
   }
-
-  def getFileDownloadBaseUrl: Task[StaticFileUrl] = Task.pure(StaticFileUrl(cdnGetUrl))
 
   def getAllObjectSummariesForUser(userId: UserId): Task[Seq[S3ObjectSummary]] = {
     val keyPrefix = getKeyPrefixForUser(userId)

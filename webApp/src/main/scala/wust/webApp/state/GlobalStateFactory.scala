@@ -81,24 +81,6 @@ object GlobalStateFactory {
       }
     }
 
-    // would be better to statically have this base url from the index.html or something.
-    def renewFileDownloadBaseUrl(): Unit = {
-      def scheduleRenewal(seconds: Int): Unit = {
-        Task(renewFileDownloadBaseUrl()).delayExecution(FiniteDuration(seconds, TimeUnit.SECONDS)).runToFuture
-      }
-
-      Client.api.fileDownloadBaseUrl.onComplete {
-        case Success(Some(fileUrl)) =>
-          fileDownloadBaseUrl() = Some(fileUrl.url)
-        case Success(None) =>
-          () // nothing to do, not file url available at backend
-        case Failure(err) =>
-          scribe.warn("Error getting file download base url, will retry in 30 seconds...", err)
-          scheduleRenewal(seconds = 30)
-      }
-    }
-    renewFileDownloadBaseUrl()
-
     // automatically notify visited nodes and add self as member
     def enrichVisitedGraphWithSideEffects(page: Page, graph: Graph): Graph = {
       //TODO: userdescendant
