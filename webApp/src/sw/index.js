@@ -247,7 +247,7 @@ self.addEventListener('push', e => {
             includeUncontrolled: true
         }).then(windowClients => {
 
-            if (e.data && e.data.subscribedId) { // guard against a next version that might not contain subscribedId
+            if (e.data) {
                 const data = e.data.json();
                 const nodeId = data.nodeId;
                 const parentId = data.parentId;
@@ -260,6 +260,10 @@ self.addEventListener('push', e => {
                 // 43200000 == 12h   (1000*60*60*12)
                 if (outdated || !data.content || focusedClient(windowClients, subscribedId, channelId, nodeId)) {
                     log("Focused client or outdated push notification => ignoring push.");
+                    return;
+                } else if (data.version != 1) {
+                    // guard against incompatible push message version
+                    log(`Received message with different version (expected: 1, got ${data.version}`)
                     return;
                 } else {
                     log("No focused client found.");
