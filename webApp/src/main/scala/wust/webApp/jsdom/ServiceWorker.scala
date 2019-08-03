@@ -12,6 +12,7 @@ import scala.util.{Failure, Success, Try}
 
 object ServiceWorker {
 
+  // returns an observable that notifies whenever a new serviceworker is registered and activated
   def register(location: String): Observable[Unit] = {
     val subject = PublishSubject[Unit]()
 
@@ -21,13 +22,11 @@ object ServiceWorker {
         Try(sw.register(location)).toEither match {
           case Right(registered) => registered.toFuture.onComplete {
             case Success(registration) =>
-              scribe.info(s"SW successfully registered")
+              scribe.info("SW successfully registered")
               registration.onupdatefound = { event =>
-                val installingWorker = registration.installing
-                installingWorker.onstatechange = { event =>
-                  val activeServiceworker = sw.controller
-                  if (installingWorker.state == "installed" && activeServiceworker != null) {
-                    scribe.info("New SW installed, can update.")
+                registration.installing.onstatechange = { event =>
+                  if (registration.active != null && sw.controller != null) {
+                    scribe.info("SW successfully activated")
                     subject.onNext(())
                   }
                 }

@@ -155,11 +155,20 @@ object GlobalStateFactory {
     val authWithPrev = auth.fold((auth.now, auth.now)) { (prev, auth) => (prev._2, auth) }
     authWithPrev.foreach {
       case (prev, auth) =>
+        println("GOG " + auth)
         if (prev != auth) {
           Client.storage.auth() = Some(auth)
         }
 
         ServiceWorker.sendAuth(auth)
+    }
+
+    // whenever a new serviceworker registers, we need to resync the auth, so the worker knows about it.
+    // use-case: initial page load, where a new serviceworker is installed. Our first sendauth on 
+    // auth-change did not get through because no serviceworker there. So need to send again,
+    // when serviceworker is registered.
+    serviceWorkerIsActivated.foreach { _ =>
+      ServiceWorker.sendAuth(auth.now)
     }
 
     //TODO: better build up state from server events?
