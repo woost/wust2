@@ -31,7 +31,7 @@ object LeftSidebar {
 
   def apply: VNode = {
 
-    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary").map(_(alignSelf.center, marginTop := "30px", marginBottom := "10px"))
+    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary").map(_(marginBottom := "15px", alignSelf.center))
 
     GenericSidebar.left(
       GlobalState.leftSidebarOpen,
@@ -51,16 +51,15 @@ object LeftSidebar {
             newProjectButton().apply(
               cls := "newChannelButton-large " + buttonStyles,
               onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
-              marginBottom := "10px",
+              marginBottom := "15px",
             ),
             beforeInstallPrompt(buttonModifier = VDomModifier(
-              marginTop := "10px",
-              marginBottom := "10px"
+              marginBottom := "15px"
             )).apply(Styles.flexStatic, alignSelf.center),
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,
-            Components.reloadButton(margin := "0 auto"),
+            Components.reloadButton(fontSize.small, margin := "15px auto 0px auto"),
             onClick(false) --> GlobalState.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
