@@ -6,8 +6,7 @@ import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.|
 
-@js.native
-// fomantic ui is imported globally
+@js.native // fomantic ui is imported globally
 trait JQuerySelectionWithFomanticUI extends js.Object {
   def dropdown(arg: String = ???): Unit = js.native
   def dropdown(options: DropdownOptions): JQuerySelectionWithFomanticUI = js.native
@@ -17,6 +16,10 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 
   def search(arg: SearchOptions): Unit = js.native
   def search(arg: String, args: Any*): js.Any = js.native
+
+  def progress(): Unit = js.native
+  def progress(behavior: String, argumentOne: js.Any): Unit = js.native
+  def progress(behavior: String, argumentOne: js.Any, argumentTwo: js.Any): Unit = js.native
 
   def toast(options: ToastOptions): Unit = js.native
 
@@ -29,7 +32,7 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def sidebar(args: String*): Unit = js.native
   def sidebar(options: SidebarOptions): JQuerySelectionWithFomanticUI = js.native
 
-  def tablesort(): Unit= js.native
+  def tablesort(): Unit = js.native
 
   def on(eventName: String, f: js.Function): Unit = js.native
 
@@ -37,10 +40,10 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
 }
 
 trait TableSortInstance extends js.Object {
-  var $table: JQuerySelection 			  // The <table> being sorted.
-  var index: Int				              // The column index of tablesort.$th (or null).
-  var direction: String		            // The direction of the current sort, either 'asc' or 'desc' (or null if unsorted).
-  def settings: js.Any		            // Settings for this instance (see below).
+  var $table: JQuerySelection // The <table> being sorted.
+  var index: Int // The column index of tablesort.$th (or null).
+  var direction: String // The direction of the current sort, either 'asc' or 'desc' (or null if unsorted).
+  def settings: js.Any // Settings for this instance (see below).
 
   def sort(th: JQuerySelection, direction: String): Unit
   def destroy(): Unit
@@ -59,10 +62,12 @@ trait AccordeonOptions extends js.Object {
 }
 
 object AccordeonOptions {
-  def apply(collapsible : Boolean, exclusive : Boolean, duration : Int) : AccordeonOptions = {
-    js.Dynamic.literal(collapsible = collapsible,
-                       exclusive = exclusive,
-                       duration = duration).asInstanceOf[AccordeonOptions]
+  def apply(collapsible: Boolean, exclusive: Boolean, duration: Int): AccordeonOptions = {
+    js.Dynamic.literal(
+      collapsible = collapsible,
+      exclusive = exclusive,
+      duration = duration
+    ).asInstanceOf[AccordeonOptions]
   }
 }
 
@@ -97,11 +102,11 @@ trait ToastOptions extends js.Object {
   var message: js.UndefOr[String] = js.undefined
   var position: js.UndefOr[String] = js.undefined
   var `class`: js.UndefOr[String] = js.undefined
-  var className : js.UndefOr[ToastClassNameOptions] = js.undefined
+  var className: js.UndefOr[ToastClassNameOptions] = js.undefined
   var displayTime: js.UndefOr[Double | Int] = js.undefined
-  var showIcon: js.UndefOr[Boolean|String] = js.undefined
+  var showIcon: js.UndefOr[Boolean | String] = js.undefined
   var closeIcon: js.UndefOr[Boolean] = js.undefined
-  var showProgress: js.UndefOr[Boolean|String] = js.undefined
+  var showProgress: js.UndefOr[Boolean | String] = js.undefined
   var progressUp: js.UndefOr[Boolean] = js.undefined
   var compact: js.UndefOr[Boolean] = js.undefined
   var opacity: js.UndefOr[Double] = js.undefined
