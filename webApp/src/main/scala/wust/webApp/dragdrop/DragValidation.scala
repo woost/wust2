@@ -11,6 +11,9 @@ import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, re
 import wust.webUtil.JSDefined
 import wust.ids.NodeId
 import wust.graph.Graph
+import wust.webUtil.Elements.defer
+import wust.ids.Feature
+import wust.webApp.state.FeatureState
 
 import scala.scalajs.js
 
@@ -122,6 +125,7 @@ object DragValidation {
           if (successful) {
             scribe.debug(s"drag action successful: $payload -> $target")
             Analytics.sendEvent("drag", "drop", s"${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            defer{useFeature(payload, target)}
             afterDraggedActionOpt.foreach{ action =>
               scribe.debug(s"performing afterDraggedAction...")
               action.apply()
@@ -135,6 +139,20 @@ object DragValidation {
         }
       case (payload, target) =>
         scribe.debug(s"incomplete drag information: $payload -> $target)")
+    }
+  }
+
+  def useFeature(payload:DragPayload, target: DragTarget):Unit = {
+    import DragItem._
+    (payload, target) match {
+      case (_:Tag, _:Task) => FeatureState.use(Feature.TagTaskByDragging)
+      case (_:Tag, _:Message) => FeatureState.use(Feature.TagMessageByDragging)
+      case (_:Tag, _:Note) => FeatureState.use(Feature.TagNoteByDragging)
+      case (_:Tag, _:Tag) => FeatureState.use(Feature.NestTagsByDragging)
+      case (_:User, _:Task) => FeatureState.use(Feature.AssignTaskByDragging)
+      case (_:Message, _:Message) => FeatureState.use(Feature.NestMessagesByDragging)
+      case (_:Message, _:Workspace) => FeatureState.use(Feature.UnNestMessagesByDragging)
+      case _ =>
     }
   }
 }

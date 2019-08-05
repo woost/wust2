@@ -38,7 +38,11 @@ trait Api[Result[_]] {
 
   //TODO covenant currently does not allow us to extract the useragent header from a websocket request, so we need to provide it here explicitly.
   def feedback(clientInfo: ClientInfo, message: String): Result[Unit]
+
+  def getUsedFeatures():Result[List[UsedFeature]]
+  def useFeatureForFirstTime(feature:UsedFeature):Result[Unit]
 }
+
 
 @PathName("Push")
 trait PushApi[Result[_]] {
@@ -240,6 +244,7 @@ object Heuristic {
   type ApiResult = IdResult
 }
 
+case class UsedFeature(feature:Feature, timestamp: EpochMilli)
 
 // Simple Api
 final case class SimpleNode(id:NodeId, content: String, role: NodeRole)

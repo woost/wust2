@@ -22,6 +22,7 @@ import wust.webApp.views.DragComponents.{drag, registerDragContainer}
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.Elements._
 import NewProjectPrompt._
+import wust.ids.Feature
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -50,7 +51,9 @@ object LeftSidebar {
             invitations( invites).apply(Styles.flexStatic),
             newProjectButton().apply(
               cls := "newChannelButton-large " + buttonStyles,
-              onClick foreach { Analytics.sendEvent("sidebar_open", "newchannel") },
+              onClick foreach { 
+                FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
+              },
               marginBottom := "15px",
             ),
             beforeInstallPrompt(buttonModifier = VDomModifier(
@@ -70,7 +73,9 @@ object LeftSidebar {
             newProjectButton( "+").apply(
               cls := "newChannelButton-small " + buttonStyles,
               UI.tooltip("right center") := "New Project",
-              onClick foreach { Analytics.sendEvent("sidebar_closed", "newchannel") }
+              onClick foreach { 
+                FeatureState.use(Feature.CreateProjectFromCollapsedLeftSidebar)
+              },
             )
           ))
         )
@@ -108,7 +113,7 @@ object LeftSidebar {
     div("Woost", marginRight := "5px"),
     onClick(UrlConfig.default) --> GlobalState.urlConfig,
     onClick foreach {
-      Analytics.sendEvent("logo", "clicked")
+      FeatureState.use(Feature.ClickLogo)
     },
     cursor.pointer
   )
@@ -139,7 +144,7 @@ object LeftSidebar {
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick.stopPropagation foreach {
-        Analytics.sendEvent("hamburger", if (leftSidebarOpen.now) "close" else "open")
+        FeatureState.use(if (leftSidebarOpen.now) Feature.CloseLeftSidebar else Feature.OpenLeftSidebar)
         leftSidebarOpen() = !leftSidebarOpen.now
       }
     )
@@ -275,8 +280,14 @@ object LeftSidebar {
           )
         },
 
+        onClick foreach { 
+          // needs to be before onChannelClick, because else GlobalState.page is already at the new page
+          GlobalState.page.now.parentId match {
+            case Some(parentId) if parentId == nodeId => // no switch happening...
+            case _ => FeatureState.use(Feature.SwitchPageFromExpandedLeftSidebar)
+          }
+        },
         onChannelClick( nodeId),
-        onClick foreach { Analytics.sendEvent("sidebar_open", "clickchannel") },
         cls := "node",
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", marginLeft.auto, marginRight := "5px"))),
@@ -396,8 +407,14 @@ object LeftSidebar {
         Rx {
           channelIcon( node(), selected, size)(ctx)(
             UI.popup("right center") <-- node.map(_.str),
+            onClick foreach { 
+              // needs to be before onChannelClick, because else GlobalState.page is already at the new page
+              GlobalState.page.now.parentId match {
+                case Some(parentId) if parentId == nodeId => // no switch happening...
+                case _ => FeatureState.use(Feature.SwitchPageFromCollapsedLeftSidebar)
+              }
+            },
             onChannelClick( nodeId),
-            onClick foreach { Analytics.sendEvent("sidebar_closed", "clickchannel") },
             drag(target = DragItem.Channel(nodeId, traverseState.tail.headOption)),
             cls := "node",
 

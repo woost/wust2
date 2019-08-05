@@ -20,7 +20,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Elements, Ownable, UI}
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
-import wust.ids._
+import wust.ids.{Feature, _}
 import wust.sdk.NodeColor._
 import wust.sdk.{BaseColors, Colors, NodeColor}
 import wust.util.StringOps._
@@ -35,6 +35,7 @@ import wust.webApp.views.UploadComponents._
 import scala.collection.{breakOut, mutable}
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import state.FeatureState
 
 // This file contains woost-related UI helpers.
 
@@ -559,13 +560,14 @@ object Components {
                 val stageParents = graph.parentsIdx(graph.idToIdxOrThrow(node.id)).collect{case idx if graph.nodes(idx).role == NodeRole.Stage && graph.workspacesForParent(idx).contains(workspaceIdx) => graph.nodeIds(idx)}
                 val changes = doneNodeAddChange merge GraphChanges.changeSource(Edge.Child)(ChildId(node.id)::Nil, ParentId(stageParents), ParentId(doneNodeId)::Nil)
                 GlobalState.submitChanges(changes)
+                FeatureState.use(Feature.CheckTask)
               } else { // unchecking
                 // since it was checked, we know for sure, that a done-node for every workspace exists
                 val changes = GraphChanges.disconnect(Edge.Child)(doneIdx.map(idx => ParentId(graph.nodeIds(idx))), ChildId(node.id))
                 GlobalState.submitChanges(changes)
+                FeatureState.use(Feature.UncheckTask)
               }
             }
-
           }
         ),
         label()
@@ -634,7 +636,15 @@ object Components {
 
     def editableNode(node: Node, editMode: Var[Boolean], maxLength: Option[Int] = None, config: EditableContent.Config = EditableContent.Config.cancelOnError)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode) --> GlobalState.eventProcessor.changes,
+        EditableContent.ofNodeOrRender( node, editMode, implicit ctx => node => renderNodeData( node, maxLength), config).editValue.map(GraphChanges.addNode).foreach{ changes =>
+          GlobalState.submitChanges(changes)
+          changes.addNodes.head.role match {
+            case NodeRole.Project => FeatureState.use(Feature.EditProjectInRightSidebar)
+            case NodeRole.Task => FeatureState.use(Feature.EditTaskInRightSidebar)
+            case NodeRole.Message => FeatureState.use(Feature.EditMessageInRightSidebar)
+            case NodeRole.Note => FeatureState.use(Feature.EditNoteInRightSidebar)
+          }
+        }
       )
     }
 

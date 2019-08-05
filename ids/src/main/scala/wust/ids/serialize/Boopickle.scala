@@ -21,5 +21,7 @@ trait Boopickle {
   implicit val connectionContentPickler: Pickler[EdgeData] = generatePickler[EdgeData]
 
   implicit val viewPickler: Pickler[View] = generatePickler[View]
+
+  implicit val featurePickler: Pickler[Feature] = generatePickler[Feature]
 }
 object Boopickle extends Boopickle

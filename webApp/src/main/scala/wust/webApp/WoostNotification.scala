@@ -14,6 +14,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views._
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
+import wust.ids.Feature
 
 final case class NotificationState(
   permissionState: PermissionState,
@@ -57,6 +58,9 @@ object WoostNotification {
   GlobalState.permissionState.triggerLater { state =>
     if (state == PermissionState.granted || state == PermissionState.denied)
       Analytics.sendEvent("notification", state.asInstanceOf[String])
+
+    if(state == PermissionState.granted)
+      FeatureState.use(Feature.EnableBrowserNotifications)
   }
 
   private def decorateNotificationIcon(notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {

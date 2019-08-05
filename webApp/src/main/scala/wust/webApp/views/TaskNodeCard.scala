@@ -1,12 +1,13 @@
 package wust.webApp.views
 
+import wust.webApp.state.FeatureState
 import monix.reactive.Observer
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
 import wust.css.{CommonStyles, Styles}
 import wust.graph._
-import wust.ids._
+import wust.ids.{Feature, _}
 import wust.sdk.Colors
 import wust.util.collection._
 import wust.webApp.Icons
@@ -144,10 +145,12 @@ object TaskNodeCard {
         if(isDeletedNow.now) {
           GlobalState.submitChanges(changes)
           selectedNodeIds.update(_ - nodeId)
+          FeatureState.use(Feature.UndeleteTaskInChecklist)
         } else {
           Elements.confirm("Delete this task?") {
             GlobalState.submitChanges(changes)
             selectedNodeIds.update(_ - nodeId)
+            FeatureState.use(Feature.DeleteTaskInChecklist)
           }
         }
       }

@@ -13,7 +13,8 @@ object Topbar {
     div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
         cls := "topbar",
-        AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic, color.black),
+        FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic),
+        AnnouncekitWidget.widget.apply(Styles.flexStatic, color.black),
         FeedbackForm(ctx)(Styles.flexStatic),
         AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
       )

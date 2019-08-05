@@ -75,5 +75,8 @@ trait Circe {
 
   implicit val viewVisibleEncoder: Encoder[View.Visible] = deriveEncoder[View.Visible]
   implicit val viewVisibleDecoder: Decoder[View.Visible] = deriveDecoder[View.Visible]
+
+  implicit val FeatureDecoder: Decoder[Feature] = deriveDecoder[Feature]
+  implicit val FeatureEncoder: Encoder[Feature] = deriveEncoder[Feature]
 }
 object Circe extends Circe

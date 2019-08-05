@@ -9,7 +9,7 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{FocusState, GlobalState, Placeholder}
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder, FeatureState }
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
@@ -36,18 +36,18 @@ object NotesView {
         }.sortBy(_.id)
 
         childNodes.map { node =>
-          VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote( node, parentId = focusState.focusedId))
+          VDomModifier.ifTrue(node.role == NodeRole.Note)(renderNote(node, parentId = focusState.focusedId))
         }
       },
       registerDragContainer,
 
       InputRow(
-        
         Some(focusState),
         submitAction = { sub =>
           val newNode = Node.MarkdownNote(sub.text)
           val changes = GraphChanges.addNodeWithParent(newNode, ParentId(focusState.focusedId)) merge sub.changes(newNode.id)
           GlobalState.submitChanges(changes)
+          FeatureState.use(Feature.CreateNoteInNotes)
         },
         submitOnEnter = false,
         showSubmitIcon = true,
@@ -79,26 +79,32 @@ object NotesView {
         )
       },
 
-      editableNodeOnClick( node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
+      editableNodeOnClick(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
 
       div(
         Styles.flex,
         alignItems.center,
 
-        zoomButton( node.id)( padding := "3px", marginRight := "5px"),
+        zoomButton(node.id)(
+          padding := "3px",
+          marginRight := "5px",
+          onClick.stopPropagation.foreach {
+            FeatureState.use(Feature.ZoomIntoNote)
+          }
+        ),
 
-        UnreadComponents.readObserver( node.id),
+        UnreadComponents.readObserver(node.id),
 
         div(
           padding := "3px",
           isDeleted.map {
-            case true => renderFontAwesomeObject(Icons.undelete)
+            case true  => renderFontAwesomeObject(Icons.undelete)
             case false => renderFontAwesomeIcon(Icons.delete)
           },
           cursor.pointer,
           onClick.stopPropagation.foreach {
-            if(isDeleted.now) {
-              val changes =  GraphChanges.undelete(ChildId(node.id), ParentId(parentId))
+            if (isDeleted.now) {
+              val changes = GraphChanges.undelete(ChildId(node.id), ParentId(parentId))
               GlobalState.submitChanges(changes)
             } else {
               Elements.confirm("Delete this note?") {

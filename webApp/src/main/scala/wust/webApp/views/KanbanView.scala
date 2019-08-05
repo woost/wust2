@@ -283,7 +283,6 @@ object KanbanView {
   })
 
   private def addCardField(
-    
     focusState: FocusState,
     nodeId: NodeId,
     scrollHandler: ScrollBottomHandler,
@@ -301,6 +300,7 @@ object KanbanView {
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
 
       GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
+      FeatureState.use(Feature.CreateTaskInKanban)
     }
 
     def blurAction(v:String): Unit = {
@@ -341,6 +341,7 @@ object KanbanView {
         GraphChanges.addNodeWithParent(newStageNode, ParentId(focusState.focusedId)) merge sub.changes(newStageNode.id)
       }
       GlobalState.submitChanges(change)
+      FeatureState.use(Feature.CreateColumnInKanban)
       //TODO: sometimes after adding new column, the add-column-form is scrolled out of view. Scroll, so that it is visible again
     }
 

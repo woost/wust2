@@ -3,6 +3,7 @@ package wust.db
 import io.circe.parser._
 import wust.ids._
 import wust.ids.serialize.Circe._
+import java.util.Date
 
 import scala.collection.mutable
 
@@ -120,4 +121,6 @@ object Data {
       Graph(nodes.result(), edges.result())
     }
   }
+
+  case class UsedFeature(userId: UserId, feature: Feature, timestamp: Date)
 }

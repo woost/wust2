@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import flatland._
-import wust.webApp.parsers.{ UrlConfigWriter }
+import wust.webApp.parsers.UrlConfigWriter
 import fontAwesome._
 import monix.execution.Ack
 import monix.reactive.Observer
@@ -13,7 +13,7 @@ import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.Styles
 import wust.graph._
-import wust.ids._
+import wust.ids.{Feature, _}
 import wust.sdk.NodeColor
 import wust.util._
 import wust.webApp._
@@ -32,6 +32,7 @@ import scala.collection.breakOut
 import scala.scalajs.js
 import monix.reactive.Observable
 import SharedViewElements._
+
 import scala.reflect.ClassTag
 
 object NewProjectPrompt {
@@ -62,6 +63,10 @@ object NewProjectPrompt {
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
       GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
       GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+
+      FeatureState.use(Feature.CreateProject)
+      selectedViews.now.foreach ( ViewModificationMenu.trackAddViewFeature)
+
       selectedViews() = Seq.empty
 
       Ack.Continue

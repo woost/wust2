@@ -12,7 +12,7 @@ import wust.ids._
 import wust.util.collection._
 import wust.webApp.Permission
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder, EmojiReplacer }
+import wust.webApp.state.{ FocusState, GlobalState, Placeholder, EmojiReplacer, FeatureState }
 import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
@@ -175,6 +175,7 @@ object DashboardView {
       cursor.pointer,
       onClick foreach {
         focusState.contextParentIdAction(project.id)
+        FeatureState.use(Feature.ZoomIntoProject)
       },
 
       permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em")),
@@ -195,6 +196,7 @@ object DashboardView {
         GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusState.focusedId)) merge sub.changes(newProjectNode.id)
       }
       GlobalState.submitChanges(change)
+      FeatureState.use(Feature.CreateSubProjectFromDashboard)
     }
 
     def blurAction(v: String) = {
