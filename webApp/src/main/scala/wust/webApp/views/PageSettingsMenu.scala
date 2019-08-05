@@ -230,7 +230,7 @@ object PageSettingsMenu {
     button(
       cls := "ui compact inverted button",
       if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
-      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
+      onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, EdgeData.Notify.enabled, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
       onClick foreach { Analytics.sendEvent("pageheader", "join") }
     )
   }

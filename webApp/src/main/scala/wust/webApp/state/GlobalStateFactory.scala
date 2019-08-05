@@ -93,7 +93,7 @@ object GlobalStateFactory {
           def pageIsInvited = userIdx.fold(false)(userIdx => graph.inviteNodeIdx.contains(userIdx)(pageIdx))
 
           val edgeChanges = if (!anyPageParentIsPinned && !pageIsInvited) {
-            GraphChanges.connect(Edge.Notify)(parentId, user.id)
+            GraphChanges.connect(Edge.Notify)(parentId, EdgeData.Notify.enabled, user.id)
               .merge(GraphChanges.connect(Edge.Pinned)(parentId, user.id))
           } else GraphChanges.empty
 

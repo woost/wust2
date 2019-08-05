@@ -201,7 +201,7 @@ object GraphChanges {
       addNodes = Array(post),
       addEdges = Array(
         Edge.Pinned(nodeId, userId),
-        Edge.Notify(nodeId, userId),
+        Edge.Notify(nodeId, EdgeData.Notify.enabled, userId),
         Edge.Member(nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId)
       )
     )

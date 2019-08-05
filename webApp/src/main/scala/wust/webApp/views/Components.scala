@@ -160,7 +160,7 @@ object Components {
                 GraphChanges.newProject(nodeId, userId, title = dmName) merge
                 GraphChanges(addEdges = Array(
                   Edge.Invite(nodeId = nodeId, userId = dmUserId),
-                  Edge.Notify(nodeId = nodeId, userId = dmUserId),
+                  Edge.Notify(nodeId = nodeId, EdgeData.Notify.enabled, userId = dmUserId),
                   Edge.Member(nodeId = nodeId, EdgeData.Member(AccessLevel.ReadWrite), userId = dmUserId)
                 ))
 

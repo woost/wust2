@@ -346,7 +346,7 @@ object LeftSidebar {
                     i(cls := "icon fa-fw", freeSolid.faCheck),
                     onClick.stopPropagation.foreach {
                       val changes = GraphChanges(
-                        addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, userId)),
+                        addEdges = Array(Edge.Pinned(nodeId, userId), Edge.Notify(nodeId, EdgeData.Notify.enabled, userId)),
                         delEdges = Array(Edge.Invite(nodeId, userId))
                       )
                       GlobalState.submitChanges(changes)

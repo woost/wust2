@@ -62,8 +62,14 @@ object EdgeData {
   }
 
   final case class Read(timestamp: EpochMilli) extends Named with EdgeData
+  object Read extends Named
 
-  case object Notify extends Named with EdgeData
+  final case class Notify(enabled: Boolean) extends Named with EdgeData
+  object Notify extends Named {
+    @inline def enabled = Notify(enabled = true)
+    @inline def disabled = Notify(enabled = false)
+  }
+
   case object Pinned extends Named with EdgeData
   case object Invite extends Named with EdgeData
 
