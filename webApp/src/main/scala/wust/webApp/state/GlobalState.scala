@@ -59,6 +59,9 @@ object GlobalState {
     Client.currentAuth
   )
 
+  eventProcessor.graph.foreach { g => scribe.debug("eventProcessor.graph: " + g) }
+  
+
   val mouseClickInMainView = PublishSubject[Unit]
 
   def submitChanges(changes: GraphChanges) = {
@@ -108,19 +111,26 @@ object GlobalState {
     val internalGraph = eventProcessor.graph.unsafeToRx(seed = Graph.empty)
 
     Rx {
+      scribe.debug("updating rawGraph rx...")
       val graph = internalGraph()
       val u = user()
+      scribe.debug("  user: " + user())
+      scribe.debug("  userNode: " + user().toNode)
+      scribe.debug("  graph.contains(u.id): " + graph.contains(u.id))
       val newGraph =
         if (graph.contains(u.id)) graph
         else {
-          graph.addNodes(
+          scribe.debug("  adding usernode to graph")
+          val g  = graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
             user().toNode ::
               Nil
           )
+          scribe.debug("  graph with added usernode: " + g)
+          g
         }
-
+      scribe.debug("  returning graph and trigger rawGraph rx...")
       newGraph
     }
   }

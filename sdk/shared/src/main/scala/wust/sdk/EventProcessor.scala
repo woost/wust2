@@ -72,6 +72,9 @@ class EventProcessor private (
   val changes = PublishSubject[GraphChanges]
   val changesRemoteOnly = PublishSubject[GraphChanges]
   val localEvents = PublishSubject[ApiEvent.GraphContent]
+  localEvents.foreach { e =>
+    scribe.debug("EventProcessor.localEvents: " + e)
+  }
 
   // public reader
   val (localChanges, localChangesRemoteOnly, graphEvents, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[LocalGraphUpdateEvent], Observable[Graph]) = {
@@ -97,6 +100,7 @@ class EventProcessor private (
     val localChangesAsEvents = localChanges.map { case (changes, user) => Seq(NewGraphChanges.forPrivate(user.toNode, changes)) }
     val graphEvents = BufferWhenTrue(Observable(eventStream, localEvents.map(Seq(_)), localChangesAsEvents).merge, stopEventProcessing)
       .scan((Graph.empty, LocalGraphUpdateEvent.empty)) { (lastGraphWithLastEvents, events) =>
+        scribe.debug("EventProcessor scan: " + lastGraphWithLastEvents + ", " + events)
         val (lastGraph, _) = lastGraphWithLastEvents
         val localEvents = LocalGraphUpdateEvent.deconstruct(lastGraph, events)
         val newGraph = localEvents match {
