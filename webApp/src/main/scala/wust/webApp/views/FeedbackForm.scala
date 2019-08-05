@@ -21,7 +21,7 @@ import wust.webApp.views.Components._
 
 import scala.scalajs.LinkingInfo
 import scala.util.{ Failure, Success }
-import wust.webApp.ProductionOnly
+import wust.webApp.DeployedOnly
 import wust.api.AuthUser.Implicit
 import wust.api.AuthUser.Real
 
@@ -165,7 +165,7 @@ object FeedbackForm {
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue tiny fluid button",
       marginTop := "5px",
-      ProductionOnly{
+      DeployedOnly {
         onClick.stopPropagation.foreach { _ =>
           Try{
             initCrisp
@@ -184,7 +184,7 @@ object FeedbackForm {
     marginTop := "5px",
     cls := "vote-button",
     snabbdom.VNodeProxy.repairDomBeforePatch, // nolt button modifies the dom
-    ProductionOnly {
+    DeployedOnly {
       onDomMount.foreach { _ =>
         try {
           nolt("init", new NoltData {

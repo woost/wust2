@@ -56,7 +56,7 @@ object AnnouncekitWidget {
   }
 
 
-  private def initAnounceKit(unreadCount: Var[Int]): Option[() => Unit] = ProductionOnly {
+  private def initAnounceKit(unreadCount: Var[Int]): Option[() => Unit] = DeployedOnly {
     Try {
       announcekit.push(new AnnouncekitOptions {
         widget = s"https://announcekit.app/widget/$widgetId"
