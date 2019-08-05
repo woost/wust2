@@ -22,6 +22,7 @@ import wust.webApp.parsers.{ UrlConfigParser, UrlConfigWriter }
 import wust.webApp.views.EditableContent
 import wust.webApp.{ Client, DevOnly }
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
+import UI.ToastLevel
 
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
