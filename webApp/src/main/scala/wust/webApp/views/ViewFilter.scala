@@ -15,20 +15,6 @@ import wust.webUtil.outwatchHelpers._
 
 object ViewFilter {
 
-  def addLabeledFilterCheckbox(filterName: String, header: VDomModifier, description: VDomModifier, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
-    val checkbox = addFilterCheckbox( filterName, transform)
-
-    div(
-      cls := "item",
-      div(
-        cls := "ui checkbox toggle",
-        checkbox,
-      ),
-      header,
-      description
-    )
-  }
-
   def addFilterCheckbox(filterName: String, transform: UserViewGraphTransformation)(implicit ctx: Ctx.Owner): VNode = {
     val activeFilter = (doActivate: Boolean) =>  if(doActivate) {
       GlobalState.graphTransformations.map(_ :+ transform)
