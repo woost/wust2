@@ -1002,6 +1002,7 @@ object Components {
       text,
       border := s"1px solid $borderColor",
       color := fgColor,
+      backgroundColor := "white",
       borderRadius := "3px",
       padding := "0px 5px",
       fontWeight.bold,

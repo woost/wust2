@@ -42,10 +42,26 @@ object LeftSidebar {
         GenericSidebar.Config(
           mainModifier = VDomModifier(
             registerDragContainer( DragContainer.Sidebar),
-            drag(target = DragItem.Sidebar),
+            drag(target = DragItem.Sidebar)
           ),
           openModifier = VDomModifier(
-            header.apply(Styles.flexStatic),
+            div(
+              Rx{
+                val page = GlobalState.page()
+                page.parentId.fold(
+                  header.apply(Styles.flexStatic):VDomModifier
+                  )(pageId =>
+                    VDomModifier(
+                      backgroundColor := PageStyle.ofNode(pageId).pageBgColor,
+                      color := "white",
+                      header.apply(Styles.flexStatic),
+                      ViewSwitcher(pageId).foreach { view =>
+                        GlobalState.leftSidebarOpen.onNext(false)
+                      }
+                    )
+                  )
+              }
+            ),
             channels( toplevelChannels),
             invitations( invites).apply(Styles.flexStatic),
             newProjectButton().apply(
@@ -59,7 +75,6 @@ object LeftSidebar {
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,
-            Components.reloadButton(fontSize.small, margin := "15px auto 0px auto"),
             onClick(false) --> GlobalState.leftSidebarOpen
           ),
           expandedOpenModifier = VDomModifier.empty,
@@ -103,7 +118,7 @@ object LeftSidebar {
       WoostLogoComponents.woostIcon,
       fontSize := "28px",
       color := Colors.woost,
-      marginRight := "3px",
+      marginRight := "3px"
     ),
     div("Woost", marginRight := "5px"),
     onClick(UrlConfig.default) --> GlobalState.urlConfig,
@@ -122,8 +137,8 @@ object LeftSidebar {
         hamburger,
         banner,
         Components.betaSign.apply(fontSize := "12px"),
-        syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
-      ),
+        syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px")
+      )
     )
   }
 
@@ -269,9 +284,9 @@ object LeftSidebar {
           VDomModifier(
             VDomModifier.ifTrue(selected())(
               color := Colors.sidebarBg,
-              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
+              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
             ),
-          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())),
+          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected()))
           )
         },
 
@@ -281,7 +296,7 @@ object LeftSidebar {
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", marginLeft.auto, marginRight := "5px"))),
         channelModifier
-      ),
+      )
 
     )
   }
@@ -321,7 +336,7 @@ object LeftSidebar {
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
         )
-      },
+      }
 
     )
   })
@@ -370,7 +385,7 @@ object LeftSidebar {
               )
             ).apply(
               paddingBottom := "1px",
-              paddingTop := "1px",
+              paddingTop := "1px"
             )
           }
         )
@@ -404,7 +419,7 @@ object LeftSidebar {
             // for each indent, steal padding on left and right
             // and reduce the width, so that the icon keeps its size
             width := s"${size - (sanitizedDepth * indentFactor)}px",
-            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px",
+            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px"
           )
         }
       )
@@ -444,7 +459,7 @@ object LeftSidebar {
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
         )
-      },
+      }
     )
   })
   private def channelIcon(node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {
