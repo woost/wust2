@@ -1,5 +1,6 @@
 package wust.webApp
 
+import wust.facades.googleanalytics.Analytics
 import fontAwesome._
 import org.scalajs.dom.experimental.permissions.PermissionState
 import outwatch.dom._
@@ -52,6 +53,11 @@ final case class NotificationState(
 //) extends NotificationState
 
 object WoostNotification {
+
+  GlobalState.permissionState.triggerLater { state =>
+    if (state == PermissionState.granted || state == PermissionState.denied)
+      Analytics.sendEvent("notification", state.asInstanceOf[String])
+  }
 
   private def decorateNotificationIcon(notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
