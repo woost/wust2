@@ -55,14 +55,6 @@ final case class NotificationState(
 
 object WoostNotification {
 
-  GlobalState.permissionState.triggerLater { state =>
-    if (state == PermissionState.granted || state == PermissionState.denied)
-      Analytics.sendEvent("notification", state.asInstanceOf[String])
-
-    if(state == PermissionState.granted)
-      FeatureState.use(Feature.EnableBrowserNotifications)
-  }
-
   private def decorateNotificationIcon(notification: NotificationState, text: String)(implicit ctx: Ctx.Owner): VDomModifier = {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     val default = "default".asInstanceOf[PermissionState]

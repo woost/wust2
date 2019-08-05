@@ -24,6 +24,7 @@ import wust.webApp.views.EditableContent
 import wust.webApp.{ Client, DevOnly }
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
 import UI.ToastLevel
+import org.scalajs.dom.experimental.permissions.PermissionState
 
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success }
@@ -176,7 +177,7 @@ object GlobalStateFactory {
     }
 
     // whenever a new serviceworker registers, we need to resync the auth, so the worker knows about it.
-    // use-case: initial page load, where a new serviceworker is installed. Our first sendauth on 
+    // use-case: initial page load, where a new serviceworker is installed. Our first sendauth on
     // auth-change did not get through because no serviceworker there. So need to send again,
     // when serviceworker is registered.
     serviceWorkerIsActivated.foreach { _ =>
@@ -225,6 +226,14 @@ object GlobalStateFactory {
               .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
         .subscribe(eventProcessor.localEvents)
+    }
+
+    GlobalState.permissionState.triggerLater { state =>
+      if (state == PermissionState.granted || state == PermissionState.denied)
+        Analytics.sendEvent("notification", state.asInstanceOf[String])
+
+      if (state == PermissionState.granted)
+        FeatureState.use(Feature.EnableBrowserNotifications)
     }
 
     val titleSuffix = if (DevOnly.isTrue) "dev" else "Woost"
