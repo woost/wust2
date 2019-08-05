@@ -132,6 +132,7 @@ object Deps {
   val webpackDevServerVersion = "3.2.1"
 
   object npm {
+    val es6Shim = "es6-shim" -> "0.35.5"
     val defaultPassiveEvents = "default-passive-events" -> "1.0.10"
     val intersectionObserver = "intersection-observer" -> "0.7.0"
     val marked = "marked" -> "0.6.3"

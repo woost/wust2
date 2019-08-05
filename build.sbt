@@ -538,6 +538,7 @@ lazy val webApp = project
     libraryDependencies ++=
       Nil,
     npmDependencies in Compile ++=
+      Deps.npm.es6Shim ::
       Deps.npm.defaultPassiveEvents ::
       Deps.npm.intersectionObserver ::
       Deps.npm.immediate ::
