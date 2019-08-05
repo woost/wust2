@@ -181,7 +181,10 @@ object ViewModificationMenu {
       GlobalState.submitChanges(GraphChanges.addNode(newNode))
     }
   }
+
+  //TODO: gets triggered 3 times when adding a view. Should only trigger once
   private def addNewView(currentView: Var[View], done: Observer[Unit], nodeRx: Rx[Option[Node]], existingViews: Rx[List[View.Visible]], newView: View.Visible): Unit = {
+    scribe.info(s"ViewModificationMenu.addNewView($newView)")
     if (View.selectableList.contains(newView)) { // only allow defined views
       done.onNext(())
       val node = nodeRx.now
