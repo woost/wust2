@@ -465,7 +465,6 @@ object SharedViewElements {
   }
 
   def newNamePromptModalConfig(
-    
     newNameSink: Observer[InputRow.Submission],
     header: VDomModifier,
     body: VDomModifier = VDomModifier.empty,

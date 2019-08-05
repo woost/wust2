@@ -78,7 +78,6 @@ object TagList {
   }
 
   def plainList(
-    
     workspaceId: NodeId,
     viewRender: ViewRenderLike,
     newTagFieldActive: Var[Boolean] = Var(false)
@@ -115,7 +114,6 @@ object TagList {
   }
 
   def checkboxNodeTag(
-    
     tagNode: Node,
     viewRender: ViewRenderLike,
     tagModifier: VDomModifier = VDomModifier.empty,
@@ -132,7 +130,6 @@ object TagList {
         Styles.flexStatic,
         cls := "ui checkbox",
         ViewFilter.addFilterCheckbox(
-          
           tagNode.str, // TODO: renderNodeData
           GraphOperation.OnlyTaggedWith(tagNode.id)
         ),
@@ -145,7 +142,6 @@ object TagList {
 
 
   private def addTagField(
-    
     parentId: NodeId,
     workspaceId: NodeId,
     newTagFieldActive: Var[Boolean],
