@@ -5,7 +5,7 @@ package object time {
     val start = System.nanoTime
     val result: T = code
     val duration = (System.nanoTime - start) / 1000000.0
-    println(s"$name: ${ duration }ms")
+    scribe.info(s"$name: ${ duration }ms")
     result
   }
 }
