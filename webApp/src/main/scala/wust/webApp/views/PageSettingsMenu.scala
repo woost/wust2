@@ -231,7 +231,17 @@ object PageSettingsMenu {
       cls := "ui compact inverted button",
       if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
       onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
-      onClick foreach { Analytics.sendEvent("pageheader", "join") }
+      onClick foreach { 
+        GlobalState.graph.now.nodesById(channelId).foreach { node => 
+          node.role match {
+            case NodeRole.Project => FeatureState.use(Feature.BookmarkProject)
+            case NodeRole.Task => FeatureState.use(Feature.BookmarkTask)
+            case NodeRole.Message => FeatureState.use(Feature.BookmarkMessage)
+            case NodeRole.Note => FeatureState.use(Feature.BookmarkNote)
+            case _ =>
+          }
+        }
+      }
     )
   }
 

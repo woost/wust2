@@ -11,7 +11,7 @@ import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.css.Styles
 import wust.graph.{ GraphChanges, Node }
-import wust.ids._
+import wust.ids.{ Feature, _ }
 import wust.sdk.Colors
 import wust.webApp._
 import wust.webApp.state._
@@ -84,7 +84,10 @@ object ViewModificationMenu {
               cls := "ui button compact mini",
               Elements.icon(info.icon),
               view.toString,
-              onClick.stopPropagation.foreach(addNewView(currentView, done, nodeRx, existingViews, view)),
+              onClick.stopPropagation.foreach{
+                addNewView(currentView, done, nodeRx, existingViews, view)
+                trackAddViewFeature(view)
+              },
               cursor.pointer
             )
           }
@@ -204,6 +207,17 @@ object ViewModificationMenu {
           currentView() = newView
         }
       }
+
+    }
+  }
+
+  def trackAddViewFeature(view: View): Unit = {
+    view match {
+      case View.List   => FeatureState.use(Feature.AddChecklistView)
+      case View.Chat   => FeatureState.use(Feature.AddChatView)
+      case View.Kanban => FeatureState.use(Feature.AddKanbanView)
+      case View.Content => FeatureState.use(Feature.AddNotesView)
+      case other       =>
     }
   }
 }

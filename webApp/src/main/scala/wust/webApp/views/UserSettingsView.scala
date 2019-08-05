@@ -1,5 +1,7 @@
 package wust.webApp.views
 
+import wust.ids.Feature
+import wust.webApp.state.FeatureState
 import fontAwesome.IconDefinition
 import monix.reactive.Observable
 import org.scalajs.dom
@@ -407,7 +409,7 @@ object UserSettingsView {
       cls := "ui button green",
       "Enable slack plugin",
       onClick foreach {
-        Analytics.sendEvent("slack", "enableplugin")
+        FeatureState.use(Feature.EnableSlackPlugin)
       },
       onClick foreach {
         UI.toast("Thanks for your interest in the slack plugin. We counted a vote for you to prioritize it.")

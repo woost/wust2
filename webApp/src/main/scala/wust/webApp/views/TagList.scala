@@ -151,6 +151,7 @@ object TagList {
       val change = GraphChanges.addNodeWithParent(createdNode, ParentId(parentId) :: Nil)
 
       GlobalState.submitChanges(change merge sub.changes(createdNode.id))
+      FeatureState.use(Feature.CreateTag)
     }
 
     def blurAction(v:String): Unit = {

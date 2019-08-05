@@ -93,6 +93,31 @@ object UI {
     )
   }
 
+  def progress(value:Int, total:Int, classes:String = "", label:Option[VDomModifier] = None) = {
+    div(
+      keyed,
+      onDomMount.asJquery.foreach { elem =>
+        println("init progress.")
+        elem.progress()
+        // TODO: how to destroy?
+      },
+      onDomUpdate.asJquery.foreach { elem =>
+        elem.progress("set progress", value)
+        elem.progress("set total", total)
+        println("updated progress.")
+      },
+     cls := "ui progress",
+     cls := classes,
+     attr("data-value") := value,
+     attr("data-total") := total,
+     div(
+       cls := "bar",
+       div(cls := "progress")
+     ),
+     label.map(content => div(cls := "label", content))
+    )
+  }
+
   sealed trait ToastLevel { def value: String }
   object ToastLevel {
     case object Info extends ToastLevel { def value = "info" }

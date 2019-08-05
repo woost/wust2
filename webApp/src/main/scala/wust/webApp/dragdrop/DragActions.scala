@@ -4,6 +4,8 @@ import wust.util.algorithm.dfs
 import wust.facades.draggable.SortableStopEvent
 import wust.graph.{ Edge, GraphChanges, _ }
 import wust.ids.{ UserId, _ }
+import wust.webApp.state.FeatureState
+import wust.webApp.state.GlobalState
 
 object DragActions {
 
@@ -16,7 +18,6 @@ object DragActions {
     import DragContainer._
     import Sorting._
     {
-      //// Kanban View ////
       // Reorder or nest Stages
       case (payload: DragItem.Stage, from: Kanban.AreaForColumns, into: Kanban.AreaForColumns, ctrl, false) =>
         (sortableStopEvent, graph, userId) =>
@@ -25,6 +26,13 @@ object DragActions {
           def disconnectColumn: GraphChanges = if (from.parentId != into.parentId)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
           else GraphChanges.empty
+
+          (from, into, GlobalState.view.now) match {
+            case (_: Kanban.ColumnArea, _: Kanban.ColumnArea, View.Kanban) => FeatureState.use(Feature.ReorderColumnsInKanban)
+            case (_, _: Kanban.Column, View.Kanban) => FeatureState.use(Feature.NestColumnsInKanban)
+            case _ =>
+          }
+
           if (ctrl)
             addColumn
           else
@@ -39,6 +47,9 @@ object DragActions {
           def disconnectWorkspace: GraphChanges = if (from.workspace != into.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.workspace), ChildId(payload.nodeId))
           else GraphChanges.empty
+
+          if(from.nodeId != into.nodeId)
+            FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
 
           if (ctrl)
             addTargetColumn merge addTargetWorkspace
@@ -55,6 +66,12 @@ object DragActions {
           def disconnect: GraphChanges = if (from.parentId != intoColumn.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
           else GraphChanges.empty
+
+          GlobalState.view.now match {
+            case View.Kanban => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+            case _           =>
+          }
+
           if (ctrl)
             addTargetColumn merge addTargetWorkspace
           else
@@ -74,6 +91,12 @@ object DragActions {
 
           def disconnectFromColumn = GraphChanges.disconnect(Edge.Child)(ParentId(fromColumn.nodeId), ChildId(payload.nodeId))
 
+          (into, GlobalState.view.now) match {
+            // case (_: Kanban.Inbox, View.List) => FeatureState.use(Feature.DragTaskToDifferentColumnInChecklist)
+            case (_: Kanban.Inbox, View.Kanban) => FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+            case _                              =>
+          }
+
           if (ctrl)
             addTargetWorkspace
           else
@@ -87,6 +110,13 @@ object DragActions {
           def disconnectFromWorkspace: GraphChanges = if (from.parentId != into.parentId)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
           else GraphChanges.empty
+
+          (from, into, GlobalState.view.now) match {
+            case (_: Kanban.Inbox, _: Kanban.Inbox, View.List) => FeatureState.use(Feature.ReorderTaskInChecklist)
+            case (_: Kanban.Inbox, _: Kanban.Inbox, View.Kanban) => FeatureState.use(Feature.ReorderTaskInKanban)
+            case _ =>
+          }
+
           if (ctrl)
             addTargetWorkspace
           else

@@ -177,6 +177,15 @@ object RightSidebar {
       buttonMods,
       onClick.foreach {
         GlobalState.focus(focusPref.nodeId)
+        GlobalState.graph.now.nodesById(focusPref.nodeId).foreach {node =>
+          node.role match {
+            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
+            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
+            case NodeRole.Project => FeatureState.use(Feature.ZoomIntoProject)
+            case _ =>
+          }
+        }
       }
     )
 

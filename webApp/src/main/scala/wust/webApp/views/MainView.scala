@@ -13,11 +13,17 @@ import wust.webApp.WoostNotification
 import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
 import wust.facades.wdtEmojiBundle.wdtEmojiBundle
+import wust.ids.Feature
+import wust.webApp.state.FeatureDetails
+import wust.webApp.DevOnly
 
 object MainView {
 
   def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
+      // DebugOnly {
+      //   featureConsistencyChecks
+      // },
       Styles.growFull,
       Rx {
         if (GlobalState.hasError()) ErrorPage()
@@ -52,7 +58,7 @@ object MainView {
         ),
         VDomModifier.ifNot(BrowserDetect.isMobile)(EmojiPicker()),
 
-        RightSidebar( ViewRender),
+        RightSidebar(ViewRender),
       )
     )
   }
@@ -65,7 +71,7 @@ object MainView {
     div(
       cls := "topBannerContainer",
       Rx {
-        WoostNotification.banner( GlobalState.permissionState(), projectName())
+        WoostNotification.banner(GlobalState.permissionState(), projectName())
       }
     )
   }
@@ -90,7 +96,7 @@ object MainView {
 
       Rx {
         if (viewIsContent())
-          PageHeader( ViewRender).apply(Styles.flexStatic, viewWidthMod)
+          PageHeader(ViewRender).apply(Styles.flexStatic, viewWidthMod)
         else {
           VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
             Topbar.apply(Styles.flexStatic, viewWidthMod)
@@ -162,6 +168,24 @@ object MainView {
             )
         }
       )
+    )
+  }
+
+  private def featureConsistencyChecks = {
+    div(
+      overflow.auto,
+      Styles.flex,
+      maxHeight := "100px",
+      // runtime consistency checks for features
+      div(
+        h3("Features not reachable by suggestions:"),
+        Feature.unreachable.map(feature => div(feature.toString)),
+      ),
+      div(
+        h3("Missing feature details:"),
+        marginLeft := "20px",
+        FeatureDetails.missingDetails.sortBy(_.toString).map(feature => div(feature.toString)),
+      ),
     )
   }
 }

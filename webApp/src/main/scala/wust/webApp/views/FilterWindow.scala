@@ -9,6 +9,8 @@ import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{Elements, Ownable}
+import wust.webApp.state.FeatureState
+import wust.ids.Feature
 
 
 object FilterWindow {
@@ -61,7 +63,14 @@ object FilterWindow {
                     if (transformations.contains(transformation.transform)) transformations.filter(_ != transformation.transform)
                     else transformations.filterNot(transformation.disablesTransform.contains) ++ (transformation.enablesTransform :+ transformation.transform)
                   }
-                  Analytics.sendEvent("filter", transformation.toString)
+
+                  transformation match {
+                    case ViewGraphTransformation.Deleted.onlyDeleted => FeatureState.use(Feature.FilterOnlyDeleted)
+                    case ViewGraphTransformation.Deleted.excludeDeleted => FeatureState.use(Feature.FilterDeleted)
+                    case ViewGraphTransformation.Assignments.onlyAssignedTo => FeatureState.use(Feature.FilterOnlyAssignedTo)
+                    case ViewGraphTransformation.Assignments.onlyNotAssigned => FeatureState.use(Feature.FilterOnlyNotAssigned)
+                    case ViewGraphTransformation.Automated.hideTemplates => FeatureState.use(Feature.FilterAutomationTemplates)
+                  }
                 }
               )
             }
@@ -76,7 +85,7 @@ object FilterWindow {
             Elements.icon(Icons.noFilter),
             span("Reset all filters"),
             onClick(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
-            onClick foreach { Analytics.sendEvent("filter", "reset") },
+            onClick foreach { FeatureState.use(Feature.ResetFilters) },
           )
         )
         )

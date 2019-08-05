@@ -517,6 +517,23 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
   }
 
+  object feature {
+    def getUsedFeaturesForUser(userId: UserId)(implicit ec:ExecutionContext): Future[List[UsedFeature]] = {
+      ctx.run {
+        query[UsedFeature]
+          .filter(_.userId == lift(userId))
+      }
+    }
+
+    def useFeatureForFirstTime(usedFeature: UsedFeature)(implicit ec:ExecutionContext): Future[Boolean] = {
+      ctx.run {
+        query[UsedFeature]
+          .insert(lift(usedFeature))
+          .onConflictIgnore
+      }.map(_ == 1)
+    }
+  }
+
   object oAuthClients {
     def create(client: OAuthClient)(implicit ec:ExecutionContext): Future[Boolean] = {
       ctx.run(

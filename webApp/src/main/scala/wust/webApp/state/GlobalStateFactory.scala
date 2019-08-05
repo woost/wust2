@@ -12,6 +12,7 @@ import outwatch.dom.helpers.OutwatchTracing
 import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, UI }
+import UI.ToastLevel
 import wust.api.ApiEvent.ReplaceGraph
 import wust.graph._
 import wust.ids._
@@ -52,8 +53,19 @@ object GlobalStateFactory {
         wdtEmojiBundle.close()
       }
 
-      rightSidebarNode.foreach { _ =>
+      rightSidebarNode.foreach { focusPreferenceOpt =>
         wdtEmojiBundle.close()
+        focusPreferenceOpt.foreach { focusPreference =>
+          GlobalState.graph.now.nodesById(focusPreference.nodeId).foreach { node =>
+            node.role match {
+              case NodeRole.Project => FeatureState.use(Feature.OpenProjectInRightSidebar)
+              case NodeRole.Task    => FeatureState.use(Feature.OpenTaskInRightSidebar)
+              case NodeRole.Message => FeatureState.use(Feature.OpenMessageInRightSidebar)
+              case NodeRole.Note    => FeatureState.use(Feature.OpenNoteInRightSidebar)
+              case _                =>
+            }
+          }
+        }
       }
 
       uiModalClose.foreach { _ =>
@@ -238,7 +250,7 @@ object GlobalStateFactory {
         Client.backendIsOnline().foreach { isOnline =>
           if (isOnline) window.location.reload(flag = true)
         }
-    }
+      }
 
     Client.apiErrorSubject.foreach { _ =>
       scribe.error("API request did fail, because the API is incompatible")

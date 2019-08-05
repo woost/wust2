@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.state.FeatureState
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
@@ -7,7 +8,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{BrowserDetect, Ownable}
 import wust.css.Styles
 import wust.graph._
-import wust.ids._
+import wust.ids.{Feature, _}
 import wust.webApp.dragdrop.DragContainer
 import wust.webApp.state.{FocusState, GlobalState, Placeholder, TraverseState}
 import wust.webApp.views.Components._
@@ -247,6 +248,7 @@ object ListView {
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
       GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
+      FeatureState.use(Feature.CreateTaskInChecklist)
     }
 
     div(

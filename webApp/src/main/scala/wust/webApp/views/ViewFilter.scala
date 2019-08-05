@@ -12,6 +12,7 @@ import wust.webApp.Icons
 import wust.webApp.search.Search
 import wust.webApp.state.{GlobalState, ScreenSize}
 import wust.webUtil.outwatchHelpers._
+import wust.webApp.state.FeatureState
 
 object ViewFilter {
 
@@ -24,7 +25,12 @@ object ViewFilter {
 
     input(tpe := "checkbox",
       onChange.checked.map(v => activeFilter(v).now) --> GlobalState.graphTransformations,
-      onChange.checked foreach { enabled => if(enabled) Analytics.sendEvent("filter", s"$filterName") },
+      onChange.checked foreach { enabled => if(enabled) {
+        transform match {
+          case _:GraphOperation.OnlyTaggedWith => FeatureState.use(Feature.FilterByTag)
+          case _ =>
+        }
+      } },
       checked <-- GlobalState.graphTransformations.map(_.contains(transform)),
     )
   }

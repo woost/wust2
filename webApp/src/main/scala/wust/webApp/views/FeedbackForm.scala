@@ -18,6 +18,8 @@ import wust.sdk.Colors
 import wust.webApp.Client
 import wust.webApp.state.{ GlobalState, ScreenSize }
 import wust.webApp.views.Components._
+import wust.ids.Feature
+import wust.webApp.state.FeatureState
 
 import scala.scalajs.LinkingInfo
 import scala.util.{ Failure, Success }
@@ -61,7 +63,7 @@ object FeedbackForm {
         }
       }
 
-      Analytics.sendEvent("feedback", "submit")
+      FeatureState.use(Feature.SubmitFeedback)
     }
 
     val feedbackForm = VDomModifier(
@@ -110,7 +112,6 @@ object FeedbackForm {
       cursor.pointer,
 
       onClick.stopPropagation foreach {
-        Analytics.sendEvent("feedback", if (showPopup.now) "close" else "open")
         showPopup.update(!_)
       },
       onGlobalEscape(false) --> showPopup,

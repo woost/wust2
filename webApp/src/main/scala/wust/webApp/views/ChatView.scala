@@ -495,6 +495,9 @@ object ChatView {
       if (!pinReply.now) currentReply() = Set.empty[NodeId]
       fileUploadHandler() = None
       scrollHandler.scrollToBottomInAnimationFrame()
+
+      FeatureState.use(Feature.CreateMessageInChat)
+      if(replyNodes.nonEmpty) FeatureState.use(Feature.ReplyToMessageInChat)
     }
 
     InputRow(
