@@ -254,6 +254,7 @@ object GlobalStateFactory {
     // we send client errors from javascript to the backend
     dom.window.addEventListener("onerror", { (e: dom.ErrorEvent) =>
       Client.api.log(s"Javascript Error: ${e.message}.")
+      DevOnly { UI.toast(e.message, level = ToastLevel.Error) }
     })
 
     DevOnly {
