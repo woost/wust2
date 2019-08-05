@@ -120,8 +120,7 @@ begin
 
     drop table if exists can_access_cache;
 
-    create temporary table can_access_cache (id uuid NOT NULL, can_access boolean) on commit drop;
-    create unique index on can_access_cache (id);
+    call create_access_cache_table();
 end
 $$ language plpgsql;
 
@@ -340,6 +339,7 @@ select set_eq(
 select cleanup();
 
 -- 19) case 1:
+select cleanup();
 select usernode('A1'); -- user
 select node('B1', 'restricted'); -- node with permission
 select node('C1', NULL); -- node with permission inheritance
@@ -349,6 +349,7 @@ select member('B1', 'A1', 'restricted'); -- membership with level
 select is_empty($$ select * from graph_traversed_page_nodes(array[node_to_uuid('B1')], user_to_uuid('A1')) $$);
 
 -- 20) case 2:
+select cleanup();
 select usernode('A2');
 select node('B2', 'readwrite');
 select node('C2', null);
@@ -358,6 +359,7 @@ select member('B2', 'A2', 'restricted');
 select is_empty($$ select * from graph_traversed_page_nodes(array[node_to_uuid('B2')], user_to_uuid('A2')) $$);
 
 -- 21) case 3:
+select cleanup();
 select usernode('A3');
 select node('B3', null);
 select node('C3', null);
@@ -368,6 +370,7 @@ select is_empty($$ select * from graph_traversed_page_nodes(array[node_to_uuid('
 
 
 -- 22) case 4:
+select cleanup();
 select usernode('A4');
 select node('B4', 'restricted');
 select node('C4', null);
@@ -379,7 +382,9 @@ select set_eq(
     $$ values (node_to_uuid('B4')), (node_to_uuid('C4')) $$
 );
 
+
 -- 23) case 5:
+select cleanup();
 select usernode('A5');
 select node('B5', 'readwrite');
 select node('C5', null);
@@ -393,6 +398,7 @@ select set_eq(
 
 
 -- 24) case 6:
+select cleanup();
 select usernode('A6');
 select node('B6', null);
 select node('C6', null);
@@ -407,6 +413,7 @@ select set_eq(
 
 
 -- 25) case 7:
+select cleanup();
 select usernode('A7');
 select node('B7', 'restricted');
 select node('C7', null);
@@ -415,6 +422,7 @@ select child('B7', 'C7');
 select is_empty($$ select * from graph_traversed_page_nodes(array[node_to_uuid('B7')], user_to_uuid('A7')) $$);
 
 -- 26) case 8:
+select cleanup();
 select usernode('A8');
 select node('B8', 'readwrite');
 select member('B8', 'A8', 'readwrite');
