@@ -4,7 +4,7 @@ workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 // globals
 const port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
-const isDebug = location.hostname == "localhost"
+const isDebug = true //location.hostname == "localhost"
 var userAuth;
 
 const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => console[funName].apply(console, ["[SW]"].concat(args)) : () => {}
