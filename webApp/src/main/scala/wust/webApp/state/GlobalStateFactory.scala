@@ -255,9 +255,11 @@ object GlobalStateFactory {
     appUpdateIsAvailable
       .throttleLast(1.minutes)
       .foreach { _ =>
+        scribe.info("Client is offline, checking whether backend is online")
         // if we can access the health check of core.app.woost.space (without version in name). then we know for sure, we can update:
         Client.backendIsOnline().foreach { isOnline =>
           if (isOnline) window.location.reload(flag = true)
+          else scribe.info("Backend is offline")
         }
       }
 
