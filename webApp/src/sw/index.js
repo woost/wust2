@@ -68,13 +68,6 @@ workbox.routing.registerRoute(
 
 /////////////////////////////////////////
 
-function requestPromise(request) {
-    return new Promise((resolve, reject) => {
-        request.onsuccess = e => resolve(request.result);
-        request.onerror = e => reject(request.error);
-    });
-}
-
 function getPublicKey() {
     return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
