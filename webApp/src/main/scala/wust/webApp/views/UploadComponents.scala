@@ -24,7 +24,7 @@ object UploadComponents {
 
     val maxImageHeight = "250px"
 
-    val downloadUrl: String = Client.wustFilesUrl + "/" + key
+    val downloadUrl: Option[String] = Client.wustFilesUrl.map(_ + "/" + key)
     def preview(dataUrl: String): VDomModifier = {
       file.contentType match {
         case t if t.startsWith("image/") => img(height := maxImageHeight, src := dataUrl)
@@ -44,7 +44,7 @@ object UploadComponents {
       Styles.growFull
     )
 
-    def downloadLink = a(href := downloadUrl, s"Download ${file.fileName}", onClick.stopPropagation --> Observer.empty)
+    def downloadLink = a(downloadUrl.map(href := _), s"Download ${file.fileName}", onClick.stopPropagation --> Observer.empty)
 
     div(
       if (file.key.isEmpty) { // this only happens for currently-uploading files
@@ -78,7 +78,7 @@ object UploadComponents {
         p(downloadLink),
         contentType match {
           case t if t.startsWith("image/") =>
-            val image = img(alt := fileName, src := downloadUrl, cls := "ui image")
+            val image = img(alt := fileName, downloadUrl.map(src := _), cls := "ui image")
             image(maxHeight := maxImageHeight, cursor.pointer, onClick.stopPropagation.foreach {
               GlobalState.uiModalConfig.onNext(Ownable(_ => ModalConfig(StringOps.trimToMaxLength(file.fileName, 20), image(cls := "fluid"), modalModifier = cls := "basic"))) //TODO: better size settings
               ()
