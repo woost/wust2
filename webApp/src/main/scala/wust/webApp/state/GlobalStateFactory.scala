@@ -287,15 +287,19 @@ object GlobalStateFactory {
 
   }
 
+  private var stateDebugLoggingEnabled = false
   def setupStateDebugLogging(): Unit = {
-    import GlobalState._
+    if (!stateDebugLoggingEnabled) {
+      stateDebugLoggingEnabled = true
+      import GlobalState._
 
-    rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
-    graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
+      rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
+      graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
 
-    page.debug("page")
-    view.debug("view")
-    user.debug("auth")
-    selectedNodes.debug("selected")
+      page.debug("page")
+      view.debug("view")
+      user.debug("auth")
+      selectedNodes.debug("selected")
+    }
   }
 }
