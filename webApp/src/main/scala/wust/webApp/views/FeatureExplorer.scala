@@ -11,7 +11,7 @@ import wust.css.{Styles, ZIndex}
 import wust.ids.Feature
 import wust.sdk.Colors
 import wust.webApp.state.{FeatureDetails, FeatureState, GlobalState, ScreenSize}
-import wust.webUtil.Elements._
+import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
 object FeatureExplorer {
@@ -40,7 +40,6 @@ object FeatureExplorer {
     val stats = div(
       div(
         textAlign.center,
-        marginTop := "30px",
         span(
           fontSize := "80px",
           lineHeight := "50px",
@@ -196,8 +195,8 @@ object FeatureExplorer {
         onClick.stopPropagation foreach {
           showPopup.update(!_)
         },
-        onGlobalEscape(false) --> showPopup,
-        onGlobalClick(false) --> showPopup,
+        Elements.onGlobalEscape(false) --> showPopup,
+        Elements.onGlobalClick(false) --> showPopup,
 
         position.relative,
         paddingRight := "30px",
@@ -208,6 +207,16 @@ object FeatureExplorer {
         )
       )
     }
+
+    val closeButton = div(
+      height := "30px",
+      Styles.flex,
+      justifyContent.flexEnd,
+      alignItems.center,
+      Elements.closeButton(
+        onClick.stopPropagation(false) --> showPopup
+      )
+    )
 
     div(
       toggleButton,
@@ -222,7 +231,8 @@ object FeatureExplorer {
         backgroundColor := Colors.sidebarBg,
         color := "#333",
 
-        stats,
+        closeButton(marginRight := "-10px", marginTop := "-5px"),
+        stats(marginTop := "5px"),
         tryNextList(marginTop := "30px"),
         DebugOnly(Rx{recentList(marginTop := "30px")}),
         Rx{
