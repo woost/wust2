@@ -1,5 +1,7 @@
 package wust.webApp.state
 
+import org.scalajs.dom.console
+import scala.scalajs.js
 import wust.util.time.time
 import collection.mutable
 import wust.webApp.{ DevOnly, StagingOnly, DebugOnly }
@@ -96,7 +98,11 @@ object FeatureState {
           scribe.debug("Used Feature: " + feature.toString)
           DebugOnly {
             UI.toast(feature.toString)
-            println("\n------------\n" + Feature.dotGraph(recentFirstTimeUsed.now, recentlyUsed.now, nextCandidates.now, next.now) + "\n------------\n")
+
+            console.asInstanceOf[js.Dynamic].groupCollapsed(s"Feature Dotgraph")
+            console.log(Feature.dotGraph(recentFirstTimeUsed.now, recentlyUsed.now, nextCandidates.now, next.now))
+            console.asInstanceOf[js.Dynamic].groupEnd()
+
             if (recentlyUsed.now.length > recentlyUsedLimit)
               UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
             if (recentlyUsed.now != recentlyUsed.now.distinct)
