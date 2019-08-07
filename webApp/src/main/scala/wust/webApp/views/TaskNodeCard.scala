@@ -306,9 +306,6 @@ object TaskNodeCard {
 
     VDomModifier(
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, nodeId),
-      onDblClick.stopPropagation.foreach{ _ =>
-        GlobalState.focus(nodeId)
-      },
       Components.showHoveredNode( nodeId),
       UnreadComponents.readObserver( nodeId, marginTop := "7px"),
       VDomModifier.ifTrue(showCheckbox)(

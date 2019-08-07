@@ -976,14 +976,31 @@ object Components {
   )
 
   def sidebarNodeFocusClickMod(sidebarNode: Var[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = sidebarNodeFocusClickMod(sidebarNode, sidebarNode() = _, nodeId)
-  def sidebarNodeFocusClickMod(sidebarNode: Rx[Option[FocusPreference]], onSidebarNode: Option[FocusPreference] => Unit, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
+
+  def sidebarNodeFocusClickMod(sidebarNode: Rx[Option[FocusPreference]], onSidebarNode: Option[FocusPreference] => Unit, nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = {
+    val sidebarNodeOpenDelay = {
+      import concurrent.duration._
+      200 milliseconds
+    }
+    var dblClicked = false
+    VDomModifier(
     cursor.pointer,
     onMouseDown.stopPropagation --> Observer.empty, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
-    onClick.stopPropagation.foreach {
+      onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach {
+        // opening right sidebar is delayed to not interfere with double click
+        if(dblClicked) dblClicked = false
+        else {
       val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
       onSidebarNode(nextNode)
+        }
     },
+      onDblClick.stopPropagation.foreach{ _ =>
+        dblClicked = true
+        GlobalState.focus(nodeId)
+        FeatureState.use(Feature.ZoomIntoTask)
+      },
   )
+  }
 
   def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
     sidebarNode.map(_.exists(_.nodeId == nodeId)).map { isFocused =>
