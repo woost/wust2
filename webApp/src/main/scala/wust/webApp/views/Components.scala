@@ -984,22 +984,22 @@ object Components {
     }
     var dblClicked = false
     VDomModifier(
-    cursor.pointer,
-    onMouseDown.stopPropagation --> Observer.empty, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
+      cursor.pointer,
+      onMouseDown.stopPropagation --> Observer.empty, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
       onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach {
         // opening right sidebar is delayed to not interfere with double click
         if(dblClicked) dblClicked = false
         else {
-      val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
-      onSidebarNode(nextNode)
+          val nextNode = if (sidebarNode.now.exists(_.nodeId == nodeId)) None else Some(FocusPreference(nodeId))
+          onSidebarNode(nextNode)
         }
-    },
+      },
       onDblClick.stopPropagation.foreach{ _ =>
         dblClicked = true
         GlobalState.focus(nodeId)
         FeatureState.use(Feature.ZoomIntoTask)
       },
-  )
+    )
   }
 
   def sidebarNodeFocusVisualizeMod(sidebarNode: Rx[Option[FocusPreference]], nodeId: NodeId)(implicit ctx: Ctx.Owner): VDomModifier = VDomModifier(
@@ -1042,8 +1042,8 @@ object Components {
     Elements.onClickN(desiredClicks = if(DevOnly.isTrue) 1 else 8).foreach {
       Logging.setup(enabled = true, debugEnabled = true)
       wust.webApp.state.GlobalStateFactory.setupStateDebugLogging()
-      DevOnly.isTrue = true
-      dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled")
+      DeployedOnly(dom.window.alert(s"Woost version: ${WoostConfig.value.versionString}\nLogging and DevOnly is now enabled"))
+      ()
     }
   )
 

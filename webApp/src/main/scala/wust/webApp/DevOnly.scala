@@ -14,7 +14,7 @@ object DevOnly {
     if (isTrue) Option(code) else None
   }
 
-  @inline var isTrue = LinkingInfo.developmentMode
+  @inline def isTrue = LinkingInfo.developmentMode || DebugOnly.isTrue
   @inline def showDebugLogs = false
 }
 
@@ -22,7 +22,7 @@ object DeployedOnly {
   @inline def apply[T](code: => T): Option[T] = {
     if (isTrue) Option(code) else None
   }
-  @inline var isTrue = !LinkingInfo.developmentMode
+  @inline def isTrue = LinkingInfo.productionMode
 }
 
 
@@ -30,7 +30,7 @@ object StagingOnly {
   @inline def apply[T](code: => T): Option[T] = {
     if (isTrue) Option(code) else None
   }
-  @inline var isTrue = WoostConfig.audience == WoostAudience.Staging || WoostConfig.audience == WoostAudience.Dev
+  @inline def isTrue = WoostConfig.audience == WoostAudience.Staging || DevOnly.isTrue
 }
 
 object DevPrintln {
