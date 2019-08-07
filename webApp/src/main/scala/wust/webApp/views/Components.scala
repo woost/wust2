@@ -1039,7 +1039,7 @@ object Components {
   }
 
   def betaSign(implicit ctx:Ctx.Owner) = maturityLabel("beta").apply (
-    Elements.onClickN(desiredClicks = 8).foreach {
+    Elements.onClickN(desiredClicks = if(DevOnly.isTrue) 1 else 8).foreach {
       Logging.setup(enabled = true, debugEnabled = true)
       wust.webApp.state.GlobalStateFactory.setupStateDebugLogging()
       DevOnly.isTrue = true
