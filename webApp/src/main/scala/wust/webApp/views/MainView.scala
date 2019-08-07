@@ -21,8 +21,8 @@ object MainView {
 
   def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
-      // DebugOnly {
-      //   featureConsistencyChecks
+      // DevOnly {
+      //   featureConsistencyChecks,
       // },
       Styles.growFull,
       Rx {
@@ -175,7 +175,8 @@ object MainView {
     div(
       overflow.auto,
       Styles.flex,
-      maxHeight := "100px",
+      height := "100px",
+      Styles.flexStatic,
       // runtime consistency checks for features
       div(
         h3("Features not reachable by suggestions:"),
