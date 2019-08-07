@@ -418,7 +418,6 @@ object Elements {
     if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
     else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
   }
-  //TODO: move to webUitl.Elements
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),
     padding := "10px",
@@ -426,7 +425,6 @@ object Elements {
     flexShrink := 0.0,
     cursor.pointer,
   )
-  //TODO: move to webUitl.Elements
   def iconWithIndicator(icon: IconLookup, indicator: IconLookup, color: String): VNode = fontawesome.layered(
     fontawesome.icon(icon),
     fontawesome.icon(
@@ -437,7 +435,6 @@ object Elements {
       }
     )
   )
-  //TODO: move to webUitl.Elements
   def icon(icon: VDomModifier) = i(
     cls := "icon fa-fw",
     icon
