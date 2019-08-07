@@ -544,7 +544,7 @@ object Components {
           tpe := "checkbox",
           checked <-- isChecked,
           VDomModifier.ifTrue(directParentIds.isEmpty)(disabled := true),
-          onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
+          onClick.stopPropagation.discard, // fix safari emitting extra click event onChange
           onChange.checked foreach { checking =>
             val graph = GlobalState.graph.now
             directParentIds.flatMap(id => graph.workspacesForParent(graph.idToIdxOrThrow(id))).foreach { workspaceIdx =>
@@ -986,7 +986,7 @@ object Components {
     var dblClicked = false
     VDomModifier(
       cursor.pointer,
-      onMouseDown.stopPropagation --> Observer.empty, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
+      onMouseDown.stopPropagation.discard, // don't globally close sidebar by clicking here. Instead onClick toggles the sidebar directly
       onClick.stopPropagation.transform(_.delayOnNext(sidebarNodeOpenDelay)).foreach {
         // opening right sidebar is delayed to not interfere with double click
         if(dblClicked) dblClicked = false

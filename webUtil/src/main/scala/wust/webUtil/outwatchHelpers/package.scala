@@ -290,7 +290,7 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   //TODO AsEmitterBuilder type class in outwatch?
   @inline def emitterRx[T](rx: Rx[T]): EmitterBuilder[T, VDomModifier] = new RxEmitterBuilder[T](rx)
 
-  implicit class RichEmitterBuilder(val factory: EmitterBuilder.type ) extends AnyVal {
+  implicit class RichEmitterBuilderFactory(val factory: EmitterBuilder.type ) extends AnyVal {
     @inline def combine[T](others: EmitterBuilder[T, VDomModifier]*): EmitterBuilder[T, VDomModifier] = combineSeq(others)
     def combineSeq[T](others: Seq[EmitterBuilder[T, VDomModifier]]): EmitterBuilder[T, VDomModifier] = EmitterBuilder.ofModifier[T] { sink =>
       others.map(_ --> sink)
@@ -298,6 +298,9 @@ package object outwatchHelpers extends KeyHash with RxInstances {
   }
   implicit class RichEmitterBuilderEvent[R](val builder: EmitterBuilder[dom.Event,R]) extends AnyVal {
     def onlyOwnEvents: EmitterBuilder[dom.Event, R] = builder.filter(ev => ev.currentTarget == ev.target)
+  }
+  implicit class RichEmitterBuilder[E,R](val builder: EmitterBuilder[E,R]) extends AnyVal {
+    def discard: R = builder --> Observer.empty
   }
 
   def abstractTreeToVNodeRoot(key: String, tree: AbstractElement): VNode = {

@@ -44,7 +44,7 @@ object UploadComponents {
       Styles.growFull
     )
 
-    def downloadLink = a(downloadUrl.map(href := _), s"Download ${file.fileName}", onClick.stopPropagation --> Observer.empty)
+    def downloadLink = a(downloadUrl.map(href := _), s"Download ${file.fileName}", onClick.stopPropagation.discard)
 
     div(
       if (file.key.isEmpty) { // this only happens for currently-uploading files
@@ -145,7 +145,7 @@ object UploadComponents {
       onDragOverModifier,
       onDragEnter.preventDefault(opacity := 0.5) --> onDragOverModifier,
       onDragLeave.preventDefault.onlyOwnEvents(VDomModifier.empty) --> onDragOverModifier,
-      onDragOver.preventDefault --> Observer.empty,
+      onDragOver.preventDefault.discard,
 
       onDrop.preventDefault.foreach { ev =>
         val elem = document.getElementById(fileInputId).asInstanceOf[dom.html.Input]

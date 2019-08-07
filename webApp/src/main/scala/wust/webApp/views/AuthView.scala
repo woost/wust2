@@ -76,7 +76,7 @@ object AuthView {
           flexDirection.column,
 
           onDomMount foreach { e => element = e.asInstanceOf[dom.html.Form] },
-          onSubmit.preventDefault --> Observer.empty, // prevent reloading the page on form submit
+          onSubmit.preventDefault.discard, // prevent reloading the page on form submit
 
           forgotPasswordMode.map {
             case false => h2(header)

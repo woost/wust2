@@ -350,7 +350,7 @@ object TaskNodeCard {
         VDomModifier.ifTrue(isExpanded())(
           ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
             paddingBottom := "3px",
-            onClick.stopPropagation --> Observer.empty,
+            onClick.stopPropagation.discard,
             DragComponents.drag(DragItem.DisableDrag),
           ).apply(paddingLeft := "15px"),
           paddingBottom := "0px",
@@ -621,7 +621,7 @@ object TaskNodeCard {
         VDomModifier.ifTrue(isExpanded())(
           ListView.fieldAndList( focusState = focusState.copy(isNested = true, focusedId = node.id), TraverseState(node.id), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply( // TODO: proper traverstate
             paddingBottom := "3px",
-            onClick.stopPropagation --> Observer.empty,
+            onClick.stopPropagation.discard,
             DragComponents.drag(DragItem.DisableDrag),
           ),
           paddingBottom := "0px",

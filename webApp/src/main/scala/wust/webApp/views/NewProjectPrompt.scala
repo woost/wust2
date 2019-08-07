@@ -125,7 +125,7 @@ object NewProjectPrompt {
                 checkedState(idx) = checked
                 changed.onNext(())
               },
-              onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
+              onClick.stopPropagation.discard, // fix safari emitting extra click event onChange
               dsl.checked <-- changed.map(_ => checkedState(idx))
             ),
             description(value),

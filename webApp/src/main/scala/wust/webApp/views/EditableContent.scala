@@ -328,7 +328,7 @@ object EditableContent {
       onFocus foreach { e => dom.document.execCommand("selectAll", false, null) }, // select text on focus
     ),
     whiteSpace.preWrap, // preserve white space in Markdown code
-    onClick.stopPropagation --> Observer.empty, // prevent e.g. selecting node, but only when editing
+    onClick.stopPropagation.discard, // prevent e.g. selecting node, but only when editing
     onDomMount.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
     onDomUpdate.asHtml --> inNextAnimationFrame { elem => if (shouldFocusInput) elem.focus() },
   )

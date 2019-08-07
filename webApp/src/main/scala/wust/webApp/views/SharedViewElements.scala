@@ -293,7 +293,7 @@ object SharedViewElements {
             if(checked) GlobalState.addSelectedNode(newSelectedNode(nodeId))
             else GlobalState.removeSelectedNode(nodeId)
           },
-          onClick.stopPropagation --> Observer.empty, // fix safari event, that automatically clicks on the message row, which again would unselect the message
+          onClick.stopPropagation.discard, // fix safari event, that automatically clicks on the message row, which again would unselect the message
         ),
         label()
       )

@@ -110,7 +110,7 @@ object GraphChangesAutomationUI {
             showHelp map {
               case true => div(
                 overflow.auto,
-                onClick.stopPropagation --> Observer.empty,
+                onClick.stopPropagation.discard,
                 zIndex := ZIndex.toast,
                 position.absolute,
                 background := "white",

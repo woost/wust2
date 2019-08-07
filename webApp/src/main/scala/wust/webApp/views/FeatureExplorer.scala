@@ -231,7 +231,7 @@ object FeatureExplorer {
           )
         },
 
-        onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
+        onClick.stopPropagation.discard, // prevents closing feedback form by global click
         maxHeight := "calc(100% - 45px)",
         overflowY.auto,
       ),

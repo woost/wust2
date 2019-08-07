@@ -41,7 +41,7 @@ object UI {
       input(
         tpe := "checkbox",
         onChange.checked --> sink,
-        onClick.stopPropagation --> Observer.empty, // fix safari emitting extra click event onChange
+        onClick.stopPropagation.discard, // fix safari emitting extra click event onChange
         checked <-- isChecked,
         // defaultChecked := isChecked.now
       ),
