@@ -50,6 +50,8 @@ object DragActions {
 
           if(from.nodeId != into.nodeId)
             FeatureState.use(Feature.DragTaskToDifferentColumnInKanban)
+          else
+            FeatureState.use(Feature.ReorderTaskInKanban)
 
           if (ctrl)
             addTargetColumn merge addTargetWorkspace
