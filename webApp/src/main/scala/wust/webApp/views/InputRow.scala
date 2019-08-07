@@ -341,7 +341,7 @@ object InputRow {
   }
 
   private val markdownExampleTableHtml = """
-<table cellspacing="10px">
+<table cellspacing="10px" class="markdown enable-text-selection">
     <thead>
         <tr>
             <th>Markdown</th>
