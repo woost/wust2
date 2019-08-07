@@ -119,6 +119,7 @@ object FeedbackForm {
     )
 
     div(
+      keyed,
       toggleButton,
       div(
         activeDisplay,

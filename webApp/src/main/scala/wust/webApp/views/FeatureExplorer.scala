@@ -219,6 +219,7 @@ object FeatureExplorer {
     )
 
     div(
+      keyed,
       toggleButton,
       div(
         activeDisplay,

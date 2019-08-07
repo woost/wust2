@@ -110,11 +110,18 @@ object PageHeader {
 
         breadCrumbs,
         Rx {
-          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-            FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic),
-            AnnouncekitWidget.widget.apply(Styles.flexStatic),
-            FeedbackForm(ctx)(Styles.flexStatic),
-            AuthControls.authStatus(buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+          VDomModifier(
+            VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+              // depending on the screen size, different elements receive marginLeft.auto
+              if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
+                FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic),
+                AnnouncekitWidget.widget.apply(Styles.flexStatic),
+                FeedbackForm(ctx)(Styles.flexStatic),
+              )
+              else
+                FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic),
+              AuthControls.authStatus(buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+            )
           )
         },
       ),

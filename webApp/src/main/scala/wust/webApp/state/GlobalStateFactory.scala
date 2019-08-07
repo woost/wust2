@@ -296,6 +296,7 @@ object GlobalStateFactory {
       rawGraph.debugWithDetail((g: Graph) => s"rawGraph: ${g.toString}", (g: Graph) => g.toDetailedString)
       graph.debugWithDetail((g: Graph) => s"graph: ${g.toString}", (g: Graph) => g.toDetailedString)
 
+      screenSize.debug("screenSize")
       page.debug("page")
       view.debug("view")
       user.debug("auth")
