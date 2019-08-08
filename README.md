@@ -101,7 +101,7 @@ select funcname, calls, total_time, total_time/calls as total_avg, self_time, se
 
 to clean the stats:
 ```sql
-select pg_stat_reset()
+select pg_stat_reset();
 ```
 
 function explanation via auto explainer:

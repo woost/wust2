@@ -336,7 +336,7 @@ select set_eq(
 
 -- access rights
 
--- the following 8 tests are basically the same as in 'simple_inheritance' of can_access_node
+-- the following 8 tests are basically the same as in 'simple_inheritance' of node_can_access
 select cleanup();
 
 -- 19) case 1:

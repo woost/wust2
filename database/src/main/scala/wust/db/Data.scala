@@ -84,38 +84,39 @@ object Data {
     }
   }
 
-  case class OAuthClient(userId: UserId, service: OAuthClientService, accessToken: String)
+  final case class OAuthClient(userId: UserId, service: OAuthClientService, accessToken: String)
+
+  final case class AllowedNodeAccess(nodeId: NodeId, userId: UserId)
 
   // Result of notifiedUsersByNodes
   final case class NotifiedUsersRow(userId: UserId, notifiedNodes: List[NodeId], subscribedNodeId: NodeId, subscribedNodeContent: String)
 
   // adjacency list which comes out of postgres stored procedure graph_page(parents, children, userid)
   final case class GraphRow(
-    nodeId: NodeId,
-    data: NodeData,
-    role: NodeRole,
+    nodeId: Option[NodeId],
+    data: Option[NodeData],
+    role: Option[NodeRole],
     accessLevel: NodeAccess,
     views: Option[String],
-    targetIds: List[NodeId],
-    edgeData: List[EdgeData]
-  ) {
-    require(targetIds.length == edgeData.length, "targetIds and connectionData need to have same arity")
-  }
+    sourceId: Option[NodeId],
+    targetId: Option[NodeId],
+    edgeData: Option[EdgeData]
+  )
+
   final case class Graph(nodes: Array[Node], edges: Array[Edge])
   object Graph {
     def from(rows: Seq[GraphRow]): Graph = {
       val nodes = mutable.ArrayBuilder.make[Node]
       val edges = mutable.ArrayBuilder.make[Edge]
-      nodes.sizeHint(rows.length)
 
       rows.foreach { row =>
-        //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
-        //Now we let quill decode views to Option[String] and decode the list ourselves...meh
-        val viewList: Option[List[View.Visible]] = row.views.map(NodeRaw.viewsFromString)
-        nodes += Node(row.nodeId, row.data, row.role, row.accessLevel, viewList)
-
-        (row.targetIds zip row.edgeData).foreach { case (targetId, edgeData) =>
-          edges += Edge(row.nodeId, edgeData, targetId)
+        if (row.nodeId.isEmpty) { // edge
+          edges += Edge(row.sourceId.get, row.edgeData.get, row.targetId.get)
+        } else { // node
+          //TODO this is really ugly, we want views: Option[List[View]], but quill fails when decoding this graph-row.
+          //Now we let quill decode views to Option[String] and decode the list ourselves...meh
+          val viewList: Option[List[View.Visible]] = row.views.map(NodeRaw.viewsFromString)
+          nodes += Node(row.nodeId.get, row.data.get, row.role.get, row.accessLevel, viewList)
         }
       }
       Graph(nodes.result(), edges.result())

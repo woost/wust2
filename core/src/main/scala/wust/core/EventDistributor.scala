@@ -276,7 +276,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
     val parallelNotifications = notifications.par
     parallelNotifications.tasksupport = new ExecutionContextTaskSupport(ec)
 
-    val expiredSubscriptions: ParSeq[Seq[Future[Seq[Data.WebPushSubscription]]]] = parallelNotifications.map {
+    val expiredSubscriptions: Seq[Future[Seq[Data.WebPushSubscription]]] = notifications.flatMap {
       case NotificationData(userId, notifiedNodes, subscribedNodeId, subscribedNodeContent) if userId != author.id =>
         notifiedNodes.map { notifiedNode =>
 
@@ -329,7 +329,7 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case _ => List.empty[Future[List[Data.WebPushSubscription]]]
     }
 
-    Future.sequence(expiredSubscriptions.seq.flatten)
+    Future.sequence(expiredSubscriptions)
       .map(_.flatten)
       .foreach(deleteWebPushSubscriptions)
   }
