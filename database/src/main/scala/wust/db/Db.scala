@@ -59,8 +59,8 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }).flatMap(touched => checkUnexpected(touched.forall(_ == 1), s"Unexpected number of node inserts: ${touched.sum} / ${nodes.size} = ${nodes.zip(touched)}"))
     }
 
-    private val canAccess = quote { (userId: UserId, nodeId: NodeId) =>
-      infix"""can_access_node($userId, $nodeId)""".as[Boolean]
+    private val canAccess = quote { (nodeId: NodeId, userId: UserId) =>
+      infix"""node_can_access($nodeId, $userId)""".as[Boolean]
     }
 
     def resolveMentionedNodesWithAccess(mentionedNodeIds: scala.collection.Seq[NodeId], canAccessNodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[User]] = {
@@ -84,7 +84,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     def get(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Option[Node]] = {
       ctx.run {
         query[NodeRaw].filter(accessedNode =>
-          accessedNode.id == lift(nodeId) && canAccess(lift(userId), lift(nodeId))
+          accessedNode.id == lift(nodeId) && canAccess(lift(nodeId), lift(userId))
         ).take(1)
       }.map(_.headOption.map(_.toNode))
     }
@@ -106,7 +106,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       ctx.run(
         for {
           parentId <- query[Edge]
-            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(lift(userId), e.sourceId))
+            .filter(e => e.data.jsonType == lift(EdgeData.Child.tpe) && e.targetId == lift(nodeId) && canAccess(e.sourceId, lift(userId)))
             .map(_.sourceId)
           node <- query[Node].filter(node => node.id == parentId && liftQuery(workspaceRoles).contains(node.role))
         } yield node.id
@@ -179,7 +179,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     def updateNodesForConnectedUser(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
       ctx.run(
-        infix"select id from unnest(${lift(nodeIds)}::uuid[]) id where can_access_node(${lift(userId)}, id)".as[Query[NodeId]]
+        infix"select id from unnest(${lift(nodeIds)}::uuid[]) id where node_can_access(id, ${lift(userId)})".as[Query[NodeId]]
       )
     }
 
@@ -478,7 +478,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     def canAccessNode(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = ctx.run {
-      canAccessNodeQuery(lift(userId), lift(nodeId))
+      canAccessNodeQuery(lift(nodeId), lift(userId))
     }
 
     def canAccessNodeViaUrl(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = ctx.run {
@@ -489,9 +489,9 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       inaccessibleNodesQuery(lift(userId), lift(nodeIds))
     }
 
-    private val canAccessNodeQuery = quote { (userId: UserId, nodeId: NodeId) =>
+    private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
-      infix"select * from can_access_node($userId, $nodeId)".as[Boolean]
+      infix"select * from node_can_access($nodeId, $userId)".as[Boolean]
     }
 
     private val canAccessNodeViaUrlQuery = quote { (userId: UserId, nodeId: NodeId) =>
