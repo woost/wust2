@@ -188,6 +188,10 @@ const fileLoader = {
     },
 };
 module.exports.module.rules.push({
+    test: /static\/\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
+    use: [ fileLoader ]
+});
+module.exports.module.rules.push({
     test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
     use: [ fileLoader ]
 });
