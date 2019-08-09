@@ -23,7 +23,7 @@ object BaseColors {
   val pageBgLight = RGB("#f9efd7").hcl
 
   val tag = RGB("#fa8088").hcl
-  val accent = tag
+  val accent = RGB("#72cb9e").hcl
   val eulerBg = tag
 }
 

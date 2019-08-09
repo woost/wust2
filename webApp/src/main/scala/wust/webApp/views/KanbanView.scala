@@ -108,7 +108,6 @@ object KanbanView {
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
       border := "2px solid transparent",
-      backgroundColor := "transparent",
       keyed,
       div(
         cls := "kanbancolumnheader",
