@@ -213,11 +213,12 @@ object ViewModificationMenu {
 
   def trackAddViewFeature(view: View): Unit = {
     view match {
-      case View.List   => FeatureState.use(Feature.AddChecklistView)
-      case View.Chat   => FeatureState.use(Feature.AddChatView)
-      case View.Kanban => FeatureState.use(Feature.AddKanbanView)
-      case View.Content => FeatureState.use(Feature.AddNotesView)
-      case other       =>
+      case View.List      => FeatureState.use(Feature.AddChecklistView)
+      case View.Chat      => FeatureState.use(Feature.AddChatView)
+      case View.Kanban    => FeatureState.use(Feature.AddKanbanView)
+      case View.Content   => FeatureState.use(Feature.AddNotesView)
+      case View.Dashboard => FeatureState.use(Feature.AddDashboardView)
+      case other          =>
     }
   }
 }

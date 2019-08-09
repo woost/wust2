@@ -91,7 +91,8 @@ object Feature {
   // third device... extends Category.Secret
   // ctrl+drag
 
-  case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, OpenProjectInRightSidebar, CreateSubProjectFromDashboard) }
+  case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar) }
+  case object AddDashboardView extends Category.View {override def next = Array(CreateSubProjectFromDashboard)}
   case object CreateSubProjectFromDashboard extends Category.Item.Project { override def next = Array(ZoomIntoProject) }
 
   // Basics
