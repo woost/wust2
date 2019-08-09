@@ -125,7 +125,7 @@ object ListView {
   }
 
   private def renderTaskOrStage(
-    
+
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -137,7 +137,7 @@ object ListView {
     nodeRole match {
       case NodeRole.Task =>
         renderNodeCard(
-          
+
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -145,9 +145,9 @@ object ListView {
           isCompact = isCompact,
           isDone = parentIsDone
         )
-      case NodeRole.Stage => 
+      case NodeRole.Stage =>
         renderColumn(
-          
+
           focusState,
           traverseState,
           nodeId = nodeId,
@@ -159,7 +159,7 @@ object ListView {
   }
 
   private def renderColumn(
-    
+
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -217,7 +217,7 @@ object ListView {
                   children().map {
                     case (id, role) =>
                       renderTaskOrStage(
-                        
+
                         focusState,
                         nextTraverseState,
                         nodeId = id,
@@ -248,7 +248,31 @@ object ListView {
       val addNode = GraphChanges.addNodeWithParent(createdNode, ParentId(focusState.focusedId))
       val addTags = ViewFilter.addCurrentlyFilteredTags( createdNode.id)
       GlobalState.submitChanges(addNode merge addTags merge sub.changes(createdNode.id))
-      FeatureState.use(Feature.CreateTaskInChecklist)
+      focusState.view match {
+        case View.List =>
+          val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
+          val parentIsPage = focusState.focusedId == focusState.contextParentId
+          val creatingNestedTask = parentIsTask && !parentIsPage
+          if(creatingNestedTask)
+            FeatureState.use(Feature.CreateNestedTaskInChecklist)
+          else
+            FeatureState.use(Feature.CreateTaskInChecklist)
+
+        case View.Kanban =>
+          val parentIsTask = GlobalState.graph.now.nodesById(focusState.focusedId).exists(_.role == NodeRole.Task)
+          val parentIsPage = focusState.focusedId == focusState.contextParentId
+          val creatingNestedTask = parentIsTask && !parentIsPage
+          if(creatingNestedTask)
+            FeatureState.use(Feature.CreateNestedTaskInKanban)
+          else {
+            // in the current implementation this case wouldn't happen,
+            // since kanban columns have their own input field.
+            // ListView is not used for Columns, only inside expanded tasks.
+            FeatureState.use(Feature.CreateTaskInKanban) 
+          }
+
+        case _ =>
+      }
     }
 
     div(

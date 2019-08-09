@@ -103,6 +103,8 @@ object FeatureState {
             console.log(Feature.dotGraph(recentFirstTimeUsed.now, recentlyUsed.now, nextCandidates.now, next.now))
             console.asInstanceOf[js.Dynamic].groupEnd()
 
+            //TODO: self-loops, reachability
+
             if (recentlyUsed.now.length > recentlyUsedLimit)
               UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
             if (recentlyUsed.now != recentlyUsed.now.distinct)
