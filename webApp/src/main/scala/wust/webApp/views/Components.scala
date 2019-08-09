@@ -999,7 +999,15 @@ object Components {
       onDblClick.stopPropagation.foreach{ _ =>
         dblClicked = true
         GlobalState.focus(nodeId)
-        FeatureState.use(Feature.ZoomIntoTask)
+        GlobalState.graph.now.nodesById(nodeId).foreach { node =>
+          node.role match {
+            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
+            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
+            case _ => 
+          }
+        }
+        
       },
     )
   }
