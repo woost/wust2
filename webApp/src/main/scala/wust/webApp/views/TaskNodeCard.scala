@@ -62,7 +62,7 @@ object TaskNodeCard {
   }
 
   def renderThunk(
-    
+
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
@@ -165,7 +165,18 @@ object TaskNodeCard {
       }
       def expand = menuItem(
         "Expand", "Expand", Icons.expand,
-        onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
+        onClick.stopPropagation.foreach{
+          val changes = GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(true), GlobalState.user.now.id)
+          GlobalState.submitChanges(changes)
+
+          focusState.view match {
+            case View.List => FeatureState.use(Feature.ExpandTaskInChecklist)
+            case View.Kanban => FeatureState.use(Feature.ExpandTaskInKanban)
+            case _ =>
+          }
+        }
+      )
+
       def collapse = menuItem(
         "Collapse", "Collapse", Icons.collapse,
         onClick.stopPropagation(GraphChanges.connect(Edge.Expanded)(nodeId, EdgeData.Expanded(false), GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes)
@@ -314,7 +325,7 @@ object TaskNodeCard {
 
       node.map { node =>
         Components.nodeCardMod(
-          
+
           node,
           maxLength = Some(maxLength),
           contentInject = VDomModifier(
@@ -365,7 +376,7 @@ object TaskNodeCard {
   //TODO: this is a less performant duplicate of renderThunk. rewrite all usages to renderThunk.
   @deprecated("Use the new thunk version instead", "")
   def render(
-    
+
     node: Node,
     parentId: NodeId, // is either a column (stage), a parent card, or else (if the card is in inbox) equal to focusState.focusedId
     focusState: FocusState,

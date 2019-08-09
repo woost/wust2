@@ -145,9 +145,9 @@ object Feature {
 
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
-  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(CheckTask, ReorderTaskInChecklist, CreateNestedTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
+  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(CheckTask, ReorderTaskInChecklist, ExpandTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
+  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task {override def next = Array(CreateNestedTaskInChecklist)} //TODO: drag task into other task
   case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task  //TODO: sub-sub-task, sub-sub-sub-task, ....
-  //TODO:Expand Task
   //TODO:Drag task into other Task
   //TODO:Check sub-task to see progress bar
   case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def next = Array(UncheckTask, ReorderTaskInChecklist) }
@@ -162,7 +162,8 @@ object Feature {
   case object EditColumnInKanban extends Category.View.Kanban
   case object ReorderColumnsInKanban extends Category.View.Kanban
   case object NestColumnsInKanban extends Category.View.Kanban
-  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, CreateNestedTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
+  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, ExpandTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
+  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task {override def next = Array(CreateNestedTaskInKanban)} //TODO: drag task into other task
   case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task
   case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task {}
   case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag {}
