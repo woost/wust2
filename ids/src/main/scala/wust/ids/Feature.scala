@@ -207,7 +207,7 @@ object Feature {
     visited
   }
 
-  lazy val unreachable = {
+  def unreachable = {
     val predecessorDegree = mutable.HashMap.empty[Feature, Int].withDefaultValue(0)
     all.foreach { feature =>
       feature.next.foreach { nextFeature =>
@@ -216,6 +216,10 @@ object Feature {
     }
     val candidates = all.toSet -- reachable -- secrets
     candidates.toSeq.sortBy(predecessorDegree)
+  }
+
+  def selfLoops = {
+    all.filter(f => f.next.contains(f))
   }
 
   //TODO: create NestedArrayInt of features for faster traversal
