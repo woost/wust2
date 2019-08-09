@@ -139,7 +139,7 @@ object CommonStyles extends StyleSheet.Standalone {
   )
 
   ".ui.message.info" - (
-    backgroundColor(c"#44b3f3"),
+    backgroundColor(c"#45BEFF"),
     boxShadow := "none",
     color.white,
     &(".header") - (
