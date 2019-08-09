@@ -869,7 +869,7 @@ object Components {
               fontSize.xSmall,
               Icons.automate,
               cursor.pointer,
-              backgroundColor := tagColor(node.id).toHex,
+              color := tagColor(node.id).toHex,
               onClick.stopPropagation.foreach {
                 GlobalState.focus(workspace.id)
               }
