@@ -9,7 +9,7 @@ import wust.webApp.dragdrop.DragActions._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction }
 import wust.webUtil.JSDefined
-import wust.ids.NodeId
+import wust.ids.{NodeId, NodeRole}
 import wust.graph.Graph
 import wust.webUtil.Elements.defer
 import wust.ids.Feature
@@ -80,14 +80,14 @@ object DragValidation {
                 Analytics.sendEvent("drag", "sort", s"${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
               } else {
                 scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
-                performDrag( e, currentOverEvent, ctrl, shift)
+                performDrag(e, currentOverEvent, ctrl, shift)
               }
             } else {
               scribe.debug(s"sort action would create cycle, canceling: $payload: $sourceContainer -> $overContainer")
             }
           case (sourceContainer: DragContainer, overContainer: DragContainer) =>
             scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
-            performDrag( e, currentOverEvent, ctrl, shift)
+            performDrag(e, currentOverEvent, ctrl, shift)
         }
 
       case (sourceContainerOpt, payloadOpt, overContainerOpt) =>
@@ -125,7 +125,7 @@ object DragValidation {
           if (successful) {
             scribe.debug(s"drag action successful: $payload -> $target")
             Analytics.sendEvent("drag", "drop", s"${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
-            defer{useFeature(payload, target)}
+            defer{ useFeature(payload, target) }
             afterDraggedActionOpt.foreach{ action =>
               scribe.debug(s"performing afterDraggedAction...")
               action.apply()
@@ -142,17 +142,22 @@ object DragValidation {
     }
   }
 
-  def useFeature(payload:DragPayload, target: DragTarget):Unit = {
+  def useFeature(payload: DragPayload, target: DragTarget): Unit = {
     import DragItem._
     (payload, target) match {
-      case (_:Tag, _:Task) => FeatureState.use(Feature.TagTaskByDragging)
-      case (_:Tag, _:Message) => FeatureState.use(Feature.TagMessageByDragging)
-      case (_:Tag, _:Note) => FeatureState.use(Feature.TagNoteByDragging)
-      case (_:Tag, _:Tag) => FeatureState.use(Feature.NestTagsByDragging)
-      case (_:User, _:Task) => FeatureState.use(Feature.AssignTaskByDragging)
-      case (_:Message, _:Message) => FeatureState.use(Feature.NestMessagesByDragging)
-      case (_:Message, _:Workspace) => FeatureState.use(Feature.UnNestMessagesByDragging)
-      case _ =>
+      case (tag: Tag, _: Task) =>
+        val isNestedTag = GlobalState.graph.now.parents(tag.nodeId).exists(parentId => GlobalState.graph.now.nodesById(parentId).exists(_.role == NodeRole.Tag))
+        if (isNestedTag)
+          FeatureState.use(Feature.TagTaskWithNestedTagByDragging)
+        else
+          FeatureState.use(Feature.TagTaskByDragging)
+      case (_: Tag, _: Message)       => FeatureState.use(Feature.TagMessageByDragging)
+      case (_: Tag, _: Note)          => FeatureState.use(Feature.TagNoteByDragging)
+      case (_: Tag, _: Tag)           => FeatureState.use(Feature.NestTagsByDragging)
+      case (_: User, _: Task)         => FeatureState.use(Feature.AssignTaskByDragging)
+      case (_: Message, _: Message)   => FeatureState.use(Feature.NestMessagesByDragging)
+      case (_: Message, _: Workspace) => FeatureState.use(Feature.UnNestMessagesByDragging)
+      case _                          =>
     }
   }
 }
