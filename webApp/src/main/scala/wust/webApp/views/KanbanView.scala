@@ -107,13 +107,14 @@ object KanbanView {
       // sortable: draggable needs to be direct child of container
       cls := "kanbancolumn",
       cls := "kanbantoplevelcolumn",
-      border := "2px solid #b3b3b3",
+      border := "2px solid transparent",
+      backgroundColor := "transparent",
       keyed,
       div(
         cls := "kanbancolumnheader",
         div(
           cls := "kanbancolumntitle kanban-uncategorized-title",
-          div(cls := "markdown", p("Inbox / Todo")), // to be consistent with other column headers
+          div(cls := "markdown", p("Uncategorized")), // to be consistent with other column headers
         ),
         position.relative, // for buttonbar
         div(
