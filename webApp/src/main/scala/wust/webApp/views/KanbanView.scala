@@ -367,15 +367,13 @@ object KanbanView {
             placeholder = Placeholder.newStage,
             showSubmitIcon = false,
             submitOnEnter = true,
-            textAreaModifiers = VDomModifier(
-              fontSize.larger,
-              fontWeight.bold,
-            ),
             showMarkdownHelp = false
           )
-        } else button(
+        } else div(
           onClick.stopPropagation(true) --> fieldActive,
-          cls := "ui basic button",
+          cls := "kanbanaddnodefieldtext",
+          paddingTop := "10px",
+          color := "rgba(0,0,0,0.62)",
           "+ Add Column",
         )
       },
