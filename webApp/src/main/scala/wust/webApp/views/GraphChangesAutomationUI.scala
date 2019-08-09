@@ -22,6 +22,7 @@ import wust.util.StringOps
 import com.github.ghik.silencer.silent
 
 import scala.collection.breakOut
+import wust.webApp.state.FeatureState
 
 // Offers methods for rendering components for the GraphChangesAutomation.
 
@@ -40,11 +41,13 @@ object GraphChangesAutomationUI {
       cls := "ui button",
       cursor.pointer,
 
-      onClick.mapTo {
+      onClick.stopPropagation.foreach { _ =>
         val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s" in: ${StringOps.trimToMaxLength(node.str, 20)}")
         val templateNode = Node.MarkdownTask("Template" + name)
-        GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
-      } --> GlobalState.eventProcessor.changes,
+        val changes = GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
+        GlobalState.submitChanges(changes)
+        FeatureState.use(Feature.CreateAutomationTemplateInKanban)
+      }
     )
 
     val reuseExistingTemplate = Components.searchInGraph(GlobalState.rawGraph, "Reuse an existing template", filter = node => GlobalState.rawGraph.now.isAutomationTemplate(GlobalState.rawGraph.now.idToIdxOrThrow(node.id))).map { nodeId =>
