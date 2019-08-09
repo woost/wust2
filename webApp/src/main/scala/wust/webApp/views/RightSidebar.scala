@@ -13,14 +13,14 @@ import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webUtil.Elements
 import wust.webApp.views.SharedViewElements._
-import wust.webApp.{Icons, ItemProperties}
+import wust.webApp.{ Icons, ItemProperties }
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Ownable, UI}
+import wust.webUtil.{ Ownable, UI }
 
 object RightSidebar {
 
-  @inline def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply( GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
+  @inline def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
   def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val toggleVar = Var(focusedNodeId.now.isDefined)
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
@@ -28,9 +28,11 @@ object RightSidebar {
 
     GenericSidebar.right(
       toggleVar,
-      config = Ownable { implicit ctx => GenericSidebar.Config(
-        openModifier = VDomModifier(focusedNodeId.map(_.map(content( _, parentIdAction, viewRender))), openModifier)
-      )}
+      config = Ownable { implicit ctx =>
+        GenericSidebar.Config(
+          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender))), openModifier)
+        )
+      }
     )
   }
 
@@ -45,24 +47,24 @@ object RightSidebar {
       div(
         freeSolid.faAngleDoubleRight,
         color := "gray",
-        cls := "fa-fw", 
+        cls := "fa-fw",
         fontSize.xLarge,
         cursor.pointer,
         onClick(None).foreach(parentIdAction)
       ),
       div(
         marginLeft := "5px",
-        nodeBreadcrumbs( focusPref, parentIdAction, hideIfSingle = true),
+        nodeBreadcrumbs(focusPref, parentIdAction, hideIfSingle = true),
       ),
     )
 
-    def accordionEntry(title: VDomModifier, content: VDomModifier, active:Boolean): UI.AccordionEntry = {
+    def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
       UI.AccordionEntry(
         title = VDomModifier(
           b(title),
           marginTop := "5px",
           Styles.flexStatic,
-          ), 
+        ),
         content = VDomModifier(
           margin := "5px",
           padding := "0px",
@@ -72,7 +74,6 @@ object RightSidebar {
       )
     }
 
-
     div(
       height := "100%",
       Styles.flex, // we need flex here because otherwise the height of this element is wrong - it overflows.
@@ -80,34 +81,43 @@ object RightSidebar {
       color.black,
 
       sidebarHeader.apply(Styles.flexStatic),
-      nodeContent( focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
+      nodeContent(focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
 
       UI.accordion(
         content = Seq(
           accordionEntry("Properties & Custom Fields", VDomModifier(
-            nodeProperties( focusPref, parentIdAction),
+            nodeProperties(focusPref, parentIdAction),
             Styles.flexStatic,
           ), active = false),
           accordionEntry("Views", VDomModifier(
             height := "100%",
-            viewContent( focusPref, parentIdAction, nodeStyle, viewRender),
+            viewContent(focusPref, parentIdAction, nodeStyle, viewRender),
           ), active = true),
         ),
         styles = "styled fluid",
         exclusive = false, //BrowserDetect.isMobile,
       ).apply(
-        height := "100%",
-        Styles.flex,
-        flexDirection.column,
-        justifyContent.flexStart,
-        boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-      )
+          height := "100%",
+          Styles.flex,
+          flexDirection.column,
+          justifyContent.flexStart,
+          boxShadow := "none", //explicitly overwrite boxshadow from accordion.
+        )
     )
   }
-  private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle:PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
+  private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle: PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val graph = GlobalState.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
     val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
-    val currentView:Var[View] = Var[View](initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
+    val currentView: Var[View] = Var[View](initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
+
+    currentView.triggerLater{ view =>
+      view match {
+        case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInRightSidebar)
+        case View.List   => FeatureState.use(Feature.SwitchToChecklistInRightSidebar)
+        case View.Chat   => FeatureState.use(Feature.SwitchToChatInRightSidebar)
+        case _           =>
+      }
+    }
 
     VDomModifier(
       Styles.flex,
@@ -122,24 +132,24 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher( focusPref.nodeId, currentView, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
-        UnreadComponents.notificationsButton( focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
+        ViewSwitcher(focusPref.nodeId, currentView, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        UnreadComponents.notificationsButton(focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
       ),
 
       Rx {
         val view = currentView().asInstanceOf[View.Visible] // TODO: we really need a Var[View, View.Visible] for this. Write View in, get View.Visible out.
-        viewRender( FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction = currentView() = _, nodeId => parentIdAction(Some(nodeId))), view).apply(
+        viewRender(FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction = currentView() = _, nodeId => parentIdAction(Some(nodeId))), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(
-          overflow.visible,
-          backgroundColor := Colors.contentBg,
-        )
+            overflow.visible,
+            backgroundColor := Colors.contentBg,
+          )
       }
     )
   }
 
-  private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle:Boolean)(implicit ctx: Ctx.Owner) = {
+  private def nodeBreadcrumbs(focusedNodeId: FocusPreference, parentIdAction: Option[NodeId] => Unit, hideIfSingle: Boolean)(implicit ctx: Ctx.Owner) = {
     VDomModifier(
       Rx {
         BreadCrumbs(
@@ -177,13 +187,13 @@ object RightSidebar {
       buttonMods,
       onClick.foreach {
         GlobalState.focus(focusPref.nodeId)
-        GlobalState.graph.now.nodesById(focusPref.nodeId).foreach {node =>
+        GlobalState.graph.now.nodesById(focusPref.nodeId).foreach { node =>
           node.role match {
-            case NodeRole.Task => FeatureState.use(Feature.ZoomIntoTask)
+            case NodeRole.Task    => FeatureState.use(Feature.ZoomIntoTask)
             case NodeRole.Message => FeatureState.use(Feature.ZoomIntoMessage)
-            case NodeRole.Note => FeatureState.use(Feature.ZoomIntoNote)
+            case NodeRole.Note    => FeatureState.use(Feature.ZoomIntoNote)
             case NodeRole.Project => FeatureState.use(Feature.ZoomIntoProject)
-            case _ =>
+            case _                =>
           }
         }
       }
@@ -205,7 +215,7 @@ object RightSidebar {
     }
 
     val nodeCard = Rx {
-      Components.nodeCardEditable( node(), editMode,
+      Components.nodeCardEditable(node(), editMode,
         contentInject = width := "100%" // pushes cancel button to the right
       ).apply(
         cls := "right-sidebar-node",
@@ -220,7 +230,7 @@ object RightSidebar {
         cls := "enable-text-selection",
         onClick.stopPropagation(true) --> editMode,
 
-        UnreadComponents.readObserver( node().id)
+        UnreadComponents.readObserver(node().id)
       )
     }
 
@@ -238,7 +248,7 @@ object RightSidebar {
         }
       ),
 
-      nodeAuthor( focusPref.nodeId),
+      nodeAuthor(focusPref.nodeId),
     )
   }
 
@@ -255,8 +265,9 @@ object RightSidebar {
       Styles.flex,
       justifyContent.flexEnd,
 
-      authorship.map { case (author, creationEpochMillis) =>
-        chatMessageHeader( author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
+      authorship.map {
+        case (author, creationEpochMillis) =>
+          chatMessageHeader(author, creationEpochMillis, nodeId, author.map(smallAuthorAvatar)).apply(marginRight := "5px")
       },
     )
   }
@@ -353,7 +364,7 @@ object RightSidebar {
           Rx {
             VDomModifier(
               propertySingle().properties.map { property =>
-                Components.removablePropertySection( property.key, property.values, parentIdAction)
+                Components.removablePropertySection(property.key, property.values, parentIdAction)
               },
 
               VDomModifier.ifTrue(propertySingle().info.reverseProperties.nonEmpty)(div(
@@ -362,7 +373,7 @@ object RightSidebar {
                 fontSize.small,
                 span("Backlinks: ", color.gray),
                 propertySingle().info.reverseProperties.map { node =>
-                  Components.nodeCard( node, maxLength = Some(50)).apply(
+                  Components.nodeCard(node, maxLength = Some(50)).apply(
                     margin := "3px",
                     Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                   )
@@ -441,7 +452,7 @@ object RightSidebar {
                         alignItems.center,
                         justifyContent.flexEnd,
                         VDomModifier.ifTrue(referenceModifiers.nonEmpty)(i(marginRight := "4px", s"${referenceModifiers.mkString(", ")}: ")),
-                        Components.nodeCard( node, maxLength = Some(100)).apply(
+                        Components.nodeCard(node, maxLength = Some(100)).apply(
                           Components.sidebarNodeFocusClickMod(Var(Some(focusPref)), pref => parentIdAction(pref.map(_.nodeId)), node.id)
                         ),
                         div(padding := "2px", Icons.delete, deleteButton(node.id))
@@ -465,7 +476,7 @@ object RightSidebar {
             flexWrap.wrap,
             Rx {
               propertySingle().info.tags.map { tag =>
-                Components.removableNodeTag( tag, taggedNodeId = focusPref.nodeId)
+                Components.removableNodeTag(tag, taggedNodeId = focusPref.nodeId)
               }
             }
           ),
@@ -482,7 +493,7 @@ object RightSidebar {
             flexWrap.wrap,
             Rx {
               propertySingle().info.assignedUsers.map { user =>
-                Components.removableAssignedUser( user, focusPref.nodeId)
+                Components.removableAssignedUser(user, focusPref.nodeId)
               }
             }
           )

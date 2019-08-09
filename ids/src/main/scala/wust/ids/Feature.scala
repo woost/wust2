@@ -132,10 +132,14 @@ object Feature {
   case object UnNestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag 
   // reply -> zoom
 
-  //TODO: switch views in pageheader vs rightsidebar
+  // ViewSwitcher
   case object SwitchToChecklistInPageHeader extends Category.View with Category.Secret { override def next = AddChecklistView.next }
   case object SwitchToKanbanInPageHeader extends Category.View with Category.Secret { override def next = AddKanbanView.next }
   case object SwitchToChatInPageHeader extends Category.View with Category.Secret { override def next = AddChatView.next }
+
+  case object SwitchToChecklistInRightSidebar extends Category.View with Category.Secret { override def next = AddChecklistView.next }
+  case object SwitchToKanbanInRightSidebar extends Category.View with Category.Secret { override def next = AddKanbanView.next }
+  case object SwitchToChatInRightSidebar extends Category.View with Category.Secret { override def next = AddChatView.next }
 
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }

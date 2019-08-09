@@ -134,7 +134,6 @@ object PageHeader {
 
         ViewSwitcher(pageNodeId)
           .mapResult(_.apply(Styles.flexStatic, alignSelf.flexStart, marginRight := "5px"))
-          .transform(_.drop(1))
           .foreach{ view =>
             view match {
               case View.Kanban => FeatureState.use(Feature.SwitchToKanbanInPageHeader)
