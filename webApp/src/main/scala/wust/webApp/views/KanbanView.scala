@@ -142,7 +142,6 @@ object KanbanView {
   }
 
   private def renderColumn(
-    
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
