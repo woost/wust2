@@ -12,6 +12,8 @@ import wust.util.macros.SubObjects
 // Features form a Graph, by suggesting other features that should be tried next.
 // Features are also categorized by traits.
 
+//TODO: enable scala unused compiler flag for only this file
+
 sealed trait Feature {
   def next: Array[Feature] = Array.empty[Feature]
 }
