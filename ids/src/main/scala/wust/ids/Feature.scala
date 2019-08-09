@@ -158,11 +158,11 @@ object Feature {
 
   // Kanban
   case object AddKanbanView extends Category.View with Category.View.Kanban { override def next = Array(CreateColumnInKanban, CreateTaskInKanban) }
-  case object CreateColumnInKanban extends Category.View.Kanban { override def next = Array(CreateTaskInKanban, EditColumnInKanban, ReorderColumnsInKanban, NestColumnsInKanban, CreateAutomationTemplateInKanban) }
+  case object CreateColumnInKanban extends Category.View.Kanban { override def next = Array(CreateTaskInKanban, EditColumnInKanban, ReorderColumnsInKanban, NestColumnsInKanban, CreateAutomationTemplate) }
   case object EditColumnInKanban extends Category.View.Kanban
   case object ReorderColumnsInKanban extends Category.View.Kanban
   case object NestColumnsInKanban extends Category.View.Kanban
-  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, CreateNestedTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplateInKanban) }
+  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, CreateNestedTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
   case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task
   case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task {}
   case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag {}
@@ -190,7 +190,7 @@ object Feature {
   case object FilterByNestedTag extends Category.Filter with Category.Item.Tag{ override def next = Array(ResetFilters) }
 
   // Automation
-  case object CreateAutomationTemplateInKanban extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
+  case object CreateAutomationTemplate extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
 
   case object ClickLogo extends Category.Secret
   case object SubmitFeedback extends Category.Secret

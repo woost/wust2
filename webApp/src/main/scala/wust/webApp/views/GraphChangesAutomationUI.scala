@@ -44,9 +44,14 @@ object GraphChangesAutomationUI {
       onClick.stopPropagation.foreach { _ =>
         val name = GlobalState.rawGraph.now.nodesById(focusedId).fold("")(node => s" in: ${StringOps.trimToMaxLength(node.str, 20)}")
         val templateNode = Node.MarkdownTask("Template" + name)
-        val changes = GraphChanges(addEdges = Array(Edge.Child(ParentId(focusedId), ChildId(templateNode.id)), Edge.Automated(focusedId, TemplateId(templateNode.id))), addNodes = Array(templateNode))
+        val changes = GraphChanges(
+          addEdges = Array(
+            Edge.Child(ParentId(focusedId), ChildId(templateNode.id)),
+            Edge.Automated(focusedId, TemplateId(templateNode.id))),
+          addNodes = Array(templateNode)
+        )
         GlobalState.submitChanges(changes)
-        FeatureState.use(Feature.CreateAutomationTemplateInKanban)
+        FeatureState.use(Feature.CreateAutomationTemplate)
       }
     )
 
