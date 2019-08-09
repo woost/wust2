@@ -61,13 +61,19 @@ object FeatureState {
     val suggested = mutable.HashSet.empty[Feature]
     val suggestions = mutable.ArrayBuffer.empty[Feature]
     while (suggestions.length < limit && starts.nonEmpty) {
-      val start = starts.dequeue()
-      Feature.bfs(_(start), { feature =>
-        if (suggestions.length < limit && !suggested(feature) && nextCandidates(feature)) {
-          suggested += feature
-          suggestions += feature
-        }
-      })
+      var start = starts.dequeue()
+      val backPath = mutable.Queue.empty[Feature]
+      Feature.dfsBack(_(start), backPath += _)
+      while (suggestions.length < limit && backPath.nonEmpty) {
+        val backPathStart = backPath.dequeue()
+        //TODO: cache if bfs for node is empty (all succeeding features are used)
+        Feature.bfs(_(backPathStart), { feature =>
+          if (suggestions.length < limit && !suggested(feature) && nextCandidates(feature)) {
+            suggested += feature
+            suggestions += feature
+          }
+        })
+      }
     }
 
     DevOnly {

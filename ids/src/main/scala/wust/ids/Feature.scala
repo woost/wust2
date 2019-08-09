@@ -132,7 +132,7 @@ object Feature {
   case object CreateMessageInChat extends Category.View.Chat with Category.Item.Message { override def next = Array(ReplyToMessageInChat, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object ReplyToMessageInChat extends Category.View.Chat with Category.Item.Message { override def next = Array(NestMessagesByDragging, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object NestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def next = Array(ZoomIntoMessage, UnNestMessagesByDragging) }
-  case object UnNestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag 
+  case object UnNestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag
   // reply -> zoom
 
   // ViewSwitcher
@@ -147,8 +147,8 @@ object Feature {
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
   case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(CheckTask, ReorderTaskInChecklist, ExpandTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
-  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task {override def next = Array(CreateNestedTaskInChecklist)} //TODO: drag task into other task
-  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task  //TODO: sub-sub-task, sub-sub-sub-task, ....
+  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
+  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task //TODO: sub-sub-task, sub-sub-sub-task, ....
   //TODO:Drag task into other Task
   //TODO:Check sub-task to see progress bar
   case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def next = Array(UncheckTask, ReorderTaskInChecklist) }
@@ -164,7 +164,7 @@ object Feature {
   case object ReorderColumnsInKanban extends Category.View.Kanban
   case object NestColumnsInKanban extends Category.View.Kanban
   case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, ExpandTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
-  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task {override def next = Array(CreateNestedTaskInKanban)} //TODO: drag task into other task
+  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(CreateNestedTaskInKanban) } //TODO: drag task into other task
   case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task
   case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task {}
   case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag {}
@@ -189,7 +189,7 @@ object Feature {
   case object TagNoteByDragging extends Category.Item.Note with Category.Item.Tag with Category.Drag { override def next = Array(FilterByTag) }
   case object FilterByTag extends Category.Filter with Category.Item.Tag { override def next = Array(NestTagsByDragging, ResetFilters) }
   case object NestTagsByDragging extends Category.Item.Tag with Category.Drag { override def next = Array(TagTaskWithNestedTagByDragging, FilterByNestedTag) }
-  case object FilterByNestedTag extends Category.Filter with Category.Item.Tag{ override def next = Array(ResetFilters) }
+  case object FilterByNestedTag extends Category.Filter with Category.Item.Tag { override def next = Array(ResetFilters) }
 
   // Automation
   case object CreateAutomationTemplate extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
@@ -213,8 +213,8 @@ object Feature {
 
   def unreachable = {
     val predecessorDegree = mutable.HashMap.empty[Feature, Int].withDefaultValue(0)
-    all.foreach { feature =>
-      feature.next.foreach { nextFeature =>
+    all.foreach { prevFeature =>
+      prevFeature.next.foreach { nextFeature =>
         predecessorDegree(nextFeature) += 1
       }
     }
@@ -226,10 +226,20 @@ object Feature {
     all.filter(f => f.next.contains(f))
   }
 
+  lazy val predecessors: collection.Map[Feature, Array[Feature]] = {
+    val map = mutable.HashMap.empty[Feature, Array[Feature]].withDefaultValue(Array.empty)
+    all.foreach { prevFeature =>
+      prevFeature.next.foreach { nextFeature =>
+        map(nextFeature) = map(nextFeature) :+ prevFeature
+      }
+    }
+    map
+  }
+
   //TODO: create NestedArrayInt of features for faster traversal
   @inline def dfs(
     starts: (Feature => Unit) => Unit,
-    processVertex: Feature => Unit
+    processVertex: Feature => Unit,
   ): Unit = {
     algorithm.dfs.withManualSuccessors(
       starts = enqueue => starts(feature => enqueue(all.indexOf(feature))),
@@ -237,6 +247,33 @@ object Feature {
       successors = idx => f => all(idx).next.foreachElement{ feature => f(all.indexOf(feature)) },
       processVertex = idx => processVertex(all(idx))
     )
+  }
+
+  @inline def dfsBack(
+    starts: (Feature => Unit) => Unit,
+    processVertex: Feature => Unit,
+  ): Unit = {
+    algorithm.dfs.withManualSuccessors(
+      starts = enqueue => starts(feature => enqueue(all.indexOf(feature))),
+      size = all.length,
+      successors = idx => f => predecessors(all(idx)).foreachElement{ feature => f(all.indexOf(feature)) },
+      processVertex = idx => processVertex(all(idx))
+    )
+  }
+
+  @inline def dfsExists(
+    starts: (Feature => Unit) => Unit,
+    isFound: Feature => Boolean
+  ): Boolean = {
+    var notFound = true
+    flatland.depthFirstSearchGeneric(
+      vertexCount = all.length,
+      foreachSuccessor = (idx, f) => all(idx).next.foreachElement{ feature => f(all.indexOf(feature)) },
+      init = (stack, _) => starts(feature => stack.push(all.indexOf(feature))),
+      processVertex = elem => if (isFound(all(elem))) notFound = false,
+      loopConditionGuard = condition => notFound && condition(),
+    )
+    !notFound
   }
 
   @inline def bfs(
@@ -256,7 +293,7 @@ object Feature {
     }
   }
 
-  def dotGraph(recentFirstTimeUsed:Seq[Feature], recentlyUsed:Seq[Feature], nextCandidates:Set[Feature], next: Seq[Feature]): String = {
+  def dotGraph(recentFirstTimeUsed: Seq[Feature], recentlyUsed: Seq[Feature], nextCandidates: Set[Feature], next: Seq[Feature]): String = {
     val usedColor = "deepskyblue"
     val unusedColor = "azure4"
     val alreadyUsed = recentFirstTimeUsed.toSet
@@ -267,25 +304,25 @@ object Feature {
     builder ++= s"""node [shape=box]\n"""
     // vertices
     Feature.all.foreachElement { feature =>
-      val isStart = if(Feature.startingPoints.contains(feature)) ",color=deepskyblue,penwidth=3,peripheries=2" else ""
-      val isSecret = if(Feature.secrets.contains(feature)) """,style=dashed""" else ""
-      val usedStatus = if(alreadyUsed.contains(feature))
-      s",style=filled,fillcolor=lightskyblue,fontcolor=darkslategray"
+      val isStart = if (Feature.startingPoints.contains(feature)) ",color=deepskyblue,penwidth=3,peripheries=2" else ""
+      val isSecret = if (Feature.secrets.contains(feature)) """,style=dashed""" else ""
+      val usedStatus = if (alreadyUsed.contains(feature))
+        s",style=filled,fillcolor=lightskyblue,fontcolor=darkslategray"
       else s",style=filled,fillcolor=lightgray,fontcolor=darkslategray"
-      val isNextCandidate = if(nextCandidates.contains(feature)) s""",color=deepskyblue,penwidth=3""" else ""
-      val isRecent = if(recentlyUsed.contains(feature)) s""",fillcolor=lightsteelblue""" else ""
-      val isSuggested = if(next.contains(feature)) s""",color=limegreen,penwidth=${1+(next.length-next.indexOf(feature))}""" else ""
+      val isNextCandidate = if (nextCandidates.contains(feature)) s""",color=deepskyblue,penwidth=3""" else ""
+      val isRecent = if (recentlyUsed.contains(feature)) s""",fillcolor=lightsteelblue""" else ""
+      val isSuggested = if (next.contains(feature)) s""",color=limegreen,penwidth=${1 + (next.length - next.indexOf(feature))}""" else ""
       builder ++= s"""${feature.toString} [label="${feature.toString}"${isStart}${isSecret}${usedStatus}${isNextCandidate}${isRecent}${isSuggested}]\n"""
     }
     // eges
     Feature.all.foreachElement { feature =>
       feature.next.foreachElement { nextFeature =>
-        val usedStatus = if(!alreadyUsed(feature) && !alreadyUsed(nextFeature)) s"color=$unusedColor" else s"color=$usedColor"
+        val usedStatus = if (!alreadyUsed(feature) && !alreadyUsed(nextFeature)) s"color=$unusedColor" else s"color=$usedColor"
         builder ++= s"""${feature.toString} -> ${nextFeature.toString} [$usedStatus]\n"""
       }
     }
 
-    def subgraph(name:String, vertices:Seq[Feature]):String = {
+    def subgraph(name: String, vertices: Seq[Feature]): String = {
       s"""subgraph "cluster_${name}" {
             style = filled
             label = "${name}"
