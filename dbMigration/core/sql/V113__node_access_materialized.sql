@@ -247,10 +247,30 @@ begin
 end;
 $$ language plpgsql strict;
 
+create or replace function allowed_users_for_node(nodeid uuid) returns table(user_id uuid) as $$
+    with recursive
+        transitive_access_parents(id) AS (
+            -- TOOD: somehow use cached values of parents?
+            select id from node where id = nodeid
+            union -- discards duplicates, therefore handles cycles and diamond cases
+            select accessedge.target_nodeid
+                from transitive_access_parents
+                inner join accessedge
+                on accessedge.source_nodeid = transitive_access_parents.id and exists(
+                    select * from node
+                    where id = transitive_access_parents.id
+                    and (accesslevel is NULL or accesslevel = 'readwrite')
+                )
+        )
+        select target_userid
+        from member
+        inner join transitive_access_parents
+        on transitive_access_parents.id = member.source_nodeid and member.data->>'level' = 'readwrite';
+$$ language sql stable;
+
 create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    IF NOT EXISTS (select 1 from node where id = nodeid) then return true; end if; -- everybody has full access to non-existant nodes
-    return (node_can_access_recursive(nodeid, array[]::uuid[])).user_ids @> array[userid];
+    return NOT EXISTS (select 1 from node where id = nodeid) or exists(select * from allowed_users_for_node(nodeid) where user_id = userid);
 end;
 $$ language plpgsql strict;
 
