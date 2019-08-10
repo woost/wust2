@@ -30,9 +30,9 @@ object ViewFilter {
         if (enabled) {
           transform match {
             case onlyTaggedWith: GraphOperation.OnlyTaggedWith =>
-              val isNestedTag = GlobalState.graph.now.parents(onlyTaggedWith.tagId).exists(parentId => GlobalState.graph.now.nodesById(parentId).exists(_.role == NodeRole.Tag))
+              val isNestedTag = GlobalState.graph.now.children(onlyTaggedWith.tagId).exists(parentId => GlobalState.graph.now.nodesById(parentId).exists(_.role == NodeRole.Tag))
               if (isNestedTag)
-                FeatureState.use(Feature.FilterByNestedTag)
+                FeatureState.use(Feature.FilterByTagWithSubTag)
               else
                 FeatureState.use(Feature.FilterByTag)
             case _ =>

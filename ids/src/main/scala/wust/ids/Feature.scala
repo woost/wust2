@@ -182,14 +182,14 @@ object Feature {
   case object ResetFilters extends Category.Filter
 
   // Tags
-  case object CreateTag extends Category.Item.Tag { override def next = Array(TagTaskByDragging, TagMessageByDragging, TagNoteByDragging, FilterByTag, NestTagsByDragging, TagTaskWithNestedTagByDragging, FilterByNestedTag) }
+  case object CreateTag extends Category.Item.Tag { override def next = Array(TagTaskByDragging, TagMessageByDragging, TagNoteByDragging, FilterByTag, NestTagsByDragging, TagTaskWithNestedTagByDragging, FilterByTagWithSubTag) }
   case object TagTaskByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag { override def next = Array(FilterByTag) }
-  case object TagTaskWithNestedTagByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag { override def next = Array(FilterByNestedTag) }
+  case object TagTaskWithNestedTagByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag { override def next = Array(FilterByTagWithSubTag) }
   case object TagMessageByDragging extends Category.Item.Message with Category.Item.Tag with Category.Drag { override def next = Array(FilterByTag) }
   case object TagNoteByDragging extends Category.Item.Note with Category.Item.Tag with Category.Drag { override def next = Array(FilterByTag) }
   case object FilterByTag extends Category.Filter with Category.Item.Tag { override def next = Array(NestTagsByDragging, ResetFilters) }
-  case object NestTagsByDragging extends Category.Item.Tag with Category.Drag { override def next = Array(TagTaskWithNestedTagByDragging, FilterByNestedTag) }
-  case object FilterByNestedTag extends Category.Filter with Category.Item.Tag { override def next = Array(ResetFilters) }
+  case object NestTagsByDragging extends Category.Item.Tag with Category.Drag { override def next = Array(TagTaskWithNestedTagByDragging, FilterByTagWithSubTag) }
+  case object FilterByTagWithSubTag extends Category.Filter with Category.Item.Tag { override def next = Array(ResetFilters) }
 
   // Automation
   case object CreateAutomationTemplate extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
