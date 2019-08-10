@@ -4,7 +4,7 @@ import org.scalajs.dom
 import org.scalajs.dom.ext.KeyCode
 import org.scalajs.dom.raw.HTMLElement
 import wust.facades.draggable._
-import wust.webApp.DevOnly
+import wust.webApp.DebugOnly
 import wust.webApp.dragdrop.DragValidation._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, writeDragPayload }
@@ -51,9 +51,9 @@ class SortableEvents(draggable: Draggable) {
     onStartDrag()
     snabbdom.VNodeProxy.setDirty(e.sourceContainer)
     //    dragStartEvent.onNext(e)
-    DevOnly {
+    DebugOnly {
       val payload = readDragPayload(e.originalSource)
-      println(s"\ndrag start: $payload")
+      scribe.debug(s"\ndrag start: $payload")
     }
   })
 
@@ -64,11 +64,11 @@ class SortableEvents(draggable: Draggable) {
 
   draggable.on[DragOverContainerEvent]("drag:over:container", (e: DragOverContainerEvent) => {
     e.overContainer.foreach(snabbdom.VNodeProxy.setDirty)
-    DevOnly {
+    DebugOnly {
       for {
         overContainer <- e.overContainer
         container <- readDragContainer(overContainer)
-      } { println(s"Dragging over container: $container") }
+      } { scribe.debug(s"Dragging over container: $container") }
     }
     currentOverContainerEvent = js.defined(e)
   })
@@ -114,8 +114,8 @@ class SortableEvents(draggable: Draggable) {
 
   draggable.on[DragOverEvent]("drag:over", (dragOverEvent: DragOverEvent) => {
     snabbdom.VNodeProxy.setDirty(dragOverEvent.overContainer)
-    DevOnly {
-      readDragTarget(dragOverEvent.over).foreach { target => println(s"Dragging over: $target") }
+    DebugOnly {
+      readDragTarget(dragOverEvent.over).foreach { target => scribe.debug(s"Dragging over: $target") }
     }
     currentOverEvent = js.defined(dragOverEvent)
 
