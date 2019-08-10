@@ -7,7 +7,7 @@ import outwatch.dom.dsl._
 import outwatch.dom.helpers.EmitterBuilder
 import rx._
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.{Elements, UI}
+import wust.webUtil.{ Elements, UI }
 import wust.css.Styles
 import wust.graph._
 import wust.ids._
@@ -70,7 +70,7 @@ object ItemProperties {
 
     val prefilledKeyString = edgeFactory match {
       case EdgeFactory.Property(prefilledKey, _, _) => Some(prefilledKey)
-      case _ => None
+      case _                                        => None
     }
 
     val toggleShowOnCard = edgeFactory match {
@@ -84,11 +84,11 @@ object ItemProperties {
     val propertyValueInput = Var[Option[ValueSelection]](None)
     val propertyValueIsPlaceholder = propertyValueInput.map(_.exists { case ValueSelection.Placeholder => true; case _ => false })
     propertyTypeSelection.foreach { selection =>
-      propertyValueInput() = None// clear value on each type change...
+      propertyValueInput() = None // clear value on each type change...
       if (propertyKeyInput.now.isEmpty) selection.foreach {
         case NodeTypeSelection.Data(NodeData.File.tpe) => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.attachment.key)
-        case NodeTypeSelection.Ref => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.reference.key)
-        case _ => ()
+        case NodeTypeSelection.Ref                     => propertyKeyInput() = NonEmptyString(EdgeData.LabeledProperty.reference.key)
+        case _                                         => ()
       }
     }
 
@@ -125,7 +125,7 @@ object ItemProperties {
             EditableContent.editorRx[NonEmptyString](propertyKeyInput, editableConfig.copy(
               modifier = VDomModifier(
                 width := "100%",
-                Elements.onEnter.stopPropagation foreach(createProperty()),
+                Elements.onEnter.stopPropagation foreach (createProperty()),
                 placeholder := "Field Name"
               ),
             )).apply(editModifier)
@@ -139,14 +139,14 @@ object ItemProperties {
               "Select a field type",
               propertyTypeSelection,
               ("Text", NodeTypeSelection.Data(NodeData.Markdown.tpe)) ::
-              ("Number", NodeTypeSelection.Data(NodeData.Decimal.tpe)) ::
-              ("File", NodeTypeSelection.Data(NodeData.File.tpe)) ::
-              ("Date", NodeTypeSelection.Data(NodeData.Date.tpe)) ::
-              ("DateTime", NodeTypeSelection.Data(NodeData.DateTime.tpe)) ::
-              ("Duration", NodeTypeSelection.Data(NodeData.Duration.tpe)) ::
-              (if (isTemplate) ("Relative Date", NodeTypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
-              ("Refer to...", NodeTypeSelection.Ref) ::
-              Nil
+                ("Number", NodeTypeSelection.Data(NodeData.Decimal.tpe)) ::
+                ("File", NodeTypeSelection.Data(NodeData.File.tpe)) ::
+                ("Date", NodeTypeSelection.Data(NodeData.Date.tpe)) ::
+                ("DateTime", NodeTypeSelection.Data(NodeData.DateTime.tpe)) ::
+                ("Duration", NodeTypeSelection.Data(NodeData.Duration.tpe)) ::
+                (if (isTemplate) ("Relative Date", NodeTypeSelection.Data(NodeData.RelativeDate.tpe)) :: Nil else Nil) :::
+                ("Refer to...", NodeTypeSelection.Ref) ::
+                Nil
             ).apply(tabIndex := -1)
           }
         )),
@@ -161,12 +161,12 @@ object ItemProperties {
                     modifier = VDomModifier(
                       width := "100%",
                       marginTop := "4px",
-                      Elements.onEnter.stopPropagation foreach(createProperty())
+                      Elements.onEnter.stopPropagation foreach (createProperty())
                     )
                   )).apply(editModifier)
                 }
               case NodeTypeSelection.Ref => Some(
-                Components.searchAndSelectNodeApplied( propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
+                Components.searchAndSelectNodeApplied(propertyValueInput.imap[Option[NodeId]](_.collect { case ValueSelection.Ref(data) => data })(_.map(ValueSelection.Ref(_))), filter = config.filterRefCompletion).apply(
                   width := "100%",
                   marginTop := "4px",
                 )
@@ -181,7 +181,7 @@ object ItemProperties {
           flexWrap.wrap,
           justifyContent.spaceBetween,
           UI.checkboxEmitter("Value is a Placeholder", propertyValueIsPlaceholder).map {
-            case true => Some(ValueSelection.Placeholder)
+            case true  => Some(ValueSelection.Placeholder)
             case false => None
           } --> propertyValueInput,
           toggleShowOnCard.map { toggle =>
@@ -205,7 +205,19 @@ object ItemProperties {
               VDomModifier.ifTrue((propertyKeyInput().isEmpty && prefilledKeyString.isDefined) || propertyValueInput().isEmpty)(cls := "disabled")
             },
             names.addButton,
-            onClick.stopPropagation foreach(createProperty())
+            onClick.stopPropagation foreach {
+              createProperty()
+              target match {
+                case Target.Node(nodeId) =>
+                  GlobalState.graph.now.nodesById(nodeId).foreach { node =>
+                    node.role match {
+                      case NodeRole.Task => FeatureState.use(Feature.AddCustomFieldToTask)
+                      case _             =>
+                    }
+                  }
+                case _ =>
+              }
+            }
           ),
         )
       )
@@ -219,14 +231,14 @@ object ItemProperties {
       def sendChanges(addProperty: NodeId => GraphChanges, extendable: Either[NodeId, Node.Content]) = {
         val changes = target match {
           case Target.Custom(submitAction, _) => submitAction(propertyKey, addProperty)
-          case Target.Node(nodeId) => addProperty(nodeId)
+          case Target.Node(nodeId)            => addProperty(nodeId)
         }
 
         GlobalState.submitChanges(changes) foreach { _ => clear.onNext (()) }
       }
 
       def createEdge(sourceId: NodeId, targetId: NodeId): Edge = edgeFactory match {
-        case EdgeFactory.Plain(create) => create(sourceId, targetId)
+        case EdgeFactory.Plain(create)                     => create(sourceId, targetId)
         case EdgeFactory.Property(prefilledKey, _, create) => create(sourceId, propertyKey.fold(prefilledKey)(_.string), propertyShowOnCard, targetId)
       }
 
@@ -249,7 +261,7 @@ object ItemProperties {
         case ValueSelection.Data(data: NodeData.Content) =>
           addDataProperty(data)
 
-        case ValueSelection.Ref(nodeId)                  =>
+        case ValueSelection.Ref(nodeId) =>
           def addProperty(targetNodeId: NodeId): GraphChanges = {
             val propertyEdge = createEdge(targetNodeId, nodeId)
             GraphChanges(addEdges = Array(propertyEdge))
@@ -257,7 +269,7 @@ object ItemProperties {
 
           sendChanges(addProperty, Left(nodeId))
 
-        case _                             => ()
+        case _ => ()
       }
 
       sink.onNext(())
@@ -266,7 +278,7 @@ object ItemProperties {
     def propertyRow(propertyKey: Edge.LabeledProperty, propertyValue: Node)(implicit ctx: Ctx.Owner): VNode = div(
       Styles.flex,
       alignItems.center,
-      Components.removableNodeCardProperty( propertyKey, propertyValue),
+      Components.removableNodeCardProperty(propertyKey, propertyValue),
     )
 
     description
@@ -278,7 +290,7 @@ object ItemProperties {
       padding := "5px",
       div(cls := "item", display.none), // dropdown menu needs an item
       div(
-        managePropertiesContent( target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
+        managePropertiesContent(target, config, edgeFactory, names).mapResult(_.apply(width := "200px")) --> closeDropdown,
         descriptionModifier
       )
     ), closeDropdown, dropdownModifier = dropdownModifier)
@@ -290,9 +302,8 @@ object ItemProperties {
       Styles.flex,
       flexDirection.column,
       alignItems.center,
-      managePropertiesContent( target, config, edgeFactory, names, enableCancelButton = true) --> editMode,
+      managePropertiesContent(target, config, edgeFactory, names, enableCancelButton = true) --> editMode,
       descriptionModifier
     )
   }
 }
-
