@@ -136,7 +136,13 @@ object TagList {
         label(), // needed for fomanticui
       ),
       nodeTag( tagNode, pageOnClick, dragOptions).apply(tagModifier),
-      VDomModifier.ifTrue(withAutomation)(GraphChangesAutomationUI.settingsButton( tagNode.id, activeMod = visibility.visible, viewRender = viewRender).apply(cls := "singleButtonWithBg", marginLeft.auto)),
+      VDomModifier.ifTrue(withAutomation)(
+        GraphChangesAutomationUI.settingsButton(
+          tagNode.id,
+          activeMod = visibility.visible,
+          viewRender = viewRender,
+          tooltipDirection = "left center"
+        ).apply(cls := "singleButtonWithBg", marginLeft.auto)),
     )
   }
 

@@ -262,7 +262,13 @@ object GraphChangesAutomationUI {
   }
 
   // a settings button for automation that opens the modal on click.
-  def settingsButton(focusedId: NodeId, viewRender: ViewRenderLike, activeMod: VDomModifier = VDomModifier.empty, inactiveMod: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
+  def settingsButton(
+    focusedId: NodeId,
+    viewRender: ViewRenderLike,
+    activeMod: VDomModifier = VDomModifier.empty,
+    inactiveMod: VDomModifier = VDomModifier.empty,
+    tooltipDirection: String = "bottom center",
+  )(implicit ctx: Ctx.Owner): VNode = {
     val accentColor = BaseColors.pageBg.copy(h = hue(focusedId)).toHex
     val hasTemplates = Rx {
       val graph = GlobalState.rawGraph()
@@ -277,12 +283,12 @@ object GraphChangesAutomationUI {
 
       Rx {
         if (hasTemplates()) VDomModifier(
-          UI.tooltip("left center") := "Automation: active",
+          UI.tooltip(tooltipDirection) := "Automation: active",
           color := accentColor,
           backgroundColor := "transparent",
           activeMod
         ) else VDomModifier(
-          UI.tooltip("left center") := "Automation: inactive",
+          UI.tooltip(tooltipDirection) := "Automation: inactive",
           inactiveMod
         )
       },
