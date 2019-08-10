@@ -1180,17 +1180,19 @@ object CommonStyles extends StyleSheet.Standalone {
     marginLeft(2 px)
   )
 
+  val hoverButtonBgColor = c"#929eab"
+
   ".kanbancolumnheader .buttonbar.autohide > div," +
   ".kanban-uncategorized-title .buttonbar.autohide > div" - (
     padding(2 px),
-    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    backgroundColor(hoverButtonBgColor),
     color(c"rgba(255, 255, 255, 0.83)")
   )
 
   ".kanbancolumnheader .buttonbar > div," +
   ".kanban-uncategorized-title .buttonbar > div" - (
     padding(5 px),
-    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    backgroundColor(hoverButtonBgColor),
     color(c"rgba(255, 255, 255, 0.83)"),
   )
 
@@ -1318,7 +1320,7 @@ object CommonStyles extends StyleSheet.Standalone {
     padding(1 px, 2 px),
     borderRadius(3 px),
     color(c"rgba(255, 255, 255, 0.83)"),
-    backgroundColor(c"hsla(0, 0%, 34%, 0.72)"),
+    backgroundColor(hoverButtonBgColor),
   )
 
   ".singleButtonWithBg:hover" - (
