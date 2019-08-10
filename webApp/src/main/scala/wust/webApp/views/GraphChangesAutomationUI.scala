@@ -294,7 +294,7 @@ object GraphChangesAutomationUI {
     a(
       cls := "item",
       Elements.icon(Icons.copy),
-      span("Copy Node"),
+      span("Duplicate Node"),
       cursor.pointer,
       onClick.foreach {
         GlobalState.rawGraph.now.idToIdxForeach(templateId) { templateIdx =>
