@@ -259,6 +259,7 @@ object InputRow {
           markdownHelpModifiers,
           Styles.flex,
           flexDirection.column,
+          boxShadow := "0 0 3px 0 rgba(0,0,0,0.32)",
           div(
             alignSelf.flexEnd,
             i(cls := "icon fa-fw", freeSolid.faTimes, cursor.pointer, onClick.stopPropagation(false) --> markdownHelpOpened),
