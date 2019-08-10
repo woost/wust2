@@ -109,7 +109,7 @@ object MovableElement {
           div(
             cls := "movable-window-title",
             title,
-            div(cls := "fa-fw", freeSolid.faMinus, cursor.pointer, onClick(false) --> isVisible),
+            div(cls := "fa-fw", freeSolid.faTimes, cursor.pointer, onClick(false) --> isVisible),
 
             onMouseDown.foreach { ev =>
               mouseDownOffset = Some(LeftPosition(left = domElem.offsetLeft - ev.clientX, top = domElem.offsetTop - ev.clientY))
