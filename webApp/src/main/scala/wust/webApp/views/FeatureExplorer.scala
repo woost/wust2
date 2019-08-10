@@ -69,7 +69,10 @@ object FeatureExplorer {
           FeatureState.next().take(3).map { feature =>
             val details = FeatureDetails(feature)
             div(
-              div(details.title, fontWeight.bold, fontSize := "1.3em"),
+              div(
+                details.title, fontWeight.bold, fontSize := "1.3em",
+                freeSolid.faQuestionCircle
+              ),
               div(details.description),
               backgroundColor := "#c7f0ff",
               padding := "8px",
@@ -92,16 +95,11 @@ object FeatureExplorer {
             alignItems.flexStart,
             div(
               details.title,
+              Styles.wordWrap,
               fontSize := "16px",
               fontWeight.bold,
               opacity := 0.8,
               marginRight := "10px",
-            ),
-            div(
-              freeSolid.faCheck,
-              marginRight := "5px",
-              Styles.flexStatic,
-            // color := "#5FBA7D",
             ),
             scoreBadge(
               "+1",
