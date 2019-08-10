@@ -70,11 +70,11 @@ object PageSettingsMenu {
           cursor.pointer,
           if (isBookmarked()) VDomModifier(
             Elements.icon(Icons.signOut),
-            span("Unpin from sidebar"),
+            span("Remove Bookmark"),
             onClick.stopPropagation.mapTo(GraphChanges.disconnect(Edge.Pinned)(channelId, GlobalState.user.now.id)) --> GlobalState.eventProcessor.changes
           ) else VDomModifier(
             Elements.icon(Icons.pin),
-            span("Pin to sidebar"),
+            span("Bookmark"),
             onClick.stopPropagation.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes
           )
         ))
@@ -229,7 +229,7 @@ object PageSettingsMenu {
   def addToChannelsButton(channelId: NodeId)(implicit ctx: Ctx.Owner): VNode = {
     button(
       cls := "ui compact inverted button",
-      if (BrowserDetect.isMobile) "Pin" else "Pin to sidebar",
+      "Bookmark",
       onClick.mapTo(GraphChanges(addEdges = Array(Edge.Pinned(channelId, GlobalState.user.now.id), Edge.Notify(channelId, GlobalState.user.now.id)), delEdges = Array(Edge.Invite(channelId, GlobalState.user.now.id)))) --> GlobalState.eventProcessor.changes,
       onClick foreach { 
         GlobalState.graph.now.nodesById(channelId).foreach { node => 
