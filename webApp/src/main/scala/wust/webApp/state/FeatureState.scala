@@ -43,11 +43,12 @@ object FeatureState {
   val nextCandidates: Rx[Set[Feature]] = Rx {
     @inline def isUsed(f: Feature) = firstTimeUsed().isDefinedAt(f)
     var candidates = Feature.all.filterNot(f => isUsed(f) || Feature.secrets.contains(f)).toSet
-    Feature.all.foreach { prevFeature =>
-      prevFeature.next.foreach { nextFeature =>
-        if (!isUsed(prevFeature) && !Feature.secrets.contains(prevFeature)) candidates -= nextFeature
-      }
-    }
+    //TODO: model required features differently
+    // Feature.all.foreach { prevFeature =>
+    //   prevFeature.next.foreach { nextFeature =>
+    //     if (!isUsed(prevFeature) && !Feature.secrets.contains(prevFeature)) candidates -= nextFeature
+    //   }
+    // }
     Feature.startingPoints.foreach { feature =>
       if (!isUsed(feature)) candidates += feature
     }
@@ -63,7 +64,7 @@ object FeatureState {
     while (suggestions.length < limit && starts.nonEmpty) {
       var start = starts.dequeue()
       val backPath = mutable.Queue.empty[Feature]
-      Feature.dfsBack(_(start), backPath += _)
+      Feature.dfsBack(_(start), backPath += _) //TODO: cache
       while (suggestions.length < limit && backPath.nonEmpty) {
         val backPathStart = backPath.dequeue()
         //TODO: cache if bfs for node is empty (all succeeding features are used)

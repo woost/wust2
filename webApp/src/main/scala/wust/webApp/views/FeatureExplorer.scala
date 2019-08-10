@@ -1,16 +1,16 @@
 package wust.webApp.views
 
 import acyclic.file
-import wust.webApp.{DevOnly, DebugOnly}
+import wust.webApp.{ DevOnly, DebugOnly }
 import fontAwesome._
 import monix.reactive.Observable
 import outwatch.dom._
 import outwatch.dom.dsl._
 import rx._
-import wust.css.{Styles, ZIndex}
+import wust.css.{ Styles, ZIndex }
 import wust.ids.Feature
 import wust.sdk.Colors
-import wust.webApp.state.{FeatureDetails, FeatureState, GlobalState, ScreenSize}
+import wust.webApp.state.{ FeatureDetails, FeatureState, GlobalState, ScreenSize }
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
 
@@ -22,9 +22,9 @@ object FeatureExplorer {
     val activeDisplay = Rx { display := (if (showPopup()) "block" else "none") }
 
     val progress: Rx[String] = Rx {
-      val total = Feature.all.length
-      val used = FeatureState.firstTimeUsed().size
-      val ratio = used.toDouble / total.toDouble
+      val total = Feature.allWithoutSecrets.length
+      val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
+      val ratio = (used.toDouble / total.toDouble).min(1.0)
       f"${ratio * 100}%0.0f"
     }
 
@@ -63,19 +63,21 @@ object FeatureExplorer {
     )
 
     val tryNextList = div(
-      "Things to try next:",
       Rx{
-        FeatureState.next().take(3).map { feature =>
-          val details = FeatureDetails(feature)
-          div(
-            div(details.title, fontWeight.bold, fontSize := "1.3em"),
-            div(details.description),
-            backgroundColor := "#c7f0ff",
-            padding := "8px",
-            marginBottom := "3px",
-            borderRadius := "4px",
-          )
-        }
+        VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
+          "Things to try next:",
+          FeatureState.next().take(3).map { feature =>
+            val details = FeatureDetails(feature)
+            div(
+              div(details.title, fontWeight.bold, fontSize := "1.3em"),
+              div(details.description),
+              backgroundColor := "#c7f0ff",
+              padding := "8px",
+              marginBottom := "3px",
+              borderRadius := "4px",
+            )
+          }
+        )
       }
     )
 
@@ -157,7 +159,7 @@ object FeatureExplorer {
     }
 
     val progressBar = div(
-      Rx{VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden)},
+      Rx{ VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden) },
       backgroundColor := "rgba(255,255,255,0.2)",
       div(
         width <-- progress.map(p => s"$p%"),
@@ -175,15 +177,19 @@ object FeatureExplorer {
             b(progress, "% "),
             freeSolid.faCaretDown
           ),
-          div(
-            "Next: ",
-            Rx{ FeatureState.next().headOption.map(f => FeatureDetails(f).title) },
-            position.absolute,
-            top := "29px",
-            fontSize := "10px",
-            lineHeight := "10px",
-            opacity := 0.6,
-          ),
+          Rx{
+            VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
+              div(
+                "Next: ",
+                FeatureState.next().headOption.map(f => FeatureDetails(f).title),
+                position.absolute,
+                top := "29px",
+                fontSize := "10px",
+                lineHeight := "10px",
+                opacity := 0.6,
+              )
+            )
+          }
         ),
         progressBar,
         // like semantic-ui tiny button
@@ -235,7 +241,7 @@ object FeatureExplorer {
         closeButton(marginRight := "-10px", marginTop := "-5px"),
         stats(marginTop := "5px"),
         tryNextList(marginTop := "30px"),
-        DebugOnly(Rx{recentList(marginTop := "30px")}),
+        DebugOnly(Rx{ recentList(marginTop := "30px") }),
         Rx{
           VDomModifier.ifTrue(FeatureState.recentFirstTimeUsed().nonEmpty)(
             recentFirstTimeList(marginTop := "30px")

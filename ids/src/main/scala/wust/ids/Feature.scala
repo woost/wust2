@@ -13,6 +13,7 @@ import wust.util.macros.SubObjects
 // Features are also categorized by traits.
 
 //TODO: enable scala unused compiler flag for only this file
+//TODO: Separate required features from suggested features?
 
 sealed trait Feature {
   def next: Array[Feature] = Array.empty[Feature]
@@ -90,6 +91,7 @@ object Feature {
   //TODO: enable browser notifications on a second device, mobile device, desktop device
   // third device... extends Category.Secret
   // ctrl+drag
+  // Use markdown
 
   case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar) }
   case object AddDashboardView extends Category.View {override def next = Array(CreateSubProjectFromDashboard)}
@@ -106,17 +108,17 @@ object Feature {
   case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
   case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
   case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
-  case object OpenNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def next = Array(EditNoteInRightSidebar, ZoomIntoNote) }
+  // case object OpenNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def next = Array(EditNoteInRightSidebar, ZoomIntoNote) }
 
   case object EditProjectInRightSidebar extends Category.Basics with Category.Item.Project
   case object EditTaskInRightSidebar extends Category.Basics with Category.Item.Task
   case object EditMessageInRightSidebar extends Category.Basics with Category.Item.Message
-  case object EditNoteInRightSidebar extends Category.Basics with Category.Item.Note
+  // case object EditNoteInRightSidebar extends Category.Basics with Category.Item.Note
 
   case object ZoomIntoProject extends Category.Basics with Category.Item.Project { override def next = Array(BookmarkProject) }
   case object ZoomIntoTask extends Category.Basics with Category.Item.Task { override def next = Array(BookmarkTask) }
   case object ZoomIntoMessage extends Category.Basics with Category.Item.Message { override def next = Array(BookmarkMessage) }
-  case object ZoomIntoNote extends Category.Basics with Category.Item.Note { override def next = Array(BookmarkNote, OpenNoteInRightSidebar) }
+  case object ZoomIntoNote extends Category.Basics with Category.Item.Note { override def next = Array(BookmarkNote) }
 
   case object BookmarkProject extends Category.Basics with Category.Item.Project
   case object BookmarkTask extends Category.Basics with Category.Item.Task
@@ -171,7 +173,7 @@ object Feature {
 
   // Notes
   case object AddNotesView extends Category.View { override def next = Array(CreateNoteInNotes) }
-  case object CreateNoteInNotes extends Category.View.Notes with Category.Item.Note { override def next = Array(ZoomIntoNote, EditNoteInRightSidebar, TagNoteByDragging) }
+  case object CreateNoteInNotes extends Category.View.Notes with Category.Item.Note { override def next = Array(ZoomIntoNote, TagNoteByDragging) }
 
   // Filters
   case object FilterOnlyDeleted extends Category.Filter.GraphTransformation { override def next = Array(ResetFilters) }
@@ -204,6 +206,7 @@ object Feature {
   val all = SubObjects.all[Feature]
   val startingPoints = SubObjects.all[Category.StartingPoint].sortBy(-_.next.length)
   val secrets = SubObjects.all[Category.Secret]
+  val allWithoutSecrets = all diff secrets
 
   def reachable: Set[Feature] = {
     var visited = Set.empty[Feature]

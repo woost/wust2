@@ -642,7 +642,7 @@ object Components {
             case NodeRole.Project => FeatureState.use(Feature.EditProjectInRightSidebar)
             case NodeRole.Task => FeatureState.use(Feature.EditTaskInRightSidebar)
             case NodeRole.Message => FeatureState.use(Feature.EditMessageInRightSidebar)
-            case NodeRole.Note => FeatureState.use(Feature.EditNoteInRightSidebar)
+            // case NodeRole.Note => FeatureState.use(Feature.EditNoteInRightSidebar)
             case NodeRole.Stage => FeatureState.use(Feature.EditColumnInKanban) //TODO: why is this triggered two times?
             case _ =>
           }

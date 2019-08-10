@@ -62,7 +62,7 @@ object GlobalStateFactory {
               case NodeRole.Project => FeatureState.use(Feature.OpenProjectInRightSidebar)
               case NodeRole.Task    => FeatureState.use(Feature.OpenTaskInRightSidebar)
               case NodeRole.Message => FeatureState.use(Feature.OpenMessageInRightSidebar)
-              case NodeRole.Note    => FeatureState.use(Feature.OpenNoteInRightSidebar)
+              // case NodeRole.Note    => FeatureState.use(Feature.OpenNoteInRightSidebar)
               case _                =>
             }
           }
