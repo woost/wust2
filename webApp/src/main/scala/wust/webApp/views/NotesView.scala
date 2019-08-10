@@ -14,6 +14,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.Elements
+import monix.reactive.subjects.PublishSubject
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
 // It  renders all direct children of noderole note and allows to add new notes.
@@ -21,6 +22,7 @@ object NotesView {
 
   //TODO: button in each sidebar line to jump directly to view (conversation / tasks)
   def apply(focusState: FocusState)(implicit ctx: Ctx.Owner): VNode = {
+    val triggerSubmit = PublishSubject[Unit]
     div(
       keyed,
       Styles.growFull,
@@ -53,7 +55,9 @@ object NotesView {
         showSubmitIcon = true,
         submitIcon = freeSolid.faPlus,
         placeholder = Placeholder.newNote,
-        showMarkdownHelp = true
+        showMarkdownHelp = true,
+        triggerSubmit = triggerSubmit,
+        blurAction = Some(_ => triggerSubmit.onNext(()))
       )
     )
   }
