@@ -250,7 +250,6 @@ $$ language plpgsql strict;
 create or replace function allowed_users_for_node_recursive(nodeid uuid) returns table(user_id uuid) as $$
     with recursive
         transitive_access_parents(id) AS (
-            -- TOOD: somehow use cached values of parents?
             select id from node where id = nodeid
             union -- discards duplicates, therefore handles cycles and diamond cases
             select accessedge.target_nodeid
@@ -273,7 +272,7 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
         from transitive_access_parents
         inner join node_can_access_mat
         on transitive_access_parents.id = node_can_access_mat.node_id and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = transitive_access_parents.id)
-$$ language sql stable;
+$$ language sql;
 
 create or replace function allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
     with
@@ -286,7 +285,7 @@ create or replace function allowed_users_for_node_refresh(nodeid uuid) returns t
         where node_id = nodeid
         and not exists(select 1 from allowed_users where node_can_access_mat.user_id = allowed_users.user_id)
     )
-    insert into node_can_access_mat select nodeid, user_id from allowed_users returning user_id;
+    insert into node_can_access_mat select nodeid, user_id from allowed_users on conflict do nothing returning user_id;
 $$ language sql strict;
 
 create or replace function allowed_users_for_node(nodeid uuid) returns table(user_id uuid) as $$
@@ -299,7 +298,7 @@ create or replace function allowed_users_for_node(nodeid uuid) returns table(use
     where exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = nodeid)
 $$ language sql strict;
 
-create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
+create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
     return NOT EXISTS (select 1 from node where id = nodeid) or exists(select 1 from allowed_users_for_node(nodeid) where user_id = userid);
 end;
@@ -367,7 +366,7 @@ create function node_update() returns trigger
 as $$
   begin
     IF (new.accesslevel <> old.accesslevel) THEN
-        insert into node_can_access_invalid select unnest(node_can_access_deep_children(new.id)) on conflict do nothing;
+        insert into node_can_access_invalid select node_can_access_deep_children(new.id) on conflict do nothing;
     end if;
     return new;
   end;
@@ -562,10 +561,9 @@ begin
 end;
 $$ language plpgsql strict;
 
-create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
+create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    IF NOT EXISTS (select 1 from node where id = nodeid) then return true; end if; -- everybody has full access to non-existant nodes
-    return (node_can_access_recursive(nodeid, array[]::uuid[])).user_ids @> array[userid];
+    return NOT EXISTS (select 1 from node where id = nodeid) or (node_can_access_recursive(nodeid, array[]::uuid[])).user_ids @> array[userid];
 end;
 $$ language plpgsql strict;
 
