@@ -270,7 +270,7 @@ $$ language sql stable;
 
 create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    return NOT EXISTS (select 1 from node where id = nodeid) or exists(select * from allowed_users_for_node(nodeid) where user_id = userid);
+    return NOT EXISTS (select 1 from node where id = nodeid) or exists(select 1 from allowed_users_for_node(nodeid) where user_id = userid);
 end;
 $$ language plpgsql strict;
 
