@@ -276,14 +276,17 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
 $$ language sql stable;
 
 create or replace function allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
-    with allowed_users(user_id) AS (
+    with
+    allowed_users(user_id) AS (
         select allowed_users_for_node_recursive(nodeid) as user_id
     ), delete_invalid AS (
         delete from node_can_access_invalid where node_id = nodeid
     ), delete_outdated AS (
-        delete from node_can_access_mat where node_id = nodeid
+        delete from node_can_access_mat
+        where node_id = nodeid
+        and not exists(select 1 from allowed_users where node_can_access_mat.user_id = allowed_users.user_id)
     )
-    insert into node_can_access_mat select nodeid, user_id from allowed_users on conflict do nothing returning user_id;
+    insert into node_can_access_mat select nodeid, user_id from allowed_users returning user_id;
 $$ language sql strict;
 
 create or replace function allowed_users_for_node(nodeid uuid) returns table(user_id uuid) as $$
