@@ -6,6 +6,7 @@ import scala.scalajs.js
 import wust.facades.googleanalytics.Analytics
 import wust.facades.nolt.{ NoltData, nolt }
 import fontAwesome._
+import org.scalajs.dom.window
 import org.scalajs.dom.window.{ clearTimeout, navigator, setTimeout }
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -39,15 +40,13 @@ object FeedbackForm {
     val initialStatus = ""
     val statusText = Var[VDomModifier](initialStatus)
 
-    def crispIsLoaded = crisp.is != js.undefined
-
     var timeout: Option[Int] = None
     def submit(): Unit = {
       if (feedbackText.now.trim.nonEmpty) {
         //         Client.api.feedback(ClientInfo(navigator.userAgent), feedbackText.now).onComplete { }
         Try{
-          initCrisp
-          if (!crispIsLoaded) throw new Exception("Crisp chat not loaded. Is it blocked by a browser extension?")
+          initCrisp()
+          if (!GlobalState.crispIsLoaded.now) throw new Exception("Crisp chat not loaded. Is it blocked by a browser extension?")
           crisp.push(js.Array("do", "message:send", js.Array("text", feedbackText.now)))
         } match {
           case Success(()) =>
@@ -105,6 +104,11 @@ object FeedbackForm {
 
     val toggleButton = div(
       "Feedback/Support ", freeSolid.faCaretDown,
+      // Rx {
+      //   VDomModifier.ifTrue(GlobalState.crispIsLoaded()) {
+      //     color := "blue"
+      //   }
+      // },
       // like semantic-ui tiny button
       fontSize := "0.85714286rem",
       fontWeight := 700,
@@ -131,11 +135,16 @@ object FeedbackForm {
         cls := "shadow",
         backgroundColor := Colors.sidebarBg,
         color := "#333",
-        if (crispIsLoaded) feedbackForm else div(b("Crisp Chat"), " couldn't be started. It might be blocked by a browser extension.", marginBottom := "20px"),
+        Rx {
+          if (GlobalState.crispIsLoaded())
+            feedbackForm
+          else
+            div(b("Crisp Chat"), " couldn't be started. It might be blocked by a browser extension.", marginBottom := "20px")
+        },
         div("You can also write us an email: ", Components.woostEmailLink(prefix = "support"), "."),
 
         div(cls := "ui divider", marginTop := "30px"),
-        supportChatButton(showPopup)(disabled := !crispIsLoaded),
+        supportChatButton(showPopup)(disabled <-- GlobalState.crispIsLoaded.map(!_)),
         voteOnFeaturesButton,
         onClick.stopPropagation foreach {}, // prevents closing feedback form by global click
       )
@@ -167,15 +176,13 @@ object FeedbackForm {
       freeSolid.faComments, " Open Support Chat",
       cls := "ui blue tiny fluid button",
       marginTop := "5px",
-      DeployedOnly {
-        onClick.stopPropagation.foreach { _ =>
-          Try{
-            initCrisp
-            crisp.push(js.Array("do", "chat:show"))
-            crisp.push(js.Array("do", "chat:open"))
-          }
-          showPopup() = false
+      onClick.stopPropagation.foreach { _ =>
+        Try{
+          DeployedOnly { initCrisp }
+          crisp.push(js.Array("do", "chat:show"))
+          crisp.push(js.Array("do", "chat:open"))
         }
+        showPopup() = false
       }
     )
   }

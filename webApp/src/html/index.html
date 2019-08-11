@@ -74,16 +74,19 @@
     <!-- End Google Tag Manager (noscript) -->
     <% } %>
 
+
     <!-- draggable mirror is positioned absolute, so that mirrors do not affect the page layout (especially flexbox) and therefore do not produce ill-sized or misplaced mirrors -->
     <div id="draggable-mirrors" style="position:absolute;"></div>
     <div id="modal-placeholder"></div>
     <div id="sidebar-placeholder"></div>
     <div id="container"></div>
 
+
     <% if (audience != "dev") { %>
     <script async src="https://cdn.nolt.io/widgets.js"></script>
     <script>window.noltQueue=window.noltQueue||[];function nolt(){noltQueue.push(arguments)}</script>
     <% } %>
+
 
     <% if (audience != "dev") { %>
     <!-- announcekit sidebar widget -->
@@ -94,16 +97,21 @@
     <% } %>
 
 
-
     <!-- define crisp queue even in dev mode so we can detect if crisp was loaded or not (blocked by browser plugin) -->
-    <script type="text/javascript">window.$crisp=[]; </script>
-    <% if (audience != "dev") { %>
     <script type="text/javascript">
-        window.CRISP_WEBSITE_ID="5ab5c700-31d3-490f-917c-83dfa10b8205";(function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
+        window.$crisp=[]; 
+        window.CRISP_IS_READY = false;
+        window.CRISP_READY_TRIGGER = function() {
+            window.CRISP_IS_READY = true;
+        };
         $crisp.push(["do", "chat:hide"]);
         $crisp.push(["safe", true]); // hide warnings about js shims
+        window.CRISP_WEBSITE_ID="5ab5c700-31d3-490f-917c-83dfa10b8205";
+        <% if (audience != "dev") { %>
+            (function(){d=document;s=d.createElement("script");s.src="https://client.crisp.chat/l.js";s.async=1;d.getElementsByTagName("head")[0].appendChild(s);})();
+        <% } %>
     </script>
-    <% } %>
+
 
   </body>
 </html>

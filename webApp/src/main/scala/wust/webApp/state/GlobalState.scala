@@ -1,5 +1,6 @@
 package wust.webApp.state
 
+import scala.util.Try
 import com.github.ghik.silencer.silent
 import acyclic.file
 import monix.reactive.Observable
@@ -60,7 +61,6 @@ object GlobalState {
   )
 
   eventProcessor.graph.foreach { g => scribe.debug("eventProcessor.graph: " + g) }
-  
 
   val mouseClickInMainView = PublishSubject[Unit]
 
@@ -121,7 +121,7 @@ object GlobalState {
         if (graph.contains(u.id)) graph
         else {
           scribe.debug("  adding usernode to graph")
-          val g  = graph.addNodes(
+          val g = graph.addNodes(
             // these nodes are obviously not in the graph for an assumed user, since the user is not persisted yet.
             // if we start with an assumed user and just create new channels we will never get a graph from the backend.
             user().toNode ::
@@ -243,5 +243,13 @@ object GlobalState {
 
   def toFocusState(viewConfig: ViewConfig): Option[FocusState] = viewConfig.page.parentId.map { parentId =>
     FocusState(viewConfig.view, parentId, parentId, isNested = false, view => urlConfig.update(_.focus(view)), nodeId => focus(nodeId))
+  }
+
+  private val crispIsAlreadyLoaded = Try(window.asInstanceOf[js.Dynamic].CRISP_IS_READY.asInstanceOf[Boolean]).getOrElse(false)
+  val crispIsLoaded = Var(crispIsAlreadyLoaded)
+  if(!crispIsAlreadyLoaded) {
+    window.asInstanceOf[js.Dynamic].CRISP_READY_TRIGGER = { () =>
+      crispIsLoaded() = true
+    }
   }
 }
