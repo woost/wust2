@@ -1,6 +1,11 @@
 package wust.webApp.views
 
 import acyclic.file
+import wust.facades.crisp._
+import wust.facades.googleanalytics.Analytics
+import wust.webApp.DeployedOnly
+import scala.scalajs.js
+import scala.util.Try
 import wust.webApp.{ DevOnly, DebugOnly }
 import fontAwesome._
 import monix.reactive.Observable
@@ -71,13 +76,26 @@ object FeatureExplorer {
             div(
               div(
                 details.title, fontWeight.bold, fontSize := "1.3em",
-                freeSolid.faQuestionCircle
+                span(
+                  " ",
+                  freeSolid.faQuestionCircle,
+                  cursor.pointer,
+                  color := "#2185d0",
+                  onClick.stopPropagation.foreach { _ =>
+                  Try{
+                    DeployedOnly { FeedbackForm.initCrisp }
+                    crisp.push(js.Array("do", "chat:show"))
+                    crisp.push(js.Array("do", "chat:open"))
+                  }
+                  Analytics.sendEvent("unclear-feature", feature.toString)
+                })
               ),
               div(details.description),
               backgroundColor := "#c7f0ff",
               padding := "8px",
               marginBottom := "3px",
               borderRadius := "4px",
+              Styles.wordWrap,
             )
           }
         )
