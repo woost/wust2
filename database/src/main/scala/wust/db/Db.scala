@@ -491,15 +491,15 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
-      infix"select * from node_can_access($nodeId, $userId)".as[Boolean]
+      infix"select node_can_access($nodeId, $userId)".as[Boolean]
     }
 
     private val canAccessNodeViaUrlQuery = quote { (userId: UserId, nodeId: NodeId) =>
-      infix"select * from can_access_node_via_url($userId, $nodeId)".as[Boolean]
+      infix"select can_access_node_via_url($userId, $nodeId)".as[Boolean]
     }
 
     private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
-      infix"select * from inaccessible_nodes($userId, $nodeIds)".as[Seq[NodeId]]
+      infix"select * from inaccessible_nodes($userId, $nodeIds)".as[Query[NodeId]]
     }
   }
 

@@ -45,7 +45,7 @@ create function node_update() returns trigger
 as $$
   begin
     IF (new.accesslevel <> old.accesslevel) THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(new.id) on conflict do nothing;
+        select node_can_access_deep_children(new.id) on conflict do nothing;
     end if;
     return new;
   end;
@@ -205,45 +205,52 @@ create aggregate node_can_access_agg(node_can_access_result)
 );
 
 -- recursively check whether a node is accessible. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns the user-ids that are allowed to access this node
-create function node_can_access_recursive(nodeid uuid, visited uuid[]) returns node_can_access_result as $$
+-- returns true if uncacheable node_ids
+create or replace function node_can_access_recursive(nodeid uuid, visited uuid[]) returns uuid[] as $$
 declare
-    node_access_level accesslevel;
-    user_ids uuid[];
-    is_known boolean;
-    result node_can_access_result;
-    is_invalid boolean;
+    uncachable_node_ids uuid[] default array[]::uuid[];
 begin
-    IF ( nodeid = any(visited) ) THEN return row(false, array[]::uuid[]); end if; -- prevent inheritance cycles
+    IF ( nodeid = any(visited) ) THEN return array[nodeid]; end if; -- prevent inheritance cycles
 
-    is_known := true;
+    IF ( exists(select * from node_can_access_invalid where node_id = nodeid) ) THEN
+        -- clear current access rights
+        delete from node_can_access_mat where node_id = nodeid;
 
-    select exists(select * from node_can_access_invalid where node_id = nodeid) into is_invalid;
-    IF ( is_invalid = false ) THEN
-        user_ids := (select array_agg(user_id) from node_can_access_mat where node_id = nodeid);
-        return row(true, user_ids);
+        -- if node access level is inherited or public, check above, else just this level
+        IF (exists(select 1 from node where id = nodeid and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
+
+            -- recursively inherit permissions from parents. run all node_can_access_recursive
+            uncachable_node_ids := (select array(
+                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
+                intersect
+                select unnest(visited)
+            ));
+
+            if (cardinality(uncachable_node_ids) = 0) then
+                delete from node_can_access_invalid where node_id = nodeid;
+                insert into node_can_access_mat (
+                    select nodeid as node_id, user_id
+                    from accessedge
+                    inner join node_can_access_mat
+                    on node_id = accessedge.source_nodeid
+                    where accessedge.target_nodeid = nodeid
+                    union
+                    select nodeid as node_id, member.target_userid as user_id
+                    from member
+                    where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
+                );
+            end if;
+        ELSE
+            delete from node_can_access_invalid where node_id = nodeid;
+            insert into node_can_access_mat (
+                select nodeid as node_id, member.target_userid as user_id
+                from member
+                where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
+            );
+        END IF;
     end if;
 
-    -- collect all user_ids that have granted access for this node
-    select array_agg(member.target_userid) into user_ids from member where data->>'level' = 'readwrite' and member.source_nodeid = nodeid;
-
-    -- read node access level to decide for recurison
-    select accessLevel into node_access_level from node where id = nodeid limit 1;
-
-    -- if node access level is inherited or public, check above, else not grant access.
-    IF (node_access_level IS NULL or node_access_level = 'readwrite') THEN -- null means inherit for the node, readwrite/public inherits as well
-        -- recursively inherit permissions from parents. minimum one parent needs to allowed access.
-        result := (select node_can_access_agg(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid);
-        if (not result.known and cardinality(visited) > 0) then is_known := false; end if;
-        user_ids := user_ids || result.user_ids;
-    END IF;
-
-    delete from node_can_access_mat where node_id = nodeid;
-    delete from node_can_access_invalid where node_id = nodeid;
-    if (is_known = true) THEN
-        insert into node_can_access_mat select nodeid, user_id from unnest(user_ids) as user_id on conflict do nothing;
-    end if;
-    return row(is_known, user_ids);
+    return uncachable_node_ids;
 end;
 $$ language plpgsql strict;
 
@@ -251,7 +258,7 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
     with recursive
         transitive_access_parents(id) AS (
             select id from node where id = nodeid
-            union -- discards duplicates, therefore handles cycles and diamond cases
+            union
             select accessedge.target_nodeid
                 from transitive_access_parents
                 inner join node_can_access_invalid
@@ -267,16 +274,17 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
         on transitive_access_parents.id = node_can_access_invalid.node_id
         inner join member
         on transitive_access_parents.id = member.source_nodeid and member.data->>'level' = 'readwrite'
-        union all
+
+        union
+
         select user_id
         from transitive_access_parents
         inner join node_can_access_mat
         on transitive_access_parents.id = node_can_access_mat.node_id and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = transitive_access_parents.id)
-$$ language sql;
+$$ language sql strict;
 
 create or replace function allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
-    with
-    allowed_users(user_id) AS (
+    with allowed_users(user_id) AS (
         select allowed_users_for_node_recursive(nodeid) as user_id
     ), delete_invalid AS (
         delete from node_can_access_invalid where node_id = nodeid
@@ -292,7 +300,7 @@ create or replace function allowed_users_for_node(nodeid uuid) returns table(use
     select user_id
     from node_can_access_mat
     where node_id = nodeid and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = nodeid)
-    UNION ALL
+    UNION
     select user_id
     from allowed_users_for_node_refresh(nodeid)
     where exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = nodeid)
@@ -561,9 +569,17 @@ begin
 end;
 $$ language plpgsql strict;
 
+create or replace function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
+begin
+    perform node_can_access_recursive(nodeid, array[]::uuid[]);
+
+    return query select node_can_access_mat.user_id from node_can_access_mat where node_can_access_mat.node_id = nodeid;
+end;
+$$ language plpgsql strict;
+
 create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    return NOT EXISTS (select 1 from node where id = nodeid) or (node_can_access_recursive(nodeid, array[]::uuid[])).user_ids @> array[userid];
+    return NOT EXISTS (select 1 from node where id = nodeid) or EXISTS(select 1 from node_can_access_users(nodeid) where user_id = userid);
 end;
 $$ language plpgsql strict;
 
@@ -573,11 +589,9 @@ begin
 end;
 $$ language plpgsql strict;
 -- returns nodeids which the user does not have permission for
-create function inaccessible_nodes(userid uuid, nodeids uuid[]) returns setof uuid[] as $$
-begin
-    return query select COALESCE(array_agg(id), array[]::uuid[]) from (select unnest(nodeids) id) ids where not node_can_access(id, userid);
-end
-$$ language plpgsql strict;
+create function inaccessible_nodes(userid uuid, nodeids uuid[]) returns setof uuid as $$
+    select ids.id from (select unnest(nodeids) id) ids where not node_can_access(ids.id, userid);
+$$ language sql strict;
 
 -- IMPLEMENTATIONS
 CREATE FUNCTION array_intersect(anyarray, anyarray)
