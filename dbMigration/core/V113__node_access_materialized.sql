@@ -45,7 +45,7 @@ create function node_update() returns trigger
 as $$
   begin
     IF (new.accesslevel <> old.accesslevel) THEN
-        select node_can_access_deep_children(new.id) on conflict do nothing;
+        insert into node_can_access_invalid select node_can_access_deep_children(new.id) on conflict do nothing;
     end if;
     return new;
   end;
@@ -261,7 +261,7 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
             union
             select accessedge.target_nodeid
                 from transitive_access_parents
-                inner join node_can_access_invalid
+                inner join node_can_access_)invalid
                 on transitive_access_parents.id = node_can_access_invalid.node_id
                 inner join node
                 on node.id = transitive_access_parents.id and (node.accesslevel is NULL or node.accesslevel = 'readwrite')
@@ -274,16 +274,15 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
         on transitive_access_parents.id = node_can_access_invalid.node_id
         inner join member
         on transitive_access_parents.id = member.source_nodeid and member.data->>'level' = 'readwrite'
-
         union
-
         select user_id
         from transitive_access_parents
         inner join node_can_access_mat
         on transitive_access_parents.id = node_can_access_mat.node_id and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = transitive_access_parents.id)
 $$ language sql strict;
 
-create or replace function allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
+drop function allowed_users_for_node_refresh;
+create view allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
     with allowed_users(user_id) AS (
         select allowed_users_for_node_recursive(nodeid) as user_id
     ), delete_invalid AS (
@@ -308,7 +307,19 @@ $$ language sql strict;
 
 create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    return NOT EXISTS (select 1 from node where id = nodeid) or exists(select 1 from allowed_users_for_node(nodeid) where user_id = userid);
+    return
+    exists(
+        select 1 from node_can_access_mat
+        where node_id = nodeid and user_id = userid
+        and not exists(select 1 from node_can_access_invalid where node_id = nodeid)
+    )
+    or not exists (
+        select 1 from node
+        where id = nodeid
+    )
+    or exists(
+        select 1 from allowed_users_for_node(nodeid) where user_id = userid
+    );
 end;
 $$ language plpgsql strict;
 
@@ -579,7 +590,19 @@ $$ language plpgsql strict;
 
 create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
-    return NOT EXISTS (select 1 from node where id = nodeid) or EXISTS(select 1 from node_can_access_users(nodeid) where user_id = userid);
+    return
+    exists(
+        select 1 from node_can_access_mat
+        where node_id = nodeid and user_id = userid
+        and not exists(select 1 from node_can_access_invalid where node_id = nodeid)
+    )
+    or not exists (
+        select 1 from node
+        where id = nodeid
+    )
+    or exists(
+        select 1 from node_can_access_users(nodeid) where user_id = userid
+    );
 end;
 $$ language plpgsql strict;
 
@@ -627,51 +650,35 @@ create aggregate array_merge_agg(anyarray) (
 );
 
 create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
-declare 
-    accessible_page_parents uuid[];
-begin
-    accessible_page_parents := (select array_agg(id) from node where id = any(page_parents) and node_can_access(id, userid));
-
-    return query
     with recursive
         content(id) AS (
-            select id from node where id = any(accessible_page_parents) -- strangely this is faster than `select unnest(starts)`
+            select id from node where id = any(page_parents) -- strangely this is faster than `select unnest(starts)`
             union -- discards duplicates, therefore handles cycles and diamond cases
             select contentedge.target_nodeid
                 FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
-                    and node_can_access(contentedge.target_nodeid, userid)
         ),
         transitive_parents(id) AS (
-            select id from node where id = any(accessible_page_parents)
+            select id from node where id = any(page_parents)
             union
             select contentedge.source_nodeid
                 FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
-                    and node_can_access(contentedge.source_nodeid, userid)
         )
 
         -- all transitive children
         select * from content
         union
         -- direct parents of content, useful to know tags of content nodes
-        select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id and node_can_access(edge.sourceid, userid)
+        select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id
         union
         -- transitive parents describe the path/breadcrumbs to the page
         select * FROM transitive_parents;
-end
-$$ language plpgsql strict;
+$$ language sql stable;
 
 
 -- induced_subgraph assumes that access is already checked
 create function induced_subgraph(nodeids uuid[])
 returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
 as $$
-    select
-    node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
-    array_remove(array_agg(edge.targetid), NULL), array_remove(array_agg(edge.data::text), NULL) -- removing NULL is important (e.g. decoding NULL as a string fails)
-    from node
-    left outer join edge on edge.sourceid = node.id and edge.targetid = ANY(nodeids) -- outer join, because we want to keep the nodes which have no outgoing edges
-    where node.id = ANY(nodeids)
-    group by (node.id, node.data, node.role, node.accesslevel) -- needed for multiple outgoing edges
 $$ language sql strict;
 
 create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
@@ -688,31 +695,34 @@ create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
     select * from channels;
 $$ language sql strict;
 
-create function readable_graph_page_nodes_with_channels(parents uuid[], userid uuid)
-returns setof uuid
-as $$
-    select cs.nodeid from (select user_quickaccess_nodes(userid) as nodeid) as cs
-    union
-    select * from graph_traversed_page_nodes(parents, userid) as nodeid -- all nodes, specified by page (transitive children + transitive parents)
-$$ language sql strict;
-
 -- page(parents, children) -> graph as adjacency list
-create function graph_page(parents uuid[], userid uuid)
+create or replace function graph_page(parents uuid[], userid uuid)
 returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
 as $$
-begin
-return query select * from induced_subgraph(
-    array(
-        with nodes as (select readable_graph_page_nodes_with_channels(parents, userid) as nodeid)
-        select nodes.nodeid from nodes
+    with nodes as (
+        -- page with channels
+        select * from user_quickaccess_nodes(userid) as id
         union
-        select useredge.target_userid from nodes inner join useredge on useredge.source_nodeid = nodes.nodeid
+        select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents)
+    ),
+    all_nodes as (
+        -- add users to page and channels
+        select id from nodes where node_can_access(id, userid)
         union
-        select userid
+        select useredge.target_userid as id from nodes inner join useredge on useredge.source_nodeid = nodes.id
+        union
+        select userid as id
     )
-);
-end
-$$ language plpgsql strict;
+
+    -- induced subgraph of all nodes
+    select node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
+    array_remove(array_agg(edge.targetid), NULL),
+    array_remove(array_agg(edge.data::text), NULL) -- removing NULL is important (e.g. decoding NULL as a string fails)
+    from node
+    inner join all_nodes on node.id = all_nodes.id
+    left outer join edge on edge.sourceid = node.id and exists(select 1 from all_nodes where id = edge.targetid) -- outer join, because we want to keep the nodes which have no outgoing edges
+    group by (node.id, node.data, node.role, node.accesslevel); -- needed for multiple outgoing edges
+$$ language sql strict;
 
 -- this works on nodes, not only users. maybe restrict?
 CREATE FUNCTION mergeFirstUserIntoSecond(oldUser uuid, keepUser uuid) RETURNS VOID AS $$
