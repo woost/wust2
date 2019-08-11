@@ -11,13 +11,14 @@ import wust.graph._
 import wust.ids.View
 import wust.webApp.Client
 import wust.webApp.state._
+import wust.ids.Feature
 
 object AuthControls {
 
   def authStatus(buttonStyleLoggedIn: String, buttonStyleLoggedOut: String)(implicit ctx: Ctx.Owner): Rx[VNode] =
     GlobalState.user.map {
-      case user: AuthUser.Assumed  => loginSignupButtons( buttonStyleLoggedOut).apply(Styles.flexStatic)
-      case user: AuthUser.Implicit => loginSignupButtons( buttonStyleLoggedOut).apply(Styles.flexStatic)
+      case user: AuthUser.Assumed  => loginSignupButtons(buttonStyleLoggedOut).apply(Styles.flexStatic)
+      case user: AuthUser.Implicit => loginSignupButtons(buttonStyleLoggedOut).apply(Styles.flexStatic)
       case user: AuthUser.Real => div(
         Styles.flex,
         alignItems.center,
@@ -33,10 +34,10 @@ object AuthControls {
           cursor.pointer,
           onClick foreach {
             GlobalState.urlConfig.update(_.focus(View.UserSettings))
-            Analytics.sendEvent("authstatus", "avatar")
+            FeatureState.use(Feature.ClickAvatarInAuthStatus)
           },
         ),
-        logoutButton( buttonStyleLoggedIn)
+        logoutButton(buttonStyleLoggedIn)
       )
     }
 
@@ -47,7 +48,7 @@ object AuthControls {
         cls := s"tiny compact ui $buttonStyle button",
         onClick.mapTo(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
         onClick foreach {
-          Analytics.sendEvent("topbar", "signup")
+          FeatureState.use(Feature.ClickSignupInAuthStatus)
         },
       ),
       button(
@@ -55,7 +56,7 @@ object AuthControls {
         cls := s"tiny compact ui $buttonStyle button",
         onClick.mapTo(GlobalState.urlConfig.now.focusWithRedirect(View.Login)) --> GlobalState.urlConfig,
         onClick foreach {
-          Analytics.sendEvent("topbar", "login")
+          FeatureState.use(Feature.ClickLoginInAuthStatus)
         },
         marginRight := "0",
       )
@@ -69,7 +70,7 @@ object AuthControls {
         Client.auth.logout().foreach { _ =>
           GlobalState.urlConfig.update(_.focus(Page.empty, View.Login))
         }
-        Analytics.sendEvent("topbar", "logout")
+        FeatureState.use(Feature.ClickLogoutInAuthStatus)
       },
       marginRight := "0",
     )

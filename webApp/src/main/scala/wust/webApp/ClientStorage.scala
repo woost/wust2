@@ -38,7 +38,7 @@ class ClientStorage(implicit owner: Ctx.Owner) {
       case Success(_) =>
         true
       case Failure(_) =>
-        Analytics.sendEvent("localstorage", "access", "error")
+        Analytics.sendEvent("localstorage", "access-error")
         scribe.warn("Beware: Localstorage is not accessible!")
         false
     }

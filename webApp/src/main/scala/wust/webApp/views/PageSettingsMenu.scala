@@ -181,7 +181,7 @@ object PageSettingsMenu {
       dsl.span("Share Link"),
       onClick.transform(_.delayOnNext(200 millis)).foreach { // delay, otherwise the assurePublic changes update interferes with clipboard js
         assurePublic()
-        Analytics.sendEvent("pageheader", "share")
+        FeatureState.use(Feature.ShareLink)
       },
 
       if (Navigator.share.isDefined) VDomModifier(

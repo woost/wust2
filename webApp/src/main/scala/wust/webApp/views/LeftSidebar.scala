@@ -361,7 +361,7 @@ object LeftSidebar {
                         delEdges = Array(Edge.Invite(nodeId, userId))
                       )
                       GlobalState.submitChanges(changes)
-                      Analytics.sendEvent("pageheader", "accept-invite")
+                      FeatureState.use(Feature.AcceptInvite)
                     }
                   ),
                   button(
@@ -373,7 +373,7 @@ object LeftSidebar {
                       confirm("Ignore and delete invitation?") {
                         val changes = GraphChanges(delEdges = Array(Edge.Invite(nodeId, userId)))
                         GlobalState.submitChanges(changes)
-                        Analytics.sendEvent("pageheader", "ignore-invite") 
+                        FeatureState.use(Feature.IgnoreInvite)
                       }
                     }
                   )

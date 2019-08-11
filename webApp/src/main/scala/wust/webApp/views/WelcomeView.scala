@@ -12,6 +12,8 @@ import wust.webApp.views.Components._
 import wust.webApp.views.SharedViewElements._
 import wust.webUtil.outwatchHelpers._
 import NewProjectPrompt._
+import wust.webApp.state.FeatureState
+import wust.ids.Feature
 
 object WelcomeView {
 
@@ -51,8 +53,8 @@ object WelcomeView {
             cls := "primary",
             padding := "20px",
             margin := "0px 40px",
-            onClick foreach {
-              Analytics.sendEvent("view:welcome", "newproject")
+            onClick.stopPropagation.foreach {
+              FeatureState.use(Feature.CreateProjectFromWelcomeView)
             },
           ),
           Rx{
@@ -65,7 +67,9 @@ object WelcomeView {
                 marginBottom := "50px",
                 p("You can use Woost without registration."), p("Everything you create is private (unless you share it). Whenever you want to access your data from another device, just ", a(href := "#", "create an account",
                   onClick.preventDefault(GlobalState.urlConfig.now.focusWithRedirect(View.Signup)) --> GlobalState.urlConfig,
-                  onClick.preventDefault foreach { Analytics.sendEvent("topbar", "signup") }), ".")
+                  onClick.preventDefault foreach { 
+                    FeatureState.use(Feature.ClickSignupInWelcomeView)
+                  }), ".")
               )
             )
           }

@@ -24,6 +24,8 @@ import wust.webApp.views.Components._
 import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.{Failure, Success}
+import wust.webApp.state.FeatureState
+import wust.ids.Feature
 
 
 // an html view for the authentication. That is login and signup.
@@ -264,7 +266,7 @@ object AuthView {
           case AuthResult.BadEmail     => Some("No account with this email address exists. Please check spelling and capitalization.")
           case AuthResult.InvalidEmail => Some("Email address is invalid")
           case AuthResult.Success      =>
-            Analytics.sendEvent("auth", "login")
+            FeatureState.use(Feature.Login)
             None
         }
       },
@@ -289,7 +291,7 @@ object AuthView {
           case AuthResult.BadEmail     => Some("Email address already taken")
           case AuthResult.InvalidEmail => Some("Email address is invalid")
           case AuthResult.Success      =>
-            Analytics.sendEvent("auth", "signup")
+            FeatureState.use(Feature.Signup)
             None
         }
       },

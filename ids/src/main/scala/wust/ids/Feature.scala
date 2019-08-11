@@ -15,6 +15,9 @@ import wust.util.macros.SubObjects
 //TODO: enable scala unused compiler flag for only this file
 //TODO: Separate required features from suggested features?
 
+//TODO: Interesting Analytics:
+// Histogram of how many users reached how much percent of features
+
 sealed trait Feature {
   def next: Array[Feature] = Array.empty[Feature]
 }
@@ -60,7 +63,6 @@ object Feature {
   // Context parameters: byDrag:Boolean, inRightSidebar, inView:View, nodeRole:NodeRole
 
   // zoom into project / task / message / note, zoom deep
-  // click into breadcrumbs
   // automation with columns / tags
   // different automation features
   // custom fields
@@ -85,7 +87,6 @@ object Feature {
   // invite user to project (via email / via link) (High-Priority -> GROWTH LOOP)
   // expand/collapse left sidebar
   // pageSettingsMenu
-  // many things for which we already do Analytics.sendEvent
   // import
   // Login with a second device
   //TODO: enable browser notifications on a second device, mobile device, desktop device
@@ -96,6 +97,7 @@ object Feature {
   case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar) }
   case object AddDashboardView extends Category.View {override def next = Array(CreateSubProjectFromDashboard)}
   case object CreateSubProjectFromDashboard extends Category.Item.Project { override def next = Array(ZoomIntoProject) }
+  case object CreateProjectFromWelcomeView extends Category.Item.Project with Category.Secret { override def next = CreateProject.next }
 
   // Basics
   case object CloseLeftSidebar extends Category.Basics with Category.StartingPoint { override def next = Array(SwitchPageFromCollapsedLeftSidebar, CreateProjectFromCollapsedLeftSidebar, OpenLeftSidebar) }
@@ -104,6 +106,8 @@ object Feature {
   case object CreateProjectFromCollapsedLeftSidebar extends Category.Basics {}
   case object SwitchPageFromExpandedLeftSidebar extends Category.Basics {}
   case object SwitchPageFromCollapsedLeftSidebar extends Category.Basics {}
+
+  case object ClickBreadcrumb extends Category.Basics with Category.Secret
 
   case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
   case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
@@ -196,8 +200,21 @@ object Feature {
   // Automation
   case object CreateAutomationTemplate extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
 
+
+  case object ChangeAccessLevel extends Category.Secret
+  case object ShareLink extends Category.Secret
+  case object AcceptInvite extends Category.Secret
+  case object IgnoreInvite extends Category.Secret
   case object ClickLogo extends Category.Secret
   case object SubmitFeedback extends Category.Secret
+  case object ClickSignupInWelcomeView extends Category.Secret
+  case object ClickSignupInAuthStatus extends Category.Secret
+  case object ClickLoginInAuthStatus extends Category.Secret
+  case object ClickLogoutInAuthStatus extends Category.Secret
+  case object ClickAvatarInAuthStatus extends Category.Secret
+  case object ConvertNode extends Category.Secret
+  case object Login extends Category.Secret
+  case object Signup extends Category.Secret
 
   case object EnableBrowserNotifications extends Category.Setup with Category.StartingPoint
 

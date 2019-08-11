@@ -24,6 +24,7 @@ import scala.concurrent.Future
 import scala.scalajs.js
 import scala.util.control.NonFatal
 import scala.util.{Failure, Success}
+import wust.webUtil.UI.ToastLevel
 
 object UserSettingsView {
 
@@ -451,16 +452,15 @@ object UserSettingsView {
             s"Enable ${service.identifier} plugin",
           )
         },
-        onClick foreach {
-          Analytics.sendEvent(service.identifier, "enableplugin")
-        },
-        onClick foreach {
-          if (isEnabled.now) Client.auth.deleteOAuthClient(service).foreach { success =>
+        onClick foreach { _ =>
+          if (isEnabled.now) 
+            Client.auth.deleteOAuthClient(service).foreach { success =>
             if (success) isEnabled() = false
           } else Client.auth.getOAuthConnectUrl(service).onComplete {
             case Success(Some(redirectUrl)) => dom.window.location.href = redirectUrl
-            case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.")
+            case _ => UI.toast(s"Sorry, the OAuth Service for '${service.identifier}' is currently not available. Please try again later.", level = ToastLevel.Error)
           }
+          Analytics.sendEvent(service.identifier, "enableplugin")
         }
       ),
       div(

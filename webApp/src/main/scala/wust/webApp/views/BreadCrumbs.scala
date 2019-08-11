@@ -19,6 +19,7 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 
 import scala.collection.breakOut
+import wust.webApp.state.FeatureState
 
 object BreadCrumbs {
 
@@ -117,7 +118,9 @@ object BreadCrumbs {
         )
       },
       registerDragContainer,
-      onClick foreach { Analytics.sendEvent("breadcrumbs", "click") },
+      onClick foreach { 
+        FeatureState.use(Feature.ClickBreadcrumb)
+      },
     )
   }
 

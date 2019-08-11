@@ -77,7 +77,7 @@ object DragValidation {
 
               if (successful) {
                 scribe.debug(s"sort action successful: $payload: $sourceContainer -> $overContainer")
-                Analytics.sendEvent("drag", "sort", s"${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+                Analytics.sendEvent("drag-sort", s"${sourceContainer.productPrefix}-${payload.productPrefix}-${overContainer.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
               } else {
                 scribe.debug(s"sort action not defined: $payload: $sourceContainer -> $overContainer (trying drag instead...)")
                 performDrag(e, currentOverEvent, ctrl, shift)
@@ -124,7 +124,7 @@ object DragValidation {
 
           if (successful) {
             scribe.debug(s"drag action successful: $payload -> $target")
-            Analytics.sendEvent("drag", "drop", s"${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Analytics.sendEvent("drag-drop", s"${payload.productPrefix}-${target.productPrefix}${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
             defer{ useFeature(payload, target) }
             afterDraggedActionOpt.foreach{ action =>
               scribe.debug(s"performing afterDraggedAction...")
@@ -132,7 +132,7 @@ object DragValidation {
             }
           } else {
             scribe.debug(s"drag action not defined: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}, defined($payload, $target, $ctrl, $shift): ${dragAction.isDefinedAt((payload, target, ctrl, shift))}")
-            Analytics.sendEvent("drag", "nothandled", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
+            Analytics.sendEvent("drag-nothandled", s"${payload.productPrefix}-${target.productPrefix} ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")
           }
         } else {
           scribe.debug(s"drag action would create cycle, canceling: $payload -> $target ${ctrl.ifTrue(" +ctrl")}${shift.ifTrue(" +shift")}")

@@ -10,6 +10,8 @@ import wust.webApp.Icons
 import wust.webApp.state.GlobalState
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
+import wust.webApp.state.FeatureState
+import wust.ids.Feature
 
 final case class ConvertSelection(
   role: NodeRole,
@@ -35,7 +37,7 @@ object ConvertSelection {
             active = node.role == convert.role,
             clickAction = { () =>
               GlobalState.submitChanges(GraphChanges.addNode(node.copy(role = convert.role)))
-              Analytics.sendEvent("pageheader", "changerole", convert.role.toString)
+              FeatureState.use(Feature.ConvertNode)
             }
           )
         }
