@@ -139,6 +139,7 @@ begin
         IF (exists(select 1 from node where id = nodeid and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
 
             -- recursively inherit permissions from parents. run all node_can_access_recursive
+            -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
             uncachable_node_ids := (select array(
                 select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
                 intersect
@@ -218,6 +219,7 @@ drop trigger edge_update_trigger on edge;
 drop function edge_update;
 drop trigger edge_delete_trigger on edge;
 drop function edge_delete;
+drop function node_can_access_users;
 drop function node_can_access;
 drop function node_can_access_recursive;
 drop function node_can_access_deep_children;
@@ -442,14 +444,14 @@ create aggregate array_merge_agg(anyarray) (
 
 create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
     with recursive content(id) AS (
-        select id from node where id = any(page_parents) where node_can_access(id, userid) -- strangely this is faster than `select unnest(starts)`
+        select id from node where id = any(page_parents) and node_can_access(id, userid) -- strangely this is faster than `select unnest(starts)`
         union -- discards duplicates, therefore handles cycles and diamond cases
         select contentedge.target_nodeid
             FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
             where node_can_access(contentedge.target_nodeid, userid)
     ),
     transitive_parents(id) AS (
-        select id from node where id = any(page_parents) where node_can_access(id, userid)
+        select id from node where id = any(page_parents) and node_can_access(id, userid)
         union
         select contentedge.source_nodeid
             FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
@@ -470,7 +472,7 @@ $$ language sql strict;
 create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
     with recursive channels(id) as (
         -- all pinned channels of the user
-        select source_nodeid from pinned where pinned.target_userid = userid where node_can_access(source_nodeid, userid)
+        select source_nodeid from pinned where pinned.target_userid = userid and node_can_access(source_nodeid, userid)
         union
         -- all transitive parents of each channel. This is needed to correctly calculate the topological minor in the channel tree
         select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id where node_can_access(child.source_parentid, userid)
