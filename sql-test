@@ -1,0 +1,17 @@
+-- run:
+-- (with a staging dump from master)
+-- find dbMigration/core/sql/V114__node_access_materialized.sql| entr -ncs './start pgrestore 2019-08-12-15-56-58-dev-postgres-backup.sql && cat dbMigration/core/sql/V114__node_access_materialized.sql | ./start psql && cat sql-test | ./start pgcli'
+
+
+-- SET max_parallel_workers_per_gather = 0;
+
+select count(*) from graph_page('{239cf479-bce1-5800-06e8-b5cf11be1640}'::uuid[], '239d3496-0481-0800-056f-eedb14244000'::uuid);
+select funcname, calls, total_time, total_time/calls as total_avg, self_time, self_time/calls as self_avg from pg_stat_user_functions order by self_time DESC;
+
+
+
+select pg_stat_reset();
+select count(*) from graph_page('{239cf479-bce1-5800-06e8-b5cf11be1640}'::uuid[], '239d3496-0481-0800-056f-eedb14244000'::uuid);
+select funcname, calls, total_time, total_time/calls as total_avg, self_time, self_time/calls as self_avg from pg_stat_user_functions order by self_time DESC;
+
+
