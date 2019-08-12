@@ -19,6 +19,7 @@ import outwatch.dom.helpers.{CustomEmitterBuilder, EmitterBuilder, PropBuilder, 
 import rx._
 import wust.facades.emojijs.EmojiConvertor
 import wust.facades.marked.Marked
+import wust.facades.dompurify.DOMPurify
 import wust.webUtil.outwatchHelpers._
 import wust.ids.EpochMilli
 import wust.util._
@@ -416,7 +417,7 @@ object Elements {
 
   def markdownString(str: String): String = {
     if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
-    else EmojiConvertor.replace_colons(Marked(EmojiConvertor.replace_emoticons_with_colons(str)))
+    else EmojiConvertor.replace_colons(DOMPurify.sanitize(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
   }
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),

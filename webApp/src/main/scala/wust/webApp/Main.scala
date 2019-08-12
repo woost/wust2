@@ -122,9 +122,9 @@ object Main {
           case _ => "<div class = \"hljs\">" + Highlight.highlightAuto(code).value + "</div>"
         }
       }): js.Function2[String, js.UndefOr[String], String]
-      sanitize = true // this sanitizes all html input
-      //TODO provide a sane sanitizer that whitelists some commonly used html features
-      // sanitizer = new SanitizeState().getSanitizer(): js.Function1[String, String]
+      // Setting sanitizer like this sanitizes the output only partially,
+      // therefore we sanitize Strings in Elements.markdownString
+      // sanitizer = DOMPurify.sanitize: js.Function1[String, String]
     })
   }
 

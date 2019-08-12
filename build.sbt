@@ -543,6 +543,7 @@ lazy val webApp = project
       Deps.npm.immediate ::
       Deps.npm.marked ::
       Deps.npm.markedSanitizer ::
+      Deps.npm.dompurify ::
       Deps.npm.dateFns ::
       Deps.npm.draggable ::
       Deps.npm.fomanticUi ::
