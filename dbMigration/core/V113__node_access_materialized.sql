@@ -695,31 +695,42 @@ $$ language sql stable;
 create or replace function graph_page(parents uuid[], userid uuid)
 returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
 as $$
-    with nodes as (
-        -- page with channels
-        select * from user_quickaccess_nodes(userid) as id -- faster to have extra method user_quickaccess_nodes than inlining
-        union
-        select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents)
+    -- accessible nodes from page
+    with content_node_ids as (
+        select id from (
+            select * from user_quickaccess_nodes(userid) as id -- all channels of user, inlining is slower
+            union
+            select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
+        ) as node_ids where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
     ),
-    all_nodes as (
-        -- add users to page and channels
-        select id from nodes where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
-        union
-        select useredge.target_userid as id from nodes inner join useredge on useredge.source_nodeid = nodes.id
-        union
-        select userid as id
+    -- content node ids and users joined with node
+    all_node_ids as (
+        select node.* from (
+            select id from content_node_ids
+            union
+            select useredge.target_userid as id from content_node_ids inner join useredge on useredge.source_nodeid = content_node_ids.id
+            union
+            select userid as id
+        ) as all_node_ids inner join node on node.id = all_node_ids.id
     )
 
-    -- induced subgraph of all nodes
+
+
+    ---- induced subgraph of all nodes without edges - what kind of node has no edges?
+    --select node.id, node.data, node.role, node.accesslevel, node.views, array[]::uuid[], array[]::text[]
+    --from node
+    --inner join all_node_ids on all_node_ids.id = node.id
+    --where not exists(select 1 from edge where node.id = edge.sourceid)
+
+    --union all
+
+    -- induced subgraph of all nodes with edges
     select node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
-    -- removing NULL from arrays is important (e.g. decoding NULL as a string fails)
-    array_remove(array_agg(target_edge.targetid), NULL), array_remove(array_agg(target_edge.data::text), NULL)
+    array_agg(edge.targetid), array_agg(edge.data::text)
     from node
-    inner join all_nodes on node.id = all_nodes.id
-    left outer join ( -- outer join, because we want to keep the nodes which have no outgoing edges
-        select edge.* from all_nodes
-        inner join edge on all_nodes.id = edge.targetid
-    ) as target_edge on target_edge.sourceid = node.id
+    inner join all_node_ids on all_node_ids.id = node.id
+    inner join edge on edge.sourceid = node.id
+    and exists (select 1 from all_node_ids where all_node_ids.id = edge.targetid)
     group by (node.id, node.data, node.role, node.accesslevel, node.views); -- needed for multiple outgoing edges
 $$ language sql strict;
 
