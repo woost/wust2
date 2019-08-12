@@ -499,7 +499,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
-      infix"select * from inaccessible_nodes($userId, $nodeIds)".as[Query[NodeId]]
+      infix"select * from inaccessible_nodes($nodeIds, $userId)".as[Query[NodeId]]
     }
   }
 

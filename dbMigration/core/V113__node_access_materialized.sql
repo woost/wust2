@@ -16,13 +16,11 @@ drop function can_access_node;
 drop function can_access_node_via_url;
 drop function can_access_node_expecting_cache_table;
 drop function can_access_node_providing_cache_table;
+drop function induced_subgraph;
+drop function readable_graph_page_nodes_with_channels;
 drop type can_access_result;
 
--- table to store invalidated nodes via changes
-create table node_can_access_invalid(
-  node_id uuid not null references node on delete cascade
-);
-create unique index on node_can_access_invalid (node_id);
+-- table to store invalidated nodes
 
 -- materialized table to cache granted access for user on node (valid = false means it needs to be recalculated)
 create table node_can_access_mat(
@@ -31,12 +29,20 @@ create table node_can_access_mat(
 );
 create unique index on node_can_access_mat (node_id, user_id);
 create index on node_can_access_mat (user_id);
+-- table for storing invalidated nodes whose node_can_acecss needs to recalculated
+-- TODO: should be otherway around? store valid ones?
+create table node_can_access_invalid(
+  node_id uuid not null references node on delete cascade
+);
+create unique index on node_can_access_invalid (node_id);
 
 -- materialized table to cache public nodes including inheritance (valid = false means it needs to be recalculated)
 create table node_can_access_public_mat(
-  node_id uuid not null references node on delete cascade
+  node_id uuid not null references node on delete cascade,
+  valid boolean not null
 );
-create index on node_can_access_public_mat (node_id);
+create unique index on node_can_access_public_mat (node_id);
+create index on node_can_access_public_mat (valid);
 
 -- trigger for node update
 create function node_update() returns trigger
@@ -106,11 +112,7 @@ $$;
 create trigger edge_delete_trigger before delete on edge for each row execute procedure edge_delete();
 
 -- deep access children of node
-create function node_can_access_deep_children(node_id uuid)
-  returns table(id uuid)
-  security definer
-  language sql
-as $$
+create function node_can_access_deep_children(node_id uuid) returns table(id uuid) as $$
     with recursive
         content(id) AS (
             select id from node where id = node_id
@@ -119,94 +121,11 @@ as $$
         )
         -- all transitive children
         select id from content;
-$$;
-
-CREATE TYPE node_can_access_public_result AS ENUM ('unknown', 'private', 'public');
-
-create function node_can_access_public_agg_fun(accum node_can_access_public_result, curr node_can_access_public_result) returns node_can_access_public_result AS $$
-    select (
-        CASE
-        WHEN accum = 'public' THEN 'public'
-        WHEN curr = 'public' THEN 'public'
-        WHEN accum = 'unknown' THEN 'unknown'
-        ELSE curr
-        END
-    );
-$$ LANGUAGE sql strict;
-create aggregate node_can_access_public_agg(node_can_access_public_result)
-(
-    INITCOND = 'private',
-    STYPE = node_can_access_public_result,
-    SFUNC = node_can_access_public_agg_fun
-);
-
--- recursively check whether a node is public. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns true if public and false if not
-create function node_can_access_public_recursive(nodeid uuid, visited uuid[]) returns node_can_access_public_result as $$
-declare
-    node_access_level accesslevel;
-    public_result node_can_access_public_result;
-    is_public boolean;
-    is_invalid boolean;
-begin
-    IF ( nodeid = any(visited) ) THEN return 'unknown'; end if; -- prevent inheritance cycles
-
-    is_public := false;
-
-    select exists(select * from node_can_access_invalid where node_id = nodeid) into is_invalid;
-    IF ( is_invalid = false ) THEN
-        is_public := (select exists(select * from node_can_access_public_mat where node_id = nodeid));
-        if (is_public = true) then
-            return 'public';
-        else
-            return 'private';
-        end if;
-    end if;
-
-    -- read node access level to decide for recurison
-    select accessLevel into node_access_level from node where id = nodeid limit 1;
-
-    -- if node access level is public, return true
-    IF (node_access_level = 'readwrite') THEN
-        is_public := true;
-    ELSIF (node_access_level IS NULL) THEN-- null means inherit for the node
-        -- recursively inherit permissions from parents. minimum one parent needs to allowed access.
-        public_result := (select node_can_access_public_agg(node_can_access_public_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid);
-        if (access_result = 'unknown' and cardinality(visited) > 0) then return 'unknown'; end if;
-        if (public_result = 'public') then is_public := true; end if;
-    END IF;
-
-    delete from node_can_access_public_mat where node_id = nodeid;
-    delete from node_can_access_invalid where node_id = nodeid;
-    if (is_public = true) then
-        insert into node_can_access_public_mat VALUES(node_id);
-        return 'public';
-    else
-        return 'private';
-    end if;
-end;
-$$ language plpgsql strict;
-
-CREATE TYPE node_can_access_result AS (
-    known boolean,
-    user_ids uuid[]
-);
-
-create function node_can_access_agg_fun(accum node_can_access_result, curr node_can_access_result) returns node_can_access_result AS $$
-    select false, accum.user_ids || curr.user_ids where not accum.known or not curr.known
-    UNION ALL
-    select true, accum.user_ids || curr.user_ids where accum.known and curr.known
-$$ LANGUAGE sql strict;
-create aggregate node_can_access_agg(node_can_access_result)
-(
-    INITCOND = '(true,{})',
-    STYPE = node_can_access_result,
-    SFUNC = node_can_access_agg_fun
-);
+$$ language sql stable;
 
 -- recursively check whether a node is accessible. will use cache if valid and otherwise with side-effect of filling the cache.
 -- returns true if uncacheable node_ids
-create or replace function node_can_access_recursive(nodeid uuid, visited uuid[]) returns uuid[] as $$
+create function node_can_access_recursive(nodeid uuid, visited uuid[]) returns uuid[] as $$
 declare
     uncachable_node_ids uuid[] default array[]::uuid[];
 begin
@@ -254,58 +173,15 @@ begin
 end;
 $$ language plpgsql strict;
 
-create or replace function allowed_users_for_node_recursive(nodeid uuid) returns table(user_id uuid) as $$
-    with recursive
-        transitive_access_parents(id) AS (
-            select id from node where id = nodeid
-            union
-            select accessedge.target_nodeid
-                from transitive_access_parents
-                inner join node_can_access_invalid
-                on transitive_access_parents.id = node_can_access_invalid.node_id
-                inner join node
-                on node.id = transitive_access_parents.id and (node.accesslevel is NULL or node.accesslevel = 'readwrite')
-                inner join accessedge
-                on accessedge.source_nodeid = transitive_access_parents.id
-        )
-        select target_userid
-        from transitive_access_parents
-        inner join node_can_access_invalid
-        on transitive_access_parents.id = node_can_access_invalid.node_id
-        inner join member
-        on transitive_access_parents.id = member.source_nodeid and member.data->>'level' = 'readwrite'
-        union
-        select user_id
-        from transitive_access_parents
-        inner join node_can_access_mat
-        on transitive_access_parents.id = node_can_access_mat.node_id and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = transitive_access_parents.id)
-$$ language sql strict;
+create function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
+begin
+    perform node_can_access_recursive(nodeid, array[]::uuid[]);
 
-drop function allowed_users_for_node_refresh;
-create view allowed_users_for_node_refresh(nodeid uuid) returns table(user_id uuid) as $$
-    with allowed_users(user_id) AS (
-        select allowed_users_for_node_recursive(nodeid) as user_id
-    ), delete_invalid AS (
-        delete from node_can_access_invalid where node_id = nodeid
-    ), delete_outdated AS (
-        delete from node_can_access_mat
-        where node_id = nodeid
-        and not exists(select 1 from allowed_users where node_can_access_mat.user_id = allowed_users.user_id)
-    )
-    insert into node_can_access_mat select nodeid, user_id from allowed_users on conflict do nothing returning user_id;
-$$ language sql strict;
+    return query select node_can_access_mat.user_id from node_can_access_mat where node_can_access_mat.node_id = nodeid;
+end;
+$$ language plpgsql strict;
 
-create or replace function allowed_users_for_node(nodeid uuid) returns table(user_id uuid) as $$
-    select user_id
-    from node_can_access_mat
-    where node_id = nodeid and not exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = nodeid)
-    UNION
-    select user_id
-    from allowed_users_for_node_refresh(nodeid)
-    where exists(select 1 from node_can_access_invalid where node_can_access_invalid.node_id = nodeid)
-$$ language sql strict;
-
-create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
+create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
     return
     exists(
@@ -318,14 +194,8 @@ begin
         where id = nodeid
     )
     or exists(
-        select 1 from allowed_users_for_node(nodeid) where user_id = userid
+        select 1 from node_can_access_users(nodeid) where user_id = userid
     );
-end;
-$$ language plpgsql strict;
-
-create function node_can_access_public(nodeid uuid) returns boolean as $$
-begin
-    return node_can_access_public_recursive(nodeid, array[]::uuid[]) = 'public';
 end;
 $$ language plpgsql strict;
 
@@ -349,20 +219,12 @@ drop function edge_update;
 drop trigger edge_delete_trigger on edge;
 drop function edge_delete;
 drop function node_can_access;
-drop function node_can_access_public;
 drop function node_can_access_recursive;
-drop function node_can_access_public_recursive;
 drop function node_can_access_deep_children;
-drop aggregate node_can_access_public_agg(node_can_access_public_result);
-drop function node_can_access_public_agg_fun;
-drop aggregate node_can_access_agg(node_can_access_result);
-drop function node_can_access_agg_fun;
 
 drop function graph_page;
 drop function graph_traversed_page_nodes;
-drop function readable_graph_page_nodes_with_channels;
 drop function user_quickaccess_nodes;
-drop function induced_subgraph;
 drop function mergeFirstUserIntoSecond;
 drop function inaccessible_nodes;
 drop function notified_users_by_nodeid;
@@ -374,10 +236,8 @@ drop aggregate array_merge_agg(anyarray);
 drop function array_intersect;
 drop function array_merge;
 
-create function millis_to_timestamp(millis anyelement) returns timestamp with time zone as $$
-    select to_timestamp(millis::bigint / 1000)
-$$ language sql stable;
-
+----------------------------------------------------------
+-- NODE CAN ACCESSS
 -- trigger for node update
 create function node_update() returns trigger
   security definer
@@ -446,11 +306,7 @@ $$;
 create trigger edge_delete_trigger before delete on edge for each row execute procedure edge_delete();
 
 -- deep access children of node
-create function node_can_access_deep_children(node_id uuid)
-  returns table(id uuid)
-  security definer
-  language sql
-as $$
+create function node_can_access_deep_children(node_id uuid) returns table(id uuid) as $$
     with recursive
         content(id) AS (
             select id from node where id = node_id
@@ -459,128 +315,59 @@ as $$
         )
         -- all transitive children
         select id from content;
-$$;
-
-create function node_can_access_public_agg_fun(accum node_can_access_public_result, curr node_can_access_public_result) returns node_can_access_public_result AS $$
-    select (
-        CASE
-        WHEN accum = 'public' THEN 'public'
-        WHEN curr = 'public' THEN 'public'
-        WHEN accum = 'unknown' THEN 'unknown'
-        ELSE curr
-        END
-    );
-$$ LANGUAGE sql strict;
-create aggregate node_can_access_public_agg(node_can_access_public_result)
-(
-    INITCOND = 'private',
-    STYPE = node_can_access_public_result,
-    SFUNC = node_can_access_public_agg_fun
-);
-
--- recursively check whether a node is public. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns true if public and false if not
-create function node_can_access_public_recursive(nodeid uuid, visited uuid[]) returns node_can_access_public_result as $$
-declare
-    node_access_level accesslevel;
-    public_result node_can_access_public_result;
-    is_public boolean;
-    is_invalid boolean;
-begin
-    IF ( nodeid = any(visited) ) THEN return 'unknown'; end if; -- prevent inheritance cycles
-
-    is_public := false;
-
-    select exists(select * from node_can_access_invalid where node_id = nodeid) into is_invalid;
-    IF ( is_invalid = false ) THEN
-        is_public := (select exists(select * from node_can_access_public_mat where node_id = nodeid));
-        if (is_public = true) then
-            return 'public';
-        else
-            return 'private';
-        end if;
-    end if;
-
-    -- read node access level to decide for recurison
-    select accessLevel into node_access_level from node where id = nodeid limit 1;
-
-    -- if node access level is public, return true
-    IF (node_access_level = 'readwrite') THEN
-        is_public := true;
-    ELSIF (node_access_level IS NULL) THEN-- null means inherit for the node
-        -- recursively inherit permissions from parents. minimum one parent needs to allowed access.
-        public_result := (select node_can_access_public_agg(node_can_access_public_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid);
-        if (access_result = 'unknown' and cardinality(visited) > 0) then return 'unknown'; end if;
-        if (public_result = 'public') then is_public := true; end if;
-    END IF;
-
-    delete from node_can_access_public_mat where node_id = nodeid;
-    delete from node_can_access_invalid where node_id = nodeid;
-    if (is_public = true) then
-        insert into node_can_access_public_mat VALUES(node_id);
-        return 'public';
-    else
-        return 'private';
-    end if;
-end;
-$$ language plpgsql strict;
-
-create function node_can_access_agg_fun(accum node_can_access_result, curr node_can_access_result) returns node_can_access_result AS $$
-    select false, accum.user_ids || curr.user_ids where not accum.known or not curr.known
-    UNION ALL
-    select true, accum.user_ids || curr.user_ids where accum.known and curr.known
-$$ LANGUAGE sql strict;
-create aggregate node_can_access_agg(node_can_access_result)
-(
-    INITCOND = '(true,{})',
-    STYPE = node_can_access_result,
-    SFUNC = node_can_access_agg_fun
-);
+$$ language sql stable;
 
 -- recursively check whether a node is accessible. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns the user-ids that are allowed to access this node
-create function node_can_access_recursive(nodeid uuid, visited uuid[]) returns node_can_access_result as $$
+-- returns true if uncacheable node_ids
+create function node_can_access_recursive(nodeid uuid, visited uuid[]) returns uuid[] as $$
 declare
-    node_access_level accesslevel;
-    user_ids uuid[];
-    is_known boolean;
-    result node_can_access_result;
-    is_invalid boolean;
+    uncachable_node_ids uuid[] default array[]::uuid[];
 begin
-    IF ( nodeid = any(visited) ) THEN return row(false, array[]::uuid[]); end if; -- prevent inheritance cycles
+    IF ( nodeid = any(visited) ) THEN return array[nodeid]; end if; -- prevent inheritance cycles
 
-    is_known := true;
+    IF ( exists(select * from node_can_access_invalid where node_id = nodeid) ) THEN
+        -- clear current access rights
+        delete from node_can_access_mat where node_id = nodeid;
 
-    select exists(select * from node_can_access_invalid where node_id = nodeid) into is_invalid;
-    IF ( is_invalid = false ) THEN
-        user_ids := (select array_agg(user_id) from node_can_access_mat where node_id = nodeid);
-        return row(true, user_ids);
+        -- if node access level is inherited or public, check above, else just this level
+        IF (exists(select 1 from node where id = nodeid and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
+
+            -- recursively inherit permissions from parents. run all node_can_access_recursive
+            uncachable_node_ids := (select array(
+                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
+                intersect
+                select unnest(visited)
+            ));
+
+            if (cardinality(uncachable_node_ids) = 0) then
+                delete from node_can_access_invalid where node_id = nodeid;
+                insert into node_can_access_mat (
+                    select nodeid as node_id, user_id
+                    from accessedge
+                    inner join node_can_access_mat
+                    on node_id = accessedge.source_nodeid
+                    where accessedge.target_nodeid = nodeid
+                    union
+                    select nodeid as node_id, member.target_userid as user_id
+                    from member
+                    where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
+                );
+            end if;
+        ELSE
+            delete from node_can_access_invalid where node_id = nodeid;
+            insert into node_can_access_mat (
+                select nodeid as node_id, member.target_userid as user_id
+                from member
+                where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
+            );
+        END IF;
     end if;
 
-    -- collect all user_ids that have granted access for this node
-    select array_agg(member.target_userid) into user_ids from member where data->>'level' = 'readwrite' and member.source_nodeid = nodeid;
-
-    -- read node access level to decide for recurison
-    select accessLevel into node_access_level from node where id = nodeid limit 1;
-
-    -- if node access level is inherited or public, check above, else not grant access.
-    IF (node_access_level IS NULL or node_access_level = 'readwrite') THEN -- null means inherit for the node, readwrite/public inherits as well
-        -- recursively inherit permissions from parents. minimum one parent needs to allowed access.
-        result := (select node_can_access_agg(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid);
-        if (not result.known and cardinality(visited) > 0) then is_known := false; end if;
-        user_ids := user_ids || result.user_ids;
-    END IF;
-
-    delete from node_can_access_mat where node_id = nodeid;
-    delete from node_can_access_invalid where node_id = nodeid;
-    if (is_known = true) THEN
-        insert into node_can_access_mat select nodeid, user_id from unnest(user_ids) as user_id on conflict do nothing;
-    end if;
-    return row(is_known, user_ids);
+    return uncachable_node_ids;
 end;
 $$ language plpgsql strict;
 
-create or replace function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
+create function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
 begin
     perform node_can_access_recursive(nodeid, array[]::uuid[]);
 
@@ -588,10 +375,10 @@ begin
 end;
 $$ language plpgsql strict;
 
-create or replace function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
+create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
     return
-    exists(
+    exists( -- fast shortcut for cached values
         select 1 from node_can_access_mat
         where node_id = nodeid and user_id = userid
         and not exists(select 1 from node_can_access_invalid where node_id = nodeid)
@@ -606,17 +393,22 @@ begin
 end;
 $$ language plpgsql strict;
 
-create function node_can_access_public(nodeid uuid) returns boolean as $$
-begin
-    return node_can_access_public_recursive(nodeid, array[]::uuid[]) = 'public';
-end;
-$$ language plpgsql strict;
 -- returns nodeids which the user does not have permission for
-create function inaccessible_nodes(userid uuid, nodeids uuid[]) returns setof uuid as $$
+create function inaccessible_nodes(nodeids uuid[], userid uuid) returns setof uuid as $$
     select ids.id from (select unnest(nodeids) id) ids where not node_can_access(ids.id, userid);
 $$ language sql strict;
 
--- IMPLEMENTATIONS
+--------------------------------------------------------------------------------------------------------
+-- UTILITIES
+
+CREATE FUNCTION now_utc() RETURNS TIMESTAMP AS $$
+    select NOW() AT TIME ZONE 'utc';
+$$ language sql stable;
+
+create function millis_to_timestamp(millis anyelement) returns timestamp with time zone as $$
+    select to_timestamp(millis::bigint / 1000)
+$$ language sql immutable;
+
 CREATE FUNCTION array_intersect(anyarray, anyarray)
   RETURNS anyarray
   language sql immutable
@@ -627,9 +419,6 @@ as $FUNCTION$
         SELECT UNNEST($2)
     );
 $FUNCTION$;
-
-
-
 
 create function public.array_merge(arr1 anyarray, arr2 anyarray)
     returns anyarray language sql immutable
@@ -643,56 +432,54 @@ as $$
     ) s
 $$;
 
-
 create aggregate array_merge_agg(anyarray) (
     sfunc = array_merge,
     stype = anyarray
 );
 
-create or replace function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
+-----------------------------------------------------------------------------------------------------
+--GRAPH PAGE
+
+create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
     with recursive content(id) AS (
-        select id from node where id = any(page_parents) -- strangely this is faster than `select unnest(starts)`
+        select id from node where id = any(page_parents) where node_can_access(id, userid) -- strangely this is faster than `select unnest(starts)`
         union -- discards duplicates, therefore handles cycles and diamond cases
         select contentedge.target_nodeid
             FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
+            where node_can_access(contentedge.target_nodeid, userid)
     ),
     transitive_parents(id) AS (
-        select id from node where id = any(page_parents)
+        select id from node where id = any(page_parents) where node_can_access(id, userid)
         union
         select contentedge.source_nodeid
             FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
+            where node_can_access(contentedge.source_nodeid, userid)
     )
 
     -- all transitive children
     select * from content
     union
     -- direct parents of content, useful to know tags of content nodes
-    select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id
+    select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id where node_can_access(edge.sourceid, userid)
     union
     -- transitive parents describe the path/breadcrumbs to the page
     select * FROM transitive_parents;
-$$ language sql stable;
-
-
--- induced_subgraph assumes that access is already checked
-create function induced_subgraph(nodeids uuid[])
-returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
-as $$
 $$ language sql strict;
 
-create or replace function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
+
+create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
     with recursive channels(id) as (
         -- all pinned channels of the user
-        select source_nodeid from pinned where pinned.target_userid = userid
+        select source_nodeid from pinned where pinned.target_userid = userid where node_can_access(source_nodeid, userid)
         union
         -- all transitive parents of each channel. This is needed to correctly calculate the topological minor in the channel tree
-        select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id
+        select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id where node_can_access(child.source_parentid, userid)
     )
     select * from channels;
-$$ language sql stable;
+$$ language sql strict;
 
 -- page(parents, children) -> graph as adjacency list
-create or replace function graph_page(parents uuid[], userid uuid)
+create function graph_page(parents uuid[], userid uuid)
 returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
 as $$
     -- accessible nodes from page
@@ -705,7 +492,7 @@ as $$
     ),
     -- content node ids and users joined with node
     all_node_ids as (
-        select id from content_node_ids where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
+        select id from content_node_ids -- CHECK ACCESS FOR ALL NODES, except user-nodes
         union
         select useredge.target_userid as id from content_node_ids inner join useredge on useredge.source_nodeid = content_node_ids.id
         union
@@ -759,21 +546,8 @@ CREATE FUNCTION mergeFirstUserIntoSecond(oldUser uuid, keepUser uuid) RETURNS VO
  END;
 $$ LANGUAGE plpgsql strict;
 
-
-
-
-
-
-CREATE or replace FUNCTION now_utc() RETURNS TIMESTAMP AS $$
-    select NOW() AT TIME ZONE 'utc';
-$$ language sql stable;
-
-
-
-
-
-
-
+------------------------------------------------------------------------------------------------------------------------
+-- NOTIFICATIONS
 
 create function notified_users_at_deepest_node(startids uuid[], now timestamp default now_utc())
     returns table (
