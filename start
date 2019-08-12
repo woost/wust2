@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 set -o pipefail
+shopt -s expand_aliases
 
 if [ "$name" != "Woost" -a "$1" != "nsbt" -a "$1" != "graal" ]; then 
   echo -e "\e[33m######### YOU HAVE NOT STARTED NIX-SHELL #########\e[0m"
@@ -34,27 +35,16 @@ function docker_compose() {
 
     docker-compose -p "$stage$project" -f $project/docker-compose.yml $add_args "${@:3}"
 }
-function postgres_core_command() {
-    docker_compose core dev exec -T postgres "$@"
-}
-function postgres_slack_command() {
-    docker_compose slackApp dev exec -T postgres "$@"
-}
-function postgres_core_psqlbatch() {
-    # Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
-    # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
-    PGOPTIONS='--client-min-messages=warning' postgres_core_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 --single-transaction "$@"
-}
-function postgres_core_psqlbatch_without_transaction() {
-    # Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
-    # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
-    PGOPTIONS='--client-min-messages=warning' postgres_core_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 "$@"
-}
-function postgres_slack_psqlbatch() {
-    # Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
-    # https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
-    PGOPTIONS='--client-min-messages=warning' postgres_slack_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 --single-transaction "$@"
-}
+
+alias postgres_core_command='docker_compose core dev exec -T postgres'
+alias postgres_slack_command='docker_compose slackApp dev exec -T postgres'
+
+# Worth reading: https://petereisentraut.blogspot.com/2010/03/running-sql-scripts-with-psql.html
+# https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-CLIENT-MIN-MESSAGES
+alias postgres_core_psqlbatch_without_transaction='PGOPTIONS="--client-min-messages=warning" postgres_core_command psql  --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1'
+alias postgres_core_psqlbatch='PGOPTIONS="--client-min-messages=warning" postgres_core_command psql  --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 --single-transaction'
+alias postgres_slack_psqlbatch='PGOPTIONS="--client-min-messages=warning" postgres_slack_command psql --no-psqlrc --quiet --pset pager=off --set ON_ERROR_STOP=1 --single-transaction'
+
 override_sbt_args="${@:2}" # all remaining arguments starting at 2
 function sbt_with_args() {
     args="${@:1}"
@@ -93,6 +83,10 @@ function self() {
         export $env_postgres_secret $env_postgres_local
         PGPASSWORD=$POSTGRES_PASSWORD psql -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT ${@:2}
         # postgres_core_command psql -h localhost -U $POSTGRES_USER ${@:2}
+        ;;
+    psqlbatch)
+        export $env_postgres_secret $env_postgres_local
+        postgres_core_psqlbatch -h $POSTGRES_HOSTNAME -U $POSTGRES_USER -p $POSTGRES_PORT ${@:2}
         ;;
     pgcli)
         export $env_postgres_secret $env_postgres_local
