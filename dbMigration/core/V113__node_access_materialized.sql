@@ -261,7 +261,7 @@ create or replace function allowed_users_for_node_recursive(nodeid uuid) returns
             union
             select accessedge.target_nodeid
                 from transitive_access_parents
-                inner join node_can_access_)invalid
+                inner join node_can_access_invalid
                 on transitive_access_parents.id = node_can_access_invalid.node_id
                 inner join node
                 on node.id = transitive_access_parents.id and (node.accesslevel is NULL or node.accesslevel = 'readwrite')
@@ -701,20 +701,16 @@ as $$
             select * from user_quickaccess_nodes(userid) as id -- all channels of user, inlining is slower
             union
             select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
-        ) as node_ids where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
+        ) as node_ids
     ),
     -- content node ids and users joined with node
     all_node_ids as (
-        select node.* from (
-            select id from content_node_ids
-            union
-            select useredge.target_userid as id from content_node_ids inner join useredge on useredge.source_nodeid = content_node_ids.id
-            union
-            select userid as id
-        ) as all_node_ids inner join node on node.id = all_node_ids.id
+        select id from content_node_ids where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
+        union
+        select useredge.target_userid as id from content_node_ids inner join useredge on useredge.source_nodeid = content_node_ids.id
+        union
+        select userid as id
     )
-
-
 
     ---- induced subgraph of all nodes without edges - what kind of node has no edges?
     --select node.id, node.data, node.role, node.accesslevel, node.views, array[]::uuid[], array[]::text[]
