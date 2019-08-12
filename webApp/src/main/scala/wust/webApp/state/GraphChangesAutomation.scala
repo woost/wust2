@@ -19,7 +19,7 @@ import scala.collection.{breakOut, mutable}
 object GraphChangesAutomation {
 
   val templateVariableRegex = "\\$(@)?\\{woost((\\.[^\\.\\}]+)+)\\}".r
-  def replaceVariableInText(userId: UserId, graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = {
+  def replaceVariableInText(userId: UserId, graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = {
 
     val extraEdges = Array.newBuilder[Edge]
 
@@ -68,15 +68,15 @@ object GraphChangesAutomation {
               referenceNodesPath(i + 1) = referenceNodesPath(i)
               commandMode = FieldLookup
             case "reverseField" =>
-              val references = lookupPropertyReverseVariable(graph, referenceNodesPath(i), newEdges)
+              val references = lookupPropertyReverseVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
               if (references.isEmpty) done = true
               else referenceNodesPath(i + 1) = references
             case "parent" =>
-              val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges)
+              val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
               if (references.isEmpty) done = true
               else referenceNodesPath(i + 1) = references
             case "assignee" =>
-              val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges)
+              val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
               if (references.isEmpty) done = true
               else referenceNodesPath(i + 1) = references
             case _ =>
@@ -85,7 +85,7 @@ object GraphChangesAutomation {
           }
 
           case FieldLookup =>
-            val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges)
+            val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges, newEdgesReverse)
             if (references.isEmpty) done = true
             else referenceNodesPath(i + 1) = references
             commandMode = CommandSelection
@@ -116,15 +116,15 @@ object GraphChangesAutomation {
     (newStr, extraEdges.result)
   }
 
-  def lookupAssigneeVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+  def lookupAssigneeVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
     @inline def add(node: Node): Unit = if (InlineList.contains(NodeRole.Task, NodeRole.Message, NodeRole.Project, NodeRole.Note)(node.role)) arr += node
 
     nodes.foreach { node =>
       newEdges.get(node.id).foreach(_.foreach {
-        case (edge: Edge.Assigned, node) => add(node)
-        case (_, _) => ()
+        case (edge: Edge.Assigned, targetNode) => add(targetNode)
+        case _ => ()
       })
 
       graph.idToIdxForeach(node.id) { nodeIdx =>
@@ -137,15 +137,15 @@ object GraphChangesAutomation {
     arr.result.distinct
   }
 
-  def lookupParentVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+  def lookupParentVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
     @inline def add(node: Node): Unit = if (InlineList.contains(NodeRole.Task, NodeRole.Message, NodeRole.Project, NodeRole.Note)(node.role)) arr += node
 
     nodes.foreach { node =>
-      newEdges.get(node.id).foreach(_.foreach {
-        case (edge: Edge.Child, node) => add(node)
-        case (_, _) => ()
+      newEdgesReverse.get(node.id).foreach(_.foreach {
+        case (edge: Edge.Child, parentNode) => add(parentNode)
+        case _ => ()
       })
 
       graph.idToIdxForeach(node.id) { nodeIdx =>
@@ -158,20 +158,17 @@ object GraphChangesAutomation {
     arr.result.distinct
   }
 
-  def lookupPropertyReverseVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+  def lookupPropertyReverseVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
     @inline def add(node: Node): Unit = arr += node
 
-    //TODO: more efficient...
-    newEdges.foreach { case (sourceId, edges) =>
-      edges.foreach {
-        case (edge: Edge.LabeledProperty, node) if nodes.exists(_.id == node.id) => graph.nodesById(sourceId).foreach(add(_))
-        case (_, _) => ()
-      }
-    }
-
     nodes.foreach { node =>
+      newEdgesReverse.get(node.id).foreach(_.foreach {
+        case (edge: Edge.LabeledProperty, sourceNode) => add(sourceNode)
+        case _ => ()
+      })
+
       graph.idToIdxForeach(node.id) { nodeIdx =>
         graph.propertiesEdgeReverseIdx.foreachElement(nodeIdx) { edgeIdx =>
           add(graph.nodes(graph.edgesIdx.a(edgeIdx)))
@@ -182,7 +179,7 @@ object GraphChangesAutomation {
     arr.result.distinct
   }
 
-  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+  def lookupPropertyVariable(graph: Graph, nodes: Array[Node], key: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
     val arr = Array.newBuilder[Node]
 
     @inline def add(edge: Edge.LabeledProperty, node: => Node): Unit = if (edge.data.key == key) arr += node
@@ -190,7 +187,7 @@ object GraphChangesAutomation {
     nodes.foreach { node =>
       newEdges.get(node.id).foreach(_.foreach {
         case (edge: Edge.LabeledProperty, node) => add(edge, node)
-        case (_, _) => ()
+        case _ => ()
       })
 
       graph.idToIdxForeach(node.id) { nodeIdx =>
@@ -455,16 +452,11 @@ object GraphChangesAutomation {
 
     // all new edges that we are creating that might be need for resolving variables in new nodes.
     val newResolvableEdges = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
+    val newResolvableEdgesReverse = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
     def updateNewResolvableEdges(edge: Edge, sourceNode: => Node, targetNode: => Node): Unit = edge match {
-      case edge: Edge.LabeledProperty =>
-        val buffer = newResolvableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
-        buffer += (edge -> targetNode)
-      case edge: Edge.Child =>
-        val buffer = newResolvableEdges.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)])
-        buffer += (edge -> sourceNode)
-      case edge: Edge.Assigned =>
-        val buffer = newResolvableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)])
-        buffer += (edge -> targetNode)
+      case _: Edge.LabeledProperty | _: Edge.Child | _: Edge.Assigned =>
+        newResolvableEdges.getOrElseUpdate(edge.sourceId, new mutable.ArrayBuffer[(Edge, Node)]) += (edge -> targetNode)
+        newResolvableEdgesReverse.getOrElseUpdate(edge.targetId, new mutable.ArrayBuffer[(Edge, Node)]) += (edge -> sourceNode)
       case _ => ()
     }
 
@@ -515,7 +507,7 @@ object GraphChangesAutomation {
         val newData = templateData match {
 
           case data: NodeData.EditableText =>
-            val (newStr, extraEdges) = replaceVariableInText(userId, graph, node, data.str, newResolvableEdges)
+            val (newStr, extraEdges) = replaceVariableInText(userId, graph, node, data.str, newResolvableEdges, newResolvableEdgesReverse)
             data.updateStr(newStr) match {
               case Some(newData) =>
                 addEdges ++= extraEdges
