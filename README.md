@@ -94,6 +94,17 @@ e.g.
 ```
 
 ## Database performance measurement
+For more accurate measurements, set cpu to fixed frequency:
+```bash
+sudo cpupower frequency-set -g performance
+sudo cpupower frequency-set -u 3GHz
+```
+and disable multithreading in postgres:
+```sql
+SET max_parallel_workers_per_gather = 0;
+```
+
+
 function stats (only activated in dev, requires `track_functions=all`)
 ```sql
 select funcname, calls, total_time, total_time/calls as total_avg, self_time, self_time/calls as self_avg from pg_stat_user_functions order by self_time DESC;
