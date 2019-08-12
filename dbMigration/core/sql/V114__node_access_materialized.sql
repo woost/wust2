@@ -38,10 +38,10 @@ create unique index on node_can_access_mat (node_id, user_id);
 create index on node_can_access_mat (user_id);
 -- table for storing invalidated nodes whose node_can_acecss needs to recalculated
 -- TODO: should be otherway around? store valid ones?
-create table node_can_access_invalid(
+create table node_can_access_valid(
   node_id uuid not null references node on delete cascade
 );
-create unique index on node_can_access_invalid (node_id);
+create unique index on node_can_access_valid (node_id);
 
 -- materialized table to cache public nodes including inheritance (valid = false means it needs to be recalculated)
 create table node_can_access_public_mat(
@@ -53,7 +53,6 @@ create index on node_can_access_public_mat (valid);
 
 
 
-insert into node_can_access_invalid select id from node on conflict do nothing;
 
 
 
@@ -104,7 +103,7 @@ create function node_update() returns trigger
 as $$
   begin
     IF (new.accesslevel <> old.accesslevel) THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(new.id) on conflict do nothing;
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.id));
     end if;
     return new;
   end;
@@ -118,10 +117,10 @@ create function edge_insert() returns trigger
 as $$
   begin
     IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
     ELSIF(new.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
     end IF;
     return new;
   end;
@@ -136,10 +135,10 @@ as $$
   begin
     IF (new.sourceid <> old.sourceid or new.targetid <> old.targetid or new.data->>'type' <> old.data->>'type') THEN
         IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-            insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
+            delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
         ELSIF(new.data->>'type' = 'Member') THEN
             --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-            insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
+            delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
         end IF;
     end IF;
     return new;
@@ -154,10 +153,10 @@ create function edge_delete() returns trigger
 as $$
   begin
     IF (old.data->>'type' = 'Child' or old.data->>'type' = 'LabeledProperty') THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(old.sourceid) on conflict do nothing;
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(old.sourceid));
     ELSIF(old.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        insert into node_can_access_invalid select node_can_access_deep_children(old.sourceid) on conflict do nothing;
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(old.sourceid));
     end IF;
     return old;
   end;
@@ -185,7 +184,7 @@ declare
 begin
     IF ( nodeid = any(visited) ) THEN return array[nodeid]; end if; -- prevent inheritance cycles
 
-    IF ( exists(select * from node_can_access_invalid where node_id = nodeid) ) THEN
+    IF ( not exists(select * from node_can_access_valid where node_id = nodeid) ) THEN
         -- clear current access rights
         delete from node_can_access_mat where node_id = nodeid;
 
@@ -201,7 +200,7 @@ begin
             ));
 
             if (cardinality(uncachable_node_ids) = 0) then
-                delete from node_can_access_invalid where node_id = nodeid;
+                insert into node_can_access_valid VALUES(nodeid);
                 insert into node_can_access_mat (
                     select nodeid as node_id, user_id
                     from accessedge
@@ -215,7 +214,7 @@ begin
                 );
             end if;
         ELSE
-            delete from node_can_access_invalid where node_id = nodeid;
+            insert into node_can_access_valid VALUES(nodeid);
             insert into node_can_access_mat (
                 select nodeid as node_id, member.target_userid as user_id
                 from member
@@ -246,7 +245,7 @@ begin
     exists( -- fast shortcut for cached values
         select 1 from node_can_access_mat
         where node_id = nodeid and user_id = userid
-        and not exists(select 1 from node_can_access_invalid where node_id = nodeid)
+        and exists(select 1 from node_can_access_valid where node_id = nodeid)
     )
     or not exists (
         select 1 from node
@@ -328,7 +327,7 @@ create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) ret
 $$ language sql strict;
 
 
-create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
+create function user_bookmarks(userid uuid) returns setof uuid as $$
     with recursive channels(id) as (
         -- all pinned channels of the user
         select source_nodeid from pinned where pinned.target_userid = userid and node_can_access(source_nodeid, userid)
@@ -346,7 +345,7 @@ as $$
     -- accessible nodes from page
     with content_node_ids as (
         select id from (
-            select * from user_quickaccess_nodes(userid) as id -- all channels of user, inlining is slower
+            select * from user_bookmarks(userid) as id -- all channels of user, inlining is slower
             union
             select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
         ) as node_ids
