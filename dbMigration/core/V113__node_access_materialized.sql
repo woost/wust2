@@ -649,29 +649,28 @@ create aggregate array_merge_agg(anyarray) (
     stype = anyarray
 );
 
-create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
-    with recursive
-        content(id) AS (
-            select id from node where id = any(page_parents) -- strangely this is faster than `select unnest(starts)`
-            union -- discards duplicates, therefore handles cycles and diamond cases
-            select contentedge.target_nodeid
-                FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
-        ),
-        transitive_parents(id) AS (
-            select id from node where id = any(page_parents)
-            union
-            select contentedge.source_nodeid
-                FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
-        )
+create or replace function graph_traversed_page_nodes(page_parents uuid[], userid uuid) returns setof uuid as $$
+    with recursive content(id) AS (
+        select id from node where id = any(page_parents) -- strangely this is faster than `select unnest(starts)`
+        union -- discards duplicates, therefore handles cycles and diamond cases
+        select contentedge.target_nodeid
+            FROM content INNER JOIN contentedge ON contentedge.source_nodeid = content.id
+    ),
+    transitive_parents(id) AS (
+        select id from node where id = any(page_parents)
+        union
+        select contentedge.source_nodeid
+            FROM transitive_parents INNER JOIN contentedge ON contentedge.target_nodeid = transitive_parents.id
+    )
 
-        -- all transitive children
-        select * from content
-        union
-        -- direct parents of content, useful to know tags of content nodes
-        select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id
-        union
-        -- transitive parents describe the path/breadcrumbs to the page
-        select * FROM transitive_parents;
+    -- all transitive children
+    select * from content
+    union
+    -- direct parents of content, useful to know tags of content nodes
+    select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id
+    union
+    -- transitive parents describe the path/breadcrumbs to the page
+    select * FROM transitive_parents;
 $$ language sql stable;
 
 
@@ -681,19 +680,16 @@ returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, view
 as $$
 $$ language sql strict;
 
-create function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
+create or replace function user_quickaccess_nodes(userid uuid) returns setof uuid as $$
     with recursive channels(id) as (
         -- all pinned channels of the user
-        select source_nodeid from pinned where pinned.target_userid = userid and node_can_access(pinned.source_nodeid, userid)
-        union
-        -- all invitations of the user
-        select source_nodeid from invite where invite.target_userid = userid and node_can_access(invite.source_nodeid, userid)
+        select source_nodeid from pinned where pinned.target_userid = userid
         union
         -- all transitive parents of each channel. This is needed to correctly calculate the topological minor in the channel tree
-        select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id and node_can_access(child.source_parentid, userid)
+        select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id
     )
     select * from channels;
-$$ language sql strict;
+$$ language sql stable;
 
 -- page(parents, children) -> graph as adjacency list
 create or replace function graph_page(parents uuid[], userid uuid)
@@ -701,13 +697,13 @@ returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, view
 as $$
     with nodes as (
         -- page with channels
-        select * from user_quickaccess_nodes(userid) as id
+        select * from user_quickaccess_nodes(userid) as id -- faster to have extra method user_quickaccess_nodes than inlining
         union
         select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents)
     ),
     all_nodes as (
         -- add users to page and channels
-        select id from nodes where node_can_access(id, userid)
+        select id from nodes where node_can_access(id, userid) -- CHECK ACCESS FOR ALL NODES, except user-nodes
         union
         select useredge.target_userid as id from nodes inner join useredge on useredge.source_nodeid = nodes.id
         union
@@ -716,12 +712,15 @@ as $$
 
     -- induced subgraph of all nodes
     select node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
-    array_remove(array_agg(edge.targetid), NULL),
-    array_remove(array_agg(edge.data::text), NULL) -- removing NULL is important (e.g. decoding NULL as a string fails)
+    -- removing NULL from arrays is important (e.g. decoding NULL as a string fails)
+    array_remove(array_agg(target_edge.targetid), NULL), array_remove(array_agg(target_edge.data::text), NULL)
     from node
     inner join all_nodes on node.id = all_nodes.id
-    left outer join edge on edge.sourceid = node.id and exists(select 1 from all_nodes where id = edge.targetid) -- outer join, because we want to keep the nodes which have no outgoing edges
-    group by (node.id, node.data, node.role, node.accesslevel); -- needed for multiple outgoing edges
+    left outer join ( -- outer join, because we want to keep the nodes which have no outgoing edges
+        select edge.* from all_nodes
+        inner join edge on all_nodes.id = edge.targetid
+    ) as target_edge on target_edge.sourceid = node.id
+    group by (node.id, node.data, node.role, node.accesslevel, node.views); -- needed for multiple outgoing edges
 $$ language sql strict;
 
 -- this works on nodes, not only users. maybe restrict?
