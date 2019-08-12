@@ -9,6 +9,13 @@
 -- 4) insert member. need to recalute that specific user in deep children/targets.
 -- 5) delete member. need to invalidate and recalute that specific user in deep children/targets.
 
+
+
+
+-- TODO
+-- node_can_access_valid (statt invalid)
+-- rename can_access_node_recursive to ensure ...
+
 drop aggregate can_access_agg(can_access_result);
 drop function can_access_agg_fun;
 drop function can_access_node_recursive;
@@ -44,161 +51,11 @@ create table node_can_access_public_mat(
 create unique index on node_can_access_public_mat (node_id);
 create index on node_can_access_public_mat (valid);
 
--- trigger for node update
-create function node_update() returns trigger
-  security definer
-  language plpgsql
-as $$
-  begin
-    IF (new.accesslevel <> old.accesslevel) THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(new.id) on conflict do nothing;
-    end if;
-    return new;
-  end;
-$$;
-create trigger node_update_trigger before update on node for each row execute procedure node_update();
 
--- trigger edge insert
-create function edge_insert() returns trigger
-  security definer
-  language plpgsql
-as $$
-  begin
-    IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
-    ELSIF(new.data->>'type' = 'Member') THEN
-        --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
-    end IF;
-    return new;
-  end;
-$$;
-create trigger edge_insert_trigger before insert on edge for each row execute procedure edge_insert();
 
--- trigger edge update
-create function edge_update() returns trigger
-  security definer
-  language plpgsql
-as $$
-  begin
-    IF (new.sourceid <> old.sourceid or new.targetid <> old.targetid or new.data->>'type' <> old.data->>'type') THEN
-        IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-            insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
-        ELSIF(new.data->>'type' = 'Member') THEN
-            --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-            insert into node_can_access_invalid select node_can_access_deep_children(new.sourceid) on conflict do nothing;
-        end IF;
-    end IF;
-    return new;
-  end;
-$$;
-create trigger edge_update_trigger before insert on edge for each row execute procedure edge_update();
+insert into node_can_access_invalid select id from node on conflict do nothing;
 
--- trigger for edge delete
-create function edge_delete() returns trigger
-  security definer
-  language plpgsql
-as $$
-  begin
-    IF (old.data->>'type' = 'Child' or old.data->>'type' = 'LabeledProperty') THEN
-        insert into node_can_access_invalid select node_can_access_deep_children(old.sourceid) on conflict do nothing;
-    ELSIF(old.data->>'type' = 'Member') THEN
-        --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        insert into node_can_access_invalid select node_can_access_deep_children(old.sourceid) on conflict do nothing;
-    end IF;
-    return old;
-  end;
-$$;
-create trigger edge_delete_trigger before delete on edge for each row execute procedure edge_delete();
 
--- deep access children of node
-create function node_can_access_deep_children(node_id uuid) returns table(id uuid) as $$
-    with recursive
-        content(id) AS (
-            select id from node where id = node_id
-            union -- discards duplicates, therefore handles cycles and diamond cases
-            select accessedge.target_nodeid FROM content INNER JOIN accessedge ON accessedge.source_nodeid = content.id
-        )
-        -- all transitive children
-        select id from content;
-$$ language sql stable;
-
--- recursively check whether a node is accessible. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns true if uncacheable node_ids
-create function node_can_access_recursive(nodeid uuid, visited uuid[]) returns uuid[] as $$
-declare
-    uncachable_node_ids uuid[] default array[]::uuid[];
-begin
-    IF ( nodeid = any(visited) ) THEN return array[nodeid]; end if; -- prevent inheritance cycles
-
-    IF ( exists(select * from node_can_access_invalid where node_id = nodeid) ) THEN
-        -- clear current access rights
-        delete from node_can_access_mat where node_id = nodeid;
-
-        -- if node access level is inherited or public, check above, else just this level
-        IF (exists(select 1 from node where id = nodeid and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
-
-            -- recursively inherit permissions from parents. run all node_can_access_recursive
-            -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
-            uncachable_node_ids := (select array(
-                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
-                intersect
-                select unnest(visited)
-            ));
-
-            if (cardinality(uncachable_node_ids) = 0) then
-                delete from node_can_access_invalid where node_id = nodeid;
-                insert into node_can_access_mat (
-                    select nodeid as node_id, user_id
-                    from accessedge
-                    inner join node_can_access_mat
-                    on node_id = accessedge.source_nodeid
-                    where accessedge.target_nodeid = nodeid
-                    union
-                    select nodeid as node_id, member.target_userid as user_id
-                    from member
-                    where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
-                );
-            end if;
-        ELSE
-            delete from node_can_access_invalid where node_id = nodeid;
-            insert into node_can_access_mat (
-                select nodeid as node_id, member.target_userid as user_id
-                from member
-                where data->>'level' = 'readwrite' and member.source_nodeid = nodeid
-            );
-        END IF;
-    end if;
-
-    return uncachable_node_ids;
-end;
-$$ language plpgsql strict;
-
-create function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
-begin
-    perform node_can_access_recursive(nodeid, array[]::uuid[]);
-
-    return query select node_can_access_mat.user_id from node_can_access_mat where node_can_access_mat.node_id = nodeid;
-end;
-$$ language plpgsql strict;
-
-create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
-begin
-    return
-    exists(
-        select 1 from node_can_access_mat
-        where node_id = nodeid and user_id = userid
-        and not exists(select 1 from node_can_access_invalid where node_id = nodeid)
-    )
-    or not exists (
-        select 1 from node
-        where id = nodeid
-    )
-    or exists(
-        select 1 from node_can_access_users(nodeid) where user_id = userid
-    );
-end;
-$$ language plpgsql strict;
 
 ------------------------------------------------------------
 ----- COPY & PASTE IN EVERY MIGRATION FROM HERE TO END -----
@@ -211,18 +68,18 @@ $$ language plpgsql strict;
 --- begin procedures
 --------------------
 -- drop
-drop trigger node_update_trigger on node;
-drop function node_update;
-drop trigger edge_insert_trigger on edge;
-drop function edge_insert;
-drop trigger edge_update_trigger on edge;
-drop function edge_update;
-drop trigger edge_delete_trigger on edge;
-drop function edge_delete;
-drop function node_can_access_users;
-drop function node_can_access;
-drop function node_can_access_recursive;
-drop function node_can_access_deep_children;
+-- drop trigger node_update_trigger on node;
+-- drop function node_update;
+-- drop trigger edge_insert_trigger on edge;
+-- drop function edge_insert;
+-- drop trigger edge_update_trigger on edge;
+-- drop function edge_update;
+-- drop trigger edge_delete_trigger on edge;
+-- drop function edge_delete;
+-- drop function node_can_access_users;
+-- drop function node_can_access;
+-- drop function node_can_access_recursive;
+-- drop function node_can_access_deep_children;
 
 drop function graph_page;
 drop function graph_traversed_page_nodes;
@@ -313,6 +170,7 @@ create function node_can_access_deep_children(node_id uuid) returns table(id uui
         content(id) AS (
             select id from node where id = node_id
             union -- discards duplicates, therefore handles cycles and diamond cases
+            -- TODO: can_access_deep_children must only be invalidated when they inherit members
             select accessedge.target_nodeid FROM content INNER JOIN accessedge ON accessedge.source_nodeid = content.id
         )
         -- all transitive children
@@ -335,6 +193,7 @@ begin
         IF (exists(select 1 from node where id = nodeid and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
 
             -- recursively inherit permissions from parents. run all node_can_access_recursive
+            -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
             uncachable_node_ids := (select array(
                 select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
                 intersect
@@ -369,6 +228,8 @@ begin
 end;
 $$ language plpgsql strict;
 
+
+
 create function node_can_access_users(nodeid uuid) returns table(user_id uuid) as $$
 begin
     perform node_can_access_recursive(nodeid, array[]::uuid[]);
@@ -376,6 +237,8 @@ begin
     return query select node_can_access_mat.user_id from node_can_access_mat where node_can_access_mat.node_id = nodeid;
 end;
 $$ language plpgsql strict;
+
+
 
 create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
 begin
@@ -395,10 +258,6 @@ begin
 end;
 $$ language plpgsql strict;
 
--- returns nodeids which the user does not have permission for
-create function inaccessible_nodes(nodeids uuid[], userid uuid) returns setof uuid as $$
-    select ids.id from (select unnest(nodeids) id) ids where not node_can_access(ids.id, userid);
-$$ language sql strict;
 
 --------------------------------------------------------------------------------------------------------
 -- UTILITIES
@@ -494,7 +353,7 @@ as $$
     ),
     -- content node ids and users joined with node
     all_node_ids as (
-        select id from content_node_ids -- CHECK ACCESS FOR ALL NODES, except user-nodes
+        select id from content_node_ids
         union
         select useredge.target_userid as id from content_node_ids inner join useredge on useredge.source_nodeid = content_node_ids.id
         union
