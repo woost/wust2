@@ -345,13 +345,13 @@ $$ language sql strict;
 
 -- page(parents, children) -> graph as adjacency list
 create function graph_page(parents uuid[], userid uuid)
-returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], targetids uuid[], edgeData text[])
+returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, views jsonb[], sourceid uuid, targetid uuid, edgeData jsonb)
 as $$
     -- accessible nodes from page
     with content_node_ids as (
-            select * from user_bookmarks(userid) as id -- all channels of user, inlining is slower
-            union
-            select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
+        select * from user_bookmarks(userid) as id -- all channels of user, inlining is slower
+        union
+        select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
     ),
     -- content node ids and users joined with node
     all_node_ids as (
@@ -370,14 +370,18 @@ as $$
 
     --union all
 
-    -- induced subgraph of all nodes with edges
-    select node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
-    array_agg(edge.targetid), array_agg(edge.data::text)
+    -- all nodes
+    select node.id, node.data, node.role, node.accesslevel, node.views, null::uuid, null::uuid, null::jsonb -- all node columns
     from all_node_ids
-    inner join node on all_node_ids.id = node.id
-    inner join edge on edge.sourceid = node.id
+    inner join node on node.id = all_node_ids.id
+
+    union all
+
+    -- induced edges
+    select null, null, null, null, null, edge.sourceid, edge.targetid, edge.data -- all edge columns
+    from all_node_ids
+    inner join edge on edge.sourceid = all_node_ids.id
     and exists (select 1 from all_node_ids where all_node_ids.id = edge.targetid)
-    group by (node.id, node.data, node.role, node.accesslevel, node.views); -- needed for multiple outgoing edges
 $$ language sql strict;
 
 -- this works on nodes, not only users. maybe restrict?
