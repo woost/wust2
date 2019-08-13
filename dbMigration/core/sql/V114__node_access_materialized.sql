@@ -13,7 +13,6 @@
 
 
 -- TODO
--- node_can_access_valid (statt invalid)
 -- rename can_access_node_recursive to ensure ...
 
 drop aggregate can_access_agg(can_access_result);
@@ -37,7 +36,6 @@ create table node_can_access_mat(
 create unique index on node_can_access_mat (node_id, user_id);
 create index on node_can_access_mat (user_id);
 -- table for storing invalidated nodes whose node_can_acecss needs to recalculated
--- TODO: should be otherway around? store valid ones?
 create table node_can_access_valid(
   node_id uuid not null references node on delete cascade
 );
