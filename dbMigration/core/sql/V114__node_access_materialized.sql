@@ -375,8 +375,8 @@ as $$
     -- induced subgraph of all nodes with edges
     select node.id, node.data, node.role, node.accesslevel, node.views, -- all node columns
     array_agg(edge.targetid), array_agg(edge.data::text)
-    from node
-    inner join all_node_ids on all_node_ids.id = node.id
+    from all_node_ids
+    inner join node on all_node_ids.id = node.id
     inner join edge on edge.sourceid = node.id
     and exists (select 1 from all_node_ids where all_node_ids.id = edge.targetid)
     group by (node.id, node.data, node.role, node.accesslevel, node.views); -- needed for multiple outgoing edges
