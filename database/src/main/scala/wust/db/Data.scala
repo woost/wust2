@@ -84,7 +84,7 @@ object Data {
     }
   }
 
-  case class OAuthClient(userId: UserId, service: OAuthClientService, accessToken: String)
+  final case class OAuthClient(userId: UserId, service: OAuthClientService, accessToken: String)
 
   // Result of notifiedUsersByNodes
   final case class NotifiedUsersRow(userId: UserId, notifiedNodes: List[NodeId], subscribedNodeId: NodeId, subscribedNodeContent: String)
