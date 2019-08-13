@@ -235,6 +235,13 @@ begin
 end;
 $$ language plpgsql strict;
 
+create function node_can_access_users_multiple(nodeids uuid[]) returns table(node_id uuid, user_id uuid) as $$
+begin
+    perform node_can_access_recursive(nodeid, array[]::uuid[]) from (select unnest(nodeids) id) ids;
+
+    return query select node_can_access_mat.node_id, node_can_access_mat.user_id from node_can_access_mat where node_can_access_mat.node_id = any(nodeids);
+end;
+$$ language plpgsql strict;
 
 
 create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$

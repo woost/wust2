@@ -485,6 +485,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeViaUrlQuery(lift(userId), lift(nodeId))
     }
 
+    def allowedUsersForNode(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[UserId]] = ctx.run {
+      nodeCanAccessUsers(lift(nodeId))
+    }
+
+    def allowedUsersForNodes(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[(NodeId, UserId)]] = ctx.run {
+      nodeCanAccessUsersMultiple(lift(nodeIds))
+    }
+
     def inaccessibleNodes(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[NodeId]] = ctx.run {
       inaccessibleNodesQuery(lift(userId), lift(nodeIds))
     }
@@ -500,6 +508,14 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
 
     private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
       infix"select * from inaccessible_nodes($nodeIds, $userId)".as[Query[NodeId]]
+    }
+
+    private val nodeCanAccessUsers = quote { (nodeId: NodeId) =>
+      infix"select * from node_can_access_users($nodeId)".as[Query[UserId]]
+    }
+
+    private val nodeCanAccessUsersMultiple = quote { (nodeIds: scala.collection.Seq[NodeId]) =>
+      infix"select * from node_can_access_users($nodeIds)".as[Query[(NodeId, UserId)]]
     }
   }
 
