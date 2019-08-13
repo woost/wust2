@@ -349,11 +349,9 @@ returns table(nodeid uuid, data jsonb, role jsonb, accesslevel accesslevel, view
 as $$
     -- accessible nodes from page
     with content_node_ids as (
-        select id from (
             select * from user_bookmarks(userid) as id -- all channels of user, inlining is slower
             union
             select * from graph_traversed_page_nodes(parents, userid) as id -- all nodes, specified by page (transitive children + transitive parents), inlining is slower
-        ) as node_ids
     ),
     -- content node ids and users joined with node
     all_node_ids as (
