@@ -483,7 +483,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       nodeCanAccessUsers(lift(nodeId))
     }
 
-    def allowedUsersForNodes(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[(NodeId, UserId)]] = ctx.run {
+    def allowedUsersForNodes(nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[Seq[AllowedNodeAccess]] = ctx.run {
       nodeCanAccessUsersMultiple(lift(nodeIds))
     }
 
@@ -509,7 +509,7 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     }
 
     private val nodeCanAccessUsersMultiple = quote { (nodeIds: scala.collection.Seq[NodeId]) =>
-      infix"select * from node_can_access_users($nodeIds)".as[Query[(NodeId, UserId)]]
+      infix"select * from node_can_access_users_multiple($nodeIds)".as[Query[AllowedNodeAccess]]
     }
   }
 
