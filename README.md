@@ -127,7 +127,7 @@ set auto_explain.log_buffers = true;
 ```
 The explanations will appear in the log.
 
-Explanation visualizer: http://tatiyants.com/pev
+Explanation visualizer: https://dalibo.github.io/pev2
 
 ## watching database content
 ```bash
