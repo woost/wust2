@@ -223,6 +223,7 @@ begin
         END IF;
     end if;
 
+declar
     return uncachable_node_ids;
 end;
 $$ language plpgsql strict;
@@ -240,18 +241,20 @@ $$ language plpgsql strict;
 
 
 create function node_can_access(nodeid uuid, userid uuid) returns boolean as $$
+declare
+    cached_access boolean;
 begin
-    return
-    exists( -- fast shortcut for cached values
-        select 1 from node_can_access_mat
-        where node_id = nodeid and user_id = userid
-        and exists(select 1 from node_can_access_valid where node_id = nodeid)
-    )
-    or not exists (
+    cached_access := (
+        select exists(select 1 from node_can_access_mat where node_id = nodeid and user_id = userid)
+        from node_can_access_valid
+        where node_id = nodeid limit 1
+    );
+    if (cached_access is not null) then return cached_access; end if;
+
+    return not exists (
         select 1 from node
         where id = nodeid
-    )
-    or exists(
+    ) or exists(
         select 1 from node_can_access_users(nodeid) where user_id = userid
     );
 end;
