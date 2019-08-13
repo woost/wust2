@@ -42,7 +42,7 @@ object Client {
     if (LinkingInfo.developmentMode)
       None
     else
-      Some(s"${location.protocol}//files.$hostname/")
+      Some(s"${location.protocol}//files.$hostname")
   }
 
   private val wustUrl = calculateCoreUrl(withVersion = true)
