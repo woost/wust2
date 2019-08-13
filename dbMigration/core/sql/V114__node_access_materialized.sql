@@ -184,7 +184,7 @@ declare
 begin
     IF ( nodeid = any(visited) ) THEN return array[nodeid]; end if; -- prevent inheritance cycles
 
-    IF ( not exists(select * from node_can_access_valid where node_id = nodeid) ) THEN
+    IF ( not exists(select 1 from node_can_access_valid where node_id = nodeid) ) THEN
         -- clear current access rights
         delete from node_can_access_mat where node_id = nodeid;
 
@@ -194,7 +194,7 @@ begin
             -- recursively inherit permissions from parents. run all node_can_access_recursive
             -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
             uncachable_node_ids := (select array(
-                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.target_nodeid = nodeid
+                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || nodeid)) from accessedge where accessedge.source_nodeid <> nodeid and accessedge.target_nodeid = nodeid
                 intersect
                 select unnest(visited)
             ));
@@ -206,7 +206,7 @@ begin
                     from accessedge
                     inner join node_can_access_mat
                     on node_id = accessedge.source_nodeid
-                    where accessedge.target_nodeid = nodeid
+                    where accessedge.target_nodeid = nodeid and exists(select 1 from node_can_access_valid where node_can_access_valid.node_id = node_can_access_mat.node_id)
                     union
                     select nodeid as node_id, member.target_userid as user_id
                     from member
@@ -223,7 +223,6 @@ begin
         END IF;
     end if;
 
-declar
     return uncachable_node_ids;
 end;
 $$ language plpgsql strict;
