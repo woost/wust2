@@ -17,6 +17,7 @@ import wust.webApp.{ Icons, ItemProperties }
 import wust.webUtil.Elements._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ Ownable, UI }
+import com.github.ghik.silencer.silent
 
 object RightSidebar {
 
@@ -344,7 +345,7 @@ object RightSidebar {
             },
             customOptions = Some(VDomModifier(
               UI.checkbox("Create a new node from the reference", isCreateReference),
-              UI.checkbox("Rename existing node (original content in `${woost.original}`)", isRenameReference)
+              UI.checkbox("Rename existing node (original content in `${woost.original}`)", isRenameReference): @silent("possible missing interpolator")
             ))
           ),
           ItemProperties.EdgeFactory.Plain(create),
