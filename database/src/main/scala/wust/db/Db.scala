@@ -177,12 +177,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       )
     }
 
-    def updateNodesForConnectedUser(userId: UserId, nodeIds: scala.collection.Seq[NodeId])(implicit ec: ExecutionContext): Future[List[NodeId]] = {
-      ctx.run(
-        infix"select id from unnest(${lift(nodeIds)}::uuid[]) id where node_can_access(id, ${lift(userId)})".as[Query[NodeId]]
-      )
-    }
-
     def subscribeWebPush(subscription: WebPushSubscription)(implicit ec: ExecutionContext): Future[SuccessResult.type] = {
       val q = quote {
         query[WebPushSubscription]
