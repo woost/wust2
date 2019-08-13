@@ -115,7 +115,7 @@ create function edge_insert() returns trigger
 as $$
   begin
     IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.targetid));
     ELSIF(new.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
         delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
@@ -133,7 +133,7 @@ as $$
   begin
     IF (new.sourceid <> old.sourceid or new.targetid <> old.targetid or new.data->>'type' <> old.data->>'type') THEN
         IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-            delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
+            delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.targetid));
         ELSIF(new.data->>'type' = 'Member') THEN
             --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
             delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(new.sourceid));
@@ -151,7 +151,7 @@ create function edge_delete() returns trigger
 as $$
   begin
     IF (old.data->>'type' = 'Child' or old.data->>'type' = 'LabeledProperty') THEN
-        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(old.sourceid));
+        delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(old.targetid));
     ELSIF(old.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
         delete from node_can_access_valid where node_id = ANY(select node_can_access_deep_children(old.sourceid));
