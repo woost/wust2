@@ -258,6 +258,11 @@ end;
 $$ language plpgsql strict;
 
 
+create function inaccessible_nodes(nodeids uuid[], userid uuid) returns setof uuid as $$
+    select ids.id from (select unnest(nodeids) id) ids where not node_can_access(ids.id, userid);
+$$ language sql strict;
+
+
 --------------------------------------------------------------------------------------------------------
 -- UTILITIES
 
