@@ -325,7 +325,7 @@ create function graph_traversed_page_nodes(page_parents uuid[], userid uuid) ret
     select * from content
     union
     -- direct parents of content, useful to know tags of content nodes
-    select edge.sourceid from content INNER JOIN edge ON edge.targetid = content.id where node_can_access(edge.sourceid, userid)
+    select contentedge.source_nodeid from content INNER JOIN contentedge ON contentedge.target_nodeid = content.id where node_can_access(contentedge.source_nodeid, userid)
     union
     -- transitive parents describe the path/breadcrumbs to the page
     select * FROM transitive_parents;
