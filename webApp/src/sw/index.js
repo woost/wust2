@@ -137,11 +137,6 @@ function updateWebPushSubscriptionAndPersist() {
                                 );
                             });
                         });
-                    } else {
-                        log("Cannot subscribe, no public key, Will unsubscribe.");
-                        return self.registration.pushManager.getSubscription().then(subscription => {
-                            subscription ? subscription.unsubscribe() : Promise.resolve(true);
-                        });
                     }
                 },
                 err => {
