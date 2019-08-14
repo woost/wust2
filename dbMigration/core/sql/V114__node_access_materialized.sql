@@ -1,6 +1,6 @@
 -- CAN ACCESS CACHING
 -- need to react to every way the access to a node for a user could have changed.
--- then need to update node_can_access_mat and node_can_access_public_mat table.
+-- then need to update node_can_access_mat
 -- How can access change:
 -- 0) add/delete node/user already handled by foreign key with cascade. edges cascaed as well when deleting nodes, so changes in children/targets will be handled in edge triggers.
 -- 1) update node if permission has changed, because self and deep children might have different access now. if restricted then permission are stricter now, need to invalidate all child node access and recalculate. if inherited or public permission, access could be expanded, just need to recalculate (inherited and public behave the same, only public nodes can be accessed via url).
@@ -26,31 +26,19 @@ drop function induced_subgraph;
 drop function readable_graph_page_nodes_with_channels;
 drop type can_access_result;
 
--- table to store invalidated nodes
-
--- materialized table to cache granted access for user on node (valid = false means it needs to be recalculated)
+-- materialized table to cache granted access for user on node
+-- we invalidate these entries by deleting them in db-triggers
+-- so no entry means, the node access needs to be recalculated.
+-- if a node has NO member and not inherited members, then can
+-- not express whether it is cached or not and it will recalculate
+-- every time this node is requested. but this is expected
+-- to happen only in very rare cases.
 create table node_can_access_mat(
   nodeid uuid not null references node on delete cascade,
   userid uuid not null references node on delete cascade
 );
 create unique index on node_can_access_mat (nodeid, userid);
 create index on node_can_access_mat (userid);
--- table for storing invalidated nodes whose node_can_acecss needs to recalculated
-create table node_can_access_valid(
-  nodeid uuid not null references node on delete cascade
-);
-create unique index on node_can_access_valid (nodeid);
-
--- materialized table to cache public nodes including inheritance (valid = false means it needs to be recalculated)
-create table node_can_access_public_mat(
-  nodeid uuid not null references node on delete cascade,
-  valid boolean not null
-);
-create unique index on node_can_access_public_mat (nodeid);
-create index on node_can_access_public_mat (valid);
-
-
-
 
 
 
@@ -75,7 +63,7 @@ create index on node_can_access_public_mat (valid);
 -- drop function edge_delete;
 -- drop function node_can_access_users;
 -- drop function node_can_access;
--- drop function node_can_access_recursive;
+-- drop function ensure_recursive_node_can_access;
 -- drop function node_can_access_deep_children;
 
 drop function graph_page;
@@ -94,6 +82,7 @@ drop function array_merge;
 
 ----------------------------------------------------------
 -- NODE CAN ACCESSS
+
 -- trigger for node update
 create function node_update() returns trigger
   security definer
@@ -101,7 +90,7 @@ create function node_update() returns trigger
 as $$
   begin
     IF (new.accesslevel <> old.accesslevel) THEN
-        delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(new.id));
+        delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(new.id));
     end if;
     return new;
   end;
@@ -115,10 +104,10 @@ create function edge_insert() returns trigger
 as $$
   begin
     IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-        delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(new.targetid));
+        delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(new.targetid));
     ELSIF(new.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(new.sourceid));
+        delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(new.sourceid));
     end IF;
     return new;
   end;
@@ -133,10 +122,10 @@ as $$
   begin
     IF (new.sourceid <> old.sourceid or new.targetid <> old.targetid or new.data->>'type' <> old.data->>'type') THEN
         IF (new.data->>'type' = 'Child' or new.data->>'type' = 'LabeledProperty') THEN
-            delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(new.targetid));
+            delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(new.targetid));
         ELSIF(new.data->>'type' = 'Member') THEN
             --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-            delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(new.sourceid));
+            delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(new.sourceid));
         end IF;
     end IF;
     return new;
@@ -151,10 +140,10 @@ create function edge_delete() returns trigger
 as $$
   begin
     IF (old.data->>'type' = 'Child' or old.data->>'type' = 'LabeledProperty') THEN
-        delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(old.targetid));
+        delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(old.targetid));
     ELSIF(old.data->>'type' = 'Member') THEN
         --TODO: strictly speaking we just need to recalculate the user of this membership for this node.
-        delete from node_can_access_valid where nodeid = ANY(select node_can_access_deep_children(old.sourceid));
+        delete from node_can_access_mat where nodeid = ANY(select node_can_access_deep_children(old.sourceid));
     end IF;
     return old;
   end;
@@ -175,36 +164,33 @@ create function node_can_access_deep_children(node_id uuid) returns table(id uui
 $$ language sql stable;
 
 -- recursively check whether a node is accessible. will use cache if valid and otherwise with side-effect of filling the cache.
--- returns true if uncacheable node_ids
-create function node_can_access_recursive(node_id uuid, visited uuid[]) returns uuid[] as $$
+-- returns uncacheable node_ids - nodes that we cannot cache yet because of incomplete knowledge (cycles due with this visited array).
+create function ensure_recursive_node_can_access(node_id uuid, visited uuid[]) returns uuid[] as $$
 declare
     uncachable_node_ids uuid[] default array[]::uuid[];
 begin
     IF ( node_id = any(visited) ) THEN return array[node_id]; end if; -- prevent inheritance cycles
 
-    IF ( not exists(select 1 from node_can_access_valid where node_can_access_valid.nodeid = node_id) ) THEN
-        -- clear current access rights
-        delete from node_can_access_mat where node_can_access_mat.nodeid = node_id;
+    IF ( not exists(select 1 from node_can_access_mat where node_can_access_mat.nodeid = node_id) ) THEN
 
         -- if node access level is inherited or public, check above, else just this level
         IF (exists(select 1 from node where id = node_id and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
 
-            -- recursively inherit permissions from parents. run all node_can_access_recursive
+            -- recursively inherit permissions from parents. run all ensure_recursive_node_can_access
             -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
             uncachable_node_ids := (select array(
-                select unnest(node_can_access_recursive(accessedge.source_nodeid, visited || node_id)) from accessedge where accessedge.source_nodeid <> node_id and accessedge.target_nodeid = node_id
+                select unnest(ensure_recursive_node_can_access(accessedge.source_nodeid, visited || node_id)) from accessedge where accessedge.source_nodeid <> node_id and accessedge.target_nodeid = node_id
                 intersect
                 select unnest(visited)
             ));
 
             if (cardinality(uncachable_node_ids) = 0) then
-                insert into node_can_access_valid VALUES(node_id);
                 insert into node_can_access_mat (
                     select node_id as nodeid, node_can_access_mat.userid as userid
                     from accessedge
                     inner join node_can_access_mat
-                    on node_can_access_mat.userid = accessedge.source_nodeid
-                    where accessedge.target_nodeid = node_id and exists(select 1 from node_can_access_valid where node_can_access_valid.nodeid = node_can_access_mat.nodeid)
+                    on node_can_access_mat.nodeid = accessedge.source_nodeid
+                    where accessedge.target_nodeid = node_id
                     union
                     select node_id as nodeid, member.target_userid as userid
                     from member
@@ -212,7 +198,6 @@ begin
                 );
             end if;
         ELSE
-            insert into node_can_access_valid VALUES(node_id);
             insert into node_can_access_mat (
                 select node_id as nodeid, member.target_userid as userid
                 from member
@@ -229,7 +214,7 @@ $$ language plpgsql strict;
 
 create function node_can_access_users(node_id uuid) returns table(userid uuid) as $$
 begin
-    perform node_can_access_recursive(node_id, array[]::uuid[]);
+    perform ensure_recursive_node_can_access(node_id, array[]::uuid[]);
 
     return query select node_can_access_mat.userid from node_can_access_mat where node_can_access_mat.nodeid = node_id;
 end;
@@ -237,7 +222,7 @@ $$ language plpgsql strict;
 
 create function node_can_access_users_multiple(node_ids uuid[]) returns table(nodeid uuid, userid uuid) as $$
 begin
-    perform node_can_access_recursive(ids.id, array[]::uuid[]) from (select unnest(node_ids) id) ids;
+    perform ensure_recursive_node_can_access(ids.id, array[]::uuid[]) from (select unnest(node_ids) id) ids;
 
     return query select node_can_access_mat.nodeid, node_can_access_mat.userid from node_can_access_mat where node_can_access_mat.nodeid = any(node_ids);
 end;
@@ -248,10 +233,9 @@ declare
     cached_access boolean;
 begin
     cached_access := (
-        select exists(select 1 from node_can_access_mat where node_can_access_mat.nodeid = node_id and node_can_access_mat.userid = user_id)
-        from node_can_access_valid
-        where node_can_access_valid.nodeid = node_id
-        limit 1
+        select bool_or(node_can_access_mat.userid = user_id)
+        from node_can_access_mat
+        where node_can_access_mat.nodeid = node_id
     );
     if (cached_access is not null) then return cached_access; end if;
 
