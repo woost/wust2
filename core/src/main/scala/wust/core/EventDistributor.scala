@@ -110,7 +110,6 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
       case Success(allowedUsersAndNodes) =>
         scribe.info("Sending out websocket notifications")
         val allowedNodesPerUser = allowedUsersAndNodes.groupByMap(access => access.userId -> access.nodeId)
-        println("GOT ALLOWED NODE PER " + allowedNodesPerUser.toSeq.map { case (k,v) => (k.toBase58, v.map(_.toBase58)) })
         subscribers.foreach { client =>
           if (origin.forall(_ != client)) client.notify { state =>
 
@@ -230,12 +229,10 @@ class HashSetEventDistributorWithPush(db: Db, serverConfig: ServerConfig, pushCl
   private def getWebsocketNotifications(author: Node.User, graphChanges: GraphChanges, allowedNodesPerUser: scala.collection.Map[UserId, scala.collection.Seq[NodeId]])(state: State): List[ApiEvent] = {
     state.auth.fold(List.empty[ApiEvent]) { auth =>
       allowedNodesPerUser.get(auth.user.id).fold(List.empty[ApiEvent]) { permittedNodeIds =>
-        println("PERMITTED PER USER " + permittedNodeIds)
         val filteredChanges = graphChanges.filterCheck(permittedNodeIds.toSet, {
           case e: Edge.User    => List(e.sourceId)
           case e: Edge.Content => List(e.sourceId, e.targetId)
         })
-        println("FILTERED " + filteredChanges)
 
         if(filteredChanges.isEmpty) Nil
         else NewGraphChanges.forPrivate(author, filteredChanges) :: Nil
