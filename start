@@ -8,7 +8,7 @@ fi;
 
 script_dir="$(dirname $0)"
 sql_checksum_file="$script_dir/.sql_checksum"
-sql_checksum_dir="$script_dir/dbMigration/core/sql"
+sql_checksum_dir="$script_dir/dbMigration/core/"
 
 git_branch=$(git symbolic-ref --short HEAD --quiet || git rev-parse HEAD) # branch, or fall back to commit hash
 
