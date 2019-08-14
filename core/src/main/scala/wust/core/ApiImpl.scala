@@ -226,7 +226,6 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
       Future.successful(())
     }
 
-    // TODO: also include the transitive parents of the page-parentId to be able no navigate upwards
     requiredAction.flatMap { _ =>
       db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
     }
