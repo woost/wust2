@@ -68,11 +68,11 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
         infix"""
           (
             select * from node
-            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and can_access_node_via_url(node.id, ${lift(canAccessNodeId)})
-          ) UNION (
+            where node.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
+          ) UNION ALL (
             select node.* from node as initial
             join edge on edge.sourceid = initial.id and edge.data->>'type' = 'Member'
-            join node on edge.targetid = node.id and node.data->>'type' = 'User' and can_access_node_via_url(node.id, ${lift(canAccessNodeId)})
+            join node on edge.targetid = node.id and node.data->>'type' = 'User' and node_can_access(${lift(canAccessNodeId)}, node.id)
             where initial.id = ANY(${lift(mentionedNodeIds)} :: uuid[]) and initial.data->>'type' <> 'User'
           )
         """.as[Query[User]]
@@ -133,12 +133,12 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       }
     }
 
-    def addMemberIfCanAccessViaUrlAndNotMember(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
+    def addMemberIfNodeIsPublic(nodeId: NodeId, userId: UserId)(implicit ec: ExecutionContext): Future[Boolean] = {
       val insertMembership = quote { (nodeId: NodeId, userId: UserId) =>
         infix"""
           insert into edge(sourceid, data, targetid)
           select ${nodeId}, jsonb_build_object('type', 'Member', 'level', 'readwrite'::accesslevel), ${userId}
-          where can_access_node_via_url($userId, $nodeId)
+          where exists(select 1 from node where id = ${nodeId} and accesslevel = 'readwrite')
           ON CONFLICT DO NOTHING
         """.as[Insert[Edge]]
       }
@@ -475,10 +475,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
       canAccessNodeQuery(lift(nodeId), lift(userId))
     }
 
-    def canAccessNodeViaUrl(userId: UserId, nodeId: NodeId)(implicit ec: ExecutionContext): Future[Boolean] = ctx.run {
-      canAccessNodeViaUrlQuery(lift(userId), lift(nodeId))
-    }
-
     def allowedUsersForNode(nodeId: NodeId)(implicit ec: ExecutionContext): Future[Seq[UserId]] = ctx.run {
       nodeCanAccessUsers(lift(nodeId))
     }
@@ -494,10 +490,6 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
     private val canAccessNodeQuery = quote { (nodeId: NodeId, userId: UserId) =>
       // TODO why not as[Query[Boolean]] like other functions?
       infix"select node_can_access($nodeId, $userId)".as[Boolean]
-    }
-
-    private val canAccessNodeViaUrlQuery = quote { (userId: UserId, nodeId: NodeId) =>
-      infix"select can_access_node_via_url($userId, $nodeId)".as[Boolean]
     }
 
     private val inaccessibleNodesQuery = quote { (userId: UserId, nodeIds: scala.collection.Seq[NodeId]) =>
