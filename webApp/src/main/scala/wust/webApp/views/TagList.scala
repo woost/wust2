@@ -17,6 +17,7 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.Ownable
 
 object TagList {
+  val addTagText = "Add Tag"
 
   def movableWindow(viewRender: ViewRenderLike, position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
     val newTagFieldActive: Var[Boolean] = Var(false)
@@ -180,9 +181,9 @@ object TagList {
         else
           div(
             cls := "kanbanaddnodefieldtext",
-            "+ Add Tag",
+            s"+ $addTagText",
             color := "gray",
-            onClick foreach { newTagFieldActive() = true }
+            onClick.stopPropagation foreach { newTagFieldActive() = true }
           )
       }
     )

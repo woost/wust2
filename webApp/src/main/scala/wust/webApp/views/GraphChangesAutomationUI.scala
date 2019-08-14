@@ -29,6 +29,7 @@ import wust.webApp.state.FeatureState
 @silent("possible missing interpolator")
 object GraphChangesAutomationUI {
 
+  val createAutomationTemplateText = "Create a new Automation Template"
   // returns the modal config for rendering a modal for configuring automation of the node `nodeId`.
   def modalConfig(focusedId: NodeId, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): ModalConfig = {
     val header: VDomModifier = Rx {
@@ -235,7 +236,7 @@ object GraphChangesAutomationUI {
               margin := "30px 0 0 0",
 
               newTemplateButton.apply(
-                "+ Create a new Automation Template",
+                s"+ $createAutomationTemplateText",
                 alignSelf.flexStart,
                 cls := "compact mini",
               ),

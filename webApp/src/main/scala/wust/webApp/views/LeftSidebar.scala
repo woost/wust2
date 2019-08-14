@@ -132,6 +132,7 @@ object LeftSidebar {
     )
   }
 
+  val hamburgerIcon = freeSolid.faBars
   def hamburger(implicit ctx: Ctx.Owner): VNode = {
     import GlobalState.leftSidebarOpen
     div(
@@ -140,7 +141,7 @@ object LeftSidebar {
       fontSize := "20px",
       width := "40px",
       textAlign.center,
-      freeSolid.faBars,
+      hamburgerIcon,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick.stopPropagation foreach {

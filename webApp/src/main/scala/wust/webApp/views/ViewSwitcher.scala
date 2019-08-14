@@ -63,12 +63,13 @@ object ViewSwitcher {
     div.thunk(uniqueKey(channelId.toStringFast))(initialView)(Ownable { implicit ctx => modifier(channelId, currentView, initialView) })
   }
 
+  val addViewIcon = freeSolid.faPlus
   def modifier(channelId: NodeId, currentView: Var[View], initialView: Option[View.Visible])(implicit ctx: Ctx.Owner): VDomModifier = {
     val closeDropdown = PublishSubject[Unit]
 
     def addNewTabDropdown = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
       VDomModifier(
-        div(freeSolid.faPlus, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
+        div(addViewIcon, fontSize := "16px", color := Colors.pageHeaderControl, paddingLeft := "2px", paddingRight := "2px"),
         UI.dropdownMenu(VDomModifier(
           padding := "5px",
           div(cls := "item", display.none), //TODO ui dropdown needs at least one element

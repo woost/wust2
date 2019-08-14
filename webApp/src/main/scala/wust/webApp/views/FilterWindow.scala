@@ -14,6 +14,7 @@ import wust.ids.Feature
 
 
 object FilterWindow {
+  val resetAllFiltersText = "Reset all filters"
   def movableWindow(position: MovableElement.Position)(implicit ctx: Ctx.Owner): MovableElement.Window = {
 
     MovableElement.Window(
@@ -83,9 +84,9 @@ object FilterWindow {
             cls := "ui compact basic button",
             cursor.pointer,
             Elements.icon(Icons.noFilter),
-            span("Reset all filters"),
-            onClick(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
-            onClick foreach { FeatureState.use(Feature.ResetFilters) },
+            span(resetAllFiltersText),
+            onClick.stopPropagation(GlobalState.defaultTransformations) --> GlobalState.graphTransformations,
+            onClick.stopPropagation foreach { FeatureState.use(Feature.ResetFilters) },
           )
         )
         )

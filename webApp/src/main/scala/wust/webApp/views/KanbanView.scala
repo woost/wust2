@@ -281,6 +281,7 @@ object KanbanView {
     )
   })
 
+  val addCardText = "Add Card"
   private def addCardField(
     focusState: FocusState,
     nodeId: NodeId,
@@ -324,14 +325,15 @@ object KanbanView {
         else
           div(
             cls := "kanbanaddnodefieldtext",
-            "+ Add Card",
+            s"+ $addCardText",
             color := "rgba(0,0,0,0.62)",
-            onClick(true) --> active
+            onClick.stopPropagation(true) --> active
           )
       }
     )
   }
 
+  val addColumnText = "Add Column"
   private def newColumnArea(focusState: FocusState)(implicit ctx: Ctx.Owner) = {
     val fieldActive = Var(false)
     def submitAction(sub: InputRow.Submission) = {
@@ -373,7 +375,7 @@ object KanbanView {
           cls := "kanbanaddnodefieldtext",
           paddingTop := "10px",
           color := "rgba(0,0,0,0.62)",
-          "+ Add Column",
+          s"+ $addColumnText",
         )
       },
       marginRightHack

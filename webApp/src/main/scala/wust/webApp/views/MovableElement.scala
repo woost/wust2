@@ -104,14 +104,14 @@ object MovableElement {
             if (activeWindow == index) ZIndex.overlayLow + 1 else ZIndex.overlayLow
           },
 
-          onMouseDown(index) --> activeWindow,
+          onMouseDown.stopPropagation(index) --> activeWindow,
 
           div(
             cls := "movable-window-title",
             title,
             div(cls := "fa-fw", freeSolid.faTimes, cursor.pointer, onClick(false) --> isVisible),
 
-            onMouseDown.foreach { ev =>
+            onMouseDown.stopPropagation.foreach { ev =>
               mouseDownOffset = Some(LeftPosition(left = domElem.offsetLeft - ev.clientX, top = domElem.offsetTop - ev.clientY))
             },
             emitter(events.document.onMouseUp).foreach {

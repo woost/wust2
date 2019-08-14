@@ -28,6 +28,7 @@ import GlobalState.SelectedNode
 import scala.collection.mutable
 import scala.concurrent.Future
 import scala.scalajs.js
+import wust.webApp.Icons
 
 object ThreadView {
   import SharedViewElements._
@@ -286,7 +287,7 @@ object ThreadView {
   private def threadReplyButton(nodeId:NodeId, showReplyField: Var[Boolean]) = {
     div(
       cls := "chat-replybutton",
-      freeSolid.faReply,
+      Icons.reply,
       " reply",
       marginTop := "3px",
       marginLeft := "8px",

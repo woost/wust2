@@ -37,7 +37,8 @@ import scala.reflect.ClassTag
 
 object NewProjectPrompt {
 
-  def newProjectButton(label: String = "New Project"): VNode = {
+  val newProjectText = "New Project"
+  def newProjectButton(label: String = newProjectText): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
     val triggerSubmit = PublishSubject[Unit]
     def body(implicit ctx: Ctx.Owner) = div(

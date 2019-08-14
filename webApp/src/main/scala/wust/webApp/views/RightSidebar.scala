@@ -37,6 +37,9 @@ object RightSidebar {
     )
   }
 
+  val propertiesAccordionText = "Properties & Custom Fields"
+  val addCustomFieldText = "Add Custom Field"
+
   def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
@@ -86,7 +89,7 @@ object RightSidebar {
 
       UI.accordion(
         content = Seq(
-          accordionEntry("Properties & Custom Fields", VDomModifier(
+          accordionEntry(propertiesAccordionText, VDomModifier(
             nodeProperties(focusPref, parentIdAction),
             Styles.flexStatic,
           ), active = false),
@@ -407,7 +410,7 @@ object RightSidebar {
 
             button(
               cls := "ui compact basic button mini",
-              "+ Add Custom Field",
+              s"+ $addCustomFieldText",
               cursor.pointer,
               onClick.stopPropagation(AddProperty.CustomField) --> addFieldMode
             )

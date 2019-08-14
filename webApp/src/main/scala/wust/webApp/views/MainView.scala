@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webUtil.UI
 import fontAwesome.freeSolid
 import org.scalajs.dom
 import outwatch.dom._
@@ -21,9 +22,9 @@ object MainView {
 
   def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
-      // DevOnly {
-      //   featureConsistencyChecks,
-      // },
+      DevOnly {
+        featureConsistencyChecks,
+      },
       Styles.growFull,
       Rx {
         if (GlobalState.hasError()) ErrorPage()
@@ -172,21 +173,25 @@ object MainView {
   }
 
   private def featureConsistencyChecks = {
+    VDomModifier.ifTrue(Feature.unreachable.nonEmpty || FeatureDetails.missingDetails.nonEmpty)(
     div(
       overflow.auto,
       Styles.flex,
-      height := "100px",
+      height := "150px",
       Styles.flexStatic,
       // runtime consistency checks for features
       div(
-        h3("Features not reachable by suggestions:"),
+        h3("Features not reachable by suggestions (",Feature.unreachable.size,"):"),
+        UI.progress(Feature.allWithoutSecrets.size - Feature.unreachable.size, Feature.allWithoutSecrets.size, classes = "indicating"),
         Feature.unreachable.map(feature => div(feature.toString)),
       ),
       div(
-        h3("Missing feature details:"),
+        h3("Missing feature details (",FeatureDetails.missingDetails.size,"):"),
+        UI.progress(Feature.all.size - FeatureDetails.missingDetails.size, Feature.all.size, classes = "indicating"),
         marginLeft := "20px",
         FeatureDetails.missingDetails.sortBy(_.toString).map(feature => div(feature.toString)),
       ),
     )
+  )
   }
 }
