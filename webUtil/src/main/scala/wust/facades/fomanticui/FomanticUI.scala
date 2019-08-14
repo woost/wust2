@@ -18,6 +18,8 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def search(arg: String, args: Any*): js.Any = js.native
 
   def progress(): Unit = js.native
+  def progress(options: ProgressOptions): Unit = js.native
+  def progress(behavior: String): Unit = js.native
   def progress(behavior: String, argumentOne: js.Any): Unit = js.native
   def progress(behavior: String, argumentOne: js.Any, argumentTwo: js.Any): Unit = js.native
 
@@ -172,6 +174,10 @@ trait SearchSourceEntry extends js.Object {
 
 trait SearchResults extends js.Object {
   def results: js.Array[SearchSourceEntry]
+}
+
+trait ProgressOptions extends js.Object {
+  var showActivity: js.UndefOr[Boolean] = js.undefined
 }
 
 trait SidebarOptions extends js.Object {

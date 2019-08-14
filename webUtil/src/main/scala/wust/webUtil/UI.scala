@@ -1,6 +1,6 @@
 package wust.webUtil
 
-import wust.facades.fomanticui.{AccordeonOptions, DropdownEntry, DropdownOptions, PopupOptions, TableSortInstance, ToastClassNameOptions, ToastOptions}
+import wust.facades.fomanticui.{AccordeonOptions, DropdownEntry, DropdownOptions, PopupOptions, TableSortInstance, ToastClassNameOptions, ToastOptions, ProgressOptions}
 import wust.facades.jquery
 import wust.facades.jquery.{JQuery, JQuerySelection}
 import monix.execution.Cancelable
@@ -97,14 +97,12 @@ object UI {
     div(
       keyed,
       onDomMount.asJquery.foreach { elem =>
-        println("init progress.")
-        elem.progress()
+        elem.progress(new ProgressOptions{showActivity = false})
         // TODO: how to destroy?
       },
       onDomUpdate.asJquery.foreach { elem =>
         elem.progress("set progress", value)
         elem.progress("set total", total)
-        println("updated progress.")
       },
      cls := "ui progress",
      cls := classes,
