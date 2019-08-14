@@ -22,9 +22,9 @@ object MainView {
 
   def apply(implicit ctx: Ctx.Owner): VNode = {
     div(
-      DevOnly {
-        featureConsistencyChecks,
-      },
+      // DevOnly {
+      //   featureConsistencyChecks,
+      // },
       Styles.growFull,
       Rx {
         if (GlobalState.hasError()) ErrorPage()
