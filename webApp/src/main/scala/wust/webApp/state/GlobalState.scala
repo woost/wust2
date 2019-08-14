@@ -45,10 +45,11 @@ import scala.collection.{ breakOut, mutable }
 object GlobalState {
   implicit val ctx: Ctx.Owner = Ctx.Owner.safe()
 
-  val isBrowserOnlineObservable: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
   val isClientOnlineObservable = Observable(Client.observable.connected.map(_ => true), Client.observable.closed.map(_ => false)).merge
-  val isBrowserOnline = isClientOnlineObservable.unsafeToRx(true)
   val isClientOnline = isClientOnlineObservable.unsafeToRx(true)
+  //TODO: is browser does not trigger?!
+  val isBrowserOnlineObservable: Observable[Boolean] = Observable(events.window.onOffline.map(_ => false), events.window.onOnline.map(_ => true)).merge
+  val isBrowserOnline = isBrowserOnlineObservable.unsafeToRx(true)
 
   // register the serviceworker and get an update observable when serviceworker updates are available.
   val serviceWorkerIsActivated: Observable[Unit] = if (LinkingInfo.productionMode) ServiceWorker.register(WoostConfig.value.urls.serviceworker) else Observable.empty

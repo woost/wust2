@@ -249,7 +249,9 @@ object GlobalStateFactory {
 
     // we know that an update is available if the client is offline but the browser is online. This happens, because
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
-    val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.combineLatest(isBrowserOnlineObservable).collect { case (false, true) => () }
+    val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.collect { case false => () }
+    //TODO with is browseronline
+    // val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.combineLatest(isBrowserOnlineObservable).collect { case (false, true) => () }
 
     // trigger a reload of the app if an appUpdateIsAvailble indicates an update.
     appUpdateIsAvailable
