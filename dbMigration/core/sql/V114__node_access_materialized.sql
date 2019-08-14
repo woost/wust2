@@ -422,15 +422,13 @@ with recursive notified_users(
     initial_node,        -- nodes the user may be notified about
     userid,            -- user id who will be notified
     subscribed_node,   -- node at which the user set to be notified (e.g. channel)
-    inspected_node,    -- current node that was traversed
-    depth
+    inspected_node    -- current node that was traversed
 ) as (
     select
         node.id as initial_node,
         node_access.userid as userid,
         notify.source_nodeid as subscribed_node,
-        node.id as inspected_node,
-        0 as depth
+        node.id as inspected_node
     from node_can_access_users_multiple(startids) as node_access
     inner join node on node.id = node_access.nodeid
     left outer join notify on notify.source_nodeid = node.id and notify.target_userid = node_access.userid
@@ -441,8 +439,7 @@ with recursive notified_users(
         notified_users.initial_node as initial_node,     -- initial_nodes are propageted in each step
         notified_users.userid as userid,
         notify.source_nodeid as subscribed_node,
-        node.id as inspected_node,
-        (notified_users.depth + 1) as depth
+        node.id as inspected_node
     from notified_users
     inner join child on child.target_childid = notified_users.inspected_node
         and (child.data->>'deletedAt' is null)
