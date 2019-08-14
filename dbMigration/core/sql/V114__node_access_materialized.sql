@@ -414,105 +414,51 @@ $$ LANGUAGE plpgsql strict;
 
 create function notified_users_at_deepest_node(startids uuid[], now timestamp default now_utc())
     returns table (
-        userid uuid             -- user id who will be notified
-        , initial_nodes uuid[]  -- nodes the user will be notified about
-        , subscribed_node uuid  -- node at which the user set to be notified (e.g. channel)
+        userid uuid,             -- user id who will be notified
+        initial_nodes uuid[],  -- nodes the user will be notified about
+        subscribed_node uuid  -- node at which the user set to be notified (e.g. channel)
     ) as $$
 with recursive notified_users(
-    initial_node        -- nodes the user may be notified about
-    , userid            -- user id who will be notified
-    , subscribed_node   -- node at which the user set to be notified (e.g. channel)
-    , allowed_members   -- all users / members with access to the initial node and hence to be checked against
-    , inspected_node    -- current node that was traversed
-    , visited           -- all nodes that have been visited (prevent cycles)
-    , depth
+    initial_node,        -- nodes the user may be notified about
+    userid,            -- user id who will be notified
+    subscribed_node,   -- node at which the user set to be notified (e.g. channel)
+    inspected_node,    -- current node that was traversed
+    depth
 ) as (
     select
-        node.id as initial_node
-        , (case                                                                                 -- Assumptions: 1.) No memberships that add restrictions
-            when node.accesslevel = 'restricted'                                                --\
-                and notify.target_userid = any(                                                 ---\
-                    select target_userid from member where member.data->>'level'='readwrite'    ----\ Node is restricted, but user has readwrite membership
-                        and member.source_nodeid = node.id                                      ----/ => User is allowed to acces the node
-                )                                                                               ---/
-                then notify.target_userid                                                       --/
-            when node.accesslevel = 'restricted'                                                --\ Node ist restricted and user does not have a membership
-                then null                                                                       --/ => User has no access to the node
-            else notify.target_userid                                                      --> Node is public
-        end) as userid
-        , notify.source_nodeid as subscribed_node
-        , (case    when node.accesslevel = 'restricted'                 --\
-                    then array(                                         ---\
-                        select member.target_userid from member         ----\  Add memberships only when the initial node is restricted
-                            where member.data->>'level'='readwrite'     ----/
-                                and member.source_nodeid = node.id      ---/
-                        )                                               --/
-                else null::uuid[]                                       --> No restrictions => No membeships needed
-        end) as allowed_members
-        , node.id as inspected_node
-        , array[node.id] as visited
-        , 0 as depth
-        from node
-        left outer join notify on notify.source_nodeid = node.id
-        where node.id = any(startids)
+        node.id as initial_node,
+        node_access.userid as userid,
+        notify.source_nodeid as subscribed_node,
+        node.id as inspected_node,
+        0 as depth
+    from node_can_access_users_multiple(startids) as node_access
+    inner join node on node.id = node_access.nodeid
+    left outer join notify on notify.source_nodeid = node.id and notify.target_userid = node_access.userid
 
     union
 
     select
-        notified_users.initial_node as initial_node     -- initial_nodes are propageted in each step
-        , (case   when node.accesslevel = 'restricted'              --\
-                    and notify.target_userid = any(                 ---\
-                        select target_userid from member            ----\  There is a notifyedge on a restricted node and user has readwrite membership
-                            where member.data->>'level'='readwrite' -----> => User is allowed to acces the node
-                                and member.source_nodeid = node.id  ----/
-                    )                                               ---/
-                then notify.target_userid                           --/
-                when node.accesslevel = 'restricted'                --\ Restricted node and no access
-                then null                                           --/ => User has no access to the node
-                else notify.target_userid                           --> No restrictions => No membeships needed
-        end) as userid
-        , notify.source_nodeid as subscribed_node
-        , (case    when node.accesslevel = 'restricted'
-						and notified_users.allowed_members is null
-                    then array(
-						select target_userid from member
-							where member.data->>'level'='readwrite'
-							and member.source_nodeid = node.id
-					)
-                	when node.accesslevel = 'restricted'
-                    	then array(
-							select unnest(notified_users.allowed_members)
-								intersect
-							(select target_userid from member
-									where member.data->>'level'='readwrite'
-									and member.source_nodeid = node.id
-							)
-						)
-                else notified_users.allowed_members
-        end) as allowed_members
-        , node.id as inspected_node
-        , array_append(notified_users.visited, child.source_parentid) as visited
-        , (notified_users.depth + 1) as depth
+        notified_users.initial_node as initial_node,     -- initial_nodes are propageted in each step
+        notified_users.userid as userid,
+        notify.source_nodeid as subscribed_node,
+        node.id as inspected_node,
+        (notified_users.depth + 1) as depth
     from notified_users
     inner join child on child.target_childid = notified_users.inspected_node
-        and (child.data->>'deletedAt' is null or millis_to_timestamp(child.data->>'deletedAt') > now)
-        and not child.source_parentid = any(visited)
+        and (child.data->>'deletedAt' is null)
     inner join node on node.id = child.source_parentid
-    left outer join notify on notify.source_nodeid = node.id
+    left outer join notify on notify.source_nodeid = node.id and notify.target_userid = notified_users.userid
+    where notified_users.subscribed_node is null and node_can_access(node.id, notified_users.userid)
 
-) select
-    notification_result.userid
-    , array_agg(notification_result.initial_node)
-    , notification_result.subscribed_node
-	from notified_users notification_result
-    left outer join notified_users notification_filter on notification_result.userid = notification_filter.userid and notification_result.initial_node = notification_filter.initial_node and (notification_result.depth > notification_filter.depth)
-    where notification_filter.userid is null and notification_result.userid is not null
-        and case  when notification_result.allowed_members is null
-                    then true
-                else notification_result.userid = any(notification_result.allowed_members)
-        end
+)
+    select
+        notification_result.userid,
+        array_agg(notification_result.initial_node),
+        notification_result.subscribed_node
+    from notified_users notification_result
+    where notification_result.subscribed_node is not null
     group by notification_result.userid, notification_result.subscribed_node;
-$$ language sql stable;
+$$ language sql strict;
 
 
 create function notified_users_by_nodeid(startids uuid[])
@@ -522,5 +468,5 @@ create function notified_users_by_nodeid(startids uuid[])
     select notifications.userid, notifications.initial_nodes as notifiedNodes, notifications.subscribed_node as subscribedNodeId, node.data->>'content' as subscribedNodeContent
         from notified_users_at_deepest_node(startids) as notifications
         inner join node on node.id = notifications.subscribed_node
-$$ language sql stable;
+$$ language sql strict;
 

@@ -127,16 +127,13 @@ CREATE or replace FUNCTION array_sort(anyarray) RETURNS anyarray AS $$
 $$ LANGUAGE 'sql';
 
 
-
-
-
-
 -- request empty page
 select cleanup();
 
 -- test case 1
 select usernode('11');
 select node('11', 'readwrite');
+select member('11', '11', 'readwrite');
 select notify('11', '11');
 
 SELECT set_eq( --1
@@ -215,9 +212,13 @@ SELECT is_empty( --7
 select cleanup();
 select usernode('61');
 select node('61');
+select member('61', '61', 'readwrite');
 select node('62', 'restricted');
+select node('63', 'readwrite');
 select child('62', '61');
+select child('62', '63');
 select notify('61', '61');
+select notify('63', '61');
 
 SELECT set_eq( --8
     $$
@@ -228,7 +229,11 @@ SELECT set_eq( --8
     $$
 );
 SELECT is_empty( --9
-    $$ select * from notified_users_at_deepest_node(array[node_to_uuid('62')]::uuid[]) $$
+    $$
+    select * from notified_users_at_deepest_node(array[node_to_uuid('62')]::uuid[])
+    union
+    select * from notified_users_at_deepest_node(array[node_to_uuid('63')]::uuid[])
+    $$
 );
 
 -- test case 10
@@ -240,6 +245,7 @@ select node('72', 'restricted');
 select node('73', 'readwrite');
 select child('72', '71');
 select child('73', '72');
+select member('73', '72', 'readwrite');
 select member('72', '72', 'readwrite');
 select notify('73', '71');
 select notify('73', '72');
@@ -272,6 +278,14 @@ select member('82', '81', 'readwrite');
 select member('84', '81', 'readwrite');
 select member('84', '82', 'readwrite');
 select member('82', '84', 'readwrite');
+select member('83', '81', 'readwrite');
+select member('83', '82', 'readwrite');
+select member('83', '83', 'readwrite');
+select member('83', '84', 'readwrite');
+select member('85', '81', 'readwrite');
+select member('85', '82', 'readwrite');
+select member('85', '83', 'readwrite');
+select member('85', '84', 'readwrite');
 select notify('85', '81');
 select notify('85', '82');
 select notify('85', '83');
@@ -310,6 +324,10 @@ select child('92', '91');
 select child('93', '92');
 select child('94', '93');
 select member('93', '91', 'readwrite');
+select member('95', '91', 'readwrite');
+select member('94', '91', 'readwrite');
+select member('95', '92', 'readwrite');
+select member('94', '92', 'readwrite');
 select notify('94', '91');
 select notify('94', '92');
 select notify('95', '92');
@@ -339,6 +357,8 @@ select child('02', '01');
 select child('03', '02');
 select child('01', '03');
 select member('03', '01');
+select member('01', '01');
+select member('01', '02');
 select notify('01', '01');
 select notify('01', '02');
 
@@ -366,10 +386,14 @@ select node('02');
 select node('03');
 select child('02', '01');
 select child('03', '01', (now_utc() - interval '1' hour)::timestamp);
+select member('03', '01');
+select member('03', '02');
+select member('02', '01');
+select member('02', '02');
 select notify('02', '01');
 select notify('03', '02');
 
-SELECT set_eq( --13
+SELECT set_eq(
     $$ select userid, array_sort(initial_nodes), subscribed_node from
             notified_users_at_deepest_node(array[
                 node_to_uuid('01')
@@ -381,7 +405,7 @@ SELECT set_eq( --13
     $$
 );
 
--- test case 14: avoid multiple notifications in multiple subscriptions single node
+-- test case 15: avoid multiple notifications in multiple subscriptions single node
 select cleanup();
 select usernode('01');
 select usernode('02');
@@ -392,12 +416,14 @@ select node('04');
 select child('02', '01');
 select child('03', '02');
 select child('04', '03');
+select member('04', '01');
+select member('04', '02');
 select notify('01', '01');
 select notify('03', '01');
 select notify('02', '02');
 select notify('04', '02');
 
-SELECT set_eq( --14
+SELECT set_eq(
     $$ select userid, array_sort(initial_nodes), subscribed_node from
             notified_users_at_deepest_node(array[
                 node_to_uuid('02')
@@ -410,7 +436,7 @@ SELECT set_eq( --14
     $$
 );
 
--- test case 15: avoid multiple notifications in multiple subscriptions multiple nodes
+-- test case 16: avoid multiple notifications in multiple subscriptions multiple nodes
 select cleanup();
 select usernode('01');
 select usernode('02');
@@ -421,12 +447,14 @@ select node('04');
 select child('02', '01');
 select child('03', '02');
 select child('04', '03');
+select member('04', '01');
+select member('04', '02');
 select notify('01', '01');
 select notify('03', '01');
 select notify('02', '02');
 select notify('04', '02');
 
-SELECT set_eq( --15
+SELECT set_eq(
     $$ select userid, array_sort(initial_nodes), subscribed_node from
             notified_users_at_deepest_node(array[
                 node_to_uuid('01'),
