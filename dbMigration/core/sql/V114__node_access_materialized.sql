@@ -35,10 +35,12 @@ drop type can_access_result;
 -- to happen only in very rare cases.
 create table node_can_access_mat(
   nodeid uuid not null references node on delete cascade,
-  userid uuid not null references node on delete cascade
+  userid uuid not null references node on delete cascade,
+  complete boolean not null
 );
 create unique index on node_can_access_mat (nodeid, userid);
 create index on node_can_access_mat (userid);
+create index on node_can_access_mat (complete);
 
 
 
@@ -168,38 +170,41 @@ $$ language sql stable;
 create function ensure_recursive_node_can_access(node_id uuid, visited uuid[]) returns uuid[] as $$
 declare
     uncachable_node_ids uuid[] default array[]::uuid[];
+    is_complete boolean;
 begin
     IF ( node_id = any(visited) ) THEN return array[node_id]; end if; -- prevent inheritance cycles
 
-    IF ( not exists(select 1 from node_can_access_mat where node_can_access_mat.nodeid = node_id) ) THEN
+    IF ( not exists(select 1 from node_can_access_mat where node_can_access_mat.nodeid = node_id and node_can_access_mat.complete) ) THEN
 
         -- if node access level is inherited or public, check above, else just this level
-        IF (exists(select 1 from node where id = node_id and accesslevel IS NULL or accesslevel = 'readwrite')) THEN -- null means inherit for the node, readwrite/public inherits as well
+        IF (exists(select 1 from node where id = node_id and (accesslevel IS NULL or accesslevel = 'readwrite'))) THEN -- null means inherit for the node, readwrite/public inherits as well
 
             -- recursively inherit permissions from parents. run all ensure_recursive_node_can_access
             -- intersect the uncachable_node_ids with the visited array. We can start caching as soon as there are no uncachable_node_ids from the visited array.
             uncachable_node_ids := (select array(
-                select unnest(ensure_recursive_node_can_access(accessedge.source_nodeid, visited || node_id)) from accessedge where accessedge.source_nodeid <> node_id and accessedge.target_nodeid = node_id
+                select unnest(ensure_recursive_node_can_access(accessedge.source_nodeid, visited || node_id)) from accessedge where accessedge.target_nodeid = node_id and accessedge.source_nodeid <> node_id
                 intersect
                 select unnest(visited)
             ));
 
-            if (cardinality(uncachable_node_ids) = 0) then
-                insert into node_can_access_mat (
-                    select node_id as nodeid, node_can_access_mat.userid as userid
-                    from accessedge
-                    inner join node_can_access_mat
-                    on node_can_access_mat.nodeid = accessedge.source_nodeid
-                    where accessedge.target_nodeid = node_id
-                    union
-                    select node_id as nodeid, member.target_userid as userid
-                    from member
-                    where data->>'level' = 'readwrite' and member.source_nodeid = node_id
-                );
-            end if;
+            -- if there are not uncachable_node_ids, we can create complete records that can be used without needing calculation.
+            -- if there are uncachable_node_idsa, then we cannot say whether the result is complete or missing some users. therefore we create an incomplete record.
+            -- incomplete records can be used in aggregation in our recursion, they are not wrong, but might be missing users.
+            is_complete := cardinality(uncachable_node_ids) = 0;
+            insert into node_can_access_mat (
+                select node_id as nodeid, node_can_access_mat.userid as userid, is_complete as complete
+                from accessedge
+                inner join node_can_access_mat
+                on node_can_access_mat.nodeid = accessedge.source_nodeid
+                where accessedge.target_nodeid = node_id and accessedge.source_nodeid <> node_id
+                union
+                select node_id as nodeid, member.target_userid as userid, is_complete as complete
+                from member
+                where data->>'level' = 'readwrite' and member.source_nodeid = node_id
+            ) on conflict (nodeid, userid) DO UPDATE set complete = is_complete;
         ELSE
             insert into node_can_access_mat (
-                select node_id as nodeid, member.target_userid as userid
+                select node_id as nodeid, member.target_userid as userid, true as complete
                 from member
                 where data->>'level' = 'readwrite' and member.source_nodeid = node_id
             );
@@ -235,7 +240,7 @@ begin
     cached_access := (
         select bool_or(node_can_access_mat.userid = user_id)
         from node_can_access_mat
-        where node_can_access_mat.nodeid = node_id
+        where node_can_access_mat.nodeid = node_id and node_can_access_mat.complete
     );
     if (cached_access is not null) then return cached_access; end if;
 
@@ -326,10 +331,10 @@ $$ language sql strict;
 create function user_bookmarks(userid uuid) returns setof uuid as $$
     with recursive channels(id) as (
         -- all pinned channels of the user
-        select source_nodeid from pinned where pinned.target_userid = userid and node_can_access(source_nodeid, userid)
+        select sourceid as id from edge where edge.targetid = userid and data->>'type' = any(array['Invite', 'Pinned']) and node_can_access(sourceid, userid)
         union
         -- all transitive parents of each channel. This is needed to correctly calculate the topological minor in the channel tree
-        select child.source_parentid FROM channels INNER JOIN child ON child.target_childid = channels.id where node_can_access(child.source_parentid, userid)
+        select child.source_parentid as id FROM channels INNER JOIN child ON child.target_childid = channels.id where node_can_access(child.source_parentid, userid)
     )
     select * from channels;
 $$ language sql strict;
