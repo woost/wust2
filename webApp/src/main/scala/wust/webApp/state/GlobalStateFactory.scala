@@ -249,19 +249,17 @@ object GlobalStateFactory {
 
     // we know that an update is available if the client is offline but the browser is online. This happens, because
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
-    val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.collect { case false => () }
-    //TODO with is browseronline
-    // val appUpdateIsAvailable: Observable[Unit] = isClientOnlineObservable.combineLatest(isBrowserOnlineObservable).collect { case (false, true) => () }
-
-    // trigger a reload of the app if an appUpdateIsAvailble indicates an update.
-    appUpdateIsAvailable
+    //TODO with is browseronline: isBrowserOnlineObservable
+    isClientOnlineObservable
       .throttleLast(1.minutes)
-      .foreach { _ =>
-        scribe.info("Client is offline, checking whether backend is online")
-        // if we can access the health check of core.app.woost.space (without version in name). then we know for sure, we can update:
-        Client.backendIsOnline().foreach { isOnline =>
-          if (isOnline) window.location.reload(flag = true)
-          else scribe.info("Backend is offline")
+      .foreach { isOnline =>
+        if (!isOnline) {
+          scribe.info("Client is offline, checking whether backend is online")
+          // if we can access the health check of core.app.woost.space (without version in name). then we know for sure, we can update:
+          Client.backendIsOnline().foreach { isOnline =>
+            if (isOnline) window.location.reload(flag = true)
+            else scribe.info("Backend is offline")
+          }
         }
       }
 
