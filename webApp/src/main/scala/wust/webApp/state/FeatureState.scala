@@ -43,12 +43,16 @@ object FeatureState {
   val nextCandidates: Rx[Set[Feature]] = Rx {
     @inline def isUsed(f: Feature) = firstTimeUsed().isDefinedAt(f)
     var candidates = Feature.all.filterNot(f => isUsed(f) || Feature.secrets.contains(f)).toSet
-    //TODO: model required features differently
-    // Feature.all.foreach { prevFeature =>
-    //   prevFeature.next.foreach { nextFeature =>
-    //     if (!isUsed(prevFeature) && !Feature.secrets.contains(prevFeature)) candidates -= nextFeature
-    //   }
-    // }
+
+    // remove features where requirements are not fulfilled
+    candidates.foreach { nextFeature =>
+      if (!nextFeature.requiresAll.forall(isUsed)) {
+        candidates -= nextFeature
+      }
+      else if (nextFeature.requiresAny.nonEmpty && !nextFeature.requiresAny.exists(isUsed)) {
+        candidates -= nextFeature
+      }
+    }
     Feature.startingPoints.foreach { feature =>
       if (!isUsed(feature)) candidates += feature
     }
@@ -67,6 +71,8 @@ object FeatureState {
       Feature.dfsBack(_(start), backPath += _) //TODO: cache
       while (suggestions.length < limit && backPath.nonEmpty) {
         val backPathStart = backPath.dequeue()
+        // Important: The order of suggested features (_.next) should be preserved
+        // Bfs itself preserves the order of items as listed in feature.next
         //TODO: cache if bfs for node is empty (all succeeding features are used)
         Feature.bfs(_(backPathStart), { feature =>
           if (suggestions.length < limit && !suggested(feature) && nextCandidates(feature)) {
@@ -118,6 +124,8 @@ object FeatureState {
               UI.toast("recentlyUsed has too many elements: " + recentlyUsed.now.length + "/" + recentlyUsedLimit, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
             if (recentlyUsed.now != recentlyUsed.now.distinct)
               UI.toast("recentlyUsed is not distinct: " + recentlyUsed.now, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
+            if (!(next.now == next.now.distinct))
+              UI.toast("next is not distinct: Next:" + next.now, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
             if (!(next.now.toSet subsetOf nextCandidates.now.toSet))
               UI.toast("next is not subset of nextCandidates: Next:" + next.now + " / Candidates:" + nextCandidates.now.toSet, title = "FeatureState", level = ToastLevel.Error, autoclose = false)
           }
