@@ -113,9 +113,9 @@ object Feature {
 
   case object ClickBreadcrumb extends Category.Basics with Category.Secret
 
-  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
-  case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
-  case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
+  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard);  override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
+  case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban);  override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
+  case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAny = Array(CreateMessageInChat /*TODO: CreateMessageInThread */);  override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
   // case object OpenNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def next = Array(EditNoteInRightSidebar, ZoomIntoNote) }
 
   case object EditProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAll = Array(OpenProjectInRightSidebar) }
@@ -141,7 +141,7 @@ object Feature {
   case object AddChatView extends Category.View { override def next = Array(CreateMessageInChat) }
   case object CreateMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAll = Array(AddChatView); override def next = Array(ReplyToMessageInChat, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object ReplyToMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAll = Array(CreateMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(NestMessagesByDragging, OpenMessageInRightSidebar, TagMessageByDragging) }
-  case object NestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(CreateMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(ZoomIntoMessage, UnNestMessagesByDragging) }
+  case object NestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(ReplyToMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(ZoomIntoMessage, UnNestMessagesByDragging) }
   case object UnNestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(NestMessagesByDragging); }
   // reply -> zoom
 

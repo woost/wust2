@@ -86,7 +86,7 @@ object ChatView {
     )
 
   private def chatHistory(
-    
+
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
 
@@ -467,7 +467,7 @@ object ChatView {
   }
 
   private def chatInput(
-    
+
     focusState: FocusState,
     currentReply: Var[Set[NodeId]],
     pinReply: Var[Boolean],
@@ -492,16 +492,16 @@ object ChatView {
         case Some(uploadFile) => AWS.uploadFileAndCreateNode( uploadFile, fileId => basicGraphChanges merge GraphChanges.connect(Edge.LabeledProperty)(basicNode.id, EdgeData.LabeledProperty.attachment, PropertyId(fileId)))
       }
 
+      FeatureState.use(Feature.CreateMessageInChat)
+      if(currentReply.now.nonEmpty) FeatureState.use(Feature.ReplyToMessageInChat)
+
       if (!pinReply.now) currentReply() = Set.empty[NodeId]
       fileUploadHandler() = None
       scrollHandler.scrollToBottomInAnimationFrame()
-
-      FeatureState.use(Feature.CreateMessageInChat)
-      if(replyNodes.nonEmpty) FeatureState.use(Feature.ReplyToMessageInChat)
     }
 
     InputRow(
-      
+
       Some(focusState),
       submitAction,
       fileUploadHandler = Some(fileUploadHandler),
