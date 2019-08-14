@@ -18,6 +18,7 @@ import wust.sdk.Colors
 import wust.webApp.state.{ FeatureDetails, FeatureState, GlobalState, ScreenSize }
 import wust.webUtil.Elements
 import wust.webUtil.outwatchHelpers._
+import wust.webUtil.UI
 
 object FeatureExplorer {
   //TODO: next to suggested action, a button: "I don't know what to do / what this means" --> track in analytics, open support chat
@@ -38,7 +39,6 @@ object FeatureExplorer {
       backgroundColor := "#5FBA7D",
       borderRadius := "4px",
       padding := "2px 5px",
-      marginLeft.auto,
       display.inlineBlock,
     )
 
@@ -67,6 +67,22 @@ object FeatureExplorer {
       ),
     )
 
+    def helpButton(feature: Feature) = span(
+      freeSolid.faQuestionCircle,
+      cursor.pointer,
+      color := "#60758a",
+      UI.popup("bottom right") := ("Is this feature unclear?"),
+      onClick.stopPropagation.foreach { _ =>
+        Try{
+          DeployedOnly { FeedbackForm.initCrisp }
+          crisp.push(js.Array("do", "chat:show"))
+          crisp.push(js.Array("do", "chat:open"))
+        }
+        Analytics.sendEvent("unclear-feature", feature.toString)
+      }
+    )
+
+    // TODO: show category labels next to suggestions and recents
     val tryNextList = div(
       Rx{
         VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
@@ -75,23 +91,11 @@ object FeatureExplorer {
             val details = FeatureDetails(feature)
             div(
               div(
+                helpButton(feature)(float.right),
                 details.title, fontWeight.bold, fontSize := "1.3em",
-                span(
-                  " ",
-                  freeSolid.faQuestionCircle,
-                  cursor.pointer,
-                  color := "#2185d0",
-                  onClick.stopPropagation.foreach { _ =>
-                  Try{
-                    DeployedOnly { FeedbackForm.initCrisp }
-                    crisp.push(js.Array("do", "chat:show"))
-                    crisp.push(js.Array("do", "chat:open"))
-                  }
-                  Analytics.sendEvent("unclear-feature", feature.toString)
-                })
               ),
               div(details.description),
-              backgroundColor := "#c7f0ff",
+              backgroundColor := "#dbf5ff",
               padding := "8px",
               marginBottom := "3px",
               borderRadius := "4px",
@@ -108,21 +112,15 @@ object FeatureExplorer {
         FeatureState.recentFirstTimeUsed().take(5).map { feature =>
           val details = FeatureDetails(feature)
           div(
-            Styles.flex,
-            verticalAlign.middle,
-            alignItems.flexStart,
             div(
-              details.title,
-              Styles.wordWrap,
-              fontSize := "16px",
-              fontWeight.bold,
-              opacity := 0.8,
-              marginRight := "10px",
-            ),
-            scoreBadge(
-              "+1",
-              Styles.flexStatic,
-              marginLeft.auto,
+              scoreBadge("+1", float.right, marginLeft := "0.5em"),
+              span(
+                details.title,
+                opacity := 0.8,
+                Styles.wordWrap,
+                fontSize := "16px",
+                fontWeight.bold,
+              ),
             ),
             padding := "8px",
             marginBottom := "3px",
@@ -244,15 +242,9 @@ object FeatureExplorer {
       keyed,
       toggleButton,
       div(
+        cls := "feature-explorer shadow",
         activeDisplay,
-        width := "280px",
-        position.fixed, top := "35px", right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "200px" },
-        zIndex := ZIndex.formOverlay,
-        padding := "10px",
-        borderRadius := "5px",
-        cls := "shadow",
-        backgroundColor := Colors.sidebarBg,
-        color := "#333",
+        right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "200px" },
 
         closeButton(marginRight := "-10px", marginTop := "-5px"),
         stats(marginTop := "5px"),
@@ -263,10 +255,12 @@ object FeatureExplorer {
             recentFirstTimeList(marginTop := "30px")
           )
         },
+        div(
+          textAlign.right,
+          a("Have Feedback? Tell us!")
+        ),
 
         onClick.stopPropagation.discard, // prevents closing feedback form by global click
-        maxHeight := "calc(100% - 45px)",
-        overflowY.auto,
       ),
     )
   }

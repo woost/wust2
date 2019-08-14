@@ -849,6 +849,27 @@ object CommonStyles extends StyleSheet.Standalone {
     )
   )
 
+  ".feature-explorer" - (
+    &("em") - (
+      backgroundColor(c"#f3f5f7"),
+      padding(2 px, 5 px),
+      borderRadius(3 px),
+      fontStyle.normal,
+      whiteSpace.nowrap,
+    ),
+
+    zIndex(ZIndex.formOverlay),
+    backgroundColor(Color(Colors.sidebarBg)),
+    color(c"#333"),
+    width(280 px),
+    position.fixed,
+    top(35 px),
+    padding(10 px),
+    borderRadius(5 px),
+    maxHeight := "calc(100% - 45px)",
+    overflowY.auto,
+  )
+
   ".sidebar" - (
     &(".breadcrumbs") - (
     &(".breadcrumb") - (
