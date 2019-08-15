@@ -411,6 +411,7 @@ object ChatView {
               div(cls := "fa-fw", Icons.zoom, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach {
                 GlobalState.focus(node.id)
                 GlobalState.clearSelectedNodes()
+                FeatureState.use(Feature.ZoomIntoMessage)
               }, cursor.pointer),
               pinReply.map{ pinReply => div(cls := "fa-fw", freeSolid.faThumbtack, Rx { pinReply().ifFalse[VDomModifier](opacity := 0.4) }, padding := "3px 20px 3px 5px", onClick.stopPropagation foreach { pinReply() = !pinReply.now; inputFieldFocusTrigger.onNext(()); () }, cursor.pointer) },
             )

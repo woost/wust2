@@ -9,7 +9,7 @@ import wust.webApp.dragdrop.DragActions._
 import wust.webApp.state.GlobalState
 import wust.webApp.views.DragComponents.{ readDragContainer, readDragPayload, readDragTarget, readDraggableDraggedAction }
 import wust.webUtil.JSDefined
-import wust.ids.{NodeId, NodeRole}
+import wust.ids.{ NodeId, NodeRole }
 import wust.graph.Graph
 import wust.webUtil.Elements.defer
 import wust.ids.Feature
@@ -157,6 +157,10 @@ object DragValidation {
       case (_: User, _: Task)         => FeatureState.use(Feature.AssignTaskByDragging)
       case (_: Message, _: Message)   => FeatureState.use(Feature.NestMessagesByDragging)
       case (_: Message, _: Workspace) => FeatureState.use(Feature.UnNestMessagesByDragging)
+      case (_: Task, Sidebar)         => FeatureState.use(Feature.BookmarkTask)
+      case (_: Message, Sidebar)      => FeatureState.use(Feature.BookmarkMessage)
+      case (_: Note, Sidebar)         => FeatureState.use(Feature.BookmarkNote)
+      case (_: Project, Sidebar)      => FeatureState.use(Feature.BookmarkProject)
       case _                          =>
     }
   }

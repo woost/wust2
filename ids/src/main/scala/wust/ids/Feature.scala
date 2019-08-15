@@ -113,9 +113,9 @@ object Feature {
 
   case object ClickBreadcrumb extends Category.Basics with Category.Secret
 
-  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard);  override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
-  case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban);  override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
-  case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAny = Array(CreateMessageInChat /*TODO: CreateMessageInThread */);  override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
+  case object OpenProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard); override def next = Array(EditProjectInRightSidebar, ZoomIntoProject) }
+  case object OpenTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def next = Array(EditTaskInRightSidebar, ZoomIntoTask) }
+  case object OpenMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAny = Array(CreateMessageInChat /*TODO: CreateMessageInThread */ ); override def next = Array(EditMessageInRightSidebar, ZoomIntoMessage) }
   // case object OpenNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def next = Array(EditNoteInRightSidebar, ZoomIntoNote) }
 
   case object EditProjectInRightSidebar extends Category.Basics with Category.Item.Project { override def requiresAll = Array(OpenProjectInRightSidebar) }
@@ -165,7 +165,7 @@ object Feature {
   case object UncheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CheckTask); override def next = Array(DeleteTaskInChecklist) }
   case object ReorderTaskInChecklist extends Category.View.Checklist with Category.Item.Task
   case object DeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(FilterDeleted, UndeleteTaskInChecklist, FilterOnlyDeleted) }
-  case object UndeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(DeleteTaskInChecklist) }
+  case object UndeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(DeleteTaskInChecklist); override def requiresAny = Array(FilterDeleted, FilterOnlyDeleted) }
 
   // Kanban
   case object AddKanbanView extends Category.View with Category.View.Kanban { override def next = Array(CreateColumnInKanban, CreateTaskInKanban) }

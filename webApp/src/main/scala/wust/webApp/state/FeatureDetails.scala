@@ -80,7 +80,7 @@ object FeatureDetails {
       )
       case UndeleteTaskInChecklist => FeatureDetails (
         title = "Undelete Task (Checklist)",
-        description = VDomModifier("Click ", em(Icons.undelete), " on the right to undelete a task.")
+        description = VDomModifier("Activate filter ",em(ViewGraphTransformation.Deleted.excludeDeleted.description),", then click ", em(Icons.undelete), " on the right to undelete a task.")
       )
       case ExpandTaskInChecklist => FeatureDetails (
         title = "Expand Task (Checklist)",
@@ -138,7 +138,7 @@ object FeatureDetails {
       )
       case CreateNoteInNotes => FeatureDetails (
         title = "Create Note (Notes)",
-        description = VDomModifier("Type a note in the field and press ", em("Ctrl+Enter"), ".")
+        description = VDomModifier("Type a note in the field and press ", em("Ctrl+Enter"), ". Or: Click somewhere else to save.")
       )
 
       // Automation
