@@ -319,8 +319,12 @@ object GraphChangesAutomation {
         graph.nodes(descendantIdx) match {
           case descendant: Node.Content =>
             val shouldContinue = graph.edges(edgeIdx) match {
-              case e: Edge.LabeledProperty => followLinks || descendant.role == NodeRole.Neutral // only follow neutral nodes, i.e. properties. Links are normal nodes with a proper node role.
-              case e: Edge.Child => e.data.deletedAt.forall(_ isAfter copyTime) || graph.idToIdxFold(e.childId)(false)(graph.referencesTemplateEdgeIdx.sliceNonEmpty(_)) // only follow not-deleted children except for refercing nodes that might want to delete the referenced node.
+              case e: Edge.LabeledProperty =>
+                // only follow neutral nodes, i.e. properties. Links are normal nodes with a proper node role
+                followLinks || descendant.role == NodeRole.Neutral
+              case e: Edge.Child =>
+                // only follow not-deleted children except for refercing nodes that might want to delete the referenced node.
+                e.data.deletedAt.forall(_ isAfter copyTime) || graph.idToIdxFold(e.childId)(false)(graph.referencesTemplateEdgeIdx.sliceNonEmpty(_))
               case _ => false
             }
             if (shouldContinue) f(descendantIdx)
@@ -355,87 +359,101 @@ object GraphChangesAutomation {
     // done to it should be done to the reference template node.  we need to do
     // this for all template nodes that were passed in.
     // do the dfs for all template node and copy/update/register all nodes that should be created and may already exists in newNode.
-    dfs.withManualSuccessorsStopLocally(templateNodeIdxs.foreach(_), manualSuccessorsSize, idx => f => manualSuccessors(false)(idx, f), { descendantIdx =>
-      val descendant = graph.nodes(descendantIdx).as[Node.Content]
-      val descendantReferences = graph.referencesTemplateEdgeIdx(descendantIdx)
+    val unresolvedReferencingIdxs = mutable.ArrayBuffer[Int]()
+    def resolveTemplatesSubGraph(startIdxs: (Int => Unit) => Unit) =
+      dfs.withManualSuccessorsStopLocally(startIdxs, manualSuccessorsSize, idx => f => manualSuccessors(false)(idx, f), { descendantIdx =>
+        val descendant = graph.nodes(descendantIdx).as[Node.Content]
+        val descendantReferences = graph.referencesTemplateEdgeIdx(descendantIdx)
 
-      // for each descendant of the template, we need to check whether the node already exists or whether we need to create it.
-      // A template can have ReferencesTemplate engines. That means sourceId wants to automated any node derived from targetId.
-      if (descendantReferences.isEmpty) { // if there is no references template
-        if (templateNodeIdxs.exists(_ == descendantIdx)) { // if this is actually a templateNode and we have no references
-          if (descendant.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
-            newNodeIsTouched = true
-            referencedTemplateIds += descendant.id
-            addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-            alreadyExistingNodes += newNode.id -> newNode
-            alreadyExistingNodes += descendant.id -> newNode
-            replacedNodes += descendant.id -> newNode
-            applyTemplateToNode(newNode = newNode, templateNode = descendant)
-            true
-          } else false
-        } else getAlreadyExistingNodes(descendantIdx) match { // this is not a template node, search for already existing node.
-          case Some(implementationNodes) => implementationNodes.forall { implementationNode =>
-            if (implementationNode.id != descendant.id) {
-              addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-              replacedNodes += descendant.id -> implementationNode
-              val useTemplateData = descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
-              applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = useTemplateData)
+        // for each descendant of the template, we need to check whether the node already exists or whether we need to create it.
+        // A template can have ReferencesTemplate engines. That means sourceId wants to automated any node derived from targetId.
+        if (descendantReferences.isEmpty) { // if there is no references template
+          if (templateNodeIdxs.exists(_ == descendantIdx)) { // if this is actually a templateNode and we have no references
+            if (descendant.role == newNode.role) { // without explicit reference, we only apply to the same noderole.
+              newNodeIsTouched = true
+              referencedTemplateIds += descendant.id
+              addEdges += Edge.DerivedFromTemplate(nodeId = newNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+              alreadyExistingNodes += newNode.id -> newNode
+              alreadyExistingNodes += descendant.id -> newNode
+              replacedNodes += descendant.id -> newNode
+              applyTemplateToNode(newNode = newNode, templateNode = descendant)
               true
             } else false
-          }
-          case None =>
-            val copyNode = copyAndTransformNode(descendant)
-            addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-            alreadyExistingNodes += descendant.id -> copyNode
-            replacedNodes += descendant.id -> copyNode
-            true
-        }
-      } else { // we have template references
-        referencingNodeIds += descendant.id
-        descendantReferences forall { edgeIdx =>
-          val descendantReferenceEdge = graph.edges(edgeIdx).as[Edge.ReferencesTemplate]
-          val descendantReferenceIdx = graph.edgesIdx.b(edgeIdx)
-          val descendantReference = graph.nodes(descendantReferenceIdx).as[Node.Content]
-          referencedTemplateIds += descendantReference.id
-
-          // check if the descendantRefence already has a counterpart in the newNode graph
-          getAlreadyExistingNodes(descendantReferenceIdx) match {
+          } else getAlreadyExistingNodes(descendantIdx) match { // this is not a template node, search for already existing node.
             case Some(implementationNodes) => implementationNodes.forall { implementationNode =>
-              if (implementationNode.id == newNode.id) newNodeIsTouched = true
-              if (implementationNode.id != descendant.id) { // guard against a self-loop, because this somehow happened once and makes no sense. TODO: we should be able to remove this, but needs thorough testing.
-                if (descendantReferenceEdge.data.isCreate) { //create should only be done once, copy onlf it our own template is not defined
-                  getAlreadyExistingNodes(descendantIdx) match {
-                    case Some(alreadyCopiedDescendants) if alreadyCopiedDescendants.exists(_.id == implementationNode.id) =>
-                      addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                      alreadyExistingNodes += descendant.id -> implementationNode
-                      replacedNodes += descendant.id -> implementationNode
-                      applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
-                    case _ =>
-                      val copyNode = copyAndTransformNode(implementationNode.as[Node.Content])
-                      addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                      alreadyExistingNodes += descendant.id -> copyNode
-                      replacedNodes += descendant.id -> copyNode
-                      applyTemplateToNode(newNode = copyNode, templateNode = descendant, useTemplateData = descendantReferenceEdge.data.isRename)
-                  }
-                } else {
-                  val canUseTemplateData = getAlreadyExistingNodes(descendantIdx) match {
-                    case Some(alreadyReferencedDescendants) => !alreadyReferencedDescendants.exists(_.id == implementationNode.id)
-                    case _ => true
-                  }
-                  addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
-                  alreadyExistingNodes += descendant.id -> implementationNode
-                  replacedNodes += descendant.id -> implementationNode
-                  applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = canUseTemplateData && descendantReferenceEdge.data.isRename)
-                }
-
+              if (implementationNode.id != descendant.id) {
+                addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                replacedNodes += descendant.id -> implementationNode
+                val useTemplateData = descendant.role == NodeRole.Neutral // only edit already existing properties with template string (neutral)
+                applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = useTemplateData)
                 true
               } else false
             }
-            case None => false
+            case None =>
+              val copyNode = copyAndTransformNode(descendant)
+              addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+              alreadyExistingNodes += descendant.id -> copyNode
+              replacedNodes += descendant.id -> copyNode
+              true
           }
+        } else { // we have template references
+          val result = descendantReferences forall { edgeIdx =>
+            val descendantReferenceEdge = graph.edges(edgeIdx).as[Edge.ReferencesTemplate]
+            val descendantReferenceIdx = graph.edgesIdx.b(edgeIdx)
+            val descendantReference = graph.nodes(descendantReferenceIdx).as[Node.Content]
+
+            // check if the descendantRefence already has a counterpart in the newNode graph
+            getAlreadyExistingNodes(descendantReferenceIdx) match {
+              case Some(implementationNodes) =>
+                referencedTemplateIds += descendantReference.id
+
+                implementationNodes.forall { implementationNode =>
+                  if (implementationNode.id == newNode.id) newNodeIsTouched = true
+
+                  if (implementationNode.id != descendant.id) { // guard against a self-loop, because this somehow happened once and makes no sense. TODO: we should be able to remove this, but needs thorough testing.
+                    if (descendantReferenceEdge.data.isCreate) { //create should only be done once, copy onlf it our own template is not defined
+                      getAlreadyExistingNodes(descendantIdx) match {
+                        case Some(alreadyCopiedDescendants) if alreadyCopiedDescendants.exists(_.id == implementationNode.id) =>
+                          addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                          alreadyExistingNodes += descendant.id -> implementationNode
+                          replacedNodes += descendant.id -> implementationNode
+                          applyTemplateToNode(newNode = implementationNode, templateNode = descendant)
+                        case _ =>
+                          val copyNode = copyAndTransformNode(implementationNode.as[Node.Content])
+                          addEdges += Edge.DerivedFromTemplate(nodeId = copyNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                          alreadyExistingNodes += descendant.id -> copyNode
+                          replacedNodes += descendant.id -> copyNode
+                          applyTemplateToNode(newNode = copyNode, templateNode = descendant, useTemplateData = descendantReferenceEdge.data.isRename)
+                      }
+                    } else {
+                      val canUseTemplateData = getAlreadyExistingNodes(descendantIdx) match {
+                        case Some(alreadyReferencedDescendants) => !alreadyReferencedDescendants.exists(_.id == implementationNode.id)
+                        case _ => true
+                      }
+                      addEdges += Edge.DerivedFromTemplate(nodeId = implementationNode.id, EdgeData.DerivedFromTemplate(copyTime), TemplateId(descendant.id))
+                      alreadyExistingNodes += descendant.id -> implementationNode
+                      replacedNodes += descendant.id -> implementationNode
+                      applyTemplateToNode(newNode = implementationNode, templateNode = descendant, useTemplateData = canUseTemplateData && descendantReferenceEdge.data.isRename)
+                    }
+
+                    true
+                  } else false
+                }
+              case None =>
+                false
+            }
+          }
+
+          if (result) referencingNodeIds += descendant.id
+          else unresolvedReferencingIdxs += descendantIdx
+
+          result
         }
-      }
-    })
+      })
+
+    resolveTemplatesSubGraph(templateNodeIdxs.foreach)
+    // retry once for unresolved references, because of dependencies, TODO: would really need depdencency graph...
+    if (unresolvedReferencingIdxs.nonEmpty) resolveTemplatesSubGraph(unresolvedReferencingIdxs.foreach)
 
     // all new edges that we are creating that might be need for resolving variables in new nodes.
     val newResolvableEdges = new mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]
