@@ -4,6 +4,7 @@ import wust.facades.juration.Juration
 import wust.ids._
 import wust.util.StringOps
 
+import org.scalajs.dom
 import scala.scalajs.js
 import scala.scalajs.js.Date
 import scala.util.control.NonFatal
@@ -22,11 +23,13 @@ object StringJsOps {
   }
 
   @inline def dateToString(date: DateMilli): String = {
-    new js.Date(date).toLocaleDateString()
+    //TODO: contribute to scala-js-dom overloads for toLocale*String with locale string argument
+    new js.Date(date).asInstanceOf[js.Dynamic].toLocaleDateString(dom.window.navigator.language).asInstanceOf[String]
   }
 
   @inline def dateTimeToString(date: DateTimeMilli): String = {
-    new js.Date(date).toLocaleString()
+    //TODO: contribute to scala-js-dom overloads for toLocale*String with locale string argument
+    new js.Date(date).asInstanceOf[js.Dynamic].toLocaleString(dom.window.navigator.language).asInstanceOf[String]
   }
 
   @inline def timeToTimeString(t: TimeMilli): String = {
