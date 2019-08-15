@@ -24,18 +24,36 @@ object RightSidebar {
 
   @inline def apply(viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = apply(GlobalState.rightSidebarNode, nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)), viewRender: ViewRenderLike)
   def apply(focusedNodeId: Rx[Option[FocusPreference]], parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, openModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
-    val toggleVar = Var(focusedNodeId.now.isDefined)
-    focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
-    toggleVar.triggerLater(show => if (!show) parentIdAction(None))
 
     val isFullscreen = Var(false)
+    val focusHistory = Var(List.empty[NodeId])
+    val focusFuture = Var(List.empty[NodeId])
+
+    val toggleVar = Var(focusedNodeId.now.isDefined)
+    var lastFocusPref = focusedNodeId.now
+    focusedNodeId.triggerLater { opt =>
+      toggleVar() = opt.isDefined
+      opt match {
+        case Some(newPref) =>
+          lastFocusPref.foreach { pref =>
+            focusHistory.update(list => pref.nodeId :: list.filter(_ != pref.nodeId))
+            focusFuture() = Nil
+          }
+        case None =>
+          focusHistory() = Nil
+          focusFuture() = Nil
+          isFullscreen() = false
+      }
+      lastFocusPref = opt
+    }
+    toggleVar.triggerLater(show => if (!show) parentIdAction(None))
 
     GenericSidebar.right(
       toggleVar,
       isFullscreen,
       config = Ownable { implicit ctx =>
         GenericSidebar.Config(
-          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender, isFullscreen))), openModifier)
+          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender, isFullscreen, focusHistory, focusFuture, () => lastFocusPref = None))), openModifier)
         )
       }
     )
@@ -44,15 +62,19 @@ object RightSidebar {
   val propertiesAccordionText = "Properties & Custom Fields"
   val addCustomFieldText = "Add Custom Field"
 
-  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, isFullscreen: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = {
+  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, isFullscreen: Var[Boolean], focusHistory: Var[List[NodeId]], focusFuture: Var[List[NodeId]], ignoreNextUpdate: () => Unit)(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
     val sidebarHeader = div(
       opacity := 0.5,
 
+      Styles.flex,
+      justifyContent.spaceBetween,
+
       div(
         Styles.flex,
         alignItems.center,
+
         div(
           freeSolid.faAngleDoubleRight,
           color := "gray",
@@ -66,15 +88,57 @@ object RightSidebar {
           nodeBreadcrumbs(focusPref, parentIdAction, hideIfSingle = true),
         )
       ),
-      VDomModifier.ifNot(BrowserDetect.isMobile)(
+
+      div(
         Styles.flex,
-        justifyContent.spaceBetween,
+        alignItems.center,
+
         div(
-          freeSolid.faCompress,
-          color := "gray",
+          freeSolid.faChevronLeft,
+          focusHistory.map {
+            case Nil => color := "gray"
+            case _ => VDomModifier.empty
+          },
           cls := "fa-fw",
           cursor.pointer,
-          onClick.foreach(isFullscreen.update(!_))
+          onClick.foreach {
+            focusHistory.now match {
+              case head :: rest =>
+                ignoreNextUpdate()
+                focusHistory() = rest
+                focusFuture.update(focusPref.nodeId :: _)
+                parentIdAction(Some(head))
+              case _ =>
+            }
+          }
+        ),
+        div(
+          freeSolid.faChevronRight,
+          focusFuture.map {
+            case Nil => color := "gray"
+            case _ => VDomModifier.empty
+          },
+          cls := "fa-fw",
+          cursor.pointer,
+          onClick.foreach {
+            focusFuture.now match {
+              case head :: rest =>
+                ignoreNextUpdate()
+                focusFuture() = rest
+                focusHistory.update(focusPref.nodeId :: _)
+                parentIdAction(Some(head))
+              case _ =>
+            }
+          }
+        ),
+
+        VDomModifier.ifNot(BrowserDetect.isMobile)(
+          div(
+            freeSolid.faCompress,
+            cls := "fa-fw",
+            cursor.pointer,
+            onClick.foreach(isFullscreen.update(!_))
+          )
         )
       )
     )
