@@ -27,26 +27,35 @@ object Client {
   private val port = if (location.port.isEmpty) "" else ":" + location.port
   private val protocol = location.protocol
 
-  private def calculateCoreUrl(withVersion: Boolean): String = {
+  private def calculateCoreAddress(withVersion: Boolean): String = {
     val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
 
     if (LinkingInfo.developmentMode)
-      s"$socketProtocol//$hostname$port/ws" // allows to access the devserver without subdomain
+      s"$hostname$port" // allows to access the devserver without subdomain
     else {
       val subdomain = if (withVersion) s"core-${WoostConfig.value.versionString.replace(".", "-")}" else "core"
-      s"$socketProtocol//$subdomain.$hostname$port/ws"
+      s"$subdomain.$hostname$port"
     }
   }
 
+  private def calculateCoreUrl(withVersion: Boolean): String = {
+    val socketProtocol = if (location.protocol == "https:") "wss:" else "ws:"
+    val address = calculateCoreAddress(withVersion)
+    s"$socketProtocol//$address/ws"
+  }
+
+  private def calculateCoreHttpUrl(withVersion: Boolean): String = {
+    val address = calculateCoreAddress(withVersion)
+    s"${location.protocol}//$address"
+  }
+
   private def calculateFilesUrl(): Option[String] = {
-    if (LinkingInfo.developmentMode)
-      None
-    else
-      Some(s"${location.protocol}//files.$hostname")
+    if (LinkingInfo.developmentMode) None
+    else Some(s"${location.protocol}//files.$hostname")
   }
 
   private val wustUrl = calculateCoreUrl(withVersion = true)
-  private val wustUrlUnversioned = calculateCoreUrl(withVersion = false)
+  private val wustUrlUnversioned = calculateCoreHttpUrl(withVersion = false)
   val wustFilesUrl = calculateFilesUrl()
 
   def backendIsOnline(): Future[Boolean] = {
