@@ -95,12 +95,10 @@ object GraphOperation {
 
   case object OnlyAssignedTo extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
-      val assignedNodes = ArraySet.create(graph.nodes.length)
-      graph.assignedNodesIdx.foreachElement(userIdx)(assignedNodes += _)
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
-          graph.nodes(childIdx).role != NodeRole.Task || assignedNodes.contains(childIdx)
+          graph.nodes(childIdx).role != NodeRole.Task || graph.assignedUsersIdx.contains(childIdx)(userIdx)
         case _ => true
       })
     }
@@ -108,12 +106,10 @@ object GraphOperation {
 
   case object OnlyNotAssigned extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
-      val assignedNodes = ArraySet.create(graph.nodes.length)
-      graph.assignedNodesIdx.foreachElement(userIdx)(assignedNodes += _)
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
-          graph.nodes(childIdx).role != NodeRole.Task || !assignedNodes.contains(childIdx)
+          graph.nodes(childIdx).role != NodeRole.Task || graph.assignedUsersIdx.sliceIsEmpty(childIdx)
         case _ => true
       })
     }
