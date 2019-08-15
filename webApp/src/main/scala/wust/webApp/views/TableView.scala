@@ -246,7 +246,7 @@ object TableView {
                   val tmpGraph = GlobalState.rawGraph.now applyChanges changes
                   val templateIdx = tmpGraph.idToIdxOrThrow(templateNode.id)
                   // run automation of this template for each row
-                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(GlobalState.user.now.id, tmpGraph, info.node, templateNodesIdx = Array(templateIdx)))
+                  propertyGroup.infos.foldLeft[GraphChanges](changes)((changes, info) => changes merge GraphChangesAutomation.copySubGraphOfNode(GlobalState.user.now.id, tmpGraph, info.node, templateNodeIdxs = Array(templateIdx)))
                 } else propertyGroup.infos.foldLeft[GraphChanges](GraphChanges.empty)((changes, info) => changes merge changesf(info.node.id))
               }, keepPropertyAsDefault),
               dropdownModifier = cls := "top left",
