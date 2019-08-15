@@ -36,6 +36,7 @@ object LeftSidebar {
 
     GenericSidebar.left(
       GlobalState.leftSidebarOpen,
+      Var(false),
       config = Ownable { implicit ctx =>
         val toplevelChannels = toplevelChannelsRx
         val invites = invitesRx

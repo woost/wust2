@@ -18,10 +18,10 @@ object GenericSidebar {
 
   final case class Config(mainModifier: VDomModifier = VDomModifier.empty, openModifier: VDomModifier = VDomModifier.empty, overlayOpenModifier: VDomModifier = VDomModifier.empty, expandedOpenModifier: VDomModifier = VDomModifier.empty, closedModifier: Option[VDomModifier] = None)
 
-  def left(sidebarOpen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = false, sidebarOpen = sidebarOpen, config = config)
-  def right(sidebarOpen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = true, sidebarOpen = sidebarOpen, config = config)
+  def left(sidebarOpen: Var[Boolean], isFullscreen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = false, sidebarOpen = sidebarOpen, isFullscreen = isFullscreen, config = config)
+  def right(sidebarOpen: Var[Boolean], isFullscreen: Var[Boolean], config: Ownable[Config]): VNode = apply(isRight = true, sidebarOpen = sidebarOpen, isFullscreen = isFullscreen, config = config)
 
-  private def apply(isRight: Boolean, sidebarOpen: Var[Boolean], config: Ownable[Config]): VNode = {
+  private def apply(isRight: Boolean, sidebarOpen: Var[Boolean], isFullscreen: Var[Boolean], config: Ownable[Config]): VNode = {
     def openSwipe = (if (isRight) onSwipeLeft(true) else onSwipeRight(true)) --> sidebarOpen
     def closeSwipe = (if (isRight) onSwipeRight(false) else onSwipeLeft(false)) --> sidebarOpen
     def directionOverlayModifier = if (isRight) cls := "overlay-right-sidebar" else cls := "overlay-left-sidebar"
@@ -83,7 +83,10 @@ object GenericSidebar {
     div(config.flatMap(config => Ownable { implicit ctx =>
       VDomModifier(
         if (BrowserDetect.isMobile) sidebarWithOverlay(config)
-        else sidebarWithExpand(config),
+        else isFullscreen.map {
+          case true => sidebarWithOverlay(config)
+          case false => sidebarWithExpand(config)
+        },
         config.mainModifier
       )
     }))

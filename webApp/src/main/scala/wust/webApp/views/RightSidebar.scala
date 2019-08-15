@@ -12,6 +12,7 @@ import wust.sdk.Colors
 import wust.webApp.state._
 import wust.webApp.views.Components._
 import wust.webUtil.Elements
+import wust.webUtil.BrowserDetect
 import wust.webApp.views.SharedViewElements._
 import wust.webApp.{ Icons, ItemProperties }
 import wust.webUtil.Elements._
@@ -27,11 +28,14 @@ object RightSidebar {
     focusedNodeId.triggerLater(opt => toggleVar() = opt.isDefined)
     toggleVar.triggerLater(show => if (!show) parentIdAction(None))
 
+    val isFullscreen = Var(false)
+
     GenericSidebar.right(
       toggleVar,
+      isFullscreen,
       config = Ownable { implicit ctx =>
         GenericSidebar.Config(
-          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender))), openModifier)
+          openModifier = VDomModifier(focusedNodeId.map(_.map(content(_, parentIdAction, viewRender, isFullscreen))), openModifier)
         )
       }
     )
@@ -40,26 +44,39 @@ object RightSidebar {
   val propertiesAccordionText = "Properties & Custom Fields"
   val addCustomFieldText = "Add Custom Field"
 
-  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner): VNode = {
+  def content(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, viewRender: ViewRenderLike, isFullscreen: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = {
     val nodeStyle = PageStyle.ofNode(focusPref.nodeId)
 
     val sidebarHeader = div(
       opacity := 0.5,
 
-      Styles.flex,
-      alignItems.center,
       div(
-        freeSolid.faAngleDoubleRight,
-        color := "gray",
-        cls := "fa-fw",
-        fontSize.xLarge,
-        cursor.pointer,
-        onClick(None).foreach(parentIdAction)
+        Styles.flex,
+        alignItems.center,
+        div(
+          freeSolid.faAngleDoubleRight,
+          color := "gray",
+          cls := "fa-fw",
+          fontSize.xLarge,
+          cursor.pointer,
+          onClick(None).foreach(parentIdAction)
+        ),
+        div(
+          marginLeft := "5px",
+          nodeBreadcrumbs(focusPref, parentIdAction, hideIfSingle = true),
+        )
       ),
-      div(
-        marginLeft := "5px",
-        nodeBreadcrumbs(focusPref, parentIdAction, hideIfSingle = true),
-      ),
+      VDomModifier.ifNot(BrowserDetect.isMobile)(
+        Styles.flex,
+        justifyContent.spaceBetween,
+        div(
+          freeSolid.faCompress,
+          color := "gray",
+          cls := "fa-fw",
+          cursor.pointer,
+          onClick.foreach(isFullscreen.update(!_))
+        )
+      )
     )
 
     def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
