@@ -253,15 +253,20 @@ object LeftSidebar {
   def channelLine(traverseState: TraverseState, userId: UserId, expanded: Rx[Boolean], hasChildren: Rx[Boolean], depth:Int = 0, channelModifier: VDomModifier = VDomModifier.empty)(implicit ctx: Ctx.Owner): VNode = {
     val nodeId = traverseState.parentId
     val selected = Rx { (GlobalState.page().parentId contains nodeId) && GlobalState.view().isContent }
-    val node = Rx {
-      GlobalState.rawGraph().nodesById(nodeId)
-    }
+    val nodeIdx = Rx { GlobalState.rawGraph().idToIdx(nodeId) }
+    val isPinned = Rx { nodeIdx().exists(nodeIdx => GlobalState.rawGraph().isPinned(nodeIdx, userIdx = GlobalState.rawGraph().idToIdxOrThrow(userId))) }
+    val node = Rx { nodeIdx().map(nodeIdx => GlobalState.rawGraph().nodes(nodeIdx)) }
 
     val permissionLevel = Rx {
       Permission.resolveInherited(GlobalState.rawGraph(), nodeId)
     }
 
     div(
+      isPinned map {
+        case true => VDomModifier.empty
+        case false => VDomModifier(opacity := 0.5)
+      },
+
       Styles.flex,
       alignItems.center,
       expandToggleButton( nodeId, userId, expanded).apply(
@@ -332,7 +337,7 @@ object LeftSidebar {
         val userId = GlobalState.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannelsOrProjects(_, _, userId)))
         )
       },
 
