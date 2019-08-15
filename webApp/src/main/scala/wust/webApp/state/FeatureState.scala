@@ -18,6 +18,7 @@ import wust.facades.googleanalytics.Analytics
 
 import scala.collection.breakOut
 import scala.concurrent.ExecutionContext
+import wust.api.AuthUser
 
 object FeatureState {
   //TODO: show next on loading screen?
@@ -28,16 +29,28 @@ object FeatureState {
 
   val recentlyUsedLimit = 1
   val recentlyUsed = Var[Vector[Feature]](Vector.empty)
+  private val notSentFirstTimeFeatures = mutable.HashMap.empty[Feature, EpochMilli]
+  private var notSentFirstTimeFeaturesUserId: UserId = GlobalState.userId.now
+
 
   implicit val ec = ExecutionContext.global //TODO: what else?
-  GlobalState.userId.foreach { _ =>
-    //TODO: only for persisted users
+  GlobalState.user.foreach {
+    case user: AuthUser.Persisted =>
     firstTimeUsed() = Map.empty[Feature, EpochMilli]
     recentlyUsed() = Vector.empty
     Client.api.getUsedFeatures().foreach { list =>
       firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
       recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
     }
+      if (user.id != notSentFirstTimeFeaturesUserId) {
+        notSentFirstTimeFeatures.clear()
+        notSentFirstTimeFeaturesUserId = user.id
+      } else { // user is the same
+        sendNotSentFeatures()
+  }
+    case _ =>
+      firstTimeUsed() = Map.empty[Feature, EpochMilli]
+      recentlyUsed() = Vector.empty
   }
 
   val nextCandidates: Rx[Set[Feature]] = Rx {
@@ -48,8 +61,7 @@ object FeatureState {
     candidates.foreach { nextFeature =>
       if (!nextFeature.requiresAll.forall(isUsed)) {
         candidates -= nextFeature
-      }
-      else if (nextFeature.requiresAny.nonEmpty && !nextFeature.requiresAny.exists(isUsed)) {
+      } else if (nextFeature.requiresAny.nonEmpty && !nextFeature.requiresAny.exists(isUsed)) {
         candidates -= nextFeature
       }
     }
@@ -92,6 +104,32 @@ object FeatureState {
 
   val usedNewFeatureTrigger = PublishSubject[Unit]
 
+  def canUseApi: Boolean = {
+    GlobalState.user.now match {
+      case _: AuthUser.Persisted => true
+      case _                     => false
+    }
+  }
+
+  private def sendNotSentFeatures(): Unit = {
+    if (canUseApi) {
+      notSentFirstTimeFeatures.map {
+        case (feature, timestamp) =>
+          //TODO: track timestamp in backend to become the source of truth
+          Client.api.useFeatureForFirstTime(UsedFeature(feature, timestamp)).foreach { _ =>
+            notSentFirstTimeFeatures -= feature
+          }
+      }
+    }
+  }
+  private def persistFirstTimeUsage(feature: Feature, timestamp: EpochMilli) = {
+    if (canUseApi) {
+      Client.api.useFeatureForFirstTime(UsedFeature(feature, timestamp))
+      sendNotSentFeatures()
+    } else
+      notSentFirstTimeFeatures += (feature -> timestamp)
+  }
+
   def use(feature: Feature): Unit = {
     StagingOnly {
       defer {
@@ -100,7 +138,7 @@ object FeatureState {
           if (firstTimeUse) {
             val timestamp = EpochMilli.now
             firstTimeUsed.update(_ + (feature -> timestamp))
-            Client.api.useFeatureForFirstTime(UsedFeature(feature, timestamp))
+            persistFirstTimeUsage(feature, timestamp)
             usedNewFeatureTrigger.onNext(())
             Analytics.sendEvent("first-time-feature", feature.toString)
             //TODO: add tags corresponding to features / categories to hotjar
