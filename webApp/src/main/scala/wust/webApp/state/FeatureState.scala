@@ -36,18 +36,18 @@ object FeatureState {
   implicit val ec = ExecutionContext.global //TODO: what else?
   GlobalState.user.foreach {
     case user: AuthUser.Persisted =>
-    firstTimeUsed() = Map.empty[Feature, EpochMilli]
-    recentlyUsed() = Vector.empty
-    Client.api.getUsedFeatures().foreach { list =>
-      firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
-      recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
-    }
+      firstTimeUsed() = Map.empty[Feature, EpochMilli]
+      recentlyUsed() = Vector.empty
+      Client.api.getUsedFeatures().foreach { list =>
+        firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
+        recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
+      }
       if (user.id != notSentFirstTimeFeaturesUserId) {
         notSentFirstTimeFeatures.clear()
         notSentFirstTimeFeaturesUserId = user.id
       } else { // user is the same
         sendNotSentFeatures()
-  }
+      }
     case _ =>
       firstTimeUsed() = Map.empty[Feature, EpochMilli]
       recentlyUsed() = Vector.empty
@@ -149,10 +149,6 @@ object FeatureState {
           scribe.debug("Used Feature: " + feature.toString)
           DebugOnly {
             UI.toast(feature.toString)
-
-            console.asInstanceOf[js.Dynamic].groupCollapsed(s"Feature Dotgraph")
-            console.log(Feature.dotGraph(recentFirstTimeUsed.now, recentlyUsed.now, nextCandidates.now, next.now))
-            console.asInstanceOf[js.Dynamic].groupEnd()
 
             if (Feature.selfLoops.nonEmpty)
               UI.toast("selfLoops: " + Feature.selfLoops.toList, title = "FeatureState", level = ToastLevel.Error, autoclose = false)

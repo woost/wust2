@@ -226,6 +226,7 @@ object Feature {
   val all = SubObjects.all[Feature]
   val startingPoints = SubObjects.all[Category.StartingPoint].sortBy(-_.next.length)
   val secrets = SubObjects.all[Category.Secret]
+  val power = SubObjects.all[Category.Power]
   val allWithoutSecrets = all diff secrets
 
   def reachable: Set[Feature] = {
@@ -316,7 +317,7 @@ object Feature {
     }
   }
 
-  def dotGraph(recentFirstTimeUsed: Seq[Feature], recentlyUsed: Seq[Feature], nextCandidates: Set[Feature], next: Seq[Feature]): String = {
+  def dotGraph(recentFirstTimeUsed: Seq[Feature], recentlyUsed: Seq[Feature], nextCandidates: Set[Feature], next: Seq[Feature], getTitle: Feature => String = _.toString, missingDetails:Seq[Feature] = Nil): String = {
     val usedColor = "deepskyblue"
     val unusedColor = "azure4"
     val alreadyUsed = recentFirstTimeUsed.toSet
@@ -329,19 +330,29 @@ object Feature {
     Feature.all.foreachElement { feature =>
       val isStart = if (Feature.startingPoints.contains(feature)) ",color=deepskyblue,penwidth=3,peripheries=2" else ""
       val isSecret = if (Feature.secrets.contains(feature)) """,style=dashed""" else ""
+      val isPower = if (Feature.power.contains(feature)) """,fontcolor="#6636B7",fontsize=22""" else ""
+      val hasMissingDetails = if (missingDetails.contains(feature)) """,fontcolor=red""" else ""
       val usedStatus = if (alreadyUsed.contains(feature))
         s",style=filled,fillcolor=lightskyblue,fontcolor=darkslategray"
       else s",style=filled,fillcolor=lightgray,fontcolor=darkslategray"
       val isNextCandidate = if (nextCandidates.contains(feature)) s""",color=deepskyblue,penwidth=3""" else ""
       val isRecent = if (recentlyUsed.contains(feature)) s""",fillcolor=lightsteelblue""" else ""
       val isSuggested = if (next.contains(feature)) s""",color=limegreen,penwidth=${1 + (next.length - next.indexOf(feature))}""" else ""
-      builder ++= s"""${feature.toString} [label="${feature.toString}"${isStart}${isSecret}${usedStatus}${isNextCandidate}${isRecent}${isSuggested}]\n"""
+      builder ++= s"""${feature.toString} [label="${getTitle(feature)}"${isStart}${isSecret}${usedStatus}${isNextCandidate}${isRecent}${isSuggested}${isPower}${hasMissingDetails}]\n"""
     }
     // eges
     Feature.all.foreachElement { feature =>
       feature.next.foreachElement { nextFeature =>
-        val usedStatus = if (!alreadyUsed(feature) && !alreadyUsed(nextFeature)) s"color=$unusedColor" else s"color=$usedColor"
-        builder ++= s"""${feature.toString} -> ${nextFeature.toString} [$usedStatus]\n"""
+        val usedStatus = if (alreadyUsed(feature) && alreadyUsed(nextFeature)) s"color=$usedColor" else s"color=$unusedColor"
+        builder ++= s"""${feature.toString} -> ${nextFeature.toString} [style=dotted,penwith=3,$usedStatus]\n"""
+      }
+      feature.requiresAll.foreachElement { requiredFeature =>
+        val usedStatus = if (alreadyUsed(feature) && alreadyUsed(requiredFeature)) s"color=$usedColor" else s"color=$unusedColor"
+        builder ++= s"""${requiredFeature.toString} -> ${feature.toString} [penwidth=5, $usedStatus]\n"""
+    }
+      feature.requiresAny.foreachElement { requiredFeature =>
+        val usedStatus = if (alreadyUsed(feature) && alreadyUsed(requiredFeature)) s"color=$usedColor" else s"color=$unusedColor"
+        builder ++= s"""${requiredFeature.toString} -> ${feature.toString} [$usedStatus]\n"""
       }
     }
 
@@ -359,8 +370,8 @@ object Feature {
     builder ++= subgraph("View.Chat", SubObjects.all[Feature.Category.View.Chat])
     builder ++= subgraph("View.Notes", SubObjects.all[Feature.Category.View.Notes])
 
-    // builder ++= subgraph("Filter", SubObjects.all[Feature.Category.Filter])
-    // builder ++= subgraph("Item.Tag", SubObjects.all[Feature.Category.Item.Tag])
+    builder ++= subgraph("Filter", SubObjects.all[Feature.Category.Filter])
+    builder ++= subgraph("Item.Tag", SubObjects.all[Feature.Category.Item.Tag])
     // builder ++= subgraph("Drag", SubObjects.all[Feature.Category.Drag])
 
     // builder ++= subgraph("Item.Task", SubObjects.all[Feature.Category.Item.Task])

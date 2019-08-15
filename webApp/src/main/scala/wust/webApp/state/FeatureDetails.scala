@@ -5,6 +5,9 @@ import flatland._
 import acyclic.file
 import outwatch.dom._
 import outwatch.dom.dsl._
+import scala.scalajs.js
+import wust.webApp.{ DevOnly, StagingOnly, DebugOnly }
+import org.scalajs.dom.console
 import wust.ids.{ Feature, View }
 import wust.util.macros.SubObjects
 import wust.webApp.views.ViewGraphTransformation
@@ -327,4 +330,13 @@ object FeatureDetails {
   }
 
   def missingDetails = Feature.all.filter(feature => liftedMapping(feature).isEmpty)
+
+  FeatureState.recentlyUsed.foreach { _ =>
+    import FeatureState._
+    DebugOnly {
+      console.asInstanceOf[js.Dynamic].groupCollapsed(s"Feature Dotgraph")
+      console.log(Feature.dotGraph(recentFirstTimeUsed.now, recentlyUsed.now, nextCandidates.now, next.now, f => FeatureDetails(f).title, FeatureDetails.missingDetails))
+      console.asInstanceOf[js.Dynamic].groupEnd()
+    }
+  }
 }
