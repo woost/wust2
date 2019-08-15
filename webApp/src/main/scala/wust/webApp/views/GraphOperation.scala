@@ -35,13 +35,9 @@ object GraphOperation {
             case _: Edge.Child =>
               val childIdx = graph.edgesIdx.b(edgeIdx)
               val node = graph.nodes(childIdx)
-              if(InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role)) {
-                if(graph.tagParentsIdx.contains(childIdx)(tagIdx)) true
-                else {
-                  if(graph.descendantsIdxExists(tagIdx)(_ == childIdx)) true
-                  else false
-                }
-              } else true
+              !InlineList.contains[NodeRole](NodeRole.Message, NodeRole.Task)(node.role) ||
+                graph.tagParentsIdx.contains(childIdx)(tagIdx) ||
+                graph.descendantsIdxExists(tagIdx)(_ == childIdx)
             case _ => true
           }
         }
@@ -79,15 +75,10 @@ object GraphOperation {
 
   case object AutomatedHideTemplates extends UserViewGraphTransformation {
     def filterWithViewData(pageIdx: Option[Int], userIdx: Int, graph: Graph): EdgeFilter = {
-      val templateNodes = ArraySet.create(graph.nodes.length)
-      graph.automatedEdgeIdx.foreach(_.foreach( edgeIdx =>
-        templateNodes += graph.edgesIdx.b(edgeIdx)
-
-      ))
       Some(edgeIdx => graph.edges(edgeIdx) match {
         case _: Edge.Child =>
           val childIdx = graph.edgesIdx.b(edgeIdx)
-          !templateNodes.contains(childIdx)
+          graph.automatedEdgeReverseIdx.sliceIsEmpty(childIdx)
         case _ => true
       })
     }
