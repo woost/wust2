@@ -192,8 +192,8 @@ object RightSidebar {
   }
   private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle: PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
     val graph = GlobalState.rawGraph.now // this is per new focusPref, and ViewSwitcher just needs an initialvalue
-    val initialView = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
-    val currentView: Var[View] = Var[View](initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
+    val initialView: View.Visible = graph.nodesById(focusPref.nodeId).flatMap(ViewHeuristic.bestView(graph, _, GlobalState.user.now.id)).getOrElse(View.Empty)
+    val currentView: Var[View.Visible] = Var(initialView).imap(identity)(view => ViewHeuristic.visibleView(graph, focusPref.nodeId, view).getOrElse(View.Empty))
 
     currentView.triggerLater{ view =>
       view match {
@@ -203,6 +203,19 @@ object RightSidebar {
         case _           =>
       }
     }
+
+    val viewSwitcherVar: Var[View] = Var(currentView.now)
+    currentView.triggerLater(viewSwitcherVar() = _)
+    viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
+
+    def focusState(view: View.Visible) = FocusState(
+      view,
+      focusPref.nodeId,
+      focusPref.nodeId,
+      isNested = true,
+      viewAction = newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _),
+      nodeId => parentIdAction(Some(nodeId))
+    )
 
     VDomModifier(
       Styles.flex,
@@ -217,13 +230,13 @@ object RightSidebar {
         Styles.flex,
         alignItems.center,
 
-        ViewSwitcher(focusPref.nodeId, currentView, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
+        ViewSwitcher(focusPref.nodeId, viewSwitcherVar, focusPref.view.flatMap(ViewHeuristic.visibleView(graph, focusPref.nodeId, _))),
         UnreadComponents.notificationsButton(focusPref.nodeId, modifiers = marginLeft := "10px") --> currentView,
       ),
 
       Rx {
-        val view = currentView().asInstanceOf[View.Visible] // TODO: we really need a Var[View, View.Visible] for this. Write View in, get View.Visible out.
-        viewRender(FocusState(view, focusPref.nodeId, focusPref.nodeId, isNested = true, viewAction = currentView() = _, nodeId => parentIdAction(Some(nodeId))), view).apply(
+        val view = currentView()
+        viewRender(focusState(view), view).apply(
           Styles.growFull,
           flexGrow := 1,
         ).prepend(
