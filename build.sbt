@@ -85,6 +85,7 @@ lazy val commonSettings = Seq(
     // "-Ywarn-dead-code" :: // does not work well with scalajs js.native in facades
     "-Ywarn-extra-implicit" ::
     "-P:silencer:checkUnused" ::
+    "-Ypatmat-exhaust-depth" :: "off" :: // needed for huge match in FeatureDetails
     Nil,
 
   scalacOptions ++= {
