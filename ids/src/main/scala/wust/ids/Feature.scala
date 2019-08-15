@@ -87,7 +87,6 @@ object Feature {
   // all dragActions
   // all stuff from announcekit
   // emojis: send message with emoji, use emoji as project icon
-  // assign user
   // invite user to project (via email / via link) (High-Priority -> GROWTH LOOP)
   // expand/collapse left sidebar
   // pageSettingsMenu
@@ -135,11 +134,11 @@ object Feature {
 
   // Task
   case object AddCustomFieldToTask extends Category.Item.Task { override def requiresAll = Array(OpenTaskInRightSidebar) }
-  case object AssignTaskByDragging extends Category.Item.Task with Category.Drag { override def next = Array(FilterOnlyAssignedTo, FilterOnlyNotAssigned) }
+  case object AssignTaskByDragging extends Category.Item.Task with Category.Drag { override def requiresAny = Array(CreateTaskInKanban, CreateTaskInChecklist); override def next = Array(FilterOnlyAssignedTo, FilterOnlyNotAssigned) }
 
   // Chat
   case object AddChatView extends Category.View { override def next = Array(CreateMessageInChat) }
-  case object CreateMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAll = Array(AddChatView); override def next = Array(ReplyToMessageInChat, OpenMessageInRightSidebar, TagMessageByDragging) }
+  case object CreateMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAny = Array(AddChatView, SwitchToChatInPageHeader, SwitchToChatInRightSidebar); override def next = Array(ReplyToMessageInChat, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object ReplyToMessageInChat extends Category.View.Chat with Category.Item.Message { override def requiresAll = Array(CreateMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(NestMessagesByDragging, OpenMessageInRightSidebar, TagMessageByDragging) }
   case object NestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(ReplyToMessageInChat /* TODO: ,CreateMessageInThread */ ); override def next = Array(ZoomIntoMessage, UnNestMessagesByDragging) }
   case object UnNestMessagesByDragging extends Category.View.Chat with Category.Item.Message with Category.Drag { override def requiresAll = Array(NestMessagesByDragging); }
@@ -156,28 +155,28 @@ object Feature {
 
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
-  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(CheckTask, ReorderTaskInChecklist, ExpandTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
-  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
-  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
+  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(AddChecklistView, SwitchToChecklistInPageHeader, SwitchToChecklistInRightSidebar); override def next = Array(CheckTask, ReorderTaskInChecklist, ExpandTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
+  case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist); override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
+  case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist, ExpandTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
   //TODO:Drag task into other Task
   //TODO:Check sub-task to see progress bar
-  case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def next = Array(UncheckTask, ReorderTaskInChecklist) }
+  case object CheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateNestedTaskInChecklist, CreateNestedTaskInKanban); override def next = Array(UncheckTask, ReorderTaskInChecklist) }
   case object UncheckTask extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CheckTask); override def next = Array(DeleteTaskInChecklist) }
-  case object ReorderTaskInChecklist extends Category.View.Checklist with Category.Item.Task
-  case object DeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def next = Array(FilterDeleted, UndeleteTaskInChecklist, FilterOnlyDeleted) }
+  case object ReorderTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CreateTaskInChecklist) }
+  case object DeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(CreateTaskInChecklist); override def next = Array(FilterDeleted, UndeleteTaskInChecklist, FilterOnlyDeleted) }
   case object UndeleteTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAll = Array(DeleteTaskInChecklist); override def requiresAny = Array(FilterDeleted, FilterOnlyDeleted) }
 
   // Kanban
   case object AddKanbanView extends Category.View with Category.View.Kanban { override def next = Array(CreateColumnInKanban, CreateTaskInKanban) }
-  case object CreateColumnInKanban extends Category.View.Kanban { override def next = Array(CreateTaskInKanban, EditColumnInKanban, ReorderColumnsInKanban, NestColumnsInKanban, CreateAutomationTemplate) }
+  case object CreateColumnInKanban extends Category.View.Kanban { override def requiresAny = Array(AddKanbanView, SwitchToKanbanInPageHeader, SwitchToKanbanInRightSidebar); override def next = Array(CreateTaskInKanban, EditColumnInKanban, ReorderColumnsInKanban, NestColumnsInKanban, CreateAutomationTemplate) }
   case object EditColumnInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
   case object ReorderColumnsInKanban extends Category.View.Kanban { override def requiresAll = Array(CreateColumnInKanban) }
-  case object NestColumnsInKanban extends Category.View.Kanban with Category.Power { override def requiresAll = Array(ReorderColumnsInKanban) }
-  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, ExpandTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
-  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def next = Array(CreateNestedTaskInKanban) } //TODO: drag task into other task
-  case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInKanban) }
-  case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task {}
-  case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag {}
+  case object NestColumnsInKanban extends Category.View.Kanban with Category.Power { override def requiresAll = Array(CreateColumnInKanban, ReorderColumnsInKanban) }
+  case object CreateTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def requiresAny = Array(AddKanbanView, SwitchToKanbanInPageHeader, SwitchToKanbanInRightSidebar); override def next = Array(ReorderTaskInKanban, DragTaskToDifferentColumnInKanban, ExpandTaskInKanban, TagTaskByDragging, AssignTaskByDragging, AddCustomFieldToTask, CreateAutomationTemplate) }
+  case object ExpandTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInKanban); override def next = Array(CreateNestedTaskInKanban) } //TODO: drag task into other task
+  case object CreateNestedTaskInKanban extends Category.View.Kanban with Category.Item.Task with Category.Power { override def requiresAll = Array(ExpandTaskInKanban, CreateTaskInKanban) }
+  case object ReorderTaskInKanban extends Category.View.Kanban with Category.Item.Task { override def requiresAll = Array(CreateTaskInKanban); }
+  case object DragTaskToDifferentColumnInKanban extends Category.View.Kanban with Category.Item.Task with Category.Drag { override def requiresAll = Array(CreateTaskInKanban); }
 
   // Notes
   case object AddNotesView extends Category.View { override def next = Array(CreateNoteInNotes) }
@@ -188,8 +187,10 @@ object Feature {
   case object FilterDeleted extends Category.Filter.GraphTransformation { override def requiresAny = Array(DeleteTaskInChecklist); override def next = Array(UndeleteTaskInChecklist, /*UndeleteTaskInKanban, UndeleteMessageInChat,*/ ResetFilters) }
   case object FilterOnlyAssignedTo extends Category.Filter.GraphTransformation { override def requiresAny = Array(AssignTaskByDragging); override def next = Array(ResetFilters) }
   case object FilterOnlyNotAssigned extends Category.Filter.GraphTransformation { override def requiresAny = Array(AssignTaskByDragging); override def next = Array(ResetFilters) }
-  case object FilterAutomationTemplates extends Category.Filter.GraphTransformation { override def requiresAny = Array(CreateAutomationTemplate); override def next = Array(ResetFilters) }
-  case object ResetFilters extends Category.Filter { override def requiresAny = SubObjects.all[Category.Filter].asInstanceOf[Array[Feature]] }
+  case object FilterAutomationTemplates extends Category.Filter.GraphTransformation with Category.Power { override def requiresAny = Array(CreateAutomationTemplate); override def next = Array(ResetFilters) }
+  case object ResetFilters extends Feature { override def requiresAny = SubObjects.all[Category.Filter].asInstanceOf[Array[Feature]] }
+  case object FilterByTag extends Category.Filter { override def requiresAll = Array(TagTaskByDragging); override def next = Array(NestTagsByDragging, ResetFilters) }
+  case object FilterByTagWithSubTag extends Category.Filter with Category.Power { override def requiresAll = Array(TagTaskWithNestedTagByDragging); override def next = Array(ResetFilters) }
 
   // Tags
   case object CreateTag extends Category.Item.Tag { override def next = Array(TagTaskByDragging, TagMessageByDragging, TagNoteByDragging, FilterByTag, NestTagsByDragging, TagTaskWithNestedTagByDragging, FilterByTagWithSubTag) }
@@ -197,12 +198,10 @@ object Feature {
   case object TagTaskWithNestedTagByDragging extends Category.Item.Task with Category.Item.Tag with Category.Drag with Category.Power { override def requiresAny = TagTaskByDragging.requiresAny; override def requiresAll = Array(NestTagsByDragging); override def next = Array(FilterByTagWithSubTag) }
   case object TagMessageByDragging extends Category.Item.Message with Category.Item.Tag with Category.Drag { override def requiresAny = Array(CreateMessageInChat); override def requiresAll = Array(CreateTag); override def next = Array(FilterByTag) } // TODO: requiresAny: CreateMessageInThread
   case object TagNoteByDragging extends Category.Item.Note with Category.Item.Tag with Category.Drag { override def requiresAny = Array(CreateNoteInNotes); override def requiresAll = Array(CreateTag); override def next = Array(FilterByTag) }
-  case object FilterByTag extends Category.Filter with Category.Item.Tag { override def requiresAll = Array(TagTaskByDragging); override def next = Array(NestTagsByDragging, ResetFilters) }
   case object NestTagsByDragging extends Category.Item.Tag with Category.Drag with Category.Power { override def requiresAll = Array(CreateTag); override def next = Array(TagTaskWithNestedTagByDragging, FilterByTagWithSubTag) }
-  case object FilterByTagWithSubTag extends Category.Filter with Category.Item.Tag with Category.Power { override def requiresAll = Array(TagTaskWithNestedTagByDragging); override def next = Array(ResetFilters) }
 
   // Automation
-  case object CreateAutomationTemplate extends Category.Automation with Category.View.Kanban { override def next = Array(FilterAutomationTemplates) }
+  case object CreateAutomationTemplate extends Category.Automation with Category.Item.Tag with Category.View.Kanban { override def requiresAny = Array(CreateColumnInKanban, CreateTag); override def next = Array(FilterAutomationTemplates) }
 
   case object ChangeAccessLevel extends Category.Secret
   case object ShareLink extends Category.Secret
@@ -247,7 +246,9 @@ object Feature {
   }
 
   def selfLoops = {
-    all.filter(f => f.next.contains(f))
+    all.filter(f => f.next.contains(f)) ++
+    all.filter(f => f.requiresAny.contains(f)) ++
+    all.filter(f => f.requiresAll.contains(f))
   }
 
   lazy val predecessors: collection.Map[Feature, Array[Feature]] = {
@@ -349,7 +350,7 @@ object Feature {
       feature.requiresAll.foreachElement { requiredFeature =>
         val usedStatus = if (alreadyUsed(feature) && alreadyUsed(requiredFeature)) s"color=$usedColor" else s"color=$unusedColor"
         builder ++= s"""${requiredFeature.toString} -> ${feature.toString} [penwidth=5, $usedStatus]\n"""
-    }
+      }
       feature.requiresAny.foreachElement { requiredFeature =>
         val usedStatus = if (alreadyUsed(feature) && alreadyUsed(requiredFeature)) s"color=$usedColor" else s"color=$unusedColor"
         builder ++= s"""${requiredFeature.toString} -> ${feature.toString} [$usedStatus]\n"""
