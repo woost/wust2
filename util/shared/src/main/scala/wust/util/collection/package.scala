@@ -128,21 +128,7 @@ package object collection {
     }
   }
 
-  def groupByBuilder[K,T]: mutable.Builder[(K, T), scala.collection.Map[K, scala.collection.Seq[T]]] = {
-    val map = mutable.HashMap[K, mutable.ArrayBuffer[T]]()
-
-    new mutable.Builder[(K, T), scala.collection.Map[K, scala.collection.Seq[T]]] {
-      def +=(elem: (K,T)) = {
-        val (k,t) = elem
-        val buf = map.getOrElseUpdate(k, mutable.ArrayBuffer[T]())
-        buf += t
-        this
-      }
-
-      def clear(): Unit = map.clear()
-      def result(): scala.collection.Map[K, scala.collection.Seq[T]] = map
-    }
-  }
+  def groupByBuilder[K,T]: GroupByBuilder[K,T] = new GroupByBuilder[K,T]
 
   def distinctBuilder[T, That[_]](implicit cb: CanBuildFrom[That[T], T, That[T]]): DistinctBuilder[T, That[T]] = {
     new DistinctBuilder[T, That[T]](cb.apply())
