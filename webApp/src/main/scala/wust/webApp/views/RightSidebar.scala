@@ -204,6 +204,7 @@ object RightSidebar {
       }
     }
 
+    //TODO: really ugly, to widen the var for the viewswitcher :/
     val viewSwitcherVar: Var[View] = Var(currentView.now)
     currentView.triggerLater(viewSwitcherVar() = _)
     viewSwitcherVar.triggerLater(newView => ViewHeuristic.visibleView(graph, focusPref.nodeId, newView).foreach(currentView() = _))
