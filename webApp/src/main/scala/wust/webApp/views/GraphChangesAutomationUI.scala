@@ -252,7 +252,7 @@ object GraphChangesAutomationUI {
 
       position.relative, // needed for right sidebar
       RightSidebar(
-        Rx { GlobalState.rightSidebarNode() },
+        GlobalState.rightSidebarNode,
         nodeId => GlobalState.rightSidebarNode() = nodeId.map(FocusPreference(_)),
         viewRender,
         openModifier = VDomModifier(overflow.auto, VDomModifier.ifTrue(BrowserDetect.isMobile)(marginLeft := "25px"))
