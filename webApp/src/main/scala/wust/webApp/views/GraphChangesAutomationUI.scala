@@ -150,7 +150,11 @@ object GraphChangesAutomationUI {
                   li(i("${woost.myself}"), " The currently logged-in user. That is you!"),
                 ),
 
-                p("Each variable is resolved relative to the position of the node which uses this variables at the time the automation runs. You can combine variables to reference nodes via a whole path. For example: ${woost.parent.field.name}, ${woost.reverseField.parent}, ${woost.parent.parent}, ${woost.parent.id}.")
+                p("Each variable is resolved relative to the position of the node which uses this variables at the time the automation runs. You can combine variables to reference nodes via a whole path. For example: ${woost.parent.field.name}, ${woost.reverseField.parent}, ${woost.parent.parent}, ${woost.parent.id}."),
+
+                p("You can mention the result of a variable via: $@{woost.parent.assignee}"),
+
+                p("""Furthermore, you can handle how multiple variable results are joined. By default, a list of result will be joined with a comma as separator. You can define a custom separator string for multiple results with: join("<br/>"). Or you can as well join with a prefix and postfix for each element: join("<br/>", "<b>", "</b>".""")
               )
               case false => VDomModifier.empty
             },

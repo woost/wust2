@@ -33,6 +33,10 @@ object GraphChangesAutomation {
       val isMentionMode = modifier == "@"
       val propertyNames = m.group(2).drop(1).split("\\.")
       val n = propertyNames.length
+
+      val join1Regex = "^join\\(\"([^\"]*)\"\\)$".r
+      val join3Regex = "^join\\(\"([^\"]*)\", \"([^\"]*)\", \"([^\"]*)\"\\)$".r
+
       var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
       referenceNodesPath(0) = Array(node)
       var commandMode: CommandMode = CommandSelection
@@ -40,6 +44,9 @@ object GraphChangesAutomation {
       var done = false
       var hasError = false
       var nodeToString: Node => String = node => node.str
+      var joinSeparator = ", "
+      var nodeStringPrefix = ""
+      var nodeStringPostfix = ""
       while (!done && i < n) {
         val propertyName = propertyNames(i)
         commandMode match {
@@ -56,6 +63,28 @@ object GraphChangesAutomation {
               if (i == n - 1) {
                 referenceNodesPath(i + 1) = referenceNodesPath(i)
                 nodeToString = node => node.id.toBase58
+              } else {
+                done = true
+                hasError = true
+              }
+            case name if name.startsWith("join") =>
+              if (i == n - 1) {
+                join1Regex.findFirstMatchIn(name) match {
+                  case Some(m) =>
+                    referenceNodesPath(i + 1) = referenceNodesPath(i)
+                    joinSeparator = m.group(1)
+                  case None =>
+                    join3Regex.findFirstMatchIn(name) match {
+                      case Some(m) =>
+                        referenceNodesPath(i + 1) = referenceNodesPath(i)
+                        joinSeparator = m.group(1)
+                        nodeStringPrefix = m.group(2)
+                        nodeStringPostfix = m.group(3)
+                      case None =>
+                        done = true
+                        hasError = true
+                    }
+                }
               } else {
                 done = true
                 hasError = true
@@ -107,9 +136,9 @@ object GraphChangesAutomation {
           lastReferenceNodes.foreach { refNode =>
             extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
           }
-          lastReferenceNodes.map(n => "@" + sanitizeFinalString(nodeToString(n))).mkString(" ")
+          lastReferenceNodes.map(n => nodeStringPrefix + "@" + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
         } else {
-          lastReferenceNodes.map(n => sanitizeFinalString(nodeToString(n))).mkString(", ")
+          lastReferenceNodes.map(n => nodeStringPrefix + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
         }
       }
     })
