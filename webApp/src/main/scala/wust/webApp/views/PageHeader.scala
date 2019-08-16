@@ -142,9 +142,11 @@ object PageHeader {
             Styles.flex,
             alignItems.center,
             flexShrink := 3,
+            marginLeft.auto,
 
             permissionLevel.map(Permission.permissionIndicator(_, marginRight := "5px")),
             channelTitle,
+            channelMembersList,
             channelNotification,
             marginBottom := "2px", // else nodecards in title overlap
           ),
@@ -156,7 +158,6 @@ object PageHeader {
           div(
             Styles.flex,
             alignItems.center,
-            channelMembersList,
 
             menuItems(pageNodeId)
           )
