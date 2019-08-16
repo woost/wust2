@@ -97,7 +97,7 @@ object RightSidebar {
           freeSolid.faChevronLeft,
           focusHistory.map {
             case Nil => color := "gray"
-            case _ => VDomModifier.empty
+            case _   => VDomModifier.empty
           },
           cls := "fa-fw",
           cursor.pointer,
@@ -116,7 +116,7 @@ object RightSidebar {
           freeSolid.faChevronRight,
           focusFuture.map {
             case Nil => color := "gray"
-            case _ => VDomModifier.empty
+            case _   => VDomModifier.empty
           },
           cls := "fa-fw",
           cursor.pointer,
@@ -168,26 +168,31 @@ object RightSidebar {
       sidebarHeader.apply(Styles.flexStatic),
       nodeContent(focusPref, parentIdAction).apply(Styles.flexStatic, overflowY.auto, maxHeight := "50%"),
 
-      UI.accordion(
-        content = Seq(
-          accordionEntry(propertiesAccordionText, VDomModifier(
-            nodeProperties(focusPref, parentIdAction),
-            Styles.flexStatic,
-          ), active = false),
-          accordionEntry("Views", VDomModifier(
+      Rx{
+        UI.accordion(
+          content = Seq(
+            accordionEntry(propertiesAccordionText, VDomModifier(
+              nodeProperties(focusPref, parentIdAction),
+              Styles.flexStatic,
+            ), active = false)
+          ) ++ (if (!GlobalState.page().parentId.contains(focusPref.nodeId)) {
+              Seq(
+                accordionEntry("Views", VDomModifier(
+                  height := "100%",
+                  viewContent(focusPref, parentIdAction, nodeStyle, viewRender),
+                ), active = true)
+              )
+            } else Nil),
+          styles = "styled fluid",
+          exclusive = false, //BrowserDetect.isMobile,
+        ).apply(
             height := "100%",
-            viewContent(focusPref, parentIdAction, nodeStyle, viewRender),
-          ), active = true),
-        ),
-        styles = "styled fluid",
-        exclusive = false, //BrowserDetect.isMobile,
-      ).apply(
-          height := "100%",
-          Styles.flex,
-          flexDirection.column,
-          justifyContent.flexStart,
-          boxShadow := "none", //explicitly overwrite boxshadow from accordion.
-        )
+            Styles.flex,
+            flexDirection.column,
+            justifyContent.flexStart,
+            boxShadow := "none", //explicitly overwrite boxshadow from accordion.
+          )
+      }
     )
   }
   private def viewContent(focusPref: FocusPreference, parentIdAction: Option[NodeId] => Unit, nodeStyle: PageStyle, viewRender: ViewRenderLike)(implicit ctx: Ctx.Owner) = {
