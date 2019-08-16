@@ -186,7 +186,6 @@ object FeatureExplorer {
     val shake = 0.2
     div(
       scoreBadge("+1"),
-      // visibility.hidden,
       transition := s"visibility 0s, transform ${shake}s",
       transform := "rotate(0deg)",
       Observable(visibility.hidden) ++ FeatureState.usedNewFeatureTrigger.switchMap{ _ =>
@@ -200,7 +199,8 @@ object FeatureExplorer {
   }
 
   val toggleButton = {
-    span(
+    div(
+      display.inlineBlock,
       span(
         "Explored Features: ",
         b(progress, "% "),
