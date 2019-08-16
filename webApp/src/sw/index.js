@@ -178,11 +178,8 @@ self.addEventListener('install', function(event) {
 });
 self.addEventListener('activate', function(event) {
     log("ServiceWorker activated");
-    // Become available to all pages
-    event.waitUntil(self.clients.claim().then(_ => {
-        //subscribe to webpush on startup
-        updateWebPushSubscriptionAndPersist()
-    }));
+    //subscribe to webpush on startup
+    event.waitUntil(updateWebPushSubscriptionAndPersist());
 });
 
 self.addEventListener('message', e => {
