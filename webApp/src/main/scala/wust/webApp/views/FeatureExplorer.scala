@@ -87,7 +87,7 @@ object FeatureExplorer {
       Rx{
         VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
           "Things to try next:",
-          FeatureState.next().take(3).map { feature =>
+          FeatureState.next().map { feature =>
             val details = FeatureDetails(feature)
             div(
               div(

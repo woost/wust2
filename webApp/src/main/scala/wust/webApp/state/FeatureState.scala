@@ -71,9 +71,10 @@ object FeatureState {
     candidates
   }
 
-  val next: Rx[Seq[Feature]] = Rx { calculateSuggestions(recentlyUsed(), recentFirstTimeUsed(), nextCandidates()) }
+  val nextFeatureLimit = 5
+  val next: Rx[Seq[Feature]] = Rx { calculateSuggestions(recentlyUsed(), recentFirstTimeUsed(), nextCandidates(), limit = nextFeatureLimit) }
 
-  def calculateSuggestions(recentlyUsed: Seq[Feature], recentFirstTimeUsed: Seq[Feature], nextCandidates: Set[Feature], limit: Int = 3): Seq[Feature] = {
+  def calculateSuggestions(recentlyUsed: Seq[Feature], recentFirstTimeUsed: Seq[Feature], nextCandidates: Set[Feature], limit: Int): Seq[Feature] = {
     val starts = mutable.Queue.empty[Feature] ++ (recentlyUsed ++ recentFirstTimeUsed ++ Feature.startingPoints).distinct
     val suggested = mutable.HashSet.empty[Feature]
     val suggestions = mutable.ArrayBuffer.empty[Feature]
