@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.Icons
 import monix.reactive.Observer
 import wust.facades.googleanalytics.Analytics
 import fontAwesome.{freeSolid, _}
@@ -133,7 +134,6 @@ object LeftSidebar {
     )
   }
 
-  val hamburgerIcon = freeSolid.faBars
   def hamburger(implicit ctx: Ctx.Owner): VNode = {
     import GlobalState.leftSidebarOpen
     div(
@@ -142,7 +142,7 @@ object LeftSidebar {
       fontSize := "20px",
       width := "40px",
       textAlign.center,
-      hamburgerIcon,
+      Icons.hamburger,
       cursor.pointer,
       // TODO: stoppropagation is needed because of https://github.com/OutWatch/outwatch/pull/193
       onClick.stopPropagation foreach {

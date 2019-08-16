@@ -306,11 +306,11 @@ object FeatureDetails {
       )
       case CloseLeftSidebar => FeatureDetails(
         title = "Close left Sidebar",
-        description = VDomModifier("Click on ", em(LeftSidebar.hamburgerIcon), " at the top left of the screen.")
+        description = VDomModifier("Click on ", em(Icons.hamburger), " at the top left of the screen.")
       )
       case OpenLeftSidebar => FeatureDetails(
         title = "Open left Sidebar",
-        description = VDomModifier("Click on ", em(LeftSidebar.hamburgerIcon), " at the top left of the screen.")
+        description = VDomModifier("Click on ", em(Icons.hamburger), " at the top left of the screen.")
       )
       case ClickLogo => FeatureDetails(
         title = "Click Logo",

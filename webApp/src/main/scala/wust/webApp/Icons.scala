@@ -4,6 +4,8 @@ import fontAwesome._
 
 object Icons {
 
+  val hamburger = freeSolid.faBars
+
   val help: IconDefinition = freeSolid.faQuestion
   val ellipsisV: IconDefinition = freeSolid.faEllipsisV
   val exchange: IconDefinition = freeSolid.faExchangeAlt
