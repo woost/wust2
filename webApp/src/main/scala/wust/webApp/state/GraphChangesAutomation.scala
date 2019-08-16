@@ -35,9 +35,9 @@ object GraphChangesAutomation {
       val propertyNames = m.group(2).drop(1).split("\\.")
       val n = propertyNames.length
 
-      val id1Regex = "^id\\(\"([^\"]*)\"\\)$".r
-      val join1Regex = "^join\\(\"([^\"]*)\"\\)$".r
-      val join3Regex = "^join\\(\"([^\"]*)\", \"([^\"]*)\", \"([^\"]*)\"\\)$".r
+      val id1Regex = "^id\\(\\s*\"([^\"]*)\"\\s*\\)$".r
+      val join1Regex = "^join\\(\\s*\"([^\"]*)\"\\s*\\)$".r
+      val join3Regex = "^join\\(\\s*\"([^\"]*)\",\\s*\"([^\"]*)\",\\s*\"([^\"]*)\"\\s*\\)$".r
 
       var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
       referenceNodesPath(0) = Array(node)
