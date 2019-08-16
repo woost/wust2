@@ -457,6 +457,15 @@ object RightSidebar {
           names = ItemProperties.Names(addButton = title)
         ).map(_ => AddProperty.None) --> addFieldMode
       case AddProperty.None => VDomModifier(
+        Styles.flex,
+        flexDirection.column,
+        div(
+          alignSelf.flexEnd,
+          color.gray,
+          fontSize.xSmall,
+          cls := "enable-text-selection",
+          s"Id: ${focusPref.nodeId.toBase58}"
+        ),
         div(
           cls := "ui form",
           marginTop := "10px",
