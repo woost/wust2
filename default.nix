@@ -10,7 +10,7 @@ in
       git zsh
       scala sbt
       docker
-      graalvm8
+      # graalvm8 # broken -> segfaults webpack
       docker-compose
       # python37Packages.docker_compose
       # python27Packages.docker_compose
