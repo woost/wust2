@@ -23,12 +23,10 @@ import wust.webApp.views.DragComponents.registerDragContainer
 object DashboardView {
 
   final case class Settings(
-    val AlwaysShowNewSubprojectButton: Boolean = false,
-    val ForceEditModeOnEmptySubprojects: Boolean = true
+    val AlwaysShowNewSubprojectButton: Boolean = true,
+    val ForceEditModeOnEmptySubprojects: Boolean = false
   )
   val settings = Settings()
-
-  val editModeState = Var(false)
 
   private def getProjectList(graph: Graph, focusedId: NodeId): Seq[Node] = {
     val pageParentIdx = graph.idToIdxOrThrow(focusedId)
@@ -47,6 +45,7 @@ object DashboardView {
       UI.segment("Views", ViewModificationMenu.selectForm(focusState.focusedId)).apply(Styles.flexStatic, segmentMod),
     )
 
+    val editModeState = Var(false)
     val projectNodes = Rx { getProjectList(GlobalState.graph(), focusState.focusedId) }
     val forceEditMode = Rx { settings.ForceEditModeOnEmptySubprojects && projectNodes().length == 0 }
     val editMode = Rx { editModeState() || forceEditMode() }
@@ -190,8 +189,6 @@ object DashboardView {
     val fieldActive = Var(false)
     def submitAction(sub: InputRow.Submission) = {
       val change = {
-        // -- stay in edit mode --
-        editModeState() = true
         val newProjectNode = Node.MarkdownProject(sub.text)
         GraphChanges.addNodeWithParent(newProjectNode, ParentId(focusState.focusedId)) merge sub.changes(newProjectNode.id)
       }
