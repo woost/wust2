@@ -181,24 +181,30 @@ module.exports.plugins.push(new CopyPlugin(woost.files.vendor.workbox.map(f => {
 ////////////////////////////////////////
 // Copy fonts/icons/images to output path
 ////////////////////////////////////////
-const fileLoader = {
+const fileAssetsLoader = {
     loader: 'file-loader',
     options: {
         name: 'assets/[name].[contenthash].[ext]',
     },
 };
+const fileRootLoader = {
+    loader: 'file-loader',
+    options: {
+        name: '[name].[contenthash].[ext]',
+    },
+};
 module.exports.module.rules.push({
     test: /static\/\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
-    use: [ fileLoader ]
+    use: [ fileAssetsLoader ]
 });
 module.exports.module.rules.push({
     test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
-    use: [ fileLoader ]
+    use: [ fileAssetsLoader ]
 });
 module.exports.module.rules.push({
       test: /(\.webmanifest|browserconfig\.xml)$/,
       use: [
-        fileLoader,
+        fileRootLoader,
         {
             loader: "app-manifest-loader",
             options: {
