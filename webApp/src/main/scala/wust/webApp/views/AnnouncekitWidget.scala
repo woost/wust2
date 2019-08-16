@@ -41,11 +41,10 @@ object AnnouncekitWidget {
       initAnounceKit(unreadCount) map { initF =>
         onClick.preventDefault.foreach(initF()),
       },
-      color.white,
-      // like semantic-ui tiny button
+
+      color := "inherit",
       fontSize := "0.85714286rem",
       fontWeight := 700,
-      padding := ".58928571em 1.125em .58928571em",
       cursor.pointer,
       Rx {
           VDomModifier.ifTrue(unreadCount() > 0)(

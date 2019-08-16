@@ -1,5 +1,6 @@
 package wust.webApp.views
 
+import wust.webApp.StagingOnly
 import wust.webApp.Icons
 import monix.reactive.Observer
 import wust.facades.googleanalytics.Analytics
@@ -45,7 +46,7 @@ object LeftSidebar {
         GenericSidebar.Config(
           mainModifier = VDomModifier(
             registerDragContainer( DragContainer.Sidebar),
-            drag(target = DragItem.Sidebar),
+            drag(target = DragItem.Sidebar)
           ),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
@@ -56,11 +57,49 @@ object LeftSidebar {
               onClick foreach { 
                 FeatureState.use(Feature.CreateProjectFromExpandedLeftSidebar)
               },
-              marginBottom := "15px",
+              marginBottom := "15px"
             ),
+
+            UI.accordion(
+              content = Seq(
+                accordionEntry(
+                  "Tags",
+                  TagList.body(ViewRender),
+                  active = false
+                ),
+                accordionEntry(
+                  "Filters & Deleted Items",
+                  FilterWindow.body(Styles.flexStatic),
+                  active = false
+                ),
+                accordionEntry(
+                  FeatureExplorer.toggleButton,
+                  FeatureExplorer(ctx),
+                  active = false
+                )
+              ),
+              styles = "styled fluid",
+              exclusive = true, //BrowserDetect.isMobile
+            ).apply(
+                marginTop.auto,
+                Styles.flex,
+                flexDirection.column,
+                justifyContent.flexStart,
+                boxShadow := "none", //explicitly overwrite boxshadow from accordion.
+              ),
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginBottom := "15px"
             )).apply(Styles.flexStatic, alignSelf.center),
+            div(
+              Styles.flexStatic,
+              justifyContent.spaceBetween,
+              margin := "0 10px 10px 10px",
+              Styles.flex,
+              AnnouncekitWidget.widget.apply(Styles.flexStatic),
+              FeedbackForm(ctx)(Styles.flexStatic)
+            )
+
+
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,
@@ -77,13 +116,31 @@ object LeftSidebar {
               UI.tooltip("right center") := "New Project",
               onClick foreach { 
                 FeatureState.use(Feature.CreateProjectFromCollapsedLeftSidebar)
-              },
+              }
             )
           ))
         )
       }
     )
   }
+
+    def accordionEntry(title: VDomModifier, content: VDomModifier, active: Boolean): UI.AccordionEntry = {
+      UI.AccordionEntry(
+        title = VDomModifier(
+          b(title),
+          marginTop := "5px",
+          padding := "3px",
+          Styles.flexStatic
+        ),
+        content = VDomModifier(
+          margin := "5px",
+          padding := "0px",
+          overflowY.auto,
+          content
+        ),
+        active = active
+      )
+    }
 
   private val buttonStyles = "tiny basic compact"
 
@@ -110,7 +167,7 @@ object LeftSidebar {
       WoostLogoComponents.woostIcon,
       fontSize := "28px",
       color := Colors.woost,
-      marginRight := "3px",
+      marginRight := "3px"
     ),
     div("Woost", marginRight := "5px"),
     onClick(UrlConfig.default) --> GlobalState.urlConfig,
@@ -129,8 +186,8 @@ object LeftSidebar {
         hamburger,
         banner,
         Components.betaSign.apply(fontSize := "12px"),
-        syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px"),
-      ),
+        syncStatus(ctx)(fontSize := "20px", marginLeft.auto, marginRight := "10px")
+      )
     )
   }
 
@@ -281,9 +338,9 @@ object LeftSidebar {
           VDomModifier(
             VDomModifier.ifTrue(selected())(
               color := Colors.sidebarBg,
-              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex,
+              backgroundColor := BaseColors.pageBg.copy(h = NodeColor.hue(nodeId)).toHex
             ),
-          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected())),
+          node().map(node => renderProject(node, renderNode = node => renderAsOneLineText(node).apply(cls := "channel-name"), withIcon = true, openFolder = selected()))
           )
         },
 
@@ -299,7 +356,7 @@ object LeftSidebar {
         DragComponents.drag(DragItem.Channel(nodeId, traverseState.tail.headOption)),
         permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray, marginLeft.auto, marginRight := "5px"))),
         channelModifier
-      ),
+      )
 
     )
   }
@@ -339,7 +396,7 @@ object LeftSidebar {
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannelsOrProjects(_, _, userId)))
         )
-      },
+      }
 
     )
   })
@@ -388,7 +445,7 @@ object LeftSidebar {
               )
             ).apply(
               paddingBottom := "1px",
-              paddingTop := "1px",
+              paddingTop := "1px"
             )
           }
         )
@@ -428,7 +485,7 @@ object LeftSidebar {
             // for each indent, steal padding on left and right
             // and reduce the width, so that the icon keeps its size
             width := s"${size - (sanitizedDepth * indentFactor)}px",
-            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px",
+            padding := s"${defaultPadding}px ${defaultPadding - (sanitizedDepth * indentFactor / 2.0)}px"
           )
         }
       )
@@ -468,7 +525,7 @@ object LeftSidebar {
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
         )
-      },
+      }
     )
   })
   private def channelIcon(node: Node, isSelected: Rx[Boolean], size: Int)(implicit ctx: Ctx.Owner): VNode = {

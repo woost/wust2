@@ -39,29 +39,32 @@ object PageHeader {
       GlobalState.graph().nodesByIdOrThrow(pageNodeId)
     }
 
-    val channelTitle = Rx {
-      val node = pageNode()
+    val channelTitle =
       div(
-        Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
-        backgroundColor := pageStyle.pageBgColor,
+        Rx {
+          val node = pageNode()
+          VDomModifier(
+            Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
+            backgroundColor := pageStyle.pageBgColor,
 
-        cls := "pageheader-channeltitle",
-        Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
-        Components.showHoveredNode(node.id),
-        registerDragContainer,
-        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+            cls := "pageheader-channeltitle",
+            Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, node.id),
+            Components.showHoveredNode(node.id),
+            registerDragContainer,
+            DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
 
-        div(
-          UnreadComponents.readObserver(
-            node.id,
-            labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
-          ),
-          onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
-          float.right,
-          alignSelf.center,
-        )
+            div(
+              UnreadComponents.readObserver(
+                node.id,
+                labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
+              ),
+              onClick.stopPropagation(View.Notifications).foreach(view => GlobalState.urlConfig.update(_.focus(view))),
+              float.right,
+              alignSelf.center,
+            )
+          )
+        }
       )
-    }
 
     val channelNotification = UnreadComponents
       .notificationsButton(pageNodeId, modifiers = VDomModifier(marginLeft := "5px"))
@@ -84,14 +87,6 @@ object PageHeader {
 
     val filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
-      MovableElement.withToggleSwitch(
-        Seq(
-          FilterWindow.movableWindow(MovableElement.RightPosition(100, 200)),
-          TagList.movableWindow(viewRender, MovableElement.RightPosition(100, 400)),
-        ),
-        enabled = GlobalState.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
-        resizeEvent = GlobalState.rightSidebarNode.toTailObservable.map(_ => ()),
-      )
     )
 
     val breadCrumbs = Rx{
@@ -113,14 +108,10 @@ object PageHeader {
           VDomModifier(
             VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
               // depending on the screen size, different elements receive marginLeft.auto
-              if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
-                FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic),
-                AnnouncekitWidget.widget.apply(Styles.flexStatic),
-                FeedbackForm(ctx)(Styles.flexStatic),
-              )
-              else
-                FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic),
-              AuthControls.authStatus(buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+              AuthControls.authStatus(
+                buttonStyleLoggedOut = "inverted",
+                buttonStyleLoggedIn = "inverted"
+              ).map(_(Styles.flexStatic, marginLeft.auto))
             )
           )
         },
