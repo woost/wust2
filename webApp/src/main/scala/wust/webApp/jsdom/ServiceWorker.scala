@@ -26,16 +26,16 @@ object ServiceWorker {
         Try(sw.register(location)).toEither match {
           case Right(registered) => registered.toFuture.onComplete {
             case Success(registration) =>
-              scribe.info("SW successfully registered!")
+              println("SW successfully registered!")
               if (registration.active != null) {
-                scribe.info("SW is already active")
+                println("SW is already active")
                 activeServiceworker = Option(registration.active)
                 subject.onNext(())
               }
               registration.onupdatefound = { event =>
                 registration.installing.onstatechange = { event =>
                   if (registration.active != null && activeServiceworker.forall(_ != registration.active)) {
-                    scribe.info("SW newly activated")
+                    println("SW newly activated")
                     activeServiceworker = Option(registration.active)
                     subject.onNext(())
                   }
@@ -97,14 +97,14 @@ object ServiceWorker {
 
       case Some(activeServiceworker) => auth match {
         case Authentication.Verified(_, _, token) =>
-          scribe.info("Sending auth to serviceworker")
+          println("Sending auth to serviceworker")
           activeServiceworker.postMessage((AuthMessage(token): WorkerMessage).asJson.noSpaces);
         case _ =>
-          scribe.info("Sending de-auth to serviceworker")
+          println("Sending de-auth to serviceworker")
           activeServiceworker.postMessage((DeAuthMessage: WorkerMessage).asJson.noSpaces);
       }
 
-      case None => scribe.info("No serviceworker found for auth sync.")
+      case None => println("No serviceworker found for auth sync.")
     }
   }
 
