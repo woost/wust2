@@ -177,7 +177,7 @@ object DashboardView {
         FeatureState.use(Feature.ZoomIntoProject)
       },
 
-      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, fontSize := "0.7em")),
+      permissionLevel.map(Permission.permissionIndicatorIfPublic(_, VDomModifier(fontSize := "0.7em", color.gray))),
 
       Rx{ VDomModifier.ifTrue(editMode())(deletionBtn) },
 
