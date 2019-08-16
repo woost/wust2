@@ -42,11 +42,12 @@ object ListView {
     inOneLine: Boolean,
     isCompact:Boolean,
     lastElementModifier: VDomModifier = VDomModifier.empty,
+    showInputField: Boolean = true,
   )(implicit ctx: Ctx.Owner):VNode = {
     div(
       keyed,
 
-      addListItemInputField( focusState, autoFocusInsert = !focusState.isNested),
+      VDomModifier.ifTrue(showInputField)(addListItemInputField( focusState, autoFocusInsert = !focusState.isNested)),
       renderInboxColumn( focusState, traverseState, inOneLine, isCompact),
       renderToplevelColumns( focusState, traverseState, inOneLine, isCompact)
         .apply(lastElementModifier),
@@ -125,7 +126,6 @@ object ListView {
   }
 
   private def renderTaskOrStage(
-
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,
