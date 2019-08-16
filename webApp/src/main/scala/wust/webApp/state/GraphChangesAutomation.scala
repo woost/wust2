@@ -8,6 +8,7 @@ import wust.util.StringOps
 import wust.util.algorithm.dfs
 import wust.util.collection._
 import wust.util.macros.InlineList
+import wust.webApp.Client
 import org.scalajs.dom
 
 import scala.collection.{breakOut, mutable}
@@ -34,6 +35,7 @@ object GraphChangesAutomation {
       val propertyNames = m.group(2).drop(1).split("\\.")
       val n = propertyNames.length
 
+      val id1Regex = "^id\\(\"([^\"]*)\"\\)$".r
       val join1Regex = "^join\\(\"([^\"]*)\"\\)$".r
       val join3Regex = "^join\\(\"([^\"]*)\", \"([^\"]*)\", \"([^\"]*)\"\\)$".r
 
@@ -52,43 +54,40 @@ object GraphChangesAutomation {
         commandMode match {
 
           case CommandSelection => propertyName match {
-            case "myself" | "yourself" =>
-              if (i == 0) {
-                referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
-              } else {
-                done = true
-                hasError = true
+            case "myself" | "yourself" if i == 0 =>
+              referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
+            case "id" if i == n - 1 =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
+              nodeToString = node => node.id.toBase58
+            case "url" if i == n - 1 =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
+              nodeToString = node => s"${dom.window.location.origin}/#page=${node.id.toBase58}"
+            case "fileUrl" if i == n && referenceNodesPath(i).forall(_.data match { case _: NodeData.File => true; case _ => false }) =>
+              referenceNodesPath(i + 1) = referenceNodesPath(i)
+              nodeToString = node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}"
+            case name if name.startsWith("join(") && i == n - 1 =>
+              join1Regex.findFirstMatchIn(name) match {
+                case Some(m) =>
+                  referenceNodesPath(i + 1) = referenceNodesPath(i)
+                  joinSeparator = m.group(1)
+                case None =>
+                  join3Regex.findFirstMatchIn(name) match {
+                    case Some(m) =>
+                      referenceNodesPath(i + 1) = referenceNodesPath(i)
+                      joinSeparator = m.group(1)
+                      nodeStringPrefix = m.group(2)
+                      nodeStringPostfix = m.group(3)
+                    case None =>
+                      done = true
+                      hasError = true
+                  }
               }
-            case "id" =>
-              if (i == n - 1) {
-                referenceNodesPath(i + 1) = referenceNodesPath(i)
-                nodeToString = node => node.id.toBase58
-              } else {
-                done = true
-                hasError = true
-              }
-            case name if name.startsWith("join") =>
-              if (i == n - 1) {
-                join1Regex.findFirstMatchIn(name) match {
-                  case Some(m) =>
-                    referenceNodesPath(i + 1) = referenceNodesPath(i)
-                    joinSeparator = m.group(1)
-                  case None =>
-                    join3Regex.findFirstMatchIn(name) match {
-                      case Some(m) =>
-                        referenceNodesPath(i + 1) = referenceNodesPath(i)
-                        joinSeparator = m.group(1)
-                        nodeStringPrefix = m.group(2)
-                        nodeStringPostfix = m.group(3)
-                      case None =>
-                        done = true
-                        hasError = true
-                    }
+            case name if name.startsWith("id(") && i == 0 =>
+              referenceNodesPath(i + 1) = id1Regex.findFirstMatchIn(name).flatMap { m =>
+                Cuid.fromBase58String(m.group(1)).toOption.flatMap { cuid =>
+                  graph.nodesById(NodeId(cuid))
                 }
-              } else {
-                done = true
-                hasError = true
-              }
+              }.toArray
             case "original" =>
               referenceNodesPath(i + 1) = referenceNodesPath(i)
             case "reference" =>
