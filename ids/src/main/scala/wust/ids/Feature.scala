@@ -96,6 +96,7 @@ object Feature {
   // third device... extends Category.Secret
   // ctrl+drag
   // Use markdown
+  // share tags between projects
 
   case object CreateProject extends Category.Item.Project with Category.Basics with Category.StartingPoint { override def next = Array(AddChecklistView, AddKanbanView, AddChatView, AddNotesView, AddDashboardView, OpenProjectInRightSidebar) }
   case object AddDashboardView extends Category.View { override def next = Array(CreateSubProjectFromDashboard) }

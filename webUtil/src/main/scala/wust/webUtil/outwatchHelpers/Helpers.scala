@@ -12,6 +12,8 @@ import scala.scalajs.js
 // TODO: outwatch: easily switch classes on and off via Boolean or Rx[Boolean]
 //TODO: outwatch: onInput.target foreach { elem => ... }
 //TODO: outwatch: Emitterbuilder.timeOut or delay
+
+//TODO: VNode.append
 trait RxEmitterBuilderBase[+O,+R] extends EmitterBuilder[O, R] { self =>
   @inline def transformRx[T](tr: Ctx.Owner => Rx[O] => Rx[T]): EmitterBuilder[T, R]
   @inline def map[T](f: O => T): EmitterBuilder[T, R] = transformRx[T](implicit ctx => _.map(f))
