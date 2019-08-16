@@ -26,11 +26,16 @@ object ServiceWorker {
         Try(sw.register(location)).toEither match {
           case Right(registered) => registered.toFuture.onComplete {
             case Success(registration) =>
-              scribe.info("SW successfully registered")
+              scribe.info("SW successfully registered!")
+              if (registration.active != null) {
+                scribe.info("SW is already active")
+                activeServiceworker = Option(registration.active)
+                subject.onNext(())
+              }
               registration.onupdatefound = { event =>
                 registration.installing.onstatechange = { event =>
                   if (registration.active != null && activeServiceworker.forall(_ != registration.active)) {
-                    scribe.info("SW successfully activated")
+                    scribe.info("SW newly activated")
                     activeServiceworker = Option(registration.active)
                     subject.onNext(())
                   }
