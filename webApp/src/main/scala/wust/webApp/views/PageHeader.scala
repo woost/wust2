@@ -186,7 +186,7 @@ object PageHeader {
 
     VDomModifier(
       pinButton,
-      PageSettingsMenu(channelId).apply(buttonStyle, fontSize := "20px"),
+    // PageSettingsMenu(channelId).apply(buttonStyle, fontSize := "20px"),
     )
   }
 
