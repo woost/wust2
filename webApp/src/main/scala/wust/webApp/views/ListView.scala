@@ -95,7 +95,7 @@ object ListView {
     )
   }
 
-  private def renderInboxColumn(
+  def renderInboxColumn(
     focusState: FocusState,
     traverseState: TraverseState,
     inOneLine:Boolean,
@@ -125,7 +125,6 @@ object ListView {
   }
 
   private def renderTaskOrStage(
-
     focusState: FocusState,
     traverseState: TraverseState,
     nodeId: NodeId,

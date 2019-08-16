@@ -359,7 +359,7 @@ object TaskNodeCard {
       Rx {
         val graph = GlobalState.graph()
         VDomModifier.ifTrue(isExpanded())(
-          ListView.fieldAndList( focusState.copy(isNested = true, focusedId = nodeId), traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
+          ListView.renderInboxColumn( focusState.copy(isNested = true, focusedId = nodeId),  traverseState.step(nodeId), inOneLine = inOneLine, isCompact = isCompact || compactChildren).apply(
             paddingBottom := "3px",
             onClick.stopPropagation.discard,
             DragComponents.drag(DragItem.DisableDrag),
