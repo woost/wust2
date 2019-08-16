@@ -877,15 +877,6 @@ object CommonStyles extends StyleSheet.Standalone
       whiteSpace.nowrap,
     ),
 
-    zIndex(ZIndex.formOverlay),
-    backgroundColor(Color(Colors.sidebarBg)),
-    color(c"#333"),
-    width(280 px),
-    position.fixed,
-    top(35 px),
-    padding(10 px),
-    borderRadius(5 px),
-    maxHeight := "calc(100% - 45px)",
     overflowY.auto,
   )
 

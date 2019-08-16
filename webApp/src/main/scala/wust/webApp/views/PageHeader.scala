@@ -40,24 +40,23 @@ object PageHeader {
     }
 
     val channelTitle = div(
-      backgroundColor := pageStyle.pageBgColor,
+        backgroundColor := pageStyle.pageBgColor,
       cls := "pageheader-channeltitle",
 
       Components.sidebarNodeFocusMod(GlobalState.rightSidebarNode, pageNodeId),
       Components.showHoveredNode(pageNodeId),
-      registerDragContainer,
-
+        registerDragContainer,
       Rx {
         val node = pageNode()
 
         VDomModifier(
           Components.renderNodeCardMod(node, Components.renderAsOneLineText(_), projectWithIcon = false),
-          DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
+        DragItem.fromNodeRole(node.id, node.role).map(DragComponents.drag(_)),
         )
       },
 
-      div(
-        UnreadComponents.readObserver(
+        div(
+          UnreadComponents.readObserver(
           pageNodeId,
           labelModifier = border := s"1px solid ${Colors.unreadBorder}" // light border has better contrast on colored pageheader background
         ),
@@ -88,14 +87,6 @@ object PageHeader {
 
     def filterControls = VDomModifier(
       ViewFilter.filterBySearchInputWithIcon.apply(marginLeft.auto),
-      MovableElement.withToggleSwitch(
-        Seq(
-          FilterWindow.movableWindow(MovableElement.RightPosition(100, 200)),
-          TagList.movableWindow(viewRender, MovableElement.RightPosition(100, 400)),
-        ),
-        enabled = GlobalState.urlConfig.map(c => c.pageChange.page.parentId.isDefined && c.view.forall(_.isContent)),
-        resizeEvent = GlobalState.rightSidebarNode.toTailObservable.map(_ => ()),
-      )
     )
 
     def breadCrumbs: Rx[VDomModifier] = Rx{
@@ -127,18 +118,11 @@ object PageHeader {
         alignItems.center,
 
         Rx {
-          VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
-            breadCrumbs,
-            // depending on the screen size, different elements receive marginLeft.auto
-            if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
-              AnnouncekitWidget.widget.apply(marginLeft.auto, Styles.flexStatic),
-              FeedbackForm(ctx)(Styles.flexStatic),
-              FeatureExplorer(Styles.flexStatic),
+          VDomModifier(
+            VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
+              breadCrumbs,
+              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic, marginLeft.auto))
             )
-            else VDomModifier(
-              FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic)
-            ),
-            AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic))
           )
         },
       ),

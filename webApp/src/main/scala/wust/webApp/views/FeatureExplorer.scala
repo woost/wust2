@@ -21,26 +21,9 @@ import wust.webUtil.outwatchHelpers._
 import wust.webUtil.UI
 
 object FeatureExplorer {
-  //TODO: next to suggested action, a button: "I don't know what to do / what this means" --> track in analytics, open support chat
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
   def apply(extraMods: VDomModifier*)(implicit ctx: Ctx.Owner): VDomModifier = StagingOnly {
-    val showPopup = Var(false)
-    val activeDisplay = Rx { display := (if (showPopup()) "block" else "none") }
-
-    val progress: Rx[String] = Rx {
-      val total = Feature.allWithoutSecrets.length
-      val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
-      val ratio = (used.toDouble / total.toDouble).min(1.0)
-      f"${ratio * 100}%0.0f"
-    }
-
-    val scoreBadge = span(
-      color.white,
-      backgroundColor := "#5FBA7D",
-      borderRadius := "4px",
-      padding := "2px 5px",
-      display.inlineBlock,
-    )
+    val showPopup = Var(true)
 
     val stats = div(
       div(
@@ -86,17 +69,29 @@ object FeatureExplorer {
     val tryNextList = div(
       Rx{
         VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
-          "Things to try next:",
+          div("Things to try next:"),
           FeatureState.next().map { feature =>
             val details = FeatureDetails(feature)
+            val showDescription = Var(false)
             div(
               div(
-                helpButton(feature)(float.right),
-                details.title, fontWeight.bold, fontSize := "1.3em",
+                Rx { (if (showDescription()) freeSolid.faCaretDown: VNode else freeSolid.faCaretRight: VNode).apply(marginRight := "0.5em") },
+                details.title, fontWeight.bold, fontSize := "1em",
               ),
-              div(details.description),
+              onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
+              onClick.stopPropagation.foreach { showDescription() = !showDescription.now },
+              cursor.pointer,
+              Rx{
+                VDomModifier.ifTrue(showDescription())(
+                  div(
+                    details.description,
+                    helpButton(feature)(paddingLeft := "0.5em", float.right),
+                    div(clear.both)
+                  )
+                )
+              },
               backgroundColor := "#dbf5ff",
-              padding := "8px",
+              padding := "5px",
               marginBottom := "3px",
               borderRadius := "4px",
               Styles.wordWrap,
@@ -118,12 +113,10 @@ object FeatureExplorer {
                 details.title,
                 opacity := 0.8,
                 Styles.wordWrap,
-                fontSize := "16px",
                 fontWeight.bold,
               ),
             ),
-            padding := "8px",
-            marginBottom := "3px",
+            padding := "5px",
           )
         }
       }
@@ -152,118 +145,84 @@ object FeatureExplorer {
       }
     )
 
-    val usedFeatureAnimation = {
-      import outwatch.dom.dsl.styles.extra._
-
-      import scala.concurrent.duration._
-      val shake = 0.2
-      div(
-        scoreBadge("+1"),
-        // visibility.hidden,
-        transition := s"visibility 0s, transform ${shake}s",
-        transform := "rotate(0deg)",
-        Observable(visibility.hidden) ++ FeatureState.usedNewFeatureTrigger.switchMap{ _ =>
-          Observable(visibility.visible) ++
-            Observable(transform := "rotate(20deg)") ++
-            Observable(transform := "rotate(-20deg)").delayExecution(shake seconds) ++
-            Observable(transform := "rotate(0deg)").delayExecution(shake seconds) ++
-            Observable(visibility.hidden).delayExecution(5 seconds)
-        }
-      )
-    }
-
-    val progressBar = div(
-      Rx{ VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden) },
-      backgroundColor := "rgba(255,255,255,0.2)",
-      div(
-        width <-- progress.map(p => s"$p%"),
-        transition := "width 1s",
-        backgroundColor := "white",
-        height := "2px"
-      )
-    )
-
-    val toggleButton = {
-      div(
-        div(
-          div(
-            "Explored Features: ",
-            b(progress, "% "),
-            freeSolid.faCaretDown
-          ),
-          Rx{
-            VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
-              div(
-                "Next: ",
-                FeatureState.next().headOption.map(f => FeatureDetails(f).title),
-                position.absolute,
-                top := "29px",
-                fontSize := "10px",
-                lineHeight := "10px",
-                opacity := 0.6,
-              )
-            )
-          }
-        ),
-        progressBar,
-        // like semantic-ui tiny button
-        fontSize := "0.85714286rem",
-        fontWeight := 700,
-        padding := ".58928571em 1.125em .58928571em",
-        cursor.pointer,
-
-        onClick.stopPropagation foreach {
-          showPopup.update(!_)
-        },
-        Elements.onGlobalEscape(false) --> showPopup,
-        Elements.onGlobalClick(false) --> showPopup,
-
-        position.relative,
-        paddingRight := "30px",
-        usedFeatureAnimation(
-          position.absolute,
-          top := "5px",
-          right := "0",
-        )
-      )
-    }
-
-    val closeButton = div(
-      height := "30px",
-      Styles.flex,
-      justifyContent.flexEnd,
-      alignItems.center,
-      Elements.closeButton(
-        onClick.stopPropagation(false) --> showPopup
-      )
-    )
-
     div(
       keyed,
-      toggleButton,
-      div(
-        cls := "feature-explorer shadow",
-        activeDisplay,
-        right <-- Rx{ if (GlobalState.screenSize() == ScreenSize.Small) "0px" else "200px" },
+      cls := "feature-explorer",
+      stats(marginTop := "5px"),
+      tryNextList(marginTop := "30px"),
+      DebugOnly(Rx{ recentList(marginTop := "30px") }),
+      Rx{
+        VDomModifier.ifTrue(FeatureState.recentFirstTimeUsed().nonEmpty)(
+          recentFirstTimeList(marginTop := "20px")
+        )
+      },
 
-        closeButton(marginRight := "-10px", marginTop := "-5px"),
-        stats(marginTop := "5px"),
-        tryNextList(marginTop := "30px"),
-        DebugOnly(Rx{ recentList(marginTop := "30px") }),
-        Rx{
-          VDomModifier.ifTrue(FeatureState.recentFirstTimeUsed().nonEmpty)(
-            recentFirstTimeList(marginTop := "30px")
-          )
-        },
-        div(
-          textAlign.right,
-          a("Have Feedback? Tell us!")
-        ),
-
-        onClick.stopPropagation.discard, // prevents closing feedback form by global click
-      ),
-
+      onClick.stopPropagation.discard, // prevents closing feedback form by global click
       extraMods
+    )
+  }
+
+  val progress: Rx[String] = Rx {
+    val total = Feature.allWithoutSecrets.length
+    val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
+    val ratio = Math.ceil(used.toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
+    f"${ratio}%0.0f"
+  }
+
+  val progressBar = div(
+    Rx{ VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden) },
+    backgroundColor := "rgba(95, 186, 125, 0.2)",
+    div(
+      width <-- progress.map(p => s"$p%"),
+      transition := "width 1s",
+      backgroundColor := "#5FBA7D",
+      height := "4px"
+    )
+  )
+
+  val scoreBadge = span(
+    color.white,
+    backgroundColor := "#5FBA7D",
+    borderRadius := "4px",
+    padding := "2px 5px",
+    display.inlineBlock,
+  )
+
+  val usedFeatureAnimation = {
+    import outwatch.dom.dsl.styles.extra._
+
+    import scala.concurrent.duration._
+    val shake = 0.2
+    div(
+      scoreBadge("+1"),
+      transition := s"visibility 0s, transform ${shake}s",
+      transform := "rotate(0deg)",
+      Observable(visibility.hidden) ++ FeatureState.usedNewFeatureTrigger.switchMap{ _ =>
+        Observable(visibility.visible) ++
+          Observable(transform := "rotate(20deg)") ++
+          Observable(transform := "rotate(-20deg)").delayExecution(shake seconds) ++
+          Observable(transform := "rotate(0deg)").delayExecution(shake seconds) ++
+          Observable(visibility.hidden).delayExecution(5 seconds)
+      }
+    )
+  }
+
+  val toggleButton = {
+    div(
+      display.inlineBlock, // needed for absolute positioning of usedFeatureAnimation
+      span(
+        "Explored Features: ",
+        b(progress, "% "),
+      ),
+      progressBar,
+
+      position.relative,
+      paddingRight := "30px", // space for the +1 badge
+      usedFeatureAnimation(
+        position.absolute,
+        top := "5px",
+        right := "0",
+      )
     )
   }
 
