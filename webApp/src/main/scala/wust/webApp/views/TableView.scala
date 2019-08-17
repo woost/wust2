@@ -59,6 +59,7 @@ object TableView {
           case (_, node: Node.Content) => Components.editableNodeOnClick( node, maxLength = Some(50), config = EditableContent.Config.default)
           case (_, user: Node.User)                               => Components.removableAssignedUser( user, row)
         },
+        position.relative, // for cancel and save button absolute popup
         cellModifier
       )
     )
@@ -82,11 +83,11 @@ object TableView {
       )
 
       span(
-        position.relative, // needed for absolutlely positioned save/cancel buttons from editable content
         Styles.inlineFlex,
         justifyContent.spaceBetween,
 
         div(
+          position.relative, // for cancel and save button absolute popup
           EditableContent.inlineEditorOrRender[String](name, editMode, _ => columnHeader(_)).editValue.foreach { newName =>
             if (newName.nonEmpty) {
               GlobalState.submitChanges(GraphChanges(delEdges = edges.map(e => e)(breakOut)) merge GraphChanges(addEdges = edges.map(edge => edge.copy(data = edge.data.copy(key = newName)))(breakOut)))

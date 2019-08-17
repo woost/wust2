@@ -109,9 +109,9 @@ object EditableContent {
   private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
     commonEditStructure(initial, current, config, handle)(handler => textArea(
       rows := 1,
-      cls := "ui",
       Elements.autoresizeTextareaMod,
       outline := "none", // hides textarea outline
+      border := "0", // hides textarea border
       minWidth := "36px", minHeight := "36px", // minimal edit area
       lineHeight := "1.4285em", // like semantic UI <p>
 
@@ -189,7 +189,6 @@ object EditableContent {
       flexDirection.column,
       alignItems.center,
       width := "100%",
-      position.relative, // for cancel and save button absolute popup
       dsl.span(
         display.inlineFlex,
         alignItems.flexStart,
