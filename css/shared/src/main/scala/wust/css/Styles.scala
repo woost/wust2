@@ -576,7 +576,7 @@ object CommonStyles extends StyleSheet.Standalone {
     cursor.default,
     minHeight(2 em),
     // minWidth(1.5 em),
-    borderRadius(3 px),
+    borderRadius(2 px),
   )
 
   ".graphnode-tag" - (
@@ -718,7 +718,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val nodeCardShadow = boxShadow := s"$nodeCardShadowOffset rgba(0,0,0,0.12)"
   val nodeCardBackgroundColor = Color(Colors.nodecardBg)
   ".nodecard" - (
-    borderRadius(3 px),
+    borderRadius(2 px),
     padding(2 px),
     fontWeight.normal,
     overflowX.auto,
@@ -1093,7 +1093,7 @@ object CommonStyles extends StyleSheet.Standalone {
   val kanbanCardWidthPx = 250
   val kanbanCardWidth = (kanbanCardWidthPx px)
   val kanbanColumnWidth = ((kanbanColumnPaddingPx + kanbanCardWidthPx + kanbanColumnPaddingPx) px)
-  val kanbanColumnBorderRadius = (5 px)
+  val kanbanColumnBorderRadius = (2 px)
 
   ".kanbanview" - (
     padding(kanbanPageSpacing),
