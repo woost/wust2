@@ -19,6 +19,7 @@ import wust.facades.googleanalytics.Analytics
 import scala.collection.breakOut
 import scala.concurrent.ExecutionContext
 import wust.api.AuthUser
+import scala.util.Success
 
 object FeatureState {
   //TODO: show next on loading screen?
@@ -30,27 +31,32 @@ object FeatureState {
   val recentlyUsedLimit = 1
   val recentlyUsed = Var[Vector[Feature]](Vector.empty)
   private val notSentFirstTimeFeatures = mutable.HashMap.empty[Feature, EpochMilli]
-  private var notSentFirstTimeFeaturesUserId: UserId = GlobalState.userId.now
-
+  private var currentUserId: UserId = GlobalState.userId.now
 
   implicit val ec = ExecutionContext.global //TODO: what else?
   GlobalState.user.foreach {
     case user: AuthUser.Persisted =>
-      firstTimeUsed() = Map.empty[Feature, EpochMilli]
-      recentlyUsed() = Vector.empty
-      Client.api.getUsedFeatures().foreach { list =>
-        firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
-        recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
-      }
-      if (user.id != notSentFirstTimeFeaturesUserId) {
+      if (user.id != currentUserId) {
+        firstTimeUsed() = Map.empty[Feature, EpochMilli]
+        recentlyUsed() = Vector.empty
         notSentFirstTimeFeatures.clear()
-        notSentFirstTimeFeaturesUserId = user.id
+        Client.api.getUsedFeatures().foreach { list =>
+          firstTimeUsed() = list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
+          recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
+        }
+
+        currentUserId = user.id
       } else { // user is the same
         sendNotSentFeatures()
+        Client.api.getUsedFeatures().foreach { list =>
+          firstTimeUsed() = firstTimeUsed.now ++ list.map{ case UsedFeature(feature, timestamp) => feature -> timestamp }(breakOut): Map[Feature, EpochMilli]
+          recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
+        }
       }
-    case _ =>
+    case assumedUser:AuthUser.Assumed =>
       firstTimeUsed() = Map.empty[Feature, EpochMilli]
       recentlyUsed() = Vector.empty
+      currentUserId = assumedUser.id
   }
 
   val nextCandidates: Rx[Set[Feature]] = Rx {
