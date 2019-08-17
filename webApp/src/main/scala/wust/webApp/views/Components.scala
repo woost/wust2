@@ -4,7 +4,7 @@ import acyclic.file
 import wust.webUtil.outwatchHelpers._
 import cats.effect.IO
 import wust.facades.emojijs.EmojiConvertor
-import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry, AutoResizeConfig}
+import wust.facades.fomanticui.{SearchOptions, SearchSourceEntry}
 import wust.facades.jquery.JQuerySelection
 import wust.facades.marked.Marked
 import fontAwesome._
@@ -1060,15 +1060,4 @@ object Components {
   def experimentalSign(color: String) = maturityLabel("experimental", fgColor = color, borderColor = color)
 
   def reloadButton = button(cls := "ui button compact mini", freeSolid.faRedo, " Reload", cursor.pointer, onClick.stopPropagation.foreach { dom.window.location.reload(flag = true) }) // true - reload without cache
-
-  def autoresizeTextareaMod: VDomModifier = autoresizeTextareaMod()
-  def autoresizeTextareaMod(maxHeight: Option[Int] = None, onResize: Option[() => Unit] = None): VDomModifier = {
-    val _maxHeight = maxHeight.map(_.toDouble).orUndefined
-    val _onResize = onResize.map[js.ThisFunction1[dom.html.TextArea, Double, Unit]](f => (_: dom.html.TextArea, _: Double) => f()).orUndefined
-
-    managedElement.asJquery { e =>
-      val subscription = e.autoResize(new AutoResizeConfig { maxHeight = _maxHeight; onresizeheight = _onResize })
-      Cancelable(() => subscription.reset())
-    }
-  }
 }

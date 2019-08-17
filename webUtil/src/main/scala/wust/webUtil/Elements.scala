@@ -2,6 +2,7 @@ package wust.webUtil
 
 import cats.effect.IO
 import fontAwesome.{IconLookup, Params, Transform, fontawesome, freeSolid}
+import wust.facades.fomanticui.AutoResizeConfig
 import wust.facades.dateFns.DateFns
 import wust.facades.hammerjs
 import wust.facades.immediate.immediate
@@ -26,6 +27,7 @@ import wust.util._
 
 import scala.concurrent.duration._
 import scala.scalajs.js
+import scala.scalajs.js.JSConverters._
 
 // This file contains utilities that are not woost-related.
 // They could be contributed to outwatch and used in other projects
@@ -414,5 +416,20 @@ object Elements {
   def confirm(message:String)(code: => Unit):Unit = {
     if(dom.window.confirm(message))
       code
+  }
+
+  def autoresizeTextareaMod: VDomModifier = autoresizeTextareaMod()
+  def autoresizeTextareaMod(maxHeight: Option[Int] = None, onResize: Option[() => Unit] = None): VDomModifier = {
+    val _maxHeight = maxHeight.map(_.toDouble).orUndefined
+    val _onResize = onResize.map[js.ThisFunction1[dom.html.TextArea, Double, Unit]](f => (_: dom.html.TextArea, _: Double) => f()).orUndefined
+
+    VDomModifier(
+      managedElement.asJquery { e =>
+        val subscription = e.autoResize(new AutoResizeConfig { maxHeight = _maxHeight; onresizeheight = _onResize })
+        Cancelable(() => subscription.reset())
+      },
+      resize := "none",
+      height := "0px"
+    )
   }
 }

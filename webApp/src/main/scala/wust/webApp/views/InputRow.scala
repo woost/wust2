@@ -89,7 +89,7 @@ object InputRow {
       rows := 1,
       resize := "none",
       minHeight := "42px",
-      Components.autoresizeTextareaMod(onResize = Some(() => onAutoResize()))
+      Elements.autoresizeTextareaMod(onResize = Some(() => onAutoResize()))
     )
 
     def handleInput(str: String): Unit = if (allowEmptyString || str.trim.nonEmpty || fileUploadHandler.exists(_.now.isDefined)) {

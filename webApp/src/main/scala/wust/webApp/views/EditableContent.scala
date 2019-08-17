@@ -107,19 +107,18 @@ object EditableContent {
     inlineEditorHandler[T](current.now, currentVar, config)
   }
   private def inlineEditorHandler[T: EditStringParser: ValueStringifier](initial: Option[T], current: Handler[EditInteraction[T]], config: Config, handle: EditInteraction[T] => EditInteraction[T] = (x: EditInteraction[T]) => x)(implicit ctx: Ctx.Owner): VNode = {
-    commonEditStructure(initial, current, config, handle)(handler => dsl.span(
-      outline := "none", // hides contenteditable outline
-      contentEditable := true,
-      backgroundColor := "#FFF",
-      color := "#000",
-      cursor.auto,
-      minWidth := "20px", minHeight := "20px", // minimal edit area
+    commonEditStructure(initial, current, config, handle)(handler => textArea(
+      rows := 1,
+      cls := "ui",
+      Elements.autoresizeTextareaMod,
+      outline := "none", // hides textarea outline
+      minWidth := "36px", minHeight := "36px", // minimal edit area
       lineHeight := "1.4285em", // like semantic UI <p>
 
       basicModifiers(config, handler.edit),
       inputModifiers(config, handler.edit),
 
-      EditHelper.valueParsingModifier[T, dom.html.Element](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config), blurEmitter(config)), identity, stringFromElement, e => EditStringParser[T].parse(stringFromElement(e))),
+      EditHelper.valueParsingModifier[T, dom.html.TextArea](Task.pure(initial), handler.edit, EmitterBuilder.combine(emitter(handler.save), inputEmitter(config), blurEmitter(config)), identity, _.value, e => EditStringParser[T].parse(e.value)),
     ))
   }
 
@@ -157,7 +156,6 @@ object EditableContent {
     )
   }
 
-  @inline private def stringFromElement(element: dom.Element): String = element.asInstanceOf[js.Dynamic].innerText.asInstanceOf[String] // innerText because textContent would remove line-breaks in firefox
   @inline private def stringFromSelect(element: dom.html.Select): String = element.value
 
   private def cancelButton(current: Observer[EditInteraction[Nothing]]) = dsl.span(
@@ -191,6 +189,7 @@ object EditableContent {
       flexDirection.column,
       alignItems.center,
       width := "100%",
+      position.relative, // for cancel and save button absolute popup
       dsl.span(
         display.inlineFlex,
         alignItems.flexStart,
