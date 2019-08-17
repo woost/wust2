@@ -57,7 +57,6 @@ object NotesView {
         placeholder = Placeholder.newNote,
         showMarkdownHelp = true,
         triggerSubmit = triggerSubmit,
-        blurAction = Some(_ => triggerSubmit.onNext(()))
       )
     )
   }
