@@ -38,7 +38,7 @@ module.exports.output.path = Path.join(__dirname, "dist");
 module.exports.output.filename = outputFileNamePattern + '.js';
 
 woost.files.css.forEach(file => module.exports.entry[woost.appName].push(file));
-module.exports.entry[woost.appName] = module.exports.entry[woost.appName].concat(woost.files.vendor.assets).concat(woost.files.staticAssets);
+module.exports.entry[woost.appName] = module.exports.entry[woost.appName].concat(woost.files.vendor.assets).concat(woost.files.assets);
 module.exports.optimization = {
     // https://github.com/google/closure-compiler-js#webpack
     minimize: false, // disable default uglifyJs
