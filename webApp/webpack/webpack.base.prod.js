@@ -209,6 +209,10 @@ module.exports.module.rules.push({
     use: [ fileAssetsLoader ]
 });
 module.exports.module.rules.push({
+    test: /\.(png|jpe?g|svg|gif)$/,
+    use: [{ loader: "image-webpack-loader" }]
+});
+module.exports.module.rules.push({
       test: /(\.webmanifest|browserconfig\.xml)$/,
       use: [
         fileRootLoader,

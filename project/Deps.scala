@@ -176,6 +176,7 @@ object Deps {
         "webpack-merge" -> "4.2.1" ::
         "copy-webpack-plugin" -> "5.0.0" ::
         "optimize-css-assets-webpack-plugin" -> "5.0.3" ::
+        "image-webpack-loader" -> "5.0.0" ::
         "cssnano" -> "4.1.10" ::
         Nil
   }
