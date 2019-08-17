@@ -53,9 +53,10 @@ object FeatureState {
           recentlyUsed() = recentFirstTimeUsed.now.distinct.take(recentlyUsedLimit).toVector
         }
       }
-    case _ =>
+    case assumedUser:AuthUser.Assumed =>
       firstTimeUsed() = Map.empty[Feature, EpochMilli]
       recentlyUsed() = Vector.empty
+      currentUserId = assumedUser.id
   }
 
   val nextCandidates: Rx[Set[Feature]] = Rx {
