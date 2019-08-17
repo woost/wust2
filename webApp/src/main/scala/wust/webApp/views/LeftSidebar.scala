@@ -81,6 +81,7 @@ object LeftSidebar {
               styles = "styled fluid",
               exclusive = true, //BrowserDetect.isMobile
             ).apply(
+                fontSize := "12px",
                 marginTop.auto,
                 Styles.flex,
                 flexDirection.column,

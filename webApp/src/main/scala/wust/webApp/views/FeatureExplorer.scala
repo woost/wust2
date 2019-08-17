@@ -82,7 +82,7 @@ object FeatureExplorer {
               cursor.pointer,
               Rx{ VDomModifier.ifTrue(showDescription())(div(details.description)) },
               backgroundColor := "#dbf5ff",
-              padding := "8px",
+              padding := "5px",
               marginBottom := "3px",
               borderRadius := "4px",
               Styles.wordWrap,
@@ -107,8 +107,7 @@ object FeatureExplorer {
                 fontWeight.bold,
               ),
             ),
-            padding := "8px",
-            marginBottom := "3px",
+            padding := "5px",
           )
         }
       }
@@ -145,7 +144,7 @@ object FeatureExplorer {
       DebugOnly(Rx{ recentList(marginTop := "30px") }),
       Rx{
         VDomModifier.ifTrue(FeatureState.recentFirstTimeUsed().nonEmpty)(
-          recentFirstTimeList(marginTop := "30px")
+          recentFirstTimeList(marginTop := "20px")
         )
       },
 
