@@ -196,7 +196,7 @@ object RightSidebar {
         cls := "ui secondary menu",
         flexWrap.wrap,
         flexDirection.column,
-        marginBottom := "30px",
+        height := "600px",
         justifyContent.spaceAround,
         PageSettingsMenu.sidebarItems(focusPref.nodeId)
       )
