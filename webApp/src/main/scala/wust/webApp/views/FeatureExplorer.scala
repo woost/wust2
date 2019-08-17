@@ -156,18 +156,22 @@ object FeatureExplorer {
   val progress: Rx[String] = Rx {
     val total = Feature.allWithoutSecrets.length
     val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
-    val ratio = (used.toDouble / total.toDouble).min(1.0)
-    f"${ratio * 100}%0.0f"
+    println("total: " + total)
+    println("used: " + used)
+    println("ceil: " + Math.ceil(used.toDouble / total.toDouble*100))
+    val ratio = Math.ceil(used.toDouble / total.toDouble*100).min(100.0) // everything greater 0 is at least 1%
+    println("ratio: " + ratio)
+    f"${ratio}%0.0f"
   }
 
   val progressBar = div(
     Rx{ VDomModifier.ifTrue(FeatureState.firstTimeUsed().isEmpty)(visibility.hidden) },
-    backgroundColor := "rgba(0,0,0,0.2)",
+    backgroundColor := "rgba(95, 186, 125, 0.2)",
     div(
       width <-- progress.map(p => s"$p%"),
       transition := "width 1s",
-      backgroundColor := "black",
-      height := "2px"
+      backgroundColor := "#5FBA7D",
+      height := "4px"
     )
   )
 
@@ -200,15 +204,12 @@ object FeatureExplorer {
 
   val toggleButton = {
     div(
-      display.inlineBlock,
+      display.inlineBlock, // needed for absolute positioning of usedFeatureAnimation
       span(
         "Explored Features: ",
         b(progress, "% "),
       ),
-      progressBar(
-        marginLeft := "20px",
-        marginRight := "25px"
-      ),
+      progressBar,
       marginBottom := "10px",
 
       position.relative,
