@@ -29,7 +29,7 @@ object FeatureDetails {
 
   def activateFilter(transformation: ViewGraphTransformation) = FeatureDetails(
     title = s"${transformation.description} (Filter)",
-    description = span("Open the filter window and click ", em(transformation.description), ".")
+    description = span("Expand filters and click ", em(transformation.description), ".")
   )
 
   private val mapping: PartialFunction[Feature, FeatureDetails] = {
@@ -147,7 +147,7 @@ object FeatureDetails {
       // Automation
       case CreateAutomationTemplate => FeatureDetails (
         title = "Create automation template",
-        description = VDomModifier("Click the ", em(Icons.automate), " icon on a kanban-column or tag in the tag-window. Then click ", em(GraphChangesAutomationUI.createAutomationTemplateText), ".")
+        description = VDomModifier("Click the ", em(Icons.automate), " icon on a kanban-column or tag in the tag-section. Then click ", em(GraphChangesAutomationUI.createAutomationTemplateText), ".")
       )
 
       // Filter
@@ -168,37 +168,37 @@ object FeatureDetails {
       )
       case ResetFilters => FeatureDetails (
         title = "Reset Filters",
-        description = VDomModifier("Open filter window and press: ", em(FilterWindow.resetAllFiltersText), ".")
+        description = VDomModifier("Expand filters and press: ", em(FilterWindow.resetAllFiltersText), ".")
       )
 
       // custom fields, tags, assignments
       case CreateTag => FeatureDetails (
         title = "Create Tag",
-        description = VDomModifier("Open the tags window (top right) and click ", em(TagList.addTagText), ".")
+        description = VDomModifier("Expand tags and click ", em(TagList.addTagText), ".")
       )
       case NestTagsByDragging => FeatureDetails (
         title = "Nest Tags",
-        description = VDomModifier("In the tags window drag one tag into another.")
+        description = VDomModifier("In the tags section, drag one tag into another.")
       )
       case FilterByTag => FeatureDetails (
         title = "Filter by Tag",
-        description = VDomModifier("In the tags window click the checkbox next to a tag.")
+        description = VDomModifier("In the tags section, click the checkbox next to a tag.")
       )
       case FilterByTagWithSubTag => FeatureDetails (
         title = "Filter by Tag with Sub-Tag",
-        description = VDomModifier("In the tags window click the checkbox next to a tag which contains another tag.")
+        description = VDomModifier("In the tags section, click the checkbox next to a tag which contains another tag.")
       )
       case TagTaskByDragging => FeatureDetails (
         title = "Tag Task (Drag&Drop)",
-        description = "Open the tags window (top right) and drag a tag onto a task."
+        description = "Expand the tags section and drag a tag onto a task."
       )
       case TagTaskWithNestedTagByDragging => FeatureDetails (
         title = "Tag Task with Nested Tag (Drag&Drop)",
-        description = "Open the tags window (top right) and drag a nested tag onto a task."
+        description = "Expand the tags section and drag a nested tag onto a task."
       )
       case AssignTaskByDragging => FeatureDetails (
         title = "Assign Task (Drag&Drop)",
-        description = VDomModifier("Drag a user avatar ", Avatar.user(GlobalState.user.now.id)(height := "20px", marginBottom := "-5px", cls := "avatar"), " from the members list (top right) onto a task.")
+        description = VDomModifier("Drag a user avatar ", Avatar.user(GlobalState.user.now.id)(height := "20px", marginBottom := "-5px", cls := "avatar"), " from the members list (next to the project title) onto a task.")
       )
       case AddCustomFieldToTask => FeatureDetails (
         title = "Add Custom Field to Task",

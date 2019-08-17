@@ -135,7 +135,7 @@ object Feature {
 
   // Task
   case object AddCustomFieldToTask extends Category.Item.Task { override def requiresAll = Array(OpenTaskInRightSidebar) }
-  case object AssignTaskByDragging extends Category.Item.Task with Category.Drag { override def requiresAny = Array(CreateTaskInKanban, CreateTaskInChecklist); override def next = Array(FilterOnlyAssignedTo, FilterOnlyNotAssigned) }
+  case object AssignTaskByDragging extends Category.Item.Task with Category.Drag { override def requiresAll = Array(InviteMember); override def requiresAny = Array(CreateTaskInKanban, CreateTaskInChecklist); override def next = Array(FilterOnlyAssignedTo, FilterOnlyNotAssigned) }
 
   // Chat
   case object AddChatView extends Category.View { override def next = Array(CreateMessageInChat) }
@@ -204,6 +204,7 @@ object Feature {
   // Automation
   case object CreateAutomationTemplate extends Category.Automation with Category.Item.Tag with Category.View.Kanban { override def requiresAny = Array(CreateColumnInKanban, CreateTag); override def next = Array(FilterAutomationTemplates) }
 
+  case object InviteMember extends Category.Secret
   case object ChangeAccessLevel extends Category.Secret
   case object ShareLink extends Category.Secret
   case object AcceptInvite extends Category.Secret
