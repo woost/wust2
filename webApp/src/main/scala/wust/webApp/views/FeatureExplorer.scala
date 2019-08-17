@@ -78,6 +78,7 @@ object FeatureExplorer {
                 helpButton(feature)(float.right),
                 details.title, fontWeight.bold, fontSize := "1em",
               ),
+              onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
               onClick.stopPropagation.foreach { showDescription() = !showDescription.now },
               cursor.pointer,
               Rx{ VDomModifier.ifTrue(showDescription())(div(details.description)) },
