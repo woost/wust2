@@ -298,7 +298,7 @@ object Importing {
 
         importers.foldLeft(Seq.empty[VDomModifier]) { (prev, importer) =>
           val field = importerForm(importer).transform(_.flatMap { result =>
-            Observable.fromIO(result).flatMap {
+            Observable.from(result).flatMap {
               case Right(importChanges) =>
                 val changes: GraphChanges = importToChanges(GlobalState.graph.now, importChanges)
                 UI.toast("Successfully imported Project")
