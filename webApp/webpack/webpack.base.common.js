@@ -37,8 +37,8 @@ if (!fs.existsSync(dummyOutputFile)) {
 const files = {}
 files.css = glob.sync(Path.join(dirs.css, '**', '*.css'));
 files.html = glob.sync(Path.join(dirs.html, '**', '*.html'))
-files.assets = glob.sync(Path.join(dirs.assets, '**', '*')) // favicons, webmanifests, browserconfig, images, ...
-files.sw = glob.sync(Path.join(dirs.sw, '**', '*')) // all files related to service worker
+files.assets = glob.sync(Path.join(dirs.assets, '**', '*.*')) // favicons, webmanifests, browserconfig, images, ...
+files.sw = glob.sync(Path.join(dirs.sw, '**', '*.*')) // all files related to service worker
 
 // files that we do not require with require-imports, but need to be in global scope.
 files.vendor = {

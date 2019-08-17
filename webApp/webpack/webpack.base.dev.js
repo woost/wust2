@@ -93,20 +93,37 @@ module.exports.plugins.push(new CopyPlugin(woost.files.vendor.workbox.map(f => {
 ////////////////////////////////////////
 // Copy fonts/icons/images to output path
 ////////////////////////////////////////
-const fileLoader = {
+const fileStaticLoader = {
+    loader: 'file-loader',
+    options: {
+        name: 'static/[name].[ext]',
+    },
+};
+const fileAssetsLoader = {
     loader: 'file-loader',
     options: {
         name: '[path][name].[ext]',
     },
 };
+const fileRootLoader = {
+    loader: 'file-loader',
+    options: {
+        name: '[name].[ext]',
+    },
+};
+module.exports.module.rules.push({
+    test: /\/static\//,
+    use: [ fileStaticLoader ]
+});
 module.exports.module.rules.push({
     test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
-    use: [ fileLoader ]
+    exclude: /\/static\//,
+    use: [ fileAssetsLoader ]
 });
 module.exports.module.rules.push({
       test: /(\.webmanifest|browserconfig\.xml)$/,
       use: [
-        fileLoader,
+        fileRootLoader,
         {
             loader: "app-manifest-loader",
             options: {

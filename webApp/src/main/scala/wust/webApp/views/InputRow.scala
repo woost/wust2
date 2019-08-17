@@ -81,6 +81,7 @@ object InputRow {
     }
     def triggerAutoResize(): Unit = {
       currentTextArea.style.height = "0px"
+      onAutoResize()
     }
 
     val collectedMentions = new mutable.HashMap[String, Node]
@@ -391,10 +392,10 @@ object InputRow {
         <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>
         <tr>
             <td>
-                ![Image](https://app.woost.space/favicon.ico)
+                ![Image](static/logo.svg)
             </td>
             <td>
-                <img src="https://app.woost.space/favicon.ico" alt="Markdown" width="36" height="36">
+                <img src="static/logo.svg" alt="Markdown" width="36" height="36">
             </td>
         </tr>
         <tr style="height:2px;background-color:lightgray"><td colspan="100%"></td></tr>

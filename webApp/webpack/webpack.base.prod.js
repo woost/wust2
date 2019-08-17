@@ -38,7 +38,7 @@ module.exports.output.path = Path.join(__dirname, "dist");
 module.exports.output.filename = outputFileNamePattern + '.js';
 
 woost.files.css.forEach(file => module.exports.entry[woost.appName].push(file));
-module.exports.entry[woost.appName] = module.exports.entry[woost.appName].concat(woost.files.vendor.assets).concat(woost.files.assets);
+module.exports.entry[woost.appName] = module.exports.entry[woost.appName].concat(woost.files.vendor.assets).concat(woost.files.staticAssets);
 module.exports.optimization = {
     // https://github.com/google/closure-compiler-js#webpack
     minimize: false, // disable default uglifyJs
@@ -181,6 +181,12 @@ module.exports.plugins.push(new CopyPlugin(woost.files.vendor.workbox.map(f => {
 ////////////////////////////////////////
 // Copy fonts/icons/images to output path
 ////////////////////////////////////////
+const fileStaticLoader = {
+    loader: 'file-loader',
+    options: {
+        name: 'static/[name].[ext]',
+    },
+};
 const fileAssetsLoader = {
     loader: 'file-loader',
     options: {
@@ -194,11 +200,12 @@ const fileRootLoader = {
     },
 };
 module.exports.module.rules.push({
-    test: /static\/\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
-    use: [ fileAssetsLoader ]
+    test: /\/static\//,
+    use: [ fileStaticLoader ]
 });
 module.exports.module.rules.push({
     test: /\.(png|jpe?g|ico|svg|gif|woff2?|ttf|eot)$/,
+    exclude: /\/static\//,
     use: [ fileAssetsLoader ]
 });
 module.exports.module.rules.push({
