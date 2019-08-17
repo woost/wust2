@@ -39,6 +39,18 @@ trait JQuerySelectionWithFomanticUI extends js.Object {
   def on(eventName: String, f: js.Function): Unit = js.native
 
   def data(name: String): js.Any = js.native
+
+  def autoResize(config: AutoResizeConfig = ???): AutoResizeResult = js.native
+}
+
+trait AutoResizeConfig extends js.Object {
+  var maxHeight: js.UndefOr[Double] = js.undefined
+  var onresizeheight: js.UndefOr[js.ThisFunction1[dom.html.TextArea, Double, Unit]] = js.undefined
+}
+
+@js.native
+trait AutoResizeResult extends js.Object {
+  def reset(): Unit = js.native
 }
 
 trait TableSortInstance extends js.Object {
