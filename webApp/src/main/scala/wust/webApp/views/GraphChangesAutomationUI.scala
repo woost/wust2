@@ -142,6 +142,7 @@ object GraphChangesAutomationUI {
                 p("You may use variables ${woost...} within your templates in order to build dynamic content:"),
                 ul(
                   li(i("${woost.parent}"), " The parent of this node."),
+                  li(i("${woost.child}"), " The child of this node."),
                   li(i("${woost.field.<name>}"), " A custom field of this node, where the key is the name of the property."),
                   li(i("${woost.reverseField}"), " Points from a custom field to the owner of this field. Reverse direction of field."),
                   li(i("${woost.assignee}"), " Reference the assigend user of this node."),

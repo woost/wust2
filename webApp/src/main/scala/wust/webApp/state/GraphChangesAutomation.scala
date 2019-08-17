@@ -12,6 +12,7 @@ import wust.webApp.Client
 import org.scalajs.dom
 
 import scala.collection.{breakOut, mutable}
+import scala.util.control.NonFatal
 
 // This file is about automation. We want to automate changes to the graph and emit additional changes
 // whenever an automation is triggered. Currently an automation can only be triggered by adding a
@@ -21,7 +22,7 @@ import scala.collection.{breakOut, mutable}
 object GraphChangesAutomation {
 
   val templateVariableRegex = "\\$(@)?\\{woost((\\.[^\\.\\}]+)+)\\}".r
-  def replaceVariableInText(userId: UserId, graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = {
+  def replaceVariableInText(userId: UserId, graph: Graph, node: Node, templateText: String, newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): (String, Array[Edge]) = try {
 
     val extraEdges = Array.newBuilder[Edge]
 
@@ -39,84 +40,71 @@ object GraphChangesAutomation {
       val join1Regex = "^join\\(\\s*\"([^\"]*)\"\\s*\\)$".r
       val join3Regex = "^join\\(\\s*\"([^\"]*)\",\\s*\"([^\"]*)\",\\s*\"([^\"]*)\"\\s*\\)$".r
 
-      var referenceNodesPath: Array[Array[Node]] = new Array[Array[Node]](n + 1)
-      referenceNodesPath(0) = Array(node)
+      var currentReferenceNodes: Array[Node] = Array(node)
       var commandMode: CommandMode = CommandSelection
-      var i = 0
-      var done = false
       var hasError = false
       var nodeToString: Node => String = node => node.str
       var joinSeparator = ", "
       var nodeStringPrefix = ""
       var nodeStringPostfix = ""
-      while (!done && i < n) {
+      var i = 0
+
+      while (i < n && currentReferenceNodes.nonEmpty && !hasError) {
         val propertyName = propertyNames(i)
         commandMode match {
 
           case CommandSelection => propertyName match {
             case "myself" | "yourself" if i == 0 =>
-              referenceNodesPath(i + 1) = graph.nodesById(userId).toArray
+              currentReferenceNodes = graph.nodesById(userId).toArray
             case "id" if i == n - 1 =>
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
               nodeToString = node => node.id.toBase58
             case "url" if i == n - 1 =>
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
               nodeToString = node => s"${dom.window.location.origin}/#page=${node.id.toBase58}"
-            case "fileUrl" if i == n && referenceNodesPath(i).forall(_.data match { case _: NodeData.File => true; case _ => false }) =>
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
+            case "fileUrl" if i == n && currentReferenceNodes.forall(_.data match { case _: NodeData.File => true; case _ => false }) =>
               nodeToString = node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}"
             case name if name.startsWith("join(") && i == n - 1 =>
               join1Regex.findFirstMatchIn(name) match {
                 case Some(m) =>
-                  referenceNodesPath(i + 1) = referenceNodesPath(i)
                   joinSeparator = m.group(1)
                 case None =>
                   join3Regex.findFirstMatchIn(name) match {
                     case Some(m) =>
-                      referenceNodesPath(i + 1) = referenceNodesPath(i)
                       joinSeparator = m.group(1)
                       nodeStringPrefix = m.group(2)
                       nodeStringPostfix = m.group(3)
                     case None =>
-                      done = true
                       hasError = true
                   }
               }
             case name if name.startsWith("id(") && i == 0 =>
-              referenceNodesPath(i + 1) = id1Regex.findFirstMatchIn(name).flatMap { m =>
-                Cuid.fromBase58String(m.group(1)).toOption.flatMap { cuid =>
-                  graph.nodesById(NodeId(cuid))
-                }
-              }.toArray
+              id1Regex.findFirstMatchIn(name) match {
+                case Some(m) =>
+                  currentReferenceNodes = Cuid.fromBase58String(m.group(1)).toOption.flatMap { cuid =>
+                    graph.nodesById(NodeId(cuid))
+                  }.toArray
+                case None =>
+                  hasError = true
+              }
             case "original" =>
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
+              // do nothing, just make woost.original available
             case "reference" =>
               UI.toast("Please use ${woost.original} instead of ${woost.reference}", "Deprecated Variable", level = UI.ToastLevel.Warning)
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
             case "field" =>
-              referenceNodesPath(i + 1) = referenceNodesPath(i)
               commandMode = FieldLookup
             case "reverseField" =>
-              val references = lookupPropertyReverseVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
-              if (references.isEmpty) done = true
-              else referenceNodesPath(i + 1) = references
+              currentReferenceNodes = lookupPropertyReverseVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
             case "parent" =>
-              val references = lookupParentVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
-              if (references.isEmpty) done = true
-              else referenceNodesPath(i + 1) = references
+              currentReferenceNodes = lookupParentVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
+            case "child" =>
+              currentReferenceNodes = lookupChildVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
             case "assignee" =>
-              val references = lookupAssigneeVariable(graph, referenceNodesPath(i), newEdges, newEdgesReverse)
-              if (references.isEmpty) done = true
-              else referenceNodesPath(i + 1) = references
+              currentReferenceNodes = lookupAssigneeVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
             case _ =>
-              done = true
               hasError = true
           }
 
           case FieldLookup =>
-            val references = lookupPropertyVariable(graph, referenceNodesPath(i), propertyName, newEdges, newEdgesReverse)
-            if (references.isEmpty) done = true
-            else referenceNodesPath(i + 1) = references
+            currentReferenceNodes = lookupPropertyVariable(graph, currentReferenceNodes, propertyName, newEdges, newEdgesReverse)
             commandMode = CommandSelection
 
         }
@@ -126,23 +114,25 @@ object GraphChangesAutomation {
 
       def syntaxError = "#NAME?"
       def missingValueError = "#REF!"
-      val lastReferenceNodes = referenceNodesPath(n)
       if (hasError) syntaxError
-      else if (lastReferenceNodes == null || lastReferenceNodes.isEmpty) missingValueError
+      else if (currentReferenceNodes.isEmpty) missingValueError
       else {
         def sanitizeFinalString(str: String) = templateVariableRegex.replaceAllIn(str, missingValueError)
         if (isMentionMode) {
-          lastReferenceNodes.foreach { refNode =>
+          currentReferenceNodes.foreach { refNode =>
             extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
           }
-          lastReferenceNodes.map(n => nodeStringPrefix + "@" + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
+          currentReferenceNodes.map(n => nodeStringPrefix + "@" + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
         } else {
-          lastReferenceNodes.map(n => nodeStringPrefix + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
+          currentReferenceNodes.map(n => nodeStringPrefix + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
         }
       }
     })
 
     (newStr, extraEdges.result)
+  } catch { case NonFatal(t) =>
+    scribe.info("Failed to replace variables, due to an exception", t)
+    (templateText, Array.empty)
   }
 
   def lookupAssigneeVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
@@ -158,6 +148,27 @@ object GraphChangesAutomation {
 
       graph.idToIdxForeach(node.id) { nodeIdx =>
         graph.assignedUsersIdx.foreachElement(nodeIdx) { nodeIdx =>
+          add(graph.nodes(nodeIdx))
+        }
+      }
+    }
+
+    arr.result.distinct
+  }
+
+  def lookupChildVariable(graph: Graph, nodes: Array[Node], newEdges: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]], newEdgesReverse: mutable.HashMap[NodeId, mutable.ArrayBuffer[(Edge, Node)]]): Array[Node] = {
+    val arr = Array.newBuilder[Node]
+
+    @inline def add(node: Node): Unit = if (InlineList.contains(NodeRole.Task, NodeRole.Message, NodeRole.Project, NodeRole.Note)(node.role)) arr += node
+
+    nodes.foreach { node =>
+      newEdges.get(node.id).foreach(_.foreach {
+        case (edge: Edge.Child, childNode) => add(childNode)
+        case _ => ()
+      })
+
+      graph.idToIdxForeach(node.id) { nodeIdx =>
+        graph.childrenIdx.foreachElement(nodeIdx) { nodeIdx =>
           add(graph.nodes(nodeIdx))
         }
       }
