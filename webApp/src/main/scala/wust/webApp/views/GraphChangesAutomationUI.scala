@@ -158,7 +158,9 @@ object GraphChangesAutomationUI {
 
                 p("You can mention the result of a variable via: $@{woost.parent.assignee}"),
 
-                p("""Furthermore, you can handle how multiple variable results are joined. By default, a list of result will be joined with a comma as separator. You can define a custom separator string for multiple results with: join("<br/>"). Or you can as well join with a prefix and postfix for each element: join("<br/>", "<b>", "</b>".""")
+                p("""Furthermore, you can handle how multiple variable results are joined. By default, a list of result will be joined with a comma as separator. You can define a custom separator string for multiple results with: join("<br/>"). Or you can as well join with a prefix and postfix for each element: join("<br/>", "<b>", "</b>"."""),
+
+                p("""If a variable has a syntax error, it will return '#NAME?' error. If a variable yields no results, it will return a '#REF!' error. In the latter case, you can provide a default value: ${woost.field.name.or("Unknown")}.""")
               )
               case false => VDomModifier.empty
             },

@@ -36,6 +36,7 @@ object GraphChangesAutomation {
       val propertyNames = m.group(2).drop(1).split("\\.")
       val n = propertyNames.length
 
+      val or1Regex = "^or\\(\\s*\"([^\"]*)\"\\s*\\)$".r
       val id1Regex = "^id\\(\\s*\"([^\"]*)\"\\s*\\)$".r
       val join1Regex = "^join\\(\\s*\"([^\"]*)\"\\s*\\)$".r
       val join3Regex = "^join\\(\\s*\"([^\"]*)\",\\s*\"([^\"]*)\",\\s*\"([^\"]*)\"\\s*\\)$".r
@@ -43,38 +44,49 @@ object GraphChangesAutomation {
       var currentReferenceNodes: Array[Node] = Array(node)
       var commandMode: CommandMode = CommandSelection
       var hasError = false
-      var nodeToString: Node => String = node => node.str
-      var joinSeparator = ", "
+      var nodeStringOption = Option.empty[Node => String]
+      var joinSeparatorOption = Option.empty[String]
       var nodeStringPrefix = ""
       var nodeStringPostfix = ""
+      var defaultValue = Option.empty[String]
       var i = 0
 
-      while (i < n && currentReferenceNodes.nonEmpty && !hasError) {
+      while (i < n && !hasError) {
         val propertyName = propertyNames(i)
         commandMode match {
 
           case CommandSelection => propertyName match {
             case "myself" | "yourself" if i == 0 =>
               currentReferenceNodes = graph.nodesById(userId).toArray
-            case "id" if i == n - 1 =>
-              nodeToString = node => node.id.toBase58
-            case "url" if i == n - 1 =>
-              nodeToString = node => s"${dom.window.location.origin}/#page=${node.id.toBase58}"
-            case "fileUrl" if i == n && currentReferenceNodes.forall(_.data match { case _: NodeData.File => true; case _ => false }) =>
-              nodeToString = node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}"
-            case name if name.startsWith("join(") && i == n - 1 =>
+            case "id" if nodeStringOption.isEmpty =>
+              nodeStringOption = Some(node => node.id.toBase58)
+            case "url" if nodeStringOption.isEmpty =>
+              nodeStringOption = Some(node => s"${dom.window.location.origin}/#page=${node.id.toBase58}")
+            case "fileUrl" if nodeStringOption.isEmpty =>
+              currentReferenceNodes = currentReferenceNodes.filter(_.data match { case _: NodeData.File => true; case _ => false })
+              nodeStringOption = Some(node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}")
+            case name if name.startsWith("join(") && joinSeparatorOption.isEmpty =>
               join1Regex.findFirstMatchIn(name) match {
                 case Some(m) =>
-                  joinSeparator = m.group(1)
+                  joinSeparatorOption = Some(m.group(1))
                 case None =>
                   join3Regex.findFirstMatchIn(name) match {
                     case Some(m) =>
-                      joinSeparator = m.group(1)
+                      joinSeparatorOption = Some(m.group(1))
                       nodeStringPrefix = m.group(2)
                       nodeStringPostfix = m.group(3)
                     case None =>
                       hasError = true
                   }
+              }
+            case name if name.startsWith("or(") =>
+              if (currentReferenceNodes.isEmpty) {
+                or1Regex.findFirstMatchIn(name) match {
+                  case Some(m) =>
+                    defaultValue = Some(m.group(1))
+                  case None =>
+                    hasError = true
+                }
               }
             case name if name.startsWith("id(") && i == 0 =>
               id1Regex.findFirstMatchIn(name) match {
@@ -85,19 +97,20 @@ object GraphChangesAutomation {
                 case None =>
                   hasError = true
               }
-            case "original" =>
+            case "original" if nodeStringOption.isEmpty =>
               // do nothing, just make woost.original available
-            case "reference" =>
+              // TODO: just this really be the actionable node? currently just an alias for the node itself, to enable woost.original
+            case "reference" if nodeStringOption.isEmpty =>
               UI.toast("Please use ${woost.original} instead of ${woost.reference}", "Deprecated Variable", level = UI.ToastLevel.Warning)
-            case "field" =>
+            case "field" if nodeStringOption.isEmpty =>
               commandMode = FieldLookup
-            case "reverseField" =>
+            case "reverseField" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupPropertyReverseVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
-            case "parent" =>
+            case "parent" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupParentVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
-            case "child" =>
+            case "child" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupChildVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
-            case "assignee" =>
+            case "assignee" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupAssigneeVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
             case _ =>
               hasError = true
@@ -115,16 +128,17 @@ object GraphChangesAutomation {
       def syntaxError = "#NAME?"
       def missingValueError = "#REF!"
       if (hasError) syntaxError
-      else if (currentReferenceNodes.isEmpty) missingValueError
+      else if (currentReferenceNodes.isEmpty) defaultValue.getOrElse(missingValueError)
       else {
-        def sanitizeFinalString(str: String) = templateVariableRegex.replaceAllIn(str, missingValueError)
+        def nodeString(node: Node): String = templateVariableRegex.replaceAllIn(nodeStringOption.fold(node.str)(_(node)), missingValueError)
+        val joinSeparator = joinSeparatorOption.getOrElse(", ")
         if (isMentionMode) {
           currentReferenceNodes.foreach { refNode =>
             extraEdges += Edge.Mention(node.id, EdgeData.Mention(InputMention.nodeToMentionsString(refNode)), refNode.id)
           }
-          currentReferenceNodes.map(n => nodeStringPrefix + "@" + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
+          currentReferenceNodes.map(n => nodeStringPrefix + "@" + nodeString(n) + nodeStringPostfix).mkString(joinSeparator)
         } else {
-          currentReferenceNodes.map(n => nodeStringPrefix + sanitizeFinalString(nodeToString(n)) + nodeStringPostfix).mkString(joinSeparator)
+          currentReferenceNodes.map(n => nodeStringPrefix + nodeString(n) + nodeStringPostfix).mkString(joinSeparator)
         }
       }
     })
