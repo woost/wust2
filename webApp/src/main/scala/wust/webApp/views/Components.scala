@@ -472,7 +472,7 @@ object Components {
 
     def renderNodeCard(node: Node, contentInject: Node => VDomModifier, projectWithIcon: Boolean = true)(implicit ctx: Ctx.Owner): VNode = {
       div(
-        keyed(node.id),
+        keyed(node.id), //TODO WHY?
         renderNodeCardMod(node, contentInject, projectWithIcon = projectWithIcon)
       )
     }
