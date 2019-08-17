@@ -156,7 +156,7 @@ object Feature {
 
   // Checklist
   case object AddChecklistView extends Category.View with Category.View.Checklist { override def next = Array(CreateTaskInChecklist) }
-  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(AddChecklistView, SwitchToChecklistInPageHeader, SwitchToChecklistInRightSidebar); override def next = Array(CheckTask, ReorderTaskInChecklist, ExpandTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, AssignTaskByDragging) }
+  case object CreateTaskInChecklist extends Category.View.Checklist with Category.Item.Task { override def requiresAny = Array(AddChecklistView, SwitchToChecklistInPageHeader, SwitchToChecklistInRightSidebar); override def next = Array(CheckTask, ReorderTaskInChecklist, OpenTaskInRightSidebar, CreateTag, TagTaskByDragging, ExpandTaskInChecklist, AssignTaskByDragging) }
   case object ExpandTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist); override def next = Array(CreateNestedTaskInChecklist) } //TODO: drag task into other task
   case object CreateNestedTaskInChecklist extends Category.View.Checklist with Category.Item.Task with Category.Power { override def requiresAll = Array(CreateTaskInChecklist, ExpandTaskInChecklist) } //TODO: sub-sub-task, sub-sub-sub-task, ....
   //TODO:Drag task into other Task
