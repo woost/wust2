@@ -247,7 +247,7 @@ self.addEventListener('push', e => {
 
                     let options = {
                         body: content,
-                        icon: 'static/logo.svg',
+                        icon: 'static/logo.ico',
                         vibrate: [150, 50, 150],
                         renotify: true,
                         tag: subscribedId,
