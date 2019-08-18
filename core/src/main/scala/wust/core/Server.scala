@@ -117,7 +117,9 @@ object Server {
         AkkaHttpRoute.fromApiRouter(jsonRouter, apiConfig)
       }
     } ~ (path(ServerPaths.health) & get) {
-      complete("ok")
+      cors(corsSettings) {
+        complete("ok")
+      }
     } ~ (path(ServerPaths.emailVerify) & get) { // needs
       parameters('token.as[String]) { token =>
         emailVerificationEndpoint.verify(Authentication.Token(token))
