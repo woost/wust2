@@ -19,7 +19,7 @@ object MainTutorial extends Tutorial {
   object step {
     val projectIntro = new Step {
       title = "Let's get started."
-      content = "In Woost, everything starts with a Project. In a Project you can invite other people to collaborate. You can also add different tools, like a Checklist, a Kanban Board or a Chat.</br></br>Let's explore this concept by organizing a party."
+      content = "In Woost, everything starts with a Project. In a Project you can invite other people to collaborate. You can also add different tools, like a Checklist, a Kanban Board or a Chat."
       var target = "tutorial-newprojectbutton"
       var placement = "right"
       showCTAButton = true
