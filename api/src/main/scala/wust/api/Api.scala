@@ -234,7 +234,9 @@ object FileUploadConfiguration {
 final case class StaticFileUrl(url: String)
 final case class UploadedFile(nodeId: NodeId, size: Long, file: NodeData.File)
 
-final case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String)
+final case class WebPushSubscription(endpointUrl: String, p256dh: String, auth: String) {
+  override def toString = s"WebPushSubscription(endpointUrl, ***, ***)"
+}
 
 object Heuristic {
   final case class PostResult(measure: Option[Double], nodes: List[Node.Content])
