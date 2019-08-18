@@ -7,7 +7,14 @@ const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api
 const isDebug = true //location.hostname == "localhost"
 var userAuth;
 
-const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => console[funName].apply(console, ["[SW]"].concat(args)) : () => {}
+const logToBackend = s => fetch(baseUrl + '/Api/log', {
+    method: 'POST',
+    body: JSON.stringify({ message: s })
+});
+const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => {
+    logToBackend(args.join(", "));
+    console[funName].apply(console, ["[SW]"].concat(args)) 
+} : () => {}
 const log = wrapConsoleCall("log", isDebug);
 const warn = wrapConsoleCall("warn", true);
 const error = wrapConsoleCall("error", true);
@@ -71,11 +78,6 @@ workbox.routing.registerRoute(
 function getPublicKey() {
     return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
-const logToBackend = s => fetch(baseUrl + '/Api/log', {
-    method: 'POST',
-    body: JSON.stringify({ message: s })
-});
-
 function sendSubscriptionToBackend(subscription) {
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
