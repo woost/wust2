@@ -5,7 +5,6 @@ workbox.setConfig({modulePathPrefix: "/workbox-v4.3.1"});
 const port = location.port ? ":" + location.port : '';
 const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api';
 const isDebug = location.hostname == "localhost"
-var userAuth;
 
 // logging
 
@@ -75,10 +74,53 @@ workbox.routing.registerRoute(
 
 /////////////////////////////////////////
 
+function requestPromise(request) {
+    return new Promise((resolve, reject) => {
+        request.onsuccess = e => resolve(request.result);
+        request.onerror = e => reject(request.error);
+    });
+}
+
+var _db;
+function db() {
+    if (!_db) {
+        let openreq = indexedDB.open('woost', 1);
+        openreq.onupgradeneeded = () => {
+            openreq.result.createObjectStore('auth');
+        };
+        _db = requestPromise(openreq).then(r => r, err => null);
+    }
+    return _db;
+}
+function dbAuthStore(access) {
+    return db().then(db => {
+        let transaction = db.transaction(["auth"], access);
+        return transaction.objectStore("auth");
+    });
+}
+
+var _userAuth;
+function userAuth() {
+    if (!_userAuth) {
+        _userAuth = dbAuthStore("readonly").then(store => requestPromise(store.get(0)));
+    }
+    return _userAuth;
+}
+function storeUserAuth(userAuth) {
+    log("Storing user auth");
+    _userAuth = Promise.resolve(userAuth);
+    return dbAuthStore("readwrite").then(store => requestPromise(store.put(userAuth, 0)))
+}
+function clearUserAuth() {
+    log("Clearing user auth");
+    _userAuth = Promise.resolve(null);
+    return dbAuthStore("readwrite").then(store => requestPromise(store.delete(0)));
+}
+
 function getPublicKey() {
     return fetch(baseUrl + '/Push/getPublicKey', { method: 'POST', body: '{}' }); // TODO: use empty payload?
 }
-function sendSubscriptionToBackend(subscription) {
+function sendSubscriptionToBackend(subscription, userAuth) {
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
         return Promise.reject("Cannot send subscription to backend, subscription is empty.");
@@ -108,9 +150,9 @@ function sendSubscriptionToBackend(subscription) {
 
 // TODO: check if permissions granted, otherwise we don't need this. in this
 // case the app will do this when request notification permissions.
-function updateWebPushSubscriptionAndPersist() {
-    log("Trying to subscribe to web push.");
+function updateWebPushSubscriptionAndPersist(userAuth) {
     if (userAuth) {
+        log("Updating web-push subscription with user-authentication. Will resubscribe.");
         getPublicKey().then(
             publicKey => publicKey.json().then (
                 publicKeyJson => {
@@ -127,8 +169,8 @@ function updateWebPushSubscriptionAndPersist() {
                                     applicationServerKey: Uint8Array.from(atob(publicKeyJson.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0))
                                 }).then(
                                     sub => {
-                                        log("Success. Sending subscription to backend.");
-                                        sendSubscriptionToBackend(sub);
+                                        log("Successfully subscribed to push notifications.");
+                                        sendSubscriptionToBackend(sub, userAuth);
                                     },
                                     err => {
                                         error(`Subscribing failed with: ${err}.`);
@@ -146,7 +188,7 @@ function updateWebPushSubscriptionAndPersist() {
             )
         );
     } else {
-        log("Cannot subscribe, no authentication. Will unsubscribe.");
+        log("Updating web-push subscription without user-authentication. Will unsubscribe.");
         return self.registration.pushManager.getSubscription().then(subscription => {
             subscription ? subscription.unsubscribe() : Promise.resolve(true);
         });
@@ -179,30 +221,37 @@ self.addEventListener('install', function(event) {
 //self.addEventListener('activate', function(event) {
 //    log("ServiceWorker activated");
 //    //subscribe to webpush on startup
-//    event.waitUntil(updateWebPushSubscriptionAndPersist());
+//    event.waitUntil(userAuth.then(updateWebPushSubscriptionAndPersist));
 //});
 
 self.addEventListener('message', e => {
-    if(e.data) {
-        const messageObject = JSON.parse(e.data);
-        if(messageObject.type === "AuthMessage") {
-            log("Received auth message.");
-            if(messageObject.token && (userAuth !== messageObject.token)) {
-                userAuth = messageObject.token;
-                e.waitUntil(updateWebPushSubscriptionAndPersist());
+    e.waitUntil(userAuth().then(userAuth => {
+        if(e.data) {
+            const messageObject = JSON.parse(e.data);
+            if(messageObject.type === "AuthMessage") {
+                log("Received auth message.");
+                let newAuth = messageObject.token;
+                if(newAuth && (userAuth !== newAuth)) {
+                    return Promise.all([
+                        storeUserAuth(newAuth),
+                        updateWebPushSubscriptionAndPersist(newAuth)
+                    ]);
+                }
+            } else if(messageObject.type === "DeAuthMessage") {
+                log("Received deauth message.");
+                if (userAuth) {
+                    return Promise.all([
+                        clearUserAuth(),
+                        updateWebPushSubscriptionAndPersist(null)
+                    ]);
+                }
+            } else if(messageObject.type === "Message") {
+                log("Received worker message.");
             } else {
-                log("Current auth is still valid");
+                log("Received unclassified message.");
             }
-        } else if(messageObject.type === "DeAuthMessage") {
-            log("Received deauth message.");
-            userAuth = undefined
-            e.waitUntil(updateWebPushSubscriptionAndPersist());
-        } else if(messageObject.type === "Message") {
-            log("Received worker message.");
-        } else {
-            log("Received unclassified message.");
         }
-    }
+    }));
 });
 
 // https://serviceworke.rs/push-subscription-management_service-worker_doc.html
@@ -338,7 +387,7 @@ self.addEventListener('notificationclick', e => {
 self.addEventListener('pushsubscriptionchange', e => {
     log("ServiceWorker received pushsubscriptionchange event.");
     // resubscribe and send new subscription to backend
-    e.waitUntil(updateWebPushSubscriptionAndPersist());
+    e.waitUntil(userAuth().then(updateWebPushSubscriptionAndPersist));
 });
 
 // to test push renewal, trigger event manually:
