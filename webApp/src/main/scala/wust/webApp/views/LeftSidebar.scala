@@ -337,16 +337,31 @@ object LeftSidebar {
     VDomModifier(
       cls := "channels tiny-scrollbar",
 
+
       Rx {
         val userId = GlobalState.userId()
 
         VDomModifier(
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, sidebarWithProjects())),
-          VDomModifier.ifTrue(toplevelChannels().nonEmpty)(UI.checkbox("Show all Projects", sidebarWithProjects).apply(paddingTop := "10px", paddingLeft := "10px"))
+          VDomModifier.ifTrue(toplevelChannels().nonEmpty)(toggleSidebarWithProjects(sidebarWithProjects))
         )
       },
     )
   })
+
+  private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = div(
+    paddingTop := "10px",
+    paddingLeft := "10px",
+    textDecoration.underline,
+    color := Colors.linkColor,
+    onClick.stopPropagation.foreach(sidebarWithProjects.update(!_)),
+    cursor.pointer,
+    fontSize.small,
+    sidebarWithProjects map {
+      case false => "Show all Projects"
+      case true => "Show only Bookmarks"
+    }
+  )
 
   private def invitations(invites: Rx[Seq[NodeId]])(implicit ctx: Ctx.Owner) = {
     div(
