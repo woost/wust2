@@ -251,7 +251,7 @@ object GlobalStateFactory {
     // every update bumps the version of the endpoint url: core-v1_2-3.app.woost.space.
     //TODO with is browseronline: isBrowserOnlineObservable
     isClientOnlineObservable
-      .throttleLast(1.minutes)
+      .throttleLast(2.minutes)
       .foreach { isOnline =>
         if (!isOnline) {
           scribe.info("Client is offline, checking whether backend is online")
