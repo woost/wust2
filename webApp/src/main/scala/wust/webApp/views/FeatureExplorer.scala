@@ -214,10 +214,9 @@ object FeatureExplorer {
         b(progress, "% "),
       ),
       progressBar,
-      marginBottom := "10px",
 
       position.relative,
-      paddingRight := "30px",
+      paddingRight := "30px", // space for the +1 badge
       usedFeatureAnimation(
         position.absolute,
         top := "5px",
