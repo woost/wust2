@@ -81,14 +81,12 @@ function getPublicKey() {
 function sendSubscriptionToBackend(subscription) {
 
     if (!subscription || !subscription.getKey) { // current subscription can be null if user did not enable it
-        logToBackend("Cannot send subscription to backend, subscription is empty.");
         return Promise.reject("Cannot send subscription to backend, subscription is empty.");
     }
 
     let key = subscription.getKey('p256dh');
     let auth = subscription.getKey('auth');
     if (!key || !auth) {
-        logToBackend(`Cannot send subscription to backend, key or auth is missing, ignoring: key: ${key}, auth: ${auth}.`);
         return Promise.reject("Cannot send subscription to backend, key or auth is missing, ignoring.");
     }
 
