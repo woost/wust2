@@ -178,11 +178,11 @@ self.addEventListener('install', function(event) {
     // Activate worker immediately
     self.skipWaiting();
 });
-self.addEventListener('activate', function(event) {
-    log("ServiceWorker activated");
-    //subscribe to webpush on startup
-    event.waitUntil(updateWebPushSubscriptionAndPersist());
-});
+//self.addEventListener('activate', function(event) {
+//    log("ServiceWorker activated");
+//    //subscribe to webpush on startup
+//    event.waitUntil(updateWebPushSubscriptionAndPersist());
+//});
 
 self.addEventListener('message', e => {
     if(e.data) {
@@ -214,12 +214,6 @@ self.addEventListener('push', e => {
 
     if(Notification.permission != "granted") {
         log("Push received but notifications are not granted, ignoring.");
-        return;
-    }
-
-    if(!userAuth) {
-        log("Push received without user, will unsubscribe and ignore.");
-        e.waitUntil(updateWebPushSubscriptionAndPersist())
         return;
     }
 
