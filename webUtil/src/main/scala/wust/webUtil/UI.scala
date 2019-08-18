@@ -36,16 +36,18 @@ object UI {
   @inline def checkbox(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = checkboxEmitter(labelText, isChecked) --> isChecked
   @inline def checkboxEmitter(labelText:VDomModifier, isChecked: Boolean): EmitterBuilder[Boolean, VNode] = checkboxEmitter(labelText, Var(isChecked))
   def checkboxEmitter(labelText:VDomModifier, isChecked: Rx[Boolean]): EmitterBuilder[Boolean, VNode] = EmitterBuilder.ofNode[Boolean]{sink =>
+    val inputId = scala.util.Random.nextInt.toString
     div(
       cls := "ui checkbox",
       input(
+        id := inputId,
         tpe := "checkbox",
         onChange.checked --> sink,
         onClick.stopPropagation.discard, // fix safari emitting extra click event onChange
         checked <-- isChecked,
         // defaultChecked := isChecked.now
       ),
-      label(labelText)
+      label(labelText, forId := inputId, cursor.pointer)
     )}
 
   @inline def toggle(labelText:VDomModifier, isChecked: Var[Boolean]):VNode = toggleEmitter(labelText, isChecked) --> isChecked
