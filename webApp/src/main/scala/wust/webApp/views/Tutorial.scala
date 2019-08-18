@@ -14,7 +14,9 @@ trait Tutorial {
     var steps = tourSteps
   }
 
-  def waitForNextStep() = waitingForNextStepActivation = true
+  def waitForNextStep() = {
+    waitingForNextStepActivation = true
+  }
   var waitingForNextStepActivation = false
 
   def ifActive(f: Tour => Unit) = {

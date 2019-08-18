@@ -56,12 +56,11 @@ object NewProjectPrompt {
           onClick.stopPropagation(()) --> triggerSubmit
         )
       ),
-      TutorialPrivateParty.onDomMountContinue,
-      id := "tutorial-newproject-modal-body"
+      MainTutorial.onDomMountContinue,
     )
 
     def newProject(sub: InputRow.Submission) = {
-      TutorialPrivateParty.waitForNextStep()
+      MainTutorial.waitForNextStep()
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
@@ -80,7 +79,6 @@ object NewProjectPrompt {
       cls := "ui button",
       label,
       onClickNewNamePrompt(
-        
         header = "Create Project",
         body = Ownable { implicit ctx => body },
         placeholder = Placeholder("Name of the Project"),

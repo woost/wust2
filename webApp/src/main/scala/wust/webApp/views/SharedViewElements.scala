@@ -492,6 +492,7 @@ object SharedViewElements {
           enableMentions = enableMentions,
           enableEmojiPicker = enableEmojiPicker,
           triggerSubmit = triggerSubmit,
+          textAreaModifiers = id := "tutorial-modal-inputfield",
         ),
 
         body

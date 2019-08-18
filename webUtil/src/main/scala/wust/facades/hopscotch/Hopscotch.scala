@@ -28,6 +28,7 @@ trait Step extends js.Object {
   var target: String
   var placement: String
   var title: js.UndefOr[String] = js.undefined
+  var delay: js.UndefOr[Int] = js.undefined
   var content: js.UndefOr[String] = js.undefined
   var showNextButton: js.UndefOr[Boolean] = js.undefined
   var showPrevButton: js.UndefOr[Boolean] = js.undefined

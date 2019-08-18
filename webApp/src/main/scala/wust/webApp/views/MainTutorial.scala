@@ -8,61 +8,57 @@ object MainTutorial extends Tutorial {
   val tourId = "tour-introduction"
   val tourSteps:js.Array[Step] = js.Array(
     step.projectIntro,
-    // step.chooseProjectType,
+    step.createProject,
+    step.explainViews,
+    step.explainTitle,
+    step.featureExplorer,
   )
-
-  // i18n = new hopscotch.I18n {
-  //   doneBtn = "Organize Business"
-  // }
-  // onEnd = {() => defer{hopscotch.startTour(TutorialBusiness.business, 0)}}:js.Function0[Unit]
 
   object step {
     val projectIntro = new Step {
       title = "Let's get started."
-      content = "In Woost, everything starts with a Project. In a Project you can invite other people to collaborate. You can also add different tools, like a Checklist, a Kanban Board or a Chat."
+      content = "In Woost, everything starts with a Project. In a Project you can invite other people to collaborate. You can also add different tools, like a Checklist, a Kanban Board or a Chat.<br/><br/><b>Continue by creating a Project.</b>"
       var target = "tutorial-newprojectbutton"
       var placement = "right"
-      showCTAButton = true
-      ctaLabel = "Organize a Party!"
-      onCTA = { () => hopscotch.endTour(); hopscotch.startTour(TutorialPrivateParty.tour, 0) }: js.Function0[Unit]
+      showCTAButton = false
       showNextButton = false
     }
 
-    val chooseProjectType = new Step {
-      title = "Select your Example"
-      content = "Which example do you want to follow?</br></br>"
-      var target = "tutorial-newprojectbutton"
+    val createProject = new Step {
+      title = "Type Project Name, Select View"
+      content = "Frist, give this project a name.<br/>For example <b>Shopping List</b>. Then select the <b>Checklist</b> view and click create."
+      var target = "tutorial-modal-inputfield"
       var placement = "right"
-      showCTAButton = true
-      ctaLabel = "Organize a Party!"
-      onCTA = { () => hopscotch.endTour(); hopscotch.startTour(TutorialPrivateParty.tour, 0) }: js.Function0[Unit]
+      delay = 200
+      showCTAButton = false
       showNextButton = false
     }
 
-    val clickNewProject = new Step {
-      title = "Create New Project"
-      content = "Continue by clicking New Project"
-      var target = "tutorial-newprojectbutton"
-      var placement = "right"
-      showNextButton = false
+    val explainViews = new Step {
+      title = "Project Views"
+      content = "All views will be here. Click tabs to switch. Click + to add or remove views."
+      var target = "tutorial-pageheader-viewswitcher"
+      var placement = "bottom"
+      showCTAButton = false
+      showNextButton = true
     }
 
-    val selectViews = new Step {
-      title = "Configure Views"
-      content = "Every Project can contain several Views. Depending on the goal of the project, you can add as many views as you need. Don't worry, if you're not sure right now. You can always change them later.</br></br>For now, let's simply add a checklist.</br></br><b>Click the &quot;Checklist&quot; item to continue.</b>"
-      var target = "tutorial-newproject-modal-body"
-      var placement = "right"
-      showNextButton = false
+    val explainTitle = new Step {
+      title = "Project Title"
+      content = "Click the title to edit or show more options."
+      var target = "tutorial-pageheader-title"
+      var placement = "bottom"
+      showCTAButton = false
+      showNextButton = true
     }
 
-    val checklistExplain = new Step {
-      title = "Checklist"
-      content = "Great! Now click the &quot;<b>+</b>&quot; button to create your first project."
-      var target = "tutorial-newproject-modal-body"
-      var placement = "right"
-      showNextButton = false
+    val featureExplorer = new Step {
+      title = "Discover new features"
+      content = "Based on what you have already tried, new features will be suggested here. Click to expand and see the suggestions."
+      var target = "tutorial-feature-explorer"
+      var placement = "top"
+      showCTAButton = false
+      showNextButton = true
     }
-
   }
-
 }
