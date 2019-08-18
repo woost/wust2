@@ -15,7 +15,7 @@ import wust.css.{CommonStyles, Styles}
 import wust.graph._
 import wust.ids._
 import wust.sdk.{BaseColors, Colors, NodeColor}
-import wust.webApp.Permission
+import wust.webApp.{Client, Permission}
 import wust.webApp.dragdrop.{DragItem, _}
 import wust.webApp.state._
 import wust.webApp.views.Components._
@@ -306,11 +306,13 @@ object LeftSidebar {
 
   private def channels(toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
-    def channelList(traverseState: TraverseState, userId: UserId, findChildren: (Graph, TraverseState) => Seq[NodeId], depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      div.thunkStatic(traverseState.parentId.toStringFast)(Ownable { implicit ctx =>
+    def channelList(traverseState: TraverseState, userId: UserId, withProjects: Boolean, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
+      val findChildren = if (withProjects) ChannelTreeData.childrenChannelsOrProjects _ else ChannelTreeData.childrenChannels _
+
+      div.thunk(traverseState.parentId.toStringFast)(depth, withProjects)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = GlobalState.rawGraph()
-          findChildren(graph, traverseState)
+          findChildren(graph, traverseState, userId)
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
@@ -323,12 +325,14 @@ object LeftSidebar {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
               fontSize := fontSizeByDepth(depth),
-              children().map { child => channelList(traverseState.step(child), userId, findChildren, depth = depth + 1) }
+              children().map { child => channelList(traverseState.step(child), userId, withProjects, depth = depth + 1) }
             ))
           }
         )
       })
     }
+
+    val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(false))(Some(_))
 
     VDomModifier(
       cls := "channels tiny-scrollbar",
@@ -337,10 +341,10 @@ object LeftSidebar {
         val userId = GlobalState.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannelsOrProjects(_, _, userId)))
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, sidebarWithProjects())),
+          VDomModifier.ifTrue(toplevelChannels().nonEmpty)(UI.checkbox("Show all Projects", sidebarWithProjects).apply(paddingTop := "10px", paddingLeft := "10px"))
         )
       },
-
     )
   })
 
