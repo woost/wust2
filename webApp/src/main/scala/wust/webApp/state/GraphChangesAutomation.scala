@@ -19,6 +19,37 @@ import scala.util.control.NonFatal
 // parent(sourceId, targetId) where targetId has an automated edge to a template. This template will
 // then be applied to the new sourceId.
 
+private object StringWalker {
+  def splitWalk(
+    string: String,
+    separator: Char
+  )(
+    walk: String => Boolean
+  ): Boolean = {
+    val n = string.length
+    var i = 0
+    var accum = ""
+
+    while (i < n) {
+      val current = string(i)
+      val isLast = i == n - 1
+
+      if (isLast) accum += current
+
+      if ((isLast || current == separator) && walk(accum)) {
+        accum = ""
+      } else {
+        accum += current
+      }
+
+      i += 1
+    }
+
+    accum.isEmpty
+  }
+
+}
+
 object GraphChangesAutomation {
 
   val templateVariableRegex = "\\$(@)?\\{woost((\\.[^\\.\\}]+)+)\\}".r
@@ -33,8 +64,6 @@ object GraphChangesAutomation {
     val newStr = templateVariableRegex.replaceAllIn(templateText, { m =>
       val modifier = m.group(1)
       val isMentionMode = modifier == "@"
-      val propertyNames = m.group(2).drop(1).split("\\.")
-      val n = propertyNames.length
 
       val or1Regex = "^or\\(\\s*\"([^\"]*)\"\\s*\\)$".r
       val id1Regex = "^id\\(\\s*\"([^\"]*)\"\\s*\\)$".r
@@ -43,91 +72,107 @@ object GraphChangesAutomation {
 
       var currentReferenceNodes: Array[Node] = Array(node)
       var commandMode: CommandMode = CommandSelection
-      var hasError = false
       var nodeStringOption = Option.empty[Node => String]
       var joinSeparatorOption = Option.empty[String]
       var nodeStringPrefix = ""
       var nodeStringPostfix = ""
       var defaultValue = Option.empty[String]
-      var i = 0
+      var isFirst = true
 
-      while (i < n && !hasError) {
-        val propertyName = propertyNames(i)
-        commandMode match {
+      val result = StringWalker.splitWalk(m.group(2).drop(1), separator = '.') { propertyName =>
+
+        val result = commandMode match {
 
           case CommandSelection => propertyName match {
-            case "myself" | "yourself" if i == 0 =>
+            case "myself" | "yourself" if isFirst =>
               currentReferenceNodes = graph.nodesById(userId).toArray
+              true
             case "id" if nodeStringOption.isEmpty =>
               nodeStringOption = Some(node => node.id.toBase58)
+              true
             case "url" if nodeStringOption.isEmpty =>
               nodeStringOption = Some(node => s"${dom.window.location.origin}/#page=${node.id.toBase58}")
+              true
             case "fileUrl" if nodeStringOption.isEmpty =>
               currentReferenceNodes = currentReferenceNodes.filter(_.data match { case _: NodeData.File => true; case _ => false })
               nodeStringOption = Some(node => s"${Client.wustFilesUrl.getOrElse("")}/${node.data.asInstanceOf[NodeData.File].key}")
+              true
             case name if name.startsWith("join(") && joinSeparatorOption.isEmpty =>
               join1Regex.findFirstMatchIn(name) match {
                 case Some(m) =>
                   joinSeparatorOption = Some(m.group(1))
+                  true
                 case None =>
                   join3Regex.findFirstMatchIn(name) match {
                     case Some(m) =>
                       joinSeparatorOption = Some(m.group(1))
                       nodeStringPrefix = m.group(2)
                       nodeStringPostfix = m.group(3)
+                      true
                     case None =>
-                      hasError = true
+                      false
                   }
               }
             case name if name.startsWith("or(") =>
-              if (currentReferenceNodes.isEmpty) {
-                or1Regex.findFirstMatchIn(name) match {
-                  case Some(m) =>
+              or1Regex.findFirstMatchIn(name) match {
+                case Some(m) =>
+                  if (defaultValue.isEmpty && currentReferenceNodes.isEmpty) {
                     defaultValue = Some(m.group(1))
-                  case None =>
-                    hasError = true
-                }
+                  }
+                  true
+                case None =>
+                  false
               }
-            case name if name.startsWith("id(") && i == 0 =>
+            case name if name.startsWith("id(") && isFirst =>
               id1Regex.findFirstMatchIn(name) match {
                 case Some(m) =>
                   currentReferenceNodes = Cuid.fromBase58String(m.group(1)).toOption.flatMap { cuid =>
                     graph.nodesById(NodeId(cuid))
                   }.toArray
+                  true
                 case None =>
-                  hasError = true
+                  false
               }
             case "original" if nodeStringOption.isEmpty =>
               // do nothing, just make woost.original available
               // TODO: just this really be the actionable node? currently just an alias for the node itself, to enable woost.original
+              true
             case "reference" if nodeStringOption.isEmpty =>
               UI.toast("Please use ${woost.original} instead of ${woost.reference}", "Deprecated Variable", level = UI.ToastLevel.Warning)
+              true
             case "field" if nodeStringOption.isEmpty =>
               commandMode = FieldLookup
+              true
             case "reverseField" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupPropertyReverseVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
+              true
             case "parent" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupParentVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
+              true
             case "child" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupChildVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
+              true
             case "assignee" if nodeStringOption.isEmpty =>
               currentReferenceNodes = lookupAssigneeVariable(graph, currentReferenceNodes, newEdges, newEdgesReverse)
+              true
             case _ =>
-              hasError = true
+              false
           }
 
           case FieldLookup =>
             currentReferenceNodes = lookupPropertyVariable(graph, currentReferenceNodes, propertyName, newEdges, newEdgesReverse)
             commandMode = CommandSelection
+            true
 
         }
 
-        i += 1
+        if (isFirst) isFirst = !result
+        result
       }
 
       def syntaxError = "#NAME?"
       def missingValueError = "#REF!"
-      if (hasError) syntaxError
+      if (!result) syntaxError
       else if (currentReferenceNodes.isEmpty) defaultValue.getOrElse(missingValueError)
       else {
         def nodeString(node: Node): String = templateVariableRegex.replaceAllIn(nodeStringOption.fold(node.str)(_(node)), missingValueError)
