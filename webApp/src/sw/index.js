@@ -7,14 +7,14 @@ const baseUrl = location.protocol + '//core.' + location.hostname + port + '/api
 const isDebug = true //location.hostname == "localhost"
 var userAuth;
 
+// logging
+
 const logToBackend = s => fetch(baseUrl + '/Api/log', {
     method: 'POST',
     body: JSON.stringify({ message: s })
 });
-const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => {
-    logToBackend(args.join(", "));
-    console[funName].apply(console, ["[SW]"].concat(args)) 
-} : () => {}
+
+const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => console[funName].apply(console, ["[SW]"].concat(args)) : () => {}
 const log = wrapConsoleCall("log", isDebug);
 const warn = wrapConsoleCall("warn", true);
 const error = wrapConsoleCall("error", true);
