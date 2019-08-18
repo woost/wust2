@@ -63,6 +63,12 @@ object LeftSidebar {
             UI.accordion(
               content = Seq(
                 accordionEntry(
+                  // TODO: if user reached ~70%, show featureExplorer at the bottom
+                  FeatureExplorer.toggleButton,
+                  FeatureExplorer(ctx),
+                  active = false
+                ),
+                accordionEntry(
                   "Tags",
                   TagList.body(ViewRender),
                   active = false
@@ -72,11 +78,6 @@ object LeftSidebar {
                   FilterWindow.body(Styles.flexStatic),
                   active = false
                 ),
-                accordionEntry(
-                  FeatureExplorer.toggleButton,
-                  FeatureExplorer(ctx),
-                  active = false
-                )
               ),
               styles = "styled fluid",
               exclusive = true, //BrowserDetect.isMobile

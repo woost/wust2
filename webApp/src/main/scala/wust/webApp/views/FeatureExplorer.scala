@@ -69,19 +69,27 @@ object FeatureExplorer {
     val tryNextList = div(
       Rx{
         VDomModifier.ifTrue(FeatureState.next().nonEmpty)(
-          "Things to try next:",
+          div("Things to try next:"),
           FeatureState.next().map { feature =>
             val details = FeatureDetails(feature)
             val showDescription = Var(false)
             div(
               div(
-                helpButton(feature)(float.right),
+                Rx { (if (showDescription()) freeSolid.faCaretDown: VNode else freeSolid.faCaretRight: VNode).apply(marginRight := "0.5em") },
                 details.title, fontWeight.bold, fontSize := "1em",
               ),
               onMouseDown.stopPropagation.discard, // prevent rightsidebar from closing
               onClick.stopPropagation.foreach { showDescription() = !showDescription.now },
               cursor.pointer,
-              Rx{ VDomModifier.ifTrue(showDescription())(div(details.description)) },
+              Rx{
+                VDomModifier.ifTrue(showDescription())(
+                  div(
+                    details.description,
+                    helpButton(feature)(paddingLeft := "0.5em", float.right),
+                    div(clear.both)
+                  )
+                )
+              },
               backgroundColor := "#dbf5ff",
               padding := "5px",
               marginBottom := "3px",
@@ -156,11 +164,7 @@ object FeatureExplorer {
   val progress: Rx[String] = Rx {
     val total = Feature.allWithoutSecrets.length
     val used = (FeatureState.firstTimeUsed() -- Feature.secrets).size
-    println("total: " + total)
-    println("used: " + used)
-    println("ceil: " + Math.ceil(used.toDouble / total.toDouble*100))
-    val ratio = Math.ceil(used.toDouble / total.toDouble*100).min(100.0) // everything greater 0 is at least 1%
-    println("ratio: " + ratio)
+    val ratio = Math.ceil(used.toDouble / total.toDouble * 100).min(100.0) // everything greater 0 is at least 1%
     f"${ratio}%0.0f"
   }
 
