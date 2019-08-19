@@ -28,6 +28,7 @@ import wust.util._
 import scala.concurrent.duration._
 import scala.scalajs.js
 import scala.scalajs.js.JSConverters._
+import wust.facades.dompurify.DomPurifyConfig
 
 // This file contains utilities that are not woost-related.
 // They could be contributed to outwatch and used in other projects
@@ -387,9 +388,19 @@ object Elements {
     target := "_blank"
   )
 
+  private val domPurifyConfig = new DomPurifyConfig {
+    ADD_ATTR = js.Array("target") // allow target="_blank" in markdown links
+  }
   def markdownString(str: String): String = {
     if(str.trim.isEmpty) "<p></p>" // add least produce an empty paragraph to preserve line-height
-    else EmojiConvertor.replace_colons(DOMPurify.sanitize(Marked(EmojiConvertor.replace_emoticons_with_colons(str))))
+    else { 
+      EmojiConvertor.replace_colons(
+        DOMPurify.sanitize(
+          Marked(EmojiConvertor.replace_emoticons_with_colons(str)),
+          domPurifyConfig
+        )
+      )
+    }
   }
   def closeButton: VNode = div(
     div(cls := "fa-fw", freeSolid.faTimes),

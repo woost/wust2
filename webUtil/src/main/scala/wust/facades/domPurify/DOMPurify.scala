@@ -15,4 +15,5 @@ object DOMPurify extends js.Object {
 }
 
 trait DomPurifyConfig extends js.Object {
+  var ADD_ATTR: js.UndefOr[js.Array[String]] = js.undefined
 }

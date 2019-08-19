@@ -109,7 +109,7 @@ object Main {
     val linkRenderer = newRenderer.link
     newRenderer.link = {(renderer, href, title, text) => 
       val html = linkRenderer(renderer, href, title, text)
-      html.replaceFirst("^<a ", s"""<a target="_blank" rel="${Elements.safeRelForTargetBlank} nofollow" onclick="event.stopPropagation()"""")
+      html.replaceFirst("^<a ", s"""<a target="_blank" rel="${Elements.safeRelForTargetBlank} nofollow" onclick="event.stopPropagation()"""") // If link is in nodecard, stopPropagation prevents the nodecard click (e.g. rightsidebar) 
     }
 
     Marked.setOptions(new MarkedOptions {
