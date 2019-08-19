@@ -373,6 +373,7 @@ object LeftSidebar {
 
   private def filterInput(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
     div(
+      onClick.stopPropagation.discard,
       cls := "ui mini fluid icon input",
       input(
         tpe := "text",
