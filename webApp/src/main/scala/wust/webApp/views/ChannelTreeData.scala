@@ -1,7 +1,7 @@
 package wust.webApp.views
 
 import flatland.{ArraySet, _}
-import wust.graph.Graph
+import wust.graph.{Node, Graph}
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm.dfs
 import wust.webApp.state.TraverseState
@@ -15,27 +15,29 @@ object ChannelTreeData {
     graph.inviteNodeIdx(userIdx).collect { case idx if !graph.pinnedNodeIdx.contains(userIdx)(idx) => graph.nodeIds(idx) }(breakOut)
   }
 
-  def toplevelChannels(graph: Graph, userId: UserId): Seq[NodeId] = {
+  def toplevelChannels(graph: Graph, userId: UserId, filter: Node => Boolean): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
     val pinnedNodes = ArraySet.create(graph.nodes.length)
-    graph.pinnedNodeIdx.foreachElement(userIdx)(pinnedNodes += _)
+    graph.pinnedNodeIdx.foreachElement(userIdx)(idx => if (filter(graph.nodes(idx))) pinnedNodes += idx)
 
     val channels = mutable.ArrayBuffer[NodeId]()
     graph.pinnedNodeIdx.foreachElement(userIdx) { idx =>
-      //TODO better? need to check for cycles, so you are still a toplevel channel if you are involved in a cycle
-      if (!graph.ancestorsIdxExists(idx)(ancestorIdx => pinnedNodes.contains(ancestorIdx) && !graph.ancestorsIdxExists(ancestorIdx)(_ == idx))) channels += graph.nodeIds(idx)
+      if (filter(graph.nodes(idx))) {
+        //TODO better? need to check for cycles, so you are still a toplevel channel if you are involved in a cycle
+        if (!graph.ancestorsIdxExists(idx)(ancestorIdx => pinnedNodes.contains(ancestorIdx) && !graph.ancestorsIdxExists(ancestorIdx)(_ == idx))) channels += graph.nodeIds(idx)
+      }
     }
 
     channels.sorted
   }
 
-  def childrenChannelsOrProjects(graph: Graph, traverseState: TraverseState, userId: UserId): Seq[NodeId] = {
+  def childrenChannelsOrProjects(graph: Graph, traverseState: TraverseState, userId: UserId, filter: Node => Boolean): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
-    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, (g,i) => isProject(g, i) || isChannel(g, i, userIdx)).sortBy(idx => !isChannel(graph, graph.idToIdxOrThrow(idx), userIdx))
+    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, (g,i) => (isProject(g, i) || isChannel(g, i, userIdx)) && filter(graph.nodes(i))).sortBy(idx => !isChannel(graph, graph.idToIdxOrThrow(idx), userIdx))
   }
-  def childrenChannels(graph: Graph, traverseState: TraverseState, userId: UserId): Seq[NodeId] = {
+  def childrenChannels(graph: Graph, traverseState: TraverseState, userId: UserId, filter: Node => Boolean): Seq[NodeId] = {
     val userIdx = graph.idToIdxOrThrow(userId)
-    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, (g,i) => isChannel(g, i, userIdx))
+    nextLayer(graph, traverseState, graph.notDeletedChildrenIdx, (g,i) => isChannel(g, i, userIdx) && filter(graph.nodes(i)))
   }
 
   @inline private def isProject(graph: Graph, idx: Int) = graph.nodes(idx).role == NodeRole.Project

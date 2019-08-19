@@ -24,6 +24,7 @@ import wust.webApp.views.SharedViewElements._
 import wust.webUtil.Elements._
 import NewProjectPrompt._
 import wust.ids.Feature
+import scala.concurrent.duration._
 
 import scala.concurrent.duration.DurationInt
 import scala.scalajs.js
@@ -39,8 +40,10 @@ object LeftSidebar {
       GlobalState.leftSidebarOpen,
       Var(false),
       config = Ownable { implicit ctx =>
-        val toplevelChannels = toplevelChannelsRx
         val invites = invitesRx
+        val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
+        val sidebarFilter = Var[String]("")
+        val toplevelChannels = toplevelChannelsRx(sidebarFilter)
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
@@ -49,7 +52,7 @@ object LeftSidebar {
           ),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
-            channels( toplevelChannels),
+            channels( toplevelChannels, sidebarWithProjects, sidebarFilter),
             invitations( invites).apply(Styles.flexStatic),
             newProjectButton().apply(
               cls := "newChannelButton-large " + buttonStyles,
@@ -87,10 +90,10 @@ object LeftSidebar {
 
   private val buttonStyles = "tiny basic compact"
 
-  private def toplevelChannelsRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+  private def toplevelChannelsRx(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
     val graph = GlobalState.rawGraph()
     val userId = GlobalState.userId()
-    ChannelTreeData.toplevelChannels(graph, userId)
+    ChannelTreeData.toplevelChannels(graph, userId, filterStringPredicate(sidebarFilter()))
   }
 
   private def invitesRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
@@ -197,9 +200,9 @@ object LeftSidebar {
 
     val syncStatusIcon = status.map { status =>
       status match {
-        case (true, true)  => span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
-        case (true, false) => span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
-        case (false, _)    => span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
+        case (true, true)  => dsl.span(syncedIcon, UI.tooltip("right center") := "Everything is up to date")
+        case (true, false) => dsl.span(syncingIcon, UI.tooltip("right center") := "Syncing changes...")
+        case (false, _)    => dsl.span(offlineIcon, color := "tomato", UI.tooltip("right center") := "Disconnected")
       }
     }
 
@@ -305,15 +308,18 @@ object LeftSidebar {
     )
   }
 
-  private def channels(toplevelChannels: Rx[Seq[NodeId]]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
+  private def filterStringPredicate(filterString: String): Node => Boolean = {
+    if (filterString.isEmpty) _ => true else _.str.contains(filterString)
+  }
 
-    def channelList(traverseState: TraverseState, userId: UserId, withProjects: Boolean, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
-      val findChildren = if (withProjects) ChannelTreeData.childrenChannelsOrProjects _ else ChannelTreeData.childrenChannels _
+  private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
 
-      div.thunk(traverseState.parentId.toStringFast)(depth, withProjects)(Ownable { implicit ctx =>
+    def channelList(traverseState: TraverseState, userId: UserId, depth: Int = 0)(implicit ctx: Ctx.Owner): VNode = {
+      div.thunk(traverseState.parentId.toStringFast)(depth)(Ownable { implicit ctx =>
         val children = Rx {
           val graph = GlobalState.rawGraph()
-          findChildren(graph, traverseState, userId)
+          val findChildren = if (sidebarWithProjects()) ChannelTreeData.childrenChannelsOrProjects _ else ChannelTreeData.childrenChannels _
+          findChildren(graph, traverseState, userId, filterStringPredicate(sidebarFilter()))
         }
         val hasChildren = children.map(_.nonEmpty)
         val expanded = Rx {
@@ -326,43 +332,55 @@ object LeftSidebar {
             VDomModifier.ifTrue(hasChildren() && expanded())(div(
               paddingLeft := "14px",
               fontSize := fontSizeByDepth(depth),
-              children().map { child => channelList(traverseState.step(child), userId, withProjects, depth = depth + 1) }
+              children().map { child => channelList(traverseState.step(child), userId, depth = depth + 1) }
             ))
           }
         )
       })
     }
 
-    val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
-
     VDomModifier(
       cls := "channels tiny-scrollbar",
-
 
       Rx {
         val userId = GlobalState.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, sidebarWithProjects())),
-          VDomModifier.ifTrue(toplevelChannels().nonEmpty)(toggleSidebarWithProjects(sidebarWithProjects))
+          VDomModifier.ifTrue(toplevelChannels().nonEmpty || sidebarFilter().nonEmpty)(
+            filterInput(sidebarFilter),
+            toggleSidebarWithProjects(sidebarWithProjects)
+          ),
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId)),
         )
       },
     )
   })
 
   private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = div(
-    paddingTop := "10px",
-    paddingLeft := "10px",
     textDecoration.underline,
+    fontSize.small,
     color := Colors.linkColor,
     onClick.stopPropagation.foreach(sidebarWithProjects.update(!_)),
     cursor.pointer,
-    fontSize.small,
     sidebarWithProjects map {
       case false => "Show all Projects"
       case true => "Show only Bookmarks"
     }
   )
+
+  private def filterInput(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
+    div(
+      cls := "ui form",
+      input(
+        fontSize.small,
+        cls := "field",
+        tpe := "text",
+        placeholder := "Filter",
+        value <-- sidebarFilter,
+        onInput.value.debounce(200 millis) --> sidebarFilter
+      )
+    )
+  }
 
   private def invitations(invites: Rx[Seq[NodeId]])(implicit ctx: Ctx.Owner) = {
     div(
@@ -486,7 +504,7 @@ object LeftSidebar {
         val userId = GlobalState.userId()
 
         VDomModifier(
-          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId)))
+          toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId, ChannelTreeData.childrenChannels(_, _, userId, _ => true)))
         )
       },
     )
