@@ -7,6 +7,8 @@ import wust.ids._
 
 import scala.concurrent.{ExecutionContext, Future}
 
+import java.time.ZonedDateTime
+
 object Db {
   def apply(config: Config): Db = {
     new Db(new PostgresAsyncContext(LowerCase, config))
@@ -506,15 +508,16 @@ class Db(override val ctx: PostgresAsyncContext[LowerCase]) extends DbCoreCodecs
   }
 
   object graph {
-    private val graphPage = quote { (parents: Seq[NodeId], requestingUserId: UserId) =>
-      infix"select * from graph_page($parents, $requestingUserId)"
-        .as[Query[GraphRow]]
+    private val graphPage = quote { (parents: Seq[NodeId], requestingUserId: UserId, minDateTime: ZonedDateTime, maxDateTime: ZonedDateTime) =>
+      infix"select * from graph_page($parents, $requestingUserId, $minDateTime, $maxDateTime)".as[Query[GraphRow]]
     }
 
-    def getPage(parentIds: Seq[NodeId], requestingUserId: UserId)(implicit ec: ExecutionContext): Future[Graph] = {
+    def getPage(parentIds: Seq[NodeId], requestingUserId: UserId, minTime: Option[EpochMilli], maxTime: Option[EpochMilli])(implicit ec: ExecutionContext): Future[Graph] = {
+      val minDateTime = minTime.getOrElse(EpochMilli.min).toZonedDateTime
+      val maxDateTime = maxTime.getOrElse(EpochMilli.max).toZonedDateTime
       //TODO: also get visible direct parents in stored procedure
       ctx.run {
-        graphPage(lift(parentIds), lift(requestingUserId))
+        graphPage(lift(parentIds), lift(requestingUserId), lift(minDateTime), lift(maxDateTime))
       }.map(Graph.from)
     }
   }

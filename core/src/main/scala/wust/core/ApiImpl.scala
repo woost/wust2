@@ -95,8 +95,8 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
     db.user.getUserByMail(email).map(_.map(forClient))
   }
 
-  override def getGraph(page: Page): ApiFunction[Graph] = Action.assureDbUserIf(page.parentId.nonEmpty) { (state, user) =>
-    getPage(user.id, page)
+  override def getGraph(page: Page, range: TimeRange): ApiFunction[Graph] = Action.assureDbUserIf(page.parentId.nonEmpty) { (state, user) =>
+    getPage(user.id, page, range)
   }
 
   override def getUnreadChannels(): ApiFunction[List[NodeId]] = Action.requireUser { (state, user) =>
@@ -107,7 +107,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
   // Simple Api
   // TODO: more efficient
   override def getNodeList(parentId: Option[NodeId], nodeRole: Option[NodeRole] = None): ApiFunction[List[api.SimpleNode]] = Action.assureDbUserIf(parentId.nonEmpty) { (state, user) =>
-    getPage(user.id, wust.graph.Page(parentId = parentId)).map { graph =>
+    getPage(user.id, wust.graph.Page(parentId = parentId), TimeRange.Unlimited).map { graph =>
       def toSimpleNode(node: Node): Option[SimpleNode] = node match {
         case node: Node.Content if nodeRole.forall(node.role == _) => Some(api.SimpleNode(node.id, node.str, node.role))
         case _ => None
@@ -216,7 +216,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
   //   graph.inducedSubGraphData(graph.depthFirstSearch(id, graph.neighbours).toSet)
   // }
 
-  private def getPage(userId: UserId, page: Page)(implicit ec: ExecutionContext): Future[Graph] = {
+  private def getPage(userId: UserId, page: Page, range: TimeRange)(implicit ec: ExecutionContext): Future[Graph] = {
     // handle public nodes as invite links:
     // the link of a public node acts as an invite link. Therefore when getting the graph of a public node,
     // you automatically become a member of this node, then we get the graph and use normal access management.
@@ -226,7 +226,7 @@ class ApiImpl(dsl: GuardDsl, db: Db, fileUploader: Option[S3FileUploader], serve
     }
 
     requiredAction.flatMap { _ =>
-      db.graph.getPage(page.parentId.toSeq, userId).map(forClient)
+      db.graph.getPage(page.parentId.toSeq, userId, minTime = range.min, maxTime = range.max).map(forClient)
     }
   }
 

@@ -13,7 +13,7 @@ import rx._
 import wust.webUtil.outwatchHelpers._
 import wust.webUtil.{ BrowserDetect, UI }
 import UI.ToastLevel
-import wust.api.ApiEvent.ReplaceGraph
+import wust.api.{ApiEvent, TimeRange}
 import wust.graph._
 import wust.ids._
 import wust.sdk._
@@ -123,7 +123,7 @@ object GlobalStateFactory {
     def getNewGraph(page: Page) = {
       isLoading() = true
       val graph = for {
-        graph <- Client.api.getGraph(page)
+        graph <- Client.api.getGraph(page, TimeRange.Unlimited)
       } yield enrichVisitedGraphWithSideEffects(page, graph)
 
       graph.transform { result =>
@@ -142,7 +142,7 @@ object GlobalStateFactory {
 
             // get a new graph with new right after the accepted invitation
             getNewGraph(viewConfig.pageChange.page).foreach { graph =>
-              eventProcessor.localEvents.onNext(ReplaceGraph(graph))
+              eventProcessor.localEvents.onNext(ApiEvent.ReplaceGraph(graph))
             }
         }
         //TODO: signal status of invitation to user in UI
@@ -223,7 +223,7 @@ object GlobalStateFactory {
             Observable
               .fromFuture(getNewGraph(viewConfig.pageChange.page))
               .onErrorHandle(_ => Graph.empty)
-              .map(g => ReplaceGraph(g.applyChanges(currentTransitChanges)))
+              .map(g => ApiEvent.ReplaceGraph(g.applyChanges(currentTransitChanges)))
         }
         .subscribe(eventProcessor.localEvents)
     }

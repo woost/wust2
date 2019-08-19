@@ -17,7 +17,7 @@ trait Api[Result[_]] {
   def deleteFileUpload(key: String): Result[Boolean]
   def getUploadedFiles: Result[Seq[UploadedFile]]
 
-  def getGraph(selection: Page): Result[Graph]
+  def getGraph(selection: Page, range: TimeRange): Result[Graph]
 
   def getUnreadChannels(): Result[List[NodeId]]
 
@@ -216,6 +216,29 @@ object ApiEvent {
     }
 
     (graphs.result(), auths.result())
+  }
+}
+
+sealed trait TimeRange {
+  def min: Option[EpochMilli]
+  def max: Option[EpochMilli]
+}
+object TimeRange {
+  case object Unlimited extends TimeRange {
+    def min = None
+    def max = None
+  }
+  case class Minimum(epoch: EpochMilli) extends TimeRange {
+    def min = Some(epoch)
+    def max = None
+  }
+  case class Maximum(epoch: EpochMilli) extends TimeRange {
+    def min = None
+    def max = Some(epoch)
+  }
+  case class Between(start: EpochMilli, end: EpochMilli) extends TimeRange {
+    def min = Some(start)
+    def max = Some(end)
   }
 }
 
