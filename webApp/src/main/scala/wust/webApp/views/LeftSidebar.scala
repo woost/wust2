@@ -43,8 +43,8 @@ object LeftSidebar {
         val invites = invitesRx
         val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
         val sidebarFilter = Var[String]("")
-        val filteredToplevelChannels = Rx { toplevelChannelsRx(filterStringPredicate(sidebarFilter())) }
-        val toplevelChannels = Rx { toplevelChannelsRx(_ => true) }
+        val filteredToplevelChannels = Rx { toplevelChannelsRx(filterStringPredicate(sidebarFilter()), sidebarWithProjects()) }
+        val toplevelChannels = Rx { toplevelChannelsRx(_ => true, true) }
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
@@ -91,10 +91,10 @@ object LeftSidebar {
 
   private val buttonStyles = "tiny basic compact"
 
-  private def toplevelChannelsRx(filter: Node => Boolean)(implicit ctx: Ctx.Data): Seq[NodeId] = {
+  private def toplevelChannelsRx(filter: Node => Boolean, sidebarWithProjects: Boolean)(implicit ctx: Ctx.Data): Seq[NodeId] = {
     val graph = GlobalState.rawGraph()
     val userId = GlobalState.userId()
-    ChannelTreeData.toplevelChannels(graph, userId, filter)
+    if (sidebarWithProjects) ChannelTreeData.toplevelChannelsOrProjects(graph, userId, filter) else ChannelTreeData.toplevelChannels(graph, userId, filter)
   }
 
   private def invitesRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
@@ -453,7 +453,7 @@ object LeftSidebar {
         Rx {
           channelIcon( node(), selected, size)(ctx)(
             UI.popup("right center") <-- node.map(_.str),
-            onClick foreach { 
+            onClick foreach {
               // needs to be before onChannelClick, because else GlobalState.page is already at the new page
               GlobalState.page.now.parentId match {
                 case Some(parentId) if parentId == nodeId => // no switch happening...
