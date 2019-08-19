@@ -348,8 +348,12 @@ object LeftSidebar {
 
         VDomModifier(
           VDomModifier.ifTrue(toplevelChannels().nonEmpty || sidebarFilter().nonEmpty)(
-            filterInput(sidebarFilter),
-            toggleSidebarWithProjects(sidebarWithProjects)
+            div(
+              Styles.flex,
+              filterInput(sidebarFilter).apply(width := "100%"),
+              toggleSidebarWithProjects(sidebarWithProjects).apply(Styles.flexStatic),
+              marginBottom := "5px",
+            )
           ),
           toplevelChannels().map(nodeId => channelList(TraverseState(nodeId), userId)),
         )
@@ -357,29 +361,26 @@ object LeftSidebar {
     )
   })
 
-  private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VDomModifier = div(
-    textDecoration.underline,
-    fontSize.small,
-    color := Colors.linkColor,
-    onClick.stopPropagation.foreach(sidebarWithProjects.update(!_)),
-    cursor.pointer,
+  private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
+    cls := "ui mini basic button",
+    UI.popup("bottom center") := "Show non-bookmarked subprojects",
     sidebarWithProjects map {
-      case false => "Show all Projects"
-      case true => "Show only Bookmarks"
-    }
+      case false => freeRegular.faBookmark:VDomModifier
+      case true => freeSolid.faBookmark:VDomModifier
+    },
+    onClick.stopPropagation.foreach(sidebarWithProjects.update(!_))
   )
 
   private def filterInput(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): VNode = {
     div(
-      cls := "ui form",
+      cls := "ui mini fluid icon input",
       input(
-        fontSize.small,
-        cls := "field",
         tpe := "text",
         placeholder := "Filter",
         value <-- sidebarFilter,
         onInput.value.debounce(200 millis) --> sidebarFilter
-      )
+      ),
+      i(cls := "search icon")
     )
   }
 
