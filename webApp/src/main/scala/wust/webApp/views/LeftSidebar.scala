@@ -43,7 +43,8 @@ object LeftSidebar {
         val invites = invitesRx
         val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
         val sidebarFilter = Var[String]("")
-        val toplevelChannels = toplevelChannelsRx(sidebarFilter)
+        val filteredToplevelChannels = Rx { toplevelChannelsRx(filterStringPredicate(sidebarFilter())) }
+        val toplevelChannels = Rx { toplevelChannelsRx(_ => true) }
 
         GenericSidebar.Config(
           mainModifier = VDomModifier(
@@ -52,7 +53,7 @@ object LeftSidebar {
           ),
           openModifier = VDomModifier(
             header.apply(Styles.flexStatic),
-            channels( toplevelChannels, sidebarWithProjects, sidebarFilter),
+            channels(filteredToplevelChannels, sidebarWithProjects, sidebarFilter),
             invitations( invites).apply(Styles.flexStatic),
             newProjectButton().apply(
               cls := "newChannelButton-large " + buttonStyles,
@@ -74,7 +75,7 @@ object LeftSidebar {
           closedModifier = Some(VDomModifier(
             minWidth := s"${minWidthSidebar}px", // this is needed when the hamburger is not rendered inside the sidebar
             hamburger,
-            channelIcons( toplevelChannels, minWidthSidebar),
+            channelIcons(toplevelChannels, minWidthSidebar),
             newProjectButton( "+").apply(
               cls := "newChannelButton-small " + buttonStyles,
               UI.tooltip("right center") := "New Project",
@@ -90,10 +91,10 @@ object LeftSidebar {
 
   private val buttonStyles = "tiny basic compact"
 
-  private def toplevelChannelsRx(sidebarFilter: Var[String])(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
+  private def toplevelChannelsRx(filter: Node => Boolean)(implicit ctx: Ctx.Data): Seq[NodeId] = {
     val graph = GlobalState.rawGraph()
     val userId = GlobalState.userId()
-    ChannelTreeData.toplevelChannels(graph, userId, filterStringPredicate(sidebarFilter()))
+    ChannelTreeData.toplevelChannels(graph, userId, filter)
   }
 
   private def invitesRx(implicit ctx: Ctx.Owner): Rx[Seq[NodeId]] = Rx {
