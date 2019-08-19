@@ -310,7 +310,7 @@ object LeftSidebar {
   }
 
   private def filterStringPredicate(filterString: String): Node => Boolean = {
-    if (filterString.isEmpty) _ => true else _.str.contains(filterString)
+    if (filterString.isEmpty) _ => true else _.str.toLowerCase.contains(filterString.toLowerCase)
   }
 
   private def channels(toplevelChannels: Rx[Seq[NodeId]], sidebarWithProjects: Var[Boolean], sidebarFilter: Var[String]): VDomModifier = div.thunkStatic(uniqueKey)(Ownable { implicit ctx =>
