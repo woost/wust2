@@ -332,7 +332,7 @@ object LeftSidebar {
       })
     }
 
-    val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(false))(Some(_))
+    val sidebarWithProjects = Client.storage.sidebarWithProjects.imap(_.getOrElse(true))(Some(_))
 
     VDomModifier(
       cls := "channels tiny-scrollbar",
