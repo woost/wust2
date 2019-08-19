@@ -78,9 +78,7 @@ object SearchModal {
         val channelDescendants = nodes.filter(n => graph.idToIdxFold(n.id)(false)(descendants(_)))
         renderSearchResult(query, channelDescendants, false)
       case SearchInput.Global(query) if query.nonEmpty =>
-        Observable.fromFuture(Client.api.getGraph(Page.empty)).map { graph => //TODO? get whole graph? does that make sense?
-          renderSearchResult(query, graph.nodes.toList, true)
-        }
+        ???
       case _ => VDomModifier.empty
     }
 
