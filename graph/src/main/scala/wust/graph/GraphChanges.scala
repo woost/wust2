@@ -31,6 +31,49 @@ final case class GraphChanges(
     }
   }
 
+  def revert(changedNodes: scala.collection.Map[NodeId, Node], opTime: EpochMilli = EpochMilli.now): GraphChanges = {
+    val toAddNodes = Array.newBuilder[Node]
+    val toAddEdges = Array.newBuilder[Edge]
+    val toDeleteEdges = Array.newBuilder[Edge]
+
+    addNodes.foreach { node =>
+      changedNodes.get(node.id).foreach(toAddNodes += _)
+    }
+
+    addEdges.foreach {
+      case edge: Edge.Child =>
+        val newDeletedAt = if (edge.data.deletedAt.isDefined) None else Some(opTime)
+        toAddEdges += edge.copy(data = edge.data.copy(deletedAt = newDeletedAt))
+      case edge =>
+        toDeleteEdges += edge
+    }
+
+    GraphChanges.from(
+      addNodes = toAddNodes.result,
+      addEdges = delEdges ++ toAddEdges.result,
+      delEdges = toDeleteEdges.result
+    )
+  }
+
+  def onlyUserActions: GraphChanges = {
+    val nodeCollector: Node => Boolean = {
+        case e: Node.Content         => true
+        case _                       => false
+    }
+    val edgeCollector: Edge => Boolean = {
+        case e: Edge.Assigned        => true
+        case e: Edge.Child           => true
+        case e: Edge.LabeledProperty => true
+        case e: Edge.Pinned          => true
+        case _                       => false
+    }
+    GraphChanges(
+      addNodes = addNodes.filter(nodeCollector),
+      addEdges = addEdges.filter(edgeCollector),
+      delEdges = delEdges.filter(edgeCollector)
+    )
+  }
+
   def merge(other: GraphChanges): GraphChanges = {
     val delEdgesBuilder = Array.newBuilder[Edge]
     val otherAddEdgesSet = HashSetFromArray(other.addEdges)

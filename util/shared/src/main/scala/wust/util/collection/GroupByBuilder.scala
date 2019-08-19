@@ -4,7 +4,7 @@ import scala.collection.generic.CanBuildFrom
 import scala.collection.mutable
 
 class GroupByBuilder[K, T] extends mutable.Builder[(K, T), scala.collection.Map[K, scala.collection.Seq[T]]] {
-  private val map = mutable.HashMap[K, mutable.ArrayBuffer[T]]()
+  val map = mutable.HashMap[K, mutable.ArrayBuffer[T]]()
 
   def +=(elem: (K,T)) = {
     val (k,t) = elem

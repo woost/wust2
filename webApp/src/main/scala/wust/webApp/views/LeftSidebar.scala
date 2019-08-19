@@ -61,6 +61,7 @@ object LeftSidebar {
             beforeInstallPrompt(buttonModifier = VDomModifier(
               marginBottom := "15px"
             )).apply(Styles.flexStatic, alignSelf.center),
+            UndoRedoControls.controls.apply(alignSelf.center),
           ),
           overlayOpenModifier = VDomModifier(
             authStatus,

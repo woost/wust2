@@ -64,7 +64,6 @@ object DragActions {
         (sortableStopEvent, graph, userId) =>
           //        val move = GraphChanges.changeTarget(Edge.Parent)(Some(payload.nodeId), stageParents, Some(intoColumn.parentId))
           def addTargetColumn = sortingChanges(graph, userId, sortableStopEvent, payload.nodeId, from, intoColumn)
-          def addTargetWorkspace = GraphChanges.connect(Edge.Child)(ParentId(intoColumn.workspace), ChildId(payload.nodeId))
           def disconnect: GraphChanges = if (from.parentId != intoColumn.workspace)
             GraphChanges.disconnect(Edge.Child)(ParentId(from.parentId), ChildId(payload.nodeId))
           else GraphChanges.empty
@@ -75,9 +74,9 @@ object DragActions {
           }
 
           if (ctrl)
-            addTargetColumn merge addTargetWorkspace
+            addTargetColumn
           else
-            addTargetColumn merge addTargetWorkspace merge disconnect
+            addTargetColumn merge disconnect
 
       // e.g. Card from Column into other Card/Inbox
       //TODO: copying from inbox to column and vice versa does not work. the encoding of being in the inbox is parent-edge to project. encoding of being in a column is parent-edge to project and parent-edge to column. Inclusion in both cannot be encoded with this.

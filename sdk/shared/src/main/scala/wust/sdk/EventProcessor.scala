@@ -68,6 +68,8 @@ class EventProcessor private (
   }).merge.share
   val currentUser: Observable[AuthUser] = currentAuth.map(_.user)
 
+  val undoActions = PublishSubject[UndoManagement.Action]
+
   //TODO: publish only Observer? publishtoone subject? because used as hot observable?
   val changes = PublishSubject[GraphChanges]
   val changesRemoteOnly = PublishSubject[GraphChanges]
@@ -77,7 +79,7 @@ class EventProcessor private (
   }
 
   // public reader
-  val (localChanges, localChangesRemoteOnly, graphEvents, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[LocalGraphUpdateEvent], Observable[Graph]) = {
+  val (localChanges, localChangesRemoteOnly, undoState, graphEvents, graph): (Observable[GraphChanges], Observable[GraphChanges], Observable[UndoManagement.State], Observable[LocalGraphUpdateEvent], Observable[Graph]) = {
     val rawGraph = PublishToOneSubject[Graph]()
     val sharedRawGraph = rawGraph.share //TODO: when we get rid of enrichment, move to GlobalState
 
@@ -87,7 +89,8 @@ class EventProcessor private (
       newChanges
     }
 
-    val enrichedChanges = enrichedChangesf(changes)
+    val enrichedChangesWithUndoState = Observable(enrichedChangesf(changes).map(UndoManagement.Action.Push(_)), undoActions).merge.scan(UndoManagement.State.initial)(_ apply _).share
+    val enrichedChanges = enrichedChangesWithUndoState.map(_.current)
     val enrichedChangesRemoteOnly = enrichedChangesf(changesRemoteOnly)
 
     def localChangesf(changes: Observable[GraphChanges]): Observable[(GraphChanges, AuthUser)] = changes.withLatestFrom(currentUser.prepend(initialAuth.user))((g, u) => (g, u)).collect {
@@ -115,6 +118,11 @@ class EventProcessor private (
     (
       localChanges.map(_._1),
       localChangesRemoteOnly.map(_._1),
+      {
+        val obs = enrichedChangesWithUndoState.replay(1)
+        obs.connect() //TODO: better way?
+        obs
+      },
       graphEvents.map(_._2),
       sharedRawGraph
     )
