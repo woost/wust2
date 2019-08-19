@@ -328,7 +328,7 @@ self.addEventListener('push', e => {
 
                         log(`Number of notifications = ${count}.`);
 
-                        const title = (count > 1) ? `${titleContent} (${count}).` : titleContent;
+                        const title = (count > 1) ? `${titleContent} [${count}]` : titleContent;
 
                         return self.registration.showNotification(title, options);
                     });
