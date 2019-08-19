@@ -238,6 +238,7 @@ object LeftSidebar {
     div(
       padding := "1px 3px",
       cursor.pointer,
+      cls := "fa-fw", // same width for expand and collapse icon
       Rx {
         if (expanded())
           freeSolid.faAngleDown:VDomModifier
