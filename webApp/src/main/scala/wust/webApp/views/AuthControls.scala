@@ -12,6 +12,9 @@ import wust.ids.View
 import wust.webApp.Client
 import wust.webApp.state._
 import wust.ids.Feature
+import wust.webApp.dragdrop.{ DragItem, DragPayload, DragTarget }
+import wust.webApp.views.DragComponents.{ drag, dragWithHandle }
+import wust.webApp.views.DragComponents.{ registerDragContainer }
 
 object AuthControls {
 
@@ -27,7 +30,7 @@ object AuthControls {
         div(
           Styles.flex,
           alignItems.center,
-          Avatar.user(user.id)(height := "20px", cls := "avatar"),
+          Avatar.user(user.id)(height := "20px", cls := "avatar", drag(payload = DragItem.User(user.id))),
           span(
             user.name,
             padding := "0 5px",
@@ -38,6 +41,7 @@ object AuthControls {
             GlobalState.urlConfig.update(_.focus(View.UserSettings))
             FeatureState.use(Feature.ClickAvatarInAuthStatus)
           },
+          registerDragContainer,
         ),
         logoutButton(buttonStyleLoggedIn)
       )
