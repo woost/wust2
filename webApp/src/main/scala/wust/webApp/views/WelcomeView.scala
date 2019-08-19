@@ -83,7 +83,7 @@ object WelcomeView {
               Styles.flex,
               alignItems.center,
               justifyContent.spaceAround,
-              AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
+              AuthControls.authStatusOnLightBackground
             )
           )
         )

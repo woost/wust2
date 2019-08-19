@@ -16,7 +16,7 @@ object Topbar {
         FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic),
         AnnouncekitWidget.widget.apply(Styles.flexStatic, color.black),
         FeedbackForm(ctx)(Styles.flexStatic),
-        AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary")
+        AuthControls.authStatus(buttonStyleLoggedIn = "basic", loginButtonStyleLoggedOut = "pink basic", signupButtonStyleLoggedOut = "pink")
       )
     })
   }

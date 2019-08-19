@@ -34,7 +34,7 @@ object LeftSidebar {
 
   def apply: VNode = {
 
-    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatus( buttonStyleLoggedIn = "basic", buttonStyleLoggedOut = "primary").map(_(marginBottom := "15px", alignSelf.center))
+    def authStatus(implicit ctx: Ctx.Owner) = AuthControls.authStatusOnLightBackground.map(_(marginBottom := "15px", alignSelf.center))
 
     GenericSidebar.left(
       GlobalState.leftSidebarOpen,

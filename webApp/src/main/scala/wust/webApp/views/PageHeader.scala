@@ -120,7 +120,7 @@ object PageHeader {
               )
               else
                 FeedbackForm(ctx)(marginLeft.auto, Styles.flexStatic),
-              AuthControls.authStatus(buttonStyleLoggedOut = "inverted", buttonStyleLoggedIn = "inverted").map(_(Styles.flexStatic))
+              AuthControls.authStatusOnColoredBackground.map(_(Styles.flexStatic))
             )
           )
         },
