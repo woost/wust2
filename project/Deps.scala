@@ -76,12 +76,12 @@ object Deps {
   val colorado = dep("com.github.fdietze.colorado" %%% "colorado" % "8722023")
   val scalacss = dep("com.github.japgolly.scalacss" %%% "core" % "0.5.6")
   val kantanRegex = new {
-    private val version = "0.4.0"
+    private val version = "0.5.0"
     val core = dep("com.nrinaudo" %%% "kantan.regex" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.regex-generic" % version)
   }
   val kantanCSV = new {
-    private val version = "0.4.0"
+    private val version = "0.5.1"
     val core = dep("com.nrinaudo" %%% "kantan.csv" % version)
     val generic = dep("com.nrinaudo" %%% "kantan.csv-generic" % version)
   }

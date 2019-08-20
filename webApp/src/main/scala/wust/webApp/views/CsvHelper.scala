@@ -1,6 +1,8 @@
 package wust.webApp.views
 
 import wust.graph._
+import kantan.csv._
+import kantan.csv.ops._
 
 object CsvHelper {
 
@@ -8,9 +10,7 @@ object CsvHelper {
 
     val sb = new StringBuilder()
 
-    def addRow(row: Seq[String]): Unit = sb.append(row.mkString(",") + "\n")
-
-    def multiCell(row: Seq[String]): String = row.mkString(";")
+    def multiCell(row: Seq[String]): String = row.mkString(",")
 
     // build the column header line
     //TODO: column names and order should be in order with tableview
@@ -25,7 +25,9 @@ object CsvHelper {
 
     val header = staticColumns ++ dynamicColumns
 
-    addRow(header)
+    val config = CsvConfiguration.rfc.withHeader(CsvConfiguration.Header.Explicit(header))
+    val stringWriter = new java.io.StringWriter
+    val writer = CsvWriter[List[String]](stringWriter, config)
 
     // build the data rows
     propertyGroup.infos.foreach { info =>
@@ -40,9 +42,12 @@ object CsvHelper {
 
       val row = staticRow ++ dynamicRow
 
-      addRow(row)
+      writer.write(row)
     }
 
-    sb.result
+    writer.close()
+    stringWriter.close()
+
+    stringWriter.toString
   }
 }
