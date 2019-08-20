@@ -8,8 +8,6 @@ object CsvHelper {
 
   def tableToCsv(node: Node, propertyGroup: PropertyData.Group): String = {
 
-    val sb = new StringBuilder()
-
     def multiCell(row: Seq[String]): String = row.mkString(",")
 
     // build the column header line
