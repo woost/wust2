@@ -3,7 +3,6 @@ package wust.core.pushnotifications
 import java.security.Security
 
 import nl.martijndwars.webpush
-import nl.martijndwars.webpush.ClosableCallback
 import org.apache.http.HttpResponse
 import org.apache.http.concurrent.FutureCallback
 import org.apache.http.impl.nio.client.HttpAsyncClients
@@ -47,7 +46,7 @@ final case class PushData(username: String, content: String, nodeId: String, sub
 
 class WebPushService private(config: WebPushConfig) {
 
-  private def base64UrlSafe(s: String) = s.replace("/", "_").replace("+", "-")
+  private def base64UrlSafe(s: String): String = s.replace("/", "_").replace("+", "-")
 
   //TODO: expiry?
   private val service = new webpush.PushService(base64UrlSafe(config.keys.publicKey), base64UrlSafe(config.keys.privateKey), config.subject)
@@ -55,12 +54,12 @@ class WebPushService private(config: WebPushConfig) {
   // we write our own version, because service.send is synchronous and service.sendAsync returns a stupid java-future.
   // so we do the same as sendAsync, but inject our own callback that completes a promise.
   private def doSend(notification: webpush.Notification)(implicit ec: ExecutionContext): Future[HttpResponse] = Future {
-    val httpPost = service.preparePost(notification)
+    val httpPost = service.preparePost(notification, webpush.Encoding.AESGCM) // AESGCM is default of service.send in web-push library
     val closeableHttpAsyncClient = HttpAsyncClients.createSystem()
     closeableHttpAsyncClient.start()
 
     // callback for closing the http client
-    val closeCb = new ClosableCallback(closeableHttpAsyncClient)
+    val closeCb = new webpush.ClosableCallback(closeableHttpAsyncClient)
     val promise = Promise[HttpResponse]()
     closeableHttpAsyncClient.execute(httpPost, new FutureCallback[HttpResponse] {
       override def completed(result: HttpResponse): Unit = {
@@ -80,14 +79,18 @@ class WebPushService private(config: WebPushConfig) {
     promise.future
   }.flatten //2.13: Future.delegate
 
-  def send(sub: Data.WebPushSubscription, payload: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
-    val notification = new webpush.Notification(
+  private def createNotification(sub: Data.WebPushSubscription, payload: String): webpush.Notification = {
+    new webpush.Notification(
       sub.endpointUrl,
-      base64UrlSafe(sub.p256dh),
-      base64UrlSafe(sub.auth),
-      payload.take(VisiblePushData.maxTotalLength)
+      webpush.Utils.loadPublicKey(base64UrlSafe(sub.p256dh)),
+      webpush.Base64Encoder.decode(base64UrlSafe(sub.auth)),
+      payload.getBytes(java.nio.charset.StandardCharsets.UTF_8),
+      43200 // ttl seconds, 12h
     )
+  }
 
+  def send(sub: Data.WebPushSubscription, payload: String)(implicit ec: ExecutionContext): Future[HttpResponse] = {
+    val notification = createNotification(sub, payload.take(VisiblePushData.maxTotalLength))
     scribe.info(s"Sending push notification to ${sub}: $payload")
     doSend(notification)
   }
@@ -96,13 +99,7 @@ class WebPushService private(config: WebPushConfig) {
     import io.circe.generic.auto._
     import io.circe.syntax._
 
-    val notification = new webpush.Notification(
-      sub.endpointUrl,
-      base64UrlSafe(sub.p256dh),
-      base64UrlSafe(sub.auth),
-      payload.trimToSize.asJson.noSpaces
-    )
-
+    val notification = createNotification(sub, payload.trimToSize.asJson.noSpaces)
     scribe.info(s"Sending push notification to ${sub}: ${payload.content}")
     doSend(notification)
   }
