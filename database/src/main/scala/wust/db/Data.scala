@@ -71,7 +71,9 @@ object Data {
       endpointUrl: String,
       p256dh: String,
       auth: String
-  ) //TODO: better names. What is pd256dh?
+  ) { //TODO: better names. What is pd256dh?
+    override def toString = s"WebPushSubscription($id, $userId, $endpointUrl, ***, ***)"
+  }
 
   object WebPushSubscription {
     def apply(
