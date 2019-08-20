@@ -75,6 +75,12 @@ object Data {
     override def toString = s"WebPushSubscription($id, $userId, $endpointUrl, ***, ***)"
   }
 
+  final case class Reminder(
+    userId: UserId,
+    email: String,
+    node: Node
+  )
+
   object WebPushSubscription {
     def apply(
         userId: UserId,
