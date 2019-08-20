@@ -1,6 +1,6 @@
 package wust.webApp.views
 
-import fontAwesome.freeSolid
+import fontAwesome._
 import org.scalajs.dom
 import outwatch.dom._
 import outwatch.dom.dsl._
@@ -14,9 +14,11 @@ import wust.webApp.views.Components._
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webApp.views.SharedViewElements.onClickNewNamePrompt
 import wust.webApp.{Icons, ItemProperties}
+import wust.util.StringOps
 import wust.webUtil.UI
 import wust.webUtil.outwatchHelpers._
 
+import scala.scalajs.js
 import scala.collection.{breakOut, mutable}
 
 object TableView {
@@ -171,7 +173,6 @@ object TableView {
           }(breakOut)
         )
 
-      Nil
       columns
     }
 
@@ -200,7 +201,6 @@ object TableView {
                 div(freeSolid.faPlus, cls := "fa-fw", marginLeft.auto, marginRight.auto),
               ),
               ItemProperties.managePropertiesDropdown(
-                
                 ItemProperties.Target.Node(group.node.id),
                 ItemProperties.TypeConfig(prefilledType = predictedType, hidePrefilledType = true),
                 ItemProperties.EdgeFactory.labeledProperty(property.key, predictedShowOnCard)
@@ -301,7 +301,9 @@ object TableView {
             )
             case None => VDomModifier.empty
           },
-        ))
+
+          exportToCsvButton(graph.nodes(focusedIdx), propertyGroup).apply(marginTop := "20px"),
+        )),
       ),
 
       button(
@@ -321,6 +323,26 @@ object TableView {
         }
       ),
       registerDragContainer( DragContainer.Default)
+    )
+  }
+
+  def exportToCsvButton(node: Node, propertyGroup: PropertyData.Group) = {
+
+    button(
+      renderFontAwesomeIcon(freeRegular.faFileExcel).apply(marginRight := "4px"),
+      "Export to CSV",
+      cls := "ui mini compact button basic",
+      cursor.pointer,
+      onClick.stopPropagation.foreach {
+        val data = CsvHelper.tableToCsv(node, propertyGroup)
+        DownloadHelper.promptDownload(
+          fileName = StringOps.trimToMaxLength(node.str, 50) + ".csv",
+          blob = new dom.Blob(js.Array(data), js.Dynamic.literal(
+            `type` = "text/csv",// type of content
+            endings = "native" // convert lineendings for us to support native os preference
+          ).asInstanceOf[dom.BlobPropertyBag])
+        )
+      }
     )
   }
 
