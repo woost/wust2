@@ -248,6 +248,45 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     MailMessage(recipient, subject = subject, fromPersonal = s"$authorName via Woost", body = body, bodyHtml = Some(bodyHtml), replyTo = Some(authorEmail))
   }
 
+  private def reminderMailMessage(email:String, node: Node.Content): MailMessage = {
+    val recipient = MailRecipient(to = email :: Nil)
+    val subject = s"Reminder: '${StringOps.trimToMaxLength(node.str, 50)}'"
+
+    val escapedContent = com.google.common.html.HtmlEscapers.htmlEscaper().escape(StringOps.trimToMaxLength(node.str, 250))
+    val view = View.forNodeRole(node.role)
+
+    val body =
+      s"""
+        |We were told to remind you of this:
+        |
+        |"$escapedContent"
+        |
+        |Click the following link to view the message:
+        |${workspaceLink(node.id, view)}
+        |
+        |
+        |$farewell
+        |
+        |$signature
+      """.stripMargin
+
+    val bodyHtml =
+      s"""
+        |<p>We were told to remind you of this::</p>
+        |
+        |<blockquote>$escapedContent</blockquote>
+        |
+        |<p>Click the following link to view the message: ${s"<a href='${workspaceLink(node.id, view)}'>View Message</a>"}</p>
+        |
+        |
+        |<p>$farewell</p>
+        |
+        |<p>$signatureHTML</p>
+      """.stripMargin
+
+    MailMessage(recipient, subject = subject, fromPersonal = "Woost", body = body, bodyHtml = Some(bodyHtml))
+  }
+
   def sendEmailVerification(userId: UserId, email: String)(implicit ec: ExecutionContext): Unit = {
     val message = verificationMailMessage(userId, email)
     emailSubject.onNext(message)
@@ -270,6 +309,11 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
 
   def sendPasswordReset(email: String, resetJwt: Authentication.Token)(implicit ec: ExecutionContext): Unit = {
     val message = passwordResetMailMessage(email = email, resetJwt = resetJwt)
+    emailSubject.onNext(message)
+  }
+
+  def sendReminder(email: String, node: Node.Content)(implicit ec: ExecutionContext): Unit = {
+    val message = reminderMailMessage(email = email, node = node)
     emailSubject.onNext(message)
   }
 
