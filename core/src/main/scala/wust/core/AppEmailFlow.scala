@@ -1,7 +1,7 @@
 package wust.core
 
 import monix.execution.{Ack, Cancelable, Scheduler}
-import monix.reactive.subjects.PublishSubject
+import monix.reactive.subjects.ConcurrentSubject
 import wust.api.{Authentication, ClientInfo}
 import wust.core.auth.JWT
 import wust.core.config.ServerConfig
@@ -17,10 +17,10 @@ object AppEmailFlow {
   val teamEmailAddress = "team@woost.space" //TODO config...
 }
 
-class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailService) {
+class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailService)(implicit scheduler: Scheduler) {
   import AppEmailFlow._
 
-  private val emailSubject = PublishSubject[MailMessage]
+  private val emailSubject = ConcurrentSubject.publish[MailMessage]
 
   private def appLoginLink: String = {
     s"https://${serverConfig.host}/#view=login"
@@ -317,7 +317,7 @@ class AppEmailFlow(serverConfig: ServerConfig, jwt: JWT, mailService: MailServic
     emailSubject.onNext(message)
   }
 
-  def start()(implicit scheduler: Scheduler): Cancelable =
+  def start(): Cancelable =
     emailSubject.mapEval { message =>
       // retry? MonixUtils.retryWithBackoff(mailService.sendMail(message), maxRetries = 3, initialDelay = 1.minute)
       mailService
