@@ -221,11 +221,10 @@ self.addEventListener('install', function(event) {
     // Activate worker immediately
     self.skipWaiting();
 });
-//self.addEventListener('activate', function(event) {
-//    log("ServiceWorker activated");
-//    //subscribe to webpush on startup
-//    event.waitUntil(userAuth.then(updateWebPushSubscriptionAndPersist));
-//});
+self.addEventListener('activate', function(event) {
+    // Become available to all pages
+    event.waitUntil(self.clients.claim());
+});
 
 self.addEventListener('message', e => {
     e.waitUntil(userAuth().then(userAuth => {
