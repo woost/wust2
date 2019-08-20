@@ -12,12 +12,12 @@ import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success}
 import scala.concurrent.duration.FiniteDuration
 
-class PollingNotifier(interval: FiniteDuration, db: Db, emailFlow: AppEmailFlow) {
-  private val trigger = Observable.intervalAtFixedRate(interval)
+class PollingNotifier(db: Db, emailFlow: AppEmailFlow) {
 
   private def runStep()(implicit ec: ExecutionContext): Future[Ack] = {
     scribe.info("Checking for reminders")
 
+    // TODO: get actual reminders
     val reminders: Future[Seq[Data.Reminder]] = ???
 
     reminders.transform {
@@ -27,6 +27,8 @@ class PollingNotifier(interval: FiniteDuration, db: Db, emailFlow: AppEmailFlow)
         reminders.foreach { reminder =>
           notify(reminder)
         }
+
+        // TODO: store that we have reminded
 
         Success(Ack.Continue)
 
@@ -43,8 +45,9 @@ class PollingNotifier(interval: FiniteDuration, db: Db, emailFlow: AppEmailFlow)
     case _ => scribe.warn(s"Reminder on user, this is unexpected, will ignore: $reminder")
   }
 
-  def start()(implicit scheduler: Scheduler): Cancelable = trigger.subscribe(
-    _ => runStep(),
-    err => scribe.error("Error in polling for notifications", err)
-  )
+  def start(interval: FiniteDuration)(implicit scheduler: Scheduler): Cancelable =
+    Observable.intervalAtFixedRate(interval).subscribe(
+      _ => runStep(),
+      err => scribe.error("Error in polling for notifications", err)
+    )
 }

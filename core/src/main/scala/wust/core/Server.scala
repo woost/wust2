@@ -33,6 +33,7 @@ import io.circe.syntax._
 import wust.api.serialize.Boopickle._
 import wust.api.serialize.Circe._
 
+import scala.concurrent.duration._
 import scala.util.{Failure, Success}
 
 object Server {
@@ -68,7 +69,6 @@ object Server {
     val fileUploader = config.aws.map(new S3FileUploader(_)) //TODO local file uploader stub for dev?
 
     val emailFlow = new AppEmailFlow(config.server, jwt, mailService)
-    val cancelable = emailFlow.start()
     val pushClients = config.pushNotification.map(PushClients.apply)
     val oAuthClientServiceLookup = new OAuthClientServiceLookup(jwt, config.server, pushClients)
     val oAuthFlowEndpoint = new OAuthFlowEndpoint(db, jwt, config.server, oAuthClientServiceLookup)
@@ -76,6 +76,10 @@ object Server {
     val passwordResetEndpoint = new  PasswordResetEndpoint(db, jwt, config.server)
     val changeGraphAuthorizer = new DbChangeGraphAuthorizer(db)
     val graphChangesNotifier = new GraphChangesNotifier(db, emailFlow)
+    val pollingNotifier = new PollingNotifier(db, emailFlow)
+
+    emailFlow.start()
+    // pollingNotifier.start(interval = 15 minutes)
 
     val apiImpl = new ApiImpl(guardDsl, db, fileUploader, config.server, emailFlow, changeGraphAuthorizer, graphChangesNotifier)
     val authImpl = new AuthApiImpl(guardDsl, db, jwt, emailFlow, oAuthClientServiceLookup)
