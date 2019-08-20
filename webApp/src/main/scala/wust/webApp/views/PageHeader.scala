@@ -114,7 +114,7 @@ object PageHeader {
             VDomModifier.ifTrue(GlobalState.screenSize() != ScreenSize.Small)(
               // depending on the screen size, different elements receive marginLeft.auto
               if (GlobalState.screenSize() == ScreenSize.Large) VDomModifier(
-                StagingOnly { FeatureExplorer(ctx)(marginLeft.auto, Styles.flexStatic) },
+                FeatureExplorer(marginLeft.auto, Styles.flexStatic),
                 AnnouncekitWidget.widget.apply(Styles.flexStatic),
                 FeedbackForm(ctx)(Styles.flexStatic),
               )

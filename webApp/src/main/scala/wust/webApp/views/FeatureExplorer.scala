@@ -3,7 +3,7 @@ package wust.webApp.views
 import acyclic.file
 import wust.facades.crisp._
 import wust.facades.googleanalytics.Analytics
-import wust.webApp.DeployedOnly
+import wust.webApp.{DeployedOnly, StagingOnly}
 import scala.scalajs.js
 import scala.util.Try
 import wust.webApp.{ DevOnly, DebugOnly }
@@ -23,7 +23,7 @@ import wust.webUtil.UI
 object FeatureExplorer {
   //TODO: next to suggested action, a button: "I don't know what to do / what this means" --> track in analytics, open support chat
   //TODO: rating for completed features: "I liked it", "too complicated", "not useful"
-  def apply(implicit ctx: Ctx.Owner) = {
+  def apply(extraMods: VDomModifier*)(implicit ctx: Ctx.Owner): VDomModifier = StagingOnly {
     val showPopup = Var(false)
     val activeDisplay = Rx { display := (if (showPopup()) "block" else "none") }
 
@@ -262,6 +262,8 @@ object FeatureExplorer {
 
         onClick.stopPropagation.discard, // prevents closing feedback form by global click
       ),
+
+      extraMods
     )
   }
 
