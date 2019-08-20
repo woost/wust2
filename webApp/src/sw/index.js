@@ -14,7 +14,7 @@ const logToBackend = s => fetch(baseUrl + '/Api/log', {
 });
 
 const wrapConsoleCall = (funName, enabled) => enabled ? (...args) => {
-    logToBackend("SW: " + args.join(", "));
+    // logToBackend("SW: " + args.join(", "));
     console[funName].apply(console, ["[SW]"].concat(args));
 } : () => {};
 const log = wrapConsoleCall("log", isDebug);
