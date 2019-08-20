@@ -5,6 +5,7 @@ import wust.graph.{Node, Graph}
 import wust.ids.{NodeId, NodeRole, UserId}
 import wust.util.algorithm.dfs
 import wust.webApp.state.TraverseState
+import wust.util.collection._
 
 import scala.collection.{breakOut, mutable}
 
@@ -42,7 +43,7 @@ object ChannelTreeData {
     val pinnedNodes = ArraySet.create(graph.nodes.length)
     graph.pinnedNodeIdx.foreachElement(userIdx)(idx => if (filter(graph.nodes(idx))) pinnedNodes += idx)
 
-    val channels = mutable.ArrayBuffer[NodeId]()
+    val channels = distinctBuilder[NodeId, mutable.ArrayBuffer]
     graph.pinnedNodeIdx.foreachElement(userIdx) { idx =>
       if (pinnedNodes.contains(idx)) {
         if (!graph.ancestorsIdxExists(idx)(ancestorIdx => pinnedNodes.contains(ancestorIdx) && !graph.ancestorsIdxExists(ancestorIdx)(_ == idx))) channels += graph.nodeIds(idx)
@@ -51,7 +52,7 @@ object ChannelTreeData {
       }
     }
 
-    channels.sorted
+    channels.result.sorted
   }
 
   @inline private def nextLayer(graph: Graph, traverseState: TraverseState, next: NestedArrayInt, shouldCollect: (Graph, Int) => Boolean): Seq[NodeId] = graph.idToIdxFold(traverseState.parentId)(Seq.empty[NodeId]) { parentIdx =>
