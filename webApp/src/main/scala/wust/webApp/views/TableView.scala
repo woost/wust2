@@ -337,10 +337,9 @@ object TableView {
         val data = CsvHelper.tableToCsv(node, propertyGroup)
         DownloadHelper.promptDownload(
           fileName = StringOps.trimToMaxLength(node.str, 50) + ".csv",
-          blob = new dom.Blob(js.Array(data), js.Dynamic.literal(
-            `type` = "text/csv",// type of content
-            endings = "native" // convert lineendings for us to support native os preference
-          ).asInstanceOf[dom.BlobPropertyBag])
+          data = data,
+          `type` = Some("text/csv"),
+          endings = Some("native")
         )
       }
     )
