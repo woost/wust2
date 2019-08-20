@@ -208,6 +208,7 @@ object GraphChanges {
   }
 
   def pin(nodeId:NodeId, userId: UserId) = GraphChanges.connect(Edge.Pinned)(nodeId, userId)
+  def unpin(nodeId:NodeId, userId: UserId) = GraphChanges.disconnect(Edge.Pinned)(nodeId, userId)
 
   def undelete(childIds: Iterable[ChildId], parentIds: Iterable[ParentId]): GraphChanges = connect(Edge.Child)(parentIds, childIds)
   def undelete(childId: ChildId, parentIds: Iterable[ParentId]): GraphChanges = undelete(childId :: Nil, parentIds)

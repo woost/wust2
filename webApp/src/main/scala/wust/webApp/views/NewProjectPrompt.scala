@@ -38,7 +38,7 @@ import scala.reflect.ClassTag
 object NewProjectPrompt {
 
   val newProjectText = "New Project"
-  def newProjectButton(label: String = newProjectText): VNode = {
+  def newProjectButton(label: String = newProjectText, focusNewProject: Boolean = true, buttonClass: String = "", extraChanges: NodeId => GraphChanges = _ => GraphChanges.empty): VNode = {
     val selectedViews = Var[Seq[View.Visible]](Seq.empty)
     val triggerSubmit = PublishSubject[Unit]
     def body(implicit ctx: Ctx.Owner) = div(
@@ -62,8 +62,9 @@ object NewProjectPrompt {
       val newName = if (sub.text.trim.isEmpty) GraphChanges.newProjectName else sub.text
       val nodeId = NodeId.fresh
       val views = if (selectedViews.now.isEmpty) None else Some(selectedViews.now.toList)
-      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId))
-      GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
+      GlobalState.submitChanges(GraphChanges.newProject(nodeId, GlobalState.user.now.id, newName, views) merge sub.changes(nodeId) merge extraChanges(nodeId))
+
+      if (focusNewProject) GlobalState.urlConfig.update(_.focus(Page(nodeId), needsGet = false))
 
       FeatureState.use(Feature.CreateProject)
       selectedViews.now.foreach ( ViewModificationMenu.trackAddViewFeature)
@@ -74,7 +75,7 @@ object NewProjectPrompt {
     }
 
     button(
-      cls := "ui button",
+      cls := s"ui button $buttonClass",
       label,
       onClickNewNamePrompt(
         header = "Create Project",
