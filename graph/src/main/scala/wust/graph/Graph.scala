@@ -333,7 +333,6 @@ final class GraphLookup(
     }
   }
 
-  private val outgoingEdgeIdxBuilder = NestedArrayInt.builder(outDegree)
   private val parentsIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val parentEdgeIdxBuilder = NestedArrayInt.builder(parentsDegree)
   private val contentsEdgeIdxBuilder = NestedArrayInt.builder(contentsDegree)
@@ -372,7 +371,6 @@ final class GraphLookup(
     val sourceIdx = edgesIdx.a(edgeIdx)
     val targetIdx = edgesIdx.b(edgeIdx)
     val edge = edges(edgeIdx)
-    outgoingEdgeIdxBuilder.add(sourceIdx, edgeIdx)
 
     edge match {
       case e: Edge.Content => contentsEdgeIdxBuilder.add(sourceIdx, edgeIdx)
@@ -456,7 +454,6 @@ final class GraphLookup(
     }
   }
 
-  val outgoingEdgeIdx: NestedArrayInt = outgoingEdgeIdxBuilder.result()
   val parentsIdx: NestedArrayInt = parentsIdxBuilder.result()
   val parentEdgeIdx: NestedArrayInt = parentEdgeIdxBuilder.result()
   val readEdgeIdx: NestedArrayInt = readEdgeIdxBuilder.result()
