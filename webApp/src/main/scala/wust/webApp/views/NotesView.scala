@@ -9,10 +9,10 @@ import wust.graph._
 import wust.ids._
 import wust.webApp.Icons
 import wust.webApp.dragdrop.DragItem
-import wust.webApp.state.{ FocusState, GlobalState, Placeholder, FeatureState }
+import wust.webApp.state.{FeatureState, FocusState, GlobalState, Placeholder}
 import wust.webApp.views.DragComponents.registerDragContainer
 import wust.webUtil.outwatchHelpers._
-import wust.webUtil.Elements
+import wust.webUtil.{Elements, UI}
 import monix.reactive.subjects.PublishSubject
 
 // Notes view, this is a simple view for storing note/wiki/documentation on a node.
@@ -90,14 +90,8 @@ object NotesView {
       cls := "note",
 
       // readability like github readme:
-      paddingTop := "48px",
-      paddingBottom := "48px",
-      paddingLeft := "48px",
+      padding := "48px",
       fontSize := "16px",
-
-      Styles.flex,
-      justifyContent.spaceBetween,
-      alignItems.flexStart,
 
       Rx {
         VDomModifier.ifNot(editMode())(
@@ -113,6 +107,9 @@ object NotesView {
 
       controls(node.id, parentId, editMode, isDeleted)
         .apply(
+          position.absolute,
+          top := "10px",
+          right := "10px",
           Styles.flexStatic,
           marginLeft := "26px",
         )
@@ -121,7 +118,6 @@ object NotesView {
 
   private def controls(nodeId: NodeId, parentId: NodeId, editMode: Var[Boolean], isDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner) = div(
     Styles.flex,
-    flexDirection.column,
     alignItems.center,
 
     UnreadComponents.readObserver(nodeId),
@@ -137,7 +133,7 @@ object NotesView {
     cls := "fa-fw",
     Icons.edit,
     cursor.pointer,
-    padding := "3px",
+    margin := "5px",
     onClick.stopPropagation.foreach {
       editMode() = !editMode.now
       if (editMode.now)
@@ -147,7 +143,7 @@ object NotesView {
 
   private def zoomButton(nodeId: NodeId) = Components.zoomButton(nodeId)(
     cls := "fa-fw",
-    padding := "3px",
+    margin := "5px",
     onClick.stopPropagation.foreach {
       FeatureState.use(Feature.ZoomIntoNote)
     }
@@ -155,7 +151,7 @@ object NotesView {
 
   private def deleteButton(nodeId: NodeId, parentId: NodeId, isDeleted: Rx[Boolean])(implicit ctx: Ctx.Owner) = div(
     cls := "fa-fw",
-    padding := "3px",
+    margin := "5px",
     isDeleted.map {
       case true  => renderFontAwesomeObject(Icons.undelete)
       case false => renderFontAwesomeIcon(Icons.delete)
@@ -177,8 +173,10 @@ object NotesView {
 
   private def dragHandle = div(
     cls := "fa-fw",
+    margin := "5px",
     cls := "draghandle",
     freeSolid.faGripVertical,
-    cursor.move
+    cursor.move,
+    UI.popup("bottom center") := "Drag here to drag the note"
   )
 }
