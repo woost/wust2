@@ -67,6 +67,11 @@ object NotesView {
       GlobalState.graph().isDeletedNow(node.id, parentId = parentId)
     }
 
+    val propertySingle = Rx {
+      val graph = GlobalState.graph()
+      PropertyData.Single(graph, graph.idToIdxOrThrow(node.id))
+    }
+
     val editMode = Var(false)
 
     div(
@@ -83,11 +88,23 @@ object NotesView {
         )
       },
 
-      editableNodeOnClick(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
+      editableNode(node, editMode = editMode, config = EditableContent.Config.cancelOnError.copy(submitOnEnter = false)).apply(width := "100%"),
 
       div(
         Styles.flex,
         alignItems.center,
+
+        div(
+          Icons.edit,
+          cursor.pointer,
+          padding := "3px",
+          marginRight := "5px",
+          onClick.stopPropagation.foreach {
+            editMode() = !editMode.now
+            if (editMode.now)
+              FeatureState.use(Feature.EditNote)
+          }
+        ),
 
         zoomButton(node.id)(
           padding := "3px",

@@ -122,6 +122,7 @@ object Feature {
   case object EditTaskInRightSidebar extends Category.Basics with Category.Item.Task { override def requiresAll = Array(OpenTaskInRightSidebar); override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban) }
   case object EditMessageInRightSidebar extends Category.Basics with Category.Item.Message { override def requiresAll = Array(OpenMessageInRightSidebar) }
   // case object EditNoteInRightSidebar extends Category.Basics with Category.Item.Note { override def requiresAll = Array(OpenNoteInRightSidebar) }
+  case object EditNote extends Category.Basics with Category.Item.Note { override def requiresAll = Array(CreateNoteInNotes) }
 
   case object ZoomIntoProject extends Category.Basics with Category.Item.Project { override def requiresAny = Array(CreateProject, CreateProjectFromCollapsedLeftSidebar, CreateProjectFromExpandedLeftSidebar, CreateProjectFromWelcomeView, CreateSubProjectFromDashboard); override def next = Array(BookmarkProject) }
   case object ZoomIntoTask extends Category.Basics with Category.Item.Task { override def requiresAny = Array(CreateTaskInChecklist, CreateTaskInKanban); override def next = Array(BookmarkTask) }
