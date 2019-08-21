@@ -363,10 +363,15 @@ object LeftSidebar {
 
   private def toggleSidebarWithProjects(sidebarWithProjects: Var[Boolean])(implicit ctx: Ctx.Owner): VNode = button(
     cls := "ui mini basic button",
-    UI.popup("bottom center") := "Show non-bookmarked subprojects",
     sidebarWithProjects map {
-      case false => freeRegular.faBookmark:VDomModifier
-      case true => freeSolid.faBookmark:VDomModifier
+      case false => VDomModifier(
+        UI.popup("bottom center") := "Show non-bookmarked subprojects",
+        freeSolid.faBookmark:VDomModifier
+      )
+      case true => VDomModifier(
+        UI.popup("bottom center") := "Show only bookmarked subprojects",
+        freeSolid.faBookOpen:VDomModifier
+      )
     },
     onClick.stopPropagation.foreach(sidebarWithProjects.update(!_))
   )
